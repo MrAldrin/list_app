@@ -14,7 +14,7 @@ The app goal is a mobile-first shared list experience where small groups can add
 
 ## How Real-Time Collaboration Works
 - Clients connect to the NiceGUI server in the browser.
-- When a user changes the list, the server persists the change and notifies connected clients in the same room.
+- When a user changes the list, the server persists the change and updates connected clients in the same room.
 - Real-time sync is handled by the app server connection layer (WebSocket/push behavior), while SQLite is used for storage.
 
 This means SQLite is valid for web sync in this architecture: storage and real-time updates are separate concerns.
@@ -26,6 +26,14 @@ The domain is intentionally small:
 - `Category`: optional grouping label for items.
 
 Only these boundaries are fixed right now. Field-level schema details are allowed to evolve as we learn.
+
+## Project Structure
+- `src/`: Core Python application code.
+  - `main.py`: Entry point and UI definitions.
+  - `models.py`: SQLite database schema (planned).
+  - `database.py`: DB connections (planned).
+- `docs/`: Technical documentation.
+- `plans/`: Feature-specific implementation plans.
 
 ## UX Direction
 - Mobile-first design is the default (iPhone-sized viewport first).
