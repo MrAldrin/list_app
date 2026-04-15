@@ -94,5 +94,7 @@ with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
 sync_data()
 render_list()
 
+ui.timer(4.0, lambda: (sync_data(), render_list()))
+
 # ui.run() starts the web server
 ui.run()
