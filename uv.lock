@@ -380,14 +380,18 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "nicegui" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "ruff" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "nicegui", specifier = ">=3.10.0" },
-    { name = "ruff", specifier = ">=0.15.10" },
-]
+requires-dist = [{ name = "nicegui", specifier = ">=3.10.0" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.15.10" }]
 
 [[package]]
 name = "lxml"

@@ -1,7 +1,10 @@
-from nicegui import ui
+import os
 import sqlite3
 
-db = sqlite3.connect("list.db", check_same_thread=False)
+from nicegui import ui
+
+db_path = os.environ.get("DB_PATH", "list.db")
+db = sqlite3.connect(db_path, check_same_thread=False)
 cursor = db.cursor()
 
 cursor.execute(
@@ -94,7 +97,9 @@ with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
 sync_data()
 render_list()
 
-ui.timer(4.0, lambda: (sync_data(), render_list()))
+ui.timer(3.0, lambda: (sync_data(), render_list()))
+
+port = int(os.environ.get("PORT", 8080))
 
 # ui.run() starts the web server
-ui.run()
+ui.run(host="0.0.0.0", port=port)

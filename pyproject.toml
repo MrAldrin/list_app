@@ -6,5 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "nicegui>=3.10.0",
+]
+
+[dependency-groups]
+dev = [
     "ruff>=0.15.10",
 ]
