@@ -102,4 +102,4 @@ ui.timer(3.0, lambda: (sync_data(), render_list()))
 port = int(os.environ.get("PORT", 8080))
 
 # ui.run() starts the web server
-ui.run(host="0.0.0.0", port=port)
+ui.run(host="0.0.0.0", port=port, reload=False)
