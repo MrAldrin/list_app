@@ -1,41 +1,21 @@
 import os
-import sqlite3
 
 from nicegui import ui, context
 
-db_path = os.environ.get("DB_PATH", "list.db")
-db = sqlite3.connect(db_path, check_same_thread=False)
-cursor = db.cursor()
-
-cursor.execute(
-    "CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT, done BOOLEAN)"
+from database import default_list_id
+from models import (
+    add_item,
+    create_list,
+    delete_item,
+    find_duplicate_name,
+    find_item_by_name,
+    get_list_data,
+    get_lists,
+    normalize_item_name,
+    rename_item,
+    restore_item,
+    update_item_done,
 )
-cursor.execute(
-    "CREATE TABLE IF NOT EXISTS lists (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)"
-)
-# Step migration: add list_id to existing items table when missing.
-cursor.execute("PRAGMA table_info(items)")
-item_columns = [row[1] for row in cursor.fetchall()]
-if "list_id" not in item_columns:
-    cursor.execute("ALTER TABLE items ADD COLUMN list_id INTEGER")
-    db.commit()
-
-# Step migration: ensure a default list exists and backfill existing items.
-cursor.execute("SELECT id FROM lists WHERE name = ?", ("default",))
-default_list = cursor.fetchone()
-if default_list is None:
-    cursor.execute("INSERT INTO lists (name) VALUES (?)", ("default",))
-    db.commit()
-    default_list_id = cursor.lastrowid
-else:
-    default_list_id = default_list[0]
-
-cursor.execute("UPDATE items SET list_id = ? WHERE list_id IS NULL", (default_list_id,))
-db.commit()
-cursor.execute(
-    "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"
-)
-db.commit()
 
 ACTIVE_LIST_STORAGE_KEY = "active_list_id"
 
@@ -53,11 +33,6 @@ def get_active_list_id_for_client(client) -> int:
     return default_list_id
 
 
-def normalize_item_name(raw: str | None) -> str:
-    # Normalize user-entered names so add/edit/search comparisons are consistent.
-    return (raw or "").strip().lower()
-
-
 def get_active_list_id() -> int:
     # Read this client/tab's currently selected list id.
     client = context.client
@@ -70,39 +45,6 @@ def set_active_list_id(list_id: int) -> None:
     if client is None:
         return
     client.storage[ACTIVE_LIST_STORAGE_KEY] = int(list_id)
-
-
-def get_lists():
-    # Return all available lists in a stable order for list selectors.
-    cursor.execute("SELECT id, name FROM lists ORDER BY name COLLATE NOCASE ASC")
-    return cursor.fetchall()
-
-
-def create_list(name: str):
-    # Create a list name once; return its id whether newly created or already existing.
-    normalized_name = normalize_item_name(name)
-    if not normalized_name:
-        raise ValueError("List name cannot be empty")
-    cursor.execute("SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,))
-    existing = cursor.fetchone()
-    if existing:
-        return existing[0]
-    cursor.execute("INSERT INTO lists (name) VALUES (?)", (normalized_name,))
-    db.commit()
-    return cursor.lastrowid
-
-
-def get_list_data(list_id: int):
-    # Fetch one list's items and suggestion history directly from the database.
-    cursor.execute(
-        "SELECT id, name, done FROM items WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC",
-        (list_id,),
-    )
-    # Convert the database rows (0/1) back into Python dictionaries (True/False)
-    rows = cursor.fetchall()
-    list_items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
-    list_history_names = sorted(list(set(item["name"] for item in list_items)))
-    return list_items, list_history_names
 
 
 def broadcast_updates():
@@ -131,12 +73,7 @@ def item_list(switch):
             # 3. Update data AND redraw when clicked
             def toggle(e, it=item):
                 # Mark one item done/undone in DB, then broadcast the updated list.
-                # Update the database based on the item's unique ID
-                cursor.execute(
-                    "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
-                    (e.value, it["id"], active_list_id),
-                )
-                db.commit()
+                update_item_done(item_id=it["id"], list_id=active_list_id, done=e.value)
                 broadcast_updates()
 
             checkbox.on_value_change(toggle)
@@ -161,11 +98,11 @@ def item_list(switch):
                                 )
                                 return
 
-                            cursor.execute(
-                                "SELECT id FROM items WHERE name = ? COLLATE NOCASE AND id != ? AND list_id = ?",
-                                (new_name, it["id"], active_list_id),
+                            duplicate = find_duplicate_name(
+                                list_id=active_list_id,
+                                item_id=it["id"],
+                                new_name=new_name,
                             )
-                            duplicate = cursor.fetchone()
                             if duplicate:
                                 ui.notify(
                                     f"'{new_name}' already exists",
@@ -174,11 +111,11 @@ def item_list(switch):
                                 )
                                 return
 
-                            cursor.execute(
-                                "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
-                                (new_name, it["id"], active_list_id),
+                            rename_item(
+                                item_id=it["id"],
+                                list_id=active_list_id,
+                                new_name=new_name,
                             )
-                            db.commit()
                             dialog.close()
                             ui.notify(
                                 f"Renamed to {new_name}",
@@ -194,11 +131,7 @@ def item_list(switch):
             # 4. Remove from data AND redraw when deleted
             def delete(it=item):
                 # Delete one item from DB, then broadcast the updated list.
-                cursor.execute(
-                    "DELETE FROM items WHERE id = ? AND list_id = ?",
-                    (it["id"], active_list_id),
-                )
-                db.commit()
+                delete_item(item_id=it["id"], list_id=active_list_id)
                 ui.notify(f"Deleted {it['name']}", color="negative", position="top")
                 broadcast_updates()
 
@@ -219,21 +152,13 @@ def add_to_list(target_input, list_id, val=None):
         return
 
     # Check the database for this name
-    cursor.execute(
-        "SELECT id, done FROM items WHERE name = ? COLLATE NOCASE AND list_id = ?",
-        (item_name, list_id),
-    )
-    existing = cursor.fetchone()
+    existing = find_item_by_name(list_id=list_id, item_name=item_name)
 
     if existing:
         item_id, is_done = existing
         if is_done:
             # It was checked off -> Restore it
-            cursor.execute(
-                "UPDATE items SET done = 0 WHERE id = ? AND list_id = ?",
-                (item_id, list_id),
-            )
-            db.commit()
+            restore_item(item_id=item_id, list_id=list_id)
             ui.notify(f"Restored {item_name}!", color="info", position="top")
         else:
             # It is already on the list -> Warn user
@@ -244,11 +169,7 @@ def add_to_list(target_input, list_id, val=None):
             )
     else:
         # It's brand new -> Add it
-        cursor.execute(
-            "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
-            (item_name, False, list_id),
-        )
-        db.commit()
+        add_item(item_name=item_name, list_id=list_id)
         ui.notify(f"Added {item_name}", color="positive", position="top")
 
     # Reset UI and refresh data
