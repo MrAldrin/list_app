@@ -16,18 +16,8 @@ items = []
 refresh_callbacks = set()
 
 
-# @app.on_connect
-# def register_client():
-#     refresh_callbacks.add(item_list.refresh)
-#     item_list.refresh()
-
-
-# @app.on_disconnect
-# def unregister_client():
-#     refresh_callbacks.discard(item_list.refresh)
-
-
 def sync_data():
+    # Reload shared list state from SQLite into in-memory structures for fast UI rendering.
     global items, history_names
     cursor.execute(
         "SELECT id, name, done FROM items ORDER BY done ASC, name COLLATE NOCASE ASC"
@@ -36,11 +26,10 @@ def sync_data():
     rows = cursor.fetchall()
     items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
     history_names = sorted(list(set(item["name"] for item in items)))
-    # search_input.options = history_names
-    # search_input.update()
 
 
 def broadcast_updates():
+    # Push a fresh list view to every connected browser client.
     sync_data()
     # This iterates through every open browser tab
     for client in app.clients():
@@ -50,6 +39,7 @@ def broadcast_updates():
 
 @ui.refreshable
 def item_list(switch):
+    # Render the list rows and wire per-row actions (toggle done, delete).
     for item in items:
         if switch.value and item["done"]:
             continue
@@ -64,6 +54,7 @@ def item_list(switch):
 
             # 3. Update data AND redraw when clicked
             def toggle(e, it=item):
+                # Mark one item done/undone in DB, then broadcast the updated list.
                 # Update the database based on the item's unique ID
                 cursor.execute(
                     "UPDATE items SET done = ? WHERE id = ?", (e.value, it["id"])
@@ -76,14 +67,17 @@ def item_list(switch):
 
             # 4. Remove from data AND redraw when deleted
             def delete(it=item):
+                # Delete one item from DB, then broadcast the updated list.
                 cursor.execute("DELETE FROM items WHERE id = ?", (it["id"],))
                 db.commit()
+                ui.notify(f"Deleted {it['name']}", color="negative")
                 broadcast_updates()
 
             ui.button(icon="delete", on_click=delete).props("flat")
 
 
 def add_to_list(target_input, val=None):
+    # Add a new item (or restore an old one), then clear this user's input and refresh all clients.
     item_name = val if val else target_input.value
     if not item_name:
         return
@@ -114,12 +108,13 @@ def add_to_list(target_input, val=None):
 
     # Reset UI and refresh data
     target_input.value = None
+    target_input.update()
     broadcast_updates()
 
 
 @ui.page("/")
 def index():
-    # A simple layout for the list app
+    # Build the main page: input controls plus the shared list.
     with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
         ui.label("Shopping List App").classes("text-2xl font-bold")
         ui.label("Welcome to the mobile-first list app prototype.")
@@ -132,7 +127,10 @@ def index():
             label="Add or Search items",
         ).classes("w-full")
 
+        search_input.props("fill-input=false")
+
         def on_filter(e):
+            # Limit dropdown suggestions to at most 3 matches and only after typing starts.
             typed = ((e.args[0] if e.args else "") or "").strip().lower()
 
             if len(typed) < 1:
@@ -160,9 +158,8 @@ def index():
 # Initiate the data from file
 sync_data()
 
-# ui.timer(3.0, lambda: (sync_data(), render_list()))
 
 port = int(os.environ.get("PORT", 8080))
 
 # ui.run() starts the web server
-ui.run(host="0.0.0.0", port=port, reload=False)
+ui.run(host="0.0.0.0", port=port, reload=True)
