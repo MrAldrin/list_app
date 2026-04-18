@@ -70,7 +70,7 @@ def item_list(switch):
                 # Delete one item from DB, then broadcast the updated list.
                 cursor.execute("DELETE FROM items WHERE id = ?", (it["id"],))
                 db.commit()
-                ui.notify(f"Deleted {it['name']}", color="negative")
+                ui.notify(f"Deleted {it['name']}", color="negative", position="top")
                 broadcast_updates()
 
             ui.button(icon="delete", on_click=delete).props("flat")
@@ -94,17 +94,21 @@ def add_to_list(target_input, val=None):
             # It was checked off -> Restore it
             cursor.execute("UPDATE items SET done = 0 WHERE id = ?", (item_id,))
             db.commit()
-            ui.notify(f"Restored {item_name}!", color="info")
+            ui.notify(f"Restored {item_name}!", color="info", position="top")
         else:
             # It is already on the list -> Warn user
-            ui.notify(f"'{item_name}' is already on the list", color="warning")
+            ui.notify(
+                f"'{item_name}' is already on the list",
+                color="warning",
+                position="top",
+            )
     else:
         # It's brand new -> Add it
         cursor.execute(
             "INSERT INTO items (name, done) VALUES (?, ?)", (item_name, False)
         )
         db.commit()
-        ui.notify(f"Added {item_name}", color="positive")
+        ui.notify(f"Added {item_name}", color="positive", position="top")
 
     # Reset UI and refresh data
     target_input.value = None
@@ -115,9 +119,8 @@ def add_to_list(target_input, val=None):
 @ui.page("/")
 def index():
     # Build the main page: input controls plus the shared list.
-    with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
-        ui.label("Shopping List App").classes("text-2xl font-bold")
-        ui.label("Welcome to the mobile-first list app prototype.")
+    with ui.card().classes("w-full max-w-sm mx-auto"):
+        ui.label("Vår handleliste").classes("text-2xl font-bold")
         hide_switch = ui.switch("Hide Completed", on_change=item_list.refresh)
         # Input field for new items
         search_input = ui.select(
@@ -127,6 +130,7 @@ def index():
             label="Add or Search items",
         ).classes("w-full")
 
+        search_input.props("behavior=menu")
         search_input.props("fill-input=false")
 
         def on_filter(e):
