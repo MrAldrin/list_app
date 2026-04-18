@@ -20,9 +20,27 @@ if "list_id" not in item_columns:
     cursor.execute("ALTER TABLE items ADD COLUMN list_id INTEGER")
     db.commit()
 
+# Step migration: ensure a default list exists and backfill existing items.
+cursor.execute("SELECT id FROM lists WHERE name = ?", ("default",))
+default_list = cursor.fetchone()
+if default_list is None:
+    cursor.execute("INSERT INTO lists (name) VALUES (?)", ("default",))
+    db.commit()
+    default_list_id = cursor.lastrowid
+else:
+    default_list_id = default_list[0]
+
+cursor.execute("UPDATE items SET list_id = ? WHERE list_id IS NULL", (default_list_id,))
+db.commit()
+cursor.execute(
+    "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"
+)
+db.commit()
+
 history_names = []
 items = []
 refresh_callbacks = set()
+current_list_id = default_list_id
 
 
 def normalize_item_name(raw: str | None) -> str:
@@ -30,11 +48,32 @@ def normalize_item_name(raw: str | None) -> str:
     return (raw or "").strip().lower()
 
 
-def sync_data():
-    # Reload shared list state from SQLite into in-memory structures for fast UI rendering.
+def get_lists():
+    # Return all available lists in a stable order for list selectors.
+    cursor.execute("SELECT id, name FROM lists ORDER BY name COLLATE NOCASE ASC")
+    return cursor.fetchall()
+
+
+def create_list(name: str):
+    # Create a list name once; return its id whether newly created or already existing.
+    normalized_name = normalize_item_name(name)
+    if not normalized_name:
+        raise ValueError("List name cannot be empty")
+    cursor.execute("SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,))
+    existing = cursor.fetchone()
+    if existing:
+        return existing[0]
+    cursor.execute("INSERT INTO lists (name) VALUES (?)", (normalized_name,))
+    db.commit()
+    return cursor.lastrowid
+
+
+def sync_data(list_id: int):
+    # Reload one list's state from SQLite into in-memory structures for fast UI rendering.
     global items, history_names
     cursor.execute(
-        "SELECT id, name, done FROM items ORDER BY done ASC, name COLLATE NOCASE ASC"
+        "SELECT id, name, done FROM items WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC",
+        (list_id,),
     )
     # Convert the database rows (0/1) back into Python dictionaries (True/False)
     rows = cursor.fetchall()
@@ -44,7 +83,7 @@ def sync_data():
 
 def broadcast_updates():
     # Push a fresh list view to every connected browser client.
-    sync_data()
+    sync_data(current_list_id)
     # This iterates through every open browser tab
     for client in app.clients():
         with client:
@@ -71,7 +110,8 @@ def item_list(switch):
                 # Mark one item done/undone in DB, then broadcast the updated list.
                 # Update the database based on the item's unique ID
                 cursor.execute(
-                    "UPDATE items SET done = ? WHERE id = ?", (e.value, it["id"])
+                    "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
+                    (e.value, it["id"], current_list_id),
                 )
                 db.commit()
                 broadcast_updates()
@@ -99,8 +139,8 @@ def item_list(switch):
                                 return
 
                             cursor.execute(
-                                "SELECT id FROM items WHERE name = ? COLLATE NOCASE AND id != ?",
-                                (new_name, it["id"]),
+                                "SELECT id FROM items WHERE name = ? COLLATE NOCASE AND id != ? AND list_id = ?",
+                                (new_name, it["id"], current_list_id),
                             )
                             duplicate = cursor.fetchone()
                             if duplicate:
@@ -112,8 +152,8 @@ def item_list(switch):
                                 return
 
                             cursor.execute(
-                                "UPDATE items SET name = ? WHERE id = ?",
-                                (new_name, it["id"]),
+                                "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
+                                (new_name, it["id"], current_list_id),
                             )
                             db.commit()
                             dialog.close()
@@ -131,7 +171,10 @@ def item_list(switch):
             # 4. Remove from data AND redraw when deleted
             def delete(it=item):
                 # Delete one item from DB, then broadcast the updated list.
-                cursor.execute("DELETE FROM items WHERE id = ?", (it["id"],))
+                cursor.execute(
+                    "DELETE FROM items WHERE id = ? AND list_id = ?",
+                    (it["id"], current_list_id),
+                )
                 db.commit()
                 ui.notify(f"Deleted {it['name']}", color="negative", position="top")
                 broadcast_updates()
@@ -154,7 +197,8 @@ def add_to_list(target_input, val=None):
 
     # Check the database for this name
     cursor.execute(
-        "SELECT id, done FROM items WHERE name = ? COLLATE NOCASE", (item_name,)
+        "SELECT id, done FROM items WHERE name = ? COLLATE NOCASE AND list_id = ?",
+        (item_name, current_list_id),
     )
     existing = cursor.fetchone()
 
@@ -162,7 +206,10 @@ def add_to_list(target_input, val=None):
         item_id, is_done = existing
         if is_done:
             # It was checked off -> Restore it
-            cursor.execute("UPDATE items SET done = 0 WHERE id = ?", (item_id,))
+            cursor.execute(
+                "UPDATE items SET done = 0 WHERE id = ? AND list_id = ?",
+                (item_id, current_list_id),
+            )
             db.commit()
             ui.notify(f"Restored {item_name}!", color="info", position="top")
         else:
@@ -175,7 +222,8 @@ def add_to_list(target_input, val=None):
     else:
         # It's brand new -> Add it
         cursor.execute(
-            "INSERT INTO items (name, done) VALUES (?, ?)", (item_name, False)
+            "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
+            (item_name, False, current_list_id),
         )
         db.commit()
         ui.notify(f"Added {item_name}", color="positive", position="top")
@@ -230,7 +278,7 @@ def index():
 
 
 # Initiate the data from file
-sync_data()
+sync_data(current_list_id)
 
 
 port = int(os.environ.get("PORT", 8080))

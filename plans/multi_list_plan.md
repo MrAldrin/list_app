@@ -134,3 +134,14 @@ Run these tests after implementation:
 5. Real-time refinement (optional list-targeted broadcast).
 6. Final test pass and docs update.
 
+## Progress log
+- 2026-04-18: Phase 1 completed in code.
+  - Added `lists` table creation.
+  - Added `list_id` migration for `items`.
+  - Added default list bootstrap and backfill for existing items.
+  - Added index on `items(list_id, done, name)`.
+- 2026-04-18: Phase 2 started in code.
+  - Added list helpers: `get_lists()` and `create_list(name)`.
+  - Made `sync_data` list-aware (`sync_data(list_id)`).
+  - Introduced active list state with `current_list_id = default_list_id`.
+  - Scoped item SQL (add/edit/delete/toggle/duplicate checks) to current list.
