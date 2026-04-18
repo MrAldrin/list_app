@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from nicegui import ui
+from nicegui import ui, app
 
 db_path = os.environ.get("DB_PATH", "list.db")
 db = sqlite3.connect(db_path, check_same_thread=False)
@@ -11,95 +11,133 @@ cursor.execute(
     "CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT, done BOOLEAN)"
 )
 
+history_names = []
+items = []
+refresh_callbacks = set()
+
+
+@app.on_connect
+def register_client():
+    refresh_callbacks.add(item_list.refresh)
+    item_list.refresh()
+
+
+@app.on_disconnect
+def unregister_client():
+    refresh_callbacks.discard(item_list.refresh)
+
 
 def sync_data():
-    global items
+    global items, history_names
     cursor.execute(
         "SELECT id, name, done FROM items ORDER BY done ASC, name COLLATE NOCASE ASC"
     )
     # Convert the database rows (0/1) back into Python dictionaries (True/False)
-    items = [
-        {"id": row[0], "name": row[1], "done": bool(row[2])}
-        for row in cursor.fetchall()
-    ]
+    rows = cursor.fetchall()
+    items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
+    history_names = sorted(list(set(item["name"] for item in items)))
+    search_input.options = history_names
+    search_input.update()
 
 
-items = []
+def broadcast_updates():
+    sync_data()
+    for refresh in refresh_callbacks:
+        refresh()
 
 
-def render_list():
-    list_container.clear()
+@ui.refreshable
+def item_list():
     for item in items:
         if hide_switch.value and item["done"]:
             continue
-        with list_container:
-            row = ui.row().classes("w-full items-center no-wrap")
-            with row:
-                # 1. Use the 'done' value from our data
-                checkbox = ui.checkbox(value=item["done"])
+        row = ui.row().classes("w-full items-center no-wrap")
+        with row:
+            # 1. Use the 'done' value from our data
+            checkbox = ui.checkbox(value=item["done"])
 
-                # 2. Add the styling immediately if it's already done
-                label_style = "line-through text-gray-400" if item["done"] else ""
-                ui.label(item["name"]).classes(label_style)
+            # 2. Add the styling immediately if it's already done
+            label_style = "line-through text-gray-400" if item["done"] else ""
+            ui.label(item["name"]).classes(label_style)
 
-                # 3. Update data AND redraw when clicked
-                def toggle(e, it=item):
-                    # Update the database based on the item's unique ID
-                    cursor.execute(
-                        "UPDATE items SET done = ? WHERE id = ?", (e.value, it["id"])
-                    )
-                    db.commit()
-                    sync_data()
-                    render_list()
+            # 3. Update data AND redraw when clicked
+            def toggle(e, it=item):
+                # Update the database based on the item's unique ID
+                cursor.execute(
+                    "UPDATE items SET done = ? WHERE id = ?", (e.value, it["id"])
+                )
+                db.commit()
+                broadcast_updates()
 
-                checkbox.on_value_change(toggle)
+            checkbox.on_value_change(toggle)
+            ui.space()
 
-                ui.space()
+            # 4. Remove from data AND redraw when deleted
+            def delete(it=item):
+                cursor.execute("DELETE FROM items WHERE id = ?", (it["id"],))
+                db.commit()
+                broadcast_updates()
 
-                # 4. Remove from data AND redraw when deleted
-                def delete(it=item):
-                    cursor.execute("DELETE FROM items WHERE id = ?", (it["id"],))
-                    db.commit()
-                    sync_data()
-                    render_list()
-
-                ui.button(icon="delete", on_click=delete).props("flat")
+            ui.button(icon="delete", on_click=delete).props("flat")
 
 
-def add_to_list():
-    val = new_item.value
-    if val:
-        # 1. Write to the database file
-        cursor.execute("INSERT INTO items (name, done) VALUES (?, ?)", (val, False))
+def add_to_list(val=None):
+    item_name = val if val else search_input.value
+    if not item_name:
+        return
+
+    # Check the database for this name
+    cursor.execute(
+        "SELECT id, done FROM items WHERE name = ? COLLATE NOCASE", (item_name,)
+    )
+    existing = cursor.fetchone()
+
+    if existing:
+        item_id, is_done = existing
+        if is_done:
+            # It was checked off -> Restore it
+            cursor.execute("UPDATE items SET done = 0 WHERE id = ?", (item_id,))
+            db.commit()
+            ui.notify(f"Restored {item_name}!", color="info")
+        else:
+            # It is already on the list -> Warn user
+            ui.notify(f"'{item_name}' is already on the list", color="warning")
+    else:
+        # It's brand new -> Add it
+        cursor.execute(
+            "INSERT INTO items (name, done) VALUES (?, ?)", (item_name, False)
+        )
         db.commit()
+        ui.notify(f"Added {item_name}", color="positive")
 
-        # 2. Reset the UI
-        new_item.value = ""
-
-        # 3. Refresh our memory and the screen
-        sync_data()
-        render_list()
+    # Reset UI and refresh data
+    search_input.value = None
+    broadcast_updates()
 
 
 # A simple layout for the list app
 with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
     ui.label("Shopping List App").classes("text-2xl font-bold")
     ui.label("Welcome to the mobile-first list app prototype.")
-    hide_switch = ui.switch("Hide Completed", on_change=render_list)
+    hide_switch = ui.switch("Hide Completed", on_change=item_list.refresh)
     # Input field for new items
-    new_item = ui.input(label="Add item", placeholder="e.g. Milk")
-    new_item.on("keydown.enter", add_to_list)
+    search_input = ui.select(
+        options=history_names,
+        with_input=True,
+        new_value_mode="add",
+        label="Add or Search items",
+    ).classes("w-full")
+    search_input.on_value_change(lambda e: add_to_list(e.value))
 
     # Button to add item
     ui.button("Add", on_click=add_to_list)
 
-    list_container = ui.column().classes("w-full")
+    item_list()
 
 # Initiate the data from file
 sync_data()
-render_list()
 
-ui.timer(3.0, lambda: (sync_data(), render_list()))
+# ui.timer(3.0, lambda: (sync_data(), render_list()))
 
 port = int(os.environ.get("PORT", 8080))
 
