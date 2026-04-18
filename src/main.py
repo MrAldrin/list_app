@@ -16,6 +16,11 @@ items = []
 refresh_callbacks = set()
 
 
+def normalize_item_name(raw: str | None) -> str:
+    # Normalize user-entered names so add/edit/search comparisons are consistent.
+    return (raw or "").strip().lower()
+
+
 def sync_data():
     # Reload shared list state from SQLite into in-memory structures for fast UI rendering.
     global items, history_names
@@ -63,7 +68,56 @@ def item_list(switch):
                 broadcast_updates()
 
             checkbox.on_value_change(toggle)
-            ui.space()
+
+            def start_edit(it=item):
+                # Open a rename dialog for one item, then persist and broadcast on save.
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    new_name_input = ui.input(
+                        label="Rename item", value=it["name"]
+                    ).classes("w-full")
+
+                    with ui.row().classes("w-full justify-end"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                        def save_name():
+                            new_name = normalize_item_name(new_name_input.value)
+                            if not new_name:
+                                ui.notify(
+                                    "Name cannot be empty",
+                                    color="warning",
+                                    position="top",
+                                )
+                                return
+
+                            cursor.execute(
+                                "SELECT id FROM items WHERE name = ? COLLATE NOCASE AND id != ?",
+                                (new_name, it["id"]),
+                            )
+                            duplicate = cursor.fetchone()
+                            if duplicate:
+                                ui.notify(
+                                    f"'{new_name}' already exists",
+                                    color="warning",
+                                    position="top",
+                                )
+                                return
+
+                            cursor.execute(
+                                "UPDATE items SET name = ? WHERE id = ?",
+                                (new_name, it["id"]),
+                            )
+                            db.commit()
+                            dialog.close()
+                            ui.notify(
+                                f"Renamed to {new_name}",
+                                color="positive",
+                                position="top",
+                            )
+                            broadcast_updates()
+
+                        ui.button("Save", on_click=save_name).props("color=primary")
+
+                dialog.open()
 
             # 4. Remove from data AND redraw when deleted
             def delete(it=item):
@@ -73,12 +127,19 @@ def item_list(switch):
                 ui.notify(f"Deleted {it['name']}", color="negative", position="top")
                 broadcast_updates()
 
-            ui.button(icon="delete", on_click=delete).props("flat")
+            with ui.row().classes("ml-auto items-center gap-0 -mr-1"):
+                ui.button(icon="edit", on_click=start_edit).props(
+                    "flat round dense size=0.8rem padding=4px"
+                )
+                ui.button(icon="delete", on_click=delete).props(
+                    "flat round dense size=0.8rem padding=4px"
+                )
 
 
 def add_to_list(target_input, val=None):
     # Add a new item (or restore an old one), then clear this user's input and refresh all clients.
-    item_name = val if val else target_input.value
+    raw_name = val if val is not None else target_input.value
+    item_name = normalize_item_name(raw_name)
     if not item_name:
         return
 
@@ -135,7 +196,7 @@ def index():
 
         def on_filter(e):
             # Limit dropdown suggestions to at most 3 matches and only after typing starts.
-            typed = ((e.args[0] if e.args else "") or "").strip().lower()
+            typed = normalize_item_name((e.args[0] if e.args else "") or "")
 
             if len(typed) < 1:
                 # show nothing until at least 1 character typed
