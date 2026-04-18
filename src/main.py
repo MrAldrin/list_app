@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from nicegui import ui, app
+from nicegui import ui, context
 
 db_path = os.environ.get("DB_PATH", "list.db")
 db = sqlite3.connect(db_path, check_same_thread=False)
@@ -37,15 +37,39 @@ cursor.execute(
 )
 db.commit()
 
-history_names = []
-items = []
-refresh_callbacks = set()
-current_list_id = default_list_id
+ACTIVE_LIST_STORAGE_KEY = "active_list_id"
+
+
+def get_active_list_id_for_client(client) -> int:
+    # Resolve one browser connection's selected list from connection-local storage.
+    if client is None:
+        return default_list_id
+    raw_list_id = client.storage.get(ACTIVE_LIST_STORAGE_KEY)
+    if raw_list_id is not None:
+        try:
+            return int(raw_list_id)
+        except (TypeError, ValueError):
+            return default_list_id
+    return default_list_id
 
 
 def normalize_item_name(raw: str | None) -> str:
     # Normalize user-entered names so add/edit/search comparisons are consistent.
     return (raw or "").strip().lower()
+
+
+def get_active_list_id() -> int:
+    # Read this client/tab's currently selected list id.
+    client = context.client
+    return get_active_list_id_for_client(client)
+
+
+def set_active_list_id(list_id: int) -> None:
+    # Persist this client/tab's selected list id.
+    client = context.client
+    if client is None:
+        return
+    client.storage[ACTIVE_LIST_STORAGE_KEY] = int(list_id)
 
 
 def get_lists():
@@ -68,32 +92,31 @@ def create_list(name: str):
     return cursor.lastrowid
 
 
-def sync_data(list_id: int):
-    # Reload one list's state from SQLite into in-memory structures for fast UI rendering.
-    global items, history_names
+def get_list_data(list_id: int):
+    # Fetch one list's items and suggestion history directly from the database.
     cursor.execute(
         "SELECT id, name, done FROM items WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC",
         (list_id,),
     )
     # Convert the database rows (0/1) back into Python dictionaries (True/False)
     rows = cursor.fetchall()
-    items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
-    history_names = sorted(list(set(item["name"] for item in items)))
+    list_items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
+    list_history_names = sorted(list(set(item["name"] for item in list_items)))
+    return list_items, list_history_names
 
 
 def broadcast_updates():
     # Push a fresh list view to every connected browser client.
-    sync_data(current_list_id)
-    # This iterates through every open browser tab
-    for client in app.clients():
-        with client:
-            item_list.refresh()
+    # item_list reads the active list from each target client at render time.
+    item_list.refresh()
 
 
 @ui.refreshable
 def item_list(switch):
     # Render the list rows and wire per-row actions (toggle done, delete).
-    for item in items:
+    active_list_id = get_active_list_id()
+    list_items, _ = get_list_data(active_list_id)
+    for item in list_items:
         if switch.value and item["done"]:
             continue
         row = ui.row().classes("w-full items-center no-wrap")
@@ -111,7 +134,7 @@ def item_list(switch):
                 # Update the database based on the item's unique ID
                 cursor.execute(
                     "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
-                    (e.value, it["id"], current_list_id),
+                    (e.value, it["id"], active_list_id),
                 )
                 db.commit()
                 broadcast_updates()
@@ -140,7 +163,7 @@ def item_list(switch):
 
                             cursor.execute(
                                 "SELECT id FROM items WHERE name = ? COLLATE NOCASE AND id != ? AND list_id = ?",
-                                (new_name, it["id"], current_list_id),
+                                (new_name, it["id"], active_list_id),
                             )
                             duplicate = cursor.fetchone()
                             if duplicate:
@@ -153,7 +176,7 @@ def item_list(switch):
 
                             cursor.execute(
                                 "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
-                                (new_name, it["id"], current_list_id),
+                                (new_name, it["id"], active_list_id),
                             )
                             db.commit()
                             dialog.close()
@@ -173,7 +196,7 @@ def item_list(switch):
                 # Delete one item from DB, then broadcast the updated list.
                 cursor.execute(
                     "DELETE FROM items WHERE id = ? AND list_id = ?",
-                    (it["id"], current_list_id),
+                    (it["id"], active_list_id),
                 )
                 db.commit()
                 ui.notify(f"Deleted {it['name']}", color="negative", position="top")
@@ -188,7 +211,7 @@ def item_list(switch):
                 )
 
 
-def add_to_list(target_input, val=None):
+def add_to_list(target_input, list_id, val=None):
     # Add a new item (or restore an old one), then clear this user's input and refresh all clients.
     raw_name = val if val is not None else target_input.value
     item_name = normalize_item_name(raw_name)
@@ -198,7 +221,7 @@ def add_to_list(target_input, val=None):
     # Check the database for this name
     cursor.execute(
         "SELECT id, done FROM items WHERE name = ? COLLATE NOCASE AND list_id = ?",
-        (item_name, current_list_id),
+        (item_name, list_id),
     )
     existing = cursor.fetchone()
 
@@ -208,7 +231,7 @@ def add_to_list(target_input, val=None):
             # It was checked off -> Restore it
             cursor.execute(
                 "UPDATE items SET done = 0 WHERE id = ? AND list_id = ?",
-                (item_id, current_list_id),
+                (item_id, list_id),
             )
             db.commit()
             ui.notify(f"Restored {item_name}!", color="info", position="top")
@@ -223,7 +246,7 @@ def add_to_list(target_input, val=None):
         # It's brand new -> Add it
         cursor.execute(
             "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
-            (item_name, False, current_list_id),
+            (item_name, False, list_id),
         )
         db.commit()
         ui.notify(f"Added {item_name}", color="positive", position="top")
@@ -237,9 +260,49 @@ def add_to_list(target_input, val=None):
 @ui.page("/")
 def index():
     # Build the main page: input controls plus the shared list.
+    set_active_list_id(get_active_list_id())
+
     with ui.card().classes("w-full max-w-sm mx-auto"):
         ui.label("Vår handleliste").classes("text-2xl font-bold")
-        hide_switch = ui.switch("Hide Completed", on_change=item_list.refresh)
+
+        with ui.row().classes("w-full items-center no-wrap gap-2"):
+            list_selector = ui.select(
+                options={list_id: name for list_id, name in get_lists()},
+                value=get_active_list_id(),
+                label="Choose list",
+            ).classes("w-full")
+            list_selector.props("behavior=menu")
+
+            def open_new_list_dialog():
+                # Create a new list from dialog input and switch to it immediately.
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    list_name_input = ui.input(label="New list name").classes("w-full")
+                    with ui.row().classes("w-full justify-end"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                        def save_list():
+                            try:
+                                new_list_id = create_list(list_name_input.value)
+                            except ValueError:
+                                ui.notify(
+                                    "List name cannot be empty",
+                                    color="warning",
+                                    position="top",
+                                )
+                                return
+
+                            set_active_list_id(new_list_id)
+                            dialog.close()
+                            ui.notify("List ready", color="positive", position="top")
+                            refresh_selected_list()
+                            broadcast_updates()
+
+                        ui.button("Save", on_click=save_list).props("color=primary")
+                dialog.open()
+
+            ui.button(icon="add", on_click=open_new_list_dialog).props("flat round")
+
+        hide_switch = ui.switch("Hide Completed")
         # Input field for new items
         search_input = ui.select(
             options=[],
@@ -254,31 +317,61 @@ def index():
         def on_filter(e):
             # Limit dropdown suggestions to at most 3 matches and only after typing starts.
             typed = normalize_item_name((e.args[0] if e.args else "") or "")
+            _, active_history_names = get_list_data(get_active_list_id())
 
             if len(typed) < 1:
                 # show nothing until at least 1 character typed
                 search_input.options = []
             else:
                 # max 3 matches
-                matches = [name for name in history_names if typed in name.lower()]
+                matches = [name for name in active_history_names if typed in name.lower()]
                 search_input.options = matches[:3]
 
             search_input.update()
 
         search_input.on("filter", on_filter)
 
+        def refresh_selected_list():
+            # Refresh list-specific data and keep selector options in sync.
+            active_list_id = get_active_list_id()
+            list_selector.options = {list_id: name for list_id, name in get_lists()}
+            list_selector.value = active_list_id
+            list_selector.update()
+            item_list.refresh()
+
+        def on_list_change(e):
+            # Switch active list and redraw this page.
+            if e.value is None:
+                return
+            set_active_list_id(int(e.value))
+            refresh_selected_list()
+            broadcast_updates()
+
+        list_selector.on_value_change(on_list_change)
+        hide_switch.on_value_change(
+            lambda e: item_list.refresh()
+        )
+
         search_input.on_value_change(
-            lambda e: add_to_list(target_input=search_input, val=e.value)
+            lambda e: add_to_list(
+                target_input=search_input,
+                list_id=get_active_list_id(),
+                val=e.value,
+            )
         )
 
         # Button to add item
-        ui.button("Add", on_click=lambda: add_to_list(search_input))
+        ui.button(
+            "Add",
+            on_click=lambda: add_to_list(search_input, list_id=get_active_list_id()),
+        )
 
         item_list(switch=hide_switch)
+        refresh_selected_list()
 
 
 # Initiate the data from file
-sync_data(current_list_id)
+get_list_data(default_list_id)
 
 
 port = int(os.environ.get("PORT", 8080))

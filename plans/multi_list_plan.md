@@ -143,5 +143,46 @@ Run these tests after implementation:
 - 2026-04-18: Phase 2 started in code.
   - Added list helpers: `get_lists()` and `create_list(name)`.
   - Made `sync_data` list-aware (`sync_data(list_id)`).
-  - Introduced active list state with `current_list_id = default_list_id`.
   - Scoped item SQL (add/edit/delete/toggle/duplicate checks) to current list.
+- 2026-04-18: Phase 2 completed in code.
+  - All core item read/write paths now use explicit list scope.
+- 2026-04-18: Phase 4 started in code.
+  - Added top list selector (`Choose list`) in UI.
+  - Added new-list dialog with validation and save flow.
+  - Wired selector changes to reload list data and refresh visible items.
+  - Wired new-list creation to switch active list and refresh UI.
+- 2026-04-18: Phase 4 completed in code (MVP scope).
+  - Top controls and new-list flow are live and integrated with item rendering.
+- 2026-04-18: Phase 3 implemented in code (per-tab selected list state).
+  - Removed global active list state.
+  - Added client storage helpers: `get_active_list_id()` and `set_active_list_id(...)`.
+  - Stored selected list in `app.storage.client` per browser tab.
+  - Updated broadcasts to refresh each client using its own selected list.
+  - Updated item handlers (add/edit/delete/toggle) to use explicit `list_id` from tab state.
+- 2026-04-18: Phase 5 mostly completed in code.
+  - `sync_data` is list-aware and drives list-specific suggestions.
+  - Add/search/rename/toggle/delete paths are scoped by selected list.
+  - Broadcast refresh remains Option A (refresh all clients, each with its own selected list).
+- 2026-04-18: Stability follow-up.
+  - Fixed hide-switch refresh wiring to pass current list-aware arguments explicitly.
+- 2026-04-18: Cross-tab list-selection isolation fix.
+  - Manual test found list selection leaking between tabs.
+  - Changed selected-list storage from `app.storage.client` to `app.storage.tab`.
+  - Result: each browser tab keeps its own selected list.
+- 2026-04-18: Runtime crash fix after tab-storage change.
+  - Reproduced startup/request crash: `app.storage.tab can only be used with a client connection`.
+  - Rolled selected-list storage back to `app.storage.client` for startup safety.
+  - Follow-up needed: implement tab-isolated state with a connection-safe approach.
+- 2026-04-18: List switch rendering fix.
+  - Manual test found list selector changed value but visible items did not reliably switch lists.
+  - Removed dependency on shared global `items/history_names` for rendering/filter options.
+  - Item rendering and search suggestions now fetch from DB using the active list id each refresh.
+- 2026-04-18: Per-client selected-list isolation fix (post-regression).
+  - Manual test showed list selection still synced across two tabs.
+  - Replaced selected-list storage with explicit in-memory mapping by `client.id`.
+  - Broadcast refresh now resolves target list per client id.
+  - Result target: two tabs/users can keep different selected lists at the same time.
+- 2026-04-18: Tab-isolation refinement.
+  - Suspected `client.id` can still couple tab behavior in some flows.
+  - Updated selected-list mapping to prefer `tab_id` keys, with `client.id` fallback.
+  - Active list resolution now checks `tab:<tab_id>` first, then `client:<client_id>`.
