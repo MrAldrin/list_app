@@ -16,15 +16,15 @@ items = []
 refresh_callbacks = set()
 
 
-@app.on_connect
-def register_client():
-    refresh_callbacks.add(item_list.refresh)
-    item_list.refresh()
+# @app.on_connect
+# def register_client():
+#     refresh_callbacks.add(item_list.refresh)
+#     item_list.refresh()
 
 
-@app.on_disconnect
-def unregister_client():
-    refresh_callbacks.discard(item_list.refresh)
+# @app.on_disconnect
+# def unregister_client():
+#     refresh_callbacks.discard(item_list.refresh)
 
 
 def sync_data():
@@ -36,20 +36,22 @@ def sync_data():
     rows = cursor.fetchall()
     items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
     history_names = sorted(list(set(item["name"] for item in items)))
-    search_input.options = history_names
-    search_input.update()
+    # search_input.options = history_names
+    # search_input.update()
 
 
 def broadcast_updates():
     sync_data()
-    for refresh in refresh_callbacks:
-        refresh()
+    # This iterates through every open browser tab
+    for client in app.clients():
+        with client:
+            item_list.refresh()
 
 
 @ui.refreshable
-def item_list():
+def item_list(switch):
     for item in items:
-        if hide_switch.value and item["done"]:
+        if switch.value and item["done"]:
             continue
         row = ui.row().classes("w-full items-center no-wrap")
         with row:
@@ -81,8 +83,8 @@ def item_list():
             ui.button(icon="delete", on_click=delete).props("flat")
 
 
-def add_to_list(val=None):
-    item_name = val if val else search_input.value
+def add_to_list(target_input, val=None):
+    item_name = val if val else target_input.value
     if not item_name:
         return
 
@@ -111,28 +113,49 @@ def add_to_list(val=None):
         ui.notify(f"Added {item_name}", color="positive")
 
     # Reset UI and refresh data
-    search_input.value = None
+    target_input.value = None
     broadcast_updates()
 
 
-# A simple layout for the list app
-with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
-    ui.label("Shopping List App").classes("text-2xl font-bold")
-    ui.label("Welcome to the mobile-first list app prototype.")
-    hide_switch = ui.switch("Hide Completed", on_change=item_list.refresh)
-    # Input field for new items
-    search_input = ui.select(
-        options=history_names,
-        with_input=True,
-        new_value_mode="add",
-        label="Add or Search items",
-    ).classes("w-full")
-    search_input.on_value_change(lambda e: add_to_list(e.value))
+@ui.page("/")
+def index():
+    # A simple layout for the list app
+    with ui.card().classes("w-full max-w-sm mx-auto mt-10"):
+        ui.label("Shopping List App").classes("text-2xl font-bold")
+        ui.label("Welcome to the mobile-first list app prototype.")
+        hide_switch = ui.switch("Hide Completed", on_change=item_list.refresh)
+        # Input field for new items
+        search_input = ui.select(
+            options=[],
+            with_input=True,
+            new_value_mode="add",
+            label="Add or Search items",
+        ).classes("w-full")
 
-    # Button to add item
-    ui.button("Add", on_click=add_to_list)
+        def on_filter(e):
+            typed = ((e.args[0] if e.args else "") or "").strip().lower()
 
-    item_list()
+            if len(typed) < 1:
+                # show nothing until at least 1 character typed
+                search_input.options = []
+            else:
+                # max 3 matches
+                matches = [name for name in history_names if typed in name.lower()]
+                search_input.options = matches[:3]
+
+            search_input.update()
+
+        search_input.on("filter", on_filter)
+
+        search_input.on_value_change(
+            lambda e: add_to_list(target_input=search_input, val=e.value)
+        )
+
+        # Button to add item
+        ui.button("Add", on_click=lambda: add_to_list(search_input))
+
+        item_list(switch=hide_switch)
+
 
 # Initiate the data from file
 sync_data()
