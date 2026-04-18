@@ -14,7 +14,9 @@ cursor.execute(
 
 def sync_data():
     global items
-    cursor.execute("SELECT id, name, done FROM items")
+    cursor.execute(
+        "SELECT id, name, done FROM items ORDER BY done ASC, name COLLATE NOCASE ASC"
+    )
     # Convert the database rows (0/1) back into Python dictionaries (True/False)
     items = [
         {"id": row[0], "name": row[1], "done": bool(row[2])}
