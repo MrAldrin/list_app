@@ -10,6 +10,15 @@ cursor = db.cursor()
 cursor.execute(
     "CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT, done BOOLEAN)"
 )
+cursor.execute(
+    "CREATE TABLE IF NOT EXISTS lists (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)"
+)
+# Step migration: add list_id to existing items table when missing.
+cursor.execute("PRAGMA table_info(items)")
+item_columns = [row[1] for row in cursor.fetchall()]
+if "list_id" not in item_columns:
+    cursor.execute("ALTER TABLE items ADD COLUMN list_id INTEGER")
+    db.commit()
 
 history_names = []
 items = []
