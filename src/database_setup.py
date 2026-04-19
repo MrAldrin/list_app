@@ -21,15 +21,16 @@ def init_database():
         cursor.execute("ALTER TABLE items ADD COLUMN list_id INTEGER")
         db.commit()
 
-    # Step migration: ensure a default list exists and backfill existing items.
-    cursor.execute("SELECT id FROM lists WHERE name = ?", ("default",))
-    default_list = cursor.fetchone()
-    if default_list is None:
+    # Step migration: ensure at least one list exists and backfill existing items.
+    cursor.execute("SELECT id FROM lists LIMIT 1")
+    any_list = cursor.fetchone()
+    if any_list is None:
         cursor.execute("INSERT INTO lists (name) VALUES (?)", ("default",))
         db.commit()
         default_list_id = cursor.lastrowid
     else:
-        default_list_id = default_list[0]
+        # Use the first list as the default_list_id.
+        default_list_id = any_list[0]
 
     cursor.execute(
         "UPDATE items SET list_id = ? WHERE list_id IS NULL",

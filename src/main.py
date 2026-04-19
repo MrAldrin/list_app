@@ -19,6 +19,7 @@ from item_service import (
     STATUS_RESTORED,
     add_or_restore_item,
     delete_item_from_list,
+    delete_list_and_items,
     rename_item_with_checks,
     rename_list_with_checks,
     toggle_item_done,
@@ -275,6 +276,42 @@ def index():
                 dialog.open()
 
             ui.button(icon="edit", on_click=open_rename_list_dialog).props("flat round")
+
+            def open_delete_list_dialog():
+                # Confirm list deletion.
+                active_list_id = get_active_list_id()
+                lists = dict(get_lists())
+                current_name = lists.get(active_list_id, "")
+
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    ui.label(f"Delete '{current_name}' and all its items?").classes(
+                        "text-lg"
+                    )
+
+                    with ui.row().classes("w-full justify-end"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                        def confirm_delete():
+                            status, next_list_id = delete_list_and_items(active_list_id)
+                            if status == STATUS_DELETED:
+                                ui.notify(
+                                    f"Deleted list '{current_name}'",
+                                    color="negative",
+                                    position="top",
+                                )
+                                set_active_list_id(next_list_id)
+                                dialog.close()
+                                refresh_selected_list()
+                                broadcast_updates()
+
+                        ui.button("Delete", on_click=confirm_delete).props(
+                            "color=negative"
+                        )
+                dialog.open()
+
+            ui.button(icon="delete", on_click=open_delete_list_dialog).props(
+                "flat round"
+            )
 
         hide_switch = ui.switch("Hide Completed")
         draft_item_text = ""

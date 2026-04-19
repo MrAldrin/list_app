@@ -13,6 +13,7 @@ from database_crud import (
     delete_item,
     find_list_by_name,
     rename_list,
+    delete_list,
 )
 
 
@@ -228,4 +229,19 @@ def test_find_list_by_name():
     create_list(name="Search Me")
     assert find_list_by_name("search me") is not None
     assert find_list_by_name("nonexistent") is None
+
+
+def test_delete_list():
+    # Verify that a list and its items are correctly deleted.
+    list_id = create_list(name="Delete Me")
+    add_item(item_name="Item 1", list_id=list_id)
+    
+    delete_list(list_id=list_id)
+    
+    lists = get_lists()
+    assert not any(l[0] == list_id for l in lists)
+    
+    # Verify items are gone too
+    items, _ = get_list_data(list_id=list_id)
+    assert len(items) == 0
 

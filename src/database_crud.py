@@ -101,3 +101,11 @@ def delete_item(item_id: int, list_id: int):
         (item_id, list_id),
     )
     db.commit()
+
+
+def delete_list(list_id: int):
+    # First delete all items in the list
+    cursor.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
+    # Then delete the list itself
+    cursor.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+    db.commit()

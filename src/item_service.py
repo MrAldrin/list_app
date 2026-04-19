@@ -1,9 +1,11 @@
 from database_crud import (
     add_item,
     delete_item,
+    delete_list,
     find_duplicate_name,
     find_item_by_name,
     find_list_by_name,
+    get_lists,
     normalize_item_name,
     rename_item,
     rename_list,
@@ -74,3 +76,16 @@ def toggle_item_done(list_id: int, item_id: int, done: bool) -> str:
 def delete_item_from_list(list_id: int, item_id: int) -> str:
     delete_item(item_id=item_id, list_id=list_id)
     return STATUS_DELETED
+
+
+def delete_list_and_items(list_id: int) -> tuple[str, int]:
+    delete_list(list_id)
+    # Return next list_id to switch to (if any)
+    remaining_lists = get_lists()
+    if not remaining_lists:
+        # Re-initialize to get a new default_list_id
+        from database_setup import init_database
+        _, _, default_list_id = init_database()
+        return STATUS_DELETED, default_list_id
+    
+    return STATUS_DELETED, remaining_lists[0][0]
