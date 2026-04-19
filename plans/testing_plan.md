@@ -26,4 +26,4 @@ We need to add a testing strategy to ensure changes don't break existing functio
 - [x] Discuss the scope of our first tests (e.g., should we start with the database, the business logic, or both?).
 - [x] Install `pytest` using `uv`.
 - [x] Write the first test case (Unit tests for `item_service.py` using mocks).
-- [ ] Write integration tests for `database_crud.py` using an in-memory database.
+- [x] Write integration tests for `database_crud.py` using an in-memory database.
