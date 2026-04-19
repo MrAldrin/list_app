@@ -20,8 +20,10 @@ from item_service import (
     add_or_restore_item,
     delete_item_from_list,
     rename_item_with_checks,
+    rename_list_with_checks,
     toggle_item_done,
 )
+
 
 ACTIVE_LIST_STORAGE_KEY = "active_list_id"
 
@@ -129,6 +131,8 @@ def item_list(switch):
 
                         ui.button("Save", on_click=save_name).props("color=primary")
 
+                    new_name_input.on("keyup.enter", save_name)
+
                 dialog.open()
 
             # 4. Remove from data AND redraw when deleted
@@ -214,9 +218,63 @@ def index():
                             broadcast_updates()
 
                         ui.button("Save", on_click=save_list).props("color=primary")
+
+                    list_name_input.on("keyup.enter", save_list)
                 dialog.open()
 
             ui.button(icon="add", on_click=open_new_list_dialog).props("flat round")
+
+            def open_rename_list_dialog():
+                # Rename the current active list from dialog input.
+                active_list_id = get_active_list_id()
+                lists = dict(get_lists())
+                current_name = lists.get(active_list_id, "")
+
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    list_name_input = ui.input(
+                        label="Rename list", value=current_name
+                    ).classes("w-full")
+
+                    with ui.row().classes("w-full justify-end"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                        def save_list_rename():
+                            status, new_name = rename_list_with_checks(
+                                active_list_id, list_name_input.value
+                            )
+                            if status == STATUS_INVALID_NAME:
+                                ui.notify(
+                                    "List name cannot be empty",
+                                    color="warning",
+                                    position="top",
+                                )
+                                return
+
+                            if status == STATUS_DUPLICATE_NAME:
+                                ui.notify(
+                                    f"'{new_name}' already exists",
+                                    color="warning",
+                                    position="top",
+                                )
+                                return
+
+                            dialog.close()
+                            ui.notify(
+                                f"Renamed to {new_name}",
+                                color="positive",
+                                position="top",
+                            )
+                            refresh_selected_list()
+                            broadcast_updates()
+
+                        ui.button("Save", on_click=save_list_rename).props(
+                            "color=primary"
+                        )
+
+                    list_name_input.on("keyup.enter", save_list_rename)
+                dialog.open()
+
+            ui.button(icon="edit", on_click=open_rename_list_dialog).props("flat round")
 
         hide_switch = ui.switch("Hide Completed")
         draft_item_text = ""

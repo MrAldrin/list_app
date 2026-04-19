@@ -11,6 +11,8 @@ from database_crud import (
     find_duplicate_name,
     rename_item,
     delete_item,
+    find_list_by_name,
+    rename_list,
 )
 
 
@@ -150,11 +152,80 @@ def test_rename_item():
     assert find_item_by_name(list_id=list_id, item_name="granny smith") is not None
 
 
+def test_get_lists_sorting():
+    # Verify that lists are returned sorted by name (case-insensitive).
+    create_list(name="Zebra")
+    create_list(name="Apple")
+    create_list(name="banana")
+    
+    lists = get_lists()
+    names = [l[1] for l in lists if l[1] != "default"]
+    assert names == ["apple", "banana", "zebra"]
+
+def test_get_list_data_sorting():
+    # Verify that items are sorted by 'done' status first, then by name (case-insensitive).
+    list_id = create_list(name="My List")
+    add_item(item_name="Zebra", list_id=list_id)
+    add_item(item_name="Apple", list_id=list_id)
+    add_item(item_name="banana", list_id=list_id)
+    
+    apple_id, _ = find_item_by_name(list_id=list_id, item_name="apple")
+    update_item_done(item_id=apple_id, list_id=list_id, done=True)
+    
+    items, _ = get_list_data(list_id=list_id)
+    # Expected: banana (False), Zebra (False), Apple (True)
+    assert items[0]["name"] == "banana"
+    assert items[1]["name"] == "Zebra"
+    assert items[2]["name"] == "Apple"
+
+def test_get_list_data_history_isolation():
+    # Verify that the history (unique item names) is correctly scoped to the list.
+    list1_id = create_list(name="List 1")
+    list2_id = create_list(name="List 2")
+    
+    add_item(item_name="Apple", list_id=list1_id)
+    add_item(item_name="Banana", list_id=list2_id)
+    
+    _, history1 = get_list_data(list_id=list1_id)
+    _, history2 = get_list_data(list_id=list2_id)
+    
+    assert history1 == ["Apple"]
+    assert history2 == ["Banana"]
+
 def test_delete_item():
     # Verify that an item can be removed from a list.
     list_id = create_list(name="My List")
     add_item(item_name="Apples", list_id=list_id)
     apple_id, _ = find_item_by_name(list_id=list_id, item_name="apples")
-
+    
     delete_item(item_id=apple_id, list_id=list_id)
     assert find_item_by_name(list_id=list_id, item_name="apples") is None
+
+def test_delete_nonexistent_item():
+    # Verify that attempting to delete an item that doesn't exist does not raise an error.
+    list_id = create_list(name="My List")
+    # This should simply do nothing and not crash
+    delete_item(item_id=999, list_id=list_id)
+
+def test_update_nonexistent_item_done():
+    # Verify that attempting to update a non-existent item does not raise an error.
+    list_id = create_list(name="My List")
+    update_item_done(item_id=999, list_id=list_id, done=True)
+
+
+def test_rename_list():
+    # Verify that a list can be renamed and it reflects in get_lists.
+    list_id = create_list(name="Old Name")
+    rename_list(list_id=list_id, new_name="new name")
+    
+    lists = get_lists()
+    assert any(l[1] == "new name" for l in lists)
+    assert not any(l[1] == "old name" for l in lists)
+
+
+def test_find_list_by_name():
+    # Verify that a list can be found by its name.
+    create_list(name="Search Me")
+    assert find_list_by_name("search me") is not None
+    assert find_list_by_name("nonexistent") is None
+

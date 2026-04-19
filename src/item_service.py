@@ -3,8 +3,10 @@ from database_crud import (
     delete_item,
     find_duplicate_name,
     find_item_by_name,
+    find_list_by_name,
     normalize_item_name,
     rename_item,
+    rename_list,
     restore_item,
     update_item_done,
 )
@@ -48,6 +50,19 @@ def rename_item_with_checks(
         return STATUS_DUPLICATE_NAME, new_name
 
     rename_item(item_id=item_id, list_id=list_id, new_name=new_name)
+    return STATUS_RENAMED, new_name
+
+
+def rename_list_with_checks(list_id: int, raw_name: str | None) -> tuple[str, str | None]:
+    new_name = normalize_item_name(raw_name)
+    if not new_name:
+        return STATUS_INVALID_NAME, None
+
+    duplicate = find_list_by_name(new_name)
+    if duplicate and duplicate[0] != list_id:
+        return STATUS_DUPLICATE_NAME, new_name
+
+    rename_list(list_id=list_id, new_name=new_name)
     return STATUS_RENAMED, new_name
 
 

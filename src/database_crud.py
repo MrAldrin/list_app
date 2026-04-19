@@ -10,19 +10,30 @@ def get_lists():
     return cursor.fetchall()
 
 
+def find_list_by_name(name: str):
+    cursor.execute(
+        "SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (name,)
+    )
+    return cursor.fetchone()
+
+
 def create_list(name: str):
     normalized_name = normalize_item_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
-    cursor.execute(
-        "SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,)
-    )
-    existing = cursor.fetchone()
+    existing = find_list_by_name(normalized_name)
     if existing:
         return existing[0]
     cursor.execute("INSERT INTO lists (name) VALUES (?)", (normalized_name,))
     db.commit()
     return cursor.lastrowid
+
+
+def rename_list(list_id: int, new_name: str):
+    cursor.execute(
+        "UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id)
+    )
+    db.commit()
 
 
 def get_list_data(list_id: int):
