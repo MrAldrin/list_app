@@ -6,11 +6,24 @@ It explains how the system should work, without locking down detailed implementa
 
 The app goal is a mobile-first shared list experience where small groups can add items, mark done items, and organize/filter the list.
 
+This architecture optimizes for simplicity and learning speed over horizontal scaling.
+
+## App specifications for the end goal for this app:
+- Used by up to 4 users at the same time
+- The app update for all users when one user makes a change
+- The app should focus on users on mobile phones
+- The add field also acts as an update field. The user should get feedback when adding element.
+    - When the user writes a new element:
+        - if a new element: Add to list
+        - if exists:
+            - if unchecked: do nothing
+            - if checked: unchek the element
+- There should be a filter for showing checked off elements or not
+
 ## Core Architecture Decisions
-- `NiceGUI` is used as the web framework, so frontend and backend live in one Python app.
-- `SQLite` is the initial database for persistent storage.
-- The system runs as one web server process for MVP usage.
-- Collaboration uses shared room codes with no login in v1.
+- Frontend/Backend: Python with NiceGUI
+- Data Storage: sqlite
+- Published on railway free-tier with volume storage 
 
 ## How Real-Time Collaboration Works
 - Clients connect to the NiceGUI server in the browser.
@@ -28,22 +41,19 @@ The domain is intentionally small:
 Only these boundaries are fixed right now. Field-level schema details are allowed to evolve as we learn.
 
 ## Project Structure
-- `src/`: Core Python application code.
-  - `main.py`: Entry point and UI definitions.
-  - `models.py`: SQLite database schema (planned).
-  - `database.py`: DB connections (planned).
+- src/: Source code
+    - main.py: entrypoint to app and UI
+    - database_setup.py: SQLite schema definition and initialization.
+    - database_crud.py: Direct database Create, Read, Update, and Delete operations.
+    - item_service.py: Business logic for managing list items and real-time updates.
 - `docs/`: Technical documentation.
 - `plans/`: Feature-specific implementation plans.
 
 ## UX Direction
-- Mobile-first design is the default (iPhone-sized viewport first).
-- Desktop support is secondary.
+- Mobile-first design is the default
 - UI decisions should prioritize quick list editing during shopping.
 
-## Scale and Constraints
-- Target scale: up to 4 concurrent users.
-- Target behavior: near real-time updates for users in the same room.
-- This architecture optimizes for simplicity and learning speed over horizontal scaling.
+
 
 ## Evolution Rules
 - This document is the architecture source of truth.

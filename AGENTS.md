@@ -2,32 +2,23 @@
 
 - This project should create a MVP of a list app for the web. 
 - It should be built very simple, and slowly add more features.
-- I have never published a wed app before, so explain the ways of web development along the way.
-- Explain it it simple terms so I can learn while we make the app.
-
-
-## App specifications for the end goal for this app:
-- Used by up to 4 users at the same time
-- The app update for all users when one user makes a change
-- The app should mainly look good on a mobile phone (iphone 16 size). Pc screens are just a nice have
-- The user should be able add more items and edit existing ones.
-- There should be a filter for showing checked off elements or not
-
+- This is my first web app. So explain the ways of web development in simple terms for me to learn along the way.
 
 
 ## Technical Stack ideas
-We should make use some simple to understand technologies and is should primarily be written in Python.
-My proposed technologies are the following, but if you dissagree, tell me: 
-- Frontend/Backend: Python with NiceGUI
-- Data Storage: sql database
+We should use simple to understand technologies and is should primarily be written in Python.
+The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
 
 
 ## Repo structure ideas:
 Follow best practise for python web development.
 We also have these extra files and folders:
+- src/: the app code. main.py is the entry point
 - ARCHITECTURE.md: A markdown file where we keep the high lever architecture. We look back at this document to see if we have deviated from the achitecture. If that happen you must tell me, and we have to either change our direction or update the arhitecture file to match.
-- docs/: Where we add longer documentation if needed
-- plans/: For implementation plans of bigger ideas. This way we can iterate on a plan together to iron out the details and keep track of progress.
+- plans/: 
+    - A special folder that you should use if you make longer plans.
+    - We will often iterate on a .md file together before implementing the plan. 
+    - The bottom of the files should contain tracking of progress for that plan.
 
 
 ## Guiding Principles

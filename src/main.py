@@ -220,13 +220,20 @@ def index():
 
         hide_switch = ui.switch("Hide Completed")
         draft_item_text = ""
-        # Input field for new items
-        search_input = ui.select(
-            options=[],
-            with_input=True,
-            new_value_mode="add",
-            label="Add or Search items",
-        ).classes("w-full")
+        with ui.row().classes("w-full items-center no-wrap gap-2"):
+            # Input field for new items
+            search_input = ui.select(
+                options=[],
+                with_input=True,
+                new_value_mode="add",
+                label="Add or Search items",
+            ).classes("flex-grow")
+
+            # Button to add item
+            ui.button(
+                "Add",
+                on_click=lambda: submit_item(),
+            )
 
         search_input.props("behavior=menu")
         search_input.props("fill-input=false")
@@ -304,12 +311,6 @@ def index():
         # Submit only on explicit user action (Enter/Add), not on blur.
         search_input.on("keyup.enter", lambda _: submit_item())
         search_input.on("blur", lambda _: keep_visible_draft_text())
-
-        # Button to add item
-        ui.button(
-            "Add",
-            on_click=lambda: submit_item(),
-        )
 
         item_list(switch=hide_switch)
         refresh_selected_list()
