@@ -167,3 +167,31 @@ Run manual tests to ensure no behavioral regressions.
 3. `database_crud.py` remains SQL-focused.
 4. Manual checklist passes.
 5. Code remains easy to follow for a beginner.
+
+---
+
+## Work Status Log
+- 2026-04-19: Phase 1 completed.
+  - Added `src/item_service.py`.
+  - Implemented service API functions:
+    - `add_or_restore_item(...)`
+    - `rename_item_with_checks(...)`
+    - `toggle_item_done(...)`
+    - `delete_item_from_list(...)`
+  - Added shared status constants for consistent return values.
+- 2026-04-19: Phase 2 completed.
+  - Updated item handlers in `src/main.py` to call service functions for:
+    - add/restore flow
+    - rename flow
+    - done toggle
+    - delete
+  - Removed direct business-rule branching from UI handlers.
+- 2026-04-19: Phase 3 completed.
+  - Kept all `ui.notify(...)` decisions and user-facing messages in `src/main.py`.
+  - Service layer returns status codes only (no NiceGUI dependency).
+- 2026-04-19: Phase 4 completed.
+  - Cleaned now-unused direct CRUD business-rule imports from `src/main.py`.
+  - `normalize_item_name` remains used in UI filter behavior; business validation now goes through service.
+- 2026-04-19: Phase 5 in progress.
+  - Performed syntax validation with `py_compile` for updated modules.
+  - Manual behavior checklist still pending.

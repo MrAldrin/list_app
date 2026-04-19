@@ -4,17 +4,23 @@ from nicegui import ui, context
 
 from database_setup import default_list_id
 from database_crud import (
-    add_item,
     create_list,
-    delete_item,
-    find_duplicate_name,
-    find_item_by_name,
     get_list_data,
     get_lists,
     normalize_item_name,
-    rename_item,
-    restore_item,
-    update_item_done,
+)
+from item_service import (
+    STATUS_ADDED,
+    STATUS_DELETED,
+    STATUS_DUPLICATE_ACTIVE,
+    STATUS_DUPLICATE_NAME,
+    STATUS_INVALID_NAME,
+    STATUS_RENAMED,
+    STATUS_RESTORED,
+    add_or_restore_item,
+    delete_item_from_list,
+    rename_item_with_checks,
+    toggle_item_done,
 )
 
 ACTIVE_LIST_STORAGE_KEY = "active_list_id"
@@ -73,7 +79,7 @@ def item_list(switch):
             # 3. Update data AND redraw when clicked
             def toggle(e, it=item):
                 # Mark one item done/undone in DB, then broadcast the updated list.
-                update_item_done(item_id=it["id"], list_id=active_list_id, done=e.value)
+                toggle_item_done(item_id=it["id"], list_id=active_list_id, done=e.value)
                 broadcast_updates()
 
             checkbox.on_value_change(toggle)
@@ -89,8 +95,12 @@ def item_list(switch):
                         ui.button("Cancel", on_click=dialog.close).props("flat")
 
                         def save_name():
-                            new_name = normalize_item_name(new_name_input.value)
-                            if not new_name:
+                            status, new_name = rename_item_with_checks(
+                                list_id=active_list_id,
+                                item_id=it["id"],
+                                raw_name=new_name_input.value,
+                            )
+                            if status == STATUS_INVALID_NAME:
                                 ui.notify(
                                     "Name cannot be empty",
                                     color="warning",
@@ -98,12 +108,7 @@ def item_list(switch):
                                 )
                                 return
 
-                            duplicate = find_duplicate_name(
-                                list_id=active_list_id,
-                                item_id=it["id"],
-                                new_name=new_name,
-                            )
-                            if duplicate:
+                            if status == STATUS_DUPLICATE_NAME:
                                 ui.notify(
                                     f"'{new_name}' already exists",
                                     color="warning",
@@ -111,11 +116,9 @@ def item_list(switch):
                                 )
                                 return
 
-                            rename_item(
-                                item_id=it["id"],
-                                list_id=active_list_id,
-                                new_name=new_name,
-                            )
+                            if status != STATUS_RENAMED:
+                                return
+
                             dialog.close()
                             ui.notify(
                                 f"Renamed to {new_name}",
@@ -131,8 +134,9 @@ def item_list(switch):
             # 4. Remove from data AND redraw when deleted
             def delete(it=item):
                 # Delete one item from DB, then broadcast the updated list.
-                delete_item(item_id=it["id"], list_id=active_list_id)
-                ui.notify(f"Deleted {it['name']}", color="negative", position="top")
+                status = delete_item_from_list(item_id=it["id"], list_id=active_list_id)
+                if status == STATUS_DELETED:
+                    ui.notify(f"Deleted {it['name']}", color="negative", position="top")
                 broadcast_updates()
 
             with ui.row().classes("ml-auto items-center gap-0 -mr-1"):
@@ -147,29 +151,19 @@ def item_list(switch):
 def add_to_list(target_input, list_id, val=None):
     # Add a new item (or restore an old one), then clear this user's input and refresh all clients.
     raw_name = val if val is not None else target_input.value
-    item_name = normalize_item_name(raw_name)
-    if not item_name:
+    status, item_name = add_or_restore_item(list_id=list_id, raw_name=raw_name)
+
+    if status == STATUS_INVALID_NAME:
         return
-
-    # Check the database for this name
-    existing = find_item_by_name(list_id=list_id, item_name=item_name)
-
-    if existing:
-        item_id, is_done = existing
-        if is_done:
-            # It was checked off -> Restore it
-            restore_item(item_id=item_id, list_id=list_id)
-            ui.notify(f"Restored {item_name}!", color="info", position="top")
-        else:
-            # It is already on the list -> Warn user
-            ui.notify(
-                f"'{item_name}' is already on the list",
-                color="warning",
-                position="top",
-            )
-    else:
-        # It's brand new -> Add it
-        add_item(item_name=item_name, list_id=list_id)
+    if status == STATUS_RESTORED:
+        ui.notify(f"Restored {item_name}!", color="info", position="top")
+    elif status == STATUS_DUPLICATE_ACTIVE:
+        ui.notify(
+            f"'{item_name}' is already on the list",
+            color="warning",
+            position="top",
+        )
+    elif status == STATUS_ADDED:
         ui.notify(f"Added {item_name}", color="positive", position="top")
 
     # Reset UI and refresh data
