@@ -154,7 +154,7 @@ def add_to_list(target_input, list_id, val=None):
     status, item_name = add_or_restore_item(list_id=list_id, raw_name=raw_name)
 
     if status == STATUS_INVALID_NAME:
-        return
+        return False
     if status == STATUS_RESTORED:
         ui.notify(f"Restored {item_name}!", color="info", position="top")
     elif status == STATUS_DUPLICATE_ACTIVE:
@@ -170,6 +170,7 @@ def add_to_list(target_input, list_id, val=None):
     target_input.value = None
     target_input.update()
     broadcast_updates()
+    return True
 
 
 @ui.page("/")
@@ -218,6 +219,7 @@ def index():
             ui.button(icon="add", on_click=open_new_list_dialog).props("flat round")
 
         hide_switch = ui.switch("Hide Completed")
+        draft_item_text = ""
         # Input field for new items
         search_input = ui.select(
             options=[],
@@ -229,9 +231,15 @@ def index():
         search_input.props("behavior=menu")
         search_input.props("fill-input=false")
 
+        def keep_visible_draft_text():
+            # Keep typed draft visible in QSelect when focus leaves without submit.
+            search_input.run_method("updateInputValue", draft_item_text)
+
         def on_filter(e):
+            nonlocal draft_item_text
             # Limit dropdown suggestions to at most 3 matches and only after typing starts.
             typed = normalize_item_name((e.args[0] if e.args else "") or "")
+            draft_item_text = typed
             _, active_history_names = get_list_data(get_active_list_id())
 
             if len(typed) < 1:
@@ -247,6 +255,27 @@ def index():
             search_input.update()
 
         search_input.on("filter", on_filter)
+
+        def submit_item(raw_value=None):
+            nonlocal draft_item_text
+            selected_value = normalize_item_name(search_input.value)
+            value_to_add = raw_value if raw_value is not None else (selected_value or draft_item_text)
+            added = add_to_list(
+                target_input=search_input,
+                list_id=get_active_list_id(),
+                val=value_to_add,
+            )
+            if added:
+                draft_item_text = ""
+                search_input.options = []
+                search_input.update()
+                keep_visible_draft_text()
+                return
+
+            # Keep what the user typed when nothing was submitted.
+            search_input.value = draft_item_text
+            search_input.update()
+            keep_visible_draft_text()
 
         def refresh_selected_list():
             # Refresh list-specific data and keep selector options in sync.
@@ -267,18 +296,19 @@ def index():
         list_selector.on_value_change(on_list_change)
         hide_switch.on_value_change(lambda e: item_list.refresh())
 
-        search_input.on_value_change(
-            lambda e: add_to_list(
-                target_input=search_input,
-                list_id=get_active_list_id(),
-                val=e.value,
-            )
-        )
+        def on_value_change(e):
+            nonlocal draft_item_text
+            draft_item_text = normalize_item_name(e.value or "")
+
+        search_input.on_value_change(on_value_change)
+        # Submit only on explicit user action (Enter/Add), not on blur.
+        search_input.on("keyup.enter", lambda _: submit_item())
+        search_input.on("blur", lambda _: keep_visible_draft_text())
 
         # Button to add item
         ui.button(
             "Add",
-            on_click=lambda: add_to_list(search_input, list_id=get_active_list_id()),
+            on_click=lambda: submit_item(),
         )
 
         item_list(switch=hide_switch)
