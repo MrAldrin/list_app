@@ -2,8 +2,8 @@ import os
 
 from nicegui import ui, context
 
-from database import default_list_id
-from models import (
+from database_setup import default_list_id
+from database_crud import (
     add_item,
     create_list,
     delete_item,
@@ -245,7 +245,9 @@ def index():
                 search_input.options = []
             else:
                 # max 3 matches
-                matches = [name for name in active_history_names if typed in name.lower()]
+                matches = [
+                    name for name in active_history_names if typed in name.lower()
+                ]
                 search_input.options = matches[:3]
 
             search_input.update()
@@ -269,9 +271,7 @@ def index():
             broadcast_updates()
 
         list_selector.on_value_change(on_list_change)
-        hide_switch.on_value_change(
-            lambda e: item_list.refresh()
-        )
+        hide_switch.on_value_change(lambda e: item_list.refresh())
 
         search_input.on_value_change(
             lambda e: add_to_list(

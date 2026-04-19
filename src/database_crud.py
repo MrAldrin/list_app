@@ -1,4 +1,4 @@
-from database import db, cursor
+from database_setup import db, cursor
 
 
 def normalize_item_name(raw: str | None) -> str:
@@ -14,7 +14,9 @@ def create_list(name: str):
     normalized_name = normalize_item_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
-    cursor.execute("SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,))
+    cursor.execute(
+        "SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,)
+    )
     existing = cursor.fetchone()
     if existing:
         return existing[0]
