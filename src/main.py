@@ -6,8 +6,11 @@ from database_crud import (
     create_list,
     get_item_count,
     get_list_data,
+    get_list_details,
     get_lists,
     normalize_item_name,
+    update_list_tags_settings,
+    update_item_active_tags,
 )
 from item_service import (
     STATUS_ADDED,
@@ -180,10 +183,19 @@ def index():
 
 
 @ui.refreshable
-def item_list(list_id: int):
+def item_list(list_id: int, filter_func=None):
     # Render items for a specific list.
     list_items, _ = get_list_data(list_id)
+    details = get_list_details(list_id)
+    enable_tags = details["enable_tags"] if details else False
+    list_tags = details["list_tags"] if details else []
+    
+    current_filter = filter_func() if filter_func else None
+
     for item in list_items:
+        if current_filter and current_filter not in item["active_tags"]:
+            continue
+
         row = ui.row().classes(
             "w-full items-center no-wrap border-b border-gray-100 py-1"
         )
@@ -191,6 +203,29 @@ def item_list(list_id: int):
             checkbox = ui.checkbox(value=item["done"])
             label_style = "line-through text-gray-400" if item["done"] else ""
             ui.label(item["name"]).classes(f"flex-grow {label_style}")
+
+            if enable_tags and list_tags:
+                with ui.row().classes("items-center gap-1 mx-2"):
+                    for idx, tag in enumerate(list_tags):
+                        colors = ["blue", "green", "red", "orange", "purple", "teal", "pink"]
+                        color = colors[idx % len(colors)]
+                        first_letter = tag[0].upper() if tag else "?"
+                        is_active = tag in item["active_tags"]
+                        
+                        def toggle_tag(it=item, t=tag):
+                            active = it["active_tags"].copy()
+                            if t in active:
+                                active.remove(t)
+                            else:
+                                active.append(t)
+                            update_item_active_tags(it["id"], list_id, active)
+                            broadcast_updates()
+                            
+                        btn = ui.button(first_letter, on_click=toggle_tag)
+                        btn_props = f"round dense size=xs color={color}"
+                        if not is_active:
+                            btn_props += " outline"
+                        btn.props(btn_props)
 
             def toggle(e, it=item):
                 toggle_item_done(list_id=list_id, item_id=it["id"], done=e.value)
@@ -250,8 +285,14 @@ def item_list(list_id: int):
 def list_page(list_id: int):
     # Detail View: Focus on items within a specific list.
     list_id = int(list_id)
-    lists = dict(get_lists())
-    list_name = lists.get(list_id, "Unknown List")
+    details = get_list_details(list_id)
+    if not details:
+        ui.label("List not found").classes("text-xl p-4")
+        return
+    list_name = details["name"]
+    enable_tags = details["enable_tags"]
+
+    state = {"filter_tag": None}
 
     with ui.card().classes("w-full max-w-sm mx-auto"):
         # Header with back button
@@ -321,8 +362,52 @@ def list_page(list_id: int):
             lambda e: draft_text.update({"val": normalize_item_name(e.value or "")})
         )
 
+        @ui.refreshable
+        def tags_ui():
+            if not enable_tags:
+                return
+            
+            curr_details = get_list_details(list_id)
+            list_tags = curr_details["list_tags"] if curr_details else []
+
+            with ui.row().classes("w-full items-center mt-2 gap-2"):
+                new_tag_input = ui.input("Add Tag").classes("flex-grow")
+                def add_tag():
+                    tag = new_tag_input.value.strip()
+                    if tag and tag not in list_tags:
+                        list_tags.append(tag)
+                        update_list_tags_settings(list_id, True, list_tags)
+                        new_tag_input.value = ""
+                        tags_ui.refresh()
+                        item_list.refresh()
+                        broadcast_updates()
+                ui.button(icon="add", on_click=add_tag).props("flat round dense")
+
+            if list_tags:
+                with ui.row().classes("w-full gap-2 mt-2 flex-wrap"):
+                    for idx, tag in enumerate(list_tags):
+                        colors = ["blue", "green", "red", "orange", "purple", "teal", "pink"]
+                        color = colors[idx % len(colors)]
+                        is_active = (state["filter_tag"] == tag)
+                        
+                        def toggle_filter(t=tag):
+                            if state["filter_tag"] == t:
+                                state["filter_tag"] = None
+                            else:
+                                state["filter_tag"] = t
+                            tags_ui.refresh()
+                            item_list.refresh()
+
+                        btn = ui.button(tag, on_click=toggle_filter)
+                        btn_props = f"rounded size=sm color={color}"
+                        if not is_active:
+                            btn_props += " outline"
+                        btn.props(btn_props)
+
+        tags_ui()
+
         # The actual list of items
-        item_list(list_id)
+        item_list(list_id, lambda: state["filter_tag"])
 
 
 port = int(os.environ.get("PORT", 8080))
