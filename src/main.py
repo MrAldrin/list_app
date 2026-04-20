@@ -2,9 +2,9 @@ import os
 
 from nicegui import ui, context
 
-from database_setup import default_list_id
 from database_crud import (
     create_list,
+    get_item_count,
     get_list_data,
     get_lists,
     normalize_item_name,
@@ -25,397 +25,303 @@ from item_service import (
     toggle_item_done,
 )
 
-
-ACTIVE_LIST_STORAGE_KEY = "active_list_id"
-
-
-def get_active_list_id_for_client(client) -> int:
-    # Resolve one browser connection's selected list from connection-local storage.
-    if client is None:
-        return default_list_id
-    raw_list_id = client.storage.get(ACTIVE_LIST_STORAGE_KEY)
-    if raw_list_id is not None:
-        try:
-            return int(raw_list_id)
-        except (TypeError, ValueError):
-            return default_list_id
-    return default_list_id
-
-
-def get_active_list_id() -> int:
-    # Read this client/tab's currently selected list id.
-    client = context.client
-    return get_active_list_id_for_client(client)
-
-
-def set_active_list_id(list_id: int) -> None:
-    # Persist this client/tab's selected list id.
-    client = context.client
-    if client is None:
-        return
-    client.storage[ACTIVE_LIST_STORAGE_KEY] = int(list_id)
+NOTIFY_POSITION = "top"
 
 
 def broadcast_updates():
-    # Push a fresh list view to every connected browser client.
-    # item_list reads the active list from each target client at render time.
+    # Push a fresh view to every connected browser client.
+    # We refresh both the main list of lists and the item list.
+    list_of_lists.refresh()
     item_list.refresh()
 
 
 @ui.refreshable
-def item_list(switch):
-    # Render the list rows and wire per-row actions (toggle done, delete).
-    active_list_id = get_active_list_id()
-    list_items, _ = get_list_data(active_list_id)
+def list_of_lists():
+    # Render the start page content: a list of all shopping lists.
+    lists = get_lists()
+
+    if not lists:
+        ui.label("No lists yet. Create your first one!").classes("text-gray-500 italic")
+        return
+
+    for list_id, name in lists:
+        with ui.card().classes("w-full mb-2"):
+            with ui.row().classes("w-full items-center no-wrap"):
+                # Main button to enter the list
+                ui.button(
+                    name, on_click=lambda lid=list_id: ui.navigate.to(f"/list/{lid}")
+                ).props("flat").classes("flex-grow text-left text-lg")
+
+                # Edit/Rename button
+                def open_rename_dialog(lid=list_id, lname=name):
+                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                        ui.label(f"Rename '{lname}'").classes("text-lg font-bold")
+                        new_name_input = ui.input(value=lname).classes("w-full")
+                        with ui.row().classes("w-full justify-end"):
+                            ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                            def save():
+                                status, actual_name = rename_list_with_checks(
+                                    lid, new_name_input.value
+                                )
+                                if status == STATUS_INVALID_NAME:
+                                    ui.notify("Name cannot be empty", color="warning")
+                                    return
+                                if status == STATUS_DUPLICATE_NAME:
+                                    ui.notify(
+                                        f"'{actual_name}' already exists",
+                                        color="warning",
+                                        position=NOTIFY_POSITION,
+                                    )
+                                    return
+                                dialog.close()
+                                ui.notify(
+                                    f"Renamed to {actual_name}",
+                                    color="positive",
+                                    position=NOTIFY_POSITION,
+                                )
+                                broadcast_updates()
+
+                            ui.button("Save", on_click=save)
+                        new_name_input.on("keyup.enter", save)
+                    dialog.open()
+
+                ui.button(icon="edit", on_click=open_rename_dialog).props(
+                    "flat round dense size=sm"
+                )
+
+                # Delete button
+                def open_delete_dialog(lid=list_id, lname=name):
+                    count = get_item_count(lid)
+                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                        ui.label(f"Delete '{lname}' and its {count} items?").classes(
+                            "text-lg"
+                        )
+                        with ui.row().classes("w-full justify-end"):
+                            ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                            def confirm():
+                                delete_list_and_items(lid)
+                                dialog.close()
+                                ui.notify(
+                                    f"Deleted '{lname}'",
+                                    color="negative",
+                                    position=NOTIFY_POSITION,
+                                )
+                                broadcast_updates()
+
+                            ui.button("Delete", on_click=confirm).props(
+                                "color=negative"
+                            )
+                    dialog.open()
+
+                ui.button(icon="delete", on_click=open_delete_dialog).props(
+                    "flat round dense size=sm color=negative"
+                )
+
+
+@ui.page("/")
+def index():
+    # Start Page: Management of all lists.
+    with ui.card().classes("w-full max-w-sm mx-auto"):
+        # ui.label("ListR").classes(
+        #     "text-3xl font-black tracking-tighter text-primary mb-4"
+        # )
+        with ui.row().classes(
+            "w-full items-center justify-center tracking-tighter gap-0 mb-2 text-3xl"
+        ):
+            ui.label("List").classes("font-bold text-slate-800")
+            ui.label("R").classes("font-black text-primary")
+
+        # Dialog for creating new lists
+        def open_new_list_dialog():
+            with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                ui.label("New List").classes("text-lg font-bold")
+                list_name_input = ui.input(label="List name").classes("w-full")
+                with ui.row().classes("w-full justify-end"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                    def save():
+                        try:
+                            new_id = create_list(list_name_input.value)
+                            dialog.close()
+                            ui.notify(
+                                "List created",
+                                color="positive",
+                                position=NOTIFY_POSITION,
+                            )
+                            ui.navigate.to(f"/list/{new_id}")
+                            broadcast_updates()
+                        except ValueError:
+                            ui.notify(
+                                "Name cannot be empty",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
+
+                    ui.button("Save", on_click=save)
+
+                list_name_input.on("keyup.enter", save)
+            dialog.open()
+
+        ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes(
+            "w-full mb-4"
+        ).props("outline")
+
+        list_of_lists()
+
+
+@ui.refreshable
+def item_list(list_id: int):
+    # Render items for a specific list.
+    list_items, _ = get_list_data(list_id)
     for item in list_items:
-        if switch.value and item["done"]:
-            continue
-        row = ui.row().classes("w-full items-center no-wrap")
+        row = ui.row().classes(
+            "w-full items-center no-wrap border-b border-gray-100 py-1"
+        )
         with row:
-            # 1. Use the 'done' value from our data
             checkbox = ui.checkbox(value=item["done"])
-
-            # 2. Add the styling immediately if it's already done
             label_style = "line-through text-gray-400" if item["done"] else ""
-            ui.label(item["name"]).classes(label_style)
+            ui.label(item["name"]).classes(f"flex-grow {label_style}")
 
-            # 3. Update data AND redraw when clicked
             def toggle(e, it=item):
-                # Mark one item done/undone in DB, then broadcast the updated list.
-                toggle_item_done(item_id=it["id"], list_id=active_list_id, done=e.value)
+                toggle_item_done(list_id=list_id, item_id=it["id"], done=e.value)
                 broadcast_updates()
 
             checkbox.on_value_change(toggle)
 
             def start_edit(it=item):
-                # Open a rename dialog for one item, then persist and broadcast on save.
                 with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    new_name_input = ui.input(
-                        label="Rename item", value=it["name"]
-                    ).classes("w-full")
-
+                    ui.label("Edit Item").classes("text-lg font-bold")
+                    new_name_input = ui.input(value=it["name"]).classes("w-full")
                     with ui.row().classes("w-full justify-end"):
                         ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                        def save_name():
+                        def save():
                             status, new_name = rename_item_with_checks(
-                                list_id=active_list_id,
-                                item_id=it["id"],
-                                raw_name=new_name_input.value,
+                                list_id, it["id"], new_name_input.value
                             )
                             if status == STATUS_INVALID_NAME:
                                 ui.notify(
                                     "Name cannot be empty",
                                     color="warning",
-                                    position="top",
+                                    position=NOTIFY_POSITION,
                                 )
                                 return
-
                             if status == STATUS_DUPLICATE_NAME:
                                 ui.notify(
                                     f"'{new_name}' already exists",
                                     color="warning",
-                                    position="top",
+                                    position=NOTIFY_POSITION,
                                 )
                                 return
-
-                            if status != STATUS_RENAMED:
-                                return
-
                             dialog.close()
-                            ui.notify(
-                                f"Renamed to {new_name}",
-                                color="positive",
-                                position="top",
-                            )
                             broadcast_updates()
 
-                        ui.button("Save", on_click=save_name).props("color=primary")
-
-                    new_name_input.on("keyup.enter", save_name)
-
+                        ui.button("Save", on_click=save)
+                    new_name_input.on("keyup.enter", save)
                 dialog.open()
 
-            # 4. Remove from data AND redraw when deleted
             def delete(it=item):
-                # Delete one item from DB, then broadcast the updated list.
-                status = delete_item_from_list(item_id=it["id"], list_id=active_list_id)
-                if status == STATUS_DELETED:
-                    ui.notify(f"Deleted {it['name']}", color="negative", position="top")
+                delete_item_from_list(list_id, it["id"])
+                ui.notify(
+                    f"Deleted {it['name']}", color="negative", position=NOTIFY_POSITION
+                )
                 broadcast_updates()
 
-            with ui.row().classes("ml-auto items-center gap-0 -mr-1"):
+            with ui.row().classes("items-center gap-0"):
                 ui.button(icon="edit", on_click=start_edit).props(
-                    "flat round dense size=0.8rem padding=4px"
+                    "flat round dense size=sm"
                 )
                 ui.button(icon="delete", on_click=delete).props(
-                    "flat round dense size=0.8rem padding=4px"
+                    "flat round dense size=sm color=negative"
                 )
 
 
-def add_to_list(target_input, list_id, val=None):
-    # Add a new item (or restore an old one), then clear this user's input and refresh all clients.
-    raw_name = val if val is not None else target_input.value
-    status, item_name = add_or_restore_item(list_id=list_id, raw_name=raw_name)
-
-    if status == STATUS_INVALID_NAME:
-        return False
-    if status == STATUS_RESTORED:
-        ui.notify(f"Restored {item_name}!", color="info", position="top")
-    elif status == STATUS_DUPLICATE_ACTIVE:
-        ui.notify(
-            f"'{item_name}' is already on the list",
-            color="warning",
-            position="top",
-        )
-    elif status == STATUS_ADDED:
-        ui.notify(f"Added {item_name}", color="positive", position="top")
-
-    # Reset UI and refresh data
-    target_input.value = None
-    target_input.update()
-    broadcast_updates()
-    return True
-
-
-@ui.page("/")
-def index():
-    # Build the main page: input controls plus the shared list.
-    set_active_list_id(get_active_list_id())
+@ui.page("/list/{list_id}")
+def list_page(list_id: int):
+    # Detail View: Focus on items within a specific list.
+    list_id = int(list_id)
+    lists = dict(get_lists())
+    list_name = lists.get(list_id, "Unknown List")
 
     with ui.card().classes("w-full max-w-sm mx-auto"):
-        ui.label("Vår handleliste").classes("text-2xl font-bold")
-
-        with ui.row().classes("w-full items-center no-wrap gap-2"):
-            list_selector = ui.select(
-                options={list_id: name for list_id, name in get_lists()},
-                value=get_active_list_id(),
-                label="Choose list",
-            ).classes("w-full")
-            list_selector.props("behavior=menu")
-
-            def open_new_list_dialog():
-                # Create a new list from dialog input and switch to it immediately.
-                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    list_name_input = ui.input(label="New list name").classes("w-full")
-                    with ui.row().classes("w-full justify-end"):
-                        ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                        def save_list():
-                            try:
-                                new_list_id = create_list(list_name_input.value)
-                            except ValueError:
-                                ui.notify(
-                                    "List name cannot be empty",
-                                    color="warning",
-                                    position="top",
-                                )
-                                return
-
-                            set_active_list_id(new_list_id)
-                            dialog.close()
-                            ui.notify("List ready", color="positive", position="top")
-                            refresh_selected_list()
-                            broadcast_updates()
-
-                        ui.button("Save", on_click=save_list).props("color=primary")
-
-                    list_name_input.on("keyup.enter", save_list)
-                dialog.open()
-
-            ui.button(icon="add", on_click=open_new_list_dialog).props("flat round")
-
-            def open_rename_list_dialog():
-                # Rename the current active list from dialog input.
-                active_list_id = get_active_list_id()
-                lists = dict(get_lists())
-                current_name = lists.get(active_list_id, "")
-
-                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    list_name_input = ui.input(
-                        label="Rename list", value=current_name
-                    ).classes("w-full")
-
-                    with ui.row().classes("w-full justify-end"):
-                        ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                        def save_list_rename():
-                            status, new_name = rename_list_with_checks(
-                                active_list_id, list_name_input.value
-                            )
-                            if status == STATUS_INVALID_NAME:
-                                ui.notify(
-                                    "List name cannot be empty",
-                                    color="warning",
-                                    position="top",
-                                )
-                                return
-
-                            if status == STATUS_DUPLICATE_NAME:
-                                ui.notify(
-                                    f"'{new_name}' already exists",
-                                    color="warning",
-                                    position="top",
-                                )
-                                return
-
-                            dialog.close()
-                            ui.notify(
-                                f"Renamed to {new_name}",
-                                color="positive",
-                                position="top",
-                            )
-                            refresh_selected_list()
-                            broadcast_updates()
-
-                        ui.button("Save", on_click=save_list_rename).props(
-                            "color=primary"
-                        )
-
-                    list_name_input.on("keyup.enter", save_list_rename)
-                dialog.open()
-
-            ui.button(icon="edit", on_click=open_rename_list_dialog).props("flat round")
-
-            def open_delete_list_dialog():
-                # Confirm list deletion.
-                active_list_id = get_active_list_id()
-                lists = dict(get_lists())
-                current_name = lists.get(active_list_id, "")
-
-                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    ui.label(f"Delete '{current_name}' and all its items?").classes(
-                        "text-lg"
-                    )
-
-                    with ui.row().classes("w-full justify-end"):
-                        ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                        def confirm_delete():
-                            status, next_list_id = delete_list_and_items(active_list_id)
-                            if status == STATUS_DELETED:
-                                ui.notify(
-                                    f"Deleted list '{current_name}'",
-                                    color="negative",
-                                    position="top",
-                                )
-                                set_active_list_id(next_list_id)
-                                dialog.close()
-                                refresh_selected_list()
-                                broadcast_updates()
-
-                        ui.button("Delete", on_click=confirm_delete).props(
-                            "color=negative"
-                        )
-                dialog.open()
-
-            ui.button(icon="delete", on_click=open_delete_list_dialog).props(
+        # Header with back button
+        with ui.row().classes("w-full items-center mb-2"):
+            ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props(
                 "flat round"
             )
+            ui.label(list_name).classes("text-2xl font-bold flex-grow")
 
-        hide_switch = ui.switch("Hide Completed")
-        draft_item_text = ""
+        # Add item input
+        draft_text = {"val": ""}  # Use dict to keep it mutable in inner functions
+
         with ui.row().classes("w-full items-center no-wrap gap-2"):
-            # Input field for new items
             search_input = ui.select(
                 options=[],
                 with_input=True,
                 new_value_mode="add",
-                label="Add or Search items",
+                label="Add or Search",
             ).classes("flex-grow")
 
-            # Button to add item
-            ui.button(
-                "Add",
-                on_click=lambda: submit_item(),
-            )
+            def submit():
+                selected = normalize_item_name(search_input.value)
+                to_add = selected or draft_text["val"]
+                if not to_add:
+                    return
 
-        search_input.props("behavior=menu")
-        search_input.props("fill-input=false")
+                status, name = add_or_restore_item(list_id, to_add)
+                if status == STATUS_RESTORED:
+                    ui.notify(
+                        f"Restored {name}!", color="info", position=NOTIFY_POSITION
+                    )
+                elif status == STATUS_DUPLICATE_ACTIVE:
+                    ui.notify(
+                        f"'{name}' is already on the list",
+                        color="warning",
+                        position=NOTIFY_POSITION,
+                    )
+                elif status == STATUS_ADDED:
+                    ui.notify(f"Added {name}", color="positive", position=NOTIFY_POSITION)
 
-        def keep_visible_draft_text():
-            # Keep typed draft visible in QSelect when focus leaves without submit.
-            search_input.run_method("updateInputValue", draft_item_text)
+                search_input.value = None
+                draft_text["val"] = ""
+                search_input.options = []
+                search_input.update()
+                broadcast_updates()
+
+            ui.button("Add", on_click=submit)
+
+        search_input.props("behavior=menu fill-input=false")
 
         def on_filter(e):
-            nonlocal draft_item_text
-            # Limit dropdown suggestions to at most 3 matches and only after typing starts.
-            typed = normalize_item_name((e.args[0] if e.args else "") or "")
-            draft_item_text = typed
-            _, active_history_names = get_list_data(get_active_list_id())
-
+            typed = normalize_item_name(e.args[0] if e.args else "")
+            draft_text["val"] = typed
             if len(typed) < 1:
-                # show nothing until at least 1 character typed
                 search_input.options = []
             else:
-                # max 3 matches
-                matches = [
-                    name for name in active_history_names if typed in name.lower()
-                ]
+                _, history = get_list_data(list_id)
+                matches = [n for n in history if typed in n.lower()]
                 search_input.options = matches[:3]
-
             search_input.update()
 
         search_input.on("filter", on_filter)
+        search_input.on("keyup.enter", submit)
+        search_input.on_value_change(
+            lambda e: draft_text.update({"val": normalize_item_name(e.value or "")})
+        )
 
-        def submit_item(raw_value=None):
-            nonlocal draft_item_text
-            selected_value = normalize_item_name(search_input.value)
-            value_to_add = raw_value if raw_value is not None else (selected_value or draft_item_text)
-            added = add_to_list(
-                target_input=search_input,
-                list_id=get_active_list_id(),
-                val=value_to_add,
-            )
-            if added:
-                draft_item_text = ""
-                search_input.options = []
-                search_input.update()
-                keep_visible_draft_text()
-                return
+        # ui.separator().classes("my-4")
 
-            # Keep what the user typed when nothing was submitted.
-            search_input.value = draft_item_text
-            search_input.update()
-            keep_visible_draft_text()
-
-        def refresh_selected_list():
-            # Refresh list-specific data and keep selector options in sync.
-            active_list_id = get_active_list_id()
-            list_selector.options = {list_id: name for list_id, name in get_lists()}
-            list_selector.value = active_list_id
-            list_selector.update()
-            item_list.refresh()
-
-        def on_list_change(e):
-            # Switch active list and redraw this page.
-            if e.value is None:
-                return
-            set_active_list_id(int(e.value))
-            refresh_selected_list()
-            broadcast_updates()
-
-        list_selector.on_value_change(on_list_change)
-        hide_switch.on_value_change(lambda e: item_list.refresh())
-
-        def on_value_change(e):
-            nonlocal draft_item_text
-            draft_item_text = normalize_item_name(e.value or "")
-
-        search_input.on_value_change(on_value_change)
-        # Submit only on explicit user action (Enter/Add), not on blur.
-        search_input.on("keyup.enter", lambda _: submit_item())
-        search_input.on("blur", lambda _: keep_visible_draft_text())
-
-        item_list(switch=hide_switch)
-        refresh_selected_list()
-
-
-# Initiate the data from file
-get_list_data(default_list_id)
+        # The actual list of items
+        item_list(list_id)
 
 
 port = int(os.environ.get("PORT", 8080))
-
-# ui.run() starts the web server
-ui.run(host="0.0.0.0", port=port, reload=True)
+ui.run(
+    host="0.0.0.0",
+    port=port,
+    reload=True,
+    title="Shopping List",
+    storage_secret="some_secret",
+)

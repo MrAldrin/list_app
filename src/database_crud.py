@@ -36,6 +36,11 @@ def rename_list(list_id: int, new_name: str):
     db.commit()
 
 
+def get_item_count(list_id: int) -> int:
+    cursor.execute("SELECT COUNT(*) FROM items WHERE list_id = ?", (list_id,))
+    return cursor.fetchone()[0]
+
+
 def get_list_data(list_id: int):
     cursor.execute(
         "SELECT id, name, done FROM items WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC",
