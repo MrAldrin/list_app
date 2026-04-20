@@ -44,7 +44,7 @@ def list_of_lists():
         ui.label("No lists yet. Create your first one!").classes("text-gray-500 italic")
         return
 
-    for list_id, name in lists:
+    for list_id, name, enable_tags in lists:
         with ui.card().classes("w-full mb-2"):
             with ui.row().classes("w-full items-center no-wrap"):
                 # Main button to enter the list

@@ -38,6 +38,23 @@ def init_database():
     )
     db.commit()
 
+    # Step migration: add tags to lists table
+    cursor.execute("PRAGMA table_info(lists)")
+    list_columns = [row[1] for row in cursor.fetchall()]
+    if "enable_tags" not in list_columns:
+        cursor.execute("ALTER TABLE lists ADD COLUMN enable_tags BOOLEAN DEFAULT 0")
+        db.commit()
+    if "list_tags" not in list_columns:
+        cursor.execute("ALTER TABLE lists ADD COLUMN list_tags TEXT DEFAULT '[]'")
+        db.commit()
+
+    # Step migration: add active_tags to items table
+    cursor.execute("PRAGMA table_info(items)")
+    item_columns = [row[1] for row in cursor.fetchall()]
+    if "active_tags" not in item_columns:
+        cursor.execute("ALTER TABLE items ADD COLUMN active_tags TEXT DEFAULT '[]'")
+        db.commit()
+
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"
     )

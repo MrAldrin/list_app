@@ -1,3 +1,4 @@
+import json
 from database_setup import db, cursor
 
 
@@ -6,8 +7,41 @@ def normalize_item_name(raw: str | None) -> str:
 
 
 def get_lists():
-    cursor.execute("SELECT id, name FROM lists ORDER BY name COLLATE NOCASE ASC")
+    cursor.execute("SELECT id, name, enable_tags FROM lists ORDER BY name COLLATE NOCASE ASC")
     return cursor.fetchall()
+
+
+def get_list_details(list_id: int):
+    cursor.execute("SELECT id, name, enable_tags, list_tags FROM lists WHERE id = ?", (list_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    try:
+        list_tags = json.loads(row[3]) if row[3] else []
+    except json.JSONDecodeError:
+        list_tags = []
+    return {
+        "id": row[0],
+        "name": row[1],
+        "enable_tags": bool(row[2]),
+        "list_tags": list_tags
+    }
+
+
+def update_list_tags_settings(list_id: int, enable_tags: bool, list_tags: list[str]):
+    cursor.execute(
+        "UPDATE lists SET enable_tags = ?, list_tags = ? WHERE id = ?",
+        (enable_tags, json.dumps(list_tags), list_id),
+    )
+    db.commit()
+
+
+def update_item_active_tags(item_id: int, list_id: int, active_tags: list[str]):
+    cursor.execute(
+        "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
+        (json.dumps(active_tags), item_id, list_id),
+    )
+    db.commit()
 
 
 def find_list_by_name(name: str):
@@ -43,11 +77,17 @@ def get_item_count(list_id: int) -> int:
 
 def get_list_data(list_id: int):
     cursor.execute(
-        "SELECT id, name, done FROM items WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC",
+        "SELECT id, name, done, active_tags FROM items WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC",
         (list_id,),
     )
     rows = cursor.fetchall()
-    list_items = [{"id": r[0], "name": r[1], "done": bool(r[2])} for r in rows]
+    list_items = []
+    for r in rows:
+        try:
+            active_tags = json.loads(r[3]) if r[3] else []
+        except json.JSONDecodeError:
+            active_tags = []
+        list_items.append({"id": r[0], "name": r[1], "done": bool(r[2]), "active_tags": active_tags})
     list_history_names = sorted(list(set(item["name"] for item in list_items)))
     return list_items, list_history_names
 
