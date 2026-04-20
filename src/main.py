@@ -301,6 +301,22 @@ def list_page(list_id: int):
                 "flat round"
             )
             ui.label(list_name).classes("text-2xl font-bold flex-grow")
+            
+            def toggle_enable_tags():
+                curr = get_list_details(list_id)
+                if curr:
+                    new_val = not curr["enable_tags"]
+                    update_list_tags_settings(list_id, new_val, curr["list_tags"])
+                    ui.notify(f"Quick tags {'enabled' if new_val else 'disabled'}", position=NOTIFY_POSITION)
+                    # reload to update local enable_tags state and tags_ui
+                    ui.navigate.to(f"/list/{list_id}")
+
+            with ui.button(icon="more_vert").props("flat round"):
+                with ui.menu():
+                    ui.menu_item(
+                        "Disable Quick Tags" if enable_tags else "Enable Quick Tags", 
+                        on_click=toggle_enable_tags
+                    )
 
         # Add item input
         draft_text = {"val": ""}  # Use dict to keep it mutable in inner functions
@@ -382,6 +398,7 @@ def list_page(list_id: int):
                         item_list.refresh()
                         broadcast_updates()
                 ui.button(icon="add", on_click=add_tag).props("flat round dense")
+                new_tag_input.on("keyup.enter", add_tag)
 
             if list_tags:
                 with ui.row().classes("w-full gap-2 mt-2 flex-wrap"):
@@ -397,12 +414,27 @@ def list_page(list_id: int):
                                 state["filter_tag"] = t
                             tags_ui.refresh()
                             item_list.refresh()
+                            
+                        def delete_tag(t=tag):
+                            if t in list_tags:
+                                list_tags.remove(t)
+                                update_list_tags_settings(list_id, True, list_tags)
+                                if state["filter_tag"] == t:
+                                    state["filter_tag"] = None
+                                tags_ui.refresh()
+                                item_list.refresh()
+                                broadcast_updates()
 
-                        btn = ui.button(tag, on_click=toggle_filter)
-                        btn_props = f"rounded size=sm color={color}"
-                        if not is_active:
-                            btn_props += " outline"
-                        btn.props(btn_props)
+                        with ui.row().classes("items-center gap-0"):
+                            btn = ui.button(tag, on_click=toggle_filter)
+                            btn_props = f"rounded size=sm color={color}"
+                            if not is_active:
+                                btn_props += " outline"
+                            btn.props(btn_props)
+                            
+                            del_btn = ui.button(icon="close", on_click=delete_tag)
+                            del_btn_props = f"rounded size=sm color={color} flat"
+                            del_btn.props(del_btn_props)
 
         tags_ui()
 

@@ -8,7 +8,7 @@ def normalize_item_name(raw: str | None) -> str:
 
 def get_lists():
     cursor.execute("SELECT id, name, enable_tags FROM lists ORDER BY name COLLATE NOCASE ASC")
-    return cursor.fetchall()
+    return [(r[0], r[1], bool(r[2])) for r in cursor.fetchall()]
 
 
 def get_list_details(list_id: int):
