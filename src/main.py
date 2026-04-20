@@ -53,11 +53,12 @@ def list_of_lists():
                 ).props("flat").classes("flex-grow text-left text-lg")
 
                 # Edit/Rename button
-                def open_rename_dialog(lid=list_id, lname=name):
+                def open_rename_dialog(lid=list_id, lname=name, lenable=enable_tags):
                     with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Rename '{lname}'").classes("text-lg font-bold")
-                        new_name_input = ui.input(value=lname).classes("w-full")
-                        with ui.row().classes("w-full justify-end"):
+                        ui.label(f"Edit '{lname}'").classes("text-lg font-bold")
+                        new_name_input = ui.input(value=lname, label="List Name").classes("w-full")
+                        enable_tags_checkbox = ui.checkbox("Enable Quick Tags", value=lenable).classes("w-full mt-2")
+                        with ui.row().classes("w-full justify-end mt-4"):
                             ui.button("Cancel", on_click=dialog.close).props("flat")
 
                             def save():
@@ -74,9 +75,15 @@ def list_of_lists():
                                         position=NOTIFY_POSITION,
                                     )
                                     return
+                                
+                                from database_crud import get_list_details, update_list_tags_settings
+                                current_details = get_list_details(lid)
+                                if current_details:
+                                    update_list_tags_settings(lid, enable_tags_checkbox.value, current_details["list_tags"])
+                                
                                 dialog.close()
                                 ui.notify(
-                                    f"Renamed to {actual_name}",
+                                    f"Updated {actual_name}",
                                     color="positive",
                                     position=NOTIFY_POSITION,
                                 )
@@ -138,12 +145,13 @@ def index():
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("New List").classes("text-lg font-bold")
                 list_name_input = ui.input(label="List name").classes("w-full")
-                with ui.row().classes("w-full justify-end"):
+                enable_tags_checkbox = ui.checkbox("Enable Quick Tags").classes("w-full mt-2")
+                with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
                     def save():
                         try:
-                            new_id = create_list(list_name_input.value)
+                            new_id = create_list(list_name_input.value, enable_tags_checkbox.value)
                             dialog.close()
                             ui.notify(
                                 "List created",

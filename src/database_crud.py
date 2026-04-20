@@ -51,14 +51,14 @@ def find_list_by_name(name: str):
     return cursor.fetchone()
 
 
-def create_list(name: str):
+def create_list(name: str, enable_tags: bool = False):
     normalized_name = normalize_item_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
     existing = find_list_by_name(normalized_name)
     if existing:
         return existing[0]
-    cursor.execute("INSERT INTO lists (name) VALUES (?)", (normalized_name,))
+    cursor.execute("INSERT INTO lists (name, enable_tags) VALUES (?, ?)", (normalized_name, enable_tags))
     db.commit()
     return cursor.lastrowid
 
