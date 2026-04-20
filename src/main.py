@@ -282,7 +282,9 @@ def list_page(list_id: int):
                         position=NOTIFY_POSITION,
                     )
                 elif status == STATUS_ADDED:
-                    ui.notify(f"Added {name}", color="positive", position=NOTIFY_POSITION)
+                    ui.notify(
+                        f"Added {name}", color="positive", position=NOTIFY_POSITION
+                    )
 
                 search_input.value = None
                 draft_text["val"] = ""
@@ -311,8 +313,6 @@ def list_page(list_id: int):
             lambda e: draft_text.update({"val": normalize_item_name(e.value or "")})
         )
 
-        # ui.separator().classes("my-4")
-
         # The actual list of items
         item_list(list_id)
 
@@ -322,6 +322,6 @@ ui.run(
     host="0.0.0.0",
     port=port,
     reload=True,
-    title="Shopping List",
+    title="ListR",
     storage_secret="some_secret",
 )

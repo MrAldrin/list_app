@@ -34,7 +34,7 @@ This means SQLite is valid for web sync in this architecture: storage and real-t
 
 ## Data Boundaries (Evolvable)
 The domain is intentionally small:
-- `Room`: shared collaboration space.
+- `Room`: shared collaboration space. [Not implemented yet]
 - `Item`: list entry belonging to a room.
 - `Category`: optional grouping label for items.
 
