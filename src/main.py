@@ -1,9 +1,12 @@
 import os
+import uuid
 
 from nicegui import ui, context
 
 from database_crud import (
+    add_item_with_state,
     create_list,
+    find_item_by_name,
     get_item_count,
     get_list_data,
     get_list_details,
@@ -199,7 +202,7 @@ def index():
 
 
 @ui.refreshable
-def item_list(list_id: int, filter_func=None):
+def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=None):
     # Render items for a specific list.
     list_items, _ = get_list_data(list_id)
     details = get_list_details(list_id)
@@ -207,6 +210,7 @@ def item_list(list_id: int, filter_func=None):
     list_tags = details["list_tags"] if details else []
 
     current_filter = filter_func() if filter_func else None
+    is_edit_mode = edit_mode_func() if edit_mode_func else False
 
     for item in list_items:
         if current_filter and current_filter not in item["active_tags"]:
@@ -261,10 +265,10 @@ def item_list(list_id: int, filter_func=None):
                 dialog.open()
 
             def delete(it=item):
+                if on_delete:
+                    on_delete(it)
+                    return
                 delete_item_from_list(list_id, it["id"])
-                ui.notify(
-                    f"Deleted {it['name']}", color="negative", position=NOTIFY_POSITION
-                )
                 broadcast_updates()
 
             # Right group is specified from right-to-left in the plan:
@@ -300,12 +304,13 @@ def item_list(list_id: int, filter_func=None):
                             if not is_active:
                                 btn_props += " outline"
                             btn.props(btn_props)
-                ui.button(icon="edit", on_click=start_edit).props(
-                    "flat round dense size=sm"
-                ).style("margin: -2px")
-                ui.button(icon="delete", on_click=delete).props(
-                    "flat round dense size=sm color=negative"
-                ).style("margin: -2px")
+                if is_edit_mode:
+                    ui.button(icon="edit", on_click=start_edit).props(
+                        "flat round dense size=sm"
+                    ).style("margin: -2px")
+                    ui.button(icon="delete", on_click=delete).props(
+                        "flat round dense size=sm color=negative"
+                    ).style("margin: -2px")
 
 
 @ui.page("/list/{list_id}")
@@ -319,7 +324,25 @@ def list_page(list_id: int):
     list_name = details["name"]
     enable_tags = details["enable_tags"]
 
-    state = {"filter_tag": None}
+    state = {"filter_tag": None, "edit_mode": False, "pending_undo": None}
+
+    def set_pending_undo(action: dict):
+        token = str(uuid.uuid4())
+        action["token"] = token
+        state["pending_undo"] = action
+        undo_bar.refresh()
+
+        def expire():
+            pending = state.get("pending_undo")
+            if pending and pending.get("token") == token:
+                state["pending_undo"] = None
+                undo_bar.refresh()
+
+        ui.timer(5.0, expire, once=True)
+
+    def clear_pending_undo():
+        state["pending_undo"] = None
+        undo_bar.refresh()
 
     with ui.card().classes("w-full max-w-sm mx-auto"):
         # Header with back button
@@ -328,6 +351,15 @@ def list_page(list_id: int):
                 "flat round"
             )
             ui.label(list_name).classes("text-2xl font-bold flex-grow")
+            edit_btn_text = "Done" if state["edit_mode"] else "Edit"
+            ui.button(
+                edit_btn_text,
+                on_click=lambda: (
+                    state.update({"edit_mode": not state["edit_mode"]}),
+                    tags_ui.refresh(),
+                    item_list.refresh(),
+                ),
+            ).props("flat")
 
             def toggle_enable_tags():
                 curr = get_list_details(list_id)
@@ -409,28 +441,92 @@ def list_page(list_id: int):
         )
 
         @ui.refreshable
+        def undo_bar():
+            pending = state.get("pending_undo")
+            if not pending:
+                return
+
+            with ui.row().classes(
+                "w-full items-center justify-between mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded"
+            ):
+                ui.label(pending["message"]).classes("text-sm")
+
+                def undo():
+                    current = state.get("pending_undo")
+                    if not current or current.get("token") != pending.get("token"):
+                        return
+
+                    if current["kind"] == "item":
+                        payload = current["payload"]
+                        duplicate = find_item_by_name(list_id, payload["name"])
+                        if duplicate:
+                            ui.notify(
+                                "Cannot undo: item name already exists",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
+                        else:
+                            add_item_with_state(
+                                item_name=payload["name"],
+                                list_id=list_id,
+                                done=payload["done"],
+                                active_tags=payload["active_tags"],
+                            )
+                            ui.notify(
+                                f"Restored {payload['name']}",
+                                color="positive",
+                                position=NOTIFY_POSITION,
+                            )
+                    elif current["kind"] == "tag":
+                        payload = current["payload"]
+                        details_now = get_list_details(list_id)
+                        if details_now:
+                            tags_now = details_now["list_tags"] or []
+                            if payload["tag"] not in tags_now:
+                                tags_now.append(payload["tag"])
+                            tags_now = sorted(tags_now, key=str.lower)
+                            update_list_tags_settings(list_id, True, tags_now)
+                            ui.notify(
+                                f"Restored tag {payload['tag']}",
+                                color="positive",
+                                position=NOTIFY_POSITION,
+                            )
+
+                    clear_pending_undo()
+                    tags_ui.refresh()
+                    item_list.refresh()
+                    broadcast_updates()
+
+                ui.button("Undo", on_click=undo).props("flat color=primary")
+
+        undo_bar()
+
+        @ui.refreshable
         def tags_ui():
             if not enable_tags:
                 return
 
             curr_details = get_list_details(list_id)
-            list_tags = curr_details["list_tags"] if curr_details else []
+            list_tags = (
+                sorted(curr_details["list_tags"], key=str.lower) if curr_details else []
+            )
 
-            with ui.row().classes("w-full items-center mt-2 gap-2"):
-                new_tag_input = ui.input("Add Tag").classes("flex-grow")
+            if state["edit_mode"]:
+                with ui.row().classes("w-full items-center mt-2 gap-2"):
+                    new_tag_input = ui.input("Add Tag").classes("flex-grow")
 
-                def add_tag():
-                    tag = new_tag_input.value.strip()
-                    if tag and tag not in list_tags:
-                        list_tags.append(tag)
-                        update_list_tags_settings(list_id, True, list_tags)
-                        new_tag_input.value = ""
-                        tags_ui.refresh()
-                        item_list.refresh()
-                        broadcast_updates()
+                    def add_tag():
+                        tag = new_tag_input.value.strip()
+                        if tag and tag not in list_tags:
+                            updated_tags = sorted(list_tags + [tag], key=str.lower)
+                            update_list_tags_settings(list_id, True, updated_tags)
+                            new_tag_input.value = ""
+                            tags_ui.refresh()
+                            item_list.refresh()
+                            broadcast_updates()
 
-                ui.button(icon="add", on_click=add_tag).props("flat round dense")
-                new_tag_input.on("keyup.enter", add_tag)
+                    ui.button(icon="add", on_click=add_tag).props("flat round dense")
+                    new_tag_input.on("keyup.enter", add_tag)
 
             if list_tags:
                 with ui.row().classes("w-full gap-2 mt-2 flex-wrap"):
@@ -457,10 +553,17 @@ def list_page(list_id: int):
 
                         def delete_tag(t=tag):
                             if t in list_tags:
-                                list_tags.remove(t)
-                                update_list_tags_settings(list_id, True, list_tags)
+                                updated_tags = [x for x in list_tags if x != t]
+                                update_list_tags_settings(list_id, True, updated_tags)
                                 if state["filter_tag"] == t:
                                     state["filter_tag"] = None
+                                set_pending_undo(
+                                    {
+                                        "kind": "tag",
+                                        "message": f"Deleted tag {t}",
+                                        "payload": {"tag": t},
+                                    }
+                                )
                                 tags_ui.refresh()
                                 item_list.refresh()
                                 broadcast_updates()
@@ -472,14 +575,40 @@ def list_page(list_id: int):
                                 btn_props += " outline"
                             btn.props(btn_props).classes("px-2")
 
-                            del_btn = ui.button(icon="close", on_click=delete_tag)
-                            del_btn_props = f"rounded size=sm color={color} flat dense"
-                            del_btn.props(del_btn_props)
+                            if state["edit_mode"]:
+                                del_btn = ui.button(icon="close", on_click=delete_tag)
+                                del_btn_props = (
+                                    f"rounded size=sm color={color} flat dense"
+                                )
+                                del_btn.props(del_btn_props)
 
         tags_ui()
 
+        def delete_item_with_undo(it):
+            payload = {
+                "id": it["id"],
+                "name": it["name"],
+                "done": it["done"],
+                "active_tags": it["active_tags"].copy(),
+            }
+            delete_item_from_list(list_id, it["id"])
+            set_pending_undo(
+                {
+                    "kind": "item",
+                    "message": f"Deleted {it['name']}",
+                    "payload": payload,
+                }
+            )
+            item_list.refresh()
+            broadcast_updates()
+
         # The actual list of items
-        item_list(list_id, lambda: state["filter_tag"])
+        item_list(
+            list_id,
+            lambda: state["filter_tag"],
+            lambda: state["edit_mode"],
+            delete_item_with_undo,
+        )
 
 
 port = int(os.environ.get("PORT", 8080))

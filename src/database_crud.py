@@ -116,6 +116,14 @@ def add_item(item_name: str, list_id: int):
     db.commit()
 
 
+def add_item_with_state(item_name: str, list_id: int, done: bool, active_tags: list[str]):
+    cursor.execute(
+        "INSERT INTO items (name, done, list_id, active_tags) VALUES (?, ?, ?, ?)",
+        (item_name, done, list_id, json.dumps(active_tags)),
+    )
+    db.commit()
+
+
 def update_item_done(item_id: int, list_id: int, done: bool):
     cursor.execute(
         "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
