@@ -16,3 +16,6 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[tool.ruff.format]
+preview = true

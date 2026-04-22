@@ -48,7 +48,7 @@ def list_of_lists():
         return
 
     for list_id, name, enable_tags in lists:
-        with ui.card().classes("w-full mb-2"):
+        with ui.card().classes("w-full mb-1 p-1"):
             with ui.row().classes("w-full items-center no-wrap"):
                 # Main button to enter the list
                 ui.button(
@@ -59,8 +59,12 @@ def list_of_lists():
                 def open_rename_dialog(lid=list_id, lname=name, lenable=enable_tags):
                     with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                         ui.label(f"Edit '{lname}'").classes("text-lg font-bold")
-                        new_name_input = ui.input(value=lname, label="List Name").classes("w-full")
-                        enable_tags_checkbox = ui.checkbox("Enable Quick Tags", value=lenable).classes("w-full mt-2")
+                        new_name_input = ui.input(
+                            value=lname, label="List Name"
+                        ).classes("w-full")
+                        enable_tags_checkbox = ui.checkbox(
+                            "Enable Quick Tags", value=lenable
+                        ).classes("w-full mt-2")
                         with ui.row().classes("w-full justify-end mt-4"):
                             ui.button("Cancel", on_click=dialog.close).props("flat")
 
@@ -78,12 +82,20 @@ def list_of_lists():
                                         position=NOTIFY_POSITION,
                                     )
                                     return
-                                
-                                from database_crud import get_list_details, update_list_tags_settings
+
+                                from database_crud import (
+                                    get_list_details,
+                                    update_list_tags_settings,
+                                )
+
                                 current_details = get_list_details(lid)
                                 if current_details:
-                                    update_list_tags_settings(lid, enable_tags_checkbox.value, current_details["list_tags"])
-                                
+                                    update_list_tags_settings(
+                                        lid,
+                                        enable_tags_checkbox.value,
+                                        current_details["list_tags"],
+                                    )
+
                                 dialog.close()
                                 ui.notify(
                                     f"Updated {actual_name}",
@@ -148,13 +160,17 @@ def index():
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("New List").classes("text-lg font-bold")
                 list_name_input = ui.input(label="List name").classes("w-full")
-                enable_tags_checkbox = ui.checkbox("Enable Quick Tags").classes("w-full mt-2")
+                enable_tags_checkbox = ui.checkbox("Enable Quick Tags").classes(
+                    "w-full mt-2"
+                )
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
                     def save():
                         try:
-                            new_id = create_list(list_name_input.value, enable_tags_checkbox.value)
+                            new_id = create_list(
+                                list_name_input.value, enable_tags_checkbox.value
+                            )
                             dialog.close()
                             ui.notify(
                                 "List created",
@@ -189,7 +205,7 @@ def item_list(list_id: int, filter_func=None):
     details = get_list_details(list_id)
     enable_tags = details["enable_tags"] if details else False
     list_tags = details["list_tags"] if details else []
-    
+
     current_filter = filter_func() if filter_func else None
 
     for item in list_items:
@@ -200,32 +216,11 @@ def item_list(list_id: int, filter_func=None):
             "w-full items-center no-wrap border-b border-gray-100 py-1"
         )
         with row:
-            checkbox = ui.checkbox(value=item["done"])
-            label_style = "line-through text-gray-400" if item["done"] else ""
-            ui.label(item["name"]).classes(f"flex-grow {label_style}")
-
-            if enable_tags and list_tags:
-                with ui.row().classes("items-center gap-1 mx-2"):
-                    for idx, tag in enumerate(list_tags):
-                        colors = ["blue", "green", "red", "orange", "purple", "teal", "pink"]
-                        color = colors[idx % len(colors)]
-                        first_letter = tag[0].upper() if tag else "?"
-                        is_active = tag in item["active_tags"]
-                        
-                        def toggle_tag(it=item, t=tag):
-                            active = it["active_tags"].copy()
-                            if t in active:
-                                active.remove(t)
-                            else:
-                                active.append(t)
-                            update_item_active_tags(it["id"], list_id, active)
-                            broadcast_updates()
-                            
-                        btn = ui.button(first_letter, on_click=toggle_tag)
-                        btn_props = f"round dense size=xs color={color}"
-                        if not is_active:
-                            btn_props += " outline"
-                        btn.props(btn_props)
+            # Left group: checkbox + small spacing + item text (truncates first on narrow screens)
+            with ui.row().classes("flex-grow min-w-0 items-center no-wrap gap-1"):
+                checkbox = ui.checkbox(value=item["done"]).props("dense")
+                label_style = "line-through text-gray-400" if item["done"] else ""
+                ui.label(item["name"]).classes(f"min-w-0 truncate {label_style}")
 
             def toggle(e, it=item):
                 toggle_item_done(list_id=list_id, item_id=it["id"], done=e.value)
@@ -272,13 +267,45 @@ def item_list(list_id: int, filter_func=None):
                 )
                 broadcast_updates()
 
-            with ui.row().classes("items-center gap-0"):
+            # Right group is specified from right-to-left in the plan:
+            # delete (far right), then small spacing, then edit, then medium spacing, then tags.
+            with ui.row().classes("shrink-0 items-center no-wrap gap-0"):
+                if enable_tags and list_tags:
+                    with ui.row().classes("items-center no-wrap gap-1 mx-1"):
+                        for idx, tag in enumerate(list_tags):
+                            colors = [
+                                "blue",
+                                "green",
+                                "red",
+                                "orange",
+                                "purple",
+                                "teal",
+                                "pink",
+                            ]
+                            color = colors[idx % len(colors)]
+                            first_letter = tag[0].upper() if tag else "?"
+                            is_active = tag in item["active_tags"]
+
+                            def toggle_tag(it=item, t=tag):
+                                active = it["active_tags"].copy()
+                                if t in active:
+                                    active.remove(t)
+                                else:
+                                    active.append(t)
+                                update_item_active_tags(it["id"], list_id, active)
+                                broadcast_updates()
+
+                            btn = ui.button(first_letter, on_click=toggle_tag)
+                            btn_props = f"round size=12px dense color={color}"
+                            if not is_active:
+                                btn_props += " outline"
+                            btn.props(btn_props)
                 ui.button(icon="edit", on_click=start_edit).props(
                     "flat round dense size=sm"
-                )
+                ).style("margin: -2px")
                 ui.button(icon="delete", on_click=delete).props(
                     "flat round dense size=sm color=negative"
-                )
+                ).style("margin: -2px")
 
 
 @ui.page("/list/{list_id}")
@@ -301,21 +328,24 @@ def list_page(list_id: int):
                 "flat round"
             )
             ui.label(list_name).classes("text-2xl font-bold flex-grow")
-            
+
             def toggle_enable_tags():
                 curr = get_list_details(list_id)
                 if curr:
                     new_val = not curr["enable_tags"]
                     update_list_tags_settings(list_id, new_val, curr["list_tags"])
-                    ui.notify(f"Quick tags {'enabled' if new_val else 'disabled'}", position=NOTIFY_POSITION)
+                    ui.notify(
+                        f"Quick tags {'enabled' if new_val else 'disabled'}",
+                        position=NOTIFY_POSITION,
+                    )
                     # reload to update local enable_tags state and tags_ui
                     ui.navigate.to(f"/list/{list_id}")
 
             with ui.button(icon="more_vert").props("flat round"):
                 with ui.menu():
                     ui.menu_item(
-                        "Disable Quick Tags" if enable_tags else "Enable Quick Tags", 
-                        on_click=toggle_enable_tags
+                        "Disable Quick Tags" if enable_tags else "Enable Quick Tags",
+                        on_click=toggle_enable_tags,
                     )
 
         # Add item input
@@ -382,12 +412,13 @@ def list_page(list_id: int):
         def tags_ui():
             if not enable_tags:
                 return
-            
+
             curr_details = get_list_details(list_id)
             list_tags = curr_details["list_tags"] if curr_details else []
 
             with ui.row().classes("w-full items-center mt-2 gap-2"):
                 new_tag_input = ui.input("Add Tag").classes("flex-grow")
+
                 def add_tag():
                     tag = new_tag_input.value.strip()
                     if tag and tag not in list_tags:
@@ -397,16 +428,25 @@ def list_page(list_id: int):
                         tags_ui.refresh()
                         item_list.refresh()
                         broadcast_updates()
+
                 ui.button(icon="add", on_click=add_tag).props("flat round dense")
                 new_tag_input.on("keyup.enter", add_tag)
 
             if list_tags:
                 with ui.row().classes("w-full gap-2 mt-2 flex-wrap"):
                     for idx, tag in enumerate(list_tags):
-                        colors = ["blue", "green", "red", "orange", "purple", "teal", "pink"]
+                        colors = [
+                            "blue",
+                            "green",
+                            "red",
+                            "orange",
+                            "purple",
+                            "teal",
+                            "pink",
+                        ]
                         color = colors[idx % len(colors)]
-                        is_active = (state["filter_tag"] == tag)
-                        
+                        is_active = state["filter_tag"] == tag
+
                         def toggle_filter(t=tag):
                             if state["filter_tag"] == t:
                                 state["filter_tag"] = None
@@ -414,7 +454,7 @@ def list_page(list_id: int):
                                 state["filter_tag"] = t
                             tags_ui.refresh()
                             item_list.refresh()
-                            
+
                         def delete_tag(t=tag):
                             if t in list_tags:
                                 list_tags.remove(t)
@@ -425,15 +465,15 @@ def list_page(list_id: int):
                                 item_list.refresh()
                                 broadcast_updates()
 
-                        with ui.row().classes("items-center gap-0"):
+                        with ui.row().classes("items-center no-wrap gap-0"):
                             btn = ui.button(tag, on_click=toggle_filter)
                             btn_props = f"rounded size=sm color={color}"
                             if not is_active:
                                 btn_props += " outline"
-                            btn.props(btn_props)
-                            
+                            btn.props(btn_props).classes("px-2")
+
                             del_btn = ui.button(icon="close", on_click=delete_tag)
-                            del_btn_props = f"rounded size=sm color={color} flat"
+                            del_btn_props = f"rounded size=sm color={color} flat dense"
                             del_btn.props(del_btn_props)
 
         tags_ui()
