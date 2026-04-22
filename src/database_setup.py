@@ -8,20 +8,28 @@ def init_database():
     cursor = db.cursor()
 
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT, done BOOLEAN)"
+        """
+        CREATE TABLE IF NOT EXISTS lists (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            list_tags TEXT NOT NULL DEFAULT '[]'
+        )
+        """
     )
     cursor.execute(
-        "CREATE TABLE IF NOT EXISTS lists (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)"
+        """
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            done BOOLEAN,
+            list_id INTEGER NOT NULL,
+            active_tags TEXT NOT NULL DEFAULT '[]',
+            FOREIGN KEY(list_id) REFERENCES lists(id)
+        )
+        """
     )
 
-    # Step migration: add list_id to existing items table when missing.
-    cursor.execute("PRAGMA table_info(items)")
-    item_columns = [row[1] for row in cursor.fetchall()]
-    if "list_id" not in item_columns:
-        cursor.execute("ALTER TABLE items ADD COLUMN list_id INTEGER")
-        db.commit()
-
-    # Step migration: ensure at least one list exists and backfill existing items.
+    # Ensure at least one list exists.
     cursor.execute("SELECT id FROM lists LIMIT 1")
     any_list = cursor.fetchone()
     if any_list is None:
@@ -29,31 +37,7 @@ def init_database():
         db.commit()
         default_list_id = cursor.lastrowid
     else:
-        # Use the first list as the default_list_id.
         default_list_id = any_list[0]
-
-    cursor.execute(
-        "UPDATE items SET list_id = ? WHERE list_id IS NULL",
-        (default_list_id,),
-    )
-    db.commit()
-
-    # Step migration: add tags to lists table
-    cursor.execute("PRAGMA table_info(lists)")
-    list_columns = [row[1] for row in cursor.fetchall()]
-    if "enable_tags" not in list_columns:
-        cursor.execute("ALTER TABLE lists ADD COLUMN enable_tags BOOLEAN DEFAULT 0")
-        db.commit()
-    if "list_tags" not in list_columns:
-        cursor.execute("ALTER TABLE lists ADD COLUMN list_tags TEXT DEFAULT '[]'")
-        db.commit()
-
-    # Step migration: add active_tags to items table
-    cursor.execute("PRAGMA table_info(items)")
-    item_columns = [row[1] for row in cursor.fetchall()]
-    if "active_tags" not in item_columns:
-        cursor.execute("ALTER TABLE items ADD COLUMN active_tags TEXT DEFAULT '[]'")
-        db.commit()
 
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"

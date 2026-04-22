@@ -50,7 +50,7 @@ def list_of_lists():
         ui.label("No lists yet. Create your first one!").classes("text-gray-500 italic")
         return
 
-    for list_id, name, _enable_tags in lists:
+    for list_id, name in lists:
         with ui.card().classes("w-full mb-1 p-1"):
             with ui.row().classes("w-full items-center no-wrap"):
                 # Main button to enter the list
@@ -450,9 +450,7 @@ def list_page(list_id: int):
                             if payload["tag"] not in tags_now:
                                 tags_now.append(payload["tag"])
                             tags_now = sorted(tags_now, key=str.lower)
-                            update_list_tags_settings(
-                                list_id, len(tags_now) > 0, tags_now
-                            )
+                            update_list_tags_settings(list_id, tags_now)
                             ui.notify(
                                 f"Restored tag {payload['tag']}",
                                 color="positive",
@@ -484,9 +482,7 @@ def list_page(list_id: int):
                         tag = new_tag_input.value.strip()
                         if tag and tag not in list_tags:
                             updated_tags = sorted(list_tags + [tag], key=str.lower)
-                            update_list_tags_settings(
-                                list_id, len(updated_tags) > 0, updated_tags
-                            )
+                            update_list_tags_settings(list_id, updated_tags)
                             state["focus_tag_input"] = True
                             new_tag_input.value = ""
                             tags_ui.refresh()
@@ -529,9 +525,7 @@ def list_page(list_id: int):
                         def delete_tag(t=tag):
                             if t in list_tags:
                                 updated_tags = [x for x in list_tags if x != t]
-                                update_list_tags_settings(
-                                    list_id, len(updated_tags) > 0, updated_tags
-                                )
+                                update_list_tags_settings(list_id, updated_tags)
                                 ui.notify(
                                     f"Deleted tag {t}",
                                     color="negative",

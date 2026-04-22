@@ -7,31 +7,30 @@ def normalize_item_name(raw: str | None) -> str:
 
 
 def get_lists():
-    cursor.execute("SELECT id, name, enable_tags FROM lists ORDER BY name COLLATE NOCASE ASC")
-    return [(r[0], r[1], bool(r[2])) for r in cursor.fetchall()]
+    cursor.execute("SELECT id, name FROM lists ORDER BY name COLLATE NOCASE ASC")
+    return [(r[0], r[1]) for r in cursor.fetchall()]
 
 
 def get_list_details(list_id: int):
-    cursor.execute("SELECT id, name, enable_tags, list_tags FROM lists WHERE id = ?", (list_id,))
+    cursor.execute("SELECT id, name, list_tags FROM lists WHERE id = ?", (list_id,))
     row = cursor.fetchone()
     if not row:
         return None
     try:
-        list_tags = json.loads(row[3]) if row[3] else []
+        list_tags = json.loads(row[2]) if row[2] else []
     except json.JSONDecodeError:
         list_tags = []
     return {
         "id": row[0],
         "name": row[1],
-        "enable_tags": bool(row[2]),
         "list_tags": list_tags
     }
 
 
-def update_list_tags_settings(list_id: int, enable_tags: bool, list_tags: list[str]):
+def update_list_tags_settings(list_id: int, list_tags: list[str]):
     cursor.execute(
-        "UPDATE lists SET enable_tags = ?, list_tags = ? WHERE id = ?",
-        (enable_tags, json.dumps(list_tags), list_id),
+        "UPDATE lists SET list_tags = ? WHERE id = ?",
+        (json.dumps(list_tags), list_id),
     )
     db.commit()
 
@@ -51,14 +50,14 @@ def find_list_by_name(name: str):
     return cursor.fetchone()
 
 
-def create_list(name: str, enable_tags: bool = False):
+def create_list(name: str):
     normalized_name = normalize_item_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
     existing = find_list_by_name(normalized_name)
     if existing:
         return existing[0]
-    cursor.execute("INSERT INTO lists (name, enable_tags) VALUES (?, ?)", (normalized_name, enable_tags))
+    cursor.execute("INSERT INTO lists (name) VALUES (?)", (normalized_name,))
     db.commit()
     return cursor.lastrowid
 
