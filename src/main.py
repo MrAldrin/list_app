@@ -50,7 +50,7 @@ def list_of_lists():
         ui.label("No lists yet. Create your first one!").classes("text-gray-500 italic")
         return
 
-    for list_id, name, enable_tags in lists:
+    for list_id, name, _enable_tags in lists:
         with ui.card().classes("w-full mb-1 p-1"):
             with ui.row().classes("w-full items-center no-wrap"):
                 # Main button to enter the list
@@ -59,15 +59,12 @@ def list_of_lists():
                 ).props("flat").classes("flex-grow text-left text-lg")
 
                 # Edit/Rename button
-                def open_rename_dialog(lid=list_id, lname=name, lenable=enable_tags):
+                def open_rename_dialog(lid=list_id, lname=name):
                     with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                         ui.label(f"Edit '{lname}'").classes("text-lg font-bold")
                         new_name_input = ui.input(
                             value=lname, label="List Name"
                         ).classes("w-full")
-                        enable_tags_checkbox = ui.checkbox(
-                            "Enable Quick Tags", value=lenable
-                        ).classes("w-full mt-2")
                         with ui.row().classes("w-full justify-end mt-4"):
                             ui.button("Cancel", on_click=dialog.close).props("flat")
 
@@ -85,19 +82,6 @@ def list_of_lists():
                                         position=NOTIFY_POSITION,
                                     )
                                     return
-
-                                from database_crud import (
-                                    get_list_details,
-                                    update_list_tags_settings,
-                                )
-
-                                current_details = get_list_details(lid)
-                                if current_details:
-                                    update_list_tags_settings(
-                                        lid,
-                                        enable_tags_checkbox.value,
-                                        current_details["list_tags"],
-                                    )
 
                                 dialog.close()
                                 ui.notify(
@@ -163,17 +147,12 @@ def index():
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("New List").classes("text-lg font-bold")
                 list_name_input = ui.input(label="List name").classes("w-full")
-                enable_tags_checkbox = ui.checkbox("Enable Quick Tags").classes(
-                    "w-full mt-2"
-                )
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
                     def save():
                         try:
-                            new_id = create_list(
-                                list_name_input.value, enable_tags_checkbox.value
-                            )
+                            new_id = create_list(list_name_input.value)
                             dialog.close()
                             ui.notify(
                                 "List created",
@@ -206,8 +185,8 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
     # Render items for a specific list.
     list_items, _ = get_list_data(list_id)
     details = get_list_details(list_id)
-    enable_tags = details["enable_tags"] if details else False
     list_tags = details["list_tags"] if details else []
+    quick_tags_active = len(list_tags) > 0
 
     current_filter = filter_func() if filter_func else None
     is_edit_mode = edit_mode_func() if edit_mode_func else False
@@ -274,7 +253,7 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
             # Right group is specified from right-to-left in the plan:
             # delete (far right), then small spacing, then edit, then medium spacing, then tags.
             with ui.row().classes("shrink-0 items-center no-wrap gap-0"):
-                if enable_tags and list_tags:
+                if quick_tags_active:
                     with ui.row().classes("items-center no-wrap gap-1 mx-1"):
                         for idx, tag in enumerate(list_tags):
                             colors = [
@@ -322,9 +301,13 @@ def list_page(list_id: int):
         ui.label("List not found").classes("text-xl p-4")
         return
     list_name = details["name"]
-    enable_tags = details["enable_tags"]
 
-    state = {"filter_tag": None, "edit_mode": False, "pending_undo": None}
+    state = {
+        "filter_tag": None,
+        "edit_mode": False,
+        "pending_undo": None,
+        "focus_tag_input": False,
+    }
 
     def set_pending_undo(action: dict):
         token = str(uuid.uuid4())
@@ -356,29 +339,11 @@ def list_page(list_id: int):
                 edit_btn_text,
                 on_click=lambda: (
                     state.update({"edit_mode": not state["edit_mode"]}),
+                    undo_bar.refresh(),
                     tags_ui.refresh(),
                     item_list.refresh(),
                 ),
             ).props("flat")
-
-            def toggle_enable_tags():
-                curr = get_list_details(list_id)
-                if curr:
-                    new_val = not curr["enable_tags"]
-                    update_list_tags_settings(list_id, new_val, curr["list_tags"])
-                    ui.notify(
-                        f"Quick tags {'enabled' if new_val else 'disabled'}",
-                        position=NOTIFY_POSITION,
-                    )
-                    # reload to update local enable_tags state and tags_ui
-                    ui.navigate.to(f"/list/{list_id}")
-
-            with ui.button(icon="more_vert").props("flat round"):
-                with ui.menu():
-                    ui.menu_item(
-                        "Disable Quick Tags" if enable_tags else "Enable Quick Tags",
-                        on_click=toggle_enable_tags,
-                    )
 
         # Add item input
         draft_text = {"val": ""}  # Use dict to keep it mutable in inner functions
@@ -443,7 +408,7 @@ def list_page(list_id: int):
         @ui.refreshable
         def undo_bar():
             pending = state.get("pending_undo")
-            if not pending:
+            if not state["edit_mode"] or not pending:
                 return
 
             with ui.row().classes(
@@ -485,7 +450,9 @@ def list_page(list_id: int):
                             if payload["tag"] not in tags_now:
                                 tags_now.append(payload["tag"])
                             tags_now = sorted(tags_now, key=str.lower)
-                            update_list_tags_settings(list_id, True, tags_now)
+                            update_list_tags_settings(
+                                list_id, len(tags_now) > 0, tags_now
+                            )
                             ui.notify(
                                 f"Restored tag {payload['tag']}",
                                 color="positive",
@@ -503,13 +470,11 @@ def list_page(list_id: int):
 
         @ui.refreshable
         def tags_ui():
-            if not enable_tags:
-                return
-
             curr_details = get_list_details(list_id)
             list_tags = (
                 sorted(curr_details["list_tags"], key=str.lower) if curr_details else []
             )
+            quick_tags_active = len(list_tags) > 0
 
             if state["edit_mode"]:
                 with ui.row().classes("w-full items-center mt-2 gap-2"):
@@ -519,7 +484,10 @@ def list_page(list_id: int):
                         tag = new_tag_input.value.strip()
                         if tag and tag not in list_tags:
                             updated_tags = sorted(list_tags + [tag], key=str.lower)
-                            update_list_tags_settings(list_id, True, updated_tags)
+                            update_list_tags_settings(
+                                list_id, len(updated_tags) > 0, updated_tags
+                            )
+                            state["focus_tag_input"] = True
                             new_tag_input.value = ""
                             tags_ui.refresh()
                             item_list.refresh()
@@ -527,8 +495,15 @@ def list_page(list_id: int):
 
                     ui.button(icon="add", on_click=add_tag).props("flat round dense")
                     new_tag_input.on("keyup.enter", add_tag)
+                    if state["focus_tag_input"]:
+                        state["focus_tag_input"] = False
+                        ui.timer(
+                            0.0,
+                            lambda inp=new_tag_input: inp.run_method("focus"),
+                            once=True,
+                        )
 
-            if list_tags:
+            if quick_tags_active:
                 with ui.row().classes("w-full gap-2 mt-2 flex-wrap"):
                     for idx, tag in enumerate(list_tags):
                         colors = [
@@ -554,23 +529,28 @@ def list_page(list_id: int):
                         def delete_tag(t=tag):
                             if t in list_tags:
                                 updated_tags = [x for x in list_tags if x != t]
-                                update_list_tags_settings(list_id, True, updated_tags)
+                                update_list_tags_settings(
+                                    list_id, len(updated_tags) > 0, updated_tags
+                                )
+                                ui.notify(
+                                    f"Deleted tag {t}",
+                                    color="negative",
+                                    position=NOTIFY_POSITION,
+                                )
                                 if state["filter_tag"] == t:
                                     state["filter_tag"] = None
-                                set_pending_undo(
-                                    {
-                                        "kind": "tag",
-                                        "message": f"Deleted tag {t}",
-                                        "payload": {"tag": t},
-                                    }
-                                )
+                                set_pending_undo({
+                                    "kind": "tag",
+                                    "message": f"Deleted tag {t}",
+                                    "payload": {"tag": t},
+                                })
                                 tags_ui.refresh()
                                 item_list.refresh()
                                 broadcast_updates()
 
                         with ui.row().classes("items-center no-wrap gap-0"):
                             btn = ui.button(tag, on_click=toggle_filter)
-                            btn_props = f"rounded size=sm color={color}"
+                            btn_props = f"rounded size=12px color={color}"
                             if not is_active:
                                 btn_props += " outline"
                             btn.props(btn_props).classes("px-2")
@@ -592,13 +572,16 @@ def list_page(list_id: int):
                 "active_tags": it["active_tags"].copy(),
             }
             delete_item_from_list(list_id, it["id"])
-            set_pending_undo(
-                {
-                    "kind": "item",
-                    "message": f"Deleted {it['name']}",
-                    "payload": payload,
-                }
+            ui.notify(
+                f"Deleted {it['name']}",
+                color="negative",
+                position=NOTIFY_POSITION,
             )
+            set_pending_undo({
+                "kind": "item",
+                "message": f"Deleted {it['name']}",
+                "payload": payload,
+            })
             item_list.refresh()
             broadcast_updates()
 

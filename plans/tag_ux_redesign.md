@@ -1,111 +1,45 @@
-# Tag UX tweaks
+# UX tweaks
 
 ## Goal
-Define intuitive and easy-to-use UI for quick tags.
+Improve ui with regards to edit mode
 
-## Assumptions
-- We use one shared app-level `Edit mode` pattern (not tag-only), and this pattern can be reused in other screens/features.
-- In normal mode, destructive actions are hidden where practical to reduce accidental taps.
-- In edit mode, destructive actions are visible and easy to access.
-- The selected delete safety behavior is Option A: instant delete + snackbar/toast with `Undo` for 5 seconds.
-- `Undo` should restore the deleted entity with its previous data (for tags: same label; for list items: same text, checked state, and connected tags).
-- If no `Undo` is pressed before timeout, deletion is committed permanently.
-- On mobile and desktop, the interaction model should be functionally the same (no requirement for long-press/right-click in MVP).
-- Tag order should be alphabetical (not manual reordering).
-- Edit mode stays active until the user presses `Done` (does not auto-close after a single change).
-- Current in-scope UI behavior from your notes:
-  - Normal mode:
-    - show add/edit list input field
-    - show tag toggle/filter area (tap tags to filter on/off)
-    - list elements show checkbox, text, and tags
-    - hide edit/delete controls on list elements
-  - Edit mode:
-    - show add/edit list input field
-    - show add tags field
-    - show delete controls in tag area
-    - list elements show checkbox, text, tags, plus edit and delete controls
-- Tag tap behavior in normal mode remains quick filtering behavior (same principle as today).
-- This document defines UX direction only; implementation details in `src/main.py` can be phased.
-
-## Current behaviour
-Quick tags now have a small x next to them to remove them.
-
-Problems:
-- These tags are not removed often, so a permanent delete button creates visual noise.
-- The delete button can be clicked by mistake.
+## New decisions (latest)
+- Remove explicit `Enable/Disable Quick Tags` controls from the app UI.
+- Quick tags should be implicit:
+  - If at least one tag exists, quick tags behavior is active.
+  - If no tags exist, quick tags behavior is inactive.
+- This implicit pattern should be used consistently across the app, including main/list menus.
+- Tag management is done in `Edit` mode (add/remove tags there).
 
 
-## UX recommendation for MVP
-Use a safer but discoverable pattern:
-- Default view (normal mode): hide destructive controls.
-- Show destructive actions only when user enters explicit `Edit mode`.
-- In edit mode, show small `x` buttons on tags and edit/delete controls on list items.
-- When deleting, use undo feedback (Option A) instead of confirmation dialog.
-
-Why this is good for first version:
-- Prevents accidental deletion in normal use.
-- Keeps UI clean.
-- Keeps delete discoverable and simple to implement.
-- Works consistently on both mobile and desktop.
-
-## Screen states (baked from comments)
-Normal mode:
-- show add/edit list input field
-- show tag toggle area for filter on/off
-- list elements show checkbox, text, and tags
-- hide tag delete controls
-- hide list-item edit/delete controls
-
-Edit mode:
-- show add/edit list input field
-- show add tags field
-- show tag delete controls
-- list elements show checkbox, text, tags, plus edit and delete controls
-- edit mode remains active until user presses `Done`
-
-## Suggested interaction model
-Primary action (always visible):
-- Tap/click tag = apply/use tag quickly.
-
-Secondary actions (less frequent):
-- `Edit mode` button in top area opens management mode.
-- In management mode:
-  - `+ Add tag`
-  - delete controls on each tag
-  - edit/delete controls on each list item
-  - `Done` exits management mode
-
-## Safety options for deletion
-- Option A (selected): Instant delete + snackbar/toast with `Undo` for 5 seconds.
+## Current behaviour and problem with them
+- the following two things seems redundant. could/should we merge them or remove the 3 dot menu as the second option achieves the same result. then we could also remove the options on the list menu itself
+  - there is a 3 dot menu to turn on and off quick tags. 
+  - removing all quick tags and going out of edit mode does the same
 
 
-## Simple implementation phases
-1. Introduce shared app-level `Edit mode` toggle.
-2. Hide destructive controls in normal mode (tags and list items).
-3. Reveal destructive controls in edit mode.
-4. Add undo snackbar for delete actions (5-second window).
+when deleting someting, there is an inline restore option:
+  - This does not go away after 5 seconds
+  - it should be a ui.notify like the others or something similar. maybe this snackbar/toast element you talk about
 
-## Implementation checklist
-- [x] Add `edit_mode` state on list page and a header toggle button (`Edit` / `Done`).
-- [x] In normal mode, hide list-item edit/delete controls.
-- [x] In edit mode, show list-item edit/delete controls.
-- [x] In normal mode, keep tag filter buttons visible.
-- [x] In normal mode, hide tag add field and tag delete controls.
-- [x] In edit mode, show tag add field and tag delete controls.
-- [x] Add 5-second undo flow for item deletion.
-- [x] Add 5-second undo flow for tag deletion.
-- [x] Refresh tag/item UI after each mode switch and undo/delete action.
-- [ ] Manually verify both modes on desktop and mobile-sized layout.
+## Resolution of raised issues
+- Redundant toggle paths:
+  - Agreed: we remove the dots toggle and rely on implicit quick-tag activation from tag existence.
+  - Result: one mental model only, less menu complexity.
+- Undo feedback style:
+  - Agreed: replace inline restore UI with transient notification/snackbar style.
+  - Undo action should be shown in the same visual family as other notifications.
 
-## Decisions
-- Tags are shown alphabetically (no manual reorder).
-- Edit mode stays open until `Done`.
-- Long-press/right-click interactions are out of MVP scope.
-- Delete safety is undo-based (Option A), not confirmation-dialog based.
+## Implementation plan update
+1. Remove `Enable/Disable Quick Tags` actions from list-page dots menu.
+2. Remove quick-tag toggle actions from main/list menus where they exist.
+3. Define `quick_tags_active = len(list_tags) > 0` in UI rendering logic.
+4. Use `quick_tags_active` everywhere instead of explicit toggle flags.
+5. Keep tag add/remove only in `Edit` mode.
+6. Replace inline undo container with notification-based undo feedback.
+7. Ensure undo expires after 5 seconds and cannot be triggered after expiry.
 
-## Progress tracking
-- [x] Problem clarified
-- [x] Feasibility of long-press/right-click answered
-- [x] MVP UX direction proposed
-- [x] Final UX decisions written into plan
-- [x] Implementation started in `src/main.py`
+
+
+## Consistency rule
+- Prefer explicit mode controls (`Edit` / `Done`) and implicit feature activation from data presence (e.g., tags exist) instead of duplicate on/off toggles in menus.
