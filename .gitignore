@@ -8,3 +8,6 @@ list.db
 
 **/__pycache__/
 *.py[cod]
+
+# local
+local_only/
