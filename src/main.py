@@ -2,7 +2,15 @@ import os
 import uuid
 from typing import Literal, TypedDict
 
-from nicegui import ui
+from nicegui import app, ui
+
+# --- PWA and Assets ---
+app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
+ui.add_head_html('<link rel="manifest" href="/static/manifest.json">', shared=True)
+ui.add_head_html('<meta name="apple-mobile-web-app-capable" content="yes">', shared=True)
+ui.add_head_html('<meta name="apple-mobile-web-app-status-bar-style" content="black">', shared=True)
+ui.add_head_html('<link rel="apple-touch-icon" href="/static/icon.svg">', shared=True)
+ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
 
 from database_crud import (
     add_item_with_state,
