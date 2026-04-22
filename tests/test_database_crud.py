@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 from database_crud import (
     normalize_item_name,
@@ -31,17 +33,17 @@ def test_create_list_success():
     lists = get_lists()
     # Expect 2 lists: "default" (from conftest.py) and "groceries"
     assert len(lists) == 2
-    assert any(l[1] == "groceries" for l in lists)
-    assert any(l[1] == "default" for l in lists)
+    assert any(entry[1] == "groceries" for entry in lists)
+    assert any(entry[1] == "default" for entry in lists)
 
 
 def test_create_list_duplicate():
     # Verify that creating a list with a name that already exists returns the existing ID.
     create_list(name="Groceries")
     # This should return the same ID and not create a new row
-    list_id2 = create_list(name="GROCERIES")
+    create_list(name="GROCERIES")
     lists = get_lists()
-    assert len([l for l in lists if l[1] == "groceries"]) == 1
+    assert len([entry for entry in lists if entry[1] == "groceries"]) == 1
 
 
 def test_create_list_empty():
@@ -160,7 +162,7 @@ def test_get_lists_sorting():
     create_list(name="banana")
     
     lists = get_lists()
-    names = [l[1] for l in lists if l[1] != "default"]
+    names = [entry[1] for entry in lists if entry[1] != "default"]
     assert names == ["apple", "banana", "zebra"]
 
 def test_get_list_data_sorting():
@@ -220,8 +222,8 @@ def test_rename_list():
     rename_list(list_id=list_id, new_name="new name")
     
     lists = get_lists()
-    assert any(l[1] == "new name" for l in lists)
-    assert not any(l[1] == "old name" for l in lists)
+    assert any(entry[1] == "new name" for entry in lists)
+    assert not any(entry[1] == "old name" for entry in lists)
 
 
 def test_find_list_by_name():
@@ -239,9 +241,32 @@ def test_delete_list():
     delete_list(list_id=list_id)
     
     lists = get_lists()
-    assert not any(l[0] == list_id for l in lists)
+    assert not any(entry[0] == list_id for entry in lists)
     
     # Verify items are gone too
     items, _ = get_list_data(list_id=list_id)
     assert len(items) == 0
 
+
+def test_concurrent_db_operations_do_not_share_cursor_state():
+    # Regression test: concurrent CRUD calls should not fail with shared-cursor errors.
+    worker_count = 6
+    operations_per_worker = 20
+
+    def worker(worker_id: int):
+        local_errors = []
+        for i in range(operations_per_worker):
+            try:
+                list_id = create_list(name=f"worker-{worker_id}-list-{i}")
+                add_item(item_name=f"item-{worker_id}-{i}", list_id=list_id)
+                get_list_data(list_id=list_id)
+                get_lists()
+            except Exception as exc:  # pragma: no cover - only used for assertion context
+                local_errors.append(exc)
+        return local_errors
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        results = list(executor.map(worker, range(worker_count)))
+
+    errors = [error for worker_errors in results for error in worker_errors]
+    assert errors == []

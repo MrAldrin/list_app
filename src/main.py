@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from nicegui import ui, context
+from nicegui import ui
 
 from database_crud import (
     add_item_with_state,
@@ -17,11 +17,9 @@ from database_crud import (
 )
 from item_service import (
     STATUS_ADDED,
-    STATUS_DELETED,
     STATUS_DUPLICATE_ACTIVE,
     STATUS_DUPLICATE_NAME,
     STATUS_INVALID_NAME,
-    STATUS_RENAMED,
     STATUS_RESTORED,
     add_or_restore_item,
     delete_item_from_list,

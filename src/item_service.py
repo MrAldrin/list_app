@@ -85,7 +85,7 @@ def delete_list_and_items(list_id: int) -> tuple[str, int]:
     if not remaining_lists:
         # Re-initialize to get a new default_list_id
         from database_setup import init_database
-        _, _, default_list_id = init_database()
+        _, default_list_id = init_database()
         return STATUS_DELETED, default_list_id
     
     return STATUS_DELETED, remaining_lists[0][0]
