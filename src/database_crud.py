@@ -1,5 +1,7 @@
 import json
+import re
 import threading
+import uuid
 
 from database_setup import db
 
@@ -12,14 +14,14 @@ def normalize_item_name(raw: str | None) -> str:
 
 def get_lists():
     with _DB_LOCK:
-        rows = db.execute("SELECT id, name FROM lists ORDER BY name COLLATE NOCASE ASC").fetchall()
-    return [(r[0], r[1]) for r in rows]
+        rows = db.execute("SELECT id, name, slug FROM lists ORDER BY name COLLATE NOCASE ASC").fetchall()
+    return [(r[0], r[1], r[2]) for r in rows]
 
 
 def get_list_details(list_id: int):
     with _DB_LOCK:
         row = db.execute(
-            "SELECT id, name, list_tags FROM lists WHERE id = ?", (list_id,)
+            "SELECT id, name, list_tags, slug FROM lists WHERE id = ?", (list_id,)
         ).fetchone()
     if not row:
         return None
@@ -27,7 +29,7 @@ def get_list_details(list_id: int):
         list_tags = json.loads(row[2]) if row[2] else []
     except json.JSONDecodeError:
         list_tags = []
-    return {"id": row[0], "name": row[1], "list_tags": list_tags}
+    return {"id": row[0], "name": row[1], "list_tags": list_tags, "slug": row[3]}
 
 
 def update_list_tags_settings(list_id: int, list_tags: list[str]):
@@ -66,7 +68,11 @@ def create_list(name: str):
         if existing:
             return existing[0]
 
-        result = db.execute("INSERT INTO lists (name) VALUES (?)", (normalized_name,))
+        safe_name = re.sub(r'[^a-z0-9]', '-', name.lower().strip())
+        short_uuid = str(uuid.uuid4())[:6]
+        slug = f"{safe_name}-{short_uuid}"
+
+        result = db.execute("INSERT INTO lists (name, slug) VALUES (?, ?)", (normalized_name, slug))
         db.commit()
         return result.lastrowid
 

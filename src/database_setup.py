@@ -1,5 +1,7 @@
 import os
+import re
 import sqlite3
+import uuid
 
 
 def init_database():
@@ -10,10 +12,28 @@ def init_database():
         CREATE TABLE IF NOT EXISTS lists (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
-            list_tags TEXT NOT NULL DEFAULT '[]'
+            list_tags TEXT NOT NULL DEFAULT '[]',
+            slug TEXT UNIQUE
         )
         """
     )
+    
+    # Migration: Check if slug exists in lists table
+    cursor = db.execute("PRAGMA table_info(lists)")
+    columns = [col[1] for col in cursor.fetchall()]
+    if "slug" not in columns:
+        db.execute("ALTER TABLE lists ADD COLUMN slug TEXT")
+        
+        # Backfill existing lists with slugs
+        rows = db.execute("SELECT id, name FROM lists WHERE slug IS NULL").fetchall()
+        for row in rows:
+            list_id, name = row
+            safe_name = re.sub(r'[^a-z0-9]', '-', name.lower().strip())
+            short_uuid = str(uuid.uuid4())[:6]
+            slug = f"{safe_name}-{short_uuid}"
+            db.execute("UPDATE lists SET slug = ? WHERE id = ?", (slug, list_id))
+        db.commit()
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_slug ON lists(slug)")
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS items (
