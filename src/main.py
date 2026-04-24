@@ -2,7 +2,13 @@ import os
 import uuid
 from typing import Literal, TypedDict
 
+from dotenv import load_dotenv
 from nicegui import app, ui
+
+# Load environment variables from .env file for local development
+load_dotenv()
+
+GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
 
 # --- PWA and Assets ---
 app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
@@ -280,14 +286,50 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
                     ).style("margin: -2px")
 
 
+@ui.page("/login")
+def login() -> None:
+    def try_login() -> None:
+        if password.value == GLOBAL_APP_PASSWORD:
+            app.storage.user.update({"authenticated": True})
+            ui.navigate.to("/")
+        else:
+            ui.notify("Wrong password", color="negative", position=NOTIFY_POSITION)
+
+    with ui.card().classes("absolute-center"):
+        ui.label("Enter password").classes("text-xl font-bold")
+        password = ui.input("Password", password=True, password_toggle_button=True).classes("w-full").on("keydown.enter", try_login)
+        ui.button("Log in", on_click=try_login).classes("w-full mt-4")
+
+
+@app.middleware("http")
+async def auth_middleware(request, call_next):
+    # Only protect the root (dashboard) route for now.
+    # The /list/{slug} routes will be unprotected for sharing.
+    if request.url.path == "/":
+        is_authenticated = app.storage.user.get("authenticated", False)
+        # If no password is set in the environment, we effectively disable security
+        # to prevent locking the developer out if they forgot to set the .env variable.
+        if GLOBAL_APP_PASSWORD and not is_authenticated:
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse("/login")
+    return await call_next(request)
+
+
 @ui.page("/")
 def index() -> None:
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
-            "w-full items-center justify-center tracking-tighter gap-0 mb-2 text-3xl"
+            "w-full items-center justify-between tracking-tighter mb-2"
         ):
-            ui.label("List").classes("font-bold text-slate-800")
-            ui.label("R").classes("font-black text-primary")
+            with ui.row().classes("items-center gap-0 text-3xl"):
+                ui.label("List").classes("font-bold text-slate-800")
+                ui.label("R").classes("font-black text-primary")
+
+            if GLOBAL_APP_PASSWORD:
+                def logout() -> None:
+                    app.storage.user.update({"authenticated": False})
+                    ui.navigate.to("/login")
+                ui.button("Log out", on_click=logout).props("flat size=sm")
 
         def open_new_list_dialog() -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):

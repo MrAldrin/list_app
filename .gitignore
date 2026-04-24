@@ -11,3 +11,4 @@ list.db
 
 # local
 local_only/
+.env

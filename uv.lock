@@ -394,6 +394,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "python-dotenv" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -404,6 +405,7 @@ requires-dist = [{ name = "nicegui", specifier = ">=3.10.0" }]
 [package.metadata.requires-dev]
 dev = [
     { name = "pytest", specifier = ">=9.0.3" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "ruff", specifier = ">=0.15.10" },
     { name = "ty", specifier = ">=0.0.32" },
 ]

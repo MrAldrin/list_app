@@ -40,6 +40,6 @@ Even though we only have "one room" conceptually right now, we will add the `slu
 
 ## Progress Tracking
 - [x] Phase 1: Update `database_crud.py` and `database_setup.py` to support `slug` on lists.
-- [ ] Phase 2: Setup `python-dotenv`, `.env`, and implement the Global Password login page and middleware.
+- [x] Phase 2: Setup `python-dotenv`, `.env`, and implement the Global Password login page and middleware.
 - [ ] Phase 3: Update List creation to generate the `slug`.
 - [ ] Phase 4: Update the List view to use the `slug` and allow public access.
