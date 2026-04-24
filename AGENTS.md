@@ -24,3 +24,7 @@ We also have these extra files and folders:
 ## Guiding Principles
 - Modular Implementation: Split large tasks into small, testable chunks.
 
+
+## Other
+- If you ever run the app for testing and seeing potential error messages. If you run it idle, without moving around, dont run it for more than 5 seconds.
+- If you need to install dependencies, use the dev subgroup like "uv add --dev ty"
