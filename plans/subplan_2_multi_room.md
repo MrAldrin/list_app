@@ -61,7 +61,7 @@ Here is what the migration will do:
 ---
 
 ## Progress Tracking
-- [ ] Phase 1: Install `bcrypt`, implement `rooms` table with auto-migration, update `lists` table.
+- [x] Phase 1: Install `bcrypt`, implement `rooms` table with auto-migration, update `lists` table.
 - [ ] Phase 2: Add room functions to `database_crud.py` and update list functions to return `room_slug`.
 - [ ] Phase 3: Build the Lobby UI at `/` to show/create rooms and handle room unlocking.
 - [ ] Phase 4: Build the Room Dashboard at `/room/{slug}` with secure session checks, Rename/Delete controls, and update the List View's "Back" button.
