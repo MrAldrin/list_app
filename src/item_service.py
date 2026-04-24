@@ -55,12 +55,12 @@ def rename_item_with_checks(
     return STATUS_RENAMED, new_name
 
 
-def rename_list_with_checks(list_id: int, raw_name: str | None) -> tuple[str, str | None]:
+def rename_list_with_checks(list_id: int, room_id: int, raw_name: str | None) -> tuple[str, str | None]:
     new_name = normalize_item_name(raw_name)
     if not new_name:
         return STATUS_INVALID_NAME, None
 
-    duplicate = find_list_by_name(new_name)
+    duplicate = find_list_by_name(new_name, room_id)
     if duplicate and duplicate[0] != list_id:
         return STATUS_DUPLICATE_NAME, new_name
 
@@ -78,14 +78,10 @@ def delete_item_from_list(list_id: int, item_id: int) -> str:
     return STATUS_DELETED
 
 
-def delete_list_and_items(list_id: int) -> tuple[str, int]:
+def delete_list_and_items(list_id: int, room_id: int) -> tuple[str, int | None]:
     delete_list(list_id)
-    # Return next list_id to switch to (if any)
-    remaining_lists = get_lists()
+    remaining_lists = get_lists(room_id)
     if not remaining_lists:
-        # Re-initialize to get a new default_list_id
-        from database_setup import init_database
-        _, default_list_id = init_database()
-        return STATUS_DELETED, default_list_id
+        return STATUS_DELETED, None
     
     return STATUS_DELETED, remaining_lists[0][0]

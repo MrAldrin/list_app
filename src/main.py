@@ -21,15 +21,21 @@ ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
 from database_crud import (
     add_item_with_state,
     create_list,
+    create_room,
+    delete_room,
     find_item_by_name,
     get_item_count,
     get_list_data,
     get_list_details,
     get_list_details_by_slug,
     get_lists,
+    get_room_details_by_slug,
+    get_rooms,
     normalize_item_name,
+    rename_room,
     update_item_active_tags,
     update_list_tags_settings,
+    verify_room,
 )
 from item_service import (
     STATUS_ADDED,
@@ -99,14 +105,15 @@ class ViewState(TypedDict):
     focus_tag_input: bool
 
 
-def broadcast_updates() -> None:
-    list_of_lists.refresh()
+def broadcast_updates(room_id: int | None = None, room_slug: str | None = None) -> None:
+    if room_id is not None and room_slug is not None:
+        list_of_lists.refresh(room_id=room_id, room_slug=room_slug)
     item_list.refresh()
 
 
 @ui.refreshable
-def list_of_lists() -> None:
-    lists = get_lists()
+def list_of_lists(room_id: int, room_slug: str) -> None:
+    lists = get_lists(room_id)
 
     if not lists:
         ui.label("No lists yet. Create your first one!").classes("text-gray-500 italic")
@@ -130,14 +137,14 @@ def list_of_lists() -> None:
 
                             def save():
                                 status, actual_name = rename_list_with_checks(
-                                    lid, new_name_input.value
+                                    lid, room_id, new_name_input.value
                                 )
                                 if status == STATUS_INVALID_NAME:
                                     ui.notify("Name cannot be empty", color="warning")
                                     return
                                 if status == STATUS_DUPLICATE_NAME:
                                     ui.notify(
-                                        f"'{actual_name}' already exists",
+                                        f"'{actual_name}' already exists in this room",
                                         color="warning",
                                         position=NOTIFY_POSITION,
                                     )
@@ -149,7 +156,7 @@ def list_of_lists() -> None:
                                     color="positive",
                                     position=NOTIFY_POSITION,
                                 )
-                                broadcast_updates()
+                                broadcast_updates(room_id, room_slug)
 
                             ui.button("Save", on_click=save)
                         new_name_input.on("keyup.enter", save)
@@ -169,14 +176,14 @@ def list_of_lists() -> None:
                             ui.button("Cancel", on_click=dialog.close).props("flat")
 
                             def confirm():
-                                delete_list_and_items(lid)
+                                delete_list_and_items(lid, room_id)
                                 dialog.close()
                                 ui.notify(
                                     f"Deleted '{lname}'",
                                     color="negative",
                                     position=NOTIFY_POSITION,
                                 )
-                                broadcast_updates()
+                                broadcast_updates(room_id, room_slug)
 
                             ui.button("Delete", on_click=confirm).props(
                                 "color=negative"
@@ -304,9 +311,8 @@ def login() -> None:
 
 @app.middleware("http")
 async def auth_middleware(request, call_next):
-    # Only protect the root (dashboard) route for now.
-    # The /list/{slug} routes will be unprotected for sharing.
-    if request.url.path == "/":
+    path = request.url.path
+    if path == "/" or path.startswith("/room/"):
         is_authenticated = app.storage.user.get("authenticated", False)
         # If no password is set in the environment, we effectively disable security
         # to prevent locking the developer out if they forgot to set the .env variable.
@@ -314,6 +320,44 @@ async def auth_middleware(request, call_next):
             from fastapi.responses import RedirectResponse
             return RedirectResponse("/login")
     return await call_next(request)
+
+
+@ui.refreshable
+def room_list_ui():
+    rooms = get_rooms()
+    if not rooms:
+        ui.label("No rooms yet. Create your first one!").classes("text-gray-500 italic")
+        return
+
+    for room in rooms:
+        with ui.card().classes("w-full mb-1 p-1"):
+            with ui.row().classes("w-full items-center no-wrap"):
+                def enter_room(slug=room["slug"]):
+                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                        ui.label(f"Enter password for {room['name']}").classes("text-lg font-bold")
+                        pw_input = ui.input("Room Password", password=True).classes("w-full")
+                        with ui.row().classes("w-full justify-end mt-4"):
+                            ui.button("Cancel", on_click=dialog.close).props("flat")
+                            def submit():
+                                r_id = verify_room(slug, pw_input.value)
+                                if r_id:
+                                    auth_rooms = app.storage.user.get('authorized_rooms', [])
+                                    if slug not in auth_rooms:
+                                        auth_rooms.append(slug)
+                                        app.storage.user.update({'authorized_rooms': auth_rooms})
+                                    dialog.close()
+                                    ui.navigate.to(f"/room/{slug}")
+                                else:
+                                    ui.notify("Incorrect password", color="negative")
+                            ui.button("Enter", on_click=submit)
+                        pw_input.on("keydown.enter", submit)
+                    dialog.open()
+                
+                auth_rooms = app.storage.user.get('authorized_rooms', [])
+                if room["slug"] in auth_rooms:
+                    ui.button(room["name"], on_click=lambda s=room["slug"]: ui.navigate.to(f"/room/{s}")).props("flat").classes("flex-grow text-left text-lg")
+                else:
+                    ui.button(room["name"], on_click=enter_room).props("flat").classes("flex-grow text-left text-lg")
 
 
 @ui.page("/")
@@ -328,9 +372,109 @@ def index() -> None:
 
             if GLOBAL_APP_PASSWORD:
                 def logout() -> None:
-                    app.storage.user.update({"authenticated": False})
+                    app.storage.user.update({"authenticated": False, "authorized_rooms": []})
                     ui.navigate.to("/login")
                 ui.button("Log out", on_click=logout).props("flat size=sm")
+
+        def open_new_room_dialog() -> None:
+            with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                ui.label("New Room").classes("text-lg font-bold")
+                room_name_input = ui.input(label="Room name").classes("w-full")
+                room_pw_input = ui.input(label="Password", password=True).classes("w-full")
+                with ui.row().classes("w-full justify-end mt-4"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                    def save() -> None:
+                        try:
+                            new_id, new_slug = create_room(room_name_input.value, room_pw_input.value)
+                            auth_rooms = app.storage.user.get('authorized_rooms', [])
+                            auth_rooms.append(new_slug)
+                            app.storage.user.update({'authorized_rooms': auth_rooms})
+                            dialog.close()
+                            ui.notify("Room created", color="positive", position=NOTIFY_POSITION)
+                            ui.navigate.to(f"/room/{new_slug}")
+                        except ValueError as e:
+                            ui.notify(str(e), color="warning", position=NOTIFY_POSITION)
+
+                    ui.button("Create", on_click=save)
+
+                room_pw_input.on("keyup.enter", save)
+            dialog.open()
+
+        ui.button("Create New Room", icon="add", on_click=open_new_room_dialog).classes(
+            "w-full mb-4"
+        ).props("outline")
+
+        room_list_ui()
+
+
+@ui.page("/room/{slug}")
+def room_page(slug: str):
+    auth_rooms = app.storage.user.get('authorized_rooms', [])
+    if slug not in auth_rooms:
+        ui.navigate.to("/")
+        return
+        
+    details = get_room_details_by_slug(slug)
+    if not details:
+        ui.label("Room not found").classes("text-xl p-4")
+        return
+        
+    room_id = details["id"]
+    room_name = details["name"]
+    
+    with ui.card().classes("w-full max-w-sm mx-auto"):
+        with ui.row().classes("w-full items-center justify-between tracking-tighter mb-2"):
+            with ui.row().classes("items-center gap-2"):
+                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props("flat round dense")
+                ui.label(room_name).classes("font-bold text-slate-800 text-2xl truncate").style("max-width: 200px;")
+                
+            def open_room_menu():
+                with ui.menu():
+                    ui.menu_item('Rename Room', on_click=lambda: rename_room_dialog(room_id, room_name, slug))
+                    ui.menu_item('Delete Room', on_click=lambda: delete_room_dialog(room_id, slug)).classes('text-red-500')
+            ui.button(icon="more_vert", on_click=open_room_menu).props("flat round dense")
+
+        def rename_room_dialog(r_id, current_name, r_slug):
+            with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                ui.label("Rename Room").classes("text-lg font-bold")
+                new_name_input = ui.input(value=current_name, label="New name").classes("w-full")
+                with ui.row().classes("w-full justify-end mt-4"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
+                    def save():
+                        name = new_name_input.value.strip()
+                        if name:
+                            rename_room(r_id, name)
+                            dialog.close()
+                            ui.navigate.to(f"/room/{r_slug}") # Reload page to show new name
+                        else:
+                            ui.notify("Name cannot be empty", color="warning")
+                    ui.button("Save", on_click=save)
+            dialog.open()
+
+        def delete_room_dialog(r_id, r_slug):
+            with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                ui.label("Delete Room").classes("text-lg font-bold text-red-500")
+                ui.label("Warning: This will delete ALL lists and items inside this room. This cannot be undone.").classes("text-sm text-gray-600 mb-2")
+                pw_input = ui.input("Enter Room Password to Confirm", password=True).classes("w-full")
+                with ui.row().classes("w-full justify-end mt-4"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
+                    def confirm():
+                        if verify_room(r_slug, pw_input.value):
+                            delete_room(r_id)
+                            dialog.close()
+                            
+                            auth_rooms = app.storage.user.get('authorized_rooms', [])
+                            if r_slug in auth_rooms:
+                                auth_rooms.remove(r_slug)
+                                app.storage.user.update({'authorized_rooms': auth_rooms})
+                                
+                            ui.notify("Room deleted", color="negative")
+                            ui.navigate.to("/")
+                        else:
+                            ui.notify("Incorrect password", color="negative")
+                    ui.button("Delete", on_click=confirm).props("color=negative")
+            dialog.open()
 
         def open_new_list_dialog() -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
@@ -341,32 +485,20 @@ def index() -> None:
 
                     def save() -> None:
                         try:
-                            new_id, new_slug = create_list(list_name_input.value)
+                            new_id, new_slug = create_list(list_name_input.value, room_id)
                             dialog.close()
-                            ui.notify(
-                                "List created",
-                                color="positive",
-                                position=NOTIFY_POSITION,
-                            )
+                            ui.notify("List created", color="positive", position=NOTIFY_POSITION)
                             ui.navigate.to(f"/list/{new_slug}")
-                            broadcast_updates()
+                            broadcast_updates(room_id, slug)
                         except ValueError:
-                            ui.notify(
-                                "Name cannot be empty",
-                                color="warning",
-                                position=NOTIFY_POSITION,
-                            )
+                            ui.notify("Name cannot be empty", color="warning", position=NOTIFY_POSITION)
 
                     ui.button("Save", on_click=save)
-
                 list_name_input.on("keyup.enter", save)
             dialog.open()
 
-        ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes(
-            "w-full mb-4"
-        ).props("outline")
-
-        list_of_lists()
+        ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes("w-full mb-4").props("outline")
+        list_of_lists(room_id, slug)
 
 
 def _build_pending_undo(action: PendingUndoInput, token: str) -> PendingUndo:
@@ -429,12 +561,12 @@ def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
     )
 
 
-def _render_header(list_name: str, state: ViewState, undo_bar, tags_ui) -> None:
+def _render_header(list_name: str, state: ViewState, undo_bar, tags_ui, room_slug: str) -> None:
     with ui.row().classes("w-full items-center mb-2"):
-        ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props(
+        ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")).props(
             "flat round"
         )
-        ui.label(list_name).classes("text-2xl font-bold flex-grow")
+        ui.label(list_name).classes("text-2xl font-bold flex-grow truncate").style("max-width: 200px;")
         edit_btn_text = "Done" if state["edit_mode"] else "Edit"
         ui.button(
             edit_btn_text,
@@ -654,6 +786,7 @@ def list_page(slug: str):
         return
     list_id = details["id"]
     list_name = details["name"]
+    room_slug = details["room_slug"]
 
     state: ViewState = {
         "filter_tag": None,
@@ -692,7 +825,7 @@ def list_page(slug: str):
             tags_ui=tags_ui,
         )
 
-        _render_header(list_name=list_name, state=state, undo_bar=undo_bar, tags_ui=tags_ui)
+        _render_header(list_name=list_name, state=state, undo_bar=undo_bar, tags_ui=tags_ui, room_slug=room_slug)
         _render_add_item_row(list_id=list_id)
         undo_bar()
         tags_ui()
