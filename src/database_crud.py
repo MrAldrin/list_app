@@ -32,6 +32,20 @@ def get_list_details(list_id: int):
     return {"id": row[0], "name": row[1], "list_tags": list_tags, "slug": row[3]}
 
 
+def get_list_details_by_slug(slug: str):
+    with _DB_LOCK:
+        row = db.execute(
+            "SELECT id, name, list_tags, slug FROM lists WHERE slug = ?", (slug,)
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        list_tags = json.loads(row[2]) if row[2] else []
+    except json.JSONDecodeError:
+        list_tags = []
+    return {"id": row[0], "name": row[1], "list_tags": list_tags, "slug": row[3]}
+
+
 def update_list_tags_settings(list_id: int, list_tags: list[str]):
     with _DB_LOCK:
         db.execute(
@@ -63,10 +77,10 @@ def create_list(name: str):
 
     with _DB_LOCK:
         existing = db.execute(
-            "SELECT id FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,)
+            "SELECT id, slug FROM lists WHERE name = ? COLLATE NOCASE", (normalized_name,)
         ).fetchone()
         if existing:
-            return existing[0]
+            return existing[0], existing[1]
 
         safe_name = re.sub(r'[^a-z0-9]', '-', name.lower().strip())
         short_uuid = str(uuid.uuid4())[:6]
@@ -74,7 +88,7 @@ def create_list(name: str):
 
         result = db.execute("INSERT INTO lists (name, slug) VALUES (?, ?)", (normalized_name, slug))
         db.commit()
-        return result.lastrowid
+        return result.lastrowid, slug
 
 
 def rename_list(list_id: int, new_name: str):

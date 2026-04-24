@@ -25,6 +25,7 @@ from database_crud import (
     get_item_count,
     get_list_data,
     get_list_details,
+    get_list_details_by_slug,
     get_lists,
     normalize_item_name,
     update_item_active_tags,
@@ -115,7 +116,7 @@ def list_of_lists() -> None:
         with ui.card().classes("w-full mb-1 p-1"):
             with ui.row().classes("w-full items-center no-wrap"):
                 ui.button(
-                    name, on_click=lambda lid=list_id: ui.navigate.to(f"/list/{lid}")
+                    name, on_click=lambda s=slug: ui.navigate.to(f"/list/{s}")
                 ).props("flat").classes("flex-grow text-left text-lg")
 
                 def open_rename_dialog(lid=list_id, lname=name):
@@ -340,14 +341,14 @@ def index() -> None:
 
                     def save() -> None:
                         try:
-                            new_id = create_list(list_name_input.value)
+                            new_id, new_slug = create_list(list_name_input.value)
                             dialog.close()
                             ui.notify(
                                 "List created",
                                 color="positive",
                                 position=NOTIFY_POSITION,
                             )
-                            ui.navigate.to(f"/list/{new_id}")
+                            ui.navigate.to(f"/list/{new_slug}")
                             broadcast_updates()
                         except ValueError:
                             ui.notify(
@@ -645,13 +646,13 @@ def _delete_item_with_undo(list_id: int, it: dict, set_pending_undo) -> None:
     broadcast_updates()
 
 
-@ui.page("/list/{list_id}")
-def list_page(list_id: int):
-    list_id = int(list_id)
-    details = get_list_details(list_id)
+@ui.page("/list/{slug}")
+def list_page(slug: str):
+    details = get_list_details_by_slug(slug)
     if not details:
         ui.label("List not found").classes("text-xl p-4")
         return
+    list_id = details["id"]
     list_name = details["name"]
 
     state: ViewState = {
