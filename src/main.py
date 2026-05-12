@@ -313,7 +313,7 @@ def login() -> None:
 @app.middleware("http")
 async def auth_middleware(request, call_next):
     path = request.url.path
-    if path == "/" or path.startswith("/room/"):
+    if path == "/":
         is_authenticated = app.storage.user.get("authenticated", False)
         # If no password is set in the environment, we effectively disable security
         # to prevent locking the developer out if they forgot to set the .env variable.
@@ -440,11 +440,6 @@ def index() -> None:
 
 @ui.page("/room/{slug}")
 def room_page(slug: str):
-    auth_rooms = app.storage.user.get('authorized_rooms', [])
-    if slug not in auth_rooms:
-        ui.navigate.to("/")
-        return
-        
     details = get_room_details_by_slug(slug)
     if not details:
         ui.label("Room not found").classes("text-xl p-4")
@@ -453,6 +448,23 @@ def room_page(slug: str):
     room_id = details["id"]
     room_name = details["name"]
     
+    auth_rooms = app.storage.user.get('authorized_rooms', [])
+    if slug not in auth_rooms:
+        with ui.card().classes("absolute-center w-full max-w-sm"):
+            ui.label(f"Enter password for {room_name}").classes("text-xl font-bold mb-4")
+            pw_input = ui.input("Room Password", password=True).classes("w-full")
+            with ui.row().classes("w-full justify-end mt-4"):
+                def submit():
+                    if verify_room(slug, pw_input.value):
+                        auth_rooms.append(slug)
+                        app.storage.user.update({'authorized_rooms': auth_rooms})
+                        ui.navigate.to(f"/room/{slug}")
+                    else:
+                        ui.notify("Incorrect password", color="negative")
+                ui.button("Enter", on_click=submit)
+            pw_input.on("keydown.enter", submit)
+        return
+        
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes("w-full items-center justify-between tracking-tighter mb-2"):
             with ui.row().classes("items-center gap-2"):
