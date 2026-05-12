@@ -305,8 +305,8 @@ def login() -> None:
             ui.notify("Wrong password", color="negative", position=NOTIFY_POSITION)
 
     with ui.card().classes("absolute-center"):
-        ui.label("Enter password").classes("text-xl font-bold")
-        password = ui.input("Password", password=True, password_toggle_button=True).classes("w-full").on("keydown.enter", try_login)
+        ui.label("Enter Admin Password").classes("text-xl font-bold")
+        password = ui.input("Admin Password", password=True, password_toggle_button=True).classes("w-full").on("keydown.enter", try_login)
         ui.button("Log in", on_click=try_login).classes("w-full mt-4")
 
 
@@ -333,9 +333,9 @@ def room_list_ui():
     for room in rooms:
         with ui.card().classes("w-full mb-1 p-1"):
             with ui.row().classes("w-full items-center no-wrap"):
-                def enter_room(slug=room["slug"]):
+                def enter_room(slug=room["slug"], r_name=room["name"]):
                     with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Enter password for {room['name']}").classes("text-lg font-bold")
+                        ui.label(f"Enter password for {r_name}").classes("text-lg font-bold")
                         pw_input = ui.input("Room Password", password=True).classes("w-full")
                         with ui.row().classes("w-full justify-end mt-4"):
                             ui.button("Cancel", on_click=dialog.close).props("flat")
@@ -451,7 +451,7 @@ def room_page(slug: str):
     auth_rooms = app.storage.user.get('authorized_rooms', [])
     if slug not in auth_rooms:
         with ui.card().classes("absolute-center w-full max-w-sm"):
-            ui.label(f"Enter password for {room_name}").classes("text-xl font-bold mb-4")
+            ui.label(f"Enter Room Password for {room_name}").classes("text-xl font-bold mb-4")
             pw_input = ui.input("Room Password", password=True).classes("w-full")
             with ui.row().classes("w-full justify-end mt-4"):
                 def submit():
