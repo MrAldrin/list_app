@@ -468,7 +468,12 @@ def room_page(slug: str):
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes("w-full items-center justify-between tracking-tighter mb-2"):
             with ui.row().classes("items-center gap-2"):
-                ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props("flat round dense")
+                if app.storage.user.get("authenticated", False):
+                    ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props("flat round dense")
+                else:
+                    with ui.row().classes("items-center gap-0 text-xl mr-1"):
+                        ui.label("List").classes("font-bold text-slate-800")
+                        ui.label("R").classes("font-black text-primary")
                 ui.label(room_name).classes("font-bold text-slate-800 text-2xl truncate").style("max-width: 200px;")
                 
             with ui.button(icon="more_vert").props("flat round dense"):
