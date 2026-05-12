@@ -459,12 +459,11 @@ def room_page(slug: str):
                 ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props("flat round dense")
                 ui.label(room_name).classes("font-bold text-slate-800 text-2xl truncate").style("max-width: 200px;")
                 
-            def open_room_menu():
+            with ui.button(icon="more_vert").props("flat round dense"):
                 with ui.menu():
                     ui.menu_item('Rename Room', on_click=lambda: rename_room_dialog(room_id, room_name, slug))
                     ui.menu_item('Change Password', on_click=lambda: change_password_dialog(room_id, slug))
                     ui.menu_item('Delete Room', on_click=lambda: delete_room_dialog(room_id, slug)).classes('text-red-500')
-            ui.button(icon="more_vert", on_click=open_room_menu).props("flat round dense")
 
         def change_password_dialog(r_id, r_slug):
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
@@ -667,7 +666,7 @@ def _render_add_item_row(list_id: int) -> None:
 
         ui.button("Add", on_click=submit)
 
-    search_input.props("behavior=menu fill-input=false")
+    search_input.props("behavior=menu fill-input=true")
 
     def on_filter(e) -> None:
         typed = normalize_item_name(e.args[0] if e.args else "")
@@ -682,9 +681,13 @@ def _render_add_item_row(list_id: int) -> None:
 
     search_input.on("filter", on_filter)
     search_input.on("keyup.enter", submit)
-    search_input.on_value_change(
-        lambda e: draft_text.update({"val": normalize_item_name(e.value or "")})
-    )
+    def handle_value_change(e):
+        val = normalize_item_name(e.value or "")
+        draft_text.update({"val": val})
+        if e.value:
+            submit()
+
+    search_input.on_value_change(handle_value_change)
 
 
 def _create_undo_bar(
