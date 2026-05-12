@@ -267,6 +267,16 @@ def verify_room(room_slug: str, plain_password: str):
     return None
 
 
+def update_room_password(room_id: int, new_plain_password: str):
+    if not new_plain_password:
+        raise ValueError("Password cannot be empty")
+        
+    pw_hash = bcrypt.hashpw(new_plain_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    with _DB_LOCK:
+        db.execute("UPDATE rooms SET password_hash = ? WHERE id = ?", (pw_hash, room_id))
+        db.commit()
+
+
 def rename_room(room_id: int, new_name: str):
     with _DB_LOCK:
         db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))

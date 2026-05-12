@@ -35,6 +35,7 @@ from database_crud import (
     rename_room,
     update_item_active_tags,
     update_list_tags_settings,
+    update_room_password,
     verify_room,
 )
 from item_service import (
@@ -359,6 +360,35 @@ def room_list_ui():
                 else:
                     ui.button(room["name"], on_click=enter_room).props("flat").classes("flex-grow text-left text-lg")
 
+                def open_admin_reset_dialog(r_id=room["id"], r_name=room["name"], r_slug=room["slug"]):
+                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                        ui.label(f"Admin Reset: {r_name}").classes("text-lg font-bold text-red-500")
+                        admin_pw_input = ui.input("Admin Key (Global Password)", password=True).classes("w-full")
+                        new_pw_input = ui.input("New Room Password", password=True).classes("w-full")
+                        with ui.row().classes("w-full justify-end mt-4"):
+                            ui.button("Cancel", on_click=dialog.close).props("flat")
+                            def submit():
+                                if admin_pw_input.value == GLOBAL_APP_PASSWORD:
+                                    if new_pw_input.value.strip():
+                                        update_room_password(r_id, new_pw_input.value)
+                                        # Also clear their auth token if they had one so they have to re-enter the new password
+                                        current_auths = app.storage.user.get('authorized_rooms', [])
+                                        if r_slug in current_auths:
+                                            current_auths.remove(r_slug)
+                                            app.storage.user.update({'authorized_rooms': current_auths})
+                                            room_list_ui.refresh()
+                                        
+                                        dialog.close()
+                                        ui.notify("Password reset successfully", color="positive")
+                                    else:
+                                        ui.notify("New password cannot be empty", color="warning")
+                                else:
+                                    ui.notify("Incorrect Admin Key", color="negative")
+                            ui.button("Reset", on_click=submit).props("color=negative")
+                    dialog.open()
+
+                ui.button(icon="key", on_click=open_admin_reset_dialog).props("flat round dense size=sm color=grey")
+
 
 @ui.page("/")
 def index() -> None:
@@ -432,8 +462,29 @@ def room_page(slug: str):
             def open_room_menu():
                 with ui.menu():
                     ui.menu_item('Rename Room', on_click=lambda: rename_room_dialog(room_id, room_name, slug))
+                    ui.menu_item('Change Password', on_click=lambda: change_password_dialog(room_id, slug))
                     ui.menu_item('Delete Room', on_click=lambda: delete_room_dialog(room_id, slug)).classes('text-red-500')
             ui.button(icon="more_vert", on_click=open_room_menu).props("flat round dense")
+
+        def change_password_dialog(r_id, r_slug):
+            with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                ui.label("Change Room Password").classes("text-lg font-bold")
+                old_pw_input = ui.input("Current Password", password=True).classes("w-full")
+                new_pw_input = ui.input("New Password", password=True).classes("w-full")
+                with ui.row().classes("w-full justify-end mt-4"):
+                    ui.button("Cancel", on_click=dialog.close).props("flat")
+                    def submit():
+                        if verify_room(r_slug, old_pw_input.value):
+                            if new_pw_input.value.strip():
+                                update_room_password(r_id, new_pw_input.value)
+                                dialog.close()
+                                ui.notify("Password changed successfully", color="positive")
+                            else:
+                                ui.notify("New password cannot be empty", color="warning")
+                        else:
+                            ui.notify("Incorrect current password", color="negative")
+                    ui.button("Change", on_click=submit)
+            dialog.open()
 
         def rename_room_dialog(r_id, current_name, r_slug):
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
@@ -498,7 +549,7 @@ def room_page(slug: str):
             dialog.open()
 
         ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes("w-full mb-4").props("outline")
-        list_of_lists(room_id, slug)
+        list_of_lists(room_id=room_id, room_slug=slug)
 
 
 def _build_pending_undo(action: PendingUndoInput, token: str) -> PendingUndo:
