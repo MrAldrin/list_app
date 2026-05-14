@@ -12,11 +12,7 @@ GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
 
 # --- PWA and Assets ---
 app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
-app.add_static_file(
-    "/manifest.webmanifest",
-    os.path.join(os.path.dirname(__file__), "static", "manifest.json"),
-)
-ui.add_head_html('<link rel="manifest" href="/manifest.webmanifest">', shared=True)
+ui.add_head_html('<link rel="manifest" href="/static/manifest.json">', shared=True)
 ui.add_head_html('<meta name="apple-mobile-web-app-capable" content="yes">', shared=True)
 ui.add_head_html('<meta name="apple-mobile-web-app-status-bar-style" content="black">', shared=True)
 ui.add_head_html('<link rel="apple-touch-icon" href="/static/icon.svg">', shared=True)
