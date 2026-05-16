@@ -815,8 +815,89 @@ def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
 
 
 def _render_header(
-    list_name: str, state: ViewState, undo_bar, tags_ui, room_slug: str
+    list_name: str,
+    list_slug: str,
+    state: ViewState,
+    undo_bar,
+    tags_ui,
+    room_slug: str,
 ) -> None:
+    share_url_state = {"value": f"/list/{list_slug}"}
+
+    with ui.dialog() as share_dialog, ui.card().classes("w-full max-w-sm"):
+        ui.label("Share this list").classes("text-lg font-bold")
+        ui.label("Anyone with this link can open this list.").classes(
+            "text-sm text-gray-600 mb-2"
+        )
+        share_url_input = ui.input(value=share_url_state["value"]).props(
+            "readonly"
+        ).classes("w-full")
+
+        async def resolve_current_url() -> str | None:
+            current_url = await ui.run_javascript(
+                "return window.location.href", timeout=3.0
+            )
+            if isinstance(current_url, str) and current_url:
+                return current_url
+            return None
+
+        async def open_share_fallback(url: str | None = None) -> None:
+            if url:
+                share_url_state["value"] = url
+            else:
+                current_url = await resolve_current_url()
+                if current_url:
+                    share_url_state["value"] = current_url
+            share_url_input.value = share_url_state["value"]
+            share_url_input.update()
+            share_dialog.open()
+
+        async def copy_link() -> None:
+            current_url = await resolve_current_url()
+            if current_url:
+                share_url_state["value"] = current_url
+                share_url_input.value = current_url
+                share_url_input.update()
+            ui.clipboard.write(share_url_state["value"])
+            ui.notify("Link copied", color="positive", position=NOTIFY_POSITION)
+
+        with ui.row().classes("w-full justify-end mt-3 gap-2"):
+            ui.button("Close", on_click=share_dialog.close).props("flat")
+            ui.button("Copy link", on_click=copy_link)
+
+    async def share_list() -> None:
+        result = await ui.run_javascript(
+            """
+            const currentUrl = window.location.href;
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'ListR',
+                        text: 'Anyone with this link can open this list.',
+                        url: currentUrl,
+                    });
+                    return {status: 'shared', url: currentUrl};
+                } catch (error) {
+                    if (error && error.name === 'AbortError') {
+                        return {status: 'cancelled', url: currentUrl};
+                    }
+                    return {status: 'fallback', url: currentUrl};
+                }
+            }
+            return {status: 'fallback', url: currentUrl};
+            """,
+            timeout=10.0,
+        )
+        if isinstance(result, dict):
+            if result.get("status") in {"shared", "cancelled"}:
+                return
+            fallback_url = result.get("url")
+            await open_share_fallback(
+                fallback_url if isinstance(fallback_url, str) else None
+            )
+            return
+        await open_share_fallback()
+
     with ui.row().classes("w-full items-center mb-2"):
         ui.button(
             icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")
@@ -824,6 +905,7 @@ def _render_header(
         ui.label(list_name).classes("text-2xl font-bold flex-grow truncate").style(
             "max-width: 200px;"
         )
+        ui.button("Share", on_click=share_list).props("flat")
         edit_btn_text = "Done" if state["edit_mode"] else "Edit"
         ui.button(
             edit_btn_text,
@@ -1096,6 +1178,7 @@ def list_page(slug: str):
 
         _render_header(
             list_name=list_name,
+            list_slug=slug,
             state=state,
             undo_bar=undo_bar,
             tags_ui=tags_ui,
