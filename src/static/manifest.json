@@ -2,7 +2,7 @@
   "id": "/",
   "name": "ListR",
   "short_name": "ListR",
-  "start_url": "/",
+  "start_url": ".",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
