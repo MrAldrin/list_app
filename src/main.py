@@ -19,7 +19,18 @@ ui.add_head_html(
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-status-bar-style" content="black">', shared=True
 )
-ui.add_head_html('<link rel="apple-touch-icon" href="/static/icon.svg">', shared=True)
+ui.add_head_html(
+    '<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">',
+    shared=True,
+)
+ui.add_head_html(
+    '<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">',
+    shared=True,
+)
+ui.add_head_html(
+    '<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png">',
+    shared=True,
+)
 ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
 
 from database_crud import (
@@ -1099,5 +1110,6 @@ ui.run(
     port=port,
     reload=True,
     title="ListR",
+    favicon="/static/icons/favicon-32.png",
     storage_secret="some_secret",
 )
