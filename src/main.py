@@ -438,6 +438,36 @@ def index() -> None:
         room_list_ui()
 
 
+@ui.page("/launch/room/{slug}")
+def launch_room_page(slug: str):
+    details = get_room_details_by_slug(slug)
+    if not details:
+        ui.label("Room not found").classes("text-xl p-4")
+        return
+
+    room_name = details["name"]
+    auth_rooms = app.storage.user.get("authorized_rooms", [])
+    if slug in auth_rooms:
+        ui.navigate.to(f"/room/{slug}")
+        return
+
+    with ui.card().classes("absolute-center w-full max-w-sm"):
+        ui.label(f"Enter Room Password for {room_name}").classes("text-xl font-bold mb-4")
+        pw_input = ui.input("Room Password", password=True).classes("w-full")
+        with ui.row().classes("w-full justify-end mt-4"):
+            def submit():
+                if verify_room(slug, pw_input.value):
+                    auth_rooms = app.storage.user.get("authorized_rooms", [])
+                    if slug not in auth_rooms:
+                        auth_rooms.append(slug)
+                        app.storage.user.update({"authorized_rooms": auth_rooms})
+                    ui.navigate.to(f"/room/{slug}")
+                else:
+                    ui.notify("Incorrect password", color="negative")
+            ui.button("Enter", on_click=submit)
+        pw_input.on("keydown.enter", submit)
+
+
 @ui.page("/room/{slug}")
 def room_page(slug: str):
     details = get_room_details_by_slug(slug)
