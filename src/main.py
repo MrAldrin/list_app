@@ -899,29 +899,32 @@ def _render_header(
             return
         await open_share_fallback()
 
-    with ui.row().classes("w-full items-center mb-2"):
-        if room_authorized:
-            ui.button(
-                icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")
-            ).props("flat round")
-        else:
-            with ui.row().classes("items-center gap-0 text-xl mr-1"):
-                ui.label("List").classes("font-bold text-slate-800")
-                ui.label("R").classes("font-black text-primary")
-        ui.label(list_name).classes("text-2xl font-bold flex-grow truncate").style(
-            "max-width: 200px;"
-        )
-        ui.button("Share", on_click=share_list).props("flat")
-        edit_btn_text = "Done" if state["edit_mode"] else "Edit"
-        ui.button(
-            edit_btn_text,
-            on_click=lambda: (
-                state.update({"edit_mode": not state["edit_mode"]}),
-                undo_bar.refresh(),
-                tags_ui.refresh(),
-                item_list.refresh(),
-            ),
-        ).props("flat")
+    with ui.column().classes("w-full mb-2 gap-1"):
+        with ui.row().classes("w-full items-center justify-between"):
+            if room_authorized:
+                ui.button(
+                    icon="arrow_back",
+                    on_click=lambda: ui.navigate.to(f"/room/{room_slug}"),
+                ).props("flat round")
+            else:
+                with ui.row().classes("items-center gap-0 text-xl mr-1"):
+                    ui.label("List").classes("font-bold text-slate-800")
+                    ui.label("R").classes("font-black text-primary")
+
+            with ui.row().classes("items-center gap-1"):
+                ui.button("Share", on_click=share_list).props("flat")
+                edit_btn_text = "Done" if state["edit_mode"] else "Edit"
+                ui.button(
+                    edit_btn_text,
+                    on_click=lambda: (
+                        state.update({"edit_mode": not state["edit_mode"]}),
+                        undo_bar.refresh(),
+                        tags_ui.refresh(),
+                        item_list.refresh(),
+                    ),
+                ).props("flat")
+
+        ui.label(list_name).classes("text-2xl font-bold w-full truncate")
 
 
 def _render_add_item_row(list_id: int) -> None:
