@@ -817,6 +817,7 @@ def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
 def _render_header(
     list_name: str,
     list_slug: str,
+    room_authorized: bool,
     state: ViewState,
     undo_bar,
     tags_ui,
@@ -899,9 +900,14 @@ def _render_header(
         await open_share_fallback()
 
     with ui.row().classes("w-full items-center mb-2"):
-        ui.button(
-            icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")
-        ).props("flat round")
+        if room_authorized:
+            ui.button(
+                icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")
+            ).props("flat round")
+        else:
+            with ui.row().classes("items-center gap-0 text-xl mr-1"):
+                ui.label("List").classes("font-bold text-slate-800")
+                ui.label("R").classes("font-black text-primary")
         ui.label(list_name).classes("text-2xl font-bold flex-grow truncate").style(
             "max-width: 200px;"
         )
@@ -1134,10 +1140,7 @@ def list_page(slug: str):
     list_name = details["name"]
     room_slug = details["room_slug"]
     auth_rooms = app.storage.user.get("authorized_rooms", [])
-    if room_slug not in auth_rooms:
-        ui.notify("Please enter room password first", color="warning")
-        ui.navigate.to(f"/room/{room_slug}")
-        return
+    room_authorized = room_slug in auth_rooms
 
     state: ViewState = {
         "filter_tag": None,
@@ -1179,6 +1182,7 @@ def list_page(slug: str):
         _render_header(
             list_name=list_name,
             list_slug=slug,
+            room_authorized=room_authorized,
             state=state,
             undo_bar=undo_bar,
             tags_ui=tags_ui,
