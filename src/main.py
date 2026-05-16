@@ -121,10 +121,13 @@ class ViewState(TypedDict):
     focus_tag_input: bool
 
 
-def broadcast_updates(room_id: int | None = None, room_slug: str | None = None) -> None:
-    if room_id is not None and room_slug is not None:
-        list_of_lists.refresh(room_id=room_id, room_slug=room_slug)
-    item_list.refresh()
+def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) -> None:
+    # Do not pass kwargs into refresh(): NiceGUI merges kwargs into all refresh targets.
+    # Passing one user's room kwargs can therefore overwrite other users' room context.
+    if refresh_lists:
+        list_of_lists.refresh()
+    if refresh_items:
+        item_list.refresh()
 
 
 @ui.refreshable
@@ -172,7 +175,7 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
                                     color="positive",
                                     position=NOTIFY_POSITION,
                                 )
-                                broadcast_updates(room_id, room_slug)
+                                broadcast_updates()
 
                             ui.button("Save", on_click=save)
                         new_name_input.on("keyup.enter", save)
@@ -199,7 +202,7 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
                                     color="negative",
                                     position=NOTIFY_POSITION,
                                 )
-                                broadcast_updates(room_id, room_slug)
+                                broadcast_updates()
 
                             ui.button("Delete", on_click=confirm).props(
                                 "color=negative"
@@ -519,8 +522,9 @@ def admin_page() -> None:
 def index() -> None:
     last_room_slug = app.storage.user.get("last_room_slug")
     if last_room_slug:
+        auth_rooms = app.storage.user.get("authorized_rooms", [])
         details = get_room_details_by_slug(last_room_slug)
-        if details:
+        if details and last_room_slug in auth_rooms:
             ui.navigate.to(f"/room/{last_room_slug}")
             return
 
@@ -732,7 +736,7 @@ def room_page(slug: str):
                                 position=NOTIFY_POSITION,
                             )
                             ui.navigate.to(f"/list/{new_slug}")
-                            broadcast_updates(room_id, slug)
+                            broadcast_updates()
                         except ValueError:
                             ui.notify(
                                 "Name cannot be empty",
@@ -1047,6 +1051,11 @@ def list_page(slug: str):
     list_id = details["id"]
     list_name = details["name"]
     room_slug = details["room_slug"]
+    auth_rooms = app.storage.user.get("authorized_rooms", [])
+    if room_slug not in auth_rooms:
+        ui.notify("Please enter room password first", color="warning")
+        ui.navigate.to(f"/room/{room_slug}")
+        return
 
     state: ViewState = {
         "filter_tag": None,

@@ -5,13 +5,15 @@ import pytest
 os.environ["DB_PATH"] = ":memory:"
 
 from database_setup import db
+from database_crud import create_room
 
 @pytest.fixture(autouse=True)
 def clean_db():
     # Clear tables before each test to ensure isolation
     db.execute("DELETE FROM items")
     db.execute("DELETE FROM lists")
-    # Re-insert the "default" list that database_setup.py normally creates
-    db.execute("INSERT INTO lists (name) VALUES ('default')")
+    db.execute("DELETE FROM rooms")
+    room_id, _ = create_room("Home", "pw")
+    db.execute("INSERT INTO lists (name, room_id) VALUES ('default', ?)", (room_id,))
     db.commit()
     yield
