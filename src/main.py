@@ -13,8 +13,12 @@ GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
 # --- PWA and Assets ---
 app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
 ui.add_head_html('<link rel="manifest" href="/static/manifest.json">', shared=True)
-ui.add_head_html('<meta name="apple-mobile-web-app-capable" content="yes">', shared=True)
-ui.add_head_html('<meta name="apple-mobile-web-app-status-bar-style" content="black">', shared=True)
+ui.add_head_html(
+    '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
+)
+ui.add_head_html(
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black">', shared=True
+)
 ui.add_head_html('<link rel="apple-touch-icon" href="/static/icon.svg">', shared=True)
 ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
 
@@ -295,31 +299,37 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
                     ).style("margin: -2px")
 
 
-@ui.page("/login")
-def login() -> None:
+@ui.page("/admin/login")
+def admin_login() -> None:
     def try_login() -> None:
         if password.value == GLOBAL_APP_PASSWORD:
             app.storage.user.update({"authenticated": True})
-            ui.navigate.to("/")
+            ui.navigate.to("/admin")
         else:
             ui.notify("Wrong password", color="negative", position=NOTIFY_POSITION)
 
     with ui.card().classes("absolute-center"):
         ui.label("Enter Admin Password").classes("text-xl font-bold")
-        password = ui.input("Admin Password", password=True, password_toggle_button=True).classes("w-full").on("keydown.enter", try_login)
+        password = (
+            ui
+            .input("Admin Password", password=True, password_toggle_button=True)
+            .classes("w-full")
+            .on("keydown.enter", try_login)
+        )
         ui.button("Log in", on_click=try_login).classes("w-full mt-4")
 
 
 @app.middleware("http")
 async def auth_middleware(request, call_next):
     path = request.url.path
-    if path == "/":
+    if path == "/admin":
         is_authenticated = app.storage.user.get("authenticated", False)
         # If no password is set in the environment, we effectively disable security
         # to prevent locking the developer out if they forgot to set the .env variable.
         if GLOBAL_APP_PASSWORD and not is_authenticated:
             from fastapi.responses import RedirectResponse
-            return RedirectResponse("/login")
+
+            return RedirectResponse("/admin/login")
     return await call_next(request)
 
 
@@ -333,65 +343,108 @@ def room_list_ui():
     for room in rooms:
         with ui.card().classes("w-full mb-1 p-1"):
             with ui.row().classes("w-full items-center no-wrap"):
+
                 def enter_room(slug=room["slug"], r_name=room["name"]):
                     with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Enter password for {r_name}").classes("text-lg font-bold")
-                        pw_input = ui.input("Room Password", password=True).classes("w-full")
+                        ui.label(f"Enter password for {r_name}").classes(
+                            "text-lg font-bold"
+                        )
+                        pw_input = ui.input("Room Password", password=True).classes(
+                            "w-full"
+                        )
                         with ui.row().classes("w-full justify-end mt-4"):
                             ui.button("Cancel", on_click=dialog.close).props("flat")
+
                             def submit():
                                 r_id = verify_room(slug, pw_input.value)
                                 if r_id:
-                                    auth_rooms = app.storage.user.get('authorized_rooms', [])
+                                    auth_rooms = app.storage.user.get(
+                                        "authorized_rooms", []
+                                    )
                                     if slug not in auth_rooms:
                                         auth_rooms.append(slug)
-                                        app.storage.user.update({'authorized_rooms': auth_rooms})
+                                        app.storage.user.update({
+                                            "authorized_rooms": auth_rooms,
+                                            "last_room_slug": slug,
+                                        })
+                                    else:
+                                        app.storage.user.update({
+                                            "last_room_slug": slug
+                                        })
                                     dialog.close()
                                     ui.navigate.to(f"/room/{slug}")
                                 else:
                                     ui.notify("Incorrect password", color="negative")
+
                             ui.button("Enter", on_click=submit)
                         pw_input.on("keydown.enter", submit)
                     dialog.open()
-                
-                auth_rooms = app.storage.user.get('authorized_rooms', [])
-                if room["slug"] in auth_rooms:
-                    ui.button(room["name"], on_click=lambda s=room["slug"]: ui.navigate.to(f"/room/{s}")).props("flat").classes("flex-grow text-left text-lg")
-                else:
-                    ui.button(room["name"], on_click=enter_room).props("flat").classes("flex-grow text-left text-lg")
 
-                def open_admin_reset_dialog(r_id=room["id"], r_name=room["name"], r_slug=room["slug"]):
+                auth_rooms = app.storage.user.get("authorized_rooms", [])
+                if room["slug"] in auth_rooms:
+                    ui.button(
+                        room["name"],
+                        on_click=lambda s=room["slug"]: ui.navigate.to(f"/room/{s}"),
+                    ).props("flat").classes("flex-grow text-left text-lg")
+                else:
+                    ui.button(room["name"], on_click=enter_room).props("flat").classes(
+                        "flex-grow text-left text-lg"
+                    )
+
+                def open_admin_reset_dialog(
+                    r_id=room["id"], r_name=room["name"], r_slug=room["slug"]
+                ):
                     with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Admin Reset: {r_name}").classes("text-lg font-bold text-red-500")
-                        admin_pw_input = ui.input("Admin Key (Global Password)", password=True).classes("w-full")
-                        new_pw_input = ui.input("New Room Password", password=True).classes("w-full")
+                        ui.label(f"Admin Reset: {r_name}").classes(
+                            "text-lg font-bold text-red-500"
+                        )
+                        admin_pw_input = ui.input(
+                            "Admin Key (Global Password)", password=True
+                        ).classes("w-full")
+                        new_pw_input = ui.input(
+                            "New Room Password", password=True
+                        ).classes("w-full")
                         with ui.row().classes("w-full justify-end mt-4"):
                             ui.button("Cancel", on_click=dialog.close).props("flat")
+
                             def submit():
                                 if admin_pw_input.value == GLOBAL_APP_PASSWORD:
                                     if new_pw_input.value.strip():
                                         update_room_password(r_id, new_pw_input.value)
                                         # Also clear their auth token if they had one so they have to re-enter the new password
-                                        current_auths = app.storage.user.get('authorized_rooms', [])
+                                        current_auths = app.storage.user.get(
+                                            "authorized_rooms", []
+                                        )
                                         if r_slug in current_auths:
                                             current_auths.remove(r_slug)
-                                            app.storage.user.update({'authorized_rooms': current_auths})
+                                            app.storage.user.update({
+                                                "authorized_rooms": current_auths
+                                            })
                                             room_list_ui.refresh()
-                                        
+
                                         dialog.close()
-                                        ui.notify("Password reset successfully", color="positive")
+                                        ui.notify(
+                                            "Password reset successfully",
+                                            color="positive",
+                                        )
                                     else:
-                                        ui.notify("New password cannot be empty", color="warning")
+                                        ui.notify(
+                                            "New password cannot be empty",
+                                            color="warning",
+                                        )
                                 else:
                                     ui.notify("Incorrect Admin Key", color="negative")
+
                             ui.button("Reset", on_click=submit).props("color=negative")
                     dialog.open()
 
-                ui.button(icon="key", on_click=open_admin_reset_dialog).props("flat round dense size=sm color=grey")
+                ui.button(icon="key", on_click=open_admin_reset_dialog).props(
+                    "flat round dense size=sm color=grey"
+                )
 
 
-@ui.page("/")
-def index() -> None:
+@ui.page("/admin")
+def admin_page() -> None:
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
             "w-full items-center justify-between tracking-tighter mb-2"
@@ -401,27 +454,40 @@ def index() -> None:
                 ui.label("R").classes("font-black text-primary")
 
             if GLOBAL_APP_PASSWORD:
+
                 def logout() -> None:
-                    app.storage.user.update({"authenticated": False, "authorized_rooms": []})
-                    ui.navigate.to("/login")
+                    app.storage.user.update({"authenticated": False})
+                    ui.navigate.to("/admin/login")
+
                 ui.button("Log out", on_click=logout).props("flat size=sm")
 
         def open_new_room_dialog() -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("New Room").classes("text-lg font-bold")
                 room_name_input = ui.input(label="Room name").classes("w-full")
-                room_pw_input = ui.input(label="Password", password=True).classes("w-full")
+                room_pw_input = ui.input(label="Password", password=True).classes(
+                    "w-full"
+                )
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
                     def save() -> None:
                         try:
-                            new_id, new_slug = create_room(room_name_input.value, room_pw_input.value)
-                            auth_rooms = app.storage.user.get('authorized_rooms', [])
+                            new_id, new_slug = create_room(
+                                room_name_input.value, room_pw_input.value
+                            )
+                            auth_rooms = app.storage.user.get("authorized_rooms", [])
                             auth_rooms.append(new_slug)
-                            app.storage.user.update({'authorized_rooms': auth_rooms})
+                            app.storage.user.update({
+                                "authorized_rooms": auth_rooms,
+                                "last_room_slug": new_slug,
+                            })
                             dialog.close()
-                            ui.notify("Room created", color="positive", position=NOTIFY_POSITION)
+                            ui.notify(
+                                "Room created",
+                                color="positive",
+                                position=NOTIFY_POSITION,
+                            )
                             ui.navigate.to(f"/room/{new_slug}")
                         except ValueError as e:
                             ui.notify(str(e), color="warning", position=NOTIFY_POSITION)
@@ -438,34 +504,53 @@ def index() -> None:
         room_list_ui()
 
 
-@ui.page("/launch/room/{slug}")
-def launch_room_page(slug: str):
-    details = get_room_details_by_slug(slug)
-    if not details:
-        ui.label("Room not found").classes("text-xl p-4")
-        return
-
-    room_name = details["name"]
-    auth_rooms = app.storage.user.get("authorized_rooms", [])
-    if slug in auth_rooms:
-        ui.navigate.to(f"/room/{slug}")
-        return
+@ui.page("/")
+def index() -> None:
+    last_room_slug = app.storage.user.get("last_room_slug")
+    if last_room_slug:
+        details = get_room_details_by_slug(last_room_slug)
+        if details:
+            ui.navigate.to(f"/room/{last_room_slug}")
+            return
 
     with ui.card().classes("absolute-center w-full max-w-sm"):
-        ui.label(f"Enter Room Password for {room_name}").classes("text-xl font-bold mb-4")
-        pw_input = ui.input("Room Password", password=True).classes("w-full")
-        with ui.row().classes("w-full justify-end mt-4"):
-            def submit():
-                if verify_room(slug, pw_input.value):
-                    auth_rooms = app.storage.user.get("authorized_rooms", [])
-                    if slug not in auth_rooms:
-                        auth_rooms.append(slug)
-                        app.storage.user.update({"authorized_rooms": auth_rooms})
-                    ui.navigate.to(f"/room/{slug}")
-                else:
-                    ui.notify("Incorrect password", color="negative")
-            ui.button("Enter", on_click=submit)
-        pw_input.on("keydown.enter", submit)
+        ui.label("Open your room link to continue").classes("text-xl font-bold mb-2")
+        ui.label("Paste your room link or room code if needed.").classes(
+            "text-sm text-gray-600 mb-2"
+        )
+
+        room_link_input = ui.input("Room link or code").classes("w-full")
+
+        def go_to_room() -> None:
+            raw_value = (room_link_input.value or "").strip()
+            if not raw_value:
+                ui.notify(
+                    "Enter a room link or code",
+                    color="warning",
+                    position=NOTIFY_POSITION,
+                )
+                return
+
+            slug = raw_value.rstrip("/").split("/")[-1]
+            details = get_room_details_by_slug(slug)
+            if not details:
+                ui.notify(
+                    "Room not found. Check the link/code.",
+                    color="negative",
+                    position=NOTIFY_POSITION,
+                )
+                return
+
+            app.storage.user.update({"last_room_slug": slug})
+            ui.navigate.to(f"/room/{slug}")
+
+        with ui.row().classes("w-full justify-end mt-2 gap-2"):
+            ui.button("Open Room", on_click=go_to_room)
+            ui.button("Admin", on_click=lambda: ui.navigate.to("/admin/login")).props(
+                "outline"
+            )
+
+        room_link_input.on("keydown.enter", go_to_room)
 
 
 @ui.page("/room/{slug}")
@@ -474,102 +559,146 @@ def room_page(slug: str):
     if not details:
         ui.label("Room not found").classes("text-xl p-4")
         return
-        
+
     room_id = details["id"]
     room_name = details["name"]
-    
-    auth_rooms = app.storage.user.get('authorized_rooms', [])
+
+    auth_rooms = app.storage.user.get("authorized_rooms", [])
     if slug not in auth_rooms:
         with ui.card().classes("absolute-center w-full max-w-sm"):
-            ui.label(f"Enter Room Password for {room_name}").classes("text-xl font-bold mb-4")
+            ui.label(f"Enter Room Password for {room_name}").classes(
+                "text-xl font-bold mb-4"
+            )
             pw_input = ui.input("Room Password", password=True).classes("w-full")
             with ui.row().classes("w-full justify-end mt-4"):
+
                 def submit():
                     if verify_room(slug, pw_input.value):
                         auth_rooms.append(slug)
-                        app.storage.user.update({'authorized_rooms': auth_rooms})
+                        app.storage.user.update({
+                            "authorized_rooms": auth_rooms,
+                            "last_room_slug": slug,
+                        })
                         ui.navigate.to(f"/room/{slug}")
                     else:
                         ui.notify("Incorrect password", color="negative")
+
                 ui.button("Enter", on_click=submit)
             pw_input.on("keydown.enter", submit)
         return
-        
+
     with ui.card().classes("w-full max-w-sm mx-auto"):
-        with ui.row().classes("w-full items-center justify-between tracking-tighter mb-2"):
+        with ui.row().classes(
+            "w-full items-center justify-between tracking-tighter mb-2"
+        ):
             with ui.row().classes("items-center gap-2"):
                 if app.storage.user.get("authenticated", False):
-                    ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props("flat round dense")
+                    ui.button(
+                        icon="arrow_back", on_click=lambda: ui.navigate.to("/admin")
+                    ).props("flat round dense")
                 else:
                     with ui.row().classes("items-center gap-0 text-xl mr-1"):
                         ui.label("List").classes("font-bold text-slate-800")
                         ui.label("R").classes("font-black text-primary")
-                ui.label(room_name).classes("font-bold text-slate-800 text-2xl truncate").style("max-width: 200px;")
-                
+                ui.label(room_name).classes(
+                    "font-bold text-slate-800 text-2xl truncate"
+                ).style("max-width: 200px;")
+
             with ui.button(icon="more_vert").props("flat round dense"):
                 with ui.menu():
-                    ui.menu_item('Rename Room', on_click=lambda: rename_room_dialog(room_id, room_name, slug))
-                    ui.menu_item('Change Password', on_click=lambda: change_password_dialog(room_id, slug))
-                    ui.menu_item('Delete Room', on_click=lambda: delete_room_dialog(room_id, slug)).classes('text-red-500')
+                    ui.menu_item(
+                        "Rename Room",
+                        on_click=lambda: rename_room_dialog(room_id, room_name, slug),
+                    )
+                    ui.menu_item(
+                        "Change Password",
+                        on_click=lambda: change_password_dialog(room_id, slug),
+                    )
+                    ui.menu_item(
+                        "Delete Room",
+                        on_click=lambda: delete_room_dialog(room_id, slug),
+                    ).classes("text-red-500")
 
         def change_password_dialog(r_id, r_slug):
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("Change Room Password").classes("text-lg font-bold")
-                old_pw_input = ui.input("Current Password", password=True).classes("w-full")
+                old_pw_input = ui.input("Current Password", password=True).classes(
+                    "w-full"
+                )
                 new_pw_input = ui.input("New Password", password=True).classes("w-full")
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
+
                     def submit():
                         if verify_room(r_slug, old_pw_input.value):
                             if new_pw_input.value.strip():
                                 update_room_password(r_id, new_pw_input.value)
                                 dialog.close()
-                                ui.notify("Password changed successfully", color="positive")
+                                ui.notify(
+                                    "Password changed successfully", color="positive"
+                                )
                             else:
-                                ui.notify("New password cannot be empty", color="warning")
+                                ui.notify(
+                                    "New password cannot be empty", color="warning"
+                                )
                         else:
                             ui.notify("Incorrect current password", color="negative")
+
                     ui.button("Change", on_click=submit)
             dialog.open()
 
         def rename_room_dialog(r_id, current_name, r_slug):
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("Rename Room").classes("text-lg font-bold")
-                new_name_input = ui.input(value=current_name, label="New name").classes("w-full")
+                new_name_input = ui.input(value=current_name, label="New name").classes(
+                    "w-full"
+                )
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
+
                     def save():
                         name = new_name_input.value.strip()
                         if name:
                             rename_room(r_id, name)
                             dialog.close()
-                            ui.navigate.to(f"/room/{r_slug}") # Reload page to show new name
+                            ui.navigate.to(
+                                f"/room/{r_slug}"
+                            )  # Reload page to show new name
                         else:
                             ui.notify("Name cannot be empty", color="warning")
+
                     ui.button("Save", on_click=save)
             dialog.open()
 
         def delete_room_dialog(r_id, r_slug):
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("Delete Room").classes("text-lg font-bold text-red-500")
-                ui.label("Warning: This will delete ALL lists and items inside this room. This cannot be undone.").classes("text-sm text-gray-600 mb-2")
-                pw_input = ui.input("Enter Room Password to Confirm", password=True).classes("w-full")
+                ui.label(
+                    "Warning: This will delete ALL lists and items inside this room. This cannot be undone."
+                ).classes("text-sm text-gray-600 mb-2")
+                pw_input = ui.input(
+                    "Enter Room Password to Confirm", password=True
+                ).classes("w-full")
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
+
                     def confirm():
                         if verify_room(r_slug, pw_input.value):
                             delete_room(r_id)
                             dialog.close()
-                            
-                            auth_rooms = app.storage.user.get('authorized_rooms', [])
+
+                            auth_rooms = app.storage.user.get("authorized_rooms", [])
                             if r_slug in auth_rooms:
                                 auth_rooms.remove(r_slug)
-                                app.storage.user.update({'authorized_rooms': auth_rooms})
-                                
+                                app.storage.user.update({
+                                    "authorized_rooms": auth_rooms
+                                })
+
                             ui.notify("Room deleted", color="negative")
-                            ui.navigate.to("/")
+                            ui.navigate.to("/admin")
                         else:
                             ui.notify("Incorrect password", color="negative")
+
                     ui.button("Delete", on_click=confirm).props("color=negative")
             dialog.open()
 
@@ -582,19 +711,31 @@ def room_page(slug: str):
 
                     def save() -> None:
                         try:
-                            new_id, new_slug = create_list(list_name_input.value, room_id)
+                            new_id, new_slug = create_list(
+                                list_name_input.value, room_id
+                            )
                             dialog.close()
-                            ui.notify("List created", color="positive", position=NOTIFY_POSITION)
+                            ui.notify(
+                                "List created",
+                                color="positive",
+                                position=NOTIFY_POSITION,
+                            )
                             ui.navigate.to(f"/list/{new_slug}")
                             broadcast_updates(room_id, slug)
                         except ValueError:
-                            ui.notify("Name cannot be empty", color="warning", position=NOTIFY_POSITION)
+                            ui.notify(
+                                "Name cannot be empty",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
 
                     ui.button("Save", on_click=save)
                 list_name_input.on("keyup.enter", save)
             dialog.open()
 
-        ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes("w-full mb-4").props("outline")
+        ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes(
+            "w-full mb-4"
+        ).props("outline")
         list_of_lists(room_id=room_id, room_slug=slug)
 
 
@@ -658,12 +799,16 @@ def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
     )
 
 
-def _render_header(list_name: str, state: ViewState, undo_bar, tags_ui, room_slug: str) -> None:
+def _render_header(
+    list_name: str, state: ViewState, undo_bar, tags_ui, room_slug: str
+) -> None:
     with ui.row().classes("w-full items-center mb-2"):
-        ui.button(icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")).props(
-            "flat round"
+        ui.button(
+            icon="arrow_back", on_click=lambda: ui.navigate.to(f"/room/{room_slug}")
+        ).props("flat round")
+        ui.label(list_name).classes("text-2xl font-bold flex-grow truncate").style(
+            "max-width: 200px;"
         )
-        ui.label(list_name).classes("text-2xl font-bold flex-grow truncate").style("max-width: 200px;")
         edit_btn_text = "Done" if state["edit_mode"] else "Edit"
         ui.button(
             edit_btn_text,
@@ -728,6 +873,7 @@ def _render_add_item_row(list_id: int) -> None:
 
     search_input.on("filter", on_filter)
     search_input.on("keyup.enter", submit)
+
     def handle_value_change(e):
         val = normalize_item_name(e.value or "")
         draft_text.update({"val": val})
@@ -778,7 +924,9 @@ def _create_tags_ui(
     @ui.refreshable
     def tags_ui():
         curr_details = get_list_details(list_id)
-        list_tags = sorted(curr_details["list_tags"], key=str.lower) if curr_details else []
+        list_tags = (
+            sorted(curr_details["list_tags"], key=str.lower) if curr_details else []
+        )
         quick_tags_active = len(list_tags) > 0
 
         if state["edit_mode"]:
@@ -926,7 +1074,13 @@ def list_page(slug: str):
             tags_ui=tags_ui,
         )
 
-        _render_header(list_name=list_name, state=state, undo_bar=undo_bar, tags_ui=tags_ui, room_slug=room_slug)
+        _render_header(
+            list_name=list_name,
+            state=state,
+            undo_bar=undo_bar,
+            tags_ui=tags_ui,
+            room_slug=room_slug,
+        )
         _render_add_item_row(list_id=list_id)
         undo_bar()
         tags_ui()
