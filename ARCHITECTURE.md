@@ -32,11 +32,18 @@ This architecture optimizes for simplicity and learning speed over horizontal sc
 
 This means SQLite is valid for web sync in this architecture: storage and real-time updates are separate concerns.
 
-## Data Boundaries (Evolvable)
+## Data Boundaries & Security Rules
 The domain is intentionally small:
-- `Room`: shared collaboration space. [Not implemented yet]
-- `Item`: list entry belonging to a room.
+- `Room`: A workspace containing multiple lists. Protected by a room-specific password.
+- `List`: A collection of items. Can be shared publicly via a direct URL (`/list/{slug}`).
+- `Item`: list entry belonging to a list.
 - `Category`: optional grouping label for items.
+
+### Target Security Model
+- **Admin Root:** The root URL (`/admin`) is protected by a global app password.
+- **Room URLs are private:** The `/room/{slug}` URL always requires a valid room password. Unauthorized users are shown an inline password prompt.
+- **List URLs are public-by-link:** The `/list/{slug}` URL is directly accessible to anyone with the link. They can edit items on that list.
+- **Room controls are isolated:** If a user accesses a list via a public link and tries to navigate "back" to the room, they are hit with the inline room password prompt. They cannot access room settings without the room password.
 
 Only these boundaries are fixed right now. Field-level schema details are allowed to evolve as we learn.
 
