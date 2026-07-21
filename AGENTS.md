@@ -1,12 +1,12 @@
 # AI Agent Configuration: List app
 
 - This project should create a MVP of a list app for the web. 
-- It should be built very simple, and slowly add more features.
+- It should be simple, and slowly add more features.
 - This is my first web app. So explain the ways of web development in simple terms for me to learn along the way.
 
 
 ## Technical Stack ideas
-We should use simple to understand technologies and is should primarily be written in Python.
+We should use simple to understand technologies and it should primarily be written in Python.
 The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
 
 
