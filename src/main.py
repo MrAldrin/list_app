@@ -163,6 +163,7 @@ class ViewState(TypedDict):
     edit_mode: bool
     pending_undo: PendingUndo | None
     focus_tag_input: bool
+    show_counters: bool
 
 
 def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) -> None:
@@ -259,7 +260,13 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
 
 
 @ui.refreshable
-def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=None):
+def item_list(
+    list_id: int,
+    filter_func=None,
+    edit_mode_func=None,
+    on_delete=None,
+    show_counters_func=None,
+):
     list_items, _ = get_list_data(list_id)
     details = get_list_details(list_id)
     list_tags = details["list_tags"] if details else []
@@ -267,13 +274,14 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
 
     current_filter = filter_func() if filter_func else None
     is_edit_mode = edit_mode_func() if edit_mode_func else False
+    show_counters = show_counters_func() if show_counters_func else True
 
     for item in list_items:
         if current_filter and current_filter not in item["active_tags"]:
             continue
 
         row = ui.row().classes(
-            "w-full items-center no-wrap border-b border-gray-100 py-1"
+            "w-full items-center justify-between no-wrap border-b border-gray-100 py-1"
         )
         with row:
             def delete(it=item):
@@ -343,25 +351,9 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
                     name_input.on("keyup.enter", save)
                 dialog.open()
 
-            with ui.row().classes("flex-grow min-w-0 items-center no-wrap gap-1"):
+            # Left side: Checkbox, Name, Description Icon
+            with ui.row().classes("flex-grow min-w-0 items-center no-wrap gap-2"):
                 checkbox = ui.checkbox(value=item["done"]).props("dense")
-
-                def change_qty(delta: int, it=item):
-                    new_q = max(1, it.get("quantity", 1) + delta)
-                    set_item_quantity(list_id, it["id"], new_q)
-                    broadcast_updates()
-
-                with ui.row().classes("items-center no-wrap gap-0.5 bg-slate-100 rounded px-1 py-0.5"):
-                    ui.button("-", on_click=lambda _e, it=item: change_qty(-1, it)).props(
-                        "flat round dense size=xs color=grey-8"
-                    ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
-                    ui.label(str(item.get("quantity", 1))).classes(
-                        "text-xs font-bold text-slate-700 min-w-[14px] text-center"
-                    )
-                    ui.button("+", on_click=lambda _e, it=item: change_qty(1, it)).props(
-                        "flat round dense size=xs color=grey-8"
-                    ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
-
                 label_style = "line-through text-gray-400" if item["done"] else ""
                 title_label = ui.label(item["name"]).classes(
                     f"min-w-0 truncate cursor-pointer hover:text-primary {label_style}"
@@ -381,7 +373,25 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
 
             checkbox.on_value_change(toggle)
 
-            with ui.row().classes("shrink-0 items-center no-wrap gap-0"):
+            # Right side: Stepper (aligned right after name), Tags, Delete
+            with ui.row().classes("shrink-0 items-center no-wrap gap-1"):
+                if show_counters:
+                    def change_qty(delta: int, it=item):
+                        new_q = max(1, it.get("quantity", 1) + delta)
+                        set_item_quantity(list_id, it["id"], new_q)
+                        broadcast_updates()
+
+                    with ui.row().classes("items-center no-wrap gap-0.5 bg-slate-100 rounded px-1 py-0.5 mr-1"):
+                        ui.button("-", on_click=lambda _e, it=item: change_qty(-1, it)).props(
+                            "flat round dense size=xs color=grey-8"
+                        ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
+                        ui.label(str(item.get("quantity", 1))).classes(
+                            "text-xs font-bold text-slate-700 min-w-[14px] text-center"
+                        )
+                        ui.button("+", on_click=lambda _e, it=item: change_qty(1, it)).props(
+                            "flat round dense size=xs color=grey-8"
+                        ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
+
                 if quick_tags_active:
                     with ui.row().classes("items-center no-wrap gap-1 mx-1"):
                         for idx, tag in enumerate(list_tags):
@@ -1199,6 +1209,18 @@ def _create_tags_ui(
         quick_tags_active = len(list_tags) > 0
 
         if state["edit_mode"]:
+            with ui.row().classes(
+                "w-full items-center justify-between mt-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded gap-2"
+            ):
+                ui.label("Show quantities").classes("text-sm font-medium text-slate-700")
+                show_qty_switch = ui.switch(value=state.get("show_counters", True)).props("dense")
+
+                def toggle_qty(e):
+                    state["show_counters"] = e.value
+                    item_list.refresh()
+
+                show_qty_switch.on_value_change(toggle_qty)
+
             with ui.row().classes("w-full items-center mt-2 gap-2"):
                 new_tag_input = ui.input("Add Tag").classes("flex-grow")
 
@@ -1313,6 +1335,7 @@ def list_page(slug: str):
         "edit_mode": False,
         "pending_undo": None,
         "focus_tag_input": False,
+        "show_counters": True,
     }
 
     def set_pending_undo(action: PendingUndoInput) -> None:
@@ -1363,6 +1386,7 @@ def list_page(slug: str):
             lambda: state["filter_tag"],
             lambda: state["edit_mode"],
             lambda it: _delete_item_with_undo(list_id, it, set_pending_undo),
+            lambda: state.get("show_counters", True),
         )
 
 
