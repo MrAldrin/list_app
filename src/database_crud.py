@@ -118,7 +118,7 @@ def get_list_data(list_id: int):
     with _DB_LOCK:
         rows = db.execute(
             (
-                "SELECT id, name, done, active_tags, description FROM items "
+                "SELECT id, name, done, active_tags, description, quantity FROM items "
                 "WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC"
             ),
             (list_id,),
@@ -137,6 +137,7 @@ def get_list_data(list_id: int):
                 "done": bool(r[2]),
                 "active_tags": active_tags,
                 "description": r[4] or "",
+                "quantity": r[5] if len(r) > 5 and r[5] is not None else 1,
             }
         )
 
@@ -212,6 +213,15 @@ def update_item_details(item_id: int, list_id: int, name: str, description: str)
         db.execute(
             "UPDATE items SET name = ?, description = ? WHERE id = ? AND list_id = ?",
             (name, description, item_id, list_id),
+        )
+        db.commit()
+
+
+def update_item_quantity(item_id: int, list_id: int, quantity: int):
+    with _DB_LOCK:
+        db.execute(
+            "UPDATE items SET quantity = ? WHERE id = ? AND list_id = ?",
+            (quantity, item_id, list_id),
         )
         db.commit()
 

@@ -12,12 +12,4 @@ This document tracks the remaining feature plans in the `plans/` directory. All 
 
 ---
 
-## 2. PWA & Mobile Workflow
-
-**Document:** `pwa_auto_update_plan.md`
-**Overview:** Detailed implementation plan for adding a root-scoped Service Worker (`sw.js`) and no-cache headers to enable automatic background/foreground updating of the Home Screen PWA across iOS (Safari) and Android browsers.
-**Status:** **Completed** (Service worker registered, `/sw.js` route active, auto-update listeners live).
-
-
----
 *Note: Long-term reference documents and architecture notes are moved to `docs/` or `ARCHITECTURE.md` to keep `plans/` strictly for active implementation plans.*

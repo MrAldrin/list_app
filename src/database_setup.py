@@ -123,6 +123,7 @@ def init_database():
             id INTEGER PRIMARY KEY,
             name TEXT,
             description TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 1,
             done BOOLEAN,
             list_id INTEGER NOT NULL,
             active_tags TEXT NOT NULL DEFAULT '[]',
@@ -135,6 +136,8 @@ def init_database():
     item_cols = [col[1] for col in item_cursor.fetchall()]
     if "description" not in item_cols:
         db.execute("ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''")
+    if "quantity" not in item_cols:
+        db.execute("ALTER TABLE items ADD COLUMN quantity INTEGER DEFAULT 1")
 
     db.execute(
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"

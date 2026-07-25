@@ -12,6 +12,7 @@ from database_crud import (
     restore_item,
     update_item_details,
     update_item_done,
+    update_item_quantity,
 )
 
 STATUS_INVALID_NAME = "invalid_name"
@@ -92,6 +93,12 @@ def rename_list_with_checks(list_id: int, room_id: int, raw_name: str | None) ->
 
 def toggle_item_done(list_id: int, item_id: int, done: bool) -> str:
     update_item_done(item_id=item_id, list_id=list_id, done=done)
+    return STATUS_UPDATED
+
+
+def set_item_quantity(list_id: int, item_id: int, quantity: int) -> str:
+    qty = max(1, int(quantity))
+    update_item_quantity(item_id=item_id, list_id=list_id, quantity=qty)
     return STATUS_UPDATED
 
 
