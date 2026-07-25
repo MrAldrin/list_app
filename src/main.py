@@ -1312,7 +1312,7 @@ def list_page(slug: str):
         )
 
 
-if __name__ in {"__main__", "fastapi"}:
+if __name__ in {"__main__", "__mp_main__"}:
     port = int(os.environ.get("PORT", 8080))
     ui.run(
         host="0.0.0.0",
