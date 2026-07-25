@@ -114,7 +114,7 @@ self.addEventListener('fetch', (event) => {
 ---
 
 ## Tracking & Progress
-- [ ] Create `src/static/sw.js` with Network-First strategy
-- [ ] Add `/sw.js` route in `src/main.py` with `no-cache` headers
-- [ ] Register Service Worker and visibility auto-updater in `ui.add_head_html()`
-- [ ] Test SW registration and update propagation locally
+- [x] Create `src/static/sw.js` with Network-First strategy
+- [x] Add `/sw.js` route in `src/main.py` with `no-cache` headers
+- [x] Register Service Worker and visibility auto-updater in `ui.add_head_html()`
+- [x] Test SW registration and update propagation locally

@@ -14,8 +14,6 @@ GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
 from fastapi.responses import FileResponse
 
 # --- PWA and Assets ---
-app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
-
 @app.get("/sw.js")
 def serve_service_worker():
     return FileResponse(
@@ -24,6 +22,7 @@ def serve_service_worker():
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
 
+@app.get("/manifest.json")
 @app.get("/static/manifest.json")
 def serve_manifest():
     return FileResponse(
@@ -32,7 +31,8 @@ def serve_manifest():
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
 
-ui.add_head_html('<link rel="manifest" href="/static/manifest.json">', shared=True)
+app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
+ui.add_head_html('<link rel="manifest" href="/manifest.json">', shared=True)
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
 )
@@ -52,6 +52,28 @@ ui.add_head_html(
     shared=True,
 )
 ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
+ui.add_head_html(
+    """
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => {
+          reg.update();
+        })
+        .catch(err => console.error('SW Registration Failed:', err));
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => reg.update());
+      }
+    });
+  }
+</script>
+""",
+    shared=True,
+)
 
 from database_crud import (
     add_item_with_state,
@@ -1290,12 +1312,13 @@ def list_page(slug: str):
         )
 
 
-port = int(os.environ.get("PORT", 8080))
-ui.run(
-    host="0.0.0.0",
-    port=port,
-    reload=True,
-    title="ListR",
-    favicon="/static/icons/favicon-32.png",
-    storage_secret="some_secret",
-)
+if __name__ in {"__main__", "fastapi"}:
+    port = int(os.environ.get("PORT", 8080))
+    ui.run(
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+        title="ListR",
+        favicon="/static/icons/favicon-32.png",
+        storage_secret="some_secret",
+    )
