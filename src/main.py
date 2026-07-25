@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from typing import Literal, TypedDict
@@ -569,7 +570,7 @@ def index() -> None:
 
 
 @ui.page("/room/{slug}")
-def room_page(slug: str):
+async def room_page(slug: str):
     details = get_room_details_by_slug(slug)
     if not details:
         ui.label("Room not found").classes("text-xl p-4")
@@ -580,27 +581,56 @@ def room_page(slug: str):
 
     auth_rooms = app.storage.user.get("authorized_rooms", [])
     if slug not in auth_rooms:
-        with ui.card().classes("absolute-center w-full max-w-sm"):
-            ui.label(f"Enter Room Password for {room_name}").classes(
-                "text-xl font-bold mb-4"
+        saved_pw = None
+        try:
+            saved_pw = await ui.run_javascript(
+                f"return localStorage.getItem('listapp_room_{slug}')", timeout=3.0
             )
-            pw_input = ui.input("Room Password", password=True).classes("w-full")
-            with ui.row().classes("w-full justify-end mt-4"):
+        except Exception:
+            saved_pw = None
 
-                def submit():
-                    if verify_room(slug, pw_input.value):
-                        auth_rooms.append(slug)
-                        app.storage.user.update({
-                            "authorized_rooms": auth_rooms,
-                            "last_room_slug": slug,
-                        })
-                        ui.navigate.to(f"/room/{slug}")
-                    else:
-                        ui.notify("Incorrect password", color="negative")
+        if saved_pw and verify_room(slug, saved_pw):
+            if slug not in auth_rooms:
+                auth_rooms.append(slug)
+            app.storage.user.update({
+                "authorized_rooms": auth_rooms,
+                "last_room_slug": slug,
+            })
+            await ui.run_javascript(
+                f"localStorage.setItem('listapp_last_room', {json.dumps(slug)})"
+            )
+        else:
+            if saved_pw:
+                await ui.run_javascript(
+                    f"localStorage.removeItem('listapp_room_{slug}')"
+                )
 
-                ui.button("Enter", on_click=submit)
-            pw_input.on("keydown.enter", submit)
-        return
+            with ui.card().classes("absolute-center w-full max-w-sm"):
+                ui.label(f"Enter Room Password for {room_name}").classes(
+                    "text-xl font-bold mb-4"
+                )
+                pw_input = ui.input("Room Password", password=True).classes("w-full")
+                with ui.row().classes("w-full justify-end mt-4"):
+
+                    async def submit():
+                        if verify_room(slug, pw_input.value):
+                            if slug not in auth_rooms:
+                                auth_rooms.append(slug)
+                            app.storage.user.update({
+                                "authorized_rooms": auth_rooms,
+                                "last_room_slug": slug,
+                            })
+                            await ui.run_javascript(f"""
+                                localStorage.setItem('listapp_room_{slug}', {json.dumps(pw_input.value)});
+                                localStorage.setItem('listapp_last_room', {json.dumps(slug)});
+                            """)
+                            ui.navigate.to(f"/room/{slug}")
+                        else:
+                            ui.notify("Incorrect password", color="negative")
+
+                    ui.button("Enter", on_click=submit)
+                pw_input.on("keydown.enter", submit)
+            return
 
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
@@ -644,10 +674,13 @@ def room_page(slug: str):
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                    def submit():
+                    async def submit():
                         if verify_room(r_slug, old_pw_input.value):
                             if new_pw_input.value.strip():
                                 update_room_password(r_id, new_pw_input.value)
+                                await ui.run_javascript(
+                                    f"localStorage.setItem('listapp_room_{r_slug}', {json.dumps(new_pw_input.value)})"
+                                )
                                 dialog.close()
                                 ui.notify(
                                     "Password changed successfully", color="positive"
