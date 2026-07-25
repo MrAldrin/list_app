@@ -41,9 +41,9 @@ The domain is intentionally small:
 
 ### Target Security Model
 - **Admin Root:** The root URL (`/admin`) is protected by a global app password.
-- **Room URLs are private:** The `/room/{slug}` URL always requires a valid room password. Unauthorized users are shown an inline password prompt.
+- **Room URLs are private:** The `/room/{slug}` URL always requires a valid room password. Device authorization is persisted in browser `localStorage` (`listapp_room_{slug}` and `listapp_last_room`) to preserve room access across server restarts and browser closures while always validating credentials server-side. Unauthorized users are shown an inline password prompt.
 - **List URLs are public-by-link:** The `/list/{slug}` URL is directly accessible to anyone with the link. They can edit items on that list.
-- **Room controls are isolated:** If a user accesses a list via a public link and tries to navigate "back" to the room, they are hit with the inline room password prompt. They cannot access room settings without the room password.
+- **Room controls are isolated:** If a user accesses a list via a public link and tries to navigate "back" to the room, they are hit with the inline room password prompt unless previously authorized. They cannot access room settings without the room password.
 
 Only these boundaries are fixed right now. Field-level schema details are allowed to evolve as we learn.
 
