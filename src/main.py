@@ -1334,7 +1334,11 @@ def list_page(slug: str):
 
 
 if __name__ in {"__main__", "__mp_main__"}:
-    port = int(os.environ.get("PORT", 8080))
+    import argparse
+    parser = argparse.ArgumentParser(description="ListR Web App")
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8080)), help="Port to run the app on")
+    args, _ = parser.parse_known_args()
+    port = args.port
     ui.run(
         host="0.0.0.0",
         port=port,

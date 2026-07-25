@@ -146,3 +146,16 @@ def test_update_item_details_with_checks_success(mock_update, mock_find_duplicat
         item_id=10, list_id=1, name="apples", description="Organic 5-pack"
     )
 
+
+@patch("item_service.update_item_quantity")
+def test_set_item_quantity(mock_update_qty):
+    from item_service import set_item_quantity
+    status = set_item_quantity(list_id=1, item_id=10, quantity=3)
+    assert status == STATUS_UPDATED
+    mock_update_qty.assert_called_once_with(item_id=10, list_id=1, quantity=3)
+
+    # Test clamping minimum quantity to 1
+    mock_update_qty.reset_mock()
+    set_item_quantity(list_id=1, item_id=10, quantity=0)
+    mock_update_qty.assert_called_once_with(item_id=10, list_id=1, quantity=1)
+

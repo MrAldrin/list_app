@@ -12,11 +12,11 @@ This document tracks the remaining feature plans in the `plans/` directory. All 
 
 ---
 
-## 2. PWA & Mobile Workflow
+## 2. Item Features (Quantities & UX Prototypes)
 
-**Document:** `pwa_auto_update_plan.md`
-**Overview:** Detailed implementation plan for adding a root-scoped Service Worker (`sw.js`) and no-cache headers to enable automatic background/foreground updating of the Home Screen PWA across iOS (Safari) and Android browsers.
-**Status:** **Completed** (Service worker registered, `/sw.js` route active, auto-update listeners live).
+**Document:** `item_quantities.md`
+**Overview:** Detailed plan for item quantities in SQLite & backend, with two Jujutsu (`jj`) workspaces (`prototype-inline` on port 8080 and `prototype-modal` on port 8081) for side-by-side UX evaluation on mobile.
+**Status:** **Plan Created** (Ready for implementation).
 
 
 ---
