@@ -12,12 +12,4 @@ This document tracks the remaining feature plans in the `plans/` directory. All 
 
 ---
 
-## 2. Item Features (Quantities & UX Prototypes)
-
-**Document:** `item_quantities.md`
-**Overview:** Detailed plan for item quantities in SQLite & backend, with two Jujutsu (`jj`) workspaces (`prototype-inline` on port 8080 and `prototype-modal` on port 8081) for side-by-side UX evaluation on mobile.
-**Status:** **Plan Created** (Ready for implementation).
-
-
----
 *Note: Long-term reference documents and architecture notes are moved to `docs/` or `ARCHITECTURE.md` to keep `plans/` strictly for active implementation plans.*
