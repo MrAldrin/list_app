@@ -13,6 +13,7 @@ from database_crud import (
     update_item_done,
     find_duplicate_name,
     rename_item,
+    update_item_details,
     delete_item,
     find_list_by_name,
     rename_list,
@@ -275,3 +276,19 @@ def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
 
     errors = [error for worker_errors in results for error in worker_errors]
     assert errors == []
+
+
+def test_update_item_details(room_id):
+    # Verify updating name and description for an item.
+    list_id, _ = create_list(name="My List", room_id=room_id)
+    add_item(item_name="Apples", list_id=list_id)
+
+    items, _ = get_list_data(list_id=list_id)
+    item_id = items[0]["id"]
+    assert items[0]["description"] == ""
+
+    update_item_details(item_id=item_id, list_id=list_id, name="Fuji Apples", description="Buy 3 large ones")
+    updated_items, _ = get_list_data(list_id=list_id)
+    assert updated_items[0]["name"] == "Fuji Apples"
+    assert updated_items[0]["description"] == "Buy 3 large ones"
+

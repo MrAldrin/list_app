@@ -107,6 +107,7 @@ from item_service import (
     rename_item_with_checks,
     rename_list_with_checks,
     toggle_item_done,
+    update_item_details_with_checks,
 )
 
 NOTIFY_POSITION = "top"
@@ -274,55 +275,78 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
             "w-full items-center no-wrap border-b border-gray-100 py-1"
         )
         with row:
-            with ui.row().classes("flex-grow min-w-0 items-center no-wrap gap-1"):
-                checkbox = ui.checkbox(value=item["done"]).props("dense")
-                label_style = "line-through text-gray-400" if item["done"] else ""
-                ui.label(item["name"]).classes(f"min-w-0 truncate {label_style}")
-
-            def toggle(e, it=item):
-                toggle_item_done(list_id=list_id, item_id=it["id"], done=e.value)
-                broadcast_updates()
-
-            checkbox.on_value_change(toggle)
-
-            def start_edit(it=item):
-                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    ui.label("Edit Item").classes("text-lg font-bold")
-                    new_name_input = ui.input(value=it["name"]).classes("w-full")
-                    with ui.row().classes("w-full justify-end"):
-                        ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                        def save():
-                            status, new_name = rename_item_with_checks(
-                                list_id, it["id"], new_name_input.value
-                            )
-                            if status == STATUS_INVALID_NAME:
-                                ui.notify(
-                                    "Name cannot be empty",
-                                    color="warning",
-                                    position=NOTIFY_POSITION,
-                                )
-                                return
-                            if status == STATUS_DUPLICATE_NAME:
-                                ui.notify(
-                                    f"'{new_name}' already exists",
-                                    color="warning",
-                                    position=NOTIFY_POSITION,
-                                )
-                                return
-                            dialog.close()
-                            broadcast_updates()
-
-                        ui.button("Save", on_click=save)
-                    new_name_input.on("keyup.enter", save)
-                dialog.open()
-
             def delete(it=item):
                 if on_delete:
                     on_delete(it)
                     return
                 delete_item_from_list(list_id, it["id"])
                 broadcast_updates()
+
+            def open_edit_dialog(it=item):
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm gap-3"):
+                    ui.label("Edit Item").classes("text-lg font-bold")
+                    name_input = ui.input(label="Item Name", value=it["name"]).classes("w-full")
+                    desc_input = ui.textarea(
+                        label="Description / Notes",
+                        value=it.get("description", ""),
+                    ).classes("w-full").props("rows=3")
+
+                    def save():
+                        status, new_name = update_item_details_with_checks(
+                            list_id, it["id"], name_input.value, desc_input.value
+                        )
+                        if status == STATUS_INVALID_NAME:
+                            ui.notify(
+                                "Name cannot be empty",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
+                            return
+                        if status == STATUS_DUPLICATE_NAME:
+                            ui.notify(
+                                f"'{new_name}' already exists",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
+                            return
+                        dialog.close()
+                        broadcast_updates()
+
+                    with ui.row().classes("w-full justify-between items-center pt-2"):
+                        def handle_delete():
+                            dialog.close()
+                            delete(it)
+
+                        ui.button(icon="delete", on_click=handle_delete).props(
+                            "flat round dense color=negative"
+                        ).tooltip("Delete Item")
+                        with ui.row().classes("gap-2"):
+                            ui.button("Cancel", on_click=dialog.close).props("flat")
+                            ui.button("Save", on_click=save)
+
+                    name_input.on("keyup.enter", save)
+                dialog.open()
+
+            with ui.row().classes("flex-grow min-w-0 items-center no-wrap gap-1"):
+                checkbox = ui.checkbox(value=item["done"]).props("dense")
+                label_style = "line-through text-gray-400" if item["done"] else ""
+                title_label = ui.label(item["name"]).classes(
+                    f"min-w-0 truncate cursor-pointer hover:text-primary {label_style}"
+                )
+                title_label.on("click", lambda _e, it=item: open_edit_dialog(it))
+
+                if item.get("description"):
+                    ui.icon("description", size="16px").classes(
+                        "text-slate-400 shrink-0 cursor-pointer"
+                    ).tooltip(item["description"]).on(
+                        "click", lambda _e, it=item: open_edit_dialog(it)
+                    )
+
+            def toggle(e, it=item):
+                toggle_item_done(list_id=list_id, item_id=it["id"], done=e.value)
+                broadcast_updates()
+
+            checkbox.on_value_change(toggle)
 
             with ui.row().classes("shrink-0 items-center no-wrap gap-0"):
                 if quick_tags_active:
@@ -347,9 +371,6 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
                                 btn_props += " outline"
                             btn.props(btn_props)
                 if is_edit_mode:
-                    ui.button(icon="edit", on_click=start_edit).props(
-                        "flat round dense size=sm"
-                    ).style("margin: -2px")
                     ui.button(icon="delete", on_click=delete).props(
                         "flat round dense size=sm color=negative"
                     ).style("margin: -2px")

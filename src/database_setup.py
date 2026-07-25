@@ -122,6 +122,7 @@ def init_database():
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY,
             name TEXT,
+            description TEXT DEFAULT '',
             done BOOLEAN,
             list_id INTEGER NOT NULL,
             active_tags TEXT NOT NULL DEFAULT '[]',
@@ -129,6 +130,11 @@ def init_database():
         )
         """
     )
+
+    item_cursor = db.execute("PRAGMA table_info(items)")
+    item_cols = [col[1] for col in item_cursor.fetchall()]
+    if "description" not in item_cols:
+        db.execute("ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''")
 
     db.execute(
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"
