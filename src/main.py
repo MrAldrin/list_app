@@ -164,6 +164,7 @@ class ViewState(TypedDict):
     pending_undo: PendingUndo | None
     focus_tag_input: bool
     show_counters: bool
+    only_gt_1: bool
 
 
 def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) -> None:
@@ -266,6 +267,7 @@ def item_list(
     edit_mode_func=None,
     on_delete=None,
     show_counters_func=None,
+    only_gt_1_func=None,
 ):
     list_items, _ = get_list_data(list_id)
     details = get_list_details(list_id)
@@ -274,7 +276,8 @@ def item_list(
 
     current_filter = filter_func() if filter_func else None
     is_edit_mode = edit_mode_func() if edit_mode_func else False
-    show_counters = show_counters_func() if show_counters_func else True
+    show_counters = show_counters_func() if show_counters_func else False
+    only_gt_1 = only_gt_1_func() if only_gt_1_func else False
 
     for item in list_items:
         if current_filter and current_filter not in item["active_tags"]:
@@ -375,7 +378,9 @@ def item_list(
 
             # Right side: Stepper (aligned right after name), Tags, Delete
             with ui.row().classes("shrink-0 items-center no-wrap gap-1"):
-                if show_counters:
+                qty = item.get("quantity", 1)
+                should_show_counter = show_counters and (not only_gt_1 or qty > 1)
+                if should_show_counter:
                     def change_qty(delta: int, it=item):
                         new_q = max(1, it.get("quantity", 1) + delta)
                         set_item_quantity(list_id, it["id"], new_q)
@@ -1086,7 +1091,7 @@ def _render_header(
 
             with ui.row().classes("items-center gap-1"):
                 ui.button("Share", on_click=share_list).props("flat")
-                edit_btn_text = "Done" if state["edit_mode"] else "Edit"
+                edit_btn_text = "Done" if state["edit_mode"] else "Options"
                 ui.button(
                     edit_btn_text,
                     on_click=lambda: (
@@ -1103,7 +1108,7 @@ def _render_header(
 def _render_add_item_row(list_id: int) -> None:
     draft_text = {"val": ""}
 
-    with ui.row().classes("w-full items-center no-wrap gap-2"):
+    with ui.row().classes("w-full items-center no-wrap gap-2 mt-2"):
         search_input = ui.select(
             options=[],
             with_input=True,
@@ -1209,17 +1214,40 @@ def _create_tags_ui(
         quick_tags_active = len(list_tags) > 0
 
         if state["edit_mode"]:
-            with ui.row().classes(
-                "w-full items-center justify-between mt-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded gap-2"
+            with ui.column().classes(
+                "w-full mt-2 p-3 bg-slate-50 border border-slate-200 rounded gap-2"
             ):
-                ui.label("Show quantities").classes("text-sm font-medium text-slate-700")
-                show_qty_switch = ui.switch(value=state.get("show_counters", True)).props("dense")
+                with ui.row().classes("w-full items-center justify-between"):
+                    ui.label("Show quantities").classes(
+                        "text-sm font-medium text-slate-700"
+                    )
+                    show_qty_switch = ui.switch(
+                        value=state.get("show_counters", False)
+                    ).props("dense")
 
-                def toggle_qty(e):
-                    state["show_counters"] = e.value
-                    item_list.refresh()
+                    def toggle_qty(e):
+                        state["show_counters"] = e.value
+                        tags_ui.refresh()
+                        item_list.refresh()
 
-                show_qty_switch.on_value_change(toggle_qty)
+                    show_qty_switch.on_value_change(toggle_qty)
+
+                if state.get("show_counters", False):
+                    with ui.row().classes(
+                        "w-full items-center justify-between pl-3 border-t border-slate-200 pt-1.5"
+                    ):
+                        ui.label("Only show minimum 2").classes(
+                            "text-sm text-slate-600"
+                        )
+                        gt_1_switch = ui.switch(
+                            value=state.get("only_gt_1", False)
+                        ).props("dense")
+
+                        def toggle_gt_1(e):
+                            state["only_gt_1"] = e.value
+                            item_list.refresh()
+
+                        gt_1_switch.on_value_change(toggle_gt_1)
 
             with ui.row().classes("w-full items-center mt-2 gap-2"):
                 new_tag_input = ui.input("Add Tag").classes("flex-grow")
@@ -1335,7 +1363,8 @@ def list_page(slug: str):
         "edit_mode": False,
         "pending_undo": None,
         "focus_tag_input": False,
-        "show_counters": True,
+        "show_counters": False,
+        "only_gt_1": False,
     }
 
     def set_pending_undo(action: PendingUndoInput) -> None:
@@ -1377,16 +1406,17 @@ def list_page(slug: str):
             tags_ui=tags_ui,
             room_slug=room_slug,
         )
-        _render_add_item_row(list_id=list_id)
         undo_bar()
         tags_ui()
+        _render_add_item_row(list_id=list_id)
 
         item_list(
             list_id,
             lambda: state["filter_tag"],
             lambda: state["edit_mode"],
             lambda it: _delete_item_with_undo(list_id, it, set_pending_undo),
-            lambda: state.get("show_counters", True),
+            lambda: state.get("show_counters", False),
+            lambda: state.get("only_gt_1", False),
         )
 
 
