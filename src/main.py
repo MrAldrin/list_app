@@ -11,8 +11,27 @@ load_dotenv()
 
 GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
 
+from fastapi.responses import FileResponse
+
 # --- PWA and Assets ---
 app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
+
+@app.get("/sw.js")
+def serve_service_worker():
+    return FileResponse(
+        os.path.join(os.path.dirname(__file__), "static", "sw.js"),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
+
+@app.get("/static/manifest.json")
+def serve_manifest():
+    return FileResponse(
+        os.path.join(os.path.dirname(__file__), "static", "manifest.json"),
+        media_type="application/json",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
+
 ui.add_head_html('<link rel="manifest" href="/static/manifest.json">', shared=True)
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
