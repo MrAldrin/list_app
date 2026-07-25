@@ -520,14 +520,49 @@ def admin_page() -> None:
 
 
 @ui.page("/")
-def index() -> None:
+async def index() -> None:
     last_room_slug = app.storage.user.get("last_room_slug")
+    auth_rooms = app.storage.user.get("authorized_rooms", [])
     if last_room_slug:
-        auth_rooms = app.storage.user.get("authorized_rooms", [])
         details = get_room_details_by_slug(last_room_slug)
         if details and last_room_slug in auth_rooms:
             ui.navigate.to(f"/room/{last_room_slug}")
             return
+
+    saved_last = None
+    try:
+        saved_last = await ui.run_javascript(
+            "return localStorage.getItem('listapp_last_room')", timeout=3.0
+        )
+    except Exception:
+        saved_last = None
+
+    if saved_last:
+        details = get_room_details_by_slug(saved_last)
+        if details:
+            saved_pw = None
+            try:
+                saved_pw = await ui.run_javascript(
+                    f"return localStorage.getItem('listapp_room_{saved_last}')",
+                    timeout=3.0,
+                )
+            except Exception:
+                saved_pw = None
+
+            if saved_pw and verify_room(saved_last, saved_pw):
+                if saved_last not in auth_rooms:
+                    auth_rooms.append(saved_last)
+                app.storage.user.update({
+                    "authorized_rooms": auth_rooms,
+                    "last_room_slug": saved_last,
+                })
+                ui.navigate.to(f"/room/{saved_last}")
+                return
+            elif saved_pw:
+                await ui.run_javascript(
+                    f"localStorage.removeItem('listapp_room_{saved_last}')"
+                )
+                await ui.run_javascript("localStorage.removeItem('listapp_last_room')")
 
     with ui.card().classes("absolute-center w-full max-w-sm"):
         ui.label("Open your room link to continue").classes("text-xl font-bold mb-2")
