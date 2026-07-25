@@ -106,6 +106,7 @@ from item_service import (
     delete_list_and_items,
     rename_item_with_checks,
     rename_list_with_checks,
+    set_item_quantity,
     toggle_item_done,
     update_item_details_with_checks,
 )
@@ -291,10 +292,25 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
                         value=it.get("description", ""),
                     ).classes("w-full").props("rows=3")
 
+                    with ui.row().classes("w-full items-center justify-between mt-1 px-1 py-1 bg-slate-50 rounded border border-slate-200"):
+                        ui.label("Quantity").classes("text-sm text-gray-700 font-medium")
+                        q_val = {"count": it.get("quantity", 1)}
+                        with ui.row().classes("items-center gap-1"):
+                            def dec_q():
+                                q_val["count"] = max(1, q_val["count"] - 1)
+                                q_label.text = str(q_val["count"])
+                            def inc_q():
+                                q_val["count"] += 1
+                                q_label.text = str(q_val["count"])
+                            ui.button("-", on_click=dec_q).props("flat round dense size=sm color=primary")
+                            q_label = ui.label(str(q_val["count"])).classes("px-2 font-bold text-slate-800 text-base")
+                            ui.button("+", on_click=inc_q).props("flat round dense size=sm color=primary")
+
                     def save():
                         status, new_name = update_item_details_with_checks(
                             list_id, it["id"], name_input.value, desc_input.value
                         )
+                        set_item_quantity(list_id, it["id"], q_val["count"])
                         if status == STATUS_INVALID_NAME:
                             ui.notify(
                                 "Name cannot be empty",
@@ -329,6 +345,23 @@ def item_list(list_id: int, filter_func=None, edit_mode_func=None, on_delete=Non
 
             with ui.row().classes("flex-grow min-w-0 items-center no-wrap gap-1"):
                 checkbox = ui.checkbox(value=item["done"]).props("dense")
+
+                def change_qty(delta: int, it=item):
+                    new_q = max(1, it.get("quantity", 1) + delta)
+                    set_item_quantity(list_id, it["id"], new_q)
+                    broadcast_updates()
+
+                with ui.row().classes("items-center no-wrap gap-0.5 bg-slate-100 rounded px-1 py-0.5"):
+                    ui.button("-", on_click=lambda _e, it=item: change_qty(-1, it)).props(
+                        "flat round dense size=xs color=grey-8"
+                    ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
+                    ui.label(str(item.get("quantity", 1))).classes(
+                        "text-xs font-bold text-slate-700 min-w-[14px] text-center"
+                    )
+                    ui.button("+", on_click=lambda _e, it=item: change_qty(1, it)).props(
+                        "flat round dense size=xs color=grey-8"
+                    ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
+
                 label_style = "line-through text-gray-400" if item["done"] else ""
                 title_label = ui.label(item["name"]).classes(
                     f"min-w-0 truncate cursor-pointer hover:text-primary {label_style}"
