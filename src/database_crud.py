@@ -118,7 +118,7 @@ def get_list_data(list_id: int):
     with _DB_LOCK:
         rows = db.execute(
             (
-                "SELECT id, name, done, active_tags FROM items "
+                "SELECT id, name, done, active_tags, description FROM items "
                 "WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC"
             ),
             (list_id,),
@@ -131,7 +131,13 @@ def get_list_data(list_id: int):
         except json.JSONDecodeError:
             active_tags = []
         list_items.append(
-            {"id": r[0], "name": r[1], "done": bool(r[2]), "active_tags": active_tags}
+            {
+                "id": r[0],
+                "name": r[1],
+                "done": bool(r[2]),
+                "active_tags": active_tags,
+                "description": r[4] or "",
+            }
         )
 
     list_history_names = sorted(list(set(item["name"] for item in list_items)))
@@ -197,6 +203,15 @@ def rename_item(item_id: int, list_id: int, new_name: str):
         db.execute(
             "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
             (new_name, item_id, list_id),
+        )
+        db.commit()
+
+
+def update_item_details(item_id: int, list_id: int, name: str, description: str):
+    with _DB_LOCK:
+        db.execute(
+            "UPDATE items SET name = ?, description = ? WHERE id = ? AND list_id = ?",
+            (name, description, item_id, list_id),
         )
         db.commit()
 
