@@ -10,6 +10,12 @@ This document tracks the remaining feature plans in the `plans/` directory. All 
 **Status:** **Not Implemented**. The database does not yet support cross-room list pinning or share tokens.
 **Recommendation:** **Keep**. This is a valid roadmap feature that hasn't been started yet.
 
+**Document:** `persistent_room_storage.md`
+**Overview:** Detailed implementation plan for browser `localStorage` room authorization persistence to eliminate room key password fatigue across server restarts and browser closures.
+**Status:** **Ready for Implementation**.
+
+---
+
 ## 2. Reference Documents
 *These are not active plans, but rather technical context required for maintaining the app.*
 
