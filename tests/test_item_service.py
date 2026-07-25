@@ -14,6 +14,7 @@ from item_service import (
     delete_item_from_list,
     rename_item_with_checks,
     toggle_item_done,
+    update_item_details_with_checks,
 )
 
 
@@ -129,3 +130,19 @@ def test_delete_item_from_list(mock_delete):
     status = delete_item_from_list(list_id=1, item_id=10)
     assert status == STATUS_DELETED
     mock_delete.assert_called_once_with(item_id=10, list_id=1)
+
+
+@patch("item_service.find_duplicate_name")
+@patch("item_service.update_item_details")
+def test_update_item_details_with_checks_success(mock_update, mock_find_duplicate):
+    # Test updating item name and description with checks
+    mock_find_duplicate.return_value = None
+    status, name = update_item_details_with_checks(
+        list_id=1, item_id=10, raw_name="  Apples  ", raw_description="  Organic 5-pack  "
+    )
+    assert status == STATUS_RENAMED
+    assert name == "apples"
+    mock_update.assert_called_once_with(
+        item_id=10, list_id=1, name="apples", description="Organic 5-pack"
+    )
+
