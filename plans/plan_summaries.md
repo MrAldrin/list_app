@@ -12,9 +12,11 @@ This document tracks the remaining feature plans in the `plans/` directory. All 
 
 ---
 
-## 2. Reference Documents
-*These are not active plans, but rather technical context required for maintaining the app.*
+## 2. PWA & Mobile Workflow
 
-**Document:** `pwa_ios_quirks_reference.md`
-**Overview:** Explains why the root route (`/`) is decoupled from the admin panel (`/admin`), and how local storage is used to seamlessly route PWA users to their last visited room to avoid iOS Safari breaking standalone mode.
-**Status:** Reference only. Keep indefinitely to prevent regressions.
+**Document:** `pwa_auto_update_plan.md`
+**Overview:** Detailed implementation plan for adding a root-scoped Service Worker (`sw.js`) and no-cache headers to enable automatic background/foreground updating of the Home Screen PWA across iOS (Safari) and Android browsers.
+**Status:** **Pending Implementation**.
+
+---
+*Note: Long-term reference documents and architecture notes are moved to `docs/` or `ARCHITECTURE.md` to keep `plans/` strictly for active implementation plans.*
