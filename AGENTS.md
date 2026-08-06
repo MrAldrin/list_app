@@ -3,10 +3,11 @@
 - This project should create a MVP of a list app for the web. 
 - It should be simple, and slowly add more features.
 - This is my first web app. So explain the ways of web development in simple terms for me to learn along the way.
+- Dont implement anything before I explicitly tell you to. 
+- Modular Implementation: Split large tasks into small, testable chunks.
 
 
 ## Technical Stack ideas
-We should use simple to understand technologies and it should primarily be written in Python.
 The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
 
 
@@ -21,10 +22,8 @@ We also have these extra files and folders:
     - The bottom of the files should contain tracking of progress for that plan.
 
 
-## Guiding Principles
-- Modular Implementation: Split large tasks into small, testable chunks.
 
-
-## Other
-- If you ever run the app for testing and seeing potential error messages. If you run it idle, without moving around, dont run it for more than 5 seconds.
-- If you need to install dependencies, use the dev subgroup like "uv add --dev ty"
+## Tools:
+- Packages: Use uv (use the dev group if only for development).
+- Formating: Use ruff.
+- Version controll: jj with git backend. Prefer jj workflows.

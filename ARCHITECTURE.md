@@ -1,12 +1,14 @@
 # Architecture: Shared Shopping List App
 
+
 ## Purpose
 This document defines the minimal architecture for the app.
 It explains how the system should work, without locking down detailed implementation steps.
 
 The app goal is a mobile-first shared list experience where small groups can add items, mark done items, and organize/filter the list.
 
-This architecture optimizes for simplicity and learning speed over horizontal scaling.
+This architecture optimizes for simplicity and learning.
+
 
 ## App specifications for the end goal for this app:
 - Used by up to 4 users at the same time
@@ -18,19 +20,13 @@ This architecture optimizes for simplicity and learning speed over horizontal sc
         - if exists:
             - if unchecked: do nothing
             - if checked: unchek the element
-- There should be a filter for showing checked off elements or not
+
 
 ## Core Architecture Decisions
 - Frontend/Backend: Python with NiceGUI
 - Data Storage: sqlite
-- Published on railway free-tier with volume storage 
+- Host: Railway free-tier with volume storage 
 
-## How Real-Time Collaboration Works
-- Clients connect to the NiceGUI server in the browser.
-- When a user changes the list, the server persists the change and updates connected clients in the same room.
-- Real-time sync is handled by the app server connection layer (WebSocket/push behavior), while SQLite is used for storage.
-
-This means SQLite is valid for web sync in this architecture: storage and real-time updates are separate concerns.
 
 ## Data Boundaries & Security Rules
 The domain is intentionally small:
@@ -39,6 +35,7 @@ The domain is intentionally small:
 - `Item`: list entry belonging to a list.
 - `Category`: optional grouping label for items.
 
+
 ### Target Security Model
 - **Admin Root:** The root URL (`/admin`) is protected by a global app password.
 - **Room URLs are private:** The `/room/{slug}` URL always requires a valid room password. Device authorization is persisted in browser `localStorage` (`listapp_room_{slug}` and `listapp_last_room`) to preserve room access across server restarts and browser closures while always validating credentials server-side. Unauthorized users are shown an inline password prompt.
@@ -46,6 +43,7 @@ The domain is intentionally small:
 - **Room controls are isolated:** If a user accesses a list via a public link and tries to navigate "back" to the room, they are hit with the inline room password prompt unless previously authorized. They cannot access room settings without the room password.
 
 Only these boundaries are fixed right now. Field-level schema details are allowed to evolve as we learn.
+
 
 ## Project Structure
 - src/: Source code
@@ -56,10 +54,10 @@ Only these boundaries are fixed right now. Field-level schema details are allowe
 - `docs/`: Technical documentation.
 - `plans/`: Feature-specific implementation plans.
 
+
 ## UX Direction
 - Mobile-first design is the default
 - UI decisions should prioritize quick list editing during shopping.
-
 
 
 ## Evolution Rules
