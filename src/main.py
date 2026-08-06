@@ -51,7 +51,22 @@ ui.add_head_html(
     '<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png">',
     shared=True,
 )
+ui.add_head_html(
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">',
+    shared=True,
+)
 ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
+ui.add_head_html(
+    """
+    <style>
+      /* Prevent auto-zoom on mobile input focus */
+      input, select, textarea, .q-field__native, .q-field__input {
+        font-size: 16px !important;
+      }
+    </style>
+    """,
+    shared=True,
+)
 ui.add_head_html(
     """
 <script>
