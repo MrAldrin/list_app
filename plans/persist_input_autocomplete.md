@@ -44,6 +44,6 @@ This plan replaces `ui.select` with a standard text input (`ui.input`) paired wi
 ---
 
 ## Progress Tracking
-- [ ] Implement `ui.input` + autocomplete popup menu in `_render_add_item_row` in `src/main.py`
-- [ ] Run pytest suite to verify no regressions
+- [x] Implement `ui.input` + autocomplete popup menu in `_render_add_item_row` in `src/main.py`
+- [x] Run pytest suite to verify no regressions
 - [ ] Manually verify input persistence on blur and submission via Enter / popup click

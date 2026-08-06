@@ -1106,19 +1106,18 @@ def _render_header(
 
 
 def _render_add_item_row(list_id: int) -> None:
-    draft_text = {"val": ""}
-
     with ui.row().classes("w-full items-center no-wrap gap-2 mt-2"):
-        search_input = ui.select(
-            options=[],
-            with_input=True,
-            new_value_mode="add",
-            label="Add or Search",
-        ).classes("flex-grow")
+        search_input = ui.input(label="Add or Search").classes("flex-grow")
 
-        def submit() -> None:
-            selected = normalize_item_name(search_input.value)
-            to_add = selected or draft_text["val"]
+        with search_input:
+            menu = ui.menu().props(
+                "fit no-focus no-refocus auto-close=false no-parent-event"
+            )
+
+        def submit(item_text: str | None = None) -> None:
+            to_add = normalize_item_name(
+                item_text if item_text is not None else search_input.value or ""
+            )
             if not to_add:
                 return
 
@@ -1134,37 +1133,66 @@ def _render_add_item_row(list_id: int) -> None:
             elif status == STATUS_ADDED:
                 ui.notify(f"Added {name}", color="positive", position=NOTIFY_POSITION)
 
-            search_input.value = None
-            draft_text["val"] = ""
-            search_input.options = []
-            search_input.update()
+            search_input.value = ""
+            menu.close()
+            search_input.run_method("focus")
             broadcast_updates()
 
-        ui.button("Add", on_click=submit)
+        ui.button("Add", on_click=lambda: submit())
 
-    search_input.props("behavior=menu fill-input=true")
-
-    def on_filter(e) -> None:
-        typed = normalize_item_name(e.args[0] if e.args else "")
-        draft_text["val"] = typed
+    def update_suggestions() -> None:
+        typed = normalize_item_name(search_input.value or "")
+        menu.clear()
         if len(typed) < 1:
-            search_input.options = []
-        else:
-            _, history = get_list_data(list_id)
-            matches = [n for n in history if typed in n.lower()]
-            search_input.options = matches[:3]
-        search_input.update()
+            menu.close()
+            return
 
-    search_input.on("filter", on_filter)
-    search_input.on("keyup.enter", submit)
+        _, history = get_list_data(list_id)
+        matches = [n for n in history if typed in n.lower()]
+        if not matches:
+            menu.close()
+            return
 
-    def handle_value_change(e):
-        val = normalize_item_name(e.value or "")
-        draft_text.update({"val": val})
-        if e.value:
-            submit()
+        with menu:
+            for item_name in matches[:3]:
+                ui.menu_item(
+                    item_name,
+                    on_click=lambda name=item_name: submit(name),
+                )
+        menu.open()
 
-    search_input.on_value_change(handle_value_change)
+    search_input.on_value_change(update_suggestions)
+    search_input.on("focus", update_suggestions)
+    search_input.on(
+        "keydown.down",
+        lambda: ui.run_javascript(
+            """
+            const first = document.querySelector(".q-menu .q-item");
+            if (first) {
+                first.focus();
+                const menuEl = first.closest(".q-menu");
+                if (menuEl && !menuEl.dataset.navBound) {
+                    menuEl.dataset.navBound = "true";
+                    menuEl.addEventListener("keydown", (e) => {
+                        if (e.key === "ArrowDown" && document.activeElement?.nextElementSibling) {
+                            e.preventDefault();
+                            document.activeElement.nextElementSibling.focus();
+                        } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            if (document.activeElement?.previousElementSibling) {
+                                document.activeElement.previousElementSibling.focus();
+                            } else {
+                                const input = document.querySelector(".q-field input");
+                                if (input) input.focus();
+                            }
+                        }
+                    });
+                }
+            }
+        """
+        ),
+    )
+    search_input.on("keyup.enter", lambda: submit())
 
 
 def _create_undo_bar(
