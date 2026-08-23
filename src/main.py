@@ -1465,7 +1465,11 @@ def list_page(slug: str):
         state["pending_undo"] = None
         undo_bar.refresh()
 
-    with ui.card().classes("w-full max-w-sm mx-auto h-[100dvh] flex flex-col min-h-0"):
+    with (
+        ui.card()
+        .classes("w-full max-w-sm mx-auto")
+        .style("height: 100dvh; display: flex; flex-direction: column; min-height: 0;")
+    ):
         tags_ui = _create_tags_ui(
             list_id=list_id,
             state=state,
@@ -1491,7 +1495,11 @@ def list_page(slug: str):
         tags_ui()
         _render_add_item_row(list_id=list_id)
 
-        with ui.column().classes("w-full flex-grow min-h-0 overflow-y-auto"):
+        with (
+            ui.element("div")
+            .classes("w-full")
+            .style("flex: 1 1 auto; min-height: 0; overflow-y: auto;")
+        ):
             item_list(
                 list_id,
                 lambda: state["filter_tag"],
