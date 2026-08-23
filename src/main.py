@@ -1519,5 +1519,5 @@ if __name__ in {"__main__", "__mp_main__"}:
         reload=True,
         title="ListR",
         favicon="/static/icons/favicon-32.png",
-        storage_secret="some_secret",
+        storage_secret=os.environ["NICEGUI_STORAGE_SECRET"],
     )
