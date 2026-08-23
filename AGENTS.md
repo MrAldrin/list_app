@@ -25,5 +25,23 @@ We also have these extra files and folders:
 
 ## Tools:
 - Packages: Use uv (use the dev group if only for development).
-- Formating: Use ruff.
-- Version controll: jj with git backend. Prefer jj workflows.
+- Formatting: Use ruff.
+- Version control: jj with git backend. Prefer jj workflows.
+
+## Python quality checks
+Before reporting a task complete when Python files have changed, run:
+
+```bash
+uv run ruff format .
+uv run ruff check --fix .
+uv run pytest -q
+```
+
+Then verify that formatting and linting are clean:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+```
+
+Review any remaining Ruff issues rather than using unsafe fixes automatically.

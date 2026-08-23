@@ -159,14 +159,16 @@ def get_list_data(list_id: int):
             active_tags = json.loads(r[3]) if r[3] else []
         except json.JSONDecodeError:
             active_tags = []
-        list_items.append({
-            "id": r[0],
-            "name": r[1],
-            "done": bool(r[2]),
-            "active_tags": active_tags,
-            "description": r[4] or "",
-            "quantity": r[5] if len(r) > 5 and r[5] is not None else 1,
-        })
+        list_items.append(
+            {
+                "id": r[0],
+                "name": r[1],
+                "done": bool(r[2]),
+                "active_tags": active_tags,
+                "description": r[4] or "",
+                "quantity": r[5] if len(r) > 5 and r[5] is not None else 1,
+            }
+        )
 
     list_history_names = sorted({item["name"] for item in list_items})
     return list_items, list_history_names
@@ -354,8 +356,8 @@ def delete_room(room_id: int):
         lists = db.execute(
             "SELECT id FROM lists WHERE room_id = ?", (room_id,)
         ).fetchall()
-        for l in lists:
-            list_id = l[0]
+        for list_row in lists:
+            list_id = list_row[0]
             db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
             db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
         db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))

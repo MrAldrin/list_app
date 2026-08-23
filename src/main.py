@@ -319,8 +319,7 @@ def item_list(
                         "w-full"
                     )
                     desc_input = (
-                        ui
-                        .textarea(
+                        ui.textarea(
                             label="Description / Notes",
                             value=it.get("description", ""),
                         )
@@ -482,8 +481,7 @@ def admin_login() -> None:
     with ui.card().classes("absolute-center"):
         ui.label("Enter Admin Password").classes("text-xl font-bold")
         password = (
-            ui
-            .input("Admin Password", password=True, password_toggle_button=True)
+            ui.input("Admin Password", password=True, password_toggle_button=True)
             .classes("w-full")
             .on("keydown.enter", try_login)
         )
@@ -536,10 +534,12 @@ def room_list_ui():
                                 )
                                 if slug not in auth_rooms:
                                     auth_rooms.append(slug)
-                                    app.storage.user.update({
-                                        "authorized_rooms": auth_rooms,
-                                        "last_room_slug": slug,
-                                    })
+                                    app.storage.user.update(
+                                        {
+                                            "authorized_rooms": auth_rooms,
+                                            "last_room_slug": slug,
+                                        }
+                                    )
                                 else:
                                     app.storage.user.update({"last_room_slug": slug})
                                 dialog.close()
@@ -588,9 +588,9 @@ def room_list_ui():
                                     )
                                     if r_slug in current_auths:
                                         current_auths.remove(r_slug)
-                                        app.storage.user.update({
-                                            "authorized_rooms": current_auths
-                                        })
+                                        app.storage.user.update(
+                                            {"authorized_rooms": current_auths}
+                                        )
                                         room_list_ui.refresh()
 
                                     dialog.close()
@@ -649,10 +649,12 @@ def admin_page() -> None:
                             )
                             auth_rooms = app.storage.user.get("authorized_rooms", [])
                             auth_rooms.append(new_slug)
-                            app.storage.user.update({
-                                "authorized_rooms": auth_rooms,
-                                "last_room_slug": new_slug,
-                            })
+                            app.storage.user.update(
+                                {
+                                    "authorized_rooms": auth_rooms,
+                                    "last_room_slug": new_slug,
+                                }
+                            )
                             dialog.close()
                             ui.notify(
                                 "Room created",
@@ -708,10 +710,12 @@ async def index() -> None:
             if saved_pw and verify_room(saved_last, saved_pw):
                 if saved_last not in auth_rooms:
                     auth_rooms.append(saved_last)
-                app.storage.user.update({
-                    "authorized_rooms": auth_rooms,
-                    "last_room_slug": saved_last,
-                })
+                app.storage.user.update(
+                    {
+                        "authorized_rooms": auth_rooms,
+                        "last_room_slug": saved_last,
+                    }
+                )
                 ui.navigate.to(f"/room/{saved_last}")
                 return
             elif saved_pw:
@@ -783,10 +787,12 @@ async def room_page(slug: str):
         if saved_pw and verify_room(slug, saved_pw):
             if slug not in auth_rooms:
                 auth_rooms.append(slug)
-            app.storage.user.update({
-                "authorized_rooms": auth_rooms,
-                "last_room_slug": slug,
-            })
+            app.storage.user.update(
+                {
+                    "authorized_rooms": auth_rooms,
+                    "last_room_slug": slug,
+                }
+            )
             await ui.run_javascript(
                 f"localStorage.setItem('listapp_last_room', {json.dumps(slug)})"
             )
@@ -807,10 +813,12 @@ async def room_page(slug: str):
                         if verify_room(slug, pw_input.value):
                             if slug not in auth_rooms:
                                 auth_rooms.append(slug)
-                            app.storage.user.update({
-                                "authorized_rooms": auth_rooms,
-                                "last_room_slug": slug,
-                            })
+                            app.storage.user.update(
+                                {
+                                    "authorized_rooms": auth_rooms,
+                                    "last_room_slug": slug,
+                                }
+                            )
                             await ui.run_javascript(f"""
                                 localStorage.setItem('listapp_room_{slug}', {json.dumps(pw_input.value)});
                                 localStorage.setItem('listapp_last_room', {json.dumps(slug)});
@@ -928,9 +936,9 @@ async def room_page(slug: str):
                             auth_rooms = app.storage.user.get("authorized_rooms", [])
                             if r_slug in auth_rooms:
                                 auth_rooms.remove(r_slug)
-                                app.storage.user.update({
-                                    "authorized_rooms": auth_rooms
-                                })
+                                app.storage.user.update(
+                                    {"authorized_rooms": auth_rooms}
+                                )
 
                             ui.notify("Room deleted", color="negative")
                             ui.navigate.to("/admin")
@@ -1328,7 +1336,7 @@ def _create_tags_ui(
                 def add_tag() -> None:
                     tag = new_tag_input.value.strip()
                     if tag and tag not in list_tags:
-                        updated_tags = sorted(list_tags + [tag], key=str.lower)
+                        updated_tags = sorted([*list_tags, tag], key=str.lower)
                         update_list_tags_settings(list_id, updated_tags)
                         state["focus_tag_input"] = True
                         new_tag_input.value = ""
