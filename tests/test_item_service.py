@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from item_service import (
     STATUS_ADDED,
@@ -35,12 +36,17 @@ def test_add_or_restore_item_invalid_name(mock_add, mock_restore, mock_find, raw
 @patch("item_service.find_item_by_name")
 @patch("item_service.restore_item")
 @patch("item_service.add_item")
-@pytest.mark.parametrize("raw_name, expected_name", [
-    ("Apples", "apples"),
-    ("  banaNAs  ", "bananas"),
-    ("Bread and milk", "bread and milk"),
-])
-def test_add_or_restore_item_new(mock_add, mock_restore, mock_find, raw_name, expected_name):
+@pytest.mark.parametrize(
+    "raw_name, expected_name",
+    [
+        ("Apples", "apples"),
+        ("  banaNAs  ", "bananas"),
+        ("Bread and milk", "bread and milk"),
+    ],
+)
+def test_add_or_restore_item_new(
+    mock_add, mock_restore, mock_find, raw_name, expected_name
+):
     # Test that a completely new item is successfully added and normalized
     mock_find.return_value = None
     status, name = add_or_restore_item(list_id=1, raw_name=raw_name)
@@ -79,7 +85,9 @@ def test_add_or_restore_item_duplicate_active(mock_add, mock_restore, mock_find)
 @patch("item_service.find_duplicate_name")
 @patch("item_service.rename_item")
 @pytest.mark.parametrize("raw_name", ["", "   ", "\n", "\t", None])
-def test_rename_item_with_checks_invalid_name(mock_rename, mock_find_duplicate, raw_name):
+def test_rename_item_with_checks_invalid_name(
+    mock_rename, mock_find_duplicate, raw_name
+):
     # Test that renaming an item to an empty, whitespace-only string, or None is rejected
     status, name = rename_item_with_checks(list_id=1, item_id=10, raw_name=raw_name)
     assert status == STATUS_INVALID_NAME
@@ -101,12 +109,20 @@ def test_rename_item_with_checks_duplicate(mock_rename, mock_find_duplicate):
 
 @patch("item_service.find_duplicate_name")
 @patch("item_service.rename_item")
-@pytest.mark.parametrize("raw_name, expected_name", [
-    ("Bananas", "bananas"),
-    ("  Milk  ", "milk"),
-    ("Apples", "apples"), # If the current name is 'apples', this is renaming to self
-])
-def test_rename_item_with_checks_success(mock_rename, mock_find_duplicate, raw_name, expected_name):
+@pytest.mark.parametrize(
+    "raw_name, expected_name",
+    [
+        ("Bananas", "bananas"),
+        ("  Milk  ", "milk"),
+        (
+            "Apples",
+            "apples",
+        ),  # If the current name is 'apples', this is renaming to self
+    ],
+)
+def test_rename_item_with_checks_success(
+    mock_rename, mock_find_duplicate, raw_name, expected_name
+):
     # Test that renaming an item to a valid, unique name succeeds
     mock_find_duplicate.return_value = None
     status, name = rename_item_with_checks(list_id=1, item_id=10, raw_name=raw_name)
@@ -138,7 +154,10 @@ def test_update_item_details_with_checks_success(mock_update, mock_find_duplicat
     # Test updating item name and description with checks
     mock_find_duplicate.return_value = None
     status, name = update_item_details_with_checks(
-        list_id=1, item_id=10, raw_name="  Apples  ", raw_description="  Organic 5-pack  "
+        list_id=1,
+        item_id=10,
+        raw_name="  Apples  ",
+        raw_description="  Organic 5-pack  ",
     )
     assert status == STATUS_RENAMED
     assert name == "apples"
@@ -150,6 +169,7 @@ def test_update_item_details_with_checks_success(mock_update, mock_find_duplicat
 @patch("item_service.update_item_quantity")
 def test_set_item_quantity(mock_update_qty):
     from item_service import set_item_quantity
+
     status = set_item_quantity(list_id=1, item_id=10, quantity=3)
     assert status == STATUS_UPDATED
     mock_update_qty.assert_called_once_with(item_id=10, list_id=1, quantity=3)
@@ -158,4 +178,3 @@ def test_set_item_quantity(mock_update_qty):
     mock_update_qty.reset_mock()
     set_item_quantity(list_id=1, item_id=10, quantity=0)
     mock_update_qty.assert_called_once_with(item_id=10, list_id=1, quantity=1)
-

@@ -33,7 +33,9 @@ def _ensure_default_room(db: sqlite3.Connection) -> int:
 def _backfill_list_slugs(db: sqlite3.Connection) -> None:
     rows = db.execute("SELECT id, name FROM lists WHERE slug IS NULL").fetchall()
     for list_id, name in rows:
-        db.execute("UPDATE lists SET slug = ? WHERE id = ?", (_create_slug(name), list_id))
+        db.execute(
+            "UPDATE lists SET slug = ? WHERE id = ?", (_create_slug(name), list_id)
+        )
 
 
 def _lists_name_is_globally_unique(db: sqlite3.Connection) -> bool:
@@ -76,7 +78,7 @@ def _migrate_lists_to_room_scoped_names(db: sqlite3.Connection) -> None:
 def init_database():
     db_path = os.environ.get("DB_PATH", "list.db")
     db = sqlite3.connect(db_path, check_same_thread=False)
-    
+
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS rooms (
@@ -115,7 +117,9 @@ def init_database():
 
     if _lists_name_is_globally_unique(db):
         _migrate_lists_to_room_scoped_names(db)
-        db.execute("UPDATE lists SET room_id = ? WHERE room_id IS NULL", (default_room_id,))
+        db.execute(
+            "UPDATE lists SET room_id = ? WHERE room_id IS NULL", (default_room_id,)
+        )
 
     db.execute(
         """

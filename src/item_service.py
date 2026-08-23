@@ -78,7 +78,9 @@ def update_item_details_with_checks(
     return STATUS_RENAMED, new_name
 
 
-def rename_list_with_checks(list_id: int, room_id: int, raw_name: str | None) -> tuple[str, str | None]:
+def rename_list_with_checks(
+    list_id: int, room_id: int, raw_name: str | None
+) -> tuple[str, str | None]:
     new_name = normalize_item_name(raw_name)
     if not new_name:
         return STATUS_INVALID_NAME, None
@@ -112,5 +114,5 @@ def delete_list_and_items(list_id: int, room_id: int) -> tuple[str, int | None]:
     remaining_lists = get_lists(room_id)
     if not remaining_lists:
         return STATUS_DELETED, None
-    
+
     return STATUS_DELETED, remaining_lists[0][0]

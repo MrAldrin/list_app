@@ -1,23 +1,24 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+
 from database_crud import (
-    normalize_item_name,
-    get_lists,
+    add_item,
     create_list,
     create_room,
-    get_list_data,
-    find_item_by_name,
-    restore_item,
-    add_item,
-    update_item_done,
-    find_duplicate_name,
-    rename_item,
-    update_item_details,
     delete_item,
-    find_list_by_name,
-    rename_list,
     delete_list,
+    find_duplicate_name,
+    find_item_by_name,
+    find_list_by_name,
+    get_list_data,
+    get_lists,
+    normalize_item_name,
+    rename_item,
+    rename_list,
+    restore_item,
+    update_item_details,
+    update_item_done,
 )
 
 
@@ -166,10 +167,11 @@ def test_get_lists_sorting(room_id):
     create_list(name="Zebra", room_id=room_id)
     create_list(name="Apple", room_id=room_id)
     create_list(name="banana", room_id=room_id)
-    
+
     lists = get_lists(room_id)
     names = [entry[1] for entry in lists if entry[1] != "default"]
     assert names == ["apple", "banana", "zebra"]
+
 
 def test_get_list_data_sorting(room_id):
     # Verify that items are sorted by 'done' status first, then by name (case-insensitive).
@@ -177,44 +179,48 @@ def test_get_list_data_sorting(room_id):
     add_item(item_name="Zebra", list_id=list_id)
     add_item(item_name="Apple", list_id=list_id)
     add_item(item_name="banana", list_id=list_id)
-    
+
     apple_id, _ = find_item_by_name(list_id=list_id, item_name="apple")
     update_item_done(item_id=apple_id, list_id=list_id, done=True)
-    
+
     items, _ = get_list_data(list_id=list_id)
     # Expected: banana (False), Zebra (False), Apple (True)
     assert items[0]["name"] == "banana"
     assert items[1]["name"] == "Zebra"
     assert items[2]["name"] == "Apple"
 
+
 def test_get_list_data_history_isolation(room_id):
     # Verify that the history (unique item names) is correctly scoped to the list.
     list1_id, _ = create_list(name="List 1", room_id=room_id)
     list2_id, _ = create_list(name="List 2", room_id=room_id)
-    
+
     add_item(item_name="Apple", list_id=list1_id)
     add_item(item_name="Banana", list_id=list2_id)
-    
+
     _, history1 = get_list_data(list_id=list1_id)
     _, history2 = get_list_data(list_id=list2_id)
-    
+
     assert history1 == ["Apple"]
     assert history2 == ["Banana"]
+
 
 def test_delete_item(room_id):
     # Verify that an item can be removed from a list.
     list_id, _ = create_list(name="My List", room_id=room_id)
     add_item(item_name="Apples", list_id=list_id)
     apple_id, _ = find_item_by_name(list_id=list_id, item_name="apples")
-    
+
     delete_item(item_id=apple_id, list_id=list_id)
     assert find_item_by_name(list_id=list_id, item_name="apples") is None
+
 
 def test_delete_nonexistent_item(room_id):
     # Verify that attempting to delete an item that doesn't exist does not raise an error.
     list_id, _ = create_list(name="My List", room_id=room_id)
     # This should simply do nothing and not crash
     delete_item(item_id=999, list_id=list_id)
+
 
 def test_update_nonexistent_item_done(room_id):
     # Verify that attempting to update a non-existent item does not raise an error.
@@ -226,7 +232,7 @@ def test_rename_list(room_id):
     # Verify that a list can be renamed and it reflects in get_lists.
     list_id, _ = create_list(name="Old Name", room_id=room_id)
     rename_list(list_id=list_id, new_name="new name")
-    
+
     lists = get_lists(room_id)
     assert any(entry[1] == "new name" for entry in lists)
     assert not any(entry[1] == "old name" for entry in lists)
@@ -243,12 +249,12 @@ def test_delete_list(room_id):
     # Verify that a list and its items are correctly deleted.
     list_id, _ = create_list(name="Delete Me", room_id=room_id)
     add_item(item_name="Item 1", list_id=list_id)
-    
+
     delete_list(list_id=list_id)
-    
+
     lists = get_lists(room_id)
     assert not any(entry[0] == list_id for entry in lists)
-    
+
     # Verify items are gone too
     items, _ = get_list_data(list_id=list_id)
     assert len(items) == 0
@@ -263,11 +269,13 @@ def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
         local_errors = []
         for i in range(operations_per_worker):
             try:
-                list_id, _ = create_list(name=f"worker-{worker_id}-list-{i}", room_id=room_id)
+                list_id, _ = create_list(
+                    name=f"worker-{worker_id}-list-{i}", room_id=room_id
+                )
                 add_item(item_name=f"item-{worker_id}-{i}", list_id=list_id)
                 get_list_data(list_id=list_id)
                 get_lists(room_id)
-            except Exception as exc:  # pragma: no cover - only used for assertion context
+            except Exception as exc:  # noqa: BLE001 - capture worker failures for assertion context
                 local_errors.append(exc)
         return local_errors
 
@@ -287,8 +295,12 @@ def test_update_item_details(room_id):
     item_id = items[0]["id"]
     assert items[0]["description"] == ""
 
-    update_item_details(item_id=item_id, list_id=list_id, name="Fuji Apples", description="Buy 3 large ones")
+    update_item_details(
+        item_id=item_id,
+        list_id=list_id,
+        name="Fuji Apples",
+        description="Buy 3 large ones",
+    )
     updated_items, _ = get_list_data(list_id=list_id)
     assert updated_items[0]["name"] == "Fuji Apples"
     assert updated_items[0]["description"] == "Buy 3 large ones"
-

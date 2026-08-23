@@ -13,6 +13,7 @@ GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
 
 from fastapi.responses import FileResponse
 
+
 # --- PWA and Assets ---
 @app.get("/sw.js")
 def serve_service_worker():
@@ -22,6 +23,7 @@ def serve_service_worker():
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
 
+
 @app.get("/manifest.json")
 @app.get("/static/manifest.json")
 def serve_manifest():
@@ -30,6 +32,7 @@ def serve_manifest():
         media_type="application/json",
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
+
 
 app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
 ui.add_head_html('<link rel="manifest" href="/manifest.json">', shared=True)
@@ -119,7 +122,6 @@ from item_service import (
     add_or_restore_item,
     delete_item_from_list,
     delete_list_and_items,
-    rename_item_with_checks,
     rename_list_with_checks,
     set_item_quantity,
     toggle_item_done,
@@ -200,79 +202,79 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
         return
 
     for list_id, name, slug in lists:
-        with ui.card().classes("w-full mb-1 p-1"):
-            with ui.row().classes("w-full items-center no-wrap"):
-                ui.button(
-                    name, on_click=lambda s=slug: ui.navigate.to(f"/list/{s}")
-                ).props("flat").classes("flex-grow text-left text-lg")
+        with (
+            ui.card().classes("w-full mb-1 p-1"),
+            ui.row().classes("w-full items-center no-wrap"),
+        ):
+            ui.button(name, on_click=lambda s=slug: ui.navigate.to(f"/list/{s}")).props(
+                "flat"
+            ).classes("flex-grow text-left text-lg")
 
-                def open_rename_dialog(lid=list_id, lname=name):
-                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Edit '{lname}'").classes("text-lg font-bold")
-                        new_name_input = ui.input(
-                            value=lname, label="List Name"
-                        ).classes("w-full")
-                        with ui.row().classes("w-full justify-end mt-4"):
-                            ui.button("Cancel", on_click=dialog.close).props("flat")
+            def open_rename_dialog(lid=list_id, lname=name):
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    ui.label(f"Edit '{lname}'").classes("text-lg font-bold")
+                    new_name_input = ui.input(value=lname, label="List Name").classes(
+                        "w-full"
+                    )
+                    with ui.row().classes("w-full justify-end mt-4"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                            def save():
-                                status, actual_name = rename_list_with_checks(
-                                    lid, room_id, new_name_input.value
-                                )
-                                if status == STATUS_INVALID_NAME:
-                                    ui.notify("Name cannot be empty", color="warning")
-                                    return
-                                if status == STATUS_DUPLICATE_NAME:
-                                    ui.notify(
-                                        f"'{actual_name}' already exists in this room",
-                                        color="warning",
-                                        position=NOTIFY_POSITION,
-                                    )
-                                    return
-
-                                dialog.close()
-                                ui.notify(
-                                    f"Updated {actual_name}",
-                                    color="positive",
-                                    position=NOTIFY_POSITION,
-                                )
-                                broadcast_updates()
-
-                            ui.button("Save", on_click=save)
-                        new_name_input.on("keyup.enter", save)
-                    dialog.open()
-
-                ui.button(icon="edit", on_click=open_rename_dialog).props(
-                    "flat round dense size=sm"
-                )
-
-                def open_delete_dialog(lid=list_id, lname=name):
-                    count = get_item_count(lid)
-                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Delete '{lname}' and its {count} items?").classes(
-                            "text-lg"
-                        )
-                        with ui.row().classes("w-full justify-end"):
-                            ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                            def confirm():
-                                delete_list_and_items(lid, room_id)
-                                dialog.close()
-                                ui.notify(
-                                    f"Deleted '{lname}'",
-                                    color="negative",
-                                    position=NOTIFY_POSITION,
-                                )
-                                broadcast_updates()
-
-                            ui.button("Delete", on_click=confirm).props(
-                                "color=negative"
+                        def save():
+                            status, actual_name = rename_list_with_checks(
+                                lid, room_id, new_name_input.value
                             )
-                    dialog.open()
+                            if status == STATUS_INVALID_NAME:
+                                ui.notify("Name cannot be empty", color="warning")
+                                return
+                            if status == STATUS_DUPLICATE_NAME:
+                                ui.notify(
+                                    f"'{actual_name}' already exists in this room",
+                                    color="warning",
+                                    position=NOTIFY_POSITION,
+                                )
+                                return
 
-                ui.button(icon="delete", on_click=open_delete_dialog).props(
-                    "flat round dense size=sm color=negative"
-                )
+                            dialog.close()
+                            ui.notify(
+                                f"Updated {actual_name}",
+                                color="positive",
+                                position=NOTIFY_POSITION,
+                            )
+                            broadcast_updates()
+
+                        ui.button("Save", on_click=save)
+                    new_name_input.on("keyup.enter", save)
+                dialog.open()
+
+            ui.button(icon="edit", on_click=open_rename_dialog).props(
+                "flat round dense size=sm"
+            )
+
+            def open_delete_dialog(lid=list_id, lname=name):
+                count = get_item_count(lid)
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    ui.label(f"Delete '{lname}' and its {count} items?").classes(
+                        "text-lg"
+                    )
+                    with ui.row().classes("w-full justify-end"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                        def confirm():
+                            delete_list_and_items(lid, room_id)
+                            dialog.close()
+                            ui.notify(
+                                f"Deleted '{lname}'",
+                                color="negative",
+                                position=NOTIFY_POSITION,
+                            )
+                            broadcast_updates()
+
+                        ui.button("Delete", on_click=confirm).props("color=negative")
+                dialog.open()
+
+            ui.button(icon="delete", on_click=open_delete_dialog).props(
+                "flat round dense size=sm color=negative"
+            )
 
 
 @ui.refreshable
@@ -302,6 +304,7 @@ def item_list(
             "w-full items-center justify-between no-wrap border-b border-gray-100 py-1"
         )
         with row:
+
             def delete(it=item):
                 if on_delete:
                     on_delete(it)
@@ -312,25 +315,45 @@ def item_list(
             def open_edit_dialog(it=item):
                 with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm gap-3"):
                     ui.label("Edit Item").classes("text-lg font-bold")
-                    name_input = ui.input(label="Item Name", value=it["name"]).classes("w-full")
-                    desc_input = ui.textarea(
-                        label="Description / Notes",
-                        value=it.get("description", ""),
-                    ).classes("w-full").props("rows=3")
+                    name_input = ui.input(label="Item Name", value=it["name"]).classes(
+                        "w-full"
+                    )
+                    desc_input = (
+                        ui
+                        .textarea(
+                            label="Description / Notes",
+                            value=it.get("description", ""),
+                        )
+                        .classes("w-full")
+                        .props("rows=3")
+                    )
 
-                    with ui.row().classes("w-full items-center justify-between mt-1 px-1 py-1 bg-slate-50 rounded border border-slate-200"):
-                        ui.label("Quantity").classes("text-sm text-gray-700 font-medium")
+                    with ui.row().classes(
+                        "w-full items-center justify-between mt-1 px-1 py-1 bg-slate-50 rounded border border-slate-200"
+                    ):
+                        ui.label("Quantity").classes(
+                            "text-sm text-gray-700 font-medium"
+                        )
                         q_val = {"count": it.get("quantity", 1)}
                         with ui.row().classes("items-center gap-1"):
+
                             def dec_q():
                                 q_val["count"] = max(1, q_val["count"] - 1)
                                 q_label.text = str(q_val["count"])
+
                             def inc_q():
                                 q_val["count"] += 1
                                 q_label.text = str(q_val["count"])
-                            ui.button("-", on_click=dec_q).props("flat round dense size=sm color=primary")
-                            q_label = ui.label(str(q_val["count"])).classes("px-2 font-bold text-slate-800 text-base")
-                            ui.button("+", on_click=inc_q).props("flat round dense size=sm color=primary")
+
+                            ui.button("-", on_click=dec_q).props(
+                                "flat round dense size=sm color=primary"
+                            )
+                            q_label = ui.label(str(q_val["count"])).classes(
+                                "px-2 font-bold text-slate-800 text-base"
+                            )
+                            ui.button("+", on_click=inc_q).props(
+                                "flat round dense size=sm color=primary"
+                            )
 
                     def save():
                         status, new_name = update_item_details_with_checks(
@@ -355,6 +378,7 @@ def item_list(
                         broadcast_updates()
 
                     with ui.row().classes("w-full justify-between items-center pt-2"):
+
                         def handle_delete():
                             dialog.close()
                             delete(it)
@@ -396,21 +420,28 @@ def item_list(
                 qty = item.get("quantity", 1)
                 should_show_counter = show_counters and (not only_gt_1 or qty > 1)
                 if should_show_counter:
+
                     def change_qty(delta: int, it=item):
                         new_q = max(1, it.get("quantity", 1) + delta)
                         set_item_quantity(list_id, it["id"], new_q)
                         broadcast_updates()
 
-                    with ui.row().classes("items-center no-wrap gap-0.5 bg-slate-100 rounded px-1 py-0.5 mr-1"):
-                        ui.button("-", on_click=lambda _e, it=item: change_qty(-1, it)).props(
-                            "flat round dense size=xs color=grey-8"
-                        ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
+                    with ui.row().classes(
+                        "items-center no-wrap gap-0.5 bg-slate-100 rounded px-1 py-0.5 mr-1"
+                    ):
+                        ui.button(
+                            "-", on_click=lambda _e, it=item: change_qty(-1, it)
+                        ).props("flat round dense size=xs color=grey-8").classes(
+                            "w-4 h-4 p-0 min-w-0 min-h-0"
+                        )
                         ui.label(str(item.get("quantity", 1))).classes(
                             "text-xs font-bold text-slate-700 min-w-[14px] text-center"
                         )
-                        ui.button("+", on_click=lambda _e, it=item: change_qty(1, it)).props(
-                            "flat round dense size=xs color=grey-8"
-                        ).classes("w-4 h-4 p-0 min-w-0 min-h-0")
+                        ui.button(
+                            "+", on_click=lambda _e, it=item: change_qty(1, it)
+                        ).props("flat round dense size=xs color=grey-8").classes(
+                            "w-4 h-4 p-0 min-w-0 min-h-0"
+                        )
 
                 if quick_tags_active:
                     with ui.row().classes("items-center no-wrap gap-1 mx-1"):
@@ -481,106 +512,106 @@ def room_list_ui():
         return
 
     for room in rooms:
-        with ui.card().classes("w-full mb-1 p-1"):
-            with ui.row().classes("w-full items-center no-wrap"):
+        with (
+            ui.card().classes("w-full mb-1 p-1"),
+            ui.row().classes("w-full items-center no-wrap"),
+        ):
 
-                def enter_room(slug=room["slug"], r_name=room["name"]):
-                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Enter password for {r_name}").classes(
-                            "text-lg font-bold"
-                        )
-                        pw_input = ui.input("Room Password", password=True).classes(
-                            "w-full"
-                        )
-                        with ui.row().classes("w-full justify-end mt-4"):
-                            ui.button("Cancel", on_click=dialog.close).props("flat")
+            def enter_room(slug=room["slug"], r_name=room["name"]):
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    ui.label(f"Enter password for {r_name}").classes(
+                        "text-lg font-bold"
+                    )
+                    pw_input = ui.input("Room Password", password=True).classes(
+                        "w-full"
+                    )
+                    with ui.row().classes("w-full justify-end mt-4"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                            def submit():
-                                r_id = verify_room(slug, pw_input.value)
-                                if r_id:
-                                    auth_rooms = app.storage.user.get(
+                        def submit():
+                            r_id = verify_room(slug, pw_input.value)
+                            if r_id:
+                                auth_rooms = app.storage.user.get(
+                                    "authorized_rooms", []
+                                )
+                                if slug not in auth_rooms:
+                                    auth_rooms.append(slug)
+                                    app.storage.user.update({
+                                        "authorized_rooms": auth_rooms,
+                                        "last_room_slug": slug,
+                                    })
+                                else:
+                                    app.storage.user.update({"last_room_slug": slug})
+                                dialog.close()
+                                ui.navigate.to(f"/room/{slug}")
+                            else:
+                                ui.notify("Incorrect password", color="negative")
+
+                        ui.button("Enter", on_click=submit)
+                    pw_input.on("keydown.enter", submit)
+                dialog.open()
+
+            auth_rooms = app.storage.user.get("authorized_rooms", [])
+            if room["slug"] in auth_rooms:
+                ui.button(
+                    room["name"],
+                    on_click=lambda s=room["slug"]: ui.navigate.to(f"/room/{s}"),
+                ).props("flat").classes("flex-grow text-left text-lg")
+            else:
+                ui.button(room["name"], on_click=enter_room).props("flat").classes(
+                    "flex-grow text-left text-lg"
+                )
+
+            def open_admin_reset_dialog(
+                r_id=room["id"], r_name=room["name"], r_slug=room["slug"]
+            ):
+                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+                    ui.label(f"Admin Reset: {r_name}").classes(
+                        "text-lg font-bold text-red-500"
+                    )
+                    admin_pw_input = ui.input(
+                        "Admin Key (Global Password)", password=True
+                    ).classes("w-full")
+                    new_pw_input = ui.input("New Room Password", password=True).classes(
+                        "w-full"
+                    )
+                    with ui.row().classes("w-full justify-end mt-4"):
+                        ui.button("Cancel", on_click=dialog.close).props("flat")
+
+                        def submit():
+                            if admin_pw_input.value == GLOBAL_APP_PASSWORD:
+                                if new_pw_input.value.strip():
+                                    update_room_password(r_id, new_pw_input.value)
+                                    # Also clear their auth token if they had one so they have to re-enter the new password
+                                    current_auths = app.storage.user.get(
                                         "authorized_rooms", []
                                     )
-                                    if slug not in auth_rooms:
-                                        auth_rooms.append(slug)
+                                    if r_slug in current_auths:
+                                        current_auths.remove(r_slug)
                                         app.storage.user.update({
-                                            "authorized_rooms": auth_rooms,
-                                            "last_room_slug": slug,
+                                            "authorized_rooms": current_auths
                                         })
-                                    else:
-                                        app.storage.user.update({
-                                            "last_room_slug": slug
-                                        })
+                                        room_list_ui.refresh()
+
                                     dialog.close()
-                                    ui.navigate.to(f"/room/{slug}")
+                                    ui.notify(
+                                        "Password reset successfully",
+                                        color="positive",
+                                    )
                                 else:
-                                    ui.notify("Incorrect password", color="negative")
+                                    ui.notify(
+                                        "New password cannot be empty",
+                                        color="warning",
+                                    )
+                            else:
+                                ui.notify("Incorrect Admin Key", color="negative")
 
-                            ui.button("Enter", on_click=submit)
-                        pw_input.on("keydown.enter", submit)
-                    dialog.open()
+                        ui.button("Reset", on_click=submit).props("color=negative")
+                dialog.open()
 
-                auth_rooms = app.storage.user.get("authorized_rooms", [])
-                if room["slug"] in auth_rooms:
-                    ui.button(
-                        room["name"],
-                        on_click=lambda s=room["slug"]: ui.navigate.to(f"/room/{s}"),
-                    ).props("flat").classes("flex-grow text-left text-lg")
-                else:
-                    ui.button(room["name"], on_click=enter_room).props("flat").classes(
-                        "flex-grow text-left text-lg"
-                    )
-
-                def open_admin_reset_dialog(
-                    r_id=room["id"], r_name=room["name"], r_slug=room["slug"]
-                ):
-                    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                        ui.label(f"Admin Reset: {r_name}").classes(
-                            "text-lg font-bold text-red-500"
-                        )
-                        admin_pw_input = ui.input(
-                            "Admin Key (Global Password)", password=True
-                        ).classes("w-full")
-                        new_pw_input = ui.input(
-                            "New Room Password", password=True
-                        ).classes("w-full")
-                        with ui.row().classes("w-full justify-end mt-4"):
-                            ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                            def submit():
-                                if admin_pw_input.value == GLOBAL_APP_PASSWORD:
-                                    if new_pw_input.value.strip():
-                                        update_room_password(r_id, new_pw_input.value)
-                                        # Also clear their auth token if they had one so they have to re-enter the new password
-                                        current_auths = app.storage.user.get(
-                                            "authorized_rooms", []
-                                        )
-                                        if r_slug in current_auths:
-                                            current_auths.remove(r_slug)
-                                            app.storage.user.update({
-                                                "authorized_rooms": current_auths
-                                            })
-                                            room_list_ui.refresh()
-
-                                        dialog.close()
-                                        ui.notify(
-                                            "Password reset successfully",
-                                            color="positive",
-                                        )
-                                    else:
-                                        ui.notify(
-                                            "New password cannot be empty",
-                                            color="warning",
-                                        )
-                                else:
-                                    ui.notify("Incorrect Admin Key", color="negative")
-
-                            ui.button("Reset", on_click=submit).props("color=negative")
-                    dialog.open()
-
-                ui.button(icon="key", on_click=open_admin_reset_dialog).props(
-                    "flat round dense size=sm color=grey"
-                )
+            ui.button(icon="key", on_click=open_admin_reset_dialog).props(
+                "flat round dense size=sm color=grey"
+            )
 
 
 @ui.page("/admin")
@@ -613,7 +644,7 @@ def admin_page() -> None:
 
                     def save() -> None:
                         try:
-                            new_id, new_slug = create_room(
+                            _new_id, new_slug = create_room(
                                 room_name_input.value, room_pw_input.value
                             )
                             auth_rooms = app.storage.user.get("authorized_rooms", [])
@@ -659,7 +690,7 @@ async def index() -> None:
         saved_last = await ui.run_javascript(
             "return localStorage.getItem('listapp_last_room')", timeout=3.0
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - browser JavaScript may fail or time out
         saved_last = None
 
     if saved_last:
@@ -671,7 +702,7 @@ async def index() -> None:
                     f"return localStorage.getItem('listapp_room_{saved_last}')",
                     timeout=3.0,
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 - browser JavaScript may fail or time out
                 saved_pw = None
 
             if saved_pw and verify_room(saved_last, saved_pw):
@@ -746,7 +777,7 @@ async def room_page(slug: str):
             saved_pw = await ui.run_javascript(
                 f"return localStorage.getItem('listapp_room_{slug}')", timeout=3.0
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - browser JavaScript may fail or time out
             saved_pw = None
 
         if saved_pw and verify_room(slug, saved_pw):
@@ -809,20 +840,19 @@ async def room_page(slug: str):
                     "font-bold text-slate-800 text-2xl truncate"
                 ).style("max-width: 200px;")
 
-            with ui.button(icon="more_vert").props("flat round dense"):
-                with ui.menu():
-                    ui.menu_item(
-                        "Rename Room",
-                        on_click=lambda: rename_room_dialog(room_id, room_name, slug),
-                    )
-                    ui.menu_item(
-                        "Change Password",
-                        on_click=lambda: change_password_dialog(room_id, slug),
-                    )
-                    ui.menu_item(
-                        "Delete Room",
-                        on_click=lambda: delete_room_dialog(room_id, slug),
-                    ).classes("text-red-500")
+            with ui.button(icon="more_vert").props("flat round dense"), ui.menu():
+                ui.menu_item(
+                    "Rename Room",
+                    on_click=lambda: rename_room_dialog(room_id, room_name, slug),
+                )
+                ui.menu_item(
+                    "Change Password",
+                    on_click=lambda: change_password_dialog(room_id, slug),
+                )
+                ui.menu_item(
+                    "Delete Room",
+                    on_click=lambda: delete_room_dialog(room_id, slug),
+                ).classes("text-red-500")
 
         def change_password_dialog(r_id, r_slug):
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
@@ -919,7 +949,7 @@ async def room_page(slug: str):
 
                     def save() -> None:
                         try:
-                            new_id, new_slug = create_list(
+                            _new_id, new_slug = create_list(
                                 list_name_input.value, room_id
                             )
                             dialog.close()
@@ -1023,9 +1053,9 @@ def _render_header(
         ui.label("Anyone with this link can open this list.").classes(
             "text-sm text-gray-600 mb-2"
         )
-        share_url_input = ui.input(value=share_url_state["value"]).props(
-            "readonly"
-        ).classes("w-full")
+        share_url_input = (
+            ui.input(value=share_url_state["value"]).props("readonly").classes("w-full")
+        )
 
         async def resolve_current_url() -> str | None:
             current_url = await ui.run_javascript(
@@ -1465,8 +1495,14 @@ def list_page(slug: str):
 
 if __name__ in {"__main__", "__mp_main__"}:
     import argparse
+
     parser = argparse.ArgumentParser(description="ListR Web App")
-    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8080)), help="Port to run the app on")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("PORT", "8080")),
+        help="Port to run the app on",
+    )
     args, _ = parser.parse_known_args()
     port = args.port
     ui.run(
