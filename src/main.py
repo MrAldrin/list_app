@@ -1465,7 +1465,7 @@ def list_page(slug: str):
         state["pending_undo"] = None
         undo_bar.refresh()
 
-    with ui.card().classes("w-full max-w-sm mx-auto"):
+    with ui.card().classes("w-full max-w-sm mx-auto h-[100dvh] flex flex-col min-h-0"):
         tags_ui = _create_tags_ui(
             list_id=list_id,
             state=state,
@@ -1491,14 +1491,15 @@ def list_page(slug: str):
         tags_ui()
         _render_add_item_row(list_id=list_id)
 
-        item_list(
-            list_id,
-            lambda: state["filter_tag"],
-            lambda: state["edit_mode"],
-            lambda it: _delete_item_with_undo(list_id, it, set_pending_undo),
-            lambda: state.get("show_counters", False),
-            lambda: state.get("only_gt_1", False),
-        )
+        with ui.column().classes("w-full flex-grow min-h-0 overflow-y-auto"):
+            item_list(
+                list_id,
+                lambda: state["filter_tag"],
+                lambda: state["edit_mode"],
+                lambda it: _delete_item_with_undo(list_id, it, set_pending_undo),
+                lambda: state.get("show_counters", False),
+                lambda: state.get("only_gt_1", False),
+            )
 
 
 if __name__ in {"__main__", "__mp_main__"}:
