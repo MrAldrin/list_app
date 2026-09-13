@@ -1,5 +1,7 @@
 # ListR Codebase Audit
 
+Items are removed when resolved. Resolved can be fixing it, adding it to backlog, or discarding the idea.
+
 ## Scope
 
 I inspected the source code, tests, deployment files, git history, ignored runtime files, and both SQLite databases. This is an assessment only; no implementation changes have been made.
@@ -49,33 +51,7 @@ PRAGMA foreign_keys: 0
 
 Do not simply enable foreign keys on the current database before repairing it.
 
-### 2. There is invalid test data in the active database
 
-The root `list.db` currently contains five rooms, three lists, and 39 items. One room appears to be leftover test data. Its password hash is only four characters rather than a bcrypt hash.
-
-Calling `verify_room()` for that room raises:
-
-```text
-ValueError: Invalid salt
-```
-
-**Recommendation:** Remove the test room after confirming it is not needed, or migrate it to a valid password hash. `verify_room()` should also handle malformed legacy hashes safely.
-
-There is also an old `src/list.db` containing the pre-room schema. It is probably an abandoned prototype database and should be removed after confirming it is not needed.
-
-### 3. The admin password is too weak
-
-The local `.env` contains an `APP_PASSWORD` with a length of only three characters. This password protects room administration, password resets, and room deletion.
-
-**Recommendation:** Rotate it to a long random password or passphrase. Enforce a minimum length for new passwords.
-
-### 4. Missing admin configuration fails open
-
-`src/main.py:492-501` disables admin authentication when `APP_PASSWORD` is missing. `src/database_setup.py` also falls back to the known value `dev_password` when creating the default room.
-
-This is convenient during development but unsafe in production.
-
-**Recommendation:** Make production configuration fail closed. Require `APP_PASSWORD` in deployed environments and remove the known default password fallback. Development defaults should be explicit and development-only.
 
 ### 5. Room authorization is not properly revoked
 
