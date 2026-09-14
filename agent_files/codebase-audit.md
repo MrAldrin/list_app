@@ -52,23 +52,6 @@ PRAGMA foreign_keys: 0
 Do not simply enable foreign keys on the current database before repairing it.
 
 
-
-### 5. Room authorization is not properly revoked
-
-`src/main.py:767-832` trusts the `authorized_rooms` session value once it contains a room slug. It does not revalidate the room password on subsequent visits.
-
-Changing a room password does not invalidate other users' existing authorizations. The current user's authorization is updated, but other sessions can continue accessing the room.
-
-The raw room password is also stored in browser `localStorage`:
-
-```javascript
-localStorage.setItem('listapp_room_...', password)
-```
-
-Any script or browser extension with access to local storage can read it.
-
-**Recommendation:** Use an opaque, revocable device/session token, or require the room password again after the server session expires or restarts. Add a room authorization version so changing a password invalidates old sessions.
-
 ### 6. Public list URLs are not sufficiently unguessable
 
 List slugs use the list name plus the first six characters of a UUID. Six hexadecimal characters provide only about 24 bits of randomness, and the list name is visible in the URL.

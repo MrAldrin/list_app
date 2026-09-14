@@ -6,6 +6,7 @@ Small follow-up ideas that are not currently being implemented.
 
 - [ ] Make the default database path independent of the startup directory by resolving `list.db` relative to the project root, while retaining `DB_PATH` as an override for deployments such as Railway. Add a test for starting from a different working directory.
 - [ ] Make password configuration fail closed. If `APP_PASSWORD` is missing, the app currently leaves `/admin` unprotected and may create the default room with the known `dev_password`. Best solution: require `APP_PASSWORD` in production and remove the fallback; use an explicit, development-only setting locally. Railway already provides `APP_PASSWORD`, but fail-closed behavior protects against deployment misconfiguration.
+- [ ] Replace browser-stored room passwords with persistent, revocable room access tokens. Keep bcrypt password hashes in the database, invalidate tokens when a room password changes, and preserve restart/PWA access. Use the one-time rollout and temporary legacy-password cleanup described in [`plans/room_access_tokens.md`](room_access_tokens.md).
 
 ## Security
 

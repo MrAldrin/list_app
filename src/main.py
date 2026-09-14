@@ -677,6 +677,10 @@ def admin_page() -> None:
         room_list_ui()
 
 
+# TODO(room-access-token-migration): Add the temporary cleanup for legacy
+# `listapp_room_*` password keys in this authentication flow. Record the actual
+# implementation date when it is added and remove the cleanup one year later.
+# Keep the persistent-token handling after that cleanup is removed.
 @ui.page("/")
 async def index() -> None:
     last_room_slug = app.storage.user.get("last_room_slug")
