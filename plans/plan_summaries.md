@@ -12,4 +12,18 @@ This document tracks the remaining feature plans in the `plans/` directory. All 
 
 ---
 
+## 2. Security and Reliability Improvements
+
+*Implementation plans for important work identified during the codebase audit.*
+
+**Document:** `room_access_tokens.md`
+**Overview:** Replace browser-stored room passwords with persistent, revocable room access tokens while preserving restart and PWA access.
+**Status:** **Not Implemented**.
+
+**Document:** `public_list_share_tokens.md`
+**Overview:** Replace guessable public list URLs with high-entropy, rotatable share tokens while preserving public-by-link editing.
+**Status:** **Not Implemented**.
+
+---
+
 *Note: Long-term reference documents and architecture notes are moved to `docs/` or `ARCHITECTURE.md` to keep `plans/` strictly for active implementation plans.*

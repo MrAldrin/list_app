@@ -52,16 +52,6 @@ PRAGMA foreign_keys: 0
 Do not simply enable foreign keys on the current database before repairing it.
 
 
-### 6. Public list URLs are not sufficiently unguessable
-
-List slugs use the list name plus the first six characters of a UUID. Six hexadecimal characters provide only about 24 bits of randomness, and the list name is visible in the URL.
-
-Because `/list/{slug}` is editable by anyone with the link, a guessed URL could allow unwanted changes.
-
-**Recommendation:** Use a separate high-entropy public share token, at least 128 bits, and keep the human-readable slug separate. The existing `plans/advanced_sharing.md` is moving in this direction.
-
-The current architecture deliberately makes list links public and editable, so this should be an explicit product decision rather than an accidental security model.
-
 ## SQLite assessment
 
 SQLite is suitable for the current application because the data volume and write rate are small. SQLite supports many readers and serializes writes, which is sufficient for a shared shopping list.
