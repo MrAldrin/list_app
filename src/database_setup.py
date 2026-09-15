@@ -75,9 +75,74 @@ def _migrate_lists_to_room_scoped_names(db: sqlite3.Connection) -> None:
     db.execute("DROP TABLE lists_old")
 
 
+def _create_items_table(db: sqlite3.Connection) -> None:
+    db.execute(
+        """
+        CREATE TABLE items (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            description TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 1,
+            done BOOLEAN,
+            list_id INTEGER NOT NULL,
+            active_tags TEXT NOT NULL DEFAULT '[]',
+            FOREIGN KEY(list_id) REFERENCES lists(id)
+        )
+        """
+    )
+
+
+def _items_foreign_key_is_correct(db: sqlite3.Connection) -> bool:
+    foreign_keys = db.execute("PRAGMA foreign_key_list(items)").fetchall()
+    return len(foreign_keys) == 1 and (
+        foreign_keys[0][2],
+        foreign_keys[0][3],
+        foreign_keys[0][4],
+    ) == ("lists", "list_id", "id")
+
+
+def _migrate_items_foreign_key(db: sqlite3.Connection) -> None:
+    if _items_foreign_key_is_correct(db):
+        return
+
+    orphan = db.execute(
+        """
+        SELECT 1
+        FROM items AS i
+        LEFT JOIN lists AS l ON l.id = i.list_id
+        WHERE l.id IS NULL
+        LIMIT 1
+        """
+    ).fetchone()
+    if orphan:
+        raise sqlite3.IntegrityError(
+            "Cannot repair items foreign key: an item references a missing list"
+        )
+
+    # Drop the known index before renaming the table so it can be recreated for
+    # the replacement table instead of remaining attached to items_old.
+    db.execute("DROP INDEX IF EXISTS idx_items_list_done_name")
+    db.execute("ALTER TABLE items RENAME TO items_old")
+    _create_items_table(db)
+    db.execute(
+        """
+        INSERT INTO items (
+            id, name, description, quantity, done, list_id, active_tags
+        )
+        SELECT id, name, description, quantity, done, list_id, active_tags
+        FROM items_old
+        """
+    )
+    db.execute("DROP TABLE items_old")
+
+
 def init_database():
     db_path = os.environ.get("DB_PATH", "list.db")
     db = sqlite3.connect(db_path, check_same_thread=False)
+
+    # Schema migrations may need to rebuild tables. Enforce the relationship
+    # only after all migrations have completed and the data has been checked.
+    db.execute("PRAGMA foreign_keys = OFF")
 
     db.execute(
         """
@@ -121,20 +186,10 @@ def init_database():
             "UPDATE lists SET room_id = ? WHERE room_id IS NULL", (default_room_id,)
         )
 
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            description TEXT DEFAULT '',
-            quantity INTEGER DEFAULT 1,
-            done BOOLEAN,
-            list_id INTEGER NOT NULL,
-            active_tags TEXT NOT NULL DEFAULT '[]',
-            FOREIGN KEY(list_id) REFERENCES lists(id)
-        )
-        """
-    )
+    if not db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'items'"
+    ).fetchone():
+        _create_items_table(db)
 
     item_cursor = db.execute("PRAGMA table_info(items)")
     item_cols = [col[1] for col in item_cursor.fetchall()]
@@ -151,7 +206,21 @@ def init_database():
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_room_name_nocase "
         "ON lists(room_id, name COLLATE NOCASE)"
     )
+    _migrate_items_foreign_key(db)
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_items_list_done_name "
+        "ON items(list_id, done, name)"
+    )
+
     db.commit()
+    db.execute("PRAGMA foreign_keys = ON")
+    if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
+        raise sqlite3.IntegrityError("Could not enable foreign-key enforcement")
+    foreign_key_errors = db.execute("PRAGMA foreign_key_check").fetchall()
+    if foreign_key_errors:
+        raise sqlite3.IntegrityError(
+            f"Foreign-key check failed after migration: {foreign_key_errors}"
+        )
 
     return db
 
