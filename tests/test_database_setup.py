@@ -77,6 +77,53 @@ def test_missing_password_leaves_existing_database_untouched(
     assert database_path.read_bytes() == original_contents
 
 
+def test_init_database_migrates_existing_rooms_for_access_tokens(tmp_path, monkeypatch):
+    database_path = tmp_path / "legacy-rooms.db"
+    legacy_db = sqlite3.connect(database_path)
+    legacy_db.executescript(
+        """
+        CREATE TABLE rooms (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE,
+            password_hash TEXT NOT NULL
+        );
+        INSERT INTO rooms (id, name, slug, password_hash)
+        VALUES (1, 'Existing room', 'existing-room', 'existing-hash');
+        """
+    )
+    legacy_db.commit()
+    legacy_db.close()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    migrated_db = init_database()
+
+    assert (
+        migrated_db.execute(
+            "SELECT authorization_version FROM rooms WHERE id = 1"
+        ).fetchone()[0]
+        == 1
+    )
+    token_columns = {
+        column[1]
+        for column in migrated_db.execute(
+            "PRAGMA table_info(room_access_tokens)"
+        ).fetchall()
+    }
+    assert {
+        "token_hash",
+        "room_id",
+        "authorization_version",
+        "revoked_at",
+    } <= token_columns
+    foreign_key = migrated_db.execute(
+        "PRAGMA foreign_key_list(room_access_tokens)"
+    ).fetchone()
+    assert foreign_key[2:5] == ("rooms", "room_id", "id")
+    assert foreign_key[6].upper() == "CASCADE"
+    migrated_db.close()
+
+
 def test_init_database_repairs_broken_items_foreign_key(tmp_path, monkeypatch):
     database_path = tmp_path / "broken.db"
     legacy_db = sqlite3.connect(database_path)

@@ -1,13 +1,19 @@
+import threading
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
 
 import pytest
 
 from database_crud import (
     add_item,
+    authenticate_room_and_issue_token,
+    change_room_password_and_issue_token,
     create_list,
+    create_list_with_room_token,
     create_room,
     delete_item,
     delete_list,
+    delete_room,
     find_duplicate_name,
     find_item_by_name,
     find_list_by_name,
@@ -19,7 +25,10 @@ from database_crud import (
     restore_item,
     update_item_details,
     update_item_done,
+    update_room_password,
+    validate_room_access_token,
 )
+from database_setup import db
 
 
 @pytest.fixture
@@ -284,6 +293,121 @@ def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
 
     errors = [error for worker_errors in results for error in worker_errors]
     assert errors == []
+
+
+def test_room_access_tokens_are_hashed_and_bound_to_one_room():
+    first_room_id, first_slug = create_room("First room", "first-password")
+    _, second_slug = create_room("Second room", "second-password")
+
+    authenticated = authenticate_room_and_issue_token(first_slug, "first-password")
+
+    assert authenticated is not None
+    room_id, token = authenticated
+    assert room_id == first_room_id
+    assert validate_room_access_token(first_slug, token) == first_room_id
+    assert validate_room_access_token(second_slug, token) is None
+    stored_hash = db.execute(
+        "SELECT token_hash FROM room_access_tokens WHERE room_id = ?", (first_room_id,)
+    ).fetchone()[0]
+    assert stored_hash != token
+    assert len(stored_hash) == 64
+
+
+def test_password_reset_revokes_every_existing_room_token():
+    room_id_value, room_slug = create_room("Token room", "old-password")
+    first_token = authenticate_room_and_issue_token(room_slug, "old-password")[1]
+    second_token = authenticate_room_and_issue_token(room_slug, "old-password")[1]
+    version_before = db.execute(
+        "SELECT authorization_version FROM rooms WHERE id = ?", (room_id_value,)
+    ).fetchone()[0]
+
+    update_room_password(room_id_value, "new-password")
+
+    assert validate_room_access_token(room_slug, first_token) is None
+    assert validate_room_access_token(room_slug, second_token) is None
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM room_access_tokens WHERE room_id = ?",
+            (room_id_value,),
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        db.execute(
+            "SELECT authorization_version FROM rooms WHERE id = ?", (room_id_value,)
+        ).fetchone()[0]
+        == version_before + 1
+    )
+
+
+def test_normal_password_change_issues_only_a_fresh_token_to_changing_device():
+    room_id_value, room_slug = create_room("Token room", "old-password")
+    old_token = authenticate_room_and_issue_token(room_slug, "old-password")[1]
+
+    changed = change_room_password_and_issue_token(
+        room_slug, "old-password", "new-password"
+    )
+
+    assert changed is not None
+    changed_room_id, new_token = changed
+    assert changed_room_id == room_id_value
+    assert validate_room_access_token(room_slug, old_token) is None
+    assert validate_room_access_token(room_slug, new_token) == room_id_value
+    assert authenticate_room_and_issue_token(room_slug, "old-password") is None
+
+
+def test_token_authorized_list_write_is_denied_after_a_password_reset():
+    room_id_value, room_slug = create_room("Token room", "password")
+    token = authenticate_room_and_issue_token(room_slug, "password")[1]
+
+    list_id, _ = create_list_with_room_token(room_slug, token, "Private list")
+    assert get_lists(room_id_value) == [
+        (list_id, "private list", get_lists(room_id_value)[0][2])
+    ]
+
+    update_room_password(room_id_value, "new-password")
+    with pytest.raises(PermissionError):
+        create_list_with_room_token(room_slug, token, "Denied list")
+
+
+def test_deleting_a_room_cascades_to_its_access_tokens():
+    room_id_value, room_slug = create_room("Token room", "password")
+    authenticate_room_and_issue_token(room_slug, "password")
+
+    delete_room(room_id_value)
+
+    assert db.execute("SELECT COUNT(*) FROM room_access_tokens").fetchone()[0] == 0
+
+
+def test_login_token_cannot_remain_valid_when_a_password_reset_races_it():
+    room_id_value, room_slug = create_room("Token room", "old-password")
+    password_check_started = threading.Event()
+    finish_password_check = threading.Event()
+
+    import bcrypt
+
+    original_checkpw = bcrypt.checkpw
+
+    def delayed_checkpw(*args):
+        password_check_started.set()
+        assert finish_password_check.wait(timeout=5)
+        return original_checkpw(*args)
+
+    with (
+        patch("database_crud.bcrypt.checkpw", side_effect=delayed_checkpw),
+        ThreadPoolExecutor(max_workers=2) as executor,
+    ):
+        login = executor.submit(
+            authenticate_room_and_issue_token, room_slug, "old-password"
+        )
+        assert password_check_started.wait(timeout=5)
+        reset = executor.submit(update_room_password, room_id_value, "new-password")
+        finish_password_check.set()
+        authenticated = login.result(timeout=10)
+        reset.result(timeout=10)
+
+    assert authenticated is not None
+    assert validate_room_access_token(room_slug, authenticated[1]) is None
 
 
 def test_update_item_details(room_id):

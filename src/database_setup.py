@@ -161,6 +161,31 @@ def init_database():
         """
     )
 
+    room_columns = [
+        column[1] for column in db.execute("PRAGMA table_info(rooms)").fetchall()
+    ]
+    if "authorization_version" not in room_columns:
+        db.execute(
+            "ALTER TABLE rooms ADD COLUMN authorization_version INTEGER NOT NULL DEFAULT 1"
+        )
+    db.execute(
+        "UPDATE rooms SET authorization_version = 1 WHERE authorization_version IS NULL"
+    )
+
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS room_access_tokens (
+            id INTEGER PRIMARY KEY,
+            token_hash TEXT NOT NULL,
+            room_id INTEGER NOT NULL,
+            authorization_version INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            revoked_at TEXT,
+            FOREIGN KEY(room_id) REFERENCES rooms(id) ON DELETE CASCADE
+        )
+        """
+    )
+
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS lists (
@@ -208,6 +233,14 @@ def init_database():
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"
     )
     db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_slug ON lists(slug)")
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_room_access_tokens_hash "
+        "ON room_access_tokens(token_hash)"
+    )
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_room_access_tokens_room "
+        "ON room_access_tokens(room_id)"
+    )
     db.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_room_name_nocase "
         "ON lists(room_id, name COLLATE NOCASE)"

@@ -1,5 +1,7 @@
+import hashlib
 import json
 import re
+import secrets
 import threading
 import uuid
 
@@ -104,29 +106,33 @@ def find_list_by_name(name: str, room_id: int):
         return result.fetchone()
 
 
-def create_list(name: str, room_id: int):
+def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
     normalized_name = normalize_item_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
 
+    existing = db.execute(
+        "SELECT id, slug FROM lists WHERE name = ? COLLATE NOCASE AND room_id = ?",
+        (normalized_name, room_id),
+    ).fetchone()
+    if existing:
+        return existing[0], existing[1]
+
+    safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
+    short_uuid = str(uuid.uuid4())[:6]
+    slug = f"{safe_name}-{short_uuid}"
+    result = db.execute(
+        "INSERT INTO lists (name, slug, room_id) VALUES (?, ?, ?)",
+        (normalized_name, slug, room_id),
+    )
+    return result.lastrowid, slug
+
+
+def create_list(name: str, room_id: int):
     with _DB_LOCK:
-        existing = db.execute(
-            "SELECT id, slug FROM lists WHERE name = ? COLLATE NOCASE AND room_id = ?",
-            (normalized_name, room_id),
-        ).fetchone()
-        if existing:
-            return existing[0], existing[1]
-
-        safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
-        short_uuid = str(uuid.uuid4())[:6]
-        slug = f"{safe_name}-{short_uuid}"
-
-        result = db.execute(
-            "INSERT INTO lists (name, slug, room_id) VALUES (?, ?, ?)",
-            (normalized_name, slug, room_id),
-        )
+        list_id, slug = _create_list_locked(name, room_id)
         db.commit()
-        return result.lastrowid, slug
+        return list_id, slug
 
 
 def rename_list(list_id: int, new_name: str):
@@ -317,6 +323,93 @@ def create_room(name: str, plain_password: str):
         return result.lastrowid, slug
 
 
+class RoomAccessDenied(PermissionError):
+    """Raised when a token cannot authorize the requested private room action."""
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _valid_room_id_for_token_locked(room_slug: str, token: str | None) -> int | None:
+    if not token:
+        return None
+    row = db.execute(
+        """
+        SELECT r.id
+        FROM rooms AS r
+        JOIN room_access_tokens AS t ON t.room_id = r.id
+        WHERE r.slug = ?
+          AND t.token_hash = ?
+          AND t.authorization_version = r.authorization_version
+          AND t.revoked_at IS NULL
+        """,
+        (room_slug, _token_hash(token)),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def validate_room_access_token(room_slug: str, token: str | None) -> int | None:
+    """Return the associated room ID only when the token currently authorizes it."""
+    with _DB_LOCK:
+        return _valid_room_id_for_token_locked(room_slug, token)
+
+
+def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:
+    token = secrets.token_urlsafe(32)
+    db.execute(
+        """
+        INSERT INTO room_access_tokens (token_hash, room_id, authorization_version)
+        VALUES (?, ?, ?)
+        """,
+        (_token_hash(token), room_id, authorization_version),
+    )
+    return token
+
+
+def authenticate_room_and_issue_token(
+    room_slug: str, plain_password: str
+) -> tuple[int, str] | None:
+    """Check a password and atomically create a token for the current room version."""
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                """
+                SELECT id, password_hash, authorization_version
+                FROM rooms
+                WHERE slug = ?
+                """,
+                (room_slug,),
+            ).fetchone()
+            if not row or not bcrypt.checkpw(
+                plain_password.encode("utf-8"), row[1].encode("utf-8")
+            ):
+                db.rollback()
+                return None
+            token = _insert_room_access_token_locked(row[0], row[2])
+            db.commit()
+            return row[0], token
+        except Exception:
+            db.rollback()
+            raise
+
+
+def revoke_room_access_token(room_slug: str, token: str) -> None:
+    """Revoke a token after the browser could not persist it."""
+    with _DB_LOCK:
+        db.execute(
+            """
+            UPDATE room_access_tokens
+            SET revoked_at = CURRENT_TIMESTAMP
+            WHERE token_hash = ?
+              AND room_id = (SELECT id FROM rooms WHERE slug = ?)
+            """,
+            (_token_hash(token), room_slug),
+        )
+        db.commit()
+
+
 def verify_room(room_slug: str, plain_password: str):
     with _DB_LOCK:
         row = db.execute(
@@ -331,7 +424,29 @@ def verify_room(room_slug: str, plain_password: str):
     return None
 
 
+def _replace_room_password_locked(room_id: int, password_hash: str) -> int | None:
+    row = db.execute(
+        "SELECT authorization_version FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()
+    if not row:
+        return None
+
+    authorization_version = row[0] + 1
+    db.execute(
+        """
+        UPDATE rooms
+        SET password_hash = ?, authorization_version = ?
+        WHERE id = ?
+        """,
+        (password_hash, authorization_version, room_id),
+    )
+    # Deleting old rows avoids an unbounded accumulation after password resets.
+    db.execute("DELETE FROM room_access_tokens WHERE room_id = ?", (room_id,))
+    return authorization_version
+
+
 def update_room_password(room_id: int, new_plain_password: str):
+    """Admin password reset: atomically invalidate all current room tokens."""
     if not new_plain_password:
         raise ValueError("Password cannot be empty")
 
@@ -339,10 +454,182 @@ def update_room_password(room_id: int, new_plain_password: str):
         new_plain_password.encode("utf-8"), bcrypt.gensalt()
     ).decode("utf-8")
     with _DB_LOCK:
-        db.execute(
-            "UPDATE rooms SET password_hash = ? WHERE id = ?", (pw_hash, room_id)
-        )
-        db.commit()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            _replace_room_password_locked(room_id, pw_hash)
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+
+def change_room_password_and_issue_token(
+    room_slug: str, current_plain_password: str, new_plain_password: str
+) -> tuple[int, str] | None:
+    """Change a password and issue the changing device a token in one transaction."""
+    if not new_plain_password:
+        raise ValueError("Password cannot be empty")
+
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                """
+                SELECT id, password_hash
+                FROM rooms
+                WHERE slug = ?
+                """,
+                (room_slug,),
+            ).fetchone()
+            if not row or not bcrypt.checkpw(
+                current_plain_password.encode("utf-8"), row[1].encode("utf-8")
+            ):
+                db.rollback()
+                return None
+
+            new_hash = bcrypt.hashpw(
+                new_plain_password.encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
+            authorization_version = _replace_room_password_locked(row[0], new_hash)
+            if authorization_version is None:
+                db.rollback()
+                return None
+            token = _insert_room_access_token_locked(row[0], authorization_version)
+            db.commit()
+            return row[0], token
+        except Exception:
+            db.rollback()
+            raise
+
+
+def create_list_with_room_token(
+    room_slug: str, token: str, name: str
+) -> tuple[int, str]:
+    """Create a list only if the token is still valid at the write transaction."""
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            room_id = _valid_room_id_for_token_locked(room_slug, token)
+            if room_id is None:
+                db.rollback()
+                raise RoomAccessDenied
+            list_id, slug = _create_list_locked(name, room_id)
+            db.commit()
+            return list_id, slug
+        except Exception:
+            db.rollback()
+            raise
+
+
+def rename_list_with_room_token(
+    room_slug: str, token: str, list_id: int, raw_name: str | None
+) -> str:
+    """Rename a room list while validating the token and list ownership together."""
+    new_name = normalize_item_name(raw_name)
+    if not new_name:
+        raise ValueError("List name cannot be empty")
+
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            room_id = _valid_room_id_for_token_locked(room_slug, token)
+            if room_id is None:
+                db.rollback()
+                raise RoomAccessDenied
+            belongs_to_room = db.execute(
+                "SELECT 1 FROM lists WHERE id = ? AND room_id = ?",
+                (list_id, room_id),
+            ).fetchone()
+            if not belongs_to_room:
+                db.rollback()
+                raise RoomAccessDenied
+            duplicate = db.execute(
+                """
+                SELECT id FROM lists
+                WHERE name = ? COLLATE NOCASE AND room_id = ? AND id != ?
+                """,
+                (new_name, room_id, list_id),
+            ).fetchone()
+            if duplicate:
+                db.rollback()
+                raise ValueError("A list with that name already exists in this room")
+            db.execute("UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
+            db.commit()
+            return new_name
+        except Exception:
+            db.rollback()
+            raise
+
+
+def delete_list_with_room_token(room_slug: str, token: str, list_id: int) -> None:
+    """Delete a list only if it belongs to the token's currently authorized room."""
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            room_id = _valid_room_id_for_token_locked(room_slug, token)
+            if room_id is None:
+                db.rollback()
+                raise RoomAccessDenied
+            belongs_to_room = db.execute(
+                "SELECT 1 FROM lists WHERE id = ? AND room_id = ?",
+                (list_id, room_id),
+            ).fetchone()
+            if not belongs_to_room:
+                db.rollback()
+                raise RoomAccessDenied
+            db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
+            db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+
+def rename_room_with_room_token(room_slug: str, token: str, new_name: str) -> None:
+    """Rename only the room associated with a still-valid token."""
+    if not new_name.strip():
+        raise ValueError("Room name cannot be empty")
+
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            room_id = _valid_room_id_for_token_locked(room_slug, token)
+            if room_id is None:
+                db.rollback()
+                raise RoomAccessDenied
+            db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+
+def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
+    """Confirm the current password and delete the room in one transaction."""
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT id, password_hash FROM rooms WHERE slug = ?", (room_slug,)
+            ).fetchone()
+            if not row or not bcrypt.checkpw(
+                plain_password.encode("utf-8"), row[1].encode("utf-8")
+            ):
+                db.rollback()
+                return False
+            room_id = row[0]
+            list_rows = db.execute(
+                "SELECT id FROM lists WHERE room_id = ?", (room_id,)
+            ).fetchall()
+            for list_row in list_rows:
+                db.execute("DELETE FROM items WHERE list_id = ?", (list_row[0],))
+            db.execute("DELETE FROM lists WHERE room_id = ?", (room_id,))
+            db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
+            db.commit()
+            return True
+        except Exception:
+            db.rollback()
+            raise
 
 
 def rename_room(room_id: int, new_name: str):

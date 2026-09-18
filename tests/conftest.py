@@ -16,6 +16,7 @@ def clean_db():
     # Clear tables before each test to ensure isolation
     db.execute("DELETE FROM items")
     db.execute("DELETE FROM lists")
+    db.execute("DELETE FROM room_access_tokens")
     db.execute("DELETE FROM rooms")
     room_id, _ = create_room("Home", "pw")
     db.execute("INSERT INTO lists (name, room_id) VALUES ('default', ?)", (room_id,))
