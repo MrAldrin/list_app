@@ -1,9 +1,44 @@
+import os
+import shutil
 import sqlite3
+import subprocess
+import sys
+from pathlib import Path
 
 import bcrypt
 import pytest
 
 from database_setup import init_database
+
+
+def test_default_database_path_is_project_relative_from_other_working_directory(
+    tmp_path,
+):
+    project_src = tmp_path / "project" / "src"
+    project_src.mkdir(parents=True)
+    source_root = Path(__file__).resolve().parents[1]
+    shutil.copy(source_root / "src" / "database_setup.py", project_src)
+    shutil.copy(source_root / "src" / "config.py", project_src)
+
+    startup_directory = tmp_path / "different-working-directory"
+    startup_directory.mkdir()
+    env = os.environ.copy()
+    env.pop("DB_PATH", None)
+    env["APP_PASSWORD"] = "test-startup-password"
+    env["PYTHONPATH"] = str(project_src)
+    env["PYTHON_DOTENV_DISABLED"] = "1"
+    result = subprocess.run(
+        [sys.executable, "-c", "import database_setup"],
+        cwd=startup_directory,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (project_src.parent / "list.db").exists()
+    assert not (startup_directory / "list.db").exists()
 
 
 def test_default_room_uses_configured_password_without_resetting_it(

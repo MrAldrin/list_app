@@ -4,7 +4,6 @@ Small follow-up ideas that are not currently being implemented.
 
 ## Important improvements
 
-- [ ] Make the default database path independent of the startup directory by resolving `list.db` relative to the project root, while retaining `DB_PATH` as an override for deployments such as Railway. Add a test for starting from a different working directory.
 - [ ] Replace browser-stored room passwords with persistent, revocable room access tokens. Keep bcrypt password hashes in the database, invalidate tokens when a room password changes, and preserve restart/PWA access. Use the one-time rollout and temporary legacy-password cleanup described in [`plans/room_access_tokens.md`](room_access_tokens.md).
 - [ ] Replace guessable public list slugs with separate high-entropy share tokens. Keep public links editable, support token rotation to revoke old links, and retire or restrict the old slug URLs. See [`plans/public_list_share_tokens.md`](public_list_share_tokens.md).
 
@@ -60,8 +59,9 @@ These are not prerequisites for the current small MVP. Revisit when growth, main
 
 ## Resolved or already verified
 
+- [x] Make the default database path independent of the startup directory by resolving `list.db` relative to the project root, while retaining `DB_PATH` as an override for deployments such as Railway. Regression coverage verifies startup from a different working directory.
 - [x] Repair item foreign keys locally and on Railway, enable enforcement on the app connection, and add migration tests. Production verification passed: `items → lists`, no foreign-key errors, integrity `ok`, 280 items retained, and add/edit/delete smoke tests passed. The downloaded production backup was also migrated on a separate copy with all fields preserved.
-- [x] Confirm Railway uses `DB_PATH=/data/list.db` on the `/data` persistent volume. The separate local relative-path concern remains above.
+- [x] Confirm Railway uses `DB_PATH=/data/list.db` on the `/data` persistent volume; local development uses a project-relative default path.
 - [x] Production password configuration is documented as randomly generated and stored in Bitwarden. The audit's local short-password observation is not evidence of a weak production password; minimum-length policy remains above.
 - [x] Make password configuration fail closed: require nonblank `APP_PASSWORD` for local and hosted startup before opening the database, remove the default-room fallback password, and always require admin authentication. Regression tests cover invalid configuration, valid startup, and preserving existing room passwords.
 
@@ -73,3 +73,4 @@ These are not prerequisites for the current small MVP. Revisit when growth, main
 
 - Existing security plans remain linked above; planned work is not claimed to be implemented.
 - 2026-09-15: Reconciled the remaining codebase audit into this backlog, recorded verified fixes and explicit deferrals, and retired `agent_files/codebase-audit.md`. The original assessment remains in version-control history.
+- 2026-09-18: Resolved the local default database-path issue; Railway continues to use its explicit `/data/list.db` override.

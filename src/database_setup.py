@@ -2,10 +2,17 @@ import os
 import re
 import sqlite3
 import uuid
+from pathlib import Path
 
 import bcrypt
 
 from config import require_app_password
+
+_DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "list.db"
+
+
+def _database_path() -> str:
+    return os.environ.get("DB_PATH", str(_DEFAULT_DATABASE_PATH))
 
 
 def _create_slug(name: str) -> str:
@@ -137,8 +144,7 @@ def _migrate_items_foreign_key(db: sqlite3.Connection) -> None:
 
 def init_database():
     app_password = require_app_password()
-    db_path = os.environ.get("DB_PATH", "list.db")
-    db = sqlite3.connect(db_path, check_same_thread=False)
+    db = sqlite3.connect(_database_path(), check_same_thread=False)
 
     # Schema migrations may need to rebuild tables. Enforce the relationship
     # only after all migrations have completed and the data has been checked.
