@@ -15,6 +15,17 @@ Stop storing room passwords in browser `localStorage` while keeping the behaviou
 - The PWA home-screen shortcut continues opening the user's room.
 - Resetting a room password revokes existing users' private room access. Previously shared public list links remain usable.
 
+## Implementation proposal
+
+Implement this in small, testable stages without changing the NiceGUI/SQLite architecture:
+
+1. **Schema:** add a room authorization version and a `room_access_tokens` table. Run the migration transactionally and preserve all existing room passwords.
+2. **Token service:** add functions to generate a secure random token, hash it for storage, validate it for the correct room/version, and revoke it.
+3. **Authentication integration:** after a successful password login, store the raw token in browser `localStorage`. On room and root-route access, read and validate the token server-side. Treat `authorized_rooms` only as a navigation cache.
+4. **Revocation:** make password changes, admin resets, and room deletion invalidate tokens. Use one shared database operation for password changes and authorization-version updates.
+5. **Legacy cleanup:** stop accepting `listapp_room_*` password values, remove them during a one-time rollout, and keep `listapp_last_room` so PWA/restart routing still works.
+6. **Verification:** add lifecycle/security tests first, then test restart recovery, password reset, multiple browsers, and PWA home-screen navigation manually.
+
 ## Current behaviour
 
 - `rooms.password_hash` stores a bcrypt hash. This must remain; it is not plain text.
@@ -129,6 +140,14 @@ The token must be stored in the browser and its hash must be stored in the persi
 6. Add the temporary legacy-password cleanup and its dated removal TODO.
 7. Update `ARCHITECTURE.md` and test normal navigation, restart recovery, deployment recovery, password reset, and PWA home-screen behaviour. Run the repository's required Python formatting, lint, and test checks.
 8. Remove the temporary cleanup after the one-year window.
+
+## Risks and mitigations
+
+- **Migration failure or data loss:** use a transaction, make the migration repeatable, and test it against fresh and existing databases before deployment.
+- **PWA/restart regressions:** do not change the manifest, root route, remembered-room key, or storage secret. Test a real restart and home-screen launch.
+- **Token theft:** a token remains a bearer credential in `localStorage`, but it cannot reveal the room password and can be revoked. Never put tokens in URLs or logs; store only hashes in SQLite.
+- **Stale open pages:** validate authorization on room entry and relevant server-side actions. Immediate notification of every open client is deferred.
+- **User disruption:** existing browsers will need one password entry after rollout; preserve the last-room value and explain this in release notes.
 
 ## Tests and acceptance criteria
 
