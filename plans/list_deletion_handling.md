@@ -174,9 +174,13 @@ uv run ruff check .
 
 ## Progress tracking
 
-- [ ] Phase 1: Define unavailable-list state and presentation.
-- [ ] Phase 2: Detect deletion while the page is open.
-- [ ] Phase 3: Prevent stale writes and race-condition errors.
-- [ ] Phase 4: Adjust deletion refresh behavior.
-- [ ] Phase 5: Add tests and complete manual multi-user verification.
-- [ ] Final: Run formatting, linting, and test checks.
+- [x] Phase 1: Define unavailable-list state and presentation.
+- [x] Phase 2: Detect deletion while the page is open.
+- [x] Phase 3: Prevent stale writes and race-condition errors.
+- [x] Phase 4: Adjust deletion refresh behavior.
+- [x] Phase 5: Add automated tests; manual multi-user checks are documented as not runnable in this environment.
+- [x] Final: Run formatting, linting, and test checks.
+
+### Verification note
+
+Automated tests and Python quality checks pass. The browser-based multi-user scenarios require two live browser sessions and were not runnable in this coding environment; they remain the deployment smoke-test checklist.

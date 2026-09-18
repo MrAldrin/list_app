@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from database_crud import (
+    ListUnavailable,
     add_item,
     authenticate_room_and_issue_token,
     change_room_password_and_issue_token,
@@ -18,6 +19,7 @@ from database_crud import (
     find_item_by_name,
     find_list_by_name,
     get_list_data,
+    get_list_details_by_slug,
     get_lists,
     normalize_item_name,
     rename_item,
@@ -26,6 +28,8 @@ from database_crud import (
     restore_item,
     update_item_details,
     update_item_done,
+    update_item_quantity,
+    update_list_tags_settings,
     update_room_password,
     validate_room_access_token,
 )
@@ -268,6 +272,31 @@ def test_delete_list(room_id):
     # Verify items are gone too
     items, _ = get_list_data(list_id=list_id)
     assert len(items) == 0
+
+
+def test_deleted_list_is_missing_by_slug(room_id):
+    list_id, slug = create_list(name="Delete Me", room_id=room_id)
+    assert get_list_details_by_slug(slug)["id"] == list_id
+
+    delete_list(list_id)
+
+    assert get_list_details_by_slug(slug) is None
+
+
+def test_mutations_fail_without_creating_data_for_deleted_list(room_id):
+    list_id, _ = create_list(name="Delete Me", room_id=room_id)
+    delete_list(list_id)
+
+    with pytest.raises(ListUnavailable):
+        add_item(item_name="orphan", list_id=list_id)
+    with pytest.raises(ListUnavailable):
+        update_item_done(item_id=1, list_id=list_id, done=True)
+    with pytest.raises(ListUnavailable):
+        update_item_quantity(list_id=list_id, item_id=1, quantity=2)
+    with pytest.raises(ListUnavailable):
+        update_list_tags_settings(list_id, ["urgent"])
+
+    assert get_list_data(list_id) == ([], [])
 
 
 def test_concurrent_db_operations_do_not_share_cursor_state(room_id):

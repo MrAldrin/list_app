@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from database_crud import ListUnavailable
 from item_service import (
     STATUS_ADDED,
     STATUS_DELETED,
@@ -178,3 +179,14 @@ def test_set_item_quantity(mock_update_qty):
     mock_update_qty.reset_mock()
     set_item_quantity(list_id=1, item_id=10, quantity=0)
     mock_update_qty.assert_called_once_with(item_id=10, list_id=1, quantity=1)
+
+
+def test_add_or_restore_propagates_deleted_list_error(monkeypatch):
+    monkeypatch.setattr("item_service.find_item_by_name", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        "item_service.add_item",
+        lambda **_kwargs: (_ for _ in ()).throw(ListUnavailable()),
+    )
+
+    with pytest.raises(ListUnavailable):
+        add_or_restore_item(list_id=1, raw_name="apples")

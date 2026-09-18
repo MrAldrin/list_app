@@ -12,6 +12,16 @@ from database_setup import db
 _DB_LOCK = threading.RLock()
 
 
+class ListUnavailable(LookupError):
+    """Raised when a mutation targets a list that no longer exists."""
+
+
+def _begin_list_write_locked(list_id: int) -> None:
+    db.execute("BEGIN IMMEDIATE")
+    if not db.execute("SELECT 1 FROM lists WHERE id = ?", (list_id,)).fetchone():
+        raise ListUnavailable(f"List {list_id} is no longer available")
+
+
 def normalize_item_name(raw: str | None) -> str:
     return (raw or "").strip().lower()
 
@@ -81,20 +91,30 @@ def get_list_details_by_slug(slug: str):
 
 def update_list_tags_settings(list_id: int, list_tags: list[str]):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE lists SET list_tags = ? WHERE id = ?",
-            (json.dumps(list_tags), list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE lists SET list_tags = ? WHERE id = ?",
+                (json.dumps(list_tags), list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def update_item_active_tags(item_id: int, list_id: int, active_tags: list[str]):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
-            (json.dumps(active_tags), item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
+                (json.dumps(active_tags), item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def find_list_by_name(name: str, room_id: int):
@@ -137,8 +157,13 @@ def create_list(name: str, room_id: int):
 
 def rename_list(list_id: int, new_name: str):
     with _DB_LOCK:
-        db.execute("UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute("UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def get_item_count(list_id: int) -> int:
@@ -191,40 +216,60 @@ def find_item_by_name(list_id: int, item_name: str):
 
 def restore_item(item_id: int, list_id: int):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE items SET done = 0 WHERE id = ? AND list_id = ?",
-            (item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE items SET done = 0 WHERE id = ? AND list_id = ?",
+                (item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def add_item(item_name: str, list_id: int):
     with _DB_LOCK:
-        db.execute(
-            "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
-            (item_name, False, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
+                (item_name, False, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def add_item_with_state(
     item_name: str, list_id: int, done: bool, active_tags: list[str]
 ):
     with _DB_LOCK:
-        db.execute(
-            "INSERT INTO items (name, done, list_id, active_tags) VALUES (?, ?, ?, ?)",
-            (item_name, done, list_id, json.dumps(active_tags)),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "INSERT INTO items (name, done, list_id, active_tags) VALUES (?, ?, ?, ?)",
+                (item_name, done, list_id, json.dumps(active_tags)),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def update_item_done(item_id: int, list_id: int, done: bool):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
-            (done, item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
+                (done, item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def find_duplicate_name(list_id: int, item_id: int, new_name: str):
@@ -238,47 +283,72 @@ def find_duplicate_name(list_id: int, item_id: int, new_name: str):
 
 def rename_item(item_id: int, list_id: int, new_name: str):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
-            (new_name, item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
+                (new_name, item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def update_item_details(item_id: int, list_id: int, name: str, description: str):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE items SET name = ?, description = ? WHERE id = ? AND list_id = ?",
-            (name, description, item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE items SET name = ?, description = ? WHERE id = ? AND list_id = ?",
+                (name, description, item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def update_item_quantity(item_id: int, list_id: int, quantity: int):
     with _DB_LOCK:
-        db.execute(
-            "UPDATE items SET quantity = ? WHERE id = ? AND list_id = ?",
-            (quantity, item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "UPDATE items SET quantity = ? WHERE id = ? AND list_id = ?",
+                (quantity, item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def delete_item(item_id: int, list_id: int):
     with _DB_LOCK:
-        db.execute(
-            "DELETE FROM items WHERE id = ? AND list_id = ?",
-            (item_id, list_id),
-        )
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            db.execute(
+                "DELETE FROM items WHERE id = ? AND list_id = ?",
+                (item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def delete_list(list_id: int):
     with _DB_LOCK:
-        # First delete all items in the list
-        db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
-        # Then delete the list itself
-        db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
-        db.commit()
+        try:
+            _begin_list_write_locked(list_id)
+            # First delete all items in the list
+            db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
+            # Then delete the list itself
+            db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def get_rooms():
@@ -575,7 +645,12 @@ def delete_list_with_room_token(room_slug: str, token: str, list_id: int) -> Non
                 (list_id, room_id),
             ).fetchone()
             if not belongs_to_room:
+                list_exists = db.execute(
+                    "SELECT 1 FROM lists WHERE id = ?", (list_id,)
+                ).fetchone()
                 db.rollback()
+                if not list_exists:
+                    raise ListUnavailable(f"List {list_id} is no longer available")
                 raise RoomAccessDenied
             db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
             db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
