@@ -22,6 +22,7 @@ from database_crud import (
     normalize_item_name,
     rename_item,
     rename_list,
+    rename_list_with_room_token,
     restore_item,
     update_item_details,
     update_item_done,
@@ -361,13 +362,28 @@ def test_token_authorized_list_write_is_denied_after_a_password_reset():
     token = authenticate_room_and_issue_token(room_slug, "password")[1]
 
     list_id, _ = create_list_with_room_token(room_slug, token, "Private list")
-    assert get_lists(room_id_value) == [
-        (list_id, "private list", get_lists(room_id_value)[0][2])
-    ]
+    lists = get_lists(room_id_value)
+    assert len(lists) == 1
+    assert lists[0][:2] == (list_id, "private list")
 
     update_room_password(room_id_value, "new-password")
     with pytest.raises(PermissionError):
         create_list_with_room_token(room_slug, token, "Denied list")
+
+
+def test_token_cannot_modify_a_list_in_another_room():
+    first_room_id, first_room_slug = create_room("First room", "first-password")
+    second_room_id, _ = create_room("Second room", "second-password")
+    token = authenticate_room_and_issue_token(first_room_slug, "first-password")[1]
+    other_list_id, _ = create_list("Second room list", second_room_id)
+
+    with pytest.raises(PermissionError):
+        rename_list_with_room_token(
+            first_room_slug, token, other_list_id, "unauthorized rename"
+        )
+
+    assert get_lists(first_room_id) == []
+    assert get_lists(second_room_id)[0][1] == "second room list"
 
 
 def test_deleting_a_room_cascades_to_its_access_tokens():

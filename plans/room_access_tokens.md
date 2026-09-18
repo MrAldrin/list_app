@@ -176,12 +176,12 @@ The token must be stored in the browser and its hash must be stored in the persi
 
 ## Progress tracking
 
-- [ ] Database schema and migration
-- [ ] Token issue/validation/revocation service
-- [ ] Room and root-route integration, explicit admin access, and private-operation guards
-- [ ] Password-reset invalidation
-- [ ] One-time legacy-password cleanup
-- [ ] Architecture documentation update
-- [ ] Automated tests, including open-page revocation and concurrent reset/login
+- [x] Database schema and migration
+- [x] Token issue/validation/revocation service
+- [x] Room and root-route integration, explicit admin access, and private-operation guards
+- [x] Password-reset invalidation
+- [x] One-time legacy-password cleanup
+- [x] Architecture documentation update
+- [x] Automated tests, including open-page revocation and concurrent reset/login
 - [ ] Manual restart, deployment, and PWA verification
 - [ ] Remove temporary cleanup after one year

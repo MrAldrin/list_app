@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+from contextlib import suppress
 from typing import Literal, TypedDict
 
 from nicegui import app, ui
@@ -92,10 +93,15 @@ ui.add_head_html(
 )
 
 from database_crud import (
+    RoomAccessDenied,
     add_item_with_state,
+    authenticate_room_and_issue_token,
+    change_room_password_and_issue_token,
     create_list,
+    create_list_with_room_token,
     create_room,
-    delete_room,
+    delete_list_with_room_token,
+    delete_room_with_password,
     find_item_by_name,
     get_item_count,
     get_list_data,
@@ -105,11 +111,13 @@ from database_crud import (
     get_room_details_by_slug,
     get_rooms,
     normalize_item_name,
+    rename_list_with_room_token,
     rename_room,
+    rename_room_with_room_token,
+    revoke_room_access_token,
     update_item_active_tags,
     update_list_tags_settings,
     update_room_password,
-    verify_room,
 )
 from item_service import (
     STATUS_ADDED,
@@ -125,9 +133,116 @@ from item_service import (
     toggle_item_done,
     update_item_details_with_checks,
 )
+from room_access import RoomAccess, RoomAccessStatus
 
 NOTIFY_POSITION = "top"
 TAG_COLORS = ["blue", "green", "red", "orange", "purple", "teal", "pink"]
+
+# TODO(room-access-token-migration): Legacy password-key cleanup was added on
+# 2026-09-18. Remove this cleanup after 2027-09-18, but retain token handling.
+
+
+def _room_token_storage_key(room_slug: str) -> str:
+    return f"listapp_room_token_{room_slug}"
+
+
+async def _cleanup_legacy_room_password_keys() -> bool:
+    """Delete only old password keys; token and last-room keys must survive."""
+    try:
+        await ui.run_javascript(
+            """
+            const legacyKeys = Object.keys(localStorage).filter(
+                (key) => key.startsWith('listapp_room_')
+                    && !key.startsWith('listapp_room_token_')
+            );
+            for (const key of legacyKeys) {
+                localStorage.removeItem(key);
+            }
+            return true;
+            """,
+            timeout=3.0,
+        )
+    except Exception:  # noqa: BLE001 - browser storage can be unavailable.
+        return False
+    return True
+
+
+async def _get_browser_storage(key: str) -> tuple[bool, str | None]:
+    try:
+        value = await ui.run_javascript(
+            f"return localStorage.getItem({json.dumps(key)})", timeout=3.0
+        )
+    except Exception:  # noqa: BLE001 - browser storage can be unavailable.
+        return False, None
+    return True, value if isinstance(value, str) else None
+
+
+async def _store_room_access(room_slug: str, token: str) -> bool:
+    token_key = _room_token_storage_key(room_slug)
+    try:
+        await ui.run_javascript(
+            """
+            localStorage.setItem(%s, %s);
+            localStorage.setItem('listapp_last_room', %s);
+            return true;
+            """
+            % (json.dumps(token_key), json.dumps(token), json.dumps(room_slug)),
+            timeout=3.0,
+        )
+    except Exception:  # noqa: BLE001 - browser storage can be unavailable.
+        return False
+    return True
+
+
+async def _remove_room_token(room_slug: str) -> None:
+    with suppress(
+        Exception
+    ):  # Browser cleanup is best effort for a known invalid token.
+        await ui.run_javascript(
+            f"localStorage.removeItem({json.dumps(_room_token_storage_key(room_slug))})",
+            timeout=3.0,
+        )
+
+
+def _remember_authorized_room(room_slug: str) -> None:
+    authorized_rooms = app.storage.user.get("authorized_rooms", [])
+    if room_slug not in authorized_rooms:
+        authorized_rooms = [*authorized_rooms, room_slug]
+    app.storage.user.update(
+        {"authorized_rooms": authorized_rooms, "last_room_slug": room_slug}
+    )
+
+
+def _forget_authorized_room(room_slug: str) -> None:
+    authorized_rooms = app.storage.user.get("authorized_rooms", [])
+    app.storage.user.update(
+        {"authorized_rooms": [slug for slug in authorized_rooms if slug != room_slug]}
+    )
+
+
+async def _require_private_room_access(access: RoomAccess) -> bool:
+    """Guard every private callback without trusting browser or user-storage caches."""
+    status = access.check()
+    if status is RoomAccessStatus.VALID:
+        return True
+    if status is RoomAccessStatus.UNAVAILABLE:
+        ui.notify(
+            "Could not verify room access. Please retry; saved access was kept.",
+            color="warning",
+            position=NOTIFY_POSITION,
+        )
+        return False
+
+    _forget_authorized_room(access.room_slug)
+    if access.token:
+        await _remove_room_token(access.room_slug)
+    ui.notify(
+        "Room access has expired. Enter the password again.",
+        color="warning",
+        position=NOTIFY_POSITION,
+    )
+    ui.navigate.to(f"/room/{access.room_slug}")
+    return False
 
 
 class ItemUndoPayload(TypedDict):
@@ -192,9 +307,16 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
 
 
 @ui.refreshable
-def list_of_lists(room_id: int, room_slug: str) -> None:
-    lists = get_lists(room_id)
+def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
+    """Render private room lists only while this page's access remains valid."""
+    if access.check() is not RoomAccessStatus.VALID:
+        _forget_authorized_room(room_slug)
+        ui.label("Room access has expired. Reopen the room to sign in again.").classes(
+            "text-gray-500 italic"
+        )
+        return
 
+    lists = get_lists(room_id)
     if not lists:
         ui.label("No lists yet. Create your first one!").classes("text-gray-500 italic")
         return
@@ -217,16 +339,39 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
                     with ui.row().classes("w-full justify-end mt-4"):
                         ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                        def save():
-                            status, actual_name = rename_list_with_checks(
-                                lid, room_id, new_name_input.value
-                            )
-                            if status == STATUS_INVALID_NAME:
-                                ui.notify("Name cannot be empty", color="warning")
+                        async def save() -> None:
+                            if not await _require_private_room_access(access):
                                 return
-                            if status == STATUS_DUPLICATE_NAME:
+                            try:
+                                if access.is_admin():
+                                    status, actual_name = rename_list_with_checks(
+                                        lid, room_id, new_name_input.value
+                                    )
+                                    if status == STATUS_INVALID_NAME:
+                                        ui.notify(
+                                            "Name cannot be empty", color="warning"
+                                        )
+                                        return
+                                    if status == STATUS_DUPLICATE_NAME:
+                                        ui.notify(
+                                            f"'{actual_name}' already exists in this room",
+                                            color="warning",
+                                            position=NOTIFY_POSITION,
+                                        )
+                                        return
+                                else:
+                                    actual_name = rename_list_with_room_token(
+                                        room_slug,
+                                        access.token or "",
+                                        lid,
+                                        new_name_input.value,
+                                    )
+                            except RoomAccessDenied:
+                                await _require_private_room_access(access)
+                                return
+                            except ValueError as error:
                                 ui.notify(
-                                    f"'{actual_name}' already exists in this room",
+                                    str(error),
                                     color="warning",
                                     position=NOTIFY_POSITION,
                                 )
@@ -248,7 +393,9 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
                 "flat round dense size=sm"
             )
 
-            def open_delete_dialog(lid=list_id, lname=name):
+            async def open_delete_dialog(lid=list_id, lname=name) -> None:
+                if not await _require_private_room_access(access):
+                    return
                 count = get_item_count(lid)
                 with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                     ui.label(f"Delete '{lname}' and its {count} items?").classes(
@@ -257,8 +404,19 @@ def list_of_lists(room_id: int, room_slug: str) -> None:
                     with ui.row().classes("w-full justify-end"):
                         ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                        def confirm():
-                            delete_list_and_items(lid, room_id)
+                        async def confirm() -> None:
+                            if not await _require_private_room_access(access):
+                                return
+                            try:
+                                if access.is_admin():
+                                    delete_list_and_items(lid, room_id)
+                                else:
+                                    delete_list_with_room_token(
+                                        room_slug, access.token or "", lid
+                                    )
+                            except RoomAccessDenied:
+                                await _require_private_room_access(access)
+                                return
                             dialog.close()
                             ui.notify(
                                 f"Deleted '{lname}'",
@@ -499,7 +657,11 @@ async def auth_middleware(request, call_next):
 
 
 @ui.refreshable
-def room_list_ui():
+def room_list_ui() -> None:
+    """Administrative room list; opening a room uses the explicit admin path."""
+    if not app.storage.user.get("authenticated", False):
+        return
+
     rooms = get_rooms()
     if not rooms:
         ui.label("No rooms yet. Create your first one!").classes("text-gray-500 italic")
@@ -510,97 +672,39 @@ def room_list_ui():
             ui.card().classes("w-full mb-1 p-1"),
             ui.row().classes("w-full items-center no-wrap"),
         ):
-
-            def enter_room(slug=room["slug"], r_name=room["name"]):
-                with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    ui.label(f"Enter password for {r_name}").classes(
-                        "text-lg font-bold"
-                    )
-                    pw_input = ui.input("Room Password", password=True).classes(
-                        "w-full"
-                    )
-                    with ui.row().classes("w-full justify-end mt-4"):
-                        ui.button("Cancel", on_click=dialog.close).props("flat")
-
-                        def submit():
-                            r_id = verify_room(slug, pw_input.value)
-                            if r_id:
-                                auth_rooms = app.storage.user.get(
-                                    "authorized_rooms", []
-                                )
-                                if slug not in auth_rooms:
-                                    auth_rooms.append(slug)
-                                    app.storage.user.update(
-                                        {
-                                            "authorized_rooms": auth_rooms,
-                                            "last_room_slug": slug,
-                                        }
-                                    )
-                                else:
-                                    app.storage.user.update({"last_room_slug": slug})
-                                dialog.close()
-                                ui.navigate.to(f"/room/{slug}")
-                            else:
-                                ui.notify("Incorrect password", color="negative")
-
-                        ui.button("Enter", on_click=submit)
-                    pw_input.on("keydown.enter", submit)
-                dialog.open()
-
-            auth_rooms = app.storage.user.get("authorized_rooms", [])
-            if room["slug"] in auth_rooms:
-                ui.button(
-                    room["name"],
-                    on_click=lambda s=room["slug"]: ui.navigate.to(f"/room/{s}"),
-                ).props("flat").classes("flex-grow text-left text-lg")
-            else:
-                ui.button(room["name"], on_click=enter_room).props("flat").classes(
-                    "flex-grow text-left text-lg"
-                )
+            ui.button(
+                room["name"],
+                on_click=lambda slug=room["slug"]: ui.navigate.to(
+                    f"/room/{slug}?admin=true"
+                ),
+            ).props("flat").classes("flex-grow text-left text-lg")
 
             def open_admin_reset_dialog(
-                r_id=room["id"], r_name=room["name"], r_slug=room["slug"]
-            ):
+                room_id=room["id"], room_name=room["name"]
+            ) -> None:
                 with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
-                    ui.label(f"Admin Reset: {r_name}").classes(
+                    ui.label(f"Admin Reset: {room_name}").classes(
                         "text-lg font-bold text-red-500"
                     )
-                    admin_pw_input = ui.input(
-                        "Admin Key (Global Password)", password=True
+                    new_password_input = ui.input(
+                        "New Room Password", password=True
                     ).classes("w-full")
-                    new_pw_input = ui.input("New Room Password", password=True).classes(
-                        "w-full"
-                    )
                     with ui.row().classes("w-full justify-end mt-4"):
                         ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                        def submit():
-                            if admin_pw_input.value == GLOBAL_APP_PASSWORD:
-                                if new_pw_input.value.strip():
-                                    update_room_password(r_id, new_pw_input.value)
-                                    # Also clear their auth token if they had one so they have to re-enter the new password
-                                    current_auths = app.storage.user.get(
-                                        "authorized_rooms", []
-                                    )
-                                    if r_slug in current_auths:
-                                        current_auths.remove(r_slug)
-                                        app.storage.user.update(
-                                            {"authorized_rooms": current_auths}
-                                        )
-                                        room_list_ui.refresh()
-
-                                    dialog.close()
-                                    ui.notify(
-                                        "Password reset successfully",
-                                        color="positive",
-                                    )
-                                else:
-                                    ui.notify(
-                                        "New password cannot be empty",
-                                        color="warning",
-                                    )
-                            else:
-                                ui.notify("Incorrect Admin Key", color="negative")
+                        def submit() -> None:
+                            if not app.storage.user.get("authenticated", False):
+                                ui.notify("Admin sign-in required", color="negative")
+                                return
+                            if not new_password_input.value.strip():
+                                ui.notify(
+                                    "New password cannot be empty", color="warning"
+                                )
+                                return
+                            update_room_password(room_id, new_password_input.value)
+                            dialog.close()
+                            ui.notify("Password reset successfully", color="positive")
+                            room_list_ui.refresh()
 
                         ui.button("Reset", on_click=submit).props("color=negative")
                 dialog.open()
@@ -630,38 +734,33 @@ def admin_page() -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("New Room").classes("text-lg font-bold")
                 room_name_input = ui.input(label="Room name").classes("w-full")
-                room_pw_input = ui.input(label="Password", password=True).classes(
+                room_password_input = ui.input(label="Password", password=True).classes(
                     "w-full"
                 )
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
                     def save() -> None:
+                        if not app.storage.user.get("authenticated", False):
+                            ui.notify("Admin sign-in required", color="negative")
+                            return
                         try:
                             _new_id, new_slug = create_room(
-                                room_name_input.value, room_pw_input.value
+                                room_name_input.value, room_password_input.value
                             )
-                            auth_rooms = app.storage.user.get("authorized_rooms", [])
-                            auth_rooms.append(new_slug)
-                            app.storage.user.update(
-                                {
-                                    "authorized_rooms": auth_rooms,
-                                    "last_room_slug": new_slug,
-                                }
-                            )
-                            dialog.close()
+                        except ValueError as error:
                             ui.notify(
-                                "Room created",
-                                color="positive",
-                                position=NOTIFY_POSITION,
+                                str(error), color="warning", position=NOTIFY_POSITION
                             )
-                            ui.navigate.to(f"/room/{new_slug}")
-                        except ValueError as e:
-                            ui.notify(str(e), color="warning", position=NOTIFY_POSITION)
+                            return
+                        dialog.close()
+                        ui.notify(
+                            "Room created", color="positive", position=NOTIFY_POSITION
+                        )
+                        ui.navigate.to(f"/room/{new_slug}?admin=true")
 
                     ui.button("Create", on_click=save)
-
-                room_pw_input.on("keyup.enter", save)
+                room_password_input.on("keyup.enter", save)
             dialog.open()
 
         ui.button("Create New Room", icon="add", on_click=open_new_room_dialog).classes(
@@ -671,56 +770,94 @@ def admin_page() -> None:
         room_list_ui()
 
 
-# TODO(room-access-token-migration): Add the temporary cleanup for legacy
-# `listapp_room_*` password keys in this authentication flow. Record the actual
-# implementation date when it is added and remove the cleanup one year later.
-# Keep the persistent-token handling after that cleanup is removed.
+async def _room_access_from_browser(
+    room_id: int, room_slug: str, admin_requested: bool
+) -> tuple[RoomAccess, RoomAccessStatus]:
+    """Load and validate a browser token without treating user storage as auth."""
+    await _cleanup_legacy_room_password_keys()
+    access = RoomAccess(
+        room_id=room_id,
+        room_slug=room_slug,
+        token=None,
+        admin_requested=admin_requested,
+        admin_is_authenticated=lambda: bool(
+            app.storage.user.get("authenticated", False)
+        ),
+    )
+    if access.is_admin():
+        return access, RoomAccessStatus.VALID
+
+    storage_read, token = await _get_browser_storage(_room_token_storage_key(room_slug))
+    if not storage_read:
+        ui.notify(
+            "Browser storage is unavailable. Room access cannot be remembered on this device.",
+            color="warning",
+            position=NOTIFY_POSITION,
+        )
+        return access, RoomAccessStatus.INVALID
+
+    access = RoomAccess(
+        room_id=room_id,
+        room_slug=room_slug,
+        token=token,
+        admin_requested=False,
+        admin_is_authenticated=lambda: False,
+    )
+    status = access.check()
+    if status is RoomAccessStatus.VALID:
+        _remember_authorized_room(room_slug)
+    elif status is RoomAccessStatus.INVALID:
+        _forget_authorized_room(room_slug)
+        if token:
+            await _remove_room_token(room_slug)
+    return access, status
+
+
 @ui.page("/")
 async def index() -> None:
-    last_room_slug = app.storage.user.get("last_room_slug")
-    auth_rooms = app.storage.user.get("authorized_rooms", [])
-    if last_room_slug:
-        details = get_room_details_by_slug(last_room_slug)
-        if details and last_room_slug in auth_rooms:
-            ui.navigate.to(f"/room/{last_room_slug}")
-            return
-
-    saved_last = None
-    try:
-        saved_last = await ui.run_javascript(
-            "return localStorage.getItem('listapp_last_room')", timeout=3.0
-        )
-    except Exception:  # noqa: BLE001 - browser JavaScript may fail or time out
-        saved_last = None
-
-    if saved_last:
-        details = get_room_details_by_slug(saved_last)
+    await _cleanup_legacy_room_password_keys()
+    storage_read, saved_last_room = await _get_browser_storage("listapp_last_room")
+    if storage_read and saved_last_room:
+        details = get_room_details_by_slug(saved_last_room)
         if details:
-            saved_pw = None
-            try:
-                saved_pw = await ui.run_javascript(
-                    f"return localStorage.getItem('listapp_room_{saved_last}')",
-                    timeout=3.0,
+            token_storage_read, token = await _get_browser_storage(
+                _room_token_storage_key(saved_last_room)
+            )
+            if not token_storage_read:
+                ui.notify(
+                    "Browser storage is unavailable. Room access cannot be remembered on this device.",
+                    color="warning",
+                    position=NOTIFY_POSITION,
                 )
-            except Exception:  # noqa: BLE001 - browser JavaScript may fail or time out
-                saved_pw = None
-
-            if saved_pw and verify_room(saved_last, saved_pw):
-                if saved_last not in auth_rooms:
-                    auth_rooms.append(saved_last)
-                app.storage.user.update(
-                    {
-                        "authorized_rooms": auth_rooms,
-                        "last_room_slug": saved_last,
-                    }
+            else:
+                access = RoomAccess(
+                    room_id=details["id"],
+                    room_slug=saved_last_room,
+                    token=token,
+                    admin_requested=False,
+                    admin_is_authenticated=lambda: False,
                 )
-                ui.navigate.to(f"/room/{saved_last}")
-                return
-            elif saved_pw:
-                await ui.run_javascript(
-                    f"localStorage.removeItem('listapp_room_{saved_last}')"
-                )
-                await ui.run_javascript("localStorage.removeItem('listapp_last_room')")
+                status = access.check()
+                if status is RoomAccessStatus.VALID:
+                    _remember_authorized_room(saved_last_room)
+                    ui.navigate.to(f"/room/{saved_last_room}")
+                    return
+                if status is RoomAccessStatus.INVALID:
+                    _forget_authorized_room(saved_last_room)
+                    if access.token:
+                        await _remove_room_token(saved_last_room)
+                else:
+                    ui.notify(
+                        "Could not verify room access. Please retry; saved access was kept.",
+                        color="warning",
+                        position=NOTIFY_POSITION,
+                    )
+    elif not storage_read:
+        ui.notify(
+            "Browser storage is unavailable. Open your room link and sign in again.",
+            color="warning",
+            position=NOTIFY_POSITION,
+        )
 
     with ui.card().classes("absolute-center w-full max-w-sm"):
         ui.label("Open your room link to continue").classes("text-xl font-bold mb-2")
@@ -740,9 +877,8 @@ async def index() -> None:
                 )
                 return
 
-            slug = raw_value.rstrip("/").split("/")[-1]
-            details = get_room_details_by_slug(slug)
-            if not details:
+            room_slug = raw_value.rstrip("/").split("/")[-1]
+            if not get_room_details_by_slug(room_slug):
                 ui.notify(
                     "Room not found. Check the link/code.",
                     color="negative",
@@ -750,8 +886,8 @@ async def index() -> None:
                 )
                 return
 
-            app.storage.user.update({"last_room_slug": slug})
-            ui.navigate.to(f"/room/{slug}")
+            app.storage.user.update({"last_room_slug": room_slug})
+            ui.navigate.to(f"/room/{room_slug}")
 
         with ui.row().classes("w-full justify-end mt-2 gap-2"):
             ui.button("Open Room", on_click=go_to_room)
@@ -763,7 +899,7 @@ async def index() -> None:
 
 
 @ui.page("/room/{slug}")
-async def room_page(slug: str):
+async def room_page(slug: str, admin: str | None = None) -> None:
     details = get_room_details_by_slug(slug)
     if not details:
         ui.label("Room not found").classes("text-xl p-4")
@@ -771,70 +907,65 @@ async def room_page(slug: str):
 
     room_id = details["id"]
     room_name = details["name"]
-
-    auth_rooms = app.storage.user.get("authorized_rooms", [])
-    if slug not in auth_rooms:
-        saved_pw = None
-        try:
-            saved_pw = await ui.run_javascript(
-                f"return localStorage.getItem('listapp_room_{slug}')", timeout=3.0
+    admin_requested = admin == "true"
+    access, access_status = await _room_access_from_browser(
+        room_id, slug, admin_requested
+    )
+    if access_status is RoomAccessStatus.UNAVAILABLE:
+        with ui.card().classes("absolute-center w-full max-w-sm"):
+            ui.label("Could not verify room access.").classes("text-xl font-bold mb-2")
+            ui.label("Please retry. Your saved access was kept.").classes(
+                "text-sm text-gray-600"
             )
-        except Exception:  # noqa: BLE001 - browser JavaScript may fail or time out
-            saved_pw = None
+            ui.button("Retry", on_click=lambda: ui.navigate.to(f"/room/{slug}"))
+        return
 
-        if saved_pw and verify_room(slug, saved_pw):
-            if slug not in auth_rooms:
-                auth_rooms.append(slug)
-            app.storage.user.update(
-                {
-                    "authorized_rooms": auth_rooms,
-                    "last_room_slug": slug,
-                }
+    if access_status is RoomAccessStatus.INVALID:
+        with ui.card().classes("absolute-center w-full max-w-sm"):
+            ui.label(f"Enter Room Password for {room_name}").classes(
+                "text-xl font-bold mb-4"
             )
-            await ui.run_javascript(
-                f"localStorage.setItem('listapp_last_room', {json.dumps(slug)})"
-            )
-        else:
-            if saved_pw:
-                await ui.run_javascript(
-                    f"localStorage.removeItem('listapp_room_{slug}')"
-                )
+            password_input = ui.input("Room Password", password=True).classes("w-full")
+            with ui.row().classes("w-full justify-end mt-4"):
 
-            with ui.card().classes("absolute-center w-full max-w-sm"):
-                ui.label(f"Enter Room Password for {room_name}").classes(
-                    "text-xl font-bold mb-4"
-                )
-                pw_input = ui.input("Room Password", password=True).classes("w-full")
-                with ui.row().classes("w-full justify-end mt-4"):
+                async def submit() -> None:
+                    try:
+                        issued = authenticate_room_and_issue_token(
+                            slug, password_input.value
+                        )
+                    except Exception:  # noqa: BLE001 - a database failure must not clear storage.
+                        ui.notify(
+                            "Could not verify the password. Please retry.",
+                            color="warning",
+                            position=NOTIFY_POSITION,
+                        )
+                        return
+                    if not issued:
+                        ui.notify("Incorrect password", color="negative")
+                        return
 
-                    async def submit():
-                        if verify_room(slug, pw_input.value):
-                            if slug not in auth_rooms:
-                                auth_rooms.append(slug)
-                            app.storage.user.update(
-                                {
-                                    "authorized_rooms": auth_rooms,
-                                    "last_room_slug": slug,
-                                }
-                            )
-                            await ui.run_javascript(f"""
-                                localStorage.setItem('listapp_room_{slug}', {json.dumps(pw_input.value)});
-                                localStorage.setItem('listapp_last_room', {json.dumps(slug)});
-                            """)
-                            ui.navigate.to(f"/room/{slug}")
-                        else:
-                            ui.notify("Incorrect password", color="negative")
+                    _issued_room_id, token = issued
+                    if not await _store_room_access(slug, token):
+                        revoke_room_access_token(slug, token)
+                        ui.notify(
+                            "Browser storage could not save access. It cannot be remembered on this device.",
+                            color="warning",
+                            position=NOTIFY_POSITION,
+                        )
+                        return
+                    _remember_authorized_room(slug)
+                    ui.navigate.to(f"/room/{slug}")
 
-                    ui.button("Enter", on_click=submit)
-                pw_input.on("keydown.enter", submit)
-            return
+                ui.button("Enter", on_click=submit)
+            password_input.on("keydown.enter", submit)
+        return
 
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
             "w-full items-center justify-between tracking-tighter mb-2"
         ):
             with ui.row().classes("items-center gap-2"):
-                if app.storage.user.get("authenticated", False):
+                if access.is_admin():
                     ui.button(
                         icon="arrow_back", on_click=lambda: ui.navigate.to("/admin")
                     ).props("flat round dense")
@@ -853,45 +984,69 @@ async def room_page(slug: str):
                 )
                 ui.menu_item(
                     "Change Password",
-                    on_click=lambda: change_password_dialog(room_id, slug),
+                    on_click=lambda: change_password_dialog(slug),
                 )
                 ui.menu_item(
                     "Delete Room",
-                    on_click=lambda: delete_room_dialog(room_id, slug),
+                    on_click=lambda: delete_room_dialog(slug),
                 ).classes("text-red-500")
 
-        def change_password_dialog(r_id, r_slug):
+        def change_password_dialog(room_slug: str) -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("Change Room Password").classes("text-lg font-bold")
-                old_pw_input = ui.input("Current Password", password=True).classes(
+                old_password_input = ui.input(
+                    "Current Password", password=True
+                ).classes("w-full")
+                new_password_input = ui.input("New Password", password=True).classes(
                     "w-full"
                 )
-                new_pw_input = ui.input("New Password", password=True).classes("w-full")
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                    async def submit():
-                        if verify_room(r_slug, old_pw_input.value):
-                            if new_pw_input.value.strip():
-                                update_room_password(r_id, new_pw_input.value)
-                                await ui.run_javascript(
-                                    f"localStorage.setItem('listapp_room_{r_slug}', {json.dumps(new_pw_input.value)})"
-                                )
-                                dialog.close()
-                                ui.notify(
-                                    "Password changed successfully", color="positive"
-                                )
-                            else:
-                                ui.notify(
-                                    "New password cannot be empty", color="warning"
-                                )
-                        else:
+                    async def submit() -> None:
+                        if not await _require_private_room_access(access):
+                            return
+                        if not new_password_input.value.strip():
+                            ui.notify("New password cannot be empty", color="warning")
+                            return
+                        try:
+                            changed = change_room_password_and_issue_token(
+                                room_slug,
+                                old_password_input.value,
+                                new_password_input.value,
+                            )
+                        except Exception:  # noqa: BLE001 - do not erase credentials on database failure.
+                            ui.notify(
+                                "Could not change the password. Please retry.",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
+                            return
+                        if not changed:
                             ui.notify("Incorrect current password", color="negative")
+                            return
+
+                        _changed_room_id, new_token = changed
+                        if not await _store_room_access(room_slug, new_token):
+                            revoke_room_access_token(room_slug, new_token)
+                            ui.notify(
+                                "Password changed, but browser storage could not save access. Sign in with the new password.",
+                                color="warning",
+                                position=NOTIFY_POSITION,
+                            )
+                            ui.navigate.to(f"/room/{room_slug}")
+                            return
+                        _remember_authorized_room(room_slug)
+                        dialog.close()
+                        ui.notify("Password changed successfully", color="positive")
+                        ui.navigate.to(f"/room/{room_slug}")
 
                     ui.button("Change", on_click=submit)
             dialog.open()
 
-        def rename_room_dialog(r_id, current_name, r_slug):
+        def rename_room_dialog(
+            target_room_id: int, current_name: str, room_slug: str
+        ) -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("Rename Room").classes("text-lg font-bold")
                 new_name_input = ui.input(value=current_name, label="New name").classes(
@@ -900,48 +1055,54 @@ async def room_page(slug: str):
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                    def save():
+                    async def save() -> None:
+                        if not await _require_private_room_access(access):
+                            return
                         name = new_name_input.value.strip()
-                        if name:
-                            rename_room(r_id, name)
-                            dialog.close()
-                            ui.navigate.to(
-                                f"/room/{r_slug}"
-                            )  # Reload page to show new name
-                        else:
+                        if not name:
                             ui.notify("Name cannot be empty", color="warning")
+                            return
+                        try:
+                            if access.is_admin():
+                                rename_room(target_room_id, name)
+                            else:
+                                rename_room_with_room_token(
+                                    room_slug, access.token or "", name
+                                )
+                        except RoomAccessDenied:
+                            await _require_private_room_access(access)
+                            return
+                        dialog.close()
+                        ui.navigate.to(f"/room/{room_slug}")
 
                     ui.button("Save", on_click=save)
             dialog.open()
 
-        def delete_room_dialog(r_id, r_slug):
+        def delete_room_dialog(room_slug: str) -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                 ui.label("Delete Room").classes("text-lg font-bold text-red-500")
                 ui.label(
                     "Warning: This will delete ALL lists and items inside this room. This cannot be undone."
                 ).classes("text-sm text-gray-600 mb-2")
-                pw_input = ui.input(
+                password_input = ui.input(
                     "Enter Room Password to Confirm", password=True
                 ).classes("w-full")
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                    def confirm():
-                        if verify_room(r_slug, pw_input.value):
-                            delete_room(r_id)
-                            dialog.close()
-
-                            auth_rooms = app.storage.user.get("authorized_rooms", [])
-                            if r_slug in auth_rooms:
-                                auth_rooms.remove(r_slug)
-                                app.storage.user.update(
-                                    {"authorized_rooms": auth_rooms}
-                                )
-
-                            ui.notify("Room deleted", color="negative")
-                            ui.navigate.to("/admin")
-                        else:
+                    async def confirm() -> None:
+                        if not await _require_private_room_access(access):
+                            return
+                        if not delete_room_with_password(
+                            room_slug, password_input.value
+                        ):
                             ui.notify("Incorrect password", color="negative")
+                            return
+                        dialog.close()
+                        _forget_authorized_room(room_slug)
+                        await _remove_room_token(room_slug)
+                        ui.notify("Room deleted", color="negative")
+                        ui.navigate.to("/admin" if access.is_admin() else "/")
 
                     ui.button("Delete", on_click=confirm).props("color=negative")
             dialog.open()
@@ -953,25 +1114,34 @@ async def room_page(slug: str):
                 with ui.row().classes("w-full justify-end mt-4"):
                     ui.button("Cancel", on_click=dialog.close).props("flat")
 
-                    def save() -> None:
+                    async def save() -> None:
+                        if not await _require_private_room_access(access):
+                            return
                         try:
-                            _new_id, new_slug = create_list(
-                                list_name_input.value, room_id
-                            )
-                            dialog.close()
-                            ui.notify(
-                                "List created",
-                                color="positive",
-                                position=NOTIFY_POSITION,
-                            )
-                            ui.navigate.to(f"/list/{new_slug}")
-                            broadcast_updates()
+                            if access.is_admin():
+                                _new_id, new_slug = create_list(
+                                    list_name_input.value, room_id
+                                )
+                            else:
+                                _new_id, new_slug = create_list_with_room_token(
+                                    slug, access.token or "", list_name_input.value
+                                )
+                        except RoomAccessDenied:
+                            await _require_private_room_access(access)
+                            return
                         except ValueError:
                             ui.notify(
                                 "Name cannot be empty",
                                 color="warning",
                                 position=NOTIFY_POSITION,
                             )
+                            return
+                        dialog.close()
+                        ui.notify(
+                            "List created", color="positive", position=NOTIFY_POSITION
+                        )
+                        ui.navigate.to(f"/list/{new_slug}")
+                        broadcast_updates()
 
                     ui.button("Save", on_click=save)
                 list_name_input.on("keyup.enter", save)
@@ -980,7 +1150,7 @@ async def room_page(slug: str):
         ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes(
             "w-full mb-4"
         ).props("outline")
-        list_of_lists(room_id=room_id, room_slug=slug)
+        list_of_lists(room_id=room_id, room_slug=slug, access=access)
 
 
 def _build_pending_undo(action: PendingUndoInput, token: str) -> PendingUndo:
@@ -1426,7 +1596,7 @@ def _delete_item_with_undo(list_id: int, it: dict, set_pending_undo) -> None:
 
 
 @ui.page("/list/{slug}")
-def list_page(slug: str):
+async def list_page(slug: str):
     details = get_list_details_by_slug(slug)
     if not details:
         ui.label("List not found").classes("text-xl p-4")
@@ -1434,8 +1604,26 @@ def list_page(slug: str):
     list_id = details["id"]
     list_name = details["name"]
     room_slug = details["room_slug"]
-    auth_rooms = app.storage.user.get("authorized_rooms", [])
-    room_authorized = room_slug in auth_rooms
+
+    await _cleanup_legacy_room_password_keys()
+    storage_read, token = await _get_browser_storage(_room_token_storage_key(room_slug))
+    room_authorized = False
+    if storage_read:
+        room_access = RoomAccess(
+            room_id=details["room_id"],
+            room_slug=room_slug,
+            token=token,
+            admin_requested=False,
+            admin_is_authenticated=lambda: False,
+        )
+        access_status = room_access.check()
+        if access_status is RoomAccessStatus.VALID:
+            room_authorized = True
+            _remember_authorized_room(room_slug)
+        elif access_status is RoomAccessStatus.INVALID:
+            _forget_authorized_room(room_slug)
+            if token:
+                await _remove_room_token(room_slug)
 
     state: ViewState = {
         "filter_tag": None,
