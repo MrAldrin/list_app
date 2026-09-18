@@ -25,7 +25,9 @@ STATUS_UPDATED = "updated"
 STATUS_DELETED = "deleted"
 
 
-def add_or_restore_item(list_id: int, raw_name: str | None) -> tuple[str, str | None]:
+def add_or_restore_item(
+    list_id: int, raw_name: str | None, *, expected_slug: str | None = None
+) -> tuple[str, str | None]:
     item_name = normalize_item_name(raw_name)
     if not item_name:
         return STATUS_INVALID_NAME, None
@@ -34,16 +36,20 @@ def add_or_restore_item(list_id: int, raw_name: str | None) -> tuple[str, str | 
     if existing:
         item_id, is_done = existing
         if is_done:
-            restore_item(item_id=item_id, list_id=list_id)
+            restore_item(item_id=item_id, list_id=list_id, expected_slug=expected_slug)
             return STATUS_RESTORED, item_name
         return STATUS_DUPLICATE_ACTIVE, item_name
 
-    add_item(item_name=item_name, list_id=list_id)
+    add_item(item_name=item_name, list_id=list_id, expected_slug=expected_slug)
     return STATUS_ADDED, item_name
 
 
 def rename_item_with_checks(
-    list_id: int, item_id: int, raw_name: str | None
+    list_id: int,
+    item_id: int,
+    raw_name: str | None,
+    *,
+    expected_slug: str | None = None,
 ) -> tuple[str, str | None]:
     new_name = normalize_item_name(raw_name)
     if not new_name:
@@ -53,12 +59,19 @@ def rename_item_with_checks(
     if duplicate:
         return STATUS_DUPLICATE_NAME, new_name
 
-    rename_item(item_id=item_id, list_id=list_id, new_name=new_name)
+    rename_item(
+        item_id=item_id, list_id=list_id, new_name=new_name, expected_slug=expected_slug
+    )
     return STATUS_RENAMED, new_name
 
 
 def update_item_details_with_checks(
-    list_id: int, item_id: int, raw_name: str | None, raw_description: str | None
+    list_id: int,
+    item_id: int,
+    raw_name: str | None,
+    raw_description: str | None,
+    *,
+    expected_slug: str | None = None,
 ) -> tuple[str, str | None]:
     new_name = normalize_item_name(raw_name)
     if not new_name:
@@ -74,12 +87,17 @@ def update_item_details_with_checks(
         list_id=list_id,
         name=new_name,
         description=new_description,
+        expected_slug=expected_slug,
     )
     return STATUS_RENAMED, new_name
 
 
 def rename_list_with_checks(
-    list_id: int, room_id: int, raw_name: str | None
+    list_id: int,
+    room_id: int,
+    raw_name: str | None,
+    *,
+    expected_slug: str | None = None,
 ) -> tuple[str, str | None]:
     new_name = normalize_item_name(raw_name)
     if not new_name:
@@ -89,28 +107,40 @@ def rename_list_with_checks(
     if duplicate and duplicate[0] != list_id:
         return STATUS_DUPLICATE_NAME, new_name
 
-    rename_list(list_id=list_id, new_name=new_name)
+    rename_list(list_id=list_id, new_name=new_name, expected_slug=expected_slug)
     return STATUS_RENAMED, new_name
 
 
-def toggle_item_done(list_id: int, item_id: int, done: bool) -> str:
-    update_item_done(item_id=item_id, list_id=list_id, done=done)
+def toggle_item_done(
+    list_id: int, item_id: int, done: bool, *, expected_slug: str | None = None
+) -> str:
+    update_item_done(
+        item_id=item_id, list_id=list_id, done=done, expected_slug=expected_slug
+    )
     return STATUS_UPDATED
 
 
-def set_item_quantity(list_id: int, item_id: int, quantity: int) -> str:
+def set_item_quantity(
+    list_id: int, item_id: int, quantity: int, *, expected_slug: str | None = None
+) -> str:
     qty = max(1, int(quantity))
-    update_item_quantity(item_id=item_id, list_id=list_id, quantity=qty)
+    update_item_quantity(
+        item_id=item_id, list_id=list_id, quantity=qty, expected_slug=expected_slug
+    )
     return STATUS_UPDATED
 
 
-def delete_item_from_list(list_id: int, item_id: int) -> str:
-    delete_item(item_id=item_id, list_id=list_id)
+def delete_item_from_list(
+    list_id: int, item_id: int, *, expected_slug: str | None = None
+) -> str:
+    delete_item(item_id=item_id, list_id=list_id, expected_slug=expected_slug)
     return STATUS_DELETED
 
 
-def delete_list_and_items(list_id: int, room_id: int) -> tuple[str, int | None]:
-    delete_list(list_id)
+def delete_list_and_items(
+    list_id: int, room_id: int, *, expected_slug: str | None = None
+) -> tuple[str, int | None]:
+    delete_list(list_id, expected_slug=expected_slug)
     remaining_lists = get_lists(room_id)
     if not remaining_lists:
         return STATUS_DELETED, None

@@ -381,7 +381,7 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                 "flat"
             ).classes("flex-grow text-left text-lg")
 
-            def open_rename_dialog(lid=list_id, lname=name):
+            def open_rename_dialog(lid=list_id, lname=name, lslug=slug):
                 with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                     ui.label(f"Edit '{lname}'").classes("text-lg font-bold")
                     new_name_input = ui.input(value=lname, label="List Name").classes(
@@ -396,7 +396,10 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                             try:
                                 if access.is_admin():
                                     status, actual_name = rename_list_with_checks(
-                                        lid, room_id, new_name_input.value
+                                        lid,
+                                        room_id,
+                                        new_name_input.value,
+                                        expected_slug=lslug,
                                     )
                                     if status == STATUS_INVALID_NAME:
                                         ui.notify(
@@ -416,11 +419,13 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                                         access.token or "",
                                         lid,
                                         new_name_input.value,
+                                        expected_slug=lslug,
                                     )
                             except RoomAccessDenied:
                                 await _require_private_room_access(access)
                                 return
                             except ListUnavailable:
+                                dialog.close()
                                 ui.notify(
                                     "The list is no longer available.",
                                     color="warning",
@@ -452,7 +457,7 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                 "flat round dense size=sm"
             )
 
-            async def open_delete_dialog(lid=list_id, lname=name) -> None:
+            async def open_delete_dialog(lid=list_id, lname=name, lslug=slug) -> None:
                 if not await _require_private_room_access(access):
                     return
                 count = get_item_count(lid)
@@ -468,10 +473,15 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                                 return
                             try:
                                 if access.is_admin():
-                                    delete_list_and_items(lid, room_id)
+                                    delete_list_and_items(
+                                        lid, room_id, expected_slug=lslug
+                                    )
                                 else:
                                     delete_list_with_room_token(
-                                        room_slug, access.token or "", lid
+                                        room_slug,
+                                        access.token or "",
+                                        lid,
+                                        expected_slug=lslug,
                                     )
                             except RoomAccessDenied:
                                 await _require_private_room_access(access)
@@ -511,12 +521,14 @@ def item_list(
     only_gt_1_func=None,
     is_active: Callable[[], bool] | None = None,
     on_unavailable: Callable[[], None] | None = None,
+    *,
+    list_slug: str,
 ):
     if is_active and not is_active():
         return
 
     details = get_list_details(list_id)
-    if details is None:
+    if details is None or details["slug"] != list_slug:
         if on_unavailable:
             # Defer the parent-container replacement until this refresh completes.
             ui.timer(0.0, on_unavailable, once=True)
@@ -547,7 +559,7 @@ def item_list(
                     if on_delete:
                         on_delete(it)
                         return
-                    delete_item_from_list(list_id, it["id"])
+                    delete_item_from_list(list_id, it["id"], expected_slug=list_slug)
                 except ListUnavailable:
                     if on_unavailable:
                         on_unavailable()
@@ -603,7 +615,11 @@ def item_list(
                             return
                         try:
                             status, new_name = update_item_details_with_checks(
-                                list_id, it["id"], name_input.value, desc_input.value
+                                list_id,
+                                it["id"],
+                                name_input.value,
+                                desc_input.value,
+                                expected_slug=list_slug,
                             )
                         except ListUnavailable:
                             if on_unavailable:
@@ -624,7 +640,12 @@ def item_list(
                             )
                             return
                         try:
-                            set_item_quantity(list_id, it["id"], q_val["count"])
+                            set_item_quantity(
+                                list_id,
+                                it["id"],
+                                q_val["count"],
+                                expected_slug=list_slug,
+                            )
                         except ListUnavailable:
                             if on_unavailable:
                                 on_unavailable()
@@ -668,7 +689,12 @@ def item_list(
                 if is_active and not is_active():
                     return
                 try:
-                    toggle_item_done(list_id=list_id, item_id=it["id"], done=e.value)
+                    toggle_item_done(
+                        list_id=list_id,
+                        item_id=it["id"],
+                        done=e.value,
+                        expected_slug=list_slug,
+                    )
                 except ListUnavailable:
                     if on_unavailable:
                         on_unavailable()
@@ -688,7 +714,9 @@ def item_list(
                             return
                         new_q = max(1, it.get("quantity", 1) + delta)
                         try:
-                            set_item_quantity(list_id, it["id"], new_q)
+                            set_item_quantity(
+                                list_id, it["id"], new_q, expected_slug=list_slug
+                            )
                         except ListUnavailable:
                             if on_unavailable:
                                 on_unavailable()
@@ -728,7 +756,12 @@ def item_list(
                                 else:
                                     active.append(t)
                                 try:
-                                    update_item_active_tags(it["id"], list_id, active)
+                                    update_item_active_tags(
+                                        it["id"],
+                                        list_id,
+                                        active,
+                                        expected_slug=list_slug,
+                                    )
                                 except ListUnavailable:
                                     if on_unavailable:
                                         on_unavailable()
@@ -1292,7 +1325,9 @@ def _build_pending_undo(action: PendingUndoInput, token: str) -> PendingUndo:
     return tag_pending
 
 
-def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
+def _restore_pending_undo(
+    list_id: int, current: PendingUndo, *, list_slug: str
+) -> None:
     if current["kind"] == "item":
         payload = current["payload"]
         duplicate = find_item_by_name(list_id, payload["name"])
@@ -1309,6 +1344,7 @@ def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
             list_id=list_id,
             done=payload["done"],
             active_tags=payload["active_tags"],
+            expected_slug=list_slug,
         )
         ui.notify(
             f"Restored {payload['name']}",
@@ -1319,14 +1355,14 @@ def _restore_pending_undo(list_id: int, current: PendingUndo) -> None:
 
     payload = current["payload"]
     details_now = get_list_details(list_id)
-    if not details_now:
+    if not details_now or details_now["slug"] != list_slug:
         raise ListUnavailable(f"List {list_id} is no longer available")
 
     tags_now = details_now["list_tags"] or []
     if payload["tag"] not in tags_now:
         tags_now.append(payload["tag"])
     tags_now = sorted(tags_now, key=str.lower)
-    update_list_tags_settings(list_id, tags_now)
+    update_list_tags_settings(list_id, tags_now, expected_slug=list_slug)
     ui.notify(
         f"Restored tag {payload['tag']}",
         color="positive",
@@ -1465,6 +1501,7 @@ def _render_header(
 
 def _render_add_item_row(
     list_id: int,
+    list_slug: str,
     is_active: Callable[[], bool],
     on_unavailable: Callable[[], None],
 ) -> None:
@@ -1486,7 +1523,9 @@ def _render_add_item_row(
                 return
 
             try:
-                status, name = add_or_restore_item(list_id, to_add)
+                status, name = add_or_restore_item(
+                    list_id, to_add, expected_slug=list_slug
+                )
             except ListUnavailable:
                 on_unavailable()
                 return
@@ -1517,6 +1556,12 @@ def _render_add_item_row(
             menu.close()
             return
 
+        lookup = _list_lookup_status(list_slug)
+        if lookup != "exists":
+            menu.close()
+            if lookup == "missing":
+                on_unavailable()
+            return
         _, history = get_list_data(list_id)
         matches = [n for n in history if typed in n.lower()]
         if not matches:
@@ -1567,6 +1612,7 @@ def _render_add_item_row(
 
 def _create_undo_bar(
     list_id: int,
+    list_slug: str,
     state: ViewState,
     clear_pending_undo,
     tags_ui,
@@ -1592,7 +1638,7 @@ def _create_undo_bar(
                     return
 
                 try:
-                    _restore_pending_undo(list_id, current)
+                    _restore_pending_undo(list_id, current, list_slug=list_slug)
                 except ListUnavailable:
                     on_unavailable()
                     return
@@ -1608,6 +1654,7 @@ def _create_undo_bar(
 
 def _create_tags_ui(
     list_id: int,
+    list_slug: str,
     state: ViewState,
     set_pending_undo,
     is_active: Callable[[], bool],
@@ -1618,7 +1665,7 @@ def _create_tags_ui(
         if not is_active():
             return
         curr_details = get_list_details(list_id)
-        if curr_details is None:
+        if curr_details is None or curr_details["slug"] != list_slug:
             ui.timer(0.0, on_unavailable, once=True)
             return
         list_tags = sorted(curr_details["list_tags"], key=str.lower)
@@ -1670,7 +1717,9 @@ def _create_tags_ui(
                     if tag and tag not in list_tags:
                         updated_tags = sorted([*list_tags, tag], key=str.lower)
                         try:
-                            update_list_tags_settings(list_id, updated_tags)
+                            update_list_tags_settings(
+                                list_id, updated_tags, expected_slug=list_slug
+                            )
                         except ListUnavailable:
                             on_unavailable()
                             return
@@ -1712,7 +1761,9 @@ def _create_tags_ui(
                         if t in list_tags:
                             updated_tags = [x for x in list_tags if x != t]
                             try:
-                                update_list_tags_settings(list_id, updated_tags)
+                                update_list_tags_settings(
+                                    list_id, updated_tags, expected_slug=list_slug
+                                )
                             except ListUnavailable:
                                 on_unavailable()
                                 return
@@ -1750,6 +1801,7 @@ def _create_tags_ui(
 
 def _delete_item_with_undo(
     list_id: int,
+    list_slug: str,
     it: dict,
     set_pending_undo,
     is_active: Callable[[], bool],
@@ -1764,7 +1816,7 @@ def _delete_item_with_undo(
         "active_tags": it["active_tags"].copy(),
     }
     try:
-        delete_item_from_list(list_id, it["id"])
+        delete_item_from_list(list_id, it["id"], expected_slug=list_slug)
     except ListUnavailable:
         on_unavailable()
         return
@@ -1933,6 +1985,7 @@ async def list_page(slug: str):
         with active_content:
             tags_ui = _create_tags_ui(
                 list_id=list_id,
+                list_slug=slug,
                 state=view_state,
                 set_pending_undo=set_pending_undo,
                 is_active=is_active,
@@ -1940,6 +1993,7 @@ async def list_page(slug: str):
             )
             undo_bar = _create_undo_bar(
                 list_id=list_id,
+                list_slug=slug,
                 state=view_state,
                 clear_pending_undo=clear_pending_undo,
                 tags_ui=tags_ui,
@@ -1961,6 +2015,7 @@ async def list_page(slug: str):
             tags_ui()
             _render_add_item_row(
                 list_id=list_id,
+                list_slug=slug,
                 is_active=is_active,
                 on_unavailable=transition_to_unavailable,
             )
@@ -1976,6 +2031,7 @@ async def list_page(slug: str):
                     lambda: view_state["edit_mode"],
                     lambda it: _delete_item_with_undo(
                         list_id,
+                        slug,
                         it,
                         set_pending_undo,
                         is_active,
@@ -1985,6 +2041,7 @@ async def list_page(slug: str):
                     lambda: view_state.get("only_gt_1", False),
                     is_active,
                     transition_to_unavailable,
+                    list_slug=slug,
                 )
 
         availability_timer = ui.timer(2.0, poll_list_existence)

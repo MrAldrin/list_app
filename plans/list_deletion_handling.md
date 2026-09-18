@@ -183,4 +183,19 @@ uv run ruff check .
 
 ### Verification note
 
-Automated tests and Python quality checks pass. The browser-based multi-user scenarios require two live browser sessions and were not runnable in this coding environment; they remain the deployment smoke-test checklist.
+The initial implementation passed automated tests and Python quality checks, but browser checks were not run during that implementation session.
+
+### Review follow-up: reused list IDs
+
+SQLite can reuse a deleted list's numeric ID. The original existence-only write guard could therefore allow a stale page to modify a replacement list.
+
+- [x] Carry the original list slug through list-page writes, undo, and room/admin list rename/delete dialogs.
+- [x] Verify that slug inside the same `BEGIN IMMEDIATE` transaction as the write; reject mismatches with `ListUnavailable` and roll back.
+- [x] Stop stale item/tag refreshes and suggestions from treating a replacement list as the original.
+- [x] Add regression coverage for database mutations, service forwarding, room-token actions, undo, rollback, and subsequent valid writes.
+- [x] Keep the two-second timer and existing schema unchanged.
+- [x] Final quality checks: 112 tests pass; Ruff formatting and lint checks are clean (one existing Starlette/httpx deprecation warning).
+- [x] Run isolated browser checks with Chrome: stale add, item-edit, and room-delete callbacks after ID reuse leave replacement data untouched. Those stale-page timers were deliberately delayed to exercise callback protection rather than polling.
+- [x] Run isolated browser checks with the real timer: deleting a room clears both authorized and public list pages and removes the room link.
+
+The earlier review also verified ordinary list deletion messages, edit-dialog cleanup, last-list deletion, back navigation, and deleted-URL reloads in Chrome. These targeted checks do not replace every scenario in the full manual checklist above.
