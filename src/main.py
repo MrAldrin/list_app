@@ -3,13 +3,11 @@ import os
 import uuid
 from typing import Literal, TypedDict
 
-from dotenv import load_dotenv
 from nicegui import app, ui
 
-# Load environment variables from .env file for local development
-load_dotenv()
+from config import require_app_password
 
-GLOBAL_APP_PASSWORD = os.environ.get("APP_PASSWORD")
+GLOBAL_APP_PASSWORD = require_app_password()
 
 from fastapi.responses import FileResponse
 
@@ -493,9 +491,7 @@ async def auth_middleware(request, call_next):
     path = request.url.path
     if path == "/admin":
         is_authenticated = app.storage.user.get("authenticated", False)
-        # If no password is set in the environment, we effectively disable security
-        # to prevent locking the developer out if they forgot to set the .env variable.
-        if GLOBAL_APP_PASSWORD and not is_authenticated:
+        if not is_authenticated:
             from fastapi.responses import RedirectResponse
 
             return RedirectResponse("/admin/login")
@@ -624,13 +620,11 @@ def admin_page() -> None:
                 ui.label("List").classes("font-bold text-slate-800")
                 ui.label("R").classes("font-black text-primary")
 
-            if GLOBAL_APP_PASSWORD:
+            def logout() -> None:
+                app.storage.user.update({"authenticated": False})
+                ui.navigate.to("/admin/login")
 
-                def logout() -> None:
-                    app.storage.user.update({"authenticated": False})
-                    ui.navigate.to("/admin/login")
-
-                ui.button("Log out", on_click=logout).props("flat size=sm")
+            ui.button("Log out", on_click=logout).props("flat size=sm")
 
         def open_new_room_dialog() -> None:
             with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):

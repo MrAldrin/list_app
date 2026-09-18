@@ -5,7 +5,6 @@ Small follow-up ideas that are not currently being implemented.
 ## Important improvements
 
 - [ ] Make the default database path independent of the startup directory by resolving `list.db` relative to the project root, while retaining `DB_PATH` as an override for deployments such as Railway. Add a test for starting from a different working directory.
-- [ ] Make password configuration fail closed. If `APP_PASSWORD` is missing, the app currently leaves `/admin` unprotected and may create the default room with the known `dev_password`. Best solution: require `APP_PASSWORD` in production and remove the fallback; use an explicit, development-only setting locally. Railway already provides `APP_PASSWORD`, but fail-closed behavior protects against deployment misconfiguration.
 - [ ] Replace browser-stored room passwords with persistent, revocable room access tokens. Keep bcrypt password hashes in the database, invalidate tokens when a room password changes, and preserve restart/PWA access. Use the one-time rollout and temporary legacy-password cleanup described in [`plans/room_access_tokens.md`](room_access_tokens.md).
 - [ ] Replace guessable public list slugs with separate high-entropy share tokens. Keep public links editable, support token rotation to revoke old links, and retire or restrict the old slug URLs. See [`plans/public_list_share_tokens.md`](public_list_share_tokens.md).
 
@@ -63,7 +62,8 @@ These are not prerequisites for the current small MVP. Revisit when growth, main
 
 - [x] Repair item foreign keys locally and on Railway, enable enforcement on the app connection, and add migration tests. Production verification passed: `items → lists`, no foreign-key errors, integrity `ok`, 280 items retained, and add/edit/delete smoke tests passed. The downloaded production backup was also migrated on a separate copy with all fields preserved.
 - [x] Confirm Railway uses `DB_PATH=/data/list.db` on the `/data` persistent volume. The separate local relative-path concern remains above.
-- [x] Production password configuration is documented as randomly generated and stored in Bitwarden. The audit's local short-password observation is not evidence of a weak production password; fail-closed behavior and minimum-length policy remain above.
+- [x] Production password configuration is documented as randomly generated and stored in Bitwarden. The audit's local short-password observation is not evidence of a weak production password; minimum-length policy remains above.
+- [x] Make password configuration fail closed: require nonblank `APP_PASSWORD` for local and hosted startup before opening the database, remove the default-room fallback password, and always require admin authentication. Regression tests cover invalid configuration, valid startup, and preserving existing room passwords.
 
 ## Local-only cleanup / verification
 

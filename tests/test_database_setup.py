@@ -1,6 +1,45 @@
 import sqlite3
 
+import bcrypt
+import pytest
+
 from database_setup import init_database
+
+
+def test_default_room_uses_configured_password_without_resetting_it(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "rooms.db"))
+    monkeypatch.setenv("APP_PASSWORD", "initial-app-password")
+    db = init_database()
+    original_hash = db.execute("SELECT password_hash FROM rooms").fetchone()[0]
+    assert bcrypt.checkpw(b"initial-app-password", original_hash.encode())
+    db.close()
+
+    monkeypatch.setenv("APP_PASSWORD", "changed-app-password")
+    db = init_database()
+    assert db.execute("SELECT password_hash FROM rooms").fetchone()[0] == original_hash
+    db.close()
+
+
+@pytest.mark.parametrize("password", [None, "", " \t\n"])
+def test_missing_password_leaves_existing_database_untouched(
+    tmp_path, monkeypatch, password
+):
+    database_path = tmp_path / "existing.db"
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    db = init_database()
+    db.close()
+    original_contents = database_path.read_bytes()
+
+    if password is None:
+        monkeypatch.delenv("APP_PASSWORD", raising=False)
+    else:
+        monkeypatch.setenv("APP_PASSWORD", password)
+
+    with pytest.raises(RuntimeError, match="APP_PASSWORD must be set and not blank"):
+        init_database()
+    assert database_path.read_bytes() == original_contents
 
 
 def test_init_database_repairs_broken_items_foreign_key(tmp_path, monkeypatch):

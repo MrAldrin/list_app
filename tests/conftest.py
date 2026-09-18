@@ -4,6 +4,8 @@ import pytest
 
 # Set DB_PATH to memory for all tests to avoid touching the real database
 os.environ["DB_PATH"] = ":memory:"
+# Tests use explicit credentials, never a developer's .env or deployment secrets.
+os.environ["APP_PASSWORD"] = "test-only-app-password"
 
 from database_crud import create_room
 from database_setup import db

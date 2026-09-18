@@ -4,10 +4,8 @@ import sqlite3
 import uuid
 
 import bcrypt
-from dotenv import load_dotenv
 
-# Load env variables so we can use APP_PASSWORD for default room migration if run directly
-load_dotenv()
+from config import require_app_password
 
 
 def _create_slug(name: str) -> str:
@@ -16,13 +14,14 @@ def _create_slug(name: str) -> str:
     return f"{safe_name}-{short_uuid}"
 
 
-def _ensure_default_room(db: sqlite3.Connection) -> int:
+def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
     existing_room = db.execute("SELECT id FROM rooms WHERE name = 'Home'").fetchone()
     if existing_room:
         return existing_room[0]
 
-    global_pw = os.environ.get("APP_PASSWORD", "dev_password")
-    pw_hash = bcrypt.hashpw(global_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    pw_hash = bcrypt.hashpw(app_password.encode("utf-8"), bcrypt.gensalt()).decode(
+        "utf-8"
+    )
     insert = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", _create_slug("Home"), pw_hash),
@@ -137,6 +136,7 @@ def _migrate_items_foreign_key(db: sqlite3.Connection) -> None:
 
 
 def init_database():
+    app_password = require_app_password()
     db_path = os.environ.get("DB_PATH", "list.db")
     db = sqlite3.connect(db_path, check_same_thread=False)
 
@@ -177,7 +177,7 @@ def init_database():
     if "room_id" not in columns:
         db.execute("ALTER TABLE lists ADD COLUMN room_id INTEGER")
 
-    default_room_id = _ensure_default_room(db)
+    default_room_id = _ensure_default_room(db, app_password)
     db.execute("UPDATE lists SET room_id = ? WHERE room_id IS NULL", (default_room_id,))
 
     if _lists_name_is_globally_unique(db):
