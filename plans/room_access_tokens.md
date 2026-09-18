@@ -2,7 +2,7 @@
 
 ## Status
 
-Not implemented. This plan addresses audit item 5.
+Implemented. Manual restart, deployment, and PWA verification remain. This plan addresses audit item 5.
 
 Created: 2026-09-14
 

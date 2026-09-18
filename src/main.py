@@ -309,7 +309,15 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
 @ui.refreshable
 def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
     """Render private room lists only while this page's access remains valid."""
-    if access.check() is not RoomAccessStatus.VALID:
+    access_status = access.check()
+    if access_status is RoomAccessStatus.UNAVAILABLE:
+        with ui.column().classes("w-full items-center gap-2"):
+            ui.label("Could not verify room access. Please retry.").classes(
+                "text-gray-500 italic"
+            )
+            ui.button("Retry", on_click=list_of_lists.refresh).props("flat")
+        return
+    if access_status is RoomAccessStatus.INVALID:
         _forget_authorized_room(room_slug)
         ui.label("Room access has expired. Reopen the room to sign in again.").classes(
             "text-gray-500 italic"
