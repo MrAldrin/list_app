@@ -13,7 +13,7 @@ Stop storing room passwords in browser `localStorage` while keeping the behaviou
 - A user enters a room password once per browser/device.
 - The room remains available after app restarts and deployments.
 - The PWA home-screen shortcut continues opening the user's room.
-- Resetting a room password revokes existing users' access.
+- Resetting a room password revokes existing users' private room access. Previously shared public list links remain usable.
 
 ## Current behaviour
 
@@ -34,8 +34,8 @@ Do not store or write the plain password after the new flow is deployed.
 
 After a successful password check:
 
-1. Generate a cryptographically random, opaque token.
-2. Store only a hash of the token in the database.
+1. Generate a cryptographically random, opaque token using 32 random bytes (for example, `secrets.token_urlsafe(32)`).
+2. Store only its SHA-256 hash in the database. Random tokens do not need bcrypt; room passwords still do.
 3. Associate the token with its room and current authorization version.
 4. Store the raw token in browser `localStorage` under a new token key, for example `listapp_room_token_{slug}`.
 
@@ -45,7 +45,11 @@ Suggested database structure:
 
 - Add an authorization version to `rooms`, initially `1`.
 - Add a `room_access_tokens` table containing a token hash, room ID, authorization version, creation time, and optional revocation time.
-- Add foreign keys and indexes as part of the database migration.
+- Add a unique index on the token hash and an index on room ID.
+- Enable SQLite foreign-key enforcement and cascade token deletion when its room is deleted.
+- Tokens do not expire automatically in this MVP. They remain valid until individually revoked, their room password changes, or their room is deleted.
+- Reuse valid tokens rather than issuing a new token on every visit. Remove obsolete token rows during password resets to avoid unnecessary accumulation.
+- The migration must preserve existing rooms, lists, and password hashes and be safe to run again.
 
 ### 3. Validate tokens on room access
 
@@ -57,6 +61,12 @@ If a token is invalid or revoked:
 - Remove the room from the remembered authorization state.
 - Show the room password prompt.
 
+Validate authorization on every private room operation, not only when rendering a page. This includes callbacks from already-open pages, such as room renaming and list creation, and any private refresh/read paths. Use a shared server-side authorization helper rather than scattered checks. Bind authorization to the target room; never trust a room ID supplied by the browser on its own.
+
+An authenticated administrator may access rooms through an explicit admin authorization path. An entry in `authorized_rooms` alone must never grant access, including entries created by old admin flows. Normal room password changes and deletion retain their existing password-confirmation requirements; admin resets use the admin authorization path.
+
+Only erase a token when the server has conclusively found it invalid. Browser-storage timeouts and database failures must fail closed (no private access), preserve stored credentials, and offer retry. If browser storage cannot be written, explain that access cannot be remembered on that device.
+
 Public list URLs remain public, as defined by `ARCHITECTURE.md`.
 
 ### 4. Revoke access when a password changes
@@ -67,7 +77,11 @@ All room-password-changing paths must use the same operation:
 2. Increase the room authorization version.
 3. Revoke or invalidate all older room tokens.
 
-Users with an old token must enter the new password and receive a new token. A currently open page may notice this on its next server-side authorization check; immediate redirection of every open client would require an additional broadcast feature.
+The password-hash update and authorization-version increment must happen in one database transaction. Token issuance must also guard against a concurrent password reset: a password verified against an older version must never issue a token under the newer version. Keep authorization checks and private mutations transactionally consistent so a reset cannot slip between the check and the write.
+
+After a normal password change, issue a fresh token to the device that changed it; all other devices must enter the new password. An admin reset does not automatically authorize other devices.
+
+A currently open page must be denied its next private operation after revocation. Immediate visual redirection is optional; immediate enforcement on subsequent private operations is required. Already displayed information cannot be taken back.
 
 ## Rollout plan: one-time login for existing users
 
@@ -75,7 +89,7 @@ This uses the agreed simple rollout rather than a silent migration:
 
 1. Deploy token authentication.
 2. Stop accepting the old `listapp_room_{slug}` password values as authorization.
-3. Temporarily remove legacy room-password keys from browser `localStorage`.
+3. Temporarily remove legacy room-password keys from browser `localStorage`. Explicitly exclude `listapp_room_token_*`: those new keys share the legacy `listapp_room_` prefix. Run cleanup even when login is needed, and never copy legacy passwords into the new flow.
 4. Keep `listapp_last_room` so the root route can still find the user's room.
 5. Each existing browser/device enters the room password once.
 6. Store the new token and use it for future visits.
@@ -97,23 +111,38 @@ The implementation must not:
 
 The token must be stored in the browser and its hash must be stored in the persistent application database. This allows authorization to recover even if NiceGUI's server-side user storage is lost during a restart.
 
+## Security and scope
+
+- Tokens in localStorage are still bearer credentials accessible to JavaScript. This protects the room password itself but does not prevent script injection from stealing access. HTTP-only cookies remain a possible future improvement.
+- Use HTTPS in production. Never put passwords or raw tokens in URLs, logs, or exception messages.
+- Encode browser-storage keys and values safely when generating JavaScript (for example, with `json.dumps`); do not interpolate unescaped route slugs.
+- No device-management UI, automatic expiry, or real-time forced logout is required for this MVP.
+- Update `ARCHITECTURE.md` during implementation: its current room-security rule explicitly describes storing passwords in localStorage and must instead describe revocable tokens and server-side checks.
+
 ## Suggested implementation order
 
 1. Add the schema migration for room authorization versions and access tokens.
 2. Add database/service functions to issue, validate, and revoke tokens.
 3. Add tests for token lifecycle and authorization-version invalidation.
-4. Replace room-page and root-route password reuse with token validation.
-5. Update password changes and admin resets to revoke tokens.
+4. Replace room-page and root-route password reuse with token validation, including explicit admin access and guards on private callbacks/read paths.
+5. Update password changes and admin resets to atomically revoke tokens; handle concurrent token issuance and refresh the changing device's token.
 6. Add the temporary legacy-password cleanup and its dated removal TODO.
-7. Test normal navigation, restart recovery, deployment recovery, password reset, and PWA home-screen behaviour.
+7. Update `ARCHITECTURE.md` and test normal navigation, restart recovery, deployment recovery, password reset, and PWA home-screen behaviour. Run the repository's required Python formatting, lint, and test checks.
 8. Remove the temporary cleanup after the one-year window.
 
 ## Tests and acceptance criteria
 
 - Room passwords remain bcrypt hashes and are never written to localStorage by the new flow.
 - A valid token grants access to only its associated room.
-- Invalid, expired, revoked, or wrong-room tokens require the password again.
-- Resetting a room password invalidates all previous tokens.
+- Invalid, revoked, or wrong-room tokens require the password again; MVP tokens have no automatic expiry.
+- Resetting a room password invalidates all previous tokens, including authorization cached in server-side user storage.
+- An already-open room cannot perform private operations after another device resets its password.
+- Concurrent reset/login cannot turn an old password into a currently valid token; reset and private mutations respect transaction boundaries.
+- The device performing a normal password change receives a new token; other devices must log in again.
+- Authenticated admin access works explicitly; an old `authorized_rooms` entry alone grants nothing.
+- Legacy cleanup removes only old password keys, preserves token keys and `listapp_last_room`, and is safe to repeat.
+- Storage/database failures deny private access without deleting valid credentials; failed persistence gives useful feedback.
+- Migration preserves existing data and can run repeatedly; deleting a room also deletes its tokens.
 - Existing users need to enter a password once per browser/device after rollout, not after every restart.
 - A server restart does not require a password when the token and database remain available.
 - The root route still returns users to their last room.
@@ -130,9 +159,10 @@ The token must be stored in the browser and its hash must be stored in the persi
 
 - [ ] Database schema and migration
 - [ ] Token issue/validation/revocation service
-- [ ] Room and root-route integration
+- [ ] Room and root-route integration, explicit admin access, and private-operation guards
 - [ ] Password-reset invalidation
 - [ ] One-time legacy-password cleanup
-- [ ] Automated tests
+- [ ] Architecture documentation update
+- [ ] Automated tests, including open-page revocation and concurrent reset/login
 - [ ] Manual restart, deployment, and PWA verification
 - [ ] Remove temporary cleanup after one year
