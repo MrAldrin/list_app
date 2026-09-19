@@ -31,6 +31,8 @@ Task prefix: `rooms - self service`. Each jj change gets its own imperative summ
 ## Progress
 - [x] Plan recorded.
 - [x] Invitation persistence/service and tests: 162 tests pass; Ruff clean.
-- [ ] Admin and creation UI with tests and documentation.
+- [x] Admin and creation UI with tests and documentation. Management callbacks recheck authentication; creation checks expiry/revocation again on submission. Architecture updated.
 - [x] Local-copy migration: initialized twice; all 3 rooms, 3 lists, 43 items and 1 access token unchanged. Integrity and foreign-key checks pass. Original untouched.
-- [ ] Final UI checks and stack review.
+- [x] Final checks: 171 tests pass; Ruff format/check clean. Existing Starlette/httpx deprecation warning remains unrelated.
+- [x] Live-server HTTP smoke: admin redirect, login, active/invalid creation pages, no-store/no-referrer headers. UI callback tests cover generation, revocation, logged-out callbacks, password mismatch, duplicate submission, expiry/revocation after page load, and password-based room entry. No full browser automation was available.
+- [x] Reviewed scoped diffs and task stack; no bookmarks moved or integration performed. Leave an empty working change for review.

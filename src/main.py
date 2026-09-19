@@ -10,6 +10,7 @@ from nicegui import app, ui
 
 from config import require_app_password
 from ui.install_help import install_help_menu_item
+from ui.room_invitations import creation_form, invitation_controls
 
 GLOBAL_APP_PASSWORD = require_app_password()
 
@@ -808,7 +809,11 @@ async def auth_middleware(request, call_next):
             from fastapi.responses import RedirectResponse
 
             return RedirectResponse("/admin/login")
-    return await call_next(request)
+    response = await call_next(request)
+    if path.startswith("/create-room/"):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 @ui.refreshable
@@ -923,6 +928,15 @@ def admin_page() -> None:
         ).props("outline")
 
         room_list_ui()
+        invitation_controls(
+            lambda: bool(app.storage.user.get("authenticated", False)),
+            str(ui.context.client.request.base_url),
+        )
+
+
+@ui.page("/create-room/{token}")
+def create_room_page(token: str) -> None:
+    creation_form(token)
 
 
 async def _room_access_from_browser(

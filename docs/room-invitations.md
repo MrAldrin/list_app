@@ -1,0 +1,19 @@
+# Self-service room creation
+
+1. Sign in at `/admin`.
+2. Under **Room invitations**, select **Generate 7-day invitation**.
+3. Copy and save the displayed link; the full link is shown only once.
+4. Share it with your group. Each person can choose a room name and password, then sign into their new room. They should keep the room URL and password.
+5. Use **Revoke** beside an active invitation to stop further room creation immediately.
+
+An invitation is reusable until seven days after generation (expiry is displayed in UTC). If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
+
+Anyone receiving or being forwarded an invitation can create a room. The invitation does not grant access to existing rooms. Room passwords grant management rights to everyone holding them; individual list URLs remain public-by-link. Global admin retains access to all rooms.
+
+## Deployment and migration
+
+Normal startup adds `room_invitations` if missing; no manual SQL is needed. Existing room/list rows do not need to be rewritten for this feature. The original local database was not used for destructive testing. Migration was tested twice on a temporary SQLite backup copy, with existing rows compared and integrity/foreign-key checks run.
+
+There is no automated backup system or abuse throttling in this feature, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
+
+Future personal accounts can replace room-password authorization independently of creation invitations.
