@@ -21,24 +21,43 @@ def handler(client, text):
     button = next(
         e
         for e in client.elements.values()
-        if isinstance(e, ui.button) and e.text == text
+        if (isinstance(e, ui.button) and e.text == text)
+        or (
+            isinstance(e, ui.menu_item)
+            and any(
+                isinstance(child, ui.item_section) and child.text == text
+                for child in e.default_slot.children
+            )
+        )
     )
     return next(iter(button._event_listeners.values())).handler
 
 
-@pytest.mark.parametrize("kind", ["room", "list"])
+@pytest.mark.parametrize("kind, as_menu_item", [("room", True), ("list", False)])
 @pytest.mark.parametrize(
     "result", ["shared", "cancelled", "fallback", None, TimeoutError()]
 )
-def test_sharing_and_copy_fallback(monkeypatch, kind, result):
+def test_sharing_and_copy_fallback(monkeypatch, kind, as_menu_item, result):
     url = f"https://example.com/{kind}/abc"
     javascript = AsyncMock(side_effect=[url, result])
     monkeypatch.setattr(ui, "run_javascript", javascript)
     clipboard = Mock()
     monkeypatch.setattr(ui.clipboard, "write", clipboard)
     with Client(page("/")) as client:
-        share_button(f"/{kind}/abc", kind=kind)
-        asyncio.run(click(client, "Share"))
+        if as_menu_item:
+            with ui.menu() as menu:
+                share_button(f"/{kind}/abc", kind=kind, as_menu_item=True)
+            item = next(
+                e for e in client.elements.values() if isinstance(e, ui.menu_item)
+            )
+            assert item.parent_slot.parent is menu
+            assert not any(
+                isinstance(e, ui.button) and e.text == "Share"
+                for e in client.elements.values()
+            )
+        else:
+            share_button(f"/{kind}/abc", kind=kind)
+        asyncio.run(click(client, f"Share {kind.title()}" if as_menu_item else "Share"))
         dialog = next(e for e in client.elements.values() if isinstance(e, ui.dialog))
         assert bool(dialog.value) == (result not in ("shared", "cancelled"))
         scripts = [call.args[0] for call in javascript.call_args_list]

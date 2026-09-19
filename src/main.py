@@ -1153,13 +1153,13 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                     "font-bold text-slate-800 text-2xl truncate min-w-0"
                 )
 
-            share_button(f"/room/{slug}", kind="room")
             with (
                 ui.button(icon="more_vert").props(
                     'flat round dense aria-label="Room menu"'
                 ),
                 ui.menu(),
             ):
+                share_button(f"/room/{slug}", kind="room", as_menu_item=True)
                 install_help_menu_item()
                 ui.separator()
                 ui.menu_item(

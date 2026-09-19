@@ -5,8 +5,8 @@ import json
 from nicegui import ui
 
 
-def share_button(path: str, *, kind: str) -> None:
-    """Share a canonical room/list path using native sharing or a copy dialog."""
+def share_button(path: str, *, kind: str, as_menu_item: bool = False) -> None:
+    """Render a sharing button or menu item with the same copy-dialog fallback."""
     message = (
         "The recipient will also need the room password."
         if kind == "room"
@@ -65,4 +65,7 @@ def share_button(path: str, *, kind: str) -> None:
         if result not in ("shared", "cancelled"):
             dialog.open()
 
-    ui.button("Share", on_click=share).props("flat")
+    if as_menu_item:
+        ui.menu_item(f"Share {kind.title()}", on_click=share)
+    else:
+        ui.button("Share", on_click=share).props("flat")
