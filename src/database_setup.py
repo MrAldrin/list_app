@@ -198,6 +198,18 @@ def init_database():
         """
     )
 
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS room_invitations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token_hash TEXT NOT NULL UNIQUE,
+            created_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            revoked_at INTEGER
+        )
+        """
+    )
+
     # Migrations for legacy schema variants
     cursor = db.execute("PRAGMA table_info(lists)")
     columns = [col[1] for col in cursor.fetchall()]

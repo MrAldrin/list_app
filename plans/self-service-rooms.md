@@ -30,6 +30,7 @@ Task prefix: `rooms - self service`. Each jj change gets its own imperative summ
 
 ## Progress
 - [x] Plan recorded.
-- [ ] Invitation persistence/service and tests.
+- [x] Invitation persistence/service and tests: 162 tests pass; Ruff clean.
 - [ ] Admin and creation UI with tests and documentation.
-- [ ] Local-copy migration verification and final checks.
+- [x] Local-copy migration: initialized twice; all 3 rooms, 3 lists, 43 items and 1 access token unchanged. Integrity and foreign-key checks pass. Original untouched.
+- [ ] Final UI checks and stack review.

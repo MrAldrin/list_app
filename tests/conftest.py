@@ -14,6 +14,7 @@ from database_setup import db
 @pytest.fixture(autouse=True)
 def clean_db():
     # Clear tables before each test to ensure isolation
+    db.execute("DELETE FROM room_invitations")
     db.execute("DELETE FROM items")
     db.execute("DELETE FROM lists")
     db.execute("DELETE FROM room_access_tokens")
