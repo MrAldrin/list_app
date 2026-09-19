@@ -9,6 +9,7 @@ from typing import Literal, TypedDict
 from nicegui import app, ui
 
 from config import require_app_password
+from ui.install_help import install_help_menu_item
 
 GLOBAL_APP_PASSWORD = require_app_password()
 
@@ -1131,7 +1132,14 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                     "font-bold text-slate-800 text-2xl truncate"
                 ).style("max-width: 200px;")
 
-            with ui.button(icon="more_vert").props("flat round dense"), ui.menu():
+            with (
+                ui.button(icon="more_vert").props(
+                    'flat round dense aria-label="Room menu"'
+                ),
+                ui.menu(),
+            ):
+                install_help_menu_item()
+                ui.separator()
                 ui.menu_item(
                     "Rename Room",
                     on_click=lambda: rename_room_dialog(room_id, room_name, slug),
@@ -1495,6 +1503,13 @@ def _render_header(
                     item_list.refresh()
 
                 ui.button(edit_btn_text, on_click=toggle_edit_mode).props("flat")
+                with (
+                    ui.button(icon="more_vert").props(
+                        'flat round dense aria-label="List menu"'
+                    ),
+                    ui.menu(),
+                ):
+                    install_help_menu_item()
 
         ui.label(list_name).classes("text-2xl font-bold w-full truncate")
 
