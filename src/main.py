@@ -822,6 +822,10 @@ def room_list_ui() -> None:
     if not app.storage.user.get("authenticated", False):
         return
 
+    ui.button("Refresh rooms", icon="refresh", on_click=room_list_ui.refresh).props(
+        "flat size=sm"
+    )
+
     rooms = get_rooms()
     if not rooms:
         ui.label("No rooms yet. Create your first one!").classes("text-gray-500 italic")
