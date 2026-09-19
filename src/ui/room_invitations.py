@@ -54,6 +54,7 @@ def invitation_controls(is_admin: Callable[[], bool], base_url: str) -> None:
             )
             with ui.column().classes("w-full gap-1"):
                 ui.label(f"Invitation #{invitation_id}: {status}")
+                ui.label(f"Created {_utc(invitation['created_at'])}").classes("text-xs")
                 ui.label(f"Expires {_utc(invitation['expires_at'])}").classes("text-xs")
                 if active:
 

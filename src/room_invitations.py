@@ -14,6 +14,7 @@ from database_crud import _DB_LOCK, normalize_item_name
 from database_setup import db
 
 INVITATION_LIFETIME = 7 * 24 * 60 * 60
+INVITATION_RETENTION = 7 * 24 * 60 * 60
 
 
 class InvitationUnavailable(ValueError):
@@ -37,7 +38,17 @@ def create_invitation() -> tuple[int, str]:
 
 
 def get_invitations() -> list[dict]:
-    with _DB_LOCK:
+    """Prune records inactive for seven days when the admin list is loaded.
+
+    Use the earlier of expiry and revocation: revoking an already expired
+    invitation must not extend its retention period. Room data is independent.
+    """
+    cutoff = int(time.time()) - INVITATION_RETENTION
+    with _DB_LOCK, db:
+        db.execute(
+            "DELETE FROM room_invitations WHERE expires_at <= ? OR revoked_at <= ?",
+            (cutoff, cutoff),
+        )
         rows = db.execute(
             "SELECT id, created_at, expires_at, revoked_at "
             "FROM room_invitations ORDER BY id DESC"

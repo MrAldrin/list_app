@@ -111,3 +111,42 @@ def test_failed_insert_rolls_back_without_consuming_invitation(monkeypatch):
     assert not db.in_transaction
     assert get_rooms() == before
     assert invitations.invitation_is_active(token)
+
+
+@pytest.mark.parametrize("reason", ["expire", "revoke", "revoke_after_expiry"])
+def test_cleanup_at_seven_day_boundary_preserves_rooms(monkeypatch, reason):
+    now = 1000
+    monkeypatch.setattr(invitations.time, "time", lambda: now)
+    invitation_id, token = invitations.create_invitation()
+    slug = invitations.create_room_from_invitation(token, "Keep me", "pw")
+    _, room_token = authenticate_room_and_issue_token(slug, "pw")
+    inactive_at = now + invitations.INVITATION_LIFETIME
+    if reason == "revoke":
+        now += 60
+        invitations.revoke_invitation(invitation_id)
+        inactive_at = now
+    elif reason == "revoke_after_expiry":
+        now = inactive_at + 60
+        invitations.revoke_invitation(invitation_id)
+
+    now = inactive_at + invitations.INVITATION_RETENTION - 1
+    assert [row["id"] for row in invitations.get_invitations()] == [invitation_id]
+    now += 1
+    active_id, active_token = invitations.create_invitation()
+    assert [row["id"] for row in invitations.get_invitations()] == [active_id]
+    assert (
+        db.execute(
+            "SELECT 1 FROM room_invitations WHERE id = ?", (invitation_id,)
+        ).fetchone()
+        is None
+    )
+    assert not db.in_transaction
+    assert invitations.invitation_is_active(active_token)
+    assert not invitations.invitation_is_active(token)
+    with pytest.raises(invitations.InvitationUnavailable):
+        invitations.create_room_from_invitation(token, "Denied", "pw")
+    assert verify_room(slug, "pw")
+    assert validate_room_access_token(slug, room_token)
+    # Repeated cleanup is harmless and never reuses a deleted invitation ID.
+    assert [row["id"] for row in invitations.get_invitations()] == [active_id]
+    assert active_id > invitation_id

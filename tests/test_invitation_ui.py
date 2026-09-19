@@ -97,11 +97,15 @@ def test_admin_generate_rechecks_authentication():
         assert get_invitations() == []
 
 
-def test_admin_can_generate_full_link_and_revoke():
+def test_admin_can_generate_full_link_and_revoke(monkeypatch):
+    monkeypatch.setattr(room_invitations.time, "time", lambda: 0)
     authenticated = True
     with Client(page("/")) as client:
         invitation_controls(lambda: authenticated, "https://example.test/")
         click(client, "Generate 7-day invitation")
+        labels = [element.text for element in elements(client, ui.label)]
+        assert "Created 1970-01-01 00:00 UTC" in labels
+        assert "Expires 1970-01-08 00:00 UTC" in labels
         link = elements(client, ui.input)[0].value
         assert link.startswith("https://example.test/create-room/")
         token = link.rsplit("/", 1)[1]

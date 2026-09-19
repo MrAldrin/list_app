@@ -6,9 +6,13 @@
 4. Share it with your group. Each person can choose a room name and password, then sign into their new room. They should keep the room URL and password.
 5. Use **Revoke** beside an active invitation to stop further room creation immediately.
 
-An invitation is reusable until seven days after generation (expiry is displayed in UTC). If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
+An invitation is reusable until seven days after generation (creation and expiry times are displayed in UTC). If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
 
 Anyone receiving or being forwarded an invitation can create a room. The invitation does not grant access to existing rooms. Room passwords grant management rights to everyone holding them; individual list URLs remain public-by-link. Global admin retains access to all rooms.
+
+## Invitation history
+
+Revoked and expired invitations remain visible for seven days after they first become inactive (revocation or expiry, whichever happens first). Opening or refreshing the admin invitation list automatically deletes older invitation records. There is no background scheduler, so records may stay in the database longer if nobody opens the admin page. Deleted invitation links remain invalid; existing rooms and their access tokens are unaffected. No additional database migration is needed for this cleanup.
 
 ## Deployment and migration
 
