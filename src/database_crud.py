@@ -473,6 +473,19 @@ def _insert_room_access_token_locked(room_id: int, authorization_version: int) -
     return token
 
 
+def _password_matches(plain_password: str, stored_hash: object) -> bool:
+    """Reject malformed/unsupported stored hashes without hiding database errors."""
+    if not isinstance(stored_hash, str):
+        return False
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"), stored_hash.encode("utf-8")
+        )
+    except ValueError:
+        # bcrypt rejects invalid salts/formats (and unsupported password inputs).
+        return False
+
+
 def authenticate_room_and_issue_token(
     room_slug: str, plain_password: str
 ) -> tuple[int, str] | None:
@@ -488,9 +501,7 @@ def authenticate_room_and_issue_token(
                 """,
                 (room_slug,),
             ).fetchone()
-            if not row or not bcrypt.checkpw(
-                plain_password.encode("utf-8"), row[1].encode("utf-8")
-            ):
+            if not row or not _password_matches(plain_password, row[1]):
                 db.rollback()
                 return None
             token = _insert_room_access_token_locked(row[0], row[2])
@@ -525,7 +536,7 @@ def verify_room(room_slug: str, plain_password: str):
         return None
 
     room_id, pw_hash = row
-    if bcrypt.checkpw(plain_password.encode("utf-8"), pw_hash.encode("utf-8")):
+    if _password_matches(plain_password, pw_hash):
         return room_id
     return None
 
@@ -587,9 +598,7 @@ def change_room_password_and_issue_token(
                 """,
                 (room_slug,),
             ).fetchone()
-            if not row or not bcrypt.checkpw(
-                current_plain_password.encode("utf-8"), row[1].encode("utf-8")
-            ):
+            if not row or not _password_matches(current_plain_password, row[1]):
                 db.rollback()
                 return None
 
@@ -732,9 +741,7 @@ def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
             row = db.execute(
                 "SELECT id, password_hash FROM rooms WHERE slug = ?", (room_slug,)
             ).fetchone()
-            if not row or not bcrypt.checkpw(
-                plain_password.encode("utf-8"), row[1].encode("utf-8")
-            ):
+            if not row or not _password_matches(plain_password, row[1]):
                 db.rollback()
                 return False
             room_id = row[0]

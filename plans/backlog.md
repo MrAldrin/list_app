@@ -10,7 +10,7 @@ Small follow-up ideas that are not currently being implemented.
 ## Security
 
 - [ ] Enforcing minimum password length in code: not implemented.
-- [ ] Handle malformed or legacy room password hashes safely: `verify_room()` should treat invalid bcrypt data as a failed login instead of raising an exception, with a regression test.
+- [x] Handle malformed or unsupported legacy room password hashes safely: all room password checks reject invalid bcrypt data instead of raising an exception. Regression tests cover verification, login, password changes, deletion, and recovery through an admin password reset. No database migration or automatic hash repair is needed.
 
 ## Data correctness — next priorities
 
