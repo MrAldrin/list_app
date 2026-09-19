@@ -15,7 +15,7 @@ Small follow-up ideas that are not currently being implemented.
 ## Data correctness — next priorities
 
 - [ ] Prevent concurrent duplicate items: add a database uniqueness rule consistent with the app's name normalization and make add/restore atomic (one indivisible operation). Check existing duplicates before adding the constraint; test concurrent requests.
-- [ ] Make quantity increments/decrements atomic in SQL instead of writing a value calculated from an old UI view. Retain the minimum quantity of one and test concurrent changes.
+- [x] Make quantity increments/decrements atomic in SQL instead of writing a value calculated from an old UI view. The +/− buttons now apply deltas to the stored quantity, retaining the minimum of one. Regression tests cover concurrent changes, legacy null quantities, list scoping, and stale-list identity protection. Explicit quantity edits in the edit dialog remain unchanged.
 - [ ] Preserve all item information when undoing deletion, including description and quantity. Decide whether the original ID must be restored and test duplicate-name conflicts.
 - [ ] Validate name and quantity together before saving an item edit. An invalid or duplicate name must leave every field unchanged; save valid edits in one transaction.
 - [ ] Review other multi-step writes for atomicity, especially list/room deletion and service operations that read, check, then write. Use transactions and a consistent service layer; test rollback on failure.

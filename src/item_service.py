@@ -1,5 +1,6 @@
 from database_crud import (
     add_item,
+    adjust_item_quantity,
     delete_item,
     delete_list,
     find_duplicate_name,
@@ -126,6 +127,15 @@ def set_item_quantity(
     qty = max(1, int(quantity))
     update_item_quantity(
         item_id=item_id, list_id=list_id, quantity=qty, expected_slug=expected_slug
+    )
+    return STATUS_UPDATED
+
+
+def change_item_quantity(
+    list_id: int, item_id: int, delta: int, *, expected_slug: str | None = None
+) -> str:
+    adjust_item_quantity(
+        item_id=item_id, list_id=list_id, delta=delta, expected_slug=expected_slug
     )
     return STATUS_UPDATED
 

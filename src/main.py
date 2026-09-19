@@ -129,6 +129,7 @@ from item_service import (
     STATUS_INVALID_NAME,
     STATUS_RESTORED,
     add_or_restore_item,
+    change_item_quantity,
     delete_item_from_list,
     delete_list_and_items,
     rename_list_with_checks,
@@ -712,10 +713,9 @@ def item_list(
                     def change_qty(delta: int, it=item):
                         if is_active and not is_active():
                             return
-                        new_q = max(1, it.get("quantity", 1) + delta)
                         try:
-                            set_item_quantity(
-                                list_id, it["id"], new_q, expected_slug=list_slug
+                            change_item_quantity(
+                                list_id, it["id"], delta, expected_slug=list_slug
                             )
                         except ListUnavailable:
                             if on_unavailable:

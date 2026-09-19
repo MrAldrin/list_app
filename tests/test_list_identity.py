@@ -41,6 +41,7 @@ def snapshot(list_id):
         ("rename_item", {"new_name": "stale"}),
         ("update_item_details", {"name": "stale", "description": "stale"}),
         ("update_item_quantity", {"quantity": 99}),
+        ("adjust_item_quantity", {"delta": 1}),
         ("update_item_active_tags", {"active_tags": ["stale"]}),
         ("delete_item", {}),
         ("update_list_tags_settings", {"list_tags": ["stale"]}),
@@ -58,6 +59,7 @@ def test_database_writes_reject_reused_list_id(replacement, operation, args):
         "rename_item",
         "update_item_details",
         "update_item_quantity",
+        "adjust_item_quantity",
         "update_item_active_tags",
         "delete_item",
     }:
@@ -86,6 +88,7 @@ def test_database_writes_reject_reused_list_id(replacement, operation, args):
         ),
         ("toggle_item_done", {"done": False}),
         ("set_item_quantity", {"quantity": 99}),
+        ("change_item_quantity", {"delta": 1}),
         ("delete_item_from_list", {}),
         ("rename_list_with_checks", {"raw_name": "stale"}),
         ("delete_list_and_items", {}),

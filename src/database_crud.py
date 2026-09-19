@@ -359,6 +359,24 @@ def update_item_quantity(
             raise
 
 
+def adjust_item_quantity(
+    item_id: int, list_id: int, delta: int, *, expected_slug: str | None = None
+):
+    """Apply a delta to the stored quantity, never to a stale UI snapshot."""
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            db.execute(
+                "UPDATE items SET quantity = MAX(1, COALESCE(quantity, 1) + ?) "
+                "WHERE id = ? AND list_id = ?",
+                (delta, item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+
 def delete_item(item_id: int, list_id: int, *, expected_slug: str | None = None):
     with _DB_LOCK:
         try:
