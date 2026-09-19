@@ -35,7 +35,6 @@ Small follow-up ideas that are not currently being implemented.
 
 ## UI and PWA
 
-- [ ] Allow user zoom by removing restrictive viewport settings; retain suitable input font sizes to avoid unwanted iOS input zoom.
 - [ ] Decide the intended offline behavior. The current service worker does not provide meaningful offline support. Remove misleading fallback behavior or design a tested cache/offline experience; editable offline lists would also require synchronization.
 
 ## Testing, documentation, and tooling
