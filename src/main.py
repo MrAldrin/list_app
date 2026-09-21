@@ -7,7 +7,7 @@ from contextlib import suppress
 from typing import Literal, TypedDict
 from urllib.parse import quote, urlsplit
 
-from nicegui import app, ui
+from nicegui import app, core, ui
 
 from config import require_app_password
 from ui.install_help import install_help_menu_item
@@ -170,6 +170,16 @@ from item_service import (
     update_item_details_with_checks,
 )
 from room_access import RoomAccess, RoomAccessStatus
+from room_cookies import (
+    LAST_ROOM_COOKIE,
+    register_room_cookie_routes,
+    same_origin_socket,
+    token_cookie_name,
+)
+
+register_room_cookie_routes(app)
+# Cookie credentials require same-origin websocket and polling handshakes.
+core.sio.eio.cors_allowed_origins = same_origin_socket
 
 NOTIFY_POSITION = "top"
 TAG_COLORS = ["blue", "green", "red", "orange", "purple", "teal", "pink"]
@@ -204,16 +214,67 @@ async def _cleanup_legacy_room_password_keys() -> bool:
 
 
 async def _get_browser_storage(key: str) -> tuple[bool, str | None]:
+    """Read remembered cookies first, then migrate legacy browser storage."""
+    request = ui.context.client.request
+    prefix = "listapp_room_token_"
+    if request.url.scheme == "https":
+        cookie_key = (
+            token_cookie_name(key[len(prefix) :])
+            if key.startswith(prefix)
+            else LAST_ROOM_COOKIE
+            if key == "listapp_last_room"
+            else None
+        )
+        if cookie_key and (value := request.cookies.get(cookie_key)):
+            return True, value
     try:
         value = await ui.run_javascript(
             f"return localStorage.getItem({json.dumps(key)})", timeout=3.0
         )
     except Exception:  # noqa: BLE001 - browser storage can be unavailable.
         return False, None
+    if isinstance(value, str) and key.startswith(prefix):
+        await _store_room_cookie(key[len(prefix) :], value)
     return True, value if isinstance(value, str) else None
 
 
+async def _store_room_cookie(room_slug: str, token: str) -> bool:
+    try:
+        return bool(
+            await ui.run_javascript(
+                """
+            if (location.protocol !== 'https:') return false;
+            const url = '/_room-access/' + encodeURIComponent(%s);
+            const token = %s;
+            const send = (body) => fetch(url, {
+                method: 'POST', credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json', 'X-Listapp-Request': '1'},
+                body: JSON.stringify(body),
+            });
+            if (!(await send({token})).ok) return false;
+            if (!(await send({token, check: true})).ok) return false;
+            try {
+                localStorage.removeItem(%s);
+                localStorage.setItem('listapp_last_room', %s);
+            } catch (_) { /* Confirmed cookies need no localStorage. */ }
+            return true;
+            """
+                % (
+                    json.dumps(room_slug),
+                    json.dumps(token),
+                    json.dumps(_room_token_storage_key(room_slug)),
+                    json.dumps(room_slug),
+                ),
+                timeout=5.0,
+            )
+        )
+    except Exception:  # noqa: BLE001 - preserve legacy access on network failure.
+        return False
+
+
 async def _store_room_access(room_slug: str, token: str) -> bool:
+    if await _store_room_cookie(room_slug, token):
+        return True
     token_key = _room_token_storage_key(room_slug)
     try:
         await ui.run_javascript(
@@ -235,7 +296,17 @@ async def _remove_room_token(room_slug: str) -> None:
         Exception
     ):  # Browser cleanup is best effort for a known invalid token.
         await ui.run_javascript(
-            f"localStorage.removeItem({json.dumps(_room_token_storage_key(room_slug))})",
+            """
+            if (location.protocol === 'https:') {
+                await fetch('/_room-access/' + encodeURIComponent(%s), {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/json', 'X-Listapp-Request': '1'},
+                    body: JSON.stringify({clear: true}),
+                });
+            }
+            localStorage.removeItem(%s);
+            """
+            % (json.dumps(room_slug), json.dumps(_room_token_storage_key(room_slug))),
             timeout=3.0,
         )
 
@@ -842,8 +913,10 @@ async def auth_middleware(request, call_next):
 
             return RedirectResponse("/admin/login")
     response = await call_next(request)
-    if path.startswith("/create-room/"):
+    if path == "/" or path.startswith(("/room/", "/list/", "/create-room/")):
+        # These pages can contain UI personalized by ambient credentials.
         response.headers["Cache-Control"] = "no-store"
+    if path.startswith("/create-room/"):
         response.headers["Referrer-Policy"] = "no-referrer"
     return response
 

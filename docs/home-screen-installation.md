@@ -1,4 +1,4 @@
-# Room-specific home-screen launch
+# Room-specific home-screen launch and remembered access
 
 ## Behavior
 
@@ -21,7 +21,19 @@
   removing/reinstalling an icon; deleting it may remove its saved login.
 - Deleted-room links still show “Room not found”; they never grant access to a
   different room. Open another saved room link or the site's root to recover.
-- No cookies, database migrations, or authorization rules changed.
+- HTTPS sign-in now stores the existing revocable token in a host-only Secure,
+  HttpOnly, SameSite=Lax cookie with a one-year lifetime. No database migration
+  or new permission is needed. Password changes still revoke every old token.
+- Existing localStorage tokens migrate on their next read, after server validation
+  and a second request confirming cookie acceptance. Only then is the old token
+  removed. HTTP development and cookie failures retain localStorage fallback.
+- The goal is no additional sign-in after installation where cookies are copied.
+  [Apple documents copying cookies from iOS/iPadOS 17.2 onward](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/).
+  Existing installations and other browsers may behave differently. Cookies are
+  not assumed to stay synchronized between Safari and the installed app.
+- Install only after sign-in finishes (or after reopening an existing signed-in
+  room so its legacy token can migrate). Expired, cleared, blocked or revoked
+  credentials always require another sign-in.
 
 ## Implementation and automated checks
 
@@ -38,9 +50,43 @@ installation instructions. Existing room access/routing tests cover token
 validation and remembered-room recovery. These are not substitutes for device
 installation checks.
 
+## Cookie security and deployment
+
+`src/room_cookies.py` exposes a POST-only token-to-cookie bridge. Writes require
+HTTPS, exact matching Origin, a custom request header, and token validation.
+Cross-site Fetch Metadata is rejected. Cookie acceptance is checked without
+returning credentials to JavaScript. Socket.IO uses same-origin handshakes rather
+than NiceGUI's wildcard default, covering websocket and polling transports.
+Normal private callbacks continue validating the token against the database.
+The token still briefly passes through JavaScript during login/migration; this
+is not a complete defense against malicious scripts on the app's own origin.
+
+Cookies use `__Host-` names, no Domain attribute and path `/`. Host the app on a
+dedicated trusted origin, not alongside unrelated applications. Each remembered
+room adds a cookie; this is designed for a few rooms, not hundreds. Root routing
+remembers the last sign-in/migration, not a guarantee to retarget an installed icon.
+
+Railway must forward the original HTTPS scheme and host, and the server must
+trust forwarded headers only from its proxy. A mismatched Origin/scheme rejects
+cookie writes rather than weakening checks; localStorage fallback may still
+work, but installation sign-in preservation then will not. Check HTTPS cookie
+creation and websocket reconnects after deploying. Do not enable cross-origin
+credentialed CORS or wildcard Socket.IO origins.
+
 ## Verification performed
 
-- Full suite: **214 tests passed**; Ruff formatting and lint checks clean.
+- Cookie implementation: **229 tests passed**, with clean Ruff formatting/lint
+  checks. No dependency changes or database migrations.
+- Disposable HTTPS server plus real headless Chromium: verified password sign-in,
+  Secure/HttpOnly cookie creation, removal of migrated localStorage tokens,
+  fresh-context access with only copied room cookies, legacy-token migration,
+  and password fallback after authorization-version revocation. This also checked
+  that HTTPS websocket connections work with the same-origin restriction.
+- Original room-launch implementation: **214 tests passed**, with clean Ruff checks.
+- Cookie regression tests simulate copied cookies with no localStorage and cover
+  cookie flags, confirmation, migration/fallback, revoked tokens, invalid requests,
+  database failure and same-origin Socket.IO configuration. This does not simulate
+  the operating system's Add to Home Screen operation.
 - Started a disposable real app server with a temporary database. Fetched the
   initial HTML for a room, room with `admin=true`, missing room, root, admin
   login, invalid invitation, and missing public list. Each contained exactly
@@ -55,8 +101,11 @@ Use HTTPS and disposable rooms. Record OS/browser versions and results. These
 checks have **not** been performed by the coding agent.
 
 1. **Fresh iPhone installation:** in Safari, create/open room A, sign in, then
-   Add to Home Screen. Launch the icon. Expect room A, possibly its password
-   prompt, rather than a request to paste a room link. Sign in and verify lists.
+   Add to Home Screen. Launch the icon. On supported versions with cookies
+   preserved, expect room A's lists without signing in again. If prompted, record
+   that as a failed sign-in-preservation check (the password prompt remains a safe
+   fallback). Repeat using an existing localStorage login after visiting room A
+   to migrate it. Also test with browser storage disabled.
 2. **Password-prompt installation:** install directly from room A's password
    page. Confirm the icon opens A but does not reveal its lists without login.
 3. **Restart:** close/reopen the installed app and restart the server. Confirm

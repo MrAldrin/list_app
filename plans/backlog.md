@@ -35,7 +35,7 @@ Small follow-up ideas that are not currently being implemented.
 
 ## UI and PWA
 
-### Home-screen onboarding — room launch implemented; cookies deferred
+### Home-screen onboarding — room launch and cookie access implemented
 
 On iPhone, a new home-screen installation does not inherit the browser's
 `localStorage`. Older installations launch at `/` and rely on that storage for
@@ -45,11 +45,11 @@ The pasted-link and remembered-room recovery fixes do not solve this separate
 installation issue.
 
 - [x] **Implement a room-specific launch address first.** Room pages now advertise a credential-free room launch manifest, retaining the existing single ListR identity and password/token authorization. Other pages keep the root manifest. Switching rooms does not deliberately retarget installed icons. Automated tests cover manifest isolation, defaults, escaping, missing/deleted rooms, and fresh-launch password prompts. **Real iPhone and Android installation checks remain outstanding**; existing icons are not assumed to update. See [`docs/home-screen-installation.md`](../docs/home-screen-installation.md).
-- [ ] **Evaluate secure, HTTP-only cookies for remembered access.** Apple documents copying cookies, but not localStorage, when creating a home-screen app starting in iOS/iPadOS 17.2. Cookie-based room routing and authentication could preserve room recognition and login during installation. This is a larger security change: assess cookie scope, Secure/SameSite settings, CSRF protection, token migration, password-change revocation, and browser/device behavior. Update `ARCHITECTURE.md` if adopted. Do not promise that users will never need to sign in again.
+- [x] **Add secure, HTTP-only cookies for remembered access.** HTTPS uses host-only Secure/HttpOnly/SameSite=Lax cookies with one-year persistence, existing revocable tokens, same-origin write checks, and same-origin Socket.IO handshakes. Legacy localStorage access migrates after cookie confirmation; HTTP/cookie-unavailable fallback remains. `ARCHITECTURE.md` records the adopted model. Automated tests cover cookie transfer simulation, validation, revocation, migration fallback, and forged requests. Apple documents cookie copying starting in iOS/iPadOS 17.2, but **real-device installation checks remain outstanding**.
 
-The room-specific launch approach was approved and implemented first. Cookie
-changes remain an unscheduled research idea; implementing both is not required.
-Validate installation behavior on real devices before treating it as verified.
+Both approaches are now implemented. The target is correct-room launch without
+another sign-in where installation preserves cookies—not a guarantee. Validate
+installation behavior on real devices before treating it as verified.
 
 References: [Apple's installation cookie behavior](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/),
 [MDN: manifest start_url](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/start_url).
@@ -91,7 +91,7 @@ These are not prerequisites for the current small MVP. Revisit when growth, main
 
 ## Tracking
 
-- Home-screen onboarding: room-specific launch implemented with automated coverage; real-device checks pending. Cookie authentication remains deferred.
+- Home-screen onboarding: room-specific launch and cookie-backed access implemented with automated coverage; real-device installation checks pending.
 - Existing security plans remain linked above; planned work is not claimed to be implemented.
 - 2026-09-15: Reconciled the remaining codebase audit into this backlog, recorded verified fixes and explicit deferrals, and retired `agent_files/codebase-audit.md`. The original assessment remains in version-control history.
 - 2026-09-18: Resolved the local default database-path issue; Railway continues to use its explicit `/data/list.db` override.
