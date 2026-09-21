@@ -35,6 +35,28 @@ Small follow-up ideas that are not currently being implemented.
 
 ## UI and PWA
 
+### Future home-screen onboarding ideas — not scheduled
+
+On iPhone, a new home-screen installation does not inherit the browser's
+`localStorage`. The current app launches at `/` and relies on that storage for
+both the last room and its access token. This can leave a newly installed app
+asking for a room link even after the user created and signed into a room.
+The pasted-link and remembered-room recovery fixes do not solve this separate
+installation issue.
+
+- [ ] **Explore a room-specific launch address first.** Open the installed app at the room it was installed from, rather than `/`, so users need only enter the password if necessary—not recover and paste a room link. Keep existing token/password authorization; a launch URL identifies a room but must not contain credentials. Before implementation, decide app identity and room-switching behavior, and test fresh installations, existing icons, and multiple rooms on a real iPhone (plus Android regression checks). Do not assume existing icons update automatically.
+- [ ] **Evaluate secure, HTTP-only cookies for remembered access.** Apple documents copying cookies, but not localStorage, when creating a home-screen app starting in iOS/iPadOS 17.2. Cookie-based room routing and authentication could preserve room recognition and login during installation. This is a larger security change: assess cookie scope, Secure/SameSite settings, CSRF protection, token migration, password-change revocation, and browser/device behavior. Update `ARCHITECTURE.md` if adopted. Do not promise that users will never need to sign in again.
+
+These are research ideas for when time permits, not approved implementation
+plans. They may complement each other, but implementing both is not required.
+Start by validating the room-specific launch approach; defer cookie changes if
+that makes onboarding simple enough.
+
+References: [Apple's installation cookie behavior](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/),
+[MDN: manifest start_url](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/start_url).
+
+### Other ideas
+
 - [ ] Decide the intended offline behavior. The current service worker does not provide meaningful offline support. Remove misleading fallback behavior or design a tested cache/offline experience; editable offline lists would also require synchronization.
 
 ## Testing, documentation, and tooling
@@ -70,6 +92,7 @@ These are not prerequisites for the current small MVP. Revisit when growth, main
 
 ## Tracking
 
+- Home-screen onboarding: two future research ideas recorded; neither implemented or scheduled.
 - Existing security plans remain linked above; planned work is not claimed to be implemented.
 - 2026-09-15: Reconciled the remaining codebase audit into this backlog, recorded verified fixes and explicit deferrals, and retired `agent_files/codebase-audit.md`. The original assessment remains in version-control history.
 - 2026-09-18: Resolved the local default database-path issue; Railway continues to use its explicit `/data/list.db` override.
