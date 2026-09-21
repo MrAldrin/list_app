@@ -60,6 +60,7 @@ Only these boundaries are fixed right now. Field-level schema details are allowe
 
 ## UX Direction
 - Mobile-first design is the default
+- **Home-screen installation:** Room pages advertise a room-specific manifest whose `start_url` is `/room/{slug}`, without credentials or admin query parameters. All manifests retain the existing app identity (`id: "/"`) and origin-wide scope: this is one ListR app, not a separate installed app per room. Switching rooms does not deliberately retarget an existing icon. Other pages retain the root launch manifest and remembered-room recovery. Existing icons may not update; browser/device installation behavior requires real-device checks. Authentication remains unchanged, including a password prompt when an installation has no saved token.
 - UI decisions should prioritize quick list editing during shopping.
 
 

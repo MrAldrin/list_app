@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import suppress
 from typing import Literal, TypedDict
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from nicegui import app, ui
 
@@ -16,7 +16,8 @@ from ui.sharing import share_button
 
 GLOBAL_APP_PASSWORD = require_app_password()
 
-from fastapi.responses import FileResponse
+from fastapi import HTTPException
+from fastapi.responses import FileResponse, JSONResponse
 
 
 # --- PWA and Assets ---
@@ -39,8 +40,35 @@ def serve_manifest():
     )
 
 
+@app.get("/room-manifest/{slug}.json")
+def serve_room_manifest(slug: str):
+    # This is routing metadata, never proof of authorization. Do not include
+    # room names, passwords, tokens, or incoming query parameters.
+    if not get_room_details_by_slug(slug):
+        raise HTTPException(status_code=404, detail="Room not found")
+    with open(
+        os.path.join(os.path.dirname(__file__), "static", "manifest.json"),
+        encoding="utf-8",
+    ) as manifest_file:
+        manifest = json.load(manifest_file)
+    manifest["start_url"] = f"/room/{quote(slug, safe='')}"
+    return JSONResponse(
+        manifest,
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
+
+
+def _add_install_manifest(room_slug: str | None = None) -> None:
+    href = (
+        f"/room-manifest/{quote(room_slug, safe='')}.json"
+        if room_slug is not None
+        else "/manifest.json"
+    )
+    ui.add_head_html(f'<link rel="manifest" href="{href}">')
+
+
 app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
-ui.add_head_html('<link rel="manifest" href="/manifest.json">', shared=True)
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
 )
@@ -785,6 +813,8 @@ def item_list(
 
 @ui.page("/admin/login")
 def admin_login() -> None:
+    _add_install_manifest()
+
     def try_login() -> None:
         if password.value == GLOBAL_APP_PASSWORD:
             app.storage.user.update({"authenticated": True})
@@ -882,6 +912,7 @@ def room_list_ui() -> None:
 
 @ui.page("/admin")
 def admin_page() -> None:
+    _add_install_manifest()
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
             "w-full items-center justify-between tracking-tighter mb-2"
@@ -942,6 +973,7 @@ def admin_page() -> None:
 
 @ui.page("/create-room/{token}")
 def create_room_page(token: str) -> None:
+    _add_install_manifest()
     creation_form(token)
 
 
@@ -987,6 +1019,7 @@ async def _room_access_from_browser(
 
 @ui.page("/")
 async def index() -> None:
+    _add_install_manifest()
     await _cleanup_legacy_room_password_keys()
     storage_read, saved_last_room = await _get_browser_storage("listapp_last_room")
     if storage_read and saved_last_room:
@@ -1081,6 +1114,7 @@ async def index() -> None:
 @ui.page("/room/{slug}")
 async def room_page(slug: str, admin: str | None = None) -> None:
     details = get_room_details_by_slug(slug)
+    _add_install_manifest(slug if details else None)
     if not details:
         ui.label("Room not found").classes("text-xl p-4")
         return
@@ -1797,6 +1831,7 @@ def _delete_item_with_undo(
 
 @ui.page("/list/{slug}")
 async def list_page(slug: str):
+    _add_install_manifest()
     try:
         details = get_list_details_by_slug(slug)
     except sqlite3.Error:

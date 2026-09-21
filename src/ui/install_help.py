@@ -27,9 +27,14 @@ You can also use ListR in other modern browsers. Installation options and
 button names may differ. If you can't find the option, try Safari on
 iPhone/iPad or Chrome on Android.
 
-Your home-screen app opens your last-used room, not necessarily the list
-you're viewing. You may need to sign in again the first time. Keep your
-room link handy.
+For a room-specific launch, install while viewing your room, not a list.
+New installations from a room are configured to open that room. You may
+need its password the first time. Keep your room link handy as a fallback.
+
+ListR keeps one app identity: switching rooms does not retarget your icon,
+and your browser may reuse an existing installation. Older icons may still
+open your last-used room or ask for a room link; they may not update automatically.
+Save your room link and password before removing or reinstalling an old icon.
 """
         ).classes("w-full")
         with ui.row().classes("w-full justify-end"):

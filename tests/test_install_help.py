@@ -22,7 +22,10 @@ def test_install_help_shows_steps_and_close_button():
             "**Install app**",
             "Using another browser?",
             "last-used room",
-            "sign in again",
+            "password the first time",
+            "install while viewing your room",
+            "one app identity",
+            "may not update automatically",
         ):
             assert text in instructions
         close = next(
