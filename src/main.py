@@ -1021,6 +1021,10 @@ async def index() -> None:
                     _forget_authorized_room(saved_last_room)
                     if access.token:
                         await _remove_room_token(saved_last_room)
+                    # Remembering a room is routing, not authorization. Its page
+                    # still requires a valid token or prompts for the password.
+                    ui.navigate.to(f"/room/{saved_last_room}")
+                    return
                 else:
                     ui.notify(
                         "Could not verify room access. Please retry; saved access was kept.",
