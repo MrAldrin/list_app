@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import suppress
 from typing import Literal, TypedDict
+from urllib.parse import urlsplit
 
 from nicegui import app, ui
 
@@ -1051,7 +1052,11 @@ async def index() -> None:
                 )
                 return
 
-            room_slug = raw_value.rstrip("/").split("/")[-1]
+            try:
+                room_slug = urlsplit(raw_value).path.rstrip("/").split("/")[-1]
+            except ValueError:
+                ui.notify("Invalid room link. Check the link/code.", color="negative")
+                return
             if not get_room_details_by_slug(room_slug):
                 ui.notify(
                     "Room not found. Check the link/code.",
