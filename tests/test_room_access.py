@@ -25,7 +25,7 @@ def test_open_room_access_is_denied_after_another_device_resets_password():
     assert open_page_access.check() is RoomAccessStatus.INVALID
 
 
-def test_authenticated_admin_must_use_the_explicit_admin_room_path():
+def test_authenticated_admin_cannot_enter_without_room_password():
     room_id, room_slug = create_room("Admin room", "password")
 
     implicit_admin_access = RoomAccess(
@@ -44,7 +44,7 @@ def test_authenticated_admin_must_use_the_explicit_admin_room_path():
     )
 
     assert implicit_admin_access.check() is RoomAccessStatus.INVALID
-    assert explicit_admin_access.check() is RoomAccessStatus.VALID
+    assert explicit_admin_access.check() is RoomAccessStatus.INVALID
 
 
 def test_database_failure_denies_access_without_calling_it_invalid():

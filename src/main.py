@@ -959,9 +959,6 @@ async def _room_access_from_browser(
             app.storage.user.get("authenticated", False)
         ),
     )
-    if access.is_admin():
-        return access, RoomAccessStatus.VALID
-
     storage_read, token = await _get_browser_storage(_room_token_storage_key(room_slug))
     if not storage_read:
         ui.notify(

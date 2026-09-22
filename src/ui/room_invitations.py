@@ -99,7 +99,9 @@ def creation_form(token: str) -> None:
             ui.label("Ask the app admin for a new invitation.")
             return
         ui.label("Choose a password. Anyone you share it with can manage this room.")
-        ui.label("The app admin can also access your room.").classes("text-sm")
+        ui.label("The app admin also needs the room password to enter.").classes(
+            "text-sm"
+        )
         name = ui.input("Room name").props("maxlength=100").classes("w-full")
         password = ui.input(
             "Room password", password=True, password_toggle_button=True

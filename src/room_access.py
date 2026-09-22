@@ -26,8 +26,6 @@ class RoomAccess:
         return self.admin_requested and self.admin_is_authenticated()
 
     def check(self) -> RoomAccessStatus:
-        if self.is_admin():
-            return RoomAccessStatus.VALID
         if not self.token:
             return RoomAccessStatus.INVALID
         try:
