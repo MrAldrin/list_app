@@ -96,7 +96,7 @@ Do not change:
 - the manifest `start_url` (`/`);
 - the manifest `scope` (`/`);
 - the root route's remembered-room behavior;
-- the room access-token design from `plans/room_access_tokens.md`.
+- the current room access and cookie design in `ARCHITECTURE.md` and `docs/home-screen-installation.md`.
 
 List share tokens are independent of room access tokens. They are stored in the database and used only for public list links. Deploying or restarting the server must not invalidate them unless they are deliberately rotated.
 

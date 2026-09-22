@@ -4,19 +4,22 @@ Small follow-up ideas that are not currently being implemented.
 
 ## Important improvements
 
-- [x] Replace browser-stored room passwords with persistent, revocable room access tokens. Keep bcrypt password hashes in the database, invalidate tokens when a room password changes, and preserve restart/PWA access. Use the one-time rollout and temporary legacy-password cleanup described in [`plans/room_access_tokens.md`](room_access_tokens.md).
+- [x] Replace browser-stored room passwords with persistent, revocable room access tokens. Keep bcrypt password hashes in the database, invalidate tokens when a room password changes, and preserve restart/PWA access. See [`ARCHITECTURE.md`](../ARCHITECTURE.md) and [`docs/home-screen-installation.md`](../docs/home-screen-installation.md) for current behavior.
 - [ ] Replace guessable public list slugs with separate high-entropy share tokens. Keep public links editable, support token rotation to revoke old links, and retire or restrict the old slug URLs. See [`plans/public_list_share_tokens.md`](public_list_share_tokens.md).
 
 ## Security
 
 - [ ] Enforcing minimum password length in code: not implemented.
 - [x] Handle malformed or unsupported legacy room password hashes safely: all room password checks reject invalid bcrypt data instead of raising an exception. Regression tests cover verification, login, password changes, deletion, and recovery through an admin password reset. No database migration or automatic hash repair is needed.
+- [ ] Remove the temporary legacy room-password localStorage cleanup after 2027-09-18; retain token authentication and revocation. See the dated TODO in [`src/main.py`](../src/main.py).
 
 ## Data correctness — next priorities
 
 - [ ] Prevent concurrent duplicate items: add a database uniqueness rule consistent with the app's name normalization and make add/restore atomic (one indivisible operation). Check existing duplicates before adding the constraint; test concurrent requests.
 - [x] Make quantity increments/decrements atomic in SQL instead of writing a value calculated from an old UI view. The +/− buttons now apply deltas to the stored quantity, retaining the minimum of one. Regression tests cover concurrent changes, legacy null quantities, list scoping, and stale-list identity protection. Explicit quantity edits in the edit dialog remain unchanged.
 - [ ] Preserve all item information when undoing deletion, including description and quantity. Decide whether the original ID must be restored and test duplicate-name conflicts.
+- [ ] Complete manual multi-user verification for deleted-list handling: room-authorized deletion shows the specific unavailable message and `Back to room`; public-link users see the generic message without a room button; test immediate add/edit/toggle/quantity/tag/undo actions around deletion and room deletion.
+- [x] Protect stale list pages from SQLite ID reuse: validate the original list slug inside the same write transaction before mutations; regression coverage exists.
 - [ ] Validate name and quantity together before saving an item edit. An invalid or duplicate name must leave every field unchanged; save valid edits in one transaction.
 - [ ] Review other multi-step writes for atomicity, especially list/room deletion and service operations that read, check, then write. Use transactions and a consistent service layer; test rollback on failure.
 
@@ -26,6 +29,7 @@ Small follow-up ideas that are not currently being implemented.
 - [ ] Declare `python-dotenv` as a runtime dependency, or make loading `.env` development-only. Do not rely on it arriving through another dependency.
 - [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access. Document and test restoration with the app stopped. A code rollback does not reverse a database migration. The one-time repair backup is not a recurring backup policy.
 - [ ] Document deployment checks: absolute `DB_PATH` on the persistent volume, one app process/service and no horizontal replicas, persistence across restart, migration verification, and a recovery procedure.
+- [ ] Verify remembered room-token access after a real restart/deployment and password reset; complete the device/PWA checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md).
 
 ## Database hardening — planned follow-up
 
@@ -70,6 +74,7 @@ References: [Apple's installation cookie behavior](https://webkit.org/blog/14787
 These are not prerequisites for the current small MVP. Revisit when growth, maintenance, or product requirements justify them.
 
 - Target realtime refreshes by list/room rather than refreshing unrelated users globally.
+- Defer cross-room list pinning until its authorization and UX are designed; see [`plans/advanced_sharing.md`](advanced_sharing.md).
 - Split `src/main.py` into smaller route/auth/UI modules and gradually adopt a proper Python package rather than fragile top-level imports.
 - Replace the global SQLite connection with a connection/context-manager layer if concurrency or lifecycle complexity requires it.
 - Add timestamps and change versions when debugging, conflict detection, or audit history needs them.
