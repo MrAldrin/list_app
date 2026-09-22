@@ -1,42 +1,49 @@
-# Plan: Advanced Sharing (Tokens & Cross-Room Pinning)
+# Deferred idea: Cross-room list pinning
 
-This plan extends the "Hybrid Multi-Room" system to allow sharing individual lists with friends who might not have access to your entire room.
+## Status
 
-## The Concept
-1. **Secret Share Links:** Every list gets a unique, unguessable "Share Token". Anyone with the link can view/edit that specific list.
-2. **Access Control:** Visiting a share link does NOT grant access to the rest of the Room's lists.
-3. **Cross-Room Pinning:** If a user has their own Room, they can "Pin" a shared list from someone else into their own dashboard for quick access.
+Deferred. This is not part of the current MVP and is separate from the public
+list-link security work.
 
-## Phase 1: Database Updates
-We need to track how lists are shared and who has pinned what.
-- **Update Table: `lists`**
-    - Add `share_token` (A unique random string, e.g., `uuid`).
-- **New Table: `room_shared_lists` (The "Pin" table)**
-    - `room_id` (The room that wants to see the list)
-    - `list_id` (The actual list being shared)
-    - *This allows one list to appear in multiple rooms.*
+## Concept
 
-## Phase 2: The Sharing Route
-- `/share/{token}` -> A public route that shows a single list.
-- **Logic:** 
-    - No password required for this specific URL.
-    - If the user is already logged into a different Room (checked via cookies), show a "Return to my Room" button.
+A person with access to their own room could pin a public list from another
+room to their room dashboard for convenience. The list would remain public by
+link; pinning would not grant access to the source room or its other lists.
 
-## Phase 3: The "Pin" Workflow
-1. User A sends User B a link: `listapp.com/share/abc-123`.
-2. User B opens the link. The app detects User B is logged into their own room "The Bakers".
-3. The app shows a button: **"Add to 'The Bakers' Dashboard"**.
-4. If clicked, a row is added to `room_shared_lists`.
-5. Now, when User B goes to `/room/the-bakers`, both their own lists AND User A's "abc-123" list appear.
+## Boundaries
 
-## Phase 4: UI Enhancements
-- **Share Button:** Inside a list, add a button to "Copy Share Link".
-- **Shared Indicator:** On the Room dashboard, show a small icon (e.g., 🔗) next to lists that are "Pinned" from other rooms so you know they aren't "yours".
+- The canonical public-link and token design lives in
+  [`public_list_share_tokens.md`](public_list_share_tokens.md). This document
+  does not define another token format or sharing route.
+- Adding or removing a pin requires valid authorization for the destination
+  room.
+- The current app has shared room passwords, not individual owners or member
+  accounts. The authorization rules for pin management must be decided before
+  implementation.
+- A public-link visitor who has no authorized destination room cannot pin the
+  list.
 
----
+## Possible workflow
 
-## Progress Tracking
-- [ ] Phase 1: Update `database_crud.py` with `share_token` and `room_shared_lists`.
-- [ ] Phase 2: Create the `/share/{token}` page logic.
-- [ ] Phase 3: Implement the "Pin to my Room" backend logic.
-- [ ] Phase 4: Update `item_list` to handle shared/pinned context.
+1. A person opens a valid public list link.
+2. If they have an authorized room, the app offers to pin the list there.
+3. The person confirms the destination room.
+4. The room dashboard shows the pinned list with a clear shared-list marker.
+5. The person can remove the pin without affecting the source list or its
+   public link.
+
+## Data model to revisit
+
+A `room_shared_lists` table could associate a destination room with a shared
+list. Revisit uniqueness, deleted-room/list behavior, and whether a list may
+be pinned more than once before implementation.
+
+## Open questions
+
+- Should a pinned list be editable, read-only, or follow the current public
+  link behavior?
+- How should a user choose among multiple authorized rooms?
+- What happens when the public token is rotated or the source list is deleted?
+- What dashboard and real-time refresh behavior is useful enough to justify
+  this feature?

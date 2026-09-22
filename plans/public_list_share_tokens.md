@@ -2,7 +2,7 @@
 
 ## Status
 
-Not implemented. This plan addresses audit item 6.
+Not implemented. This is the canonical plan for public list-link security. Cross-room pinning is tracked separately as a deferred idea.
 
 Created: 2026-09-14
 
@@ -13,7 +13,7 @@ Make public list links difficult to guess while preserving the current product b
 - Anyone with a valid list link can open and edit that list.
 - Room members can continue opening lists from their room.
 - PWA home-screen and restart behavior remain unchanged.
-- A list owner/admin can revoke all existing public links by rotating the token.
+- A user with valid room authorization can revoke all existing public links by rotating the token.
 
 This improves protection against guessed URLs. It does not make a list private: anyone who receives or discovers a valid link can still use it.
 
@@ -72,6 +72,10 @@ To revoke all public access through the current link:
 Users with room access can still reach the list through the room. Revoking the public token does not revoke room membership. Removing room members is a separate room-password/authorization concern.
 
 One token is shared by everyone using that link, so rotation revokes access for everyone at once. Individual user revocation would require user accounts or separate per-recipient tokens and is outside this plan.
+
+### Who can rotate a public link
+
+A user with valid authorization for the room containing the list may rotate its public token. A person using only the public list link may edit the list but may not rotate the link. This follows the current shared-room model: room access grants management rights, and there are no individual list owners.
 
 ## Existing links and rollout
 
