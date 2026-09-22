@@ -1,73 +1,89 @@
 # Architecture: Shared Shopping List App
 
-
 ## Purpose
-This document defines the minimal architecture for the app.
-It explains how the system should work, without locking down detailed implementation steps.
 
-The app goal is a mobile-first shared list experience where small groups can add items, mark done items, and organize/filter the list.
+ListR is a mobile-first shared list app for small groups. People add items,
+mark them done, and organize/filter lists. The MVP prioritizes simplicity and
+learning, targeting up to four simultaneous users rather than large-scale use.
 
-This architecture optimizes for simplicity and learning.
+## Core architecture decisions
 
+- **Frontend/backend:** Python with NiceGUI, serving the UI and application logic
+  together, with live updates between connected users.
+- **Storage:** SQLite, with one application instance using one database.
+- **Hosting:** Railway with persistent volume storage. Deployment configuration,
+  process limits, and recovery procedures belong in the
+  [deployment guide](docs/deployment.md).
 
-## App specifications for the end goal for this app:
-- Used by up to 4 users at the same time
-- The app update for all users when one user makes a change
-- The app should focus on users on mobile phones
-- The add field also acts as an update field. The user should get feedback when adding element.
-    - When the user writes a new element:
-        - if a new element: Add to list
-        - if exists:
-            - if unchecked: do nothing
-            - if checked: unchek the element
+Keep this stack for the small MVP. Discuss changes before introducing another
+frontend, database, or multi-instance deployment.
 
+## Domain and security boundaries
 
-## Core Architecture Decisions
-- Frontend/Backend: Python with NiceGUI
-- Data Storage: sqlite
-- Host: Railway free-tier with volume storage 
+- **Room:** A password-protected workspace containing lists. Shared room access
+  grants management rights; there are no individual owner/member accounts.
+- **List:** Belongs to a room. Its `/list/{slug}` URL is currently public-by-link:
+  anyone with the link can view and edit its items, but not access private room
+  controls. Separate high-entropy share tokens are
+  [planned, not implemented](plans/public_list_share_tokens.md).
+- **Item:** A list entry, with completion state and optional details/tags for
+  organization. Field-level schema details may evolve.
+- **Admin:** `/admin` requires the global app password. A nonblank `APP_PASSWORD`
+  is required before opening the database; there is no password-free fallback.
+  Admins can view the room overview and reset passwords, so rooms are not private
+  from the server administrator. Admin login or `?admin=true` alone does not
+  grant entry to a room.
+- **Room authorization:** Entry requires the room password or a valid token
+  issued after checking it. Private reads and operations revalidate access;
+  cached UI state is not authorization. Password changes revoke old tokens.
+  Browser storage remembers tokens, never room passwords. HTTPS uses secure,
+  HTTP-only cookies, with localStorage fallback for HTTP or unavailable cookies.
+  Cookie writes and Socket.IO handshakes enforce same-origin checks.
+- **Creation invitations:** Authenticated admins issue reusable, expiring,
+  revocable invitations to create rooms. Invitations never grant access to
+  existing rooms; expiry/revocation does not affect rooms already created.
+  See [room invitations](docs/room-invitations.md).
 
+Token storage, revocation, cookie migration, and browser-security limitations are
+specified in the [remembered-access guide](docs/home-screen-installation.md).
+An unauthorized room visitor sees a password prompt, including when navigating
+back from a public list.
 
-## Data Boundaries & Security Rules
-The domain is intentionally small:
-- `Room`: A workspace containing multiple lists. Protected by a room-specific password.
-- `List`: A collection of items. Can be shared publicly via a direct URL (`/list/{slug}`).
-- `Item`: list entry belonging to a list.
-- `Category`: optional grouping label for items.
+## Code boundaries
 
+- `src/main.py`: Entry point, routes, UI composition, and live-update wiring.
+- `src/database_setup.py`: SQLite schema initialization and migrations.
+- `src/database_crud.py`: Database reads/writes and persisted authorization.
+- `src/item_service.py`: Item business rules over database operations.
+- `src/room_access.py` and `src/room_cookies.py`: Private-page authorization
+  context and the HTTPS remembered-access bridge.
+- `src/room_invitations.py` and `src/ui/`: Invitation logic and extracted UI helpers.
 
-### Target Security Model
-- **Admin Root:** The root URL (`/admin`) is protected by a global app password. A nonblank `APP_PASSWORD` is required for both local and hosted startup; missing configuration stops the app before opening the database. There is no fallback password or authentication bypass.
-- **Self-service creation:** An authenticated admin can generate reusable, unguessable invitation links at `/create-room/{token}`, valid for seven days, and revoke them early. Only token hashes and timestamps are stored in a separate `room_invitations` table. The server rechecks validity transactionally when creating a room. Expiry or revocation never changes existing room access. Loading the admin invitation list deletes invitation records seven days after expiry or revocation, whichever occurred first; no background scheduler is required. Creators choose a room password and use the existing sign-in flow; there are no individual owner/member accounts. Invitation management callbacks recheck admin authentication. No rate limiting or CAPTCHA is included at this scale.
-- **Room URLs are private:** The `/room/{slug}` URL requires a valid room password or a token issued after checking that password, including for authenticated admins. Admin login and `?admin=true` never grant room access. After a password check, HTTPS browsers remember an opaque room access token in a persistent, host-only `__Host-` cookie (`Secure`, `HttpOnly`, `SameSite=Lax`, one-year lifetime, path `/`); only its hash is stored in SQLite with the room's authorization version. A separate cookie remembers the last signed-in/migrated room for root routing, never authorization. Cookie writes require an exact same-origin request, a custom header, and a valid token; Socket.IO handshakes are restricted to same-origin. The browser confirms cookie acceptance before removing the old `localStorage` token (`listapp_room_token_{slug}`). Existing tokens migrate when read. Local HTTP development and unavailable cookies retain the localStorage fallback. Tokens pass through JavaScript during issuance/migration, so HttpOnly reduces persistent exposure but is not a complete XSS defense. The server validates that token for every private room read and operation, not merely an `authorized_rooms` cache. Password changes increase the authorization version and revoke existing tokens. `listapp_last_room` and its cookie counterpart remain only routing conveniences, so room access survives server restarts and browser closures without storing passwords in browser storage. Unauthorized users are shown an inline password prompt.
-- **List URLs are public-by-link:** The `/list/{slug}` URL is directly accessible to anyone with the link. They can edit items on that list.
-- **Room controls are isolated:** If a user accesses a list via a public link and tries to navigate "back" to the room, they are hit with the inline room password prompt unless previously authorized. They cannot access room settings without the room password.
+This is the current structure, not a claim that all UI and service logic is
+already separated. Larger module refactoring remains deferred in the
+[backlog](plans/backlog.md).
 
-Only these boundaries are fixed right now. Field-level schema details are allowed to evolve as we learn.
+## Major UX decisions
 
+- Prioritize quick list editing on mobile, with changes reflected for other
+  connected users.
+- The add field creates a new item, leaves an existing active item unchanged,
+  or unchecks an existing completed item, with feedback to the user.
+- `/` is a public remembered-room router; admin tools remain separate at `/admin`.
+- Home-screen installation requests the current room as its launch address,
+  without credentials. ListR remains one installed app identity, not one per room;
+  switching rooms does not deliberately retarget the installed icon.
+- Installation never grants access. Preserving sign-in is a goal where the
+  browser transfers cookies, not a guarantee. Existing icons may retain their old
+  launch address. Real-device checks remain outstanding; see the
+  [installation behavior and checklist](docs/home-screen-installation.md).
+- Offline editing/synchronization is not an implemented capability; the intended
+  offline experience remains a backlog decision.
 
-## Project Structure
-- src/: Source code
-    - main.py: entrypoint to app and UI
-    - database_setup.py: SQLite schema definition and initialization.
-    - database_crud.py: Direct database Create, Read, Update, and Delete operations.
-    - item_service.py: Business logic for managing list items and real-time updates.
-    - room_invitations.py: Expiring creation invitations, separate from ongoing room access.
-    - room_cookies.py: Secure remembered-access cookie bridge and same-origin socket policy.
-    - ui/room_invitations.py: Admin invitation controls and public creation form.
-- `docs/`: Technical documentation.
-- `plans/`: Feature-specific implementation plans.
+## Evolution and documentation
 
-
-## UX Direction
-- Mobile-first design is the default
-- **Home-screen installation:** Room pages advertise a room-specific manifest whose `start_url` is `/room/{slug}`, without credentials or admin query parameters. All manifests retain the existing app identity (`id: "/"`) and origin-wide scope: this is one ListR app, not a separate installed app per room. Switching rooms does not deliberately retarget an existing icon. Other pages retain the root launch manifest and remembered-room recovery. Existing icons may not update; browser/device installation behavior requires real-device checks. The goal is to preserve sign-in when installing from an authenticated room where the browser copies cookies (documented by Apple starting with iOS/iPadOS 17.2). This is not guaranteed across browsers, existing icons, cookie restrictions, or expiration; an installation without a valid token still shows a password prompt. Cookie transfer and installation behavior require real-device verification; no ongoing synchronization between browser and installed-app storage is assumed.
-- UI decisions should prioritize quick list editing during shopping.
-
-
-## Evolution Rules
-- This document is the architecture source of truth.
-- If implementation differs from this architecture, either:
-  1. Bring implementation back in line, or
-  2. Update this document to record the new direction.
-- Detailed implementation plans belong in `plans/`, not here.
+This document is the source of truth for high-level architecture. If code differs,
+flag it and agree whether to change the implementation or update the decision.
+Keep operational/implementation details in `docs/`, proposed work in `plans/`,
+and unfinished work in the [backlog](plans/backlog.md). Follow the documentation
+lifecycle in [AGENTS.md](AGENTS.md).

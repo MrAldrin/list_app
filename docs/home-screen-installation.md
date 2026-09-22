@@ -64,6 +64,26 @@ installation instructions. Existing room access/routing tests cover token
 validation and remembered-room recovery. These are not substitutes for device
 installation checks.
 
+## Room authorization and token persistence
+
+`src/database_crud.py` checks bcrypt room-password hashes and issues opaque,
+random room access tokens. SQLite stores only each token's hash, room ID, and
+room authorization version. Validation checks the room, matching version, and
+revocation state. Changing/resetting a room password increments that version and
+deletes old tokens in the same transaction. Existing valid tokens can survive
+server restarts because validation uses persisted database state.
+
+`src/room_access.py` provides the private-page authorization context. Private
+reads and operations must validate current access rather than trust the
+`authorized_rooms` UI cache. Admin authentication and `?admin=true` do not replace
+room authorization. Public `/list/{slug}` pages remain editable without room
+credentials; navigating back does not bypass the room password prompt.
+
+The legacy token key is `listapp_room_token_{slug}`. It is removed only after
+cookie acceptance is confirmed. `listapp_last_room` and the separate last-room
+cookie remember routing only, never permission to enter that room. Browser
+storage does not retain room passwords.
+
 ## Cookie security and deployment
 
 `src/room_cookies.py` exposes a POST-only token-to-cookie bridge. Writes require

@@ -14,6 +14,17 @@ Anyone receiving or being forwarded an invitation can create a room. The invitat
 
 Revoked and expired invitations remain visible for seven days after they first become inactive (revocation or expiry, whichever happens first). Opening or refreshing the admin invitation list automatically deletes older invitation records. There is no background scheduler, so records may stay in the database longer if nobody opens the admin page. Deleted invitation links remain invalid; existing rooms and their access tokens are unaffected. No additional database migration is needed for this cleanup.
 
+## Implementation boundaries
+
+`src/room_invitations.py` stores invitation token hashes and lifecycle timestamps
+in the separate `room_invitations` table. Public creation at
+`/create-room/{token}` rechecks expiry and revocation inside the room-creation
+transaction, so an earlier valid page load is not enough to authorize creation.
+`src/ui/room_invitations.py` rechecks admin authentication in invitation-management
+callbacks. Creators choose a room password and then use the normal room sign-in
+flow; invitations do not introduce individual accounts. No rate limiting or
+CAPTCHA is implemented for this feature.
+
 ## Deployment and migration
 
 Normal startup adds `room_invitations` if missing; no manual SQL is needed. Existing room/list rows do not need to be rewritten for this feature. The original local database was not used for destructive testing. Migration was tested twice on a temporary SQLite backup copy, with existing rows compared and integrity/foreign-key checks run.

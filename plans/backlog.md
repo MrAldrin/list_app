@@ -72,7 +72,7 @@ References: [Apple's installation cookie behavior](https://webkit.org/blog/14787
 - [x] Update `README.md` with the app purpose, setup, startup commands, links, and a secret-free `.env.example`, including required `NICEGUI_STORAGE_SECRET`.
 - [x] Expand `docs/deployment.md` with secrets, `DB_PATH`, ports/startup commands, persistent storage, HTTPS proxy requirements, backups/restoration, and migration/deployment checks. Reload/dependency fixes, backup automation, and hosted verification remain separate work.
 - [x] Add a documentation lifecycle policy to `AGENTS.md` so plans, current references, backlog tasks, and retired documents have clear responsibilities.
-- [ ] Simplify `ARCHITECTURE.md`: retain purpose, stack, boundaries, security decisions, and major UX decisions; move implementation mechanics to linked reference docs and verify retained rules against the code.
+- [x] Simplify `ARCHITECTURE.md`: retain purpose, stack, boundaries, security decisions, and major UX decisions; move implementation mechanics to linked reference docs and verify retained rules against the code.
 - [ ] Keep `plans/backlog.md` focused on unfinished and deferred work; move durable operational facts to docs and completed-work history to version control.
 - [ ] Add CI for formatting, lint, and tests. Replace the broad `.*/` ignore rule with explicit runtime-directory rules so directories such as `.github/` can be tracked. Keep databases, backups, and secrets out of git.
 - [ ] Recheck the audit's `lastrowid` possibly being `None` type-check warning and address it if still present. Review the Starlette/httpx deprecation warning separately; avoid blind dependency upgrades.
