@@ -2,6 +2,10 @@
 
 Small follow-up ideas that are not currently being implemented.
 
+## Soon — guided repository review
+
+- [x] Complete the repository documentation and cleanup audit one item at a time. The audit is preserved in version-control history; approved implementation work remains in this backlog.
+
 ## Important improvements
 
 - [x] Replace browser-stored room passwords with persistent, revocable room access tokens. Keep bcrypt password hashes in the database, invalidate tokens when a room password changes, and preserve restart/PWA access. See [`ARCHITECTURE.md`](../ARCHITECTURE.md) and [`docs/home-screen-installation.md`](../docs/home-screen-installation.md) for current behavior.
@@ -65,7 +69,11 @@ References: [Apple's installation cookie behavior](https://webkit.org/blog/14787
 ## Testing, documentation, and tooling
 
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
-- [ ] Write a beginner-friendly README and a secret-free `.env.example`. Expand `docs/deployment.md` with backup, recovery, and migration instructions.
+- [ ] Update `README.md` with the app purpose, setup, startup commands, links, and a secret-free `.env.example`.
+- [ ] Expand `docs/deployment.md` with `APP_PASSWORD`, `DB_PATH`, ports/startup commands, persistent storage, HTTPS proxy requirements, backups/restoration, and migration/deployment checks.
+- [ ] Add a documentation lifecycle policy to `AGENTS.md` so plans, current references, backlog tasks, and retired documents have clear responsibilities.
+- [ ] Simplify `ARCHITECTURE.md`: retain purpose, stack, boundaries, security decisions, and major UX decisions; move implementation mechanics to linked reference docs and verify retained rules against the code.
+- [ ] Keep `plans/backlog.md` focused on unfinished and deferred work; move durable operational facts to docs and completed-work history to version control.
 - [ ] Add CI for formatting, lint, and tests. Replace the broad `.*/` ignore rule with explicit runtime-directory rules so directories such as `.github/` can be tracked. Keep databases, backups, and secrets out of git.
 - [ ] Recheck the audit's `lastrowid` possibly being `None` type-check warning and address it if still present. Review the Starlette/httpx deprecation warning separately; avoid blind dependency upgrades.
 
