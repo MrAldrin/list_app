@@ -29,6 +29,18 @@ We also have these extra files and folders:
 
 
 
+## Documentation lifecycle
+- `README.md`: App introduction, quick-start instructions, and links to detailed documentation.
+- `ARCHITECTURE.md`: High-level stack, boundaries, security decisions, and major UX decisions. Keep implementation mechanics in linked reference docs; discuss architectural deviations with the user.
+- `docs/`: Current behavior, technical details, and operational guides. Update affected references when behavior changes; distinguish verified behavior from pending checks.
+- `plans/`: Proposed work, decisions, implementation steps, and progress tracking at the bottom. Clearly distinguish planned, implemented, and verified work; a plan is not evidence that a feature exists.
+- `plans/backlog.md`: Unfinished or deferred work, with links to detailed plans where useful. Do not use it as an operational reference or a permanent completed-work log.
+- Keep each fact in one primary document and link to it rather than copying it across files.
+- When work finishes, update current references, remove or mark the corresponding backlog item complete, and record any remaining work or verification separately. Remove completed backlog entries during an approved cleanup; version control preserves their history.
+- Retire a completed or superseded plan only after durable decisions have moved to current references, remaining tasks are tracked, and incoming links are updated. Retain plans with unresolved work. Delete retired documents only with user approval or as part of an explicitly approved cleanup; version control keeps the history.
+- Keep documentation updates scoped to the approved task; this policy does not authorize a repository-wide cleanup.
+
+
 ## Tools:
 - Packages: Use uv (use the dev group if only for development).
 - Formatting: Use ruff.
