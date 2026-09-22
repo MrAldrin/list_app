@@ -32,7 +32,7 @@ Small follow-up ideas that are not currently being implemented.
 - [ ] Disable automatic reload in production; retain it only as an explicit development option.
 - [ ] Declare `python-dotenv` as a runtime dependency, or make loading `.env` development-only. Do not rely on it arriving through another dependency.
 - [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access. Document and test restoration with the app stopped. A code rollback does not reverse a database migration. The one-time repair backup is not a recurring backup policy.
-- [ ] Document deployment checks: absolute `DB_PATH` on the persistent volume, one app process/service and no horizontal replicas, persistence across restart, migration verification, and a recovery procedure.
+- [x] Document deployment checks: absolute `DB_PATH` on the persistent volume, one app instance/service and no horizontal replicas, persistence across restart, migration verification, and a recovery procedure. See [`docs/deployment.md`](../docs/deployment.md); production execution and a hosted restore drill are not claimed complete.
 - [ ] Verify remembered room-token access after a real restart/deployment and password reset; complete the device/PWA checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md).
 
 ## Database hardening — planned follow-up
@@ -69,8 +69,8 @@ References: [Apple's installation cookie behavior](https://webkit.org/blog/14787
 ## Testing, documentation, and tooling
 
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
-- [ ] Update `README.md` with the app purpose, setup, startup commands, links, and a secret-free `.env.example`.
-- [ ] Expand `docs/deployment.md` with `APP_PASSWORD`, `DB_PATH`, ports/startup commands, persistent storage, HTTPS proxy requirements, backups/restoration, and migration/deployment checks.
+- [x] Update `README.md` with the app purpose, setup, startup commands, links, and a secret-free `.env.example`, including required `NICEGUI_STORAGE_SECRET`.
+- [x] Expand `docs/deployment.md` with secrets, `DB_PATH`, ports/startup commands, persistent storage, HTTPS proxy requirements, backups/restoration, and migration/deployment checks. Reload/dependency fixes, backup automation, and hosted verification remain separate work.
 - [ ] Add a documentation lifecycle policy to `AGENTS.md` so plans, current references, backlog tasks, and retired documents have clear responsibilities.
 - [ ] Simplify `ARCHITECTURE.md`: retain purpose, stack, boundaries, security decisions, and major UX decisions; move implementation mechanics to linked reference docs and verify retained rules against the code.
 - [ ] Keep `plans/backlog.md` focused on unfinished and deferred work; move durable operational facts to docs and completed-work history to version control.
