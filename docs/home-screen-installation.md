@@ -84,6 +84,11 @@ cookie acceptance is confirmed. `listapp_last_room` and the separate last-room
 cookie remember routing only, never permission to enter that room. Browser
 storage does not retain room passwords.
 
+Malformed or unsupported stored bcrypt hashes are rejected as invalid credentials
+rather than raising a password-check exception. This does not automatically repair
+stored data or require a migration; an admin password reset can restore access.
+An old malformed local test fixture is not evidence of production corruption.
+
 ## Cookie security and deployment
 
 `src/room_cookies.py` exposes a POST-only token-to-cookie bridge. Writes require
