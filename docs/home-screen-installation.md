@@ -1,5 +1,19 @@
 # Room-specific home-screen launch and remembered access
 
+## Why the root and admin routes stay separate
+
+The root (`/`) remains a public router, not the admin login page. It supports
+remembered-room recovery for older installations and pages that do not belong
+to a specific room. The admin tools stay at `/admin`, behind the global app
+password.
+
+New room installations can request `/room/{slug}` as their launch address.
+The app still keeps the root manifest identity and `/` scope so existing icons
+and navigation between room and list pages continue to work. This arrangement
+avoids the old iOS failure where every home-screen launch opened an admin login
+page, while retaining a safe fallback for installations that use the root
+manifest.
+
 ## Behavior
 
 - Install from `/room/{slug}` to request that room as the launch address, even

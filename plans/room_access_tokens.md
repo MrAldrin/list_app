@@ -74,7 +74,7 @@ If a token is invalid or revoked:
 
 Validate authorization on every private room operation, not only when rendering a page. This includes callbacks from already-open pages, such as room renaming and list creation, and any private refresh/read paths. Use a shared server-side authorization helper rather than scattered checks. Bind authorization to the target room; never trust a room ID supplied by the browser on its own.
 
-An authenticated administrator may access rooms through an explicit admin authorization path. An entry in `authorized_rooms` alone must never grant access, including entries created by old admin flows. Normal room password changes and deletion retain their existing password-confirmation requirements; admin resets use the admin authorization path.
+An authenticated administrator still needs a valid room authorization path: the room password or a room-access token. An entry in `authorized_rooms` alone must never grant access, including entries created by old admin flows. Normal room password changes and deletion retain their existing password-confirmation requirements; admin resets use the separate admin controls and do not grant room access.
 
 Only erase a token when the server has conclusively found it invalid. Browser-storage timeouts and database failures must fail closed (no private access), preserve stored credentials, and offer retry. If browser storage cannot be written, explain that access cannot be remembered on that device.
 
@@ -135,7 +135,7 @@ The token must be stored in the browser and its hash must be stored in the persi
 1. Add the schema migration for room authorization versions and access tokens.
 2. Add database/service functions to issue, validate, and revoke tokens.
 3. Add tests for token lifecycle and authorization-version invalidation.
-4. Replace room-page and root-route password reuse with token validation, including explicit admin access and guards on private callbacks/read paths.
+4. Replace room-page and root-route password reuse with token validation and guards on private callbacks/read paths.
 5. Update password changes and admin resets to atomically revoke tokens; handle concurrent token issuance and refresh the changing device's token.
 6. Add the temporary legacy-password cleanup and its dated removal TODO.
 7. Update `ARCHITECTURE.md` and test normal navigation, restart recovery, deployment recovery, password reset, and PWA home-screen behaviour. Run the repository's required Python formatting, lint, and test checks.
@@ -158,7 +158,7 @@ The token must be stored in the browser and its hash must be stored in the persi
 - An already-open room cannot perform private operations after another device resets its password.
 - Concurrent reset/login cannot turn an old password into a currently valid token; reset and private mutations respect transaction boundaries.
 - The device performing a normal password change receives a new token; other devices must log in again.
-- Authenticated admin access works explicitly; an old `authorized_rooms` entry alone grants nothing.
+- Authenticated admins still need valid room authorization; an old `authorized_rooms` entry alone grants nothing.
 - Legacy cleanup removes only old password keys, preserves token keys and `listapp_last_room`, and is safe to repeat.
 - Storage/database failures deny private access without deleting valid credentials; failed persistence gives useful feedback.
 - Migration preserves existing data and can run repeatedly; deleting a room also deletes its tokens.
@@ -178,7 +178,7 @@ The token must be stored in the browser and its hash must be stored in the persi
 
 - [x] Database schema and migration
 - [x] Token issue/validation/revocation service
-- [x] Room and root-route integration, explicit admin access, and private-operation guards
+- [x] Room and root-route integration, room authorization, and private-operation guards
 - [x] Password-reset invalidation
 - [x] One-time legacy-password cleanup
 - [x] Architecture documentation update

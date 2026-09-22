@@ -8,7 +8,7 @@
 
 An invitation is reusable until seven days after generation (creation and expiry times are displayed in UTC). If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
 
-Anyone receiving or being forwarded an invitation can create a room. The invitation does not grant access to existing rooms. Room passwords grant management rights to everyone holding them; individual list URLs remain public-by-link. Global admin retains access to all rooms.
+Anyone receiving or being forwarded an invitation can create a room. The invitation does not grant access to existing rooms. Room passwords grant management rights to everyone holding them; individual list URLs remain public-by-link. Admin login alone does not grant room access: admins must also use the room password or a valid room-access token. Admins can still view the room overview and reset room passwords, so this is not privacy from the server administrator.
 
 ## Invitation history
 
