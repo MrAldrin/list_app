@@ -444,6 +444,26 @@ def _transition_list_state(state: ListPageState) -> bool:
     return True
 
 
+class LiveClientRefreshable(ui.refreshable):
+    """Ignore refresh targets whose NiceGUI client was already deleted."""
+
+    def prune(self) -> None:
+        # NiceGUI checks is_deleted, but a container can outlive its weak client
+        # reference without being marked deleted. Refreshing it aborts the whole
+        # batch, leaving other open list pages unchanged.
+        super().prune()
+        live_targets = []
+        for target in self.targets:
+            try:
+                target.container.client
+            except RuntimeError as error:
+                if str(error) != "The client this element belongs to has been deleted.":
+                    raise
+            else:
+                live_targets.append(target)
+        self.targets = live_targets
+
+
 def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) -> None:
     # Do not pass kwargs into refresh(): NiceGUI merges kwargs into all refresh targets.
     # Passing one user's room kwargs can therefore overwrite other users' room context.
@@ -453,7 +473,7 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
         item_list.refresh()
 
 
-@ui.refreshable
+@LiveClientRefreshable
 def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
     """Render private room lists only while this page's access remains valid."""
     access_status = access.check()
@@ -615,7 +635,7 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
             )
 
 
-@ui.refreshable
+@LiveClientRefreshable
 def item_list(
     list_id: int,
     filter_func=None,
