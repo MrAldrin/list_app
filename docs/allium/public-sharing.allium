@@ -33,6 +33,10 @@ surface PublicShareLink {
         OpenShareLink(link)
         EditItemViaShareLink(link)
         EditListTagsViaShareLink(link)
+
+    @guarantee ListRenameRequiresRoomAccess
+        -- A public link alone cannot rename its list. Renaming requires
+        -- current authorization for the list's room (password or valid grant).
 }
 
 rule ResetShareLink {
@@ -61,4 +65,3 @@ rule EditListTagsViaShareLink {
     ensures: ListTagsEditAllowed(list: link.list)
 }
 
-open question "Should a public link also permit renaming the list? The current app exposes item and tag editing."
