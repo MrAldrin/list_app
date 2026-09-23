@@ -17,6 +17,7 @@ from database_crud import (
     get_list_details,
     get_list_details_by_share_token,
     rename_list,
+    rename_list_with_room_token,
     rotate_list_share_token,
     update_room_password,
 )
@@ -64,6 +65,52 @@ def test_rotation_requires_current_authorization_for_own_room(shared, credential
     with pytest.raises(PermissionError):
         rotate_list_share_token(room_slug, token, shared.id, expected_slug=shared.slug)
     assert get_list_details_by_share_token(shared.token)
+
+
+def test_room_token_can_rename_without_rotating_public_link(shared):
+    assert (
+        rename_list_with_room_token(
+            shared.room_slug,
+            shared.room_token,
+            shared.id,
+            "New groceries",
+            expected_slug=shared.slug,
+        )
+        == "new groceries"
+    )
+    assert get_list_details_by_share_token(shared.token)["name"] == "new groceries"
+    assert get_list_details(shared.id)["share_token"] == shared.token
+
+
+@pytest.mark.parametrize("credential", ["missing", "public", "wrong-room", "revoked"])
+def test_room_rename_rejects_non_room_grants(shared, credential):
+    token, room_slug = "", shared.room_slug
+    if credential == "public":
+        token = shared.token
+    elif credential == "wrong-room":
+        _, room_slug = create_room("Other", "other-pw")
+        _, token = authenticate_room_and_issue_token(room_slug, "other-pw")
+    elif credential == "revoked":
+        token = shared.room_token
+        update_room_password(shared.room_id, "new-pw")
+    with pytest.raises(PermissionError):
+        rename_list_with_room_token(
+            room_slug, token, shared.id, "Forbidden", expected_slug=shared.slug
+        )
+    assert get_list_details(shared.id)["name"] == "secret groceries"
+    assert get_list_details(shared.id)["share_token"] == shared.token
+
+
+def test_room_rename_rejects_invalid_name(shared):
+    with pytest.raises(ValueError, match="cannot be empty"):
+        rename_list_with_room_token(
+            shared.room_slug,
+            shared.room_token,
+            shared.id,
+            "   ",
+            expected_slug=shared.slug,
+        )
+    assert get_list_details(shared.id)["name"] == "secret groceries"
 
 
 def test_rotation_blocks_already_open_public_writes(shared):
