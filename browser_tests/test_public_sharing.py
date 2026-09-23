@@ -1,5 +1,6 @@
 """End-to-end sharing against a real app process, on Chromium and Firefox."""
 
+import json
 import re
 
 from playwright.sync_api import expect
@@ -210,6 +211,82 @@ def test_revoked_tab_cannot_add_and_existing_room_tab_keeps_access(server, sessi
     assert not server.query("SELECT id FROM items WHERE name = 'forbidden add'")
     add_item(room_tab, "existing room tab")
     expect(member.get_by_text("existing room tab", exact=True)).to_be_visible()
+
+
+def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
+    member, visitor = sessions
+    create_list(member, server)
+    link = share_link(member)
+    member.goto(server.room_url)
+    list_card = member.locator(".q-card").filter(
+        has=member.get_by_role("button", name="browser groceries", exact=True)
+    )
+    expect(
+        list_card.get_by_role("button").filter(has=member.locator("i", has_text="edit"))
+    ).to_be_visible()
+
+    visitor.goto(link)
+    expect(visitor.get_by_text("browser groceries", exact=True)).to_be_visible()
+    expect(visitor.get_by_label("List Name", exact=True)).to_have_count(0)
+    expect(
+        visitor.get_by_role("button", name="Reset share link", exact=True)
+    ).to_have_count(0)
+    visitor.get_by_role("button", name="Options", exact=True).click()
+    expect(visitor.get_by_label("List Name", exact=True)).to_have_count(0)
+    visitor.get_by_label("Add Tag", exact=True).fill("produce")
+    visitor.get_by_label("Add Tag", exact=True).press("Enter")
+    expect(visitor.get_by_role("button", name="produce", exact=True)).to_be_visible()
+    assert json.loads(
+        server.query(
+            "SELECT list_tags FROM lists WHERE name = ?", ("browser groceries",)
+        )[0][0]
+    ) == ["produce"]
+
+    tag_row = visitor.get_by_role("button", name="produce", exact=True).locator("..")
+    tag_row.get_by_role("button").filter(
+        has=visitor.locator("i", has_text="close")
+    ).click()
+    expect(
+        visitor.get_by_role("button", name="produce", exact=True)
+    ).not_to_be_visible()
+    assert (
+        json.loads(
+            server.query(
+                "SELECT list_tags FROM lists WHERE name = ?", ("browser groceries",)
+            )[0][0]
+        )
+        == []
+    )
+    assert server.query("SELECT name FROM lists") == [("browser groceries",)]
+
+
+def test_revoked_public_tab_cannot_save_tag(server, sessions):
+    member, visitor = sessions
+    delayed = DelayedUpdates(visitor)
+    create_list(member, server)
+    old_link = share_link(member)
+    visitor.goto(old_link)
+    visitor.get_by_role("button", name="Options", exact=True).click()
+    visitor.get_by_label("Add Tag", exact=True).fill("revoked tag")
+    delayed.paused = True
+    reset_link(member)
+    visitor.get_by_label("Add Tag", exact=True).press("Enter")
+    delayed.resume()
+    expect(visitor.get_by_text(re.compile("This list was deleted or"))).to_be_visible()
+    delayed.wait_for_server(visitor)
+    assert delayed.sent_events, "The stale browser must actually send its tag edit"
+    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == []
+    new_link = share_link(member)
+    visitor.goto(new_link)
+    visitor.get_by_role("button", name="Options", exact=True).click()
+    visitor.get_by_label("Add Tag", exact=True).fill("current tag")
+    visitor.get_by_label("Add Tag", exact=True).press("Enter")
+    expect(
+        visitor.get_by_role("button", name="current tag", exact=True)
+    ).to_be_visible()
+    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == [
+        "current tag"
+    ]
 
 
 def test_cancel_reset_keeps_public_link_working(server, sessions):
