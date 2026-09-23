@@ -1,0 +1,57 @@
+-- allium: 3
+-- Draft pilot: link reset and access only; review intent before expanding.
+-- Based on docs/public-sharing.md and the existing sharing implementation.
+-- Excludes room entry, list creation, item rules, and deployment mechanics.
+
+entity Room {}
+
+entity SharedList {
+    room: Room
+    current_link: ShareLink
+}
+
+entity ShareLink {
+    list: SharedList
+}
+
+entity RoomParticipant {
+    room: Room
+    currently_authorized: Boolean
+}
+
+surface RoomShareControls {
+    facing participant: RoomParticipant
+    context list: SharedList
+    provides:
+        ResetShareLink(participant, list)
+            when participant.room = list.room and participant.currently_authorized = true
+}
+
+surface PublicShareLink {
+    context link: ShareLink
+    provides:
+        OpenShareLink(link)
+        EditViaShareLink(link)
+}
+
+rule ResetShareLink {
+    when: ResetShareLink(participant, list)
+    requires: participant.room = list.room
+    requires: participant.currently_authorized = true
+    ensures: list.current_link = ShareLink.created(list: list)
+    -- The old link no longer matches current_link; room access is unchanged.
+}
+
+rule AccessSharedList {
+    when: OpenShareLink(link)
+    requires: link = link.list.current_link
+    ensures: SharedListVisible(list: link.list)
+}
+
+rule EditSharedList {
+    when: EditViaShareLink(link)
+    requires: link = link.list.current_link
+    ensures: EditAllowed(list: link.list)
+}
+
+open question "Should public link holders be able to edit every list field, or only list items?"
