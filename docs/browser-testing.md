@@ -51,12 +51,12 @@ Use `-n 0` to avoid launching many browsers at once.
 
 ## Verified coverage
 
-Local verification (2026-09-23): **14 browser cases passed** with Playwright
-1.63.0, Chromium 153.0.8010.12, and Firefox 155.0. The 286-test fast suite and
+Local verification (2026-09-23): **16 browser cases passed** with Playwright
+1.63.0, Chromium 153.0.8010.12, and Firefox 155.0. The 292-test fast suite and
 Ruff formatting/lint checks also passed. The existing Starlette/httpx deprecation
 warning remains unrelated to this suite.
 
-The suite has seven scenarios, each run in both browser engines:
+The suite has eight scenarios, each run in both browser engines:
 
 1. Room login and list creation; legacy URL denied to a visitor; canonical Share
    link opens without a password; changes appear live in the other session;
@@ -72,11 +72,13 @@ The suite has seven scenarios, each run in both browser engines:
    no list-rename control; a room member can access the rename control.
 7. An already-open public tab sends a tag edit after reset but cannot persist it;
    the replacement link allows a new tag edit.
+8. An already-open room rename dialog sends Save after a password change revokes
+   its room grant; the list name remains unchanged.
 
-For stale edit/add/undo/tag scenarios, Playwright **delays server-to-browser WebSocket
-updates** during reset. The visitor clicks the old controls and sends real
-Socket.IO events; the suite then resumes updates, waits for a server round-trip
-after the synchronous item callbacks, and checks the UI and persisted database.
+For stale edit/add/undo/tag and rename scenarios, Playwright **delays
+server-to-browser WebSocket updates** during revocation. The affected tab sends
+real Socket.IO events; the suite then resumes updates, waits for a server
+round-trip or the rename rejection's navigation, and checks persisted data.
 This avoids a weak test that only sees a button disappear.
 
 Native OS sharing is intentionally disabled in test contexts so the copy-dialog

@@ -260,6 +260,42 @@ def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
     assert server.query("SELECT name FROM lists") == [("browser groceries",)]
 
 
+def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
+    member, _visitor = sessions
+    delayed = DelayedUpdates(member)
+    create_list(member, server)
+    member.goto(server.room_url)
+    list_card = member.locator(".q-card").filter(
+        has=member.get_by_role("button", name="browser groceries", exact=True)
+    )
+    list_card.get_by_role("button").filter(
+        has=member.locator("i", has_text="edit")
+    ).click()
+    rename_dialog = member.get_by_role("dialog")
+    rename_dialog.get_by_label("List Name", exact=True).fill("forbidden rename")
+
+    revoker = member.context.new_page()
+    revoker.goto(server.room_url)
+    revoker.get_by_role("button", name="Room menu", exact=True).click()
+    revoker.get_by_text("Change Password", exact=True).click()
+    password_dialog = revoker.get_by_role("dialog")
+    password_dialog.get_by_label("Current Password", exact=True).fill(server.password)
+    password_dialog.get_by_label("New Password", exact=True).fill(
+        "new-browser-password"
+    )
+    delayed.paused = True
+    password_dialog.get_by_role("button", name="Change", exact=True).click()
+    expect(password_dialog).not_to_be_visible()
+
+    # Send Save from the already-open dialog, not just assert that it disappears.
+    rename_dialog.get_by_role("button", name="Save", exact=True).click()
+    delayed.resume()
+    # The invalid-access response navigates only after the server handles Save.
+    expect(member).to_have_url(server.room_url)
+    assert delayed.sent_events, "The stale browser must actually send its rename"
+    assert server.query("SELECT name FROM lists") == [("browser groceries",)]
+
+
 def test_revoked_public_tab_cannot_save_tag(server, sessions):
     member, visitor = sessions
     delayed = DelayedUpdates(visitor)
