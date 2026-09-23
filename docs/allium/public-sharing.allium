@@ -1,5 +1,7 @@
 -- allium: 3
--- Draft pilot: public link access and edits, plus link reset; review before expanding.
+-- Draft pilot: public link access and edits, link reset, and room-only rename.
+-- Models actions at the public-link and room-participant boundaries, not internal
+-- persistence helpers; review before expanding.
 -- Based on docs/public-sharing.md and the existing sharing implementation.
 -- Excludes room entry, list creation, item rules, and deployment mechanics.
 
@@ -43,8 +45,9 @@ surface PublicShareLink {
         EditListTagsViaShareLink(visitor, link)
 
     @guarantee ListRenameRequiresRoomAccess
-        -- A public link alone cannot rename its list. The room-only RenameList
-        -- rule checks current authorization, including on already-open pages.
+        -- A public link alone cannot rename its list. A room participant must
+        -- still be authorized when the rename is submitted, even if they began
+        -- the action before their room access was revoked.
 }
 
 rule ResetShareLink {
