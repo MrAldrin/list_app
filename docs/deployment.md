@@ -84,6 +84,12 @@ HTTPS remembered-room cookies are Secure/HttpOnly/SameSite=Lax. Local HTTP uses
 the localStorage fallback, so local testing alone does not verify production
 cookie behavior. See the [device checklist](home-screen-installation.md).
 
+## Public share-link rollout
+
+Secure public links require an automatic token backfill and restrict old list
+URLs. Back up before deploying and follow the [sharing rollout checks](public-sharing.md#rollout-and-verification).
+Production and real-device verification remain pending.
+
 ## Deployment checklist
 
 Before deploying:

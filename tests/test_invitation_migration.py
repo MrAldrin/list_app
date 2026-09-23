@@ -6,7 +6,8 @@ def test_additive_invitation_migration_preserves_existing_rows(tmp_path, monkeyp
     connection = init_database()
     room_id = connection.execute("SELECT id FROM rooms").fetchone()[0]
     connection.execute(
-        "INSERT INTO lists (id, name, slug, room_id) VALUES (1, 'Shop', 'shop', ?)",
+        "INSERT INTO lists (id, name, slug, room_id, share_token) "
+        "VALUES (1, 'Shop', 'shop', ?, 'existing-share-token')",
         (room_id,),
     )
     connection.execute("INSERT INTO items (name, list_id) VALUES ('Milk', 1)")

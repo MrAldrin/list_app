@@ -19,11 +19,18 @@ class ListUnavailable(LookupError):
 def _require_list_identity_locked(list_id: int, expected_slug: str | None) -> None:
     """Check identity inside a write transaction; SQLite can reuse numeric IDs.
 
-    UI callbacks must pass the slug captured when their list was rendered.
+    UI callbacks pass the private slug or 'share:' plus the public token.
+    Public tokens are rechecked inside the write transaction, including undo.
     None preserves ID-only calls for immediate, non-page database operations.
     """
-    row = db.execute("SELECT slug FROM lists WHERE id = ?", (list_id,)).fetchone()
-    if row is None or (expected_slug is not None and row[0] != expected_slug):
+    row = db.execute(
+        "SELECT slug, share_token FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()
+    valid = row is not None and (
+        expected_slug is None
+        or list_identity_matches({"slug": row[0], "share_token": row[1]}, expected_slug)
+    )
+    if not valid:
         raise ListUnavailable(f"List {list_id} is no longer available")
 
 
@@ -49,7 +56,7 @@ def get_list_details(list_id: int):
     with _DB_LOCK:
         row = db.execute(
             """
-            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug 
+            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug, l.share_token
             FROM lists l
             JOIN rooms r ON l.room_id = r.id
             WHERE l.id = ?
@@ -69,6 +76,7 @@ def get_list_details(list_id: int):
         "slug": row[3],
         "room_id": row[4],
         "room_slug": row[5],
+        "share_token": row[6],
     }
 
 
@@ -97,6 +105,55 @@ def get_list_details_by_slug(slug: str):
         "room_id": row[4],
         "room_slug": row[5],
     }
+
+
+def list_identity_matches(details: dict, identity: str) -> bool:
+    if identity.startswith("share:"):
+        return details.get("share_token") == identity.removeprefix("share:")
+    return details["slug"] == identity
+
+
+def get_list_details_by_share_token(token: str):
+    if not token or len(token) != 43:
+        return None
+    with _DB_LOCK:
+        row = db.execute(
+            "SELECT id FROM lists WHERE share_token = ?", (token,)
+        ).fetchone()
+        return get_list_details(row[0]) if row else None
+
+
+def get_list_details_by_identity(identity: str):
+    if identity.startswith("share:"):
+        return get_list_details_by_share_token(identity.removeprefix("share:"))
+    with _DB_LOCK:
+        details = get_list_details_by_slug(identity)
+        return get_list_details(details["id"]) if details else None
+
+
+def rotate_list_share_token(
+    room_slug: str, room_token: str, list_id: int, *, expected_slug: str
+) -> str:
+    """Only current room authorization can reset sharing; check atomically."""
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            room_id = _valid_room_id_for_token_locked(room_slug, room_token)
+            row = db.execute(
+                "SELECT room_id FROM lists WHERE id = ?", (list_id,)
+            ).fetchone()
+            if room_id is None or row is None or row[0] != room_id:
+                raise PermissionError("Room access required")
+            _require_list_identity_locked(list_id, expected_slug)
+            token = secrets.token_urlsafe(32)
+            db.execute(
+                "UPDATE lists SET share_token = ? WHERE id = ?", (token, list_id)
+            )
+            db.commit()
+            return token
+        except Exception:
+            db.rollback()
+            raise
 
 
 def update_list_tags_settings(
@@ -160,8 +217,8 @@ def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
     short_uuid = str(uuid.uuid4())[:6]
     slug = f"{safe_name}-{short_uuid}"
     result = db.execute(
-        "INSERT INTO lists (name, slug, room_id) VALUES (?, ?, ?)",
-        (normalized_name, slug, room_id),
+        "INSERT INTO lists (name, slug, room_id, share_token) VALUES (?, ?, ?, ?)",
+        (normalized_name, slug, room_id, secrets.token_urlsafe(32)),
     )
     return result.lastrowid, slug
 

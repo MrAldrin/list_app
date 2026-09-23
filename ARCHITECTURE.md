@@ -22,10 +22,10 @@ frontend, database, or multi-instance deployment.
 
 - **Room:** A password-protected workspace containing lists. Shared room access
   grants management rights; there are no individual owner/member accounts.
-- **List:** Belongs to a room. Its `/list/{slug}` URL is currently public-by-link:
-  anyone with the link can view and edit its items, but not access private room
-  controls. Separate high-entropy share tokens are
-  [planned, not implemented](plans/public_list_share_tokens.md).
+- **List:** Belongs to a room. Its `/share/{token}` URL grants public view/edit
+  access using a high-entropy token, but not room management. Authorized room
+  members can reset the link to revoke it for everyone. `/list/{slug}` is now
+  room-authorized navigation, not public access. See [public sharing](docs/public-sharing.md).
 - **Item:** A list entry, with completion state and optional details/tags for
   organization. Field-level schema details may evolve.
 - **Admin:** `/admin` requires the global app password. A nonblank `APP_PASSWORD`

@@ -1,5 +1,6 @@
 import os
 import re
+import secrets
 import sqlite3
 import uuid
 from pathlib import Path
@@ -228,6 +229,21 @@ def init_database():
         db.execute(
             "UPDATE lists SET room_id = ? WHERE room_id IS NULL", (default_room_id,)
         )
+
+    # Add tokens after legacy list-table rebuilds. Existing tokens survive restarts.
+    list_columns = {row[1] for row in db.execute("PRAGMA table_info(lists)")}
+    if "share_token" not in list_columns:
+        db.execute("ALTER TABLE lists ADD COLUMN share_token TEXT")
+    for (list_id,) in db.execute(
+        "SELECT id FROM lists WHERE share_token IS NULL"
+    ).fetchall():
+        db.execute(
+            "UPDATE lists SET share_token = ? WHERE id = ?",
+            (secrets.token_urlsafe(32), list_id),
+        )
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_share_token ON lists(share_token)"
+    )
 
     if not db.execute(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'items'"

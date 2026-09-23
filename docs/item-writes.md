@@ -10,9 +10,10 @@ Explicit quantity edits in the edit dialog still set an absolute value.
 
 ## List identity
 
-SQLite can reuse a deleted list's numeric ID. List-page writes pass the original
-list slug as `expected_slug`; database helpers check that identity within the
-same write transaction before mutating data. An old page must not edit a new
+SQLite can reuse a deleted list's numeric ID. Room-page writes pass the original
+list slug as `expected_slug`; public-page writes pass `share:<token>` instead
+(see [public sharing](public-sharing.md)). Database helpers check that identity
+within the same write transaction before mutating data. An old page must not edit a new
 list that happens to reuse its ID. The optional argument exists for other callers;
 a numeric ID alone is not the stale-page safeguard.
 

@@ -141,15 +141,19 @@ from database_crud import (
     get_item_count,
     get_list_data,
     get_list_details,
+    get_list_details_by_identity,
+    get_list_details_by_share_token,
     get_list_details_by_slug,
     get_lists,
     get_room_details_by_slug,
     get_rooms,
+    list_identity_matches,
     normalize_item_name,
     rename_list_with_room_token,
     rename_room,
     rename_room_with_room_token,
     revoke_room_access_token,
+    rotate_list_share_token,
     update_item_active_tags,
     update_list_tags_settings,
     update_room_password,
@@ -419,7 +423,12 @@ ListLookupStatus = Literal["exists", "missing", "retry"]
 def _list_lookup_status(slug: str) -> ListLookupStatus:
     """Distinguish a missing list from a temporary database read failure."""
     try:
-        return "exists" if get_list_details_by_slug(slug) else "missing"
+        details = (
+            get_list_details_by_share_token(slug.removeprefix("share:"))
+            if slug.startswith("share:")
+            else get_list_details_by_slug(slug)
+        )
+        return "exists" if details else "missing"
     except sqlite3.Error:
         return "retry"
 
@@ -652,7 +661,7 @@ def item_list(
         return
 
     details = get_list_details(list_id)
-    if details is None or details["slug"] != list_slug:
+    if details is None or not list_identity_matches(details, list_slug):
         if on_unavailable:
             # Defer the parent-container replacement until this refresh completes.
             ui.timer(0.0, on_unavailable, once=True)
@@ -1518,7 +1527,7 @@ def _restore_pending_undo(
 
     payload = current["payload"]
     details_now = get_list_details(list_id)
-    if not details_now or details_now["slug"] != list_slug:
+    if not details_now or not list_identity_matches(details_now, list_slug):
         raise ListUnavailable(f"List {list_id} is no longer available")
 
     tags_now = details_now["list_tags"] or []
@@ -1534,15 +1543,18 @@ def _restore_pending_undo(
 
 
 def _render_unavailable_list(
-    state: ListPageState, on_back_to_room: Callable[[], None]
+    state: ListPageState,
+    on_back_to_room: Callable[[], None],
+    *,
+    message: str | None = None,
 ) -> None:
     with ui.column().classes(
         "w-full flex-grow items-center justify-center gap-3 p-6 text-center"
     ):
         ui.icon("error_outline", size="3rem").classes("text-slate-400")
-        ui.label(_unavailable_list_message(state["room_authorized"])).classes(
-            "text-lg text-slate-700"
-        )
+        ui.label(
+            message or _unavailable_list_message(state["room_authorized"])
+        ).classes("text-lg text-slate-700")
         if state["room_authorized"] and state["room_slug"]:
             ui.button("Back to room", on_click=on_back_to_room).props("outline")
 
@@ -1570,7 +1582,9 @@ def _render_header(
                     ui.label("R").classes("font-black text-primary")
 
             with ui.row().classes("items-center gap-1"):
-                share_button(f"/list/{list_slug}", kind="list")
+                details = get_list_details_by_identity(list_slug)
+                if details:
+                    share_button(f"/share/{details['share_token']}", kind="list")
                 edit_btn_text = "Done" if state["edit_mode"] else "Options"
 
                 def toggle_edit_mode() -> None:
@@ -1752,7 +1766,7 @@ def _create_tags_ui(
         if not is_active():
             return
         curr_details = get_list_details(list_id)
-        if curr_details is None or curr_details["slug"] != list_slug:
+        if curr_details is None or not list_identity_matches(curr_details, list_slug):
             ui.timer(0.0, on_unavailable, once=True)
             return
         list_tags = sorted(curr_details["list_tags"], key=str.lower)
@@ -1924,9 +1938,24 @@ def _delete_item_with_undo(
 
 @ui.page("/list/{slug}")
 async def list_page(slug: str):
+    await _list_page(slug, public=False)
+
+
+@ui.page("/share/{token}")
+async def shared_list_page(token: str):
+    await _list_page(f"share:{token}", public=True)
+
+
+async def _list_page(slug: str, *, public: bool):
     _add_install_manifest()
+    ui.add_head_html('<meta name="referrer" content="no-referrer">')
+    page_url = f"/share/{slug.removeprefix('share:')}" if public else f"/list/{slug}"
     try:
-        details = get_list_details_by_slug(slug)
+        details = (
+            get_list_details_by_identity(slug)
+            if public
+            else get_list_details_by_slug(slug)
+        )
     except sqlite3.Error:
         with (
             ui.card()
@@ -1941,7 +1970,7 @@ async def list_page(slug: str):
             ui.label("Could not load this list. Please retry.").classes(
                 "text-lg text-slate-700"
             )
-            ui.button("Retry", on_click=lambda: ui.navigate.to(f"/list/{slug}")).props(
+            ui.button("Retry", on_click=lambda: ui.navigate.to(page_url)).props(
                 "outline"
             )
         return
@@ -1989,6 +2018,12 @@ async def list_page(slug: str):
             if token:
                 await _remove_room_token(room_slug)
 
+    # Legacy slug URLs never disclose tokens or list content without room access.
+    if not public and not room_authorized:
+        ui.label("Room access required to open this list.")
+        ui.button("Open room", on_click=lambda: ui.navigate.to(f"/room/{room_slug}"))
+        return
+
     page_state: ListPageState = {
         "status": "active",
         "list_id": list_id,
@@ -2009,7 +2044,17 @@ async def list_page(slug: str):
     active_content = None
 
     def is_active() -> bool:
-        return page_state["status"] == "active"
+        if page_state["status"] != "active":
+            return False
+        if not public and room_access.check() is not RoomAccessStatus.VALID:
+            ui.timer(0.0, transition_to_unavailable, once=True)
+            return False
+        lookup = _list_lookup_status(slug)
+        if lookup == "missing":
+            # Refreshable children must finish before replacing their parent.
+            ui.timer(0.0, transition_to_unavailable, once=True)
+            return False
+        return lookup == "exists"
 
     def transition_to_unavailable() -> None:
         nonlocal availability_timer
@@ -2031,7 +2076,13 @@ async def list_page(slug: str):
         if active_content is not None:
             active_content.clear()
             with active_content:
-                _render_unavailable_list(page_state, go_back_to_room)
+                _render_unavailable_list(
+                    page_state,
+                    go_back_to_room,
+                    message="This list was deleted or this share link was reset."
+                    if public
+                    else None,
+                )
 
     def go_back_to_room() -> None:
         if page_state["room_authorized"]:
@@ -2099,6 +2150,47 @@ async def list_page(slug: str):
                 room_slug=room_slug,
                 is_active=is_active,
             )
+            if room_authorized:
+
+                def confirm_reset_share_link() -> None:
+                    with ui.dialog() as dialog, ui.card():
+                        ui.label("Reset share link?")
+                        ui.label(
+                            "Everyone using the old link will lose access. Room access stays unchanged."
+                        )
+
+                        def reset() -> None:
+                            try:
+                                rotate_list_share_token(
+                                    room_slug,
+                                    room_access.token or "",
+                                    list_id,
+                                    expected_slug=details["slug"],
+                                )
+                            except (PermissionError, ListUnavailable):
+                                ui.notify(
+                                    "Room access required or list unavailable.",
+                                    type="negative",
+                                )
+                                dialog.close()
+                                return
+                            except sqlite3.Error:
+                                ui.notify(
+                                    "Could not reset the link. Please retry.",
+                                    type="negative",
+                                )
+                                return
+                            dialog.close()
+                            broadcast_updates()
+                            ui.navigate.to(f"/list/{details['slug']}")
+
+                        ui.button("Cancel", on_click=dialog.close)
+                        ui.button("Reset share link", on_click=reset)
+                    dialog.open()
+
+                ui.button("Reset share link", on_click=confirm_reset_share_link).props(
+                    "flat"
+                )
             undo_bar()
             tags_ui()
             _render_add_item_row(

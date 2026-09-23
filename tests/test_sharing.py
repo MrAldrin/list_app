@@ -100,7 +100,12 @@ def test_url_resolution_failure_does_not_share_relative_link(monkeypatch, result
 
 
 @pytest.mark.parametrize("authorized", [True, False])
-def test_list_header_has_share_and_options_without_install_menu(authorized):
+def test_list_header_has_share_and_options_without_install_menu(
+    authorized, monkeypatch
+):
+    monkeypatch.setattr(
+        "main.get_list_details_by_identity", lambda _: {"share_token": "x" * 43}
+    )
     with Client(page("/")) as client:
         _render_header(
             "Shopping",

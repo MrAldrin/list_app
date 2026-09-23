@@ -6,7 +6,8 @@ completed-work history is preserved in version control.
 
 ## Important improvements
 
-- [ ] Replace guessable public list slugs with separate high-entropy share tokens. Keep public links editable, support token rotation to revoke old links, and retire or restrict the old slug URLs. See [`plans/public_list_share_tokens.md`](public_list_share_tokens.md).
+- [x] Implement secure public list tokens, room-authorized rotation, and restricted old slug URLs. See [current sharing behavior](../docs/public-sharing.md).
+- [ ] Complete the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification); implementation and automated checks do not verify production rollout.
 
 ## Security
 
