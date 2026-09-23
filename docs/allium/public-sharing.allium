@@ -1,5 +1,5 @@
 -- allium: 3
--- Draft pilot: link reset and access only; review intent before expanding.
+-- Draft pilot: public link access and edits, plus link reset; review before expanding.
 -- Based on docs/public-sharing.md and the existing sharing implementation.
 -- Excludes room entry, list creation, item rules, and deployment mechanics.
 
@@ -31,7 +31,8 @@ surface PublicShareLink {
     context link: ShareLink
     provides:
         OpenShareLink(link)
-        EditViaShareLink(link)
+        EditItemViaShareLink(link)
+        EditListTagsViaShareLink(link)
 }
 
 rule ResetShareLink {
@@ -48,10 +49,16 @@ rule AccessSharedList {
     ensures: SharedListVisible(list: link.list)
 }
 
-rule EditSharedList {
-    when: EditViaShareLink(link)
+rule EditItemViaShareLink {
+    when: EditItemViaShareLink(link)
     requires: link = link.list.current_link
-    ensures: EditAllowed(list: link.list)
+    ensures: ItemEditAllowed(list: link.list)
 }
 
-open question "Should public link holders be able to edit every list field, or only list items?"
+rule EditListTagsViaShareLink {
+    when: EditListTagsViaShareLink(link)
+    requires: link = link.list.current_link
+    ensures: ListTagsEditAllowed(list: link.list)
+}
+
+open question "Should a public link also permit renaming the list? The current app exposes item and tag editing."
