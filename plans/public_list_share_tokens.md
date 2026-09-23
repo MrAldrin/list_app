@@ -29,4 +29,5 @@ retained for outstanding manual verification; it is not proof of deployment.
 - [x] Add automated migration, authorization, page, and mutation coverage
 - [x] Verify: 286 tests passed; Ruff formatting/lint clean. Existing Starlette/httpx deprecation warning remains.
 - [x] Update current architecture and operational references
+- [x] Add and run [local Chromium/Firefox browser tests](../docs/browser-testing.md), including real stale-tab actions and server restart
 - [ ] Perform the [manual rollout and device checks](../docs/public-sharing.md#rollout-and-verification)

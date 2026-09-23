@@ -17,9 +17,11 @@ dev = [
     "ty>=0.0.32",
     "cairosvg>=2.9.0",
     "pytest-xdist>=3.8.0",
+    "playwright>=1.63.0",
 ]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-n 8"
 

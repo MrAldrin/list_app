@@ -43,6 +43,10 @@ slug routes; do not treat that as a security-preserving rollback.
 Automated coverage checks legacy migration/restart stability, unique/scoped
 lookup, invalid tokens, rename persistence, room authorization for rotation,
 old-token rejection across mutations and undo, and page access/control visibility.
+The [real-browser suite](browser-testing.md) additionally verifies local sharing,
+revoked actions from stale tabs, live updates, and remembered access after a real
+server restart in Chromium and Firefox. This uses disposable data over HTTP, not
+the production database or a hosted deployment.
 
 **Pending manual deployment checks:**
 

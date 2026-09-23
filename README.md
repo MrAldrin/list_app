@@ -72,6 +72,15 @@ uv run pytest -q -n 2  # Two workers
 uv run pytest -q -n 0  # Serial (also use this with --pdb)
 ```
 
+Real-browser sharing tests (Chromium and Firefox, disposable data):
+
+```bash
+uv run playwright install chromium firefox
+uv run pytest browser_tests -q -n 0
+```
+
+Setup, coverage, and diagnostics: [browser testing](docs/browser-testing.md).
+
 Benchmark results and trade-offs: [test speed experiments](plans/test-speed-experiments.md).
 
 ## Documentation
