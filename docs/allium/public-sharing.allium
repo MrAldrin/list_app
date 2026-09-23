@@ -7,6 +7,7 @@ entity Room {}
 
 entity SharedList {
     room: Room
+    name: String
     current_link: ShareLink
 }
 
@@ -19,24 +20,31 @@ entity RoomParticipant {
     currently_authorized: Boolean
 }
 
+-- Public visitors need no room authorization; possession of a current link
+-- is checked by each public rule, not by an account or room grant.
+entity PublicVisitor {}
+
 surface RoomShareControls {
     facing participant: RoomParticipant
     context list: SharedList
     provides:
         ResetShareLink(participant, list)
             when participant.room = list.room and participant.currently_authorized = true
+        RenameList(participant, list, new_name)
+            when participant.room = list.room and participant.currently_authorized = true
 }
 
 surface PublicShareLink {
+    facing visitor: PublicVisitor
     context link: ShareLink
     provides:
-        OpenShareLink(link)
-        EditItemViaShareLink(link)
-        EditListTagsViaShareLink(link)
+        OpenShareLink(visitor, link)
+        EditItemViaShareLink(visitor, link)
+        EditListTagsViaShareLink(visitor, link)
 
     @guarantee ListRenameRequiresRoomAccess
-        -- A public link alone cannot rename its list. Renaming requires
-        -- current authorization for the list's room (password or valid grant).
+        -- A public link alone cannot rename its list. The room-only RenameList
+        -- rule checks current authorization, including on already-open pages.
 }
 
 rule ResetShareLink {
@@ -47,20 +55,28 @@ rule ResetShareLink {
     -- The old link no longer matches current_link; room access is unchanged.
 }
 
+rule RenameList {
+    when: RenameList(participant, list, new_name)
+    requires: participant.room = list.room
+    requires: participant.currently_authorized = true
+    requires: valid_list_name(new_name)
+    ensures: list.name = new_name
+}
+
 rule AccessSharedList {
-    when: OpenShareLink(link)
+    when: OpenShareLink(visitor, link)
     requires: link = link.list.current_link
     ensures: SharedListVisible(list: link.list)
 }
 
 rule EditItemViaShareLink {
-    when: EditItemViaShareLink(link)
+    when: EditItemViaShareLink(visitor, link)
     requires: link = link.list.current_link
     ensures: ItemEditAllowed(list: link.list)
 }
 
 rule EditListTagsViaShareLink {
-    when: EditListTagsViaShareLink(link)
+    when: EditListTagsViaShareLink(visitor, link)
     requires: link = link.list.current_link
     ensures: ListTagsEditAllowed(list: link.list)
 }
