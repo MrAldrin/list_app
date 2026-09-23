@@ -12,6 +12,7 @@ For local setup, see the [README](../README.md).
 | `NICEGUI_STORAGE_SECRET` | Required private signing key for NiceGUI session storage. Use a separate random value and keep it stable across restarts. |
 | `DB_PATH` | Database file path. Production: `/data/list.db` on the `/data` persistent volume. Default: `list.db` in the repository root. |
 | `PORT` | Listening port; defaults to `8080`. The `--port` argument takes precedence. |
+| `APP_RELOAD` | Automatic restart on code changes. Defaults to off; only `true` (case-insensitive, surrounding whitespace ignored) enables it. |
 
 Generate separate secrets using the command in the README. The app explicitly
 rejects missing/blank `APP_PASSWORD` before opening the database. There is no
@@ -43,10 +44,12 @@ build has installed dependencies into the Python environment used at runtime.
 Use Railway's supplied `PORT` and route traffic to that port. The application
 binds to `0.0.0.0` (all interfaces).
 
+Use `APP_RELOAD=true` only for local development. On Railway, no new variable is
+needed: leave it unset or set it to `false`. With reload off, code updates take
+effect after an explicit restart or deployment, not through a file watcher.
+
 **Known limitations, tracked in the [backlog](../plans/backlog.md):**
 
-- Automatic reload is currently hard-coded on. There is no supported development-only
-  reload switch yet; this needs a separate code change for production.
 - `python-dotenv` is imported at runtime but declared only in the development
   dependency group. The uv command above includes that group. Do not switch to
   `--no-dev` or rely on transitive dependencies until its declaration is fixed.
@@ -58,8 +61,8 @@ binds to `0.0.0.0` (all interfaces).
 - Mount the Railway volume at `/data` and set `DB_PATH=/data/list.db`.
   The parent directory must exist and be writable by the application.
 - Keep one application service/instance using this database: no horizontal
-  replicas or extra application workers. The current reload supervisor is not
-  a supported multi-worker deployment strategy.
+  replicas or extra application workers. The optional development reload supervisor
+  is not a supported multi-worker deployment strategy.
 - Do not place the production database on the temporary deployment filesystem.
   A wrong or missing `DB_PATH` can create a new, empty database instead of opening
   the existing one. Check the path before starting or restoring.

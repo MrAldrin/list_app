@@ -29,7 +29,7 @@ Current quantity and stale-page safeguards are described in
 Configuration, database checks, and recovery instructions live in
 [`docs/deployment.md`](../docs/deployment.md).
 
-- [ ] Disable automatic reload in production; retain it only as an explicit development option.
+- [x] Disable automatic reload by default; retain it as an explicit development option. Implemented and covered by configuration tests; see [deployment configuration](../docs/deployment.md#configuration). Railway deployment verification remains pending.
 - [ ] Declare `python-dotenv` as a runtime dependency, or make loading `.env` development-only. Do not rely on it arriving through another dependency.
 - [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access; choose an owner and failure notification. Test restoration with the app stopped, including a hosted restore drill. See the proposed policy in the deployment guide.
 - [ ] Complete and record the deployment guide's outstanding production checks, including persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.

@@ -5,7 +5,27 @@ from pathlib import Path
 
 import pytest
 
-from config import require_app_password
+from config import app_reload_enabled, require_app_password
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, False),
+        ("", False),
+        ("false", False),
+        ("true", True),
+        (" TRUE ", True),
+        ("1", False),
+        ("unexpected", False),
+    ],
+)
+def test_app_reload_is_explicitly_opt_in(monkeypatch, value, expected):
+    if value is None:
+        monkeypatch.delenv("APP_RELOAD", raising=False)
+    else:
+        monkeypatch.setenv("APP_RELOAD", value)
+    assert app_reload_enabled() is expected
 
 
 @pytest.mark.parametrize("password", [None, "", " \t\n"])

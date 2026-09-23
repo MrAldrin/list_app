@@ -9,7 +9,7 @@ from urllib.parse import quote, urlsplit
 
 from nicegui import app, core, ui
 
-from config import require_app_password
+from config import app_reload_enabled, require_app_password
 from ui.install_help import install_help_menu_item
 from ui.room_invitations import creation_form, invitation_controls
 from ui.sharing import share_button
@@ -2150,7 +2150,7 @@ if __name__ in {"__main__", "__mp_main__"}:
     ui.run(
         host="0.0.0.0",
         port=port,
-        reload=True,
+        reload=app_reload_enabled(),
         title="ListR",
         favicon="/static/icons/favicon-32.png",
         storage_secret=os.environ["NICEGUI_STORAGE_SECRET"],

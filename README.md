@@ -46,9 +46,12 @@ The default database is `list.db` in the repository root, regardless of the
 startup directory. Optional `DB_PATH` overrides it. The port defaults to `8080`;
 set `PORT` or override it with `uv run python src/main.py --port 8081`.
 
-The server currently listens on all network interfaces and enables automatic
-reload. Use it only on a trusted network during development. Production caveats
-and configuration are in the [deployment guide](docs/deployment.md).
+For automatic restarts after local code edits, set `APP_RELOAD=true` in `.env`
+(already included in `.env.example`). See the [deployment guide](docs/deployment.md)
+for configuration and production behavior.
+
+The server listens on all network interfaces. Use it only on a trusted network
+during development.
 
 ## Tests and code checks
 
