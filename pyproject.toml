@@ -7,11 +7,11 @@ requires-python = ">=3.13"
 dependencies = [
     "bcrypt>=5.0.0",
     "nicegui>=3.10.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [dependency-groups]
 dev = [
-    "python-dotenv>=1.2.2",
     "pytest>=9.0.3",
     "ruff>=0.15.10",
     "ty>=0.0.32",

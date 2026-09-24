@@ -50,9 +50,6 @@ effect after an explicit restart or deployment, not through a file watcher.
 
 **Known limitations, tracked in the [backlog](../plans/backlog.md):**
 
-- `python-dotenv` is imported at runtime but declared only in the development
-  dependency group. The uv command above includes that group. Do not switch to
-  `--no-dev` or rely on transitive dependencies until its declaration is fixed.
 - Startup performs schema changes automatically. Versioned, transaction-safe
   migrations and recurring backup automation are still pending.
 
