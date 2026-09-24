@@ -1,8 +1,9 @@
 # Backup options for the Railway SQLite app
 
-Research reviewed: 2026-09-24. **Recommendation only; no backup schedule,
-off-service copy, alerting, or hosted restore drill has been set up.** The
-operational backup/check/restore commands and proposed policy live in the
+Research reviewed: 2026-09-24. A **one-off local copy** was verified on
+2026-09-24, but no recurring backup schedule, alerting, encrypted off-service
+storage, or hosted restore drill has been set up. The operational
+backup/check/restore commands and proposed policy live in the
 [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
 
 ## What we have today
@@ -15,8 +16,9 @@ been inspected. Startup may change the schema. A local
 on 2026-09-24 showed a linked production service with a `/data` volume
 (51 MB used of 500 MB), and the CLI was logged in (version 5.57.2). This is
 volume usage, **not** a measurement of `list.db`; it does not establish the
-volume backup schedule, database integrity, or the existence of any backups.
-No production database files or records were accessed.
+volume backup schedule or database integrity. A one-off production backup was
+subsequently made and verified as described below; no production records were
+printed or exported to this repository.
 
 ## Comparison
 
@@ -45,8 +47,9 @@ SQLite read-only SQL (e.g. `PRAGMA integrity_check` and
 checks. Python is available in this app; don't assume the `sqlite3` CLI binary
 is installed in the deployed image. **Do not run queries or download production
 data merely to check whether the CLI works.** The service was sleeping when
-metadata was checked; SSH access, permissions and runtime behavior have not
-been tested.
+metadata was first checked. SSH access and a one-off backup were subsequently
+tested after waking the service with a normal page request; this is not a
+recurring job.
 
 After creating and verifying a snapshot file, use
 `railway volume files --volume <volume-id> download /<unique-backup>.db
@@ -108,8 +111,20 @@ service **Backups** tab rather than assuming the CLI creates them.
 
 - Local disposable SQLite test: `sqlite3.Connection.backup()` produced an
   integrity-clean snapshot of a live WAL-mode database; a later source write
-  did not appear in the copy. This demonstrates API behavior **locally only**.
-  No production backup, access test, restore or schedule verification occurred.
+  did not appear in the copy. This demonstrates API behavior locally only.
+- **One-off production-to-local test, 2026-09-24:** After confirming the linked
+  production service, `/data/list.db`, and free volume space, a Python SQLite
+  backup-API snapshot was written to a unique temporary file on the volume.
+  Railway-side `integrity_check` and `foreign_key_check` passed. The backup was
+  downloaded via `railway volume files` to
+  `~/.local/share/list_app/backups/list-manual-20260924T213006Z-6e26b172.db`
+  (86,016 bytes). On the local copy, SHA-256 matched the Railway snapshot;
+  integrity, foreign keys, and expected tables passed; file permissions were
+  `0600` inside a `0700` directory. The verified temporary file was removed
+  from Railway; the **local copy remains**. It is not encrypted by this
+  procedure; protect the machine and do not commit or share the file.
+  **No full restore, routine backup, failure alert, or long-term retention was
+  tested.** The source database was not overwritten or restored.
 - [SQLite online backup API](https://www.sqlite.org/backup.html)
 - [Railway volume backups: schedules, restore, limits and caveats](https://docs.railway.com/volumes/backups)
 - [Railway volumes: mount and service limitations](https://docs.railway.com/volumes/reference)
@@ -122,6 +137,8 @@ service **Backups** tab rather than assuming the CLI creates them.
 - [x] Review current architecture and deployment guide
 - [x] Compare backup/transfer methods and check current Railway CLI/docs
 - [x] Test SQLite backup API locally on disposable WAL-mode data
+- [x] Make and verify one production-to-local copy; remove only the temporary
+  Railway copy
 - [ ] Choose owner, recovery target, storage, alerts and retention
-- [ ] Configure/test production schedules, off-service transfer and hosted restore
+- [ ] Configure/test production schedules, automated off-service transfer and hosted restore
   (tracked in the [backlog](backlog.md))
