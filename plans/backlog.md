@@ -22,7 +22,6 @@ Current quantity and stale-page safeguards are described in
 - [ ] Prevent concurrent duplicate items: add a database uniqueness rule consistent with the app's name normalization and make add/restore atomic (one indivisible operation). Check existing duplicates before adding the constraint; test concurrent requests.
 - [ ] Preserve all item information when undoing deletion, including description and quantity. Decide whether the original ID must be restored and test duplicate-name conflicts.
 - [ ] Complete manual multi-user verification for deleted-list handling: room-authorized deletion shows the specific unavailable message and `Back to room`; public-link users see the generic message without a room button; test immediate add/edit/toggle/quantity/tag/undo actions around deletion and room deletion.
-- [ ] Validate name and quantity together before saving an item edit. An invalid or duplicate name must leave every field unchanged; save valid edits in one transaction.
 - [ ] Review other multi-step writes for atomicity, especially list/room deletion and service operations that read, check, then write. Use transactions and a consistent service layer; test rollback on failure.
 
 ## Deployment and recovery — next priorities
@@ -33,6 +32,7 @@ Configuration, database checks, and recovery instructions live in
 - [x] Disable automatic reload by default; retain it as an explicit development option. Implemented and covered by configuration tests; see [deployment configuration](../docs/deployment.md#configuration). Railway deployment verification remains pending.
 - [ ] Declare `python-dotenv` as a runtime dependency, or make loading `.env` development-only. Do not rely on it arriving through another dependency.
 - [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access; choose an owner and failure notification. Test restoration with the app stopped, including a hosted restore drill. See the proposed policy in the deployment guide.
+- [ ] Review backup/recovery options locally (for example SQLite `.backup`, scheduled copies, off-service storage) and write a comparison with a recommended sequence under `plans/`. A local review does not verify a hosted Railway restore.
 - [ ] Complete and record the deployment guide's outstanding production checks, including persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.
 
 ## Database hardening — planned follow-up

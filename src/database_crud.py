@@ -384,17 +384,33 @@ def update_item_details(
     list_id: int,
     name: str,
     description: str,
+    quantity: int | None = None,
     *,
     expected_slug: str | None = None,
-):
+) -> bool:
+    """Save an item edit in one transaction; return False on a duplicate name.
+
+    The duplicate check runs inside the write transaction, so no field changes
+    when another item already uses the name. None leaves the quantity unchanged.
+    """
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
+            duplicate = db.execute(
+                "SELECT id FROM items WHERE name = ? COLLATE NOCASE "
+                "AND id != ? AND list_id = ?",
+                (name, item_id, list_id),
+            ).fetchone()
+            if duplicate:
+                db.rollback()
+                return False
             db.execute(
-                "UPDATE items SET name = ?, description = ? WHERE id = ? AND list_id = ?",
-                (name, description, item_id, list_id),
+                "UPDATE items SET name = ?, description = ?, "
+                "quantity = COALESCE(?, quantity) WHERE id = ? AND list_id = ?",
+                (name, description, quantity, item_id, list_id),
             )
             db.commit()
+            return True
         except Exception:
             db.rollback()
             raise

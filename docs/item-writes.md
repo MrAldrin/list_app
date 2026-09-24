@@ -8,6 +8,13 @@ save a value calculated from an older UI view. `adjust_item_quantity` in
 as one before applying the delta. Updates are scoped to the item and list.
 Explicit quantity edits in the edit dialog still set an absolute value.
 
+## Edit dialog
+
+Saving the edit dialog writes name, description, and quantity in one
+transaction (`update_item_details` in `src/database_crud.py`). The duplicate-name
+check runs inside that transaction, so an empty or duplicate name leaves every
+field unchanged. Regression tests are in `tests/test_item_edits.py`.
+
 ## List identity
 
 SQLite can reuse a deleted list's numeric ID. Room-page writes pass the original
@@ -18,5 +25,5 @@ list that happens to reuse its ID. The optional argument exists for other caller
 a numeric ID alone is not the stale-page safeguard.
 
 These protections do not make every multi-step edit atomic. Concurrent duplicate
-prevention, all-or-nothing name/quantity edits, complete deletion undo, and manual
-multi-user verification remain in the [backlog](../plans/backlog.md).
+prevention for adds/restores, complete deletion undo, and manual multi-user
+verification remain in the [backlog](../plans/backlog.md).

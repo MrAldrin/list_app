@@ -169,7 +169,6 @@ from item_service import (
     delete_item_from_list,
     delete_list_and_items,
     rename_list_with_checks,
-    set_item_quantity,
     toggle_item_done,
     update_item_details_with_checks,
 )
@@ -752,6 +751,7 @@ def item_list(
                                 it["id"],
                                 name_input.value,
                                 desc_input.value,
+                                q_val["count"],
                                 expected_slug=list_slug,
                             )
                         except ListUnavailable:
@@ -771,17 +771,6 @@ def item_list(
                                 color="warning",
                                 position=NOTIFY_POSITION,
                             )
-                            return
-                        try:
-                            set_item_quantity(
-                                list_id,
-                                it["id"],
-                                q_val["count"],
-                                expected_slug=list_slug,
-                            )
-                        except ListUnavailable:
-                            if on_unavailable:
-                                on_unavailable()
                             return
                         dialog.close()
                         broadcast_updates()

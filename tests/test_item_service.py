@@ -155,16 +155,16 @@ def test_delete_item_from_list(mock_delete):
     mock_delete.assert_called_once_with(item_id=10, list_id=1, expected_slug=None)
 
 
-@patch("item_service.find_duplicate_name")
 @patch("item_service.update_item_details")
-def test_update_item_details_with_checks_success(mock_update, mock_find_duplicate):
-    # Test updating item name and description with checks
-    mock_find_duplicate.return_value = None
+def test_update_item_details_with_checks_success(mock_update):
+    # Test updating item name, description, and quantity with checks
+    mock_update.return_value = True
     status, name = update_item_details_with_checks(
         list_id=1,
         item_id=10,
         raw_name="  Apples  ",
         raw_description="  Organic 5-pack  ",
+        quantity=0,
     )
     assert status == STATUS_RENAMED
     assert name == "apples"
@@ -173,8 +173,19 @@ def test_update_item_details_with_checks_success(mock_update, mock_find_duplicat
         list_id=1,
         name="apples",
         description="Organic 5-pack",
+        quantity=1,
         expected_slug=None,
     )
+
+
+@patch("item_service.update_item_details")
+def test_update_item_details_with_checks_duplicate(mock_update):
+    mock_update.return_value = False
+    status, name = update_item_details_with_checks(
+        list_id=1, item_id=10, raw_name="Pears", raw_description="", quantity=2
+    )
+    assert status == STATUS_DUPLICATE_NAME
+    assert name == "pears"
 
 
 @patch("item_service.update_item_quantity")

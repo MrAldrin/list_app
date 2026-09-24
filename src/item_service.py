@@ -71,25 +71,25 @@ def update_item_details_with_checks(
     item_id: int,
     raw_name: str | None,
     raw_description: str | None,
+    quantity: int | None = None,
     *,
     expected_slug: str | None = None,
 ) -> tuple[str, str | None]:
+    """Validate an item edit, then save every field together or none of them."""
     new_name = normalize_item_name(raw_name)
     if not new_name:
         return STATUS_INVALID_NAME, None
 
-    duplicate = find_duplicate_name(list_id=list_id, item_id=item_id, new_name=new_name)
-    if duplicate:
-        return STATUS_DUPLICATE_NAME, new_name
-
-    new_description = (raw_description or "").strip()
-    update_item_details(
+    saved = update_item_details(
         item_id=item_id,
         list_id=list_id,
         name=new_name,
-        description=new_description,
+        description=(raw_description or "").strip(),
+        quantity=None if quantity is None else max(1, int(quantity)),
         expected_slug=expected_slug,
     )
+    if not saved:
+        return STATUS_DUPLICATE_NAME, new_name
     return STATUS_RENAMED, new_name
 
 
