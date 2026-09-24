@@ -145,7 +145,9 @@ A backup only on the same volume does not protect against losing that volume.
 schema-changing deploy; retain seven daily and four weekly copies, including an
 encrypted off-service copy. Choose an owner, schedule, failure notification, and
 restore drill before treating this as operational. The earlier one-time repair
-backup is not a recurring backup policy.
+backup is not a recurring backup policy. For the Railway-specific options,
+CLI access, and a recommended rollout sequence, see the
+[backup options review](../plans/backup-options.md).
 
 ## Read-only database checks
 

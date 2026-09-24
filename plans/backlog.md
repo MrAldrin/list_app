@@ -30,8 +30,7 @@ Configuration, database checks, and recovery instructions live in
 [`docs/deployment.md`](../docs/deployment.md).
 
 - [x] Disable automatic reload by default; retain it as an explicit development option. Implemented and covered by configuration tests; see [deployment configuration](../docs/deployment.md#configuration). Railway deployment verification remains pending.
-- [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access; choose an owner and failure notification. Test restoration with the app stopped, including a hosted restore drill. See the proposed policy in the deployment guide.
-- [ ] Review backup/recovery options locally (for example SQLite `.backup`, scheduled copies, off-service storage) and write a comparison with a recommended sequence under `plans/`. A local review does not verify a hosted Railway restore.
+- [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access; choose an owner and failure notification. Test restoration with the app stopped, including a hosted restore drill. See the [backup options and recommended sequence](backup-options.md) and [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
 - [ ] Complete and record the deployment guide's outstanding production checks, including persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.
 
 ## Database hardening — planned follow-up
