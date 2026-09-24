@@ -95,6 +95,17 @@ ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
 ui.add_head_html(
     """
     <style>
+      /* Keep custom light utility colors legible when Quasar dark mode is active. */
+      .body--dark .bg-slate-50, .body--dark .bg-slate-100 {
+        background-color: #303030 !important;
+      }
+      .body--dark .bg-amber-50 { background-color: #403727 !important; }
+      .body--dark .border-slate-200, .body--dark .border-amber-200 {
+        border-color: #555 !important;
+      }
+      .body--dark .text-slate-800, .body--dark .text-slate-700,
+      .body--dark .text-gray-700, .body--dark .text-gray-600,
+      .body--dark .text-gray-500 { color: #ddd !important; }
       /* Prevent auto-zoom on mobile input focus */
       input, select, textarea, .q-field__native, .q-field__input {
         font-size: 16px !important;
@@ -900,9 +911,41 @@ def item_list(
                     ).style("margin: -2px")
 
 
+async def _add_theme_toggle() -> None:
+    """Apply and remember this browser's theme without sharing it between users."""
+    saved_theme = None
+    try:
+        ui.context.client.request  # Isolated UI tests have no browser request.
+    except RuntimeError:
+        saved_theme = None
+    else:
+        try:
+            saved_theme = await ui.run_javascript(
+                "return localStorage.getItem('listapp_theme')", timeout=3.0
+            )
+        except Exception:  # noqa: BLE001 - browser storage can be unavailable.
+            saved_theme = None
+    dark = ui.dark_mode(value=saved_theme == "dark")
+
+    async def change_theme() -> None:
+        dark.toggle()
+        try:
+            await ui.run_javascript(
+                f"localStorage.setItem('listapp_theme', {json.dumps('dark' if dark.value else 'light')})",
+                timeout=3.0,
+            )
+        except Exception:  # noqa: BLE001 - browser storage can be unavailable.
+            ui.notify("Theme could not be saved on this device", color="warning")
+
+    ui.button(icon="dark_mode", on_click=change_theme).props(
+        "flat round aria-label='Toggle dark mode'"
+    ).classes("fixed top-2 right-2 z-50").tooltip("Toggle light / dark mode")
+
+
 @ui.page("/admin/login")
-def admin_login() -> None:
+async def admin_login() -> None:
     _add_install_manifest()
+    await _add_theme_toggle()
 
     def try_login() -> None:
         if password.value == GLOBAL_APP_PASSWORD:
@@ -1002,8 +1045,9 @@ def room_list_ui() -> None:
 
 
 @ui.page("/admin")
-def admin_page() -> None:
+async def admin_page() -> None:
     _add_install_manifest()
+    await _add_theme_toggle()
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
             "w-full items-center justify-between tracking-tighter mb-2"
@@ -1063,8 +1107,9 @@ def admin_page() -> None:
 
 
 @ui.page("/create-room/{token}")
-def create_room_page(token: str) -> None:
+async def create_room_page(token: str) -> None:
     _add_install_manifest()
+    await _add_theme_toggle()
     creation_form(token)
 
 
@@ -1111,6 +1156,7 @@ async def _room_access_from_browser(
 @ui.page("/")
 async def index() -> None:
     _add_install_manifest()
+    await _add_theme_toggle()
     await _cleanup_legacy_room_password_keys()
     storage_read, saved_last_room = await _get_browser_storage("listapp_last_room")
     if storage_read and saved_last_room:
@@ -1204,6 +1250,7 @@ async def index() -> None:
 
 @ui.page("/room/{slug}")
 async def room_page(slug: str, admin: str | None = None) -> None:
+    await _add_theme_toggle()
     details = get_room_details_by_slug(slug)
     _add_install_manifest(slug if details else None)
     if not details:
@@ -1937,6 +1984,7 @@ async def shared_list_page(token: str):
 
 async def _list_page(slug: str, *, public: bool):
     _add_install_manifest()
+    await _add_theme_toggle()
     ui.add_head_html('<meta name="referrer" content="no-referrer">')
     page_url = f"/share/{slug.removeprefix('share:')}" if public else f"/list/{slug}"
     try:

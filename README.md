@@ -8,6 +8,9 @@ Built with Python, NiceGUI, and SQLite; hosted on Railway.
 **Anyone with a public list link can view and edit that list.** Room passwords
 protect room controls, not public list links.
 
+Use the moon button at the top right to switch between light and dark mode.
+The choice is saved in that device's browser, not shared with other devices.
+
 ## Local setup
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and use
