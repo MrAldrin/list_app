@@ -24,7 +24,7 @@ Goal: prevent stale decisions and partial writes in the existing single-instance
 - [x] Chunk 1: inventory/classification complete; no code changes.
 - [x] Chunk 2: item rename; verified that the duplicate check and name update now share a write transaction, stale list identity is rejected before duplicate lookup, and rename failures leave the connection usable.
 - [x] Chunk 3: list rename.
-- [ ] Chunk 4: navigation after deletion.
+- [x] Chunk 4: navigation after deletion; the returned ID is discarded by its only UI caller, so no current navigation bug exists.
 - [ ] Chunk 5: remaining write entry points.
 - [ ] Chunk 6: cross-path regression and current-reference updates.
 
@@ -43,3 +43,5 @@ Chunk 1 baseline validation (before this chunk): the unchanged codebase passed `
 Chunk 2 verification: the deterministic competing-claim regression first reproduced `sqlite3.IntegrityError` on the old service path; after the atomic rename fix, `uv run ruff format .`, `uv run ruff check --fix .`, `uv run pytest -q` (316 passed, 8 existing warnings), `uv run ruff format --check .`, and `uv run ruff check .` all passed. Focused rename, service, and list-identity tests passed (83 tests).
 
 Chunk 3 verification: a controlled interleaving first reproduced `sqlite3.IntegrityError` when a competing rename claimed the name after the private service lookup. The private path now checks identity, room ownership, and duplicate names with the update under one write transaction; the token-authorized path was not changed. `tests/test_list_renames.py` verifies normal rename, existing and competing duplicates, stale reused identity, wrong-room rejection, unchanged target state on rejection, a closed transaction, and a succeeding rename. Focused list-rename, list-identity, and public-token tests passed (78 tests). Prescribed checks passed: `uv run ruff format .`, `uv run ruff check --fix .`, `uv run pytest -q` (321 passed, 8 existing warnings), `uv run ruff format --check .`, and `uv run ruff check .`.
+
+Chunk 4 verification: source search found one production callsite, in `main.py`'s admin delete confirmation. It discards `delete_list_and_items`'s `(status, remaining_list_id)` return, then closes the dialog, reports deletion, and broadcasts a list refresh; the non-admin path calls the separate token-authorized delete helper. Thus no current UI navigation or other decision consumes this post-delete ID, so concurrent room/list changes affecting it cannot cause the suspected navigation bug. Existing deletion and stale-list-identity tests cover the mutation path; `test_list_deletion.py` also verifies list-only refresh. No defect-specific test or current behavior-reference update was warranted. Focused deletion, list-identity, and CRUD tests passed (95 tests); non-mutating full checks passed: `uv run ruff format --check .` (59 files formatted), `uv run ruff check .`, and `uv run pytest -q` (321 passed, 8 existing Starlette/httpx deprecation warnings).
