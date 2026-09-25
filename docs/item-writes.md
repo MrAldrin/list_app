@@ -80,6 +80,16 @@ within the same write transaction before mutating data. An old page must not edi
 list that happens to reuse its ID. The optional argument exists for other callers;
 a numeric ID alone is not the stale-page safeguard.
 
+## Item identity still needs a separate safeguard
+
+The list slug or share token protects *list* identity, not an individual item's
+identity. SQLite may reuse a deleted maximum item ID within the same live list.
+A stale quick-tag callback can then change the replacement item despite passing
+valid list identity; checkbox, quantity, edit-save, and delete callbacks also
+retain numeric item IDs. This confirmed risk remains deferred pending an
+[item-identity decision](../plans/backlog.md#data-correctness--next-priorities).
+The atomic tag and edit checks above do not resolve it.
+
 ## Admin room password reset
 
 The admin reset dialog retains the room ID and slug from when it was opened.
@@ -105,5 +115,17 @@ commit fails. In particular, a failed token revocation leaves the token active.
 Injected `RAISE(ABORT)` tests verify unchanged rows, a closed transaction, and a
 subsequent successful write in `tests/test_database_crud.py`. This only covers
 failure cleanup for these entry points; it does not make every multi-step edit
-atomic. Manual multi-user verification and further write review remain in the
-[backlog](../plans/backlog.md).
+atomic.
+
+## Cross-path regression scope
+
+`tests/test_write_atomicity_cross_path.py` exercises room-token list creation,
+private and public list writes, rejected room authorization and duplicate names,
+then successful writes. It checks that rejections leave persisted data unchanged
+and no open transaction, while successful writes preserve room access, the list
+slug and share token, list/item tags, item descriptions and quantities.
+Existing service tests check duplicate-edit status; UI tests check tag-action
+feedback and stale admin room password-reset dialogs. The cross-path test does
+not simulate browser callbacks. These automated checks do not prove every write
+path, real-device behavior, or production concurrency. Remaining item-identity
+and manual checks are in the [backlog](../plans/backlog.md).
