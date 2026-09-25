@@ -14,7 +14,9 @@ from database_crud import (
     create_room,
     delete_item,
     delete_list,
+    delete_list_with_room_token,
     delete_room,
+    delete_room_with_password,
     find_duplicate_name,
     find_item_by_name,
     find_list_by_name,
@@ -274,6 +276,33 @@ def test_delete_list(room_id):
     assert len(items) == 0
 
 
+@pytest.mark.parametrize("authorized", [False, True])
+def test_failed_list_delete_restores_items(room_id, authorized):
+    list_id, slug = create_list("Keep list", room_id)
+    add_item("Keep item", list_id)
+    room_slug = db.execute(
+        "SELECT slug FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()[0]
+    token = authenticate_room_and_issue_token(room_slug, "pw")[1]
+    db.execute(
+        "CREATE TEMP TRIGGER fail_list_delete BEFORE DELETE ON lists "
+        "BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END"
+    )
+    try:
+        with pytest.raises(Exception, match="injected delete failure"):
+            if authorized:
+                delete_list_with_room_token(
+                    room_slug, token, list_id, expected_slug=slug
+                )
+            else:
+                delete_list(list_id, expected_slug=slug)
+        assert not db.in_transaction
+        assert get_list_details_by_slug(slug) is not None
+        assert len(get_list_data(list_id)[0]) == 1
+    finally:
+        db.execute("DROP TRIGGER fail_list_delete")
+
+
 def test_deleted_list_is_missing_by_slug(room_id):
     list_id, slug = create_list(name="Delete Me", room_id=room_id)
     assert get_list_details_by_slug(slug)["id"] == list_id
@@ -422,6 +451,31 @@ def test_deleting_a_room_cascades_to_its_access_tokens():
     delete_room(room_id_value)
 
     assert db.execute("SELECT COUNT(*) FROM room_access_tokens").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("authorized", [False, True])
+def test_failed_room_delete_restores_all_rows(authorized):
+    room_id, slug = create_room("Keep room", "password")
+    list_id, _ = create_list("Keep list", room_id)
+    add_item("Keep item", list_id)
+    token = authenticate_room_and_issue_token(slug, "password")[1]
+    db.execute(
+        "CREATE TEMP TRIGGER fail_room_delete BEFORE DELETE ON rooms "
+        "BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END"
+    )
+    try:
+        with pytest.raises(Exception, match="injected delete failure"):
+            if authorized:
+                delete_room_with_password(slug, "password")
+            else:
+                delete_room(room_id)
+        assert not db.in_transaction
+        assert db.execute("SELECT 1 FROM rooms WHERE id = ?", (room_id,)).fetchone()
+        assert get_lists(room_id)[0][0] == list_id
+        assert len(get_list_data(list_id)[0]) == 1
+        assert validate_room_access_token(slug, token) == room_id
+    finally:
+        db.execute("DROP TRIGGER fail_room_delete")
 
 
 def test_login_token_cannot_remain_valid_when_a_password_reset_races_it():

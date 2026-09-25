@@ -921,12 +921,17 @@ def rename_room(room_id: int, new_name: str):
 
 def delete_room(room_id: int):
     with _DB_LOCK:
-        lists = db.execute(
-            "SELECT id FROM lists WHERE room_id = ?", (room_id,)
-        ).fetchall()
-        for list_row in lists:
-            list_id = list_row[0]
-            db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
-            db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
-        db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
-        db.commit()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            lists = db.execute(
+                "SELECT id FROM lists WHERE room_id = ?", (room_id,)
+            ).fetchall()
+            for list_row in lists:
+                list_id = list_row[0]
+                db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
+                db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+            db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise

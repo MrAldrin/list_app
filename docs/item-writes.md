@@ -41,5 +41,11 @@ within the same write transaction before mutating data. An old page must not edi
 list that happens to reuse its ID. The optional argument exists for other callers;
 a numeric ID alone is not the stale-page safeguard.
 
-These protections do not make every multi-step edit atomic. Manual multi-user
-verification remains in the [backlog](../plans/backlog.md).
+## Deletion rollback
+
+List deletion (including room-token authorization) and room deletion (including
+password verification) run inside write transactions. If a later delete fails,
+earlier item/list deletes roll back instead of leaving a partial deletion.
+Injected-failure regression tests exercise these paths. This does not make every
+multi-step edit atomic. Manual multi-user verification and further write review
+remain in the [backlog](../plans/backlog.md).
