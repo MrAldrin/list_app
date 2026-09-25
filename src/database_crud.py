@@ -241,6 +241,44 @@ def rename_list(list_id: int, new_name: str, *, expected_slug: str | None = None
             raise
 
 
+def rename_list_if_unique(
+    list_id: int,
+    room_id: int,
+    new_name: str,
+    *,
+    expected_slug: str | None = None,
+) -> bool:
+    """Rename a room list unless another list already uses its name."""
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            belongs_to_room = db.execute(
+                "SELECT 1 FROM lists WHERE id = ? AND room_id = ?",
+                (list_id, room_id),
+            ).fetchone()
+            if not belongs_to_room:
+                raise ListUnavailable(f"List {list_id} is no longer available")
+
+            duplicate = db.execute(
+                "SELECT id FROM lists WHERE name = ? COLLATE NOCASE "
+                "AND room_id = ? AND id != ?",
+                (new_name, room_id, list_id),
+            ).fetchone()
+            if duplicate:
+                db.rollback()
+                return False
+
+            db.execute(
+                "UPDATE lists SET name = ? WHERE id = ? AND room_id = ?",
+                (new_name, list_id, room_id),
+            )
+            db.commit()
+            return True
+        except Exception:
+            db.rollback()
+            raise
+
+
 def get_item_count(list_id: int) -> int:
     with _DB_LOCK:
         row = db.execute(

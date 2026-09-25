@@ -33,6 +33,16 @@ checking duplicates, so an old page cannot make a decision about a replacement
 list that reused its ID. Name-only renames leave description and quantity intact;
 see `tests/test_item_renames.py`.
 
+## List rename
+
+The private room's admin rename checks the list's `expected_slug`, room ownership,
+and room-scoped name uniqueness in the same write transaction as the update.
+If another create or rename claims the name first, the service returns its normal
+duplicate-name status, so the UI can show its existing warning without leaving
+the rename transaction open. The token-authorized rename remains a separate path
+that validates its room token and list ownership in its write transaction.
+Regression coverage is in `tests/test_list_renames.py`.
+
 ## Delete and undo
 
 Undo restores the deleted item's name, done state, tags, description, and quantity

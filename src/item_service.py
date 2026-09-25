@@ -3,11 +3,10 @@ from database_crud import (
     adjust_item_quantity,
     delete_item,
     delete_list,
-    find_list_by_name,
     get_lists,
     normalize_item_name,
     rename_item_if_unique,
-    rename_list,
+    rename_list_if_unique,
     update_item_details,
     update_item_done,
     update_item_quantity,
@@ -93,11 +92,14 @@ def rename_list_with_checks(
     if not new_name:
         return STATUS_INVALID_NAME, None
 
-    duplicate = find_list_by_name(new_name, room_id)
-    if duplicate and duplicate[0] != list_id:
+    renamed = rename_list_if_unique(
+        list_id=list_id,
+        room_id=room_id,
+        new_name=new_name,
+        expected_slug=expected_slug,
+    )
+    if not renamed:
         return STATUS_DUPLICATE_NAME, new_name
-
-    rename_list(list_id=list_id, new_name=new_name, expected_slug=expected_slug)
     return STATUS_RENAMED, new_name
 
 
