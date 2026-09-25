@@ -85,6 +85,19 @@ Native OS sharing is intentionally disabled in test contexts so the copy-dialog
 fallback is deterministic. The tests read the generated URL from that dialog;
 OS share sheets and system clipboard behavior are not covered here.
 
+## Deleted-list regression checks
+
+Local verification: 28 new Chromium/Firefox cases passed against disposable app
+processes. Separate browser sessions keep a room page or public link open while
+another session deletes the list. Delayed WebSocket updates ensure the stale page
+actually sends add, edit, toggle, quantity, tag, and undo events after deletion.
+The room page shows “This list was deleted.” and “Back to room”; the public page
+shows the generic message without room navigation. Room deletion also removes
+room navigation from either page. These tests check the resulting database has
+no deleted list or forbidden write. The full browser suite passed (46 cases),
+alongside 309 fast tests and Ruff checks. This is automated local verification,
+not a manual multi-user or production device check.
+
 ## Remaining boundaries
 
 These are local HTTP checks. They do not verify production HTTPS cookie behavior,

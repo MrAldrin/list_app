@@ -18,7 +18,7 @@ completed-work history is preserved in version control.
 Current quantity and stale-page safeguards are described in
 [`docs/item-writes.md`](../docs/item-writes.md).
 
-- [ ] Complete manual multi-user verification for deleted-list handling: room-authorized deletion shows the specific unavailable message and `Back to room`; public-link users see the generic message without a room button; test immediate add/edit/toggle/quantity/tag/undo actions around deletion and room deletion.
+- [ ] Complete manual multi-user verification for deleted-list handling on real devices or deployment. Local Chromium/Firefox tests now cover the specific room message and `Back to room`, generic public message without room navigation, immediate add/edit/toggle/quantity/tag/undo after list deletion, and room deletion. See [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
 - [ ] Review other multi-step writes for atomicity, especially list/room deletion and service operations that read, check, then write. Use transactions and a consistent service layer; test rollback on failure.
 
 ## Deployment and recovery — next priorities
