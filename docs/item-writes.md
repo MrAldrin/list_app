@@ -11,12 +11,11 @@ Explicit quantity edits in the edit dialog still set an absolute value.
 ## Add field
 
 Adding an item, restoring a completed item, or rejecting an active duplicate now
-happens inside one write transaction (`add_or_restore_item_atomic`). This
-serializes add/restore calls in the supported single-instance app, even when
-browsers submit at the same time. A database-level unique-name index is deferred
-until existing production data can be checked; direct SQL writes are not covered
-by this guarantee. Concurrent app requests are tested in
-`tests/test_item_uniqueness.py`.
+happens inside one write transaction (`add_or_restore_item_atomic`). A unique
+SQLite index also prevents duplicate names per list, ignoring case and surrounding
+spaces. On startup, existing duplicates cause a clear migration error rather
+than being discarded; resolve them before restarting. Concurrent requests are
+covered in `tests/test_item_uniqueness.py`.
 
 ## Edit dialog
 

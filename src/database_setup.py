@@ -280,6 +280,23 @@ def init_database():
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name "
         "ON items(list_id, done, name)"
     )
+    duplicates = db.execute(
+        "SELECT list_id, trim(name), COUNT(*) FROM items "
+        "WHERE name IS NOT NULL AND trim(name) != '' "
+        "GROUP BY list_id, trim(name) COLLATE NOCASE HAVING COUNT(*) > 1"
+    ).fetchall()
+    if duplicates:
+        db.rollback()
+        db.close()
+        raise sqlite3.IntegrityError(
+            f"Cannot enforce unique item names; resolve duplicates first: {duplicates}"
+        )
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_items_list_name_nocase "
+        "ON items(list_id, trim(name) COLLATE NOCASE) "
+        "WHERE name IS NOT NULL AND trim(name) != ''"
+    )
+
     db.commit()
     db.execute("PRAGMA foreign_keys = ON")
     if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
