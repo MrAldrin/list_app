@@ -80,6 +80,18 @@ within the same write transaction before mutating data. An old page must not edi
 list that happens to reuse its ID. The optional argument exists for other callers;
 a numeric ID alone is not the stale-page safeguard.
 
+## Admin room password reset
+
+The admin reset dialog retains the room ID and slug from when it was opened.
+`update_room_password` checks both inside its `BEGIN IMMEDIATE` transaction before
+changing the password or deleting room-access tokens. If the room was deleted or
+its numeric ID now belongs to a different room, the helper returns `False`; the
+UI closes the stale dialog, reports that the target changed, and refreshes the
+room list instead of claiming success. Password hashing remains outside the
+transaction. Existing ID-only helper calls remain supported for non-UI callers.
+The stale-target and injected token-deletion failure cases are covered in
+`tests/test_database_crud.py` and `tests/test_admin_rooms.py`.
+
 ## Deletion rollback
 
 List deletion (including room-token authorization) and room deletion (including

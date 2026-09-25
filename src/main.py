@@ -1006,7 +1006,9 @@ def room_list_ui() -> None:
             ).props("flat").classes("flex-grow text-left text-lg")
 
             def open_admin_reset_dialog(
-                room_id=room["id"], room_name=room["name"]
+                room_id=room["id"],
+                room_slug=room["slug"],
+                room_name=room["name"],
             ) -> None:
                 with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
                     ui.label(f"Admin Reset: {room_name}").classes(
@@ -1027,7 +1029,18 @@ def room_list_ui() -> None:
                                     "New password cannot be empty", color="warning"
                                 )
                                 return
-                            update_room_password(room_id, new_password_input.value)
+                            if not update_room_password(
+                                room_id,
+                                new_password_input.value,
+                                expected_slug=room_slug,
+                            ):
+                                dialog.close()
+                                ui.notify(
+                                    "Room changed or no longer exists; refresh and try again",
+                                    color="negative",
+                                )
+                                room_list_ui.refresh()
+                                return
                             dialog.close()
                             ui.notify("Password reset successfully", color="positive")
                             room_list_ui.refresh()

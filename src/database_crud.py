@@ -853,11 +853,13 @@ def verify_room(room_slug: str, plain_password: str):
     return None
 
 
-def _replace_room_password_locked(room_id: int, password_hash: str) -> int | None:
+def _replace_room_password_locked(
+    room_id: int, password_hash: str, expected_slug: str | None = None
+) -> int | None:
     row = db.execute(
-        "SELECT authorization_version FROM rooms WHERE id = ?", (room_id,)
+        "SELECT authorization_version, slug FROM rooms WHERE id = ?", (room_id,)
     ).fetchone()
-    if not row:
+    if not row or (expected_slug is not None and row[1] != expected_slug):
         return None
 
     authorization_version = row[0] + 1
@@ -874,8 +876,13 @@ def _replace_room_password_locked(room_id: int, password_hash: str) -> int | Non
     return authorization_version
 
 
-def update_room_password(room_id: int, new_plain_password: str):
-    """Admin password reset: atomically invalidate all current room tokens."""
+def update_room_password(
+    room_id: int,
+    new_plain_password: str,
+    *,
+    expected_slug: str | None = None,
+) -> bool:
+    """Reset a room password, returning false if its expected identity is stale."""
     if not new_plain_password:
         raise ValueError("Password cannot be empty")
 
@@ -885,8 +892,11 @@ def update_room_password(room_id: int, new_plain_password: str):
     with _DB_LOCK:
         try:
             db.execute("BEGIN IMMEDIATE")
-            _replace_room_password_locked(room_id, pw_hash)
+            authorization_version = _replace_room_password_locked(
+                room_id, pw_hash, expected_slug
+            )
             db.commit()
+            return authorization_version is not None
         except Exception:
             db.rollback()
             raise

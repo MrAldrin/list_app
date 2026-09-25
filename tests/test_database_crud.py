@@ -41,6 +41,7 @@ from database_crud import (
     update_list_tags_settings,
     update_room_password,
     validate_room_access_token,
+    verify_room,
 )
 from database_setup import db
 
@@ -614,6 +615,127 @@ def test_password_reset_revokes_every_existing_room_token():
         ).fetchone()[0]
         == version_before + 1
     )
+
+
+def test_stale_password_reset_rejects_deleted_room_id_reused_by_replacement():
+    stale_room_id, stale_slug = create_room("Deleted room", "old-password")
+    delete_room(stale_room_id)
+    replacement_id, replacement_slug = create_room("Replacement room", "replacement")
+    assert replacement_id == stale_room_id
+    replacement_token = authenticate_room_and_issue_token(
+        replacement_slug, "replacement"
+    )[1]
+    before = db.execute(
+        "SELECT password_hash, authorization_version FROM rooms WHERE id = ?",
+        (replacement_id,),
+    ).fetchone()
+    tokens_before = db.execute(
+        "SELECT * FROM room_access_tokens WHERE room_id = ?", (replacement_id,)
+    ).fetchall()
+
+    assert (
+        update_room_password(stale_room_id, "stale-reset", expected_slug=stale_slug)
+        is False
+    )
+
+    assert (
+        db.execute(
+            "SELECT password_hash, authorization_version FROM rooms WHERE id = ?",
+            (replacement_id,),
+        ).fetchone()
+        == before
+    )
+    assert (
+        db.execute(
+            "SELECT * FROM room_access_tokens WHERE room_id = ?", (replacement_id,)
+        ).fetchall()
+        == tokens_before
+    )
+    assert verify_room(replacement_slug, "replacement") == replacement_id
+    assert verify_room(replacement_slug, "stale-reset") is None
+    assert (
+        validate_room_access_token(replacement_slug, replacement_token)
+        == replacement_id
+    )
+    assert not db.in_transaction
+
+    assert (
+        update_room_password(
+            replacement_id, "valid-reset", expected_slug=replacement_slug
+        )
+        is True
+    )
+    assert verify_room(replacement_slug, "valid-reset") == replacement_id
+    assert validate_room_access_token(replacement_slug, replacement_token) is None
+
+
+def test_stale_password_reset_rejects_deleted_room_without_replacement():
+    room_id_value, room_slug = create_room("Deleted room", "old-password")
+    delete_room(room_id_value)
+
+    assert (
+        update_room_password(room_id_value, "stale-reset", expected_slug=room_slug)
+        is False
+    )
+    assert (
+        db.execute("SELECT 1 FROM rooms WHERE id = ?", (room_id_value,)).fetchone()
+        is None
+    )
+    assert not db.in_transaction
+
+
+def test_failed_password_reset_token_deletion_rolls_back_and_recovers():
+    room_id_value, room_slug = create_room("Token room", "old-password")
+    first_token = authenticate_room_and_issue_token(room_slug, "old-password")[1]
+    second_token = authenticate_room_and_issue_token(room_slug, "old-password")[1]
+    before = db.execute(
+        "SELECT password_hash, authorization_version FROM rooms WHERE id = ?",
+        (room_id_value,),
+    ).fetchone()
+    tokens_before = db.execute(
+        "SELECT * FROM room_access_tokens WHERE room_id = ?", (room_id_value,)
+    ).fetchall()
+    db.execute(
+        "CREATE TEMP TRIGGER fail_password_reset_token_deletion "
+        "BEFORE DELETE ON room_access_tokens "
+        f"WHEN OLD.room_id = {room_id_value} "
+        "BEGIN SELECT RAISE(ABORT, 'injected password reset failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected password reset failure"
+        ):
+            update_room_password(room_id_value, "new-password", expected_slug=room_slug)
+
+        assert (
+            db.execute(
+                "SELECT password_hash, authorization_version FROM rooms WHERE id = ?",
+                (room_id_value,),
+            ).fetchone()
+            == before
+        )
+        assert (
+            db.execute(
+                "SELECT * FROM room_access_tokens WHERE room_id = ?", (room_id_value,)
+            ).fetchall()
+            == tokens_before
+        )
+        assert verify_room(room_slug, "old-password") == room_id_value
+        assert validate_room_access_token(room_slug, first_token) == room_id_value
+        assert validate_room_access_token(room_slug, second_token) == room_id_value
+        assert not db.in_transaction
+
+        db.execute("DROP TRIGGER fail_password_reset_token_deletion")
+        assert update_room_password(
+            room_id_value, "recovered-password", expected_slug=room_slug
+        )
+        assert verify_room(room_slug, "recovered-password") == room_id_value
+        assert validate_room_access_token(room_slug, first_token) is None
+        assert validate_room_access_token(room_slug, second_token) is None
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_password_reset_token_deletion")
+        db.commit()
 
 
 def test_normal_password_change_issues_only_a_fresh_token_to_changing_device():
