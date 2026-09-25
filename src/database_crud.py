@@ -283,10 +283,41 @@ def get_list_data(list_id: int):
 def find_item_by_name(list_id: int, item_name: str):
     with _DB_LOCK:
         result = db.execute(
-            "SELECT id, done FROM items WHERE name = ? COLLATE NOCASE AND list_id = ?",
+            "SELECT id, done FROM items WHERE trim(name) = ? COLLATE NOCASE AND list_id = ?",
             (item_name, list_id),
         )
         return result.fetchone()
+
+
+def add_or_restore_item_atomic(
+    item_name: str, list_id: int, *, expected_slug: str | None = None
+) -> str:
+    """Add, uncheck, or reject an active item in a single write transaction."""
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            existing = db.execute(
+                "SELECT id, done FROM items WHERE list_id = ? "
+                "AND trim(name) = ? COLLATE NOCASE",
+                (list_id, item_name),
+            ).fetchone()
+            if existing:
+                if not existing[1]:
+                    db.rollback()
+                    return "duplicate_active"
+                db.execute("UPDATE items SET done = 0 WHERE id = ?", (existing[0],))
+                result = "restored"
+            else:
+                db.execute(
+                    "INSERT INTO items (name, done, list_id) VALUES (?, 0, ?)",
+                    (item_name, list_id),
+                )
+                result = "added"
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
 
 
 def restore_item(item_id: int, list_id: int, *, expected_slug: str | None = None):
@@ -357,7 +388,7 @@ def update_item_done(
 def find_duplicate_name(list_id: int, item_id: int, new_name: str):
     with _DB_LOCK:
         result = db.execute(
-            "SELECT id FROM items WHERE name = ? COLLATE NOCASE AND id != ? AND list_id = ?",
+            "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE AND id != ? AND list_id = ?",
             (new_name, item_id, list_id),
         )
         return result.fetchone()
@@ -397,7 +428,7 @@ def update_item_details(
         try:
             _begin_list_write_locked(list_id, expected_slug)
             duplicate = db.execute(
-                "SELECT id FROM items WHERE name = ? COLLATE NOCASE "
+                "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
                 "AND id != ? AND list_id = ?",
                 (name, item_id, list_id),
             ).fetchone()

@@ -278,7 +278,6 @@ def init_database():
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name "
         "ON items(list_id, done, name)"
     )
-
     db.commit()
     db.execute("PRAGMA foreign_keys = ON")
     if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:

@@ -8,6 +8,16 @@ save a value calculated from an older UI view. `adjust_item_quantity` in
 as one before applying the delta. Updates are scoped to the item and list.
 Explicit quantity edits in the edit dialog still set an absolute value.
 
+## Add field
+
+Adding an item, restoring a completed item, or rejecting an active duplicate now
+happens inside one write transaction (`add_or_restore_item_atomic`). This
+serializes add/restore calls in the supported single-instance app, even when
+browsers submit at the same time. A database-level unique-name index is deferred
+until existing production data can be checked; direct SQL writes are not covered
+by this guarantee. Concurrent app requests are tested in
+`tests/test_item_uniqueness.py`.
+
 ## Edit dialog
 
 Saving the edit dialog writes name, description, and quantity in one
@@ -24,6 +34,5 @@ within the same write transaction before mutating data. An old page must not edi
 list that happens to reuse its ID. The optional argument exists for other callers;
 a numeric ID alone is not the stale-page safeguard.
 
-These protections do not make every multi-step edit atomic. Concurrent duplicate
-prevention for adds/restores, complete deletion undo, and manual multi-user
-verification remain in the [backlog](../plans/backlog.md).
+These protections do not make every multi-step edit atomic. Complete deletion
+undo and manual multi-user verification remain in the [backlog](../plans/backlog.md).

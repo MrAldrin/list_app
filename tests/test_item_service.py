@@ -20,23 +20,15 @@ from item_service import (
 )
 
 
-@patch("item_service.find_item_by_name")
-@patch("item_service.restore_item")
-@patch("item_service.add_item")
+@patch("item_service.add_or_restore_item_atomic")
 @pytest.mark.parametrize("raw_name", ["", "   ", "\n", "\t", None])
-def test_add_or_restore_item_invalid_name(mock_add, mock_restore, mock_find, raw_name):
-    # Test that adding an empty, whitespace-only, or None name is rejected
+def test_add_or_restore_item_invalid_name(mock_write, raw_name):
     status, name = add_or_restore_item(list_id=1, raw_name=raw_name)
-    assert status == STATUS_INVALID_NAME
-    assert name is None
-    mock_find.assert_not_called()
-    mock_add.assert_not_called()
-    mock_restore.assert_not_called()
+    assert (status, name) == (STATUS_INVALID_NAME, None)
+    mock_write.assert_not_called()
 
 
-@patch("item_service.find_item_by_name")
-@patch("item_service.restore_item")
-@patch("item_service.add_item")
+@patch("item_service.add_or_restore_item_atomic")
 @pytest.mark.parametrize(
     "raw_name, expected_name",
     [
@@ -45,44 +37,22 @@ def test_add_or_restore_item_invalid_name(mock_add, mock_restore, mock_find, raw
         ("Bread and milk", "bread and milk"),
     ],
 )
-def test_add_or_restore_item_new(
-    mock_add, mock_restore, mock_find, raw_name, expected_name
-):
-    # Test that a completely new item is successfully added and normalized
-    mock_find.return_value = None
-    status, name = add_or_restore_item(list_id=1, raw_name=raw_name)
-    assert status == STATUS_ADDED
-    assert name == expected_name
-    mock_add.assert_called_once_with(
+def test_add_or_restore_item_new(mock_write, raw_name, expected_name):
+    mock_write.return_value = STATUS_ADDED
+    assert add_or_restore_item(1, raw_name) == (STATUS_ADDED, expected_name)
+    mock_write.assert_called_once_with(
         item_name=expected_name, list_id=1, expected_slug=None
     )
-    mock_restore.assert_not_called()
 
 
-@patch("item_service.find_item_by_name")
-@patch("item_service.restore_item")
-@patch("item_service.add_item")
-def test_add_or_restore_item_restore(mock_add, mock_restore, mock_find):
-    # Test that adding an item that was previously marked as "done" will restore it
-    mock_find.return_value = (10, True)  # id=10, is_done=True
-    status, name = add_or_restore_item(list_id=1, raw_name="apples")
-    assert status == STATUS_RESTORED
-    assert name == "apples"
-    mock_restore.assert_called_once_with(item_id=10, list_id=1, expected_slug=None)
-    mock_add.assert_not_called()
-
-
-@patch("item_service.find_item_by_name")
-@patch("item_service.restore_item")
-@patch("item_service.add_item")
-def test_add_or_restore_item_duplicate_active(mock_add, mock_restore, mock_find):
-    # Test that adding an item that is already active (not done) is blocked as a duplicate
-    mock_find.return_value = (10, False)  # id=10, is_done=False
-    status, name = add_or_restore_item(list_id=1, raw_name="Apples")
-    assert status == STATUS_DUPLICATE_ACTIVE
-    assert name == "apples"
-    mock_restore.assert_not_called()
-    mock_add.assert_not_called()
+@patch("item_service.add_or_restore_item_atomic")
+@pytest.mark.parametrize("result", [STATUS_RESTORED, STATUS_DUPLICATE_ACTIVE])
+def test_add_or_restore_item_existing(mock_write, result):
+    mock_write.return_value = result
+    assert add_or_restore_item(1, " Apples ") == (result, "apples")
+    mock_write.assert_called_once_with(
+        item_name="apples", list_id=1, expected_slug=None
+    )
 
 
 @patch("item_service.find_duplicate_name")
@@ -207,9 +177,8 @@ def test_set_item_quantity(mock_update_qty):
 
 
 def test_add_or_restore_propagates_deleted_list_error(monkeypatch):
-    monkeypatch.setattr("item_service.find_item_by_name", lambda **_kwargs: None)
     monkeypatch.setattr(
-        "item_service.add_item",
+        "item_service.add_or_restore_item_atomic",
         lambda **_kwargs: (_ for _ in ()).throw(ListUnavailable()),
     )
 

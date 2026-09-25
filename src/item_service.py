@@ -1,16 +1,14 @@
 from database_crud import (
-    add_item,
+    add_or_restore_item_atomic,
     adjust_item_quantity,
     delete_item,
     delete_list,
     find_duplicate_name,
-    find_item_by_name,
     find_list_by_name,
     get_lists,
     normalize_item_name,
     rename_item,
     rename_list,
-    restore_item,
     update_item_details,
     update_item_done,
     update_item_quantity,
@@ -33,16 +31,10 @@ def add_or_restore_item(
     if not item_name:
         return STATUS_INVALID_NAME, None
 
-    existing = find_item_by_name(list_id=list_id, item_name=item_name)
-    if existing:
-        item_id, is_done = existing
-        if is_done:
-            restore_item(item_id=item_id, list_id=list_id, expected_slug=expected_slug)
-            return STATUS_RESTORED, item_name
-        return STATUS_DUPLICATE_ACTIVE, item_name
-
-    add_item(item_name=item_name, list_id=list_id, expected_slug=expected_slug)
-    return STATUS_ADDED, item_name
+    status = add_or_restore_item_atomic(
+        item_name=item_name, list_id=list_id, expected_slug=expected_slug
+    )
+    return status, item_name
 
 
 def rename_item_with_checks(
