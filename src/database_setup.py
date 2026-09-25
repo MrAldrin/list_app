@@ -34,6 +34,8 @@ def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", _create_slug("Home"), pw_hash),
     )
+    if insert.lastrowid is None:
+        raise RuntimeError("Default room insert returned no ID")
     return insert.lastrowid
 
 

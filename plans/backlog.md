@@ -46,7 +46,8 @@ Configuration, database checks, and recovery instructions live in
 ## Testing, documentation, and tooling
 
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
-- [ ] Recheck the audit's `lastrowid` possibly being `None` type-check warning and address it if still present. Review the Starlette/httpx deprecation warning separately; avoid blind dependency upgrades.
+- [x] Rechecked the default-room `lastrowid` warning with `ty` and guarded the unexpected `None` case; normal startup remains covered by database setup tests.
+- [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
 
 ## Deliberately deferred — revisit when needed
 
