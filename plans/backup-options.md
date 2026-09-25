@@ -2,17 +2,18 @@
 
 Research reviewed: 2026-09-24. A **one-off local copy** was verified on
 2026-09-24, but no recurring backup schedule, alerting, encrypted off-service
-storage, or hosted restore drill has been set up. The operational
-backup/check/restore commands and proposed policy live in the
+storage, or hosted restore drill has been set up. The agreed interim goal is
+weekly Railway snapshots plus occasional manual local SQLite backups. The
+operational backup/check/restore commands and interim policy live in the
 [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
 
 ## What we have today
 
 ListR runs one NiceGUI process with SQLite at `DB_PATH=/data/list.db` on one
 Railway volume mounted at `/data` (see the [architecture](../ARCHITECTURE.md)).
-The repository has no recurring backup job; Railway backup settings have not
-been inspected. Startup may change the schema. A local
-`.env` and `list.db` are **not** the hosted database. Read-only `railway status`
+The repository has no recurring backup job; Railway's production backup
+schedule was queried on 2026-09-25 and was empty. Startup may change the schema.
+A local `.env` and `list.db` are **not** the hosted database. Read-only `railway status`
 on 2026-09-24 showed a linked production service with a `/data` volume
 (51 MB used of 500 MB), and the CLI was logged in (version 5.57.2). This is
 volume usage, **not** a measurement of `list.db`; it does not establish the
@@ -31,8 +32,8 @@ printed or exported to this repository.
 
 Railway's documented retention for scheduled volume backups is **6 days**
 (daily), **27 days** (weekly), and **89 days** (monthly); these are fixed
-schedule lifetimes, not our proposed seven-daily/four-weekly off-service
-retention. Volume snapshots are incremental and billed for incremental data.
+schedule lifetimes, not a configurable keep-only-the-newest policy. Volume
+snapshots are incremental and billed for incremental data.
 Neither snapshot scheduling nor off-service storage is verified as configured.
 
 ## Can we use the Railway CLI for direct queries or backups?
@@ -73,10 +74,10 @@ service **Backups** tab rather than assuming the CLI creates them.
 ## Recommended sequence (requires owner approval before production changes)
 
 1. **Pick an owner and recovery target.** Agree how many hours of changes can
-   be lost (daily backups can lose up to a day) and who receives failure alerts.
-   Choose encrypted storage controlled separately from this Railway volume,
-   access limited to the owner/restore operators. Decide whether seven daily
-   and four weekly off-service copies in the deployment guide meet the target.
+   be lost (weekly backups can lose up to a week) and who receives failure
+   alerts. For later automated off-service copies, choose encrypted storage
+   controlled separately from this Railway volume, with access limited to the
+   owner/restore operators. Decide its frequency and retention separately.
 2. **Start with a manual, verified backup-API copy.** Confirm production path,
    disk headroom and permissions; run the guide's procedure on the service via
    SSH at a quiet time, with a unique filename. Download only the finished
@@ -84,9 +85,10 @@ service **Backups** tab rather than assuming the CLI creates them.
    representative data in a protected location. Copy encrypted off-service.
    Do not log secrets, rows or database contents. Keep one extra verified copy
    immediately before schema-changing deploys.
-3. **Add layered scheduling.** Enable Railway volume daily/weekly snapshots in
-   the service Backups tab for fast whole-volume recovery (optionally monthly,
-   subject to cost). Separately automate the SQLite backup-API + off-service
+3. **Add layered scheduling.** Start with Railway **weekly** volume snapshots
+   in the service Backups tab for fast whole-volume recovery. Keep occasional
+   verified SQLite backups on a private local machine. If backup needs grow,
+   separately automate the SQLite backup-API + off-service
    transfer, retention and alert on missed/failed backups. A separate Railway
    cron *service* should not be assumed to see the app's volume: Railway's
    docs only guarantee its mount to the attached service, not access from a
@@ -106,6 +108,32 @@ service **Backups** tab rather than assuming the CLI creates them.
 5. Monitor last *successful and restorable* off-service backup, transfer
    failures, free volume space and retention. Review backup access and repeat
    the drill periodically. None of these checks are complete yet.
+
+## Weekly Railway schedule and future home backup server
+
+The CLI (5.62.1) has no `railway volume backup` scheduling command, but
+`railway api` exposes the `volumeInstanceBackupScheduleUpdate` mutation. On
+2026-09-25, a read-only query identified the production `/data` volume instance
+and confirmed it had **no** schedule or snapshots. The CLI mutation to enable
+`WEEKLY` returned `Not Authorized`; a follow-up query still returned an empty
+schedule. The reason for rejection is not known; do not infer that Free accounts
+cannot use the Backups tab. No schedule was created.
+
+**Manual next step:** In Railway's production `list_app` service, open
+**Backups** and select **Weekly** for the `/data` volume. Check it is saved and
+listed; after its first due date, check a snapshot appears. If the control is
+absent or disabled, check the account plan and permissions before changing the
+strategy. Railway's documented weekly snapshots expire after 27 days and are
+not a verified SQLite-consistent off-service copy. Continue occasional manual
+local backups until a separate schedule is designed.
+
+**Later option, not configured:** Reuse an old laptop with Linux as an always-on
+backup receiver, separate from Railway. Decide how to produce verified SQLite
+backup-API files, move them without exposing a public file share, encrypt and
+retain them, monitor missed jobs and disk/power/network failure, and drill a
+restore. A powered-off machine cannot meet a weekly schedule. This is not
+needed to start with Railway snapshots; do not set up remote access or backup
+credentials without a separate design and approval.
 
 ## Evidence and limits
 
@@ -139,6 +167,7 @@ service **Backups** tab rather than assuming the CLI creates them.
 - [x] Test SQLite backup API locally on disposable WAL-mode data
 - [x] Make and verify one production-to-local copy; remove only the temporary
   Railway copy
+- [ ] Enable and verify Weekly in Railway's dashboard (CLI mutation was denied)
 - [ ] Choose owner, recovery target, storage, alerts and retention
-- [ ] Configure/test production schedules, automated off-service transfer and hosted restore
+- [ ] Design/test automated off-service transfer and hosted restore
   (tracked in the [backlog](backlog.md))

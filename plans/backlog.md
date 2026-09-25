@@ -30,7 +30,8 @@ Configuration, database checks, and recovery instructions live in
 [`docs/deployment.md`](../docs/deployment.md).
 
 - [x] Disable automatic reload by default; retain it as an explicit development option. Implemented and covered by configuration tests; see [deployment configuration](../docs/deployment.md#configuration). Railway deployment verification remains pending.
-- [ ] Set up regular SQLite-consistent backups, including an off-service copy, retention, and restricted access; choose an owner and failure notification. Test restoration with the app stopped, including a hosted restore drill. See the [backup options and recommended sequence](backup-options.md) and [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
+- [ ] **Your Railway dashboard step:** Open production `list_app` → **Backups** and enable **Weekly** for the `/data` volume; confirm the schedule is listed, then check that a snapshot appears after its first run. The CLI API attempt returned `Not Authorized` and a follow-up query found no schedule; do not assume backups are running. If Weekly is unavailable, check plan/permissions and report back before changing approach. See the [backup options](backup-options.md#weekly-railway-schedule-and-future-home-backup-server).
+- [ ] Longer term, set up regular SQLite-consistent off-service backups, retention, restricted access, an owner and failure notification; test restoration with the app stopped, including a hosted restore drill. Weekly Railway volume snapshots alone do not complete this work. See the [backup options](backup-options.md) and [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
 - [ ] Complete and record the deployment guide's outstanding production checks, including persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.
 
 ## Database hardening — planned follow-up
@@ -54,6 +55,7 @@ Configuration, database checks, and recovery instructions live in
 
 These are not prerequisites for the current small MVP. Revisit when growth, maintenance, or product requirements justify them.
 
+- Consider an always-on Linux backup server on an old laptop for verified SQLite copies outside Railway, only after testing the simple weekly snapshot schedule; design secure access, disk encryption, power/network reliability, alerts and restore drills first. See the [backup options](backup-options.md#weekly-railway-schedule-and-future-home-backup-server).
 - Target realtime refreshes by list/room rather than refreshing unrelated users globally.
 - Defer cross-room list pinning until its authorization and UX are designed; see [`plans/advanced_sharing.md`](advanced_sharing.md).
 - Split `src/main.py` into smaller route/auth/UI modules and gradually adopt a proper Python package rather than fragile top-level imports.

@@ -141,14 +141,15 @@ directory, including pre-existing directories; backups contain private list data
 and authentication records. Transfer a protected copy off the Railway service/volume.
 A backup only on the same volume does not protect against losing that volume.
 
-**Proposed policy, not yet configured:** daily backups plus a backup before each
-schema-changing deploy; retain seven daily and four weekly copies, including an
-encrypted off-service copy. Choose an owner, schedule, failure notification, and
-restore drill before treating this as operational. The earlier one-time repair
-backup is not a recurring backup policy. A [verified one-off production-to-local
-copy](../plans/backup-options.md#evidence-and-limits) was made on 2026-09-24;
-it also does not establish a recurring policy or a tested restore. The
-Railway-specific options, CLI access, and rollout sequence are in that review.
+**Interim goal, not yet configured:** weekly Railway volume snapshots plus
+occasional manual, SQLite-consistent local copies and a backup before each
+schema-changing deploy. The [one-off production-to-local test](../plans/backup-options.md#evidence-and-limits)
+on 2026-09-24 does not establish a recurring policy or a tested restore.
+Railway's schedule is still **absent**; see the [manual dashboard step and future
+options](../plans/backup-options.md#weekly-railway-schedule-and-future-home-backup-server).
+Choose an owner, failure notification, off-service storage policy and restore
+drill before treating longer-term recovery as operational. The earlier one-time
+repair backup is not a recurring backup policy either.
 
 ## Read-only database checks
 
