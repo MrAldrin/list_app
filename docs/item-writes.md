@@ -42,9 +42,17 @@ the page's private slug or public share-token identity. Thus two stale pages can
 toggle different tags without replacing one another's updates. The existing
 full-array `update_item_active_tags` setter remains available for replacement
 semantics, but the quick-tag UI no longer uses it. Item-deletion undo still
-restores the captured tags on the newly created item; list-tag add/delete/undo
-uses a separate list-tags path and is not covered by this behavior. Tests cover
-stale rendered snapshots, stale-list rejection, and injected SQL failure recovery.
+restores the captured tags on the newly created item.
+
+List-tag add and delete callbacks submit a single tag intent through
+`add_list_tag` or `remove_list_tag`. Each helper reads and updates the current
+persisted tag array under `_DB_LOCK` and `BEGIN IMMEDIATE`, after validating the
+page's private slug or public share token. Tag undo uses the same atomic add
+operation. Stale pages therefore cannot replace unrelated tag changes; the
+full-array `update_list_tags_settings` setter remains available for callers that
+intentionally need replacement semantics. Tests cover concurrent distinct adds,
+a delete interleaved with an add, undo interleaving, UI feedback, stale-list
+rejection, and injected SQL failure recovery.
 
 ## List rename
 

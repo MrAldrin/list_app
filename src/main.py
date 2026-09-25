@@ -140,6 +140,7 @@ ui.add_head_html(
 from database_crud import (
     ListUnavailable,
     RoomAccessDenied,
+    add_list_tag,
     authenticate_room_and_issue_token,
     change_room_password_and_issue_token,
     create_list,
@@ -158,6 +159,7 @@ from database_crud import (
     get_rooms,
     list_identity_matches,
     normalize_item_name,
+    remove_list_tag,
     rename_list_with_room_token,
     rename_room,
     rename_room_with_room_token,
@@ -165,7 +167,6 @@ from database_crud import (
     revoke_room_access_token,
     rotate_list_share_token,
     toggle_item_active_tag,
-    update_list_tags_settings,
     update_room_password,
 )
 from item_service import (
@@ -1558,15 +1559,7 @@ def _restore_pending_undo(
         return
 
     payload = current["payload"]
-    details_now = get_list_details(list_id)
-    if not details_now or not list_identity_matches(details_now, list_slug):
-        raise ListUnavailable(f"List {list_id} is no longer available")
-
-    tags_now = details_now["list_tags"] or []
-    if payload["tag"] not in tags_now:
-        tags_now.append(payload["tag"])
-    tags_now = sorted(tags_now, key=str.lower)
-    update_list_tags_settings(list_id, tags_now, expected_slug=list_slug)
+    add_list_tag(list_id, payload["tag"], expected_slug=list_slug)
     ui.notify(
         f"Restored tag {payload['tag']}",
         color="positive",
@@ -1848,11 +1841,8 @@ def _create_tags_ui(
                         return
                     tag = new_tag_input.value.strip()
                     if tag and tag not in list_tags:
-                        updated_tags = sorted([*list_tags, tag], key=str.lower)
                         try:
-                            update_list_tags_settings(
-                                list_id, updated_tags, expected_slug=list_slug
-                            )
+                            add_list_tag(list_id, tag, expected_slug=list_slug)
                         except ListUnavailable:
                             on_unavailable()
                             return
@@ -1892,11 +1882,8 @@ def _create_tags_ui(
                         if not is_active():
                             return
                         if t in list_tags:
-                            updated_tags = [x for x in list_tags if x != t]
                             try:
-                                update_list_tags_settings(
-                                    list_id, updated_tags, expected_slug=list_slug
-                                )
+                                remove_list_tag(list_id, t, expected_slug=list_slug)
                             except ListUnavailable:
                                 on_unavailable()
                                 return

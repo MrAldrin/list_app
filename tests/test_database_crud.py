@@ -8,6 +8,7 @@ import pytest
 from database_crud import (
     ListUnavailable,
     add_item,
+    add_list_tag,
     authenticate_room_and_issue_token,
     change_room_password_and_issue_token,
     create_list,
@@ -25,6 +26,7 @@ from database_crud import (
     get_list_details_by_slug,
     get_lists,
     normalize_item_name,
+    remove_list_tag,
     rename_item,
     rename_list,
     rename_list_with_room_token,
@@ -173,6 +175,88 @@ def test_item_tag_toggles_merge_stale_client_intents(
     actual_tags = get_list_data(list_id)[0][0]["active_tags"]
     assert set(actual_tags) == set(expected_tags)
     assert len(actual_tags) == len(expected_tags)
+
+
+def test_list_tag_adds_merge_stale_client_intents(room_id):
+    list_id, slug = create_list("tagged", room_id)
+
+    # Both clients rendered the same list before either add was handled.
+    rendered_snapshots = [
+        get_list_details_by_slug(slug)["list_tags"].copy() for _ in range(2)
+    ]
+    ready = threading.Barrier(3)
+
+    def client_add(rendered_tags, tag):
+        assert rendered_tags == []
+        ready.wait()
+        add_list_tag(list_id, tag, expected_slug=slug)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(client_add, rendered_snapshots[0], "alpha"),
+            pool.submit(client_add, rendered_snapshots[1], "beta"),
+        ]
+        ready.wait()
+        for future in futures:
+            future.result()
+
+    details = get_list_details_by_slug(slug)
+    assert details["list_tags"] == ["alpha", "beta"]
+    assert details["slug"] == slug
+    assert not db.in_transaction
+
+
+def test_list_tag_delete_preserves_a_concurrent_add(room_id):
+    list_id, slug = create_list("tagged", room_id)
+    update_list_tags_settings(list_id, ["remove-me"], expected_slug=slug)
+
+    # The delete callback's rendered list is stale by the time its intent runs.
+    rendered_tags = get_list_details_by_slug(slug)["list_tags"]
+    add_list_tag(list_id, "concurrent-add", expected_slug=slug)
+    assert "remove-me" in rendered_tags
+    remove_list_tag(list_id, "remove-me", expected_slug=slug)
+
+    details = get_list_details_by_slug(slug)
+    assert details["list_tags"] == ["concurrent-add"]
+    assert details["slug"] == slug
+    assert not db.in_transaction
+
+
+@pytest.mark.parametrize(
+    ("operation", "initial_tags", "tag", "expected_tags"),
+    [
+        (add_list_tag, ["blocked"], "recovered", ["blocked", "recovered"]),
+        (remove_list_tag, ["blocked"], "blocked", []),
+    ],
+)
+def test_failed_list_tag_intent_rolls_back_and_connection_recovers(
+    room_id, operation, initial_tags, tag, expected_tags
+):
+    list_id, slug = create_list("tagged", room_id)
+    update_list_tags_settings(list_id, initial_tags, expected_slug=slug)
+    before = get_list_details_by_slug(slug)
+    db.execute(
+        "CREATE TEMP TRIGGER fail_list_tag_intent BEFORE UPDATE OF list_tags ON lists "
+        f"WHEN OLD.id = {list_id} "
+        "BEGIN SELECT RAISE(ABORT, 'injected list tag intent failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected list tag intent failure"
+        ):
+            operation(list_id, tag, expected_slug=slug)
+
+        assert get_list_details_by_slug(slug) == before
+        assert not db.in_transaction
+
+        db.execute("DROP TRIGGER fail_list_tag_intent")
+        operation(list_id, tag, expected_slug=slug)
+        assert get_list_details_by_slug(slug)["list_tags"] == expected_tags
+        assert not db.in_transaction
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_list_tag_intent")
+        db.commit()
 
 
 def test_failed_item_tag_toggle_rolls_back_and_connection_recovers(room_id):

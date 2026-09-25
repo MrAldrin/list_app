@@ -38,6 +38,34 @@ def snapshot(list_id):
 
 
 @pytest.mark.parametrize(
+    "operation, tag, expected_tags",
+    [
+        (crud.add_list_tag, "new", ["kept", "new"]),
+        (crud.remove_list_tag, "kept", []),
+    ],
+)
+def test_list_tag_intents_reject_stale_identity_and_recover(
+    replacement, operation, tag, expected_tags
+):
+    list_id, old_slug, new_slug, _ = replacement
+    crud.update_list_tags_settings(list_id, ["kept"], expected_slug=new_slug)
+    before = snapshot(list_id)
+
+    with pytest.raises(crud.ListUnavailable):
+        operation(list_id, tag, expected_slug=old_slug)
+
+    assert snapshot(list_id) == before
+    assert not db.in_transaction
+
+    operation(list_id, tag, expected_slug=new_slug)
+    after = snapshot(list_id)
+    assert after[0]["list_tags"] == expected_tags
+    assert after[0]["slug"] == before[0]["slug"]
+    assert after[0]["share_token"] == before[0]["share_token"]
+    assert not db.in_transaction
+
+
+@pytest.mark.parametrize(
     "operation, args",
     [
         ("add_item", {"item_name": "stale"}),

@@ -172,6 +172,52 @@ def update_list_tags_settings(
             raise
 
 
+def _change_list_tag(
+    list_id: int, tag: str, *, add: bool, expected_slug: str | None
+) -> None:
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            row = db.execute(
+                "SELECT list_tags FROM lists WHERE id = ?", (list_id,)
+            ).fetchone()
+            try:
+                list_tags = json.loads(row[0]) if row[0] else []
+            except json.JSONDecodeError:
+                list_tags = []
+
+            if add:
+                if tag not in list_tags:
+                    list_tags = sorted([*list_tags, tag], key=str.lower)
+                    db.execute(
+                        "UPDATE lists SET list_tags = ? WHERE id = ?",
+                        (json.dumps(list_tags), list_id),
+                    )
+            else:
+                updated_tags = [existing for existing in list_tags if existing != tag]
+                if updated_tags != list_tags:
+                    db.execute(
+                        "UPDATE lists SET list_tags = ? WHERE id = ?",
+                        (json.dumps(updated_tags), list_id),
+                    )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+
+def add_list_tag(list_id: int, tag: str, *, expected_slug: str | None = None) -> None:
+    """Add one list tag without replacing tags added by another page."""
+    _change_list_tag(list_id, tag, add=True, expected_slug=expected_slug)
+
+
+def remove_list_tag(
+    list_id: int, tag: str, *, expected_slug: str | None = None
+) -> None:
+    """Remove one list tag without replacing unrelated tags added by another page."""
+    _change_list_tag(list_id, tag, add=False, expected_slug=expected_slug)
+
+
 def update_item_active_tags(
     item_id: int,
     list_id: int,

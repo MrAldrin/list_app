@@ -1,6 +1,7 @@
 """Undo restores the deleted snapshot without overwriting a newer item."""
 
 import database_crud as crud
+from database_setup import db
 from main import _restore_pending_undo
 
 
@@ -66,3 +67,32 @@ def test_undo_keeps_existing_item_id_policy(monkeypatch):
     crud.add_item("second", list_id)
     _restore_pending_undo(list_id, pending("first"), list_slug=slug)
     assert crud.find_item_by_name(list_id, "first")[0] != old_id
+
+
+def test_tag_undo_preserves_an_intervening_list_tag_add(monkeypatch):
+    notifications = []
+    monkeypatch.setattr(
+        "main.ui.notify", lambda *args, **kwargs: notifications.append(args)
+    )
+    room_id = crud.get_rooms()[0]["id"]
+    list_id, slug = crud.create_list("shopping", room_id)
+    add_tag = crud.add_list_tag
+
+    def add_after_concurrent_write(target_list_id, tag, *, expected_slug=None):
+        add_tag(target_list_id, "concurrent-add", expected_slug=expected_slug)
+        add_tag(target_list_id, tag, expected_slug=expected_slug)
+
+    monkeypatch.setattr("main.add_list_tag", add_after_concurrent_write)
+    tag_undo = {
+        "kind": "tag",
+        "payload": {"tag": "restored-tag"},
+        "token": "test",
+        "message": "Deleted tag restored-tag",
+    }
+
+    _restore_pending_undo(list_id, tag_undo, list_slug=slug)
+
+    details = crud.get_list_details(list_id)
+    assert details["list_tags"] == ["concurrent-add", "restored-tag"]
+    assert notifications[-1] == ("Restored tag restored-tag",)
+    assert not db.in_transaction
