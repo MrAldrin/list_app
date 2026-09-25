@@ -31,6 +31,8 @@ from database_crud import (
     rename_room,
     restore_item,
     revoke_room_access_token,
+    toggle_item_active_tag,
+    update_item_active_tags,
     update_item_details,
     update_item_done,
     update_item_quantity,
@@ -132,6 +134,74 @@ def test_add_and_get_items(room_id):
     assert items[0]["done"] is False
     assert items[1]["name"] == "Bananas"
     assert items[1]["done"] is False
+
+
+@pytest.mark.parametrize(
+    ("initial_tags", "toggled_tags", "expected_tags"),
+    [
+        ([], ["urgent", "pinned"], ["urgent", "pinned"]),
+        (["keep", "remove-a", "remove-b"], ["remove-a", "remove-b"], ["keep"]),
+    ],
+)
+def test_item_tag_toggles_merge_stale_client_intents(
+    room_id, initial_tags, toggled_tags, expected_tags
+):
+    list_id, slug = create_list("tagged", room_id)
+    add_item("item", list_id, expected_slug=slug)
+    item_id, _ = find_item_by_name(list_id, "item")
+    update_item_active_tags(item_id, list_id, initial_tags, expected_slug=slug)
+
+    # Both clients render this same old state before either click is handled.
+    rendered_tags = get_list_data(list_id)[0][0]["active_tags"].copy()
+    client_snapshots = [rendered_tags.copy() for _ in toggled_tags]
+    ready = threading.Barrier(len(toggled_tags) + 1)
+
+    def client_toggle(client_tags, tag):
+        assert client_tags == rendered_tags
+        ready.wait()
+        toggle_item_active_tag(item_id, list_id, tag, expected_slug=slug)
+
+    with ThreadPoolExecutor(max_workers=len(toggled_tags)) as pool:
+        futures = [
+            pool.submit(client_toggle, client_tags, tag)
+            for client_tags, tag in zip(client_snapshots, toggled_tags, strict=True)
+        ]
+        ready.wait()
+        for future in futures:
+            future.result()
+
+    actual_tags = get_list_data(list_id)[0][0]["active_tags"]
+    assert set(actual_tags) == set(expected_tags)
+    assert len(actual_tags) == len(expected_tags)
+
+
+def test_failed_item_tag_toggle_rolls_back_and_connection_recovers(room_id):
+    list_id, slug = create_list("tagged", room_id)
+    add_item("item", list_id, expected_slug=slug)
+    item_id, _ = find_item_by_name(list_id, "item")
+    before = get_list_data(list_id)
+    db.execute(
+        "CREATE TEMP TRIGGER fail_item_tag_toggle BEFORE UPDATE OF active_tags ON items "
+        f"WHEN OLD.id = {item_id} "
+        "BEGIN SELECT RAISE(ABORT, 'injected item tag toggle failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected item tag toggle failure"
+        ):
+            toggle_item_active_tag(item_id, list_id, "blocked", expected_slug=slug)
+
+        assert get_list_data(list_id) == before
+        assert not db.in_transaction
+
+        db.execute("DROP TRIGGER fail_item_tag_toggle")
+        toggle_item_active_tag(item_id, list_id, "recovered", expected_slug=slug)
+        assert get_list_data(list_id)[0][0]["active_tags"] == ["recovered"]
+        assert not db.in_transaction
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_item_tag_toggle")
+        db.commit()
 
 
 def test_find_item_by_name(room_id):

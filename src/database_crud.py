@@ -192,6 +192,42 @@ def update_item_active_tags(
             raise
 
 
+def toggle_item_active_tag(
+    item_id: int,
+    list_id: int,
+    tag: str,
+    *,
+    expected_slug: str | None = None,
+):
+    """Toggle one tag on the persisted item state in a write transaction."""
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            row = db.execute(
+                "SELECT active_tags FROM items WHERE id = ? AND list_id = ?",
+                (item_id, list_id),
+            ).fetchone()
+            if row is None:
+                db.commit()
+                return
+            try:
+                active_tags = json.loads(row[0]) if row[0] else []
+            except json.JSONDecodeError:
+                active_tags = []
+            if tag in active_tags:
+                active_tags.remove(tag)
+            else:
+                active_tags.append(tag)
+            db.execute(
+                "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
+                (json.dumps(active_tags), item_id, list_id),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+
 def find_list_by_name(name: str, room_id: int):
     with _DB_LOCK:
         result = db.execute(

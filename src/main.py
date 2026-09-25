@@ -164,7 +164,7 @@ from database_crud import (
     restore_deleted_item,
     revoke_room_access_token,
     rotate_list_share_token,
-    update_item_active_tags,
+    toggle_item_active_tag,
     update_list_tags_settings,
     update_room_password,
 )
@@ -882,16 +882,11 @@ def item_list(
                             def toggle_tag(it=item, t=tag):
                                 if is_active and not is_active():
                                     return
-                                active = it["active_tags"].copy()
-                                if t in active:
-                                    active.remove(t)
-                                else:
-                                    active.append(t)
                                 try:
-                                    update_item_active_tags(
+                                    toggle_item_active_tag(
                                         it["id"],
                                         list_id,
-                                        active,
+                                        t,
                                         expected_slug=list_slug,
                                     )
                                 except ListUnavailable:

@@ -52,6 +52,7 @@ def snapshot(list_id):
         ("update_item_quantity", {"quantity": 99}),
         ("adjust_item_quantity", {"delta": 1}),
         ("update_item_active_tags", {"active_tags": ["stale"]}),
+        ("toggle_item_active_tag", {"tag": "stale"}),
         ("delete_item", {}),
         ("update_list_tags_settings", {"list_tags": ["stale"]}),
         ("rename_list", {"new_name": "stale"}),
@@ -70,6 +71,7 @@ def test_database_writes_reject_reused_list_id(replacement, operation, args):
         "update_item_quantity",
         "adjust_item_quantity",
         "update_item_active_tags",
+        "toggle_item_active_tag",
         "delete_item",
     }:
         kwargs["item_id"] = item_id

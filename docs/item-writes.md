@@ -33,6 +33,19 @@ checking duplicates, so an old page cannot make a decision about a replacement
 list that reused its ID. Name-only renames leave description and quantity intact;
 see `tests/test_item_renames.py`.
 
+## Quick item-tag toggles
+
+Quick tag buttons submit the tag being toggled, not the whole `active_tags`
+array rendered by that browser. `toggle_item_active_tag` reads the persisted array
+and applies the toggle under `_DB_LOCK` and `BEGIN IMMEDIATE`, after validating
+the page's private slug or public share-token identity. Thus two stale pages can
+toggle different tags without replacing one another's updates. The existing
+full-array `update_item_active_tags` setter remains available for replacement
+semantics, but the quick-tag UI no longer uses it. Item-deletion undo still
+restores the captured tags on the newly created item; list-tag add/delete/undo
+uses a separate list-tags path and is not covered by this behavior. Tests cover
+stale rendered snapshots, stale-list rejection, and injected SQL failure recovery.
+
 ## List rename
 
 The private room's admin rename checks the list's `expected_slug`, room ownership,
