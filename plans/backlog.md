@@ -11,7 +11,6 @@ completed-work history is preserved in version control.
 
 ## Security
 
-- [ ] Enforce a minimum password length in code.
 - [ ] Remove the temporary legacy room-password localStorage cleanup after 2027-09-18; retain token authentication and revocation. See the dated TODO in [`src/main.py`](../src/main.py).
 
 ## Data correctness — next priorities
@@ -47,12 +46,14 @@ Configuration, database checks, and recovery instructions live in
 ## Testing, documentation, and tooling
 
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
-- [ ] Add CI for formatting, lint, and tests. Replace the broad `.*/` ignore rule with explicit runtime-directory rules so directories such as `.github/` can be tracked. Keep databases, backups, and secrets out of git.
 - [ ] Recheck the audit's `lastrowid` possibly being `None` type-check warning and address it if still present. Review the Starlette/httpx deprecation warning separately; avoid blind dependency upgrades.
 
 ## Deliberately deferred — revisit when needed
 
-These are not prerequisites for the current small MVP. Revisit when growth, maintenance, or product requirements justify them.
+These are not prerequisites for the current small MVP. Revisit when growth, maintenance, or product requirements justify them. Password-length enforcement and CI are low priority; do not schedule them in the near future.
+
+- Enforce a minimum password length in code if password policy becomes a priority.
+- Add CI for formatting, lint, and tests when automated change checks become worthwhile. Before adding `.github/`, replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups, and secrets out of git.
 
 - Consider an always-on Linux backup server on an old laptop for verified SQLite copies outside Railway, only after testing the simple weekly snapshot schedule; design secure access, disk encryption, power/network reliability, alerts and restore drills first. See the [backup options](backup-options.md#weekly-railway-schedule-and-future-home-backup-server).
 - Target realtime refreshes by list/room rather than refreshing unrelated users globally.
