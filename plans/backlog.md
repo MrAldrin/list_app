@@ -18,7 +18,6 @@ completed-work history is preserved in version control.
 Current quantity and stale-page safeguards are described in
 [`docs/item-writes.md`](../docs/item-writes.md).
 
-- [ ] Preserve all item information when undoing deletion, including description and quantity. Decide whether the original ID must be restored and test duplicate-name conflicts.
 - [ ] Complete manual multi-user verification for deleted-list handling: room-authorized deletion shows the specific unavailable message and `Back to room`; public-link users see the generic message without a room button; test immediate add/edit/toggle/quantity/tag/undo actions around deletion and room deletion.
 - [ ] Review other multi-step writes for atomicity, especially list/room deletion and service operations that read, check, then write. Use transactions and a consistent service layer; test rollback on failure.
 

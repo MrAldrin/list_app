@@ -25,6 +25,13 @@ transaction (`update_item_details` in `src/database_crud.py`). The duplicate-nam
 check runs inside that transaction, so an empty or duplicate name leaves every
 field unchanged. Regression tests are in `tests/test_item_edits.py`.
 
+## Delete and undo
+
+Undo restores the deleted item's name, done state, tags, description, and quantity
+in one transaction. It creates a new item ID (the original ID is not reserved).
+If someone adds the same name first, undo shows a warning and does not overwrite
+that item. The list identity is checked within the same transaction.
+
 ## List identity
 
 SQLite can reuse a deleted list's numeric ID. Room-page writes pass the original
@@ -34,5 +41,5 @@ within the same write transaction before mutating data. An old page must not edi
 list that happens to reuse its ID. The optional argument exists for other callers;
 a numeric ID alone is not the stale-page safeguard.
 
-These protections do not make every multi-step edit atomic. Complete deletion
-undo and manual multi-user verification remain in the [backlog](../plans/backlog.md).
+These protections do not make every multi-step edit atomic. Manual multi-user
+verification remains in the [backlog](../plans/backlog.md).

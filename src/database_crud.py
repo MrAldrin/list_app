@@ -348,6 +348,38 @@ def add_item(item_name: str, list_id: int, *, expected_slug: str | None = None):
             raise
 
 
+def restore_deleted_item(
+    list_id: int,
+    name: str,
+    done: bool,
+    active_tags: list[str],
+    description: str,
+    quantity: int,
+    *,
+    expected_slug: str | None = None,
+) -> bool:
+    """Restore a deleted item with all fields, unless its name is now taken."""
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            if db.execute(
+                "SELECT 1 FROM items WHERE list_id = ? AND trim(name) = ? COLLATE NOCASE",
+                (list_id, name.strip()),
+            ).fetchone():
+                db.rollback()
+                return False
+            db.execute(
+                "INSERT INTO items (name, done, list_id, active_tags, description, quantity) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (name, done, list_id, json.dumps(active_tags), description, quantity),
+            )
+            db.commit()
+            return True
+        except Exception:
+            db.rollback()
+            raise
+
+
 def add_item_with_state(
     item_name: str,
     list_id: int,

@@ -142,10 +142,16 @@ def test_room_token_actions_reject_reused_list_id(replacement, room_id, operatio
 
 @pytest.mark.parametrize("kind", ["item", "tag"])
 def test_undo_cannot_restore_into_replacement_list(replacement, kind):
-    list_id, old_slug, _, item_id = replacement
+    list_id, old_slug, _, _ = replacement
     before = snapshot(list_id)
     payload = (
-        {"id": item_id, "name": "stale", "done": False, "active_tags": []}
+        {
+            "name": "stale",
+            "done": False,
+            "active_tags": [],
+            "description": "",
+            "quantity": 1,
+        }
         if kind == "item"
         else {"tag": "stale"}
     )

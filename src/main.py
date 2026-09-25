@@ -140,7 +140,6 @@ ui.add_head_html(
 from database_crud import (
     ListUnavailable,
     RoomAccessDenied,
-    add_item_with_state,
     authenticate_room_and_issue_token,
     change_room_password_and_issue_token,
     create_list,
@@ -148,7 +147,6 @@ from database_crud import (
     create_room,
     delete_list_with_room_token,
     delete_room_with_password,
-    find_item_by_name,
     get_item_count,
     get_list_data,
     get_list_details,
@@ -163,6 +161,7 @@ from database_crud import (
     rename_list_with_room_token,
     rename_room,
     rename_room_with_room_token,
+    restore_deleted_item,
     revoke_room_access_token,
     rotate_list_share_token,
     update_item_active_tags,
@@ -367,10 +366,11 @@ async def _require_private_room_access(access: RoomAccess) -> bool:
 
 
 class ItemUndoPayload(TypedDict):
-    id: int
     name: str
     done: bool
     active_tags: list[str]
+    description: str
+    quantity: int
 
 
 class TagUndoPayload(TypedDict):
@@ -1538,8 +1538,16 @@ def _restore_pending_undo(
 ) -> None:
     if current["kind"] == "item":
         payload = current["payload"]
-        duplicate = find_item_by_name(list_id, payload["name"])
-        if duplicate:
+        restored = restore_deleted_item(
+            list_id=list_id,
+            name=payload["name"],
+            done=payload["done"],
+            active_tags=payload["active_tags"],
+            description=payload["description"],
+            quantity=payload["quantity"],
+            expected_slug=list_slug,
+        )
+        if not restored:
             ui.notify(
                 "Cannot undo: item name already exists",
                 color="warning",
@@ -1547,13 +1555,6 @@ def _restore_pending_undo(
             )
             return
 
-        add_item_with_state(
-            item_name=payload["name"],
-            list_id=list_id,
-            done=payload["done"],
-            active_tags=payload["active_tags"],
-            expected_slug=list_slug,
-        )
         ui.notify(
             f"Restored {payload['name']}",
             color="positive",
@@ -1947,10 +1948,11 @@ def _delete_item_with_undo(
     if not is_active():
         return
     payload: ItemUndoPayload = {
-        "id": it["id"],
         "name": it["name"],
         "done": it["done"],
         "active_tags": it["active_tags"].copy(),
+        "description": it["description"],
+        "quantity": it["quantity"],
     }
     try:
         delete_item_from_list(list_id, it["id"], expected_slug=list_slug)
