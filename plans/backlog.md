@@ -19,6 +19,7 @@ Current quantity and stale-page safeguards are described in
 [`docs/item-writes.md`](../docs/item-writes.md).
 
 - [ ] Complete manual multi-user verification for deleted-list handling on real devices or deployment. Local Chromium/Firefox tests now cover the specific room message and `Back to room`, generic public message without room navigation, immediate add/edit/toggle/quantity/tag/undo after list deletion, and room deletion. See [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
+- [ ] Address stale item actions when SQLite reuses a deleted maximum `items.id` within the same live list. `main.py`'s `toggle_tag`, `toggle`, `change_qty`, `save`, and `delete` callbacks retain an item ID plus list ID/slug; a reproduced stale quick-tag callback changed a newly created replacement item after the old maximum-ID item was deleted. Decide a separate identity/migration approach (for example, a non-reusable ID migration or a stable per-item generation key) before implementation; the chunk-5 inventory did not authorize schema changes. Add stale-callback regression coverage once the identity approach is approved. See the [write atomicity audit](write-atomicity-audit.md).
 - [ ] Follow the [remaining write atomicity plan](write-atomicity-audit.md) for service-level read/check/write paths and other write entry points. Deletion rollback coverage is already in place; complete each remaining chunk with tests before claiming broader stability.
 
 ## Deployment and recovery — next priorities
