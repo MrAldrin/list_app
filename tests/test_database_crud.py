@@ -1,3 +1,4 @@
+import sqlite3
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
@@ -27,7 +28,9 @@ from database_crud import (
     rename_item,
     rename_list,
     rename_list_with_room_token,
+    rename_room,
     restore_item,
+    revoke_room_access_token,
     update_item_details,
     update_item_done,
     update_item_quantity,
@@ -79,6 +82,40 @@ def test_create_list_empty(room_id):
         expected_exception=ValueError, match="List name cannot be empty"
     ):
         create_list(name="   ", room_id=room_id)
+
+
+def test_failed_create_list_rolls_back_and_connection_recovers(room_id):
+    before = db.execute(
+        "SELECT id, name, list_tags, slug, room_id, share_token FROM lists ORDER BY id"
+    ).fetchall()
+    db.execute(
+        "CREATE TEMP TRIGGER fail_create_list BEFORE INSERT ON lists "
+        "WHEN NEW.name = 'blocked' "
+        "BEGIN SELECT RAISE(ABORT, 'injected list creation failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected list creation failure"
+        ):
+            create_list("Blocked", room_id)
+
+        assert (
+            db.execute(
+                "SELECT id, name, list_tags, slug, room_id, share_token "
+                "FROM lists ORDER BY id"
+            ).fetchall()
+            == before
+        )
+        assert not db.in_transaction
+
+        list_id, _ = create_list("Recovered", room_id)
+        assert db.execute(
+            "SELECT name FROM lists WHERE id = ?", (list_id,)
+        ).fetchone() == ("recovered",)
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_create_list")
+        db.commit()
 
 
 def test_add_and_get_items(room_id):
@@ -354,6 +391,32 @@ def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
     assert errors == []
 
 
+def test_failed_create_room_rolls_back_and_connection_recovers():
+    before = db.execute("SELECT * FROM rooms ORDER BY id").fetchall()
+    db.execute(
+        "CREATE TEMP TRIGGER fail_create_room BEFORE INSERT ON rooms "
+        "WHEN NEW.name = 'Blocked room' "
+        "BEGIN SELECT RAISE(ABORT, 'injected room creation failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected room creation failure"
+        ):
+            create_room("Blocked room", "password")
+
+        assert db.execute("SELECT * FROM rooms ORDER BY id").fetchall() == before
+        assert not db.in_transaction
+
+        room_id, slug = create_room("Recovered room", "password")
+        assert db.execute(
+            "SELECT name, slug FROM rooms WHERE id = ?", (room_id,)
+        ).fetchone() == ("Recovered room", slug)
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_create_room")
+        db.commit()
+
+
 def test_room_access_tokens_are_hashed_and_bound_to_one_room():
     first_room_id, first_slug = create_room("First room", "first-password")
     _, second_slug = create_room("Second room", "second-password")
@@ -442,6 +505,78 @@ def test_token_cannot_modify_a_list_in_another_room():
 
     assert get_lists(first_room_id) == []
     assert get_lists(second_room_id)[0][1] == "second room list"
+
+
+def test_failed_room_rename_rolls_back_and_connection_recovers(room_id):
+    before = db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    db.execute(
+        "CREATE TEMP TRIGGER fail_room_rename BEFORE UPDATE OF name ON rooms "
+        f"WHEN OLD.id = {room_id} AND NEW.name = 'Blocked name' "
+        "BEGIN SELECT RAISE(ABORT, 'injected room rename failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected room rename failure"
+        ):
+            rename_room(room_id, "Blocked name")
+
+        assert (
+            db.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+            == before
+        )
+        assert not db.in_transaction
+
+        rename_room(room_id, "Recovered name")
+        assert db.execute(
+            "SELECT name FROM rooms WHERE id = ?", (room_id,)
+        ).fetchone() == ("Recovered name",)
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_room_rename")
+        db.commit()
+
+
+def test_failed_token_revocation_keeps_access_and_connection_recovers(room_id):
+    room_slug = db.execute(
+        "SELECT slug FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()[0]
+    token = authenticate_room_and_issue_token(room_slug, "pw")[1]
+    before = db.execute(
+        "SELECT * FROM room_access_tokens WHERE room_id = ?", (room_id,)
+    ).fetchall()
+    db.execute(
+        "CREATE TEMP TRIGGER fail_room_token_revocation "
+        "BEFORE UPDATE OF revoked_at ON room_access_tokens "
+        f"WHEN OLD.room_id = {room_id} "
+        "BEGIN SELECT RAISE(ABORT, 'injected token revocation failure'); END"
+    )
+    try:
+        with pytest.raises(
+            sqlite3.IntegrityError, match="injected token revocation failure"
+        ):
+            revoke_room_access_token(room_slug, token)
+
+        assert (
+            db.execute(
+                "SELECT * FROM room_access_tokens WHERE room_id = ?", (room_id,)
+            ).fetchall()
+            == before
+        )
+        assert validate_room_access_token(room_slug, token) == room_id
+        assert not db.in_transaction
+
+        rename_room(room_id, "Still writable")
+        assert db.execute(
+            "SELECT name FROM rooms WHERE id = ?", (room_id,)
+        ).fetchone() == ("Still writable",)
+
+        db.execute("DROP TRIGGER fail_room_token_revocation")
+        revoke_room_access_token(room_slug, token)
+        assert validate_room_access_token(room_slug, token) is None
+    finally:
+        db.rollback()
+        db.execute("DROP TRIGGER IF EXISTS fail_room_token_revocation")
+        db.commit()
 
 
 def test_deleting_a_room_cascades_to_its_access_tokens():

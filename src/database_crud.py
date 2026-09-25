@@ -225,9 +225,13 @@ def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
 
 def create_list(name: str, room_id: int):
     with _DB_LOCK:
-        list_id, slug = _create_list_locked(name, room_id)
-        db.commit()
-        return list_id, slug
+        try:
+            list_id, slug = _create_list_locked(name, room_id)
+            db.commit()
+            return list_id, slug
+        except Exception:
+            db.rollback()
+            raise
 
 
 def rename_list(list_id: int, new_name: str, *, expected_slug: str | None = None):
@@ -639,12 +643,16 @@ def create_room(name: str, plain_password: str):
     slug = f"{safe_name}-{short_uuid}"
 
     with _DB_LOCK:
-        result = db.execute(
-            "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
-            (name, slug, pw_hash),
-        )
-        db.commit()
-        return result.lastrowid, slug
+        try:
+            result = db.execute(
+                "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
+                (name, slug, pw_hash),
+            )
+            db.commit()
+            return result.lastrowid, slug
+        except Exception:
+            db.rollback()
+            raise
 
 
 class RoomAccessDenied(PermissionError):
@@ -733,16 +741,20 @@ def authenticate_room_and_issue_token(
 def revoke_room_access_token(room_slug: str, token: str) -> None:
     """Revoke a token after the browser could not persist it."""
     with _DB_LOCK:
-        db.execute(
-            """
-            UPDATE room_access_tokens
-            SET revoked_at = CURRENT_TIMESTAMP
-            WHERE token_hash = ?
-              AND room_id = (SELECT id FROM rooms WHERE slug = ?)
-            """,
-            (_token_hash(token), room_slug),
-        )
-        db.commit()
+        try:
+            db.execute(
+                """
+                UPDATE room_access_tokens
+                SET revoked_at = CURRENT_TIMESTAMP
+                WHERE token_hash = ?
+                  AND room_id = (SELECT id FROM rooms WHERE slug = ?)
+                """,
+                (_token_hash(token), room_slug),
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def verify_room(room_slug: str, plain_password: str):
@@ -979,8 +991,12 @@ def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
 
 def rename_room(room_id: int, new_name: str):
     with _DB_LOCK:
-        db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
-        db.commit()
+        try:
+            db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def delete_room(room_id: int):

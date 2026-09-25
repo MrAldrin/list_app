@@ -64,6 +64,13 @@ a numeric ID alone is not the stale-page safeguard.
 List deletion (including room-token authorization) and room deletion (including
 password verification) run inside write transactions. If a later delete fails,
 earlier item/list deletes roll back instead of leaving a partial deletion.
-Injected-failure regression tests exercise these paths. This does not make every
-multi-step edit atomic. Manual multi-user verification and further write review
-remain in the [backlog](../plans/backlog.md).
+Injected-failure regression tests exercise these paths.
+
+The ID-based `create_list`, `create_room`, and `rename_room` helpers, plus
+`revoke_room_access_token`, also roll back and re-raise when their SQL write or
+commit fails. In particular, a failed token revocation leaves the token active.
+Injected `RAISE(ABORT)` tests verify unchanged rows, a closed transaction, and a
+subsequent successful write in `tests/test_database_crud.py`. This only covers
+failure cleanup for these entry points; it does not make every multi-step edit
+atomic. Manual multi-user verification and further write review remain in the
+[backlog](../plans/backlog.md).
