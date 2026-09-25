@@ -55,33 +55,29 @@ def test_add_or_restore_item_existing(mock_write, result):
     )
 
 
-@patch("item_service.find_duplicate_name")
-@patch("item_service.rename_item")
+@patch("item_service.rename_item_if_unique")
 @pytest.mark.parametrize("raw_name", ["", "   ", "\n", "\t", None])
-def test_rename_item_with_checks_invalid_name(
-    mock_rename, mock_find_duplicate, raw_name
-):
+def test_rename_item_with_checks_invalid_name(mock_rename, raw_name):
     # Test that renaming an item to an empty, whitespace-only string, or None is rejected
     status, name = rename_item_with_checks(list_id=1, item_id=10, raw_name=raw_name)
     assert status == STATUS_INVALID_NAME
     assert name is None
-    mock_find_duplicate.assert_not_called()
     mock_rename.assert_not_called()
 
 
-@patch("item_service.find_duplicate_name")
-@patch("item_service.rename_item")
-def test_rename_item_with_checks_duplicate(mock_rename, mock_find_duplicate):
-    # Test that renaming an item to a name that already exists is blocked
-    mock_find_duplicate.return_value = (11,)  # Found another item with this name
+@patch("item_service.rename_item_if_unique")
+def test_rename_item_with_checks_duplicate(mock_rename):
+    # The atomic write helper reports a name already claimed by another item.
+    mock_rename.return_value = False
     status, name = rename_item_with_checks(list_id=1, item_id=10, raw_name="bananas")
     assert status == STATUS_DUPLICATE_NAME
     assert name == "bananas"
-    mock_rename.assert_not_called()
+    mock_rename.assert_called_once_with(
+        item_id=10, list_id=1, new_name="bananas", expected_slug=None
+    )
 
 
-@patch("item_service.find_duplicate_name")
-@patch("item_service.rename_item")
+@patch("item_service.rename_item_if_unique")
 @pytest.mark.parametrize(
     "raw_name, expected_name",
     [
@@ -93,11 +89,9 @@ def test_rename_item_with_checks_duplicate(mock_rename, mock_find_duplicate):
         ),  # If the current name is 'apples', this is renaming to self
     ],
 )
-def test_rename_item_with_checks_success(
-    mock_rename, mock_find_duplicate, raw_name, expected_name
-):
+def test_rename_item_with_checks_success(mock_rename, raw_name, expected_name):
     # Test that renaming an item to a valid, unique name succeeds
-    mock_find_duplicate.return_value = None
+    mock_rename.return_value = True
     status, name = rename_item_with_checks(list_id=1, item_id=10, raw_name=raw_name)
     assert status == STATUS_RENAMED
     assert name == expected_name

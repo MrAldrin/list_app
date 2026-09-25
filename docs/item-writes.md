@@ -25,6 +25,14 @@ transaction (`update_item_details` in `src/database_crud.py`). The duplicate-nam
 check runs inside that transaction, so an empty or duplicate name leaves every
 field unchanged. Regression tests are in `tests/test_item_edits.py`.
 
+The service-level name-only rename (`rename_item_with_checks`) also checks for a
+duplicate and updates the name in one write transaction. If another write claims
+the requested name first, the service returns the duplicate-name status instead
+of exposing a SQLite uniqueness error. It validates `expected_slug` before
+checking duplicates, so an old page cannot make a decision about a replacement
+list that reused its ID. Name-only renames leave description and quantity intact;
+see `tests/test_item_renames.py`.
+
 ## Delete and undo
 
 Undo restores the deleted item's name, done state, tags, description, and quantity

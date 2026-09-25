@@ -442,6 +442,32 @@ def rename_item(
             raise
 
 
+def rename_item_if_unique(
+    item_id: int, list_id: int, new_name: str, *, expected_slug: str | None = None
+) -> bool:
+    """Rename an item unless another item in the list already has that name."""
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            duplicate = db.execute(
+                "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
+                "AND id != ? AND list_id = ?",
+                (new_name, item_id, list_id),
+            ).fetchone()
+            if duplicate:
+                db.rollback()
+                return False
+            db.execute(
+                "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
+                (new_name, item_id, list_id),
+            )
+            db.commit()
+            return True
+        except Exception:
+            db.rollback()
+            raise
+
+
 def update_item_details(
     item_id: int,
     list_id: int,
