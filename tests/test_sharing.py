@@ -134,6 +134,14 @@ def test_list_header_keeps_options_visible_and_hides_sharing_in_menu(
         assert "Share" not in buttons
         assert "Reset share link" not in buttons
         assert "Options" in buttons
+        header_buttons = [
+            e
+            for e in client.elements.values()
+            if isinstance(e, ui.button)
+            and (e.text == "Options" or e.props.get("aria-label") == "List menu")
+        ]
+        assert header_buttons[0].text == "Options"
+        assert header_buttons[1].props.get("aria-label") == "List menu"
         assert "Share List" in labels
         assert ("Reset share link" in labels) == authorized
         assert not any("Add to Home Screen" in label for label in labels)

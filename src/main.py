@@ -1621,6 +1621,17 @@ def _render_header(
                     ui.label("R").classes("font-black text-primary")
 
             with ui.row().classes("items-center gap-1"):
+                edit_btn_text = "Done" if state["edit_mode"] else "Options"
+
+                def toggle_edit_mode() -> None:
+                    if not is_active():
+                        return
+                    state.update({"edit_mode": not state["edit_mode"]})
+                    undo_bar.refresh()
+                    tags_ui.refresh()
+                    item_list.refresh()
+
+                ui.button(edit_btn_text, on_click=toggle_edit_mode).props("flat")
                 details = get_list_details_by_identity(list_slug)
                 if details:
                     with (
@@ -1638,17 +1649,6 @@ def _render_header(
                             ui.menu_item(
                                 "Reset share link", on_click=on_reset_share_link
                             )
-                edit_btn_text = "Done" if state["edit_mode"] else "Options"
-
-                def toggle_edit_mode() -> None:
-                    if not is_active():
-                        return
-                    state.update({"edit_mode": not state["edit_mode"]})
-                    undo_bar.refresh()
-                    tags_ui.refresh()
-                    item_list.refresh()
-
-                ui.button(edit_btn_text, on_click=toggle_edit_mode).props("flat")
 
         ui.label(list_name).classes("text-2xl font-bold w-full truncate")
 
