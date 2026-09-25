@@ -21,11 +21,21 @@ Goal: prevent stale decisions and partial writes in the existing single-instance
 ## Progress (update at the bottom as work completes)
 
 - [x] Starting point: list deletion and both room deletion paths have rollback tests; see `tests/test_database_crud.py`. This predates this plan.
-- [ ] Chunk 1: inventory/classification.
+- [x] Chunk 1: inventory/classification complete; no code changes.
 - [ ] Chunk 2: item rename.
 - [ ] Chunk 3: list rename.
 - [ ] Chunk 4: navigation after deletion.
 - [ ] Chunk 5: remaining write entry points.
 - [ ] Chunk 6: cross-path regression and current-reference updates.
 
-Record each chunk's findings, tests run, and any deferred issues here; checking a box requires implementation **and** verification where a fix is needed.
+| Candidate | Finding | Risk / safe reason | Proposed test |
+|---|---|---|---|
+| Private/admin list rename | Duplicate lookup in `rename_list_with_checks` precedes transactional `rename_list`; an intervening claimant can hit the unique index. The UI catches `ValueError`, not `sqlite3.IntegrityError`. | P1 active UI path; rename rolls back, but expected duplicate feedback becomes an uncaught DB error. `expected_slug` still protects list identity. | Coordinate a competing create/rename after lookup; assert duplicate result, unchanged names, closed transaction and a succeeding write. |
+| Chunk 5: tag-array setters | Item toggles copy rendered `active_tags`; list-tag add/delete build arrays from rendered `list_tags`, and tag undo separately reads then replaces the full array. Setters validate list identity but do not merge newer tag state. | P1 live lost-update risk: concurrent distinct edits based on stale arrays can erase one another's tags. | From the same captured arrays, apply two distinct edits and assert both intents survive for item and list tags; include undo interleaving. |
+| Chunk 5: one-statement writes | `create_list`, `create_room`, `revoke_room_access_token`, and admin `rename_room` execute DML then commit without rollback handling. | A constraint/trigger failure can leave the shared connection in a transaction; failed token revocation can leave the token active. SQLite failure semantics independently confirmed with disposable in-memory checks, not project behavior tests. | Inject `RAISE(ABORT)`/constraint failures; assert unchanged rows/token state, no open transaction, then a succeeding write. |
+| Item rename service | `rename_item_with_checks` also separates duplicate lookup from `rename_item`; no UI callback calls this helper, and current edit UI uses atomic `update_item_details`. | P3 currently not UI-reachable; unique index prevents duplicate persistence but a racing claimant can produce an `IntegrityError`. Existing service tests mock the helpers. | If the service path remains supported, synchronize an intervening item insert and assert intended status, clean transaction and next write. |
+| ID-only admin callbacks | Room guard is followed by synchronous ID-only admin writes; valid path has no further explicit `await`. Token-authorized alternatives validate ownership/token in the write transaction. | No interleaving path established for the documented single-instance event-loop flow; confirm callback dispatch before treating a guard-to-write thread interleave as a defect. | Only if supported dispatch can interleave: gate after guard, revoke access/change room identity, resume, and assert stale write is rejected. |
+| Post-delete navigation result | `delete_list_and_items` reads a remaining-list ID after deletion, but its sole UI caller discards the returned ID. | P3 currently unused/advisory; no current navigation target can be affected. | No test/change unless a caller starts consuming the ID; then test room/list identity under an interleaving. |
+| Already-protected paths | Add/restore and active item edit decide duplicates atomically; list-page writes retain expected slug; list/room deletion, item undo, password changes, list-share rotation and invitation room creation use transactional checks/rollback. | Existing coverage includes `test_item_uniqueness.py`, `test_item_edits.py`, `test_list_identity.py`, `test_database_crud.py`, and `test_room_invitations.py`; no gap found in these paths. | Keep existing focused coverage; add no inventory-only test. |
+
+Validation of the unchanged codebase: `uv run ruff format --check .`, `uv run ruff check .`, and `uv run pytest -q` passed (313 tests, 8 existing warnings). A disposable in-memory SQLite check confirmed failed unique and `RAISE(ABORT)` DML leaves a transaction open until rollback. No production code was changed or defect-specific regression test added; write-mode formatter/fixer commands were omitted to preserve the requested plan-only scope.
