@@ -19,7 +19,7 @@ Current quantity and stale-page safeguards are described in
 [`docs/item-writes.md`](../docs/item-writes.md).
 
 - [ ] Complete manual multi-user verification for deleted-list handling on real devices or deployment. Local Chromium/Firefox tests now cover the specific room message and `Back to room`, generic public message without room navigation, immediate add/edit/toggle/quantity/tag/undo after list deletion, and room deletion. See [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
-- [ ] Continue reviewing multi-step writes for atomicity, especially service operations that read, check, then write. List deletion and password-authorized room deletion already use transactions; ID-based room deletion now does too, with injected-failure rollback tests for both deletion paths. Continue toward a consistent service layer.
+- [ ] Follow the [remaining write atomicity plan](write-atomicity-audit.md) for service-level read/check/write paths and other write entry points. Deletion rollback coverage is already in place; complete each remaining chunk with tests before claiming broader stability.
 
 ## Deployment and recovery — next priorities
 
