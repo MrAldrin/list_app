@@ -67,7 +67,8 @@ def create_list(member, server):
 
 
 def share_link(page):
-    page.get_by_role("button", name="Share", exact=True).click()
+    page.get_by_role("button", name="List menu", exact=True).click()
+    page.get_by_text("Share List", exact=True).click()
     dialog = page.get_by_role("dialog")
     expect(dialog.get_by_text("Share this list", exact=True)).to_be_visible()
     link = dialog.get_by_role("textbox").input_value()
@@ -84,7 +85,8 @@ def add_item(page, name):
 
 
 def reset_link(member):
-    member.get_by_role("button", name="Reset share link", exact=True).click()
+    member.get_by_role("button", name="List menu", exact=True).click()
+    member.get_by_text("Reset share link", exact=True).click()
     dialog = member.get_by_role("dialog")
     expect(dialog.get_by_text("Reset share link?", exact=True)).to_be_visible()
     dialog.get_by_role("button", name="Reset share link", exact=True).click()
@@ -105,14 +107,16 @@ def test_sharing_live_updates_revocation_and_restart(server, sessions):
         visitor.get_by_text("Room access required to open this list.")
     ).to_be_visible()
     expect(visitor.get_by_text("milk", exact=True)).not_to_be_visible()
-    expect(visitor.get_by_role("button", name="Share", exact=True)).not_to_be_visible()
+    expect(
+        visitor.get_by_role("button", name="List menu", exact=True)
+    ).not_to_be_visible()
     expect(visitor).to_have_url(private_url)
 
     visitor.goto(old_link)
     expect(visitor.get_by_text("milk", exact=True)).to_be_visible()
-    expect(
-        visitor.get_by_role("button", name="Reset share link", exact=True)
-    ).not_to_be_visible()
+    visitor.get_by_role("button", name="List menu", exact=True).click()
+    expect(visitor.get_by_text("Reset share link", exact=True)).to_have_count(0)
+    visitor.keyboard.press("Escape")
     add_item(visitor, "bread")
     expect(member.get_by_text("bread", exact=True)).to_be_visible()
     add_item(member, "eggs")
@@ -228,9 +232,9 @@ def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
     visitor.goto(link)
     expect(visitor.get_by_text("browser groceries", exact=True)).to_be_visible()
     expect(visitor.get_by_label("List Name", exact=True)).to_have_count(0)
-    expect(
-        visitor.get_by_role("button", name="Reset share link", exact=True)
-    ).to_have_count(0)
+    visitor.get_by_role("button", name="List menu", exact=True).click()
+    expect(visitor.get_by_text("Reset share link", exact=True)).to_have_count(0)
+    visitor.keyboard.press("Escape")
     visitor.get_by_role("button", name="Options", exact=True).click()
     expect(visitor.get_by_label("List Name", exact=True)).to_have_count(0)
     visitor.get_by_label("Add Tag", exact=True).fill("produce")
@@ -331,7 +335,8 @@ def test_cancel_reset_keeps_public_link_working(server, sessions):
     link = share_link(member)
     visitor.goto(link)
     expect(visitor.get_by_label("Add or Search", exact=True)).to_be_visible()
-    member.get_by_role("button", name="Reset share link", exact=True).click()
+    member.get_by_role("button", name="List menu", exact=True).click()
+    member.get_by_text("Reset share link", exact=True).click()
     dialog = member.get_by_role("dialog")
     dialog.get_by_role("button", name="Cancel", exact=True).click()
     expect(dialog).not_to_be_visible()

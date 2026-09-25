@@ -1606,6 +1606,7 @@ def _render_header(
     tags_ui,
     room_slug: str,
     is_active: Callable[[], bool],
+    on_reset_share_link: Callable[[], None] | None,
 ) -> None:
     with ui.column().classes("w-full mb-2 gap-1"):
         with ui.row().classes("w-full items-center justify-between"):
@@ -1622,7 +1623,21 @@ def _render_header(
             with ui.row().classes("items-center gap-1"):
                 details = get_list_details_by_identity(list_slug)
                 if details:
-                    share_button(f"/share/{details['share_token']}", kind="list")
+                    with (
+                        ui.button(icon="more_vert").props(
+                            'flat round dense aria-label="List menu"'
+                        ),
+                        ui.menu(),
+                    ):
+                        share_button(
+                            f"/share/{details['share_token']}",
+                            kind="list",
+                            as_menu_item=True,
+                        )
+                        if on_reset_share_link is not None:
+                            ui.menu_item(
+                                "Reset share link", on_click=on_reset_share_link
+                            )
                 edit_btn_text = "Done" if state["edit_mode"] else "Options"
 
                 def toggle_edit_mode() -> None:
@@ -2174,6 +2189,42 @@ async def _list_page(slug: str, *, public: bool):
                 on_unavailable=transition_to_unavailable,
             )
 
+            def confirm_reset_share_link() -> None:
+                with ui.dialog() as dialog, ui.card():
+                    ui.label("Reset share link?")
+                    ui.label(
+                        "Everyone using the old link will lose access. Room access stays unchanged."
+                    )
+
+                    def reset() -> None:
+                        try:
+                            rotate_list_share_token(
+                                room_slug,
+                                room_access.token or "",
+                                list_id,
+                                expected_slug=details["slug"],
+                            )
+                        except (PermissionError, ListUnavailable):
+                            ui.notify(
+                                "Room access required or list unavailable.",
+                                type="negative",
+                            )
+                            dialog.close()
+                            return
+                        except sqlite3.Error:
+                            ui.notify(
+                                "Could not reset the link. Please retry.",
+                                type="negative",
+                            )
+                            return
+                        dialog.close()
+                        broadcast_updates()
+                        ui.navigate.to(f"/list/{details['slug']}")
+
+                    ui.button("Cancel", on_click=dialog.close)
+                    ui.button("Reset share link", on_click=reset)
+                dialog.open()
+
             _render_header(
                 list_name=details["name"],
                 list_slug=slug,
@@ -2183,48 +2234,10 @@ async def _list_page(slug: str, *, public: bool):
                 tags_ui=tags_ui,
                 room_slug=room_slug,
                 is_active=is_active,
+                on_reset_share_link=confirm_reset_share_link
+                if room_authorized
+                else None,
             )
-            if room_authorized:
-
-                def confirm_reset_share_link() -> None:
-                    with ui.dialog() as dialog, ui.card():
-                        ui.label("Reset share link?")
-                        ui.label(
-                            "Everyone using the old link will lose access. Room access stays unchanged."
-                        )
-
-                        def reset() -> None:
-                            try:
-                                rotate_list_share_token(
-                                    room_slug,
-                                    room_access.token or "",
-                                    list_id,
-                                    expected_slug=details["slug"],
-                                )
-                            except (PermissionError, ListUnavailable):
-                                ui.notify(
-                                    "Room access required or list unavailable.",
-                                    type="negative",
-                                )
-                                dialog.close()
-                                return
-                            except sqlite3.Error:
-                                ui.notify(
-                                    "Could not reset the link. Please retry.",
-                                    type="negative",
-                                )
-                                return
-                            dialog.close()
-                            broadcast_updates()
-                            ui.navigate.to(f"/list/{details['slug']}")
-
-                        ui.button("Cancel", on_click=dialog.close)
-                        ui.button("Reset share link", on_click=reset)
-                    dialog.open()
-
-                ui.button("Reset share link", on_click=confirm_reset_share_link).props(
-                    "flat"
-                )
             undo_bar()
             tags_ui()
             _render_add_item_row(

@@ -100,7 +100,7 @@ def test_url_resolution_failure_does_not_share_relative_link(monkeypatch, result
 
 
 @pytest.mark.parametrize("authorized", [True, False])
-def test_list_header_has_share_and_options_without_install_menu(
+def test_list_header_keeps_options_visible_and_hides_sharing_in_menu(
     authorized, monkeypatch
 ):
     monkeypatch.setattr(
@@ -116,8 +116,24 @@ def test_list_header_has_share_and_options_without_install_menu(
             Mock(),
             "room-slug",
             lambda: True,
+            Mock() if authorized else None,
         )
         buttons = [e.text for e in client.elements.values() if isinstance(e, ui.button)]
-        assert "Share" in buttons
+        menu = next(e for e in client.elements.values() if isinstance(e, ui.menu))
+        items = [
+            e
+            for e in client.elements.values()
+            if isinstance(e, ui.menu_item) and e.parent_slot.parent is menu
+        ]
+        labels = [
+            child.text
+            for item in items
+            for child in item.default_slot.children
+            if isinstance(child, ui.item_section)
+        ]
+        assert "Share" not in buttons
+        assert "Reset share link" not in buttons
         assert "Options" in buttons
-        assert not any(isinstance(e, ui.menu) for e in client.elements.values())
+        assert "Share List" in labels
+        assert ("Reset share link" in labels) == authorized
+        assert not any("Add to Home Screen" in label for label in labels)

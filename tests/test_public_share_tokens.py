@@ -176,7 +176,12 @@ def test_reset_dialog_rechecks_authorization(shared, monkeypatch, revoke_room):
             button = next(
                 e
                 for e in client.elements.values()
-                if isinstance(e, ui.button) and e.text == "Reset share link"
+                if isinstance(e, ui.menu_item)
+                and any(
+                    isinstance(child, ui.item_section)
+                    and child.text == "Reset share link"
+                    for child in e.default_slot.children
+                )
             )
             next(iter(button._event_listeners.values())).handler(None)
             assert get_list_details(shared.id)["share_token"] == shared.token
@@ -224,8 +229,16 @@ def test_route_access_and_reset_visibility(shared, monkeypatch, public, authoriz
             buttons = [
                 e.text for e in client.elements.values() if isinstance(e, ui.button)
             ]
+            menu_items = [
+                child.text
+                for e in client.elements.values()
+                if isinstance(e, ui.menu_item)
+                for child in e.default_slot.children
+                if isinstance(child, ui.item_section)
+            ]
             assert ("secret groceries" in labels) == (public or authorized)
-            assert ("Reset share link" in buttons) == authorized
+            assert ("Reset share link" in menu_items) == authorized
+            assert ("Share List" in menu_items) == (public or authorized)
             if not public and not authorized:
                 assert "Share" not in buttons
                 main.ui.navigate.to.assert_not_called()

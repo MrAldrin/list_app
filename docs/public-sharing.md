@@ -2,10 +2,11 @@
 
 ## Behavior
 
-- **Share** on a list produces `/share/<token>`. Anyone holding it can view and
-  edit that list without the room password. It does not grant room management.
-- **Reset share link** is visible to authorized room members and asks for
-  confirmation. The server rechecks current room authorization and list ownership
+- **Share List** in the list's ⋮ menu produces `/share/<token>`. Anyone holding
+  it can view and edit that list without the room password. It does not grant
+  room management.
+- **Reset share link** in that menu is available only to authorized room members
+  and asks for confirmation. The server rechecks current room authorization and list ownership
   in the same transaction as rotation. An admin login alone is insufficient.
 - Resetting invalidates the previous link for everyone. Already-open public
   pages cannot keep editing with it; their next action/refresh or periodic check
