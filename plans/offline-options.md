@@ -1,0 +1,70 @@
+# Offline shopping-list options (research, not an implementation plan)
+
+Status: **research only** (26 September 2026). No offline functionality, schema change, frontend migration, or sync endpoint is approved or implemented. This document is based on the `main` revision; other feature branches are not included. The current stack decision remains [NiceGUI + one SQLite database](../ARCHITECTURE.md). This exploration does **not** change it.
+
+## The question in plain terms
+
+Yes, offline editing is possible. A phone must have a **local copy** of the list and code that can edit it without contacting Python; later it must send its edits to the server. The server remains the authority for the shared list. Offline users cannot see edits made elsewhere until reconnecting. A service worker (the browser's network/caching helper) alone cannot make server-side button handlers run without a server. No technology makes incompatible edits automatically agree on the *intended* result; that is a product decision.
+
+Assumed scope: a few people sharing small lists, intermittent signal in a shop, phones including iPhone/Android, and one Railway app instance. Prefer explicit **pending / synced / needs attention** feedback over claiming a change was shared when it wasn't. Offline access should be prepared while online; a fresh device cannot obtain a private list or prove current permissions offline.
+
+## What `main` does today (verified by reading code/docs; no device test)
+
+- NiceGUI renders pages on the Python server; the list's add/edit/toggle/delete handlers and `broadcast_updates` call Python/SQLite (`src/main.py`, `src/database_crud.py`). Live updates use connected clients, not replication. A disconnected button cannot safely save a shared edit.
+- `src/static/sw.js` registers install/activate and a network-first navigation fallback to `caches.match(request)`, but it **never puts a response in that cache**. It has no offline data or mutation queue. Installation/manifest support is **not** offline support; see [installation behavior](../docs/home-screen-installation.md).
+- Private pages require revocable room access; public `/share/{token}` links grant edit access and can be rotated. Password changes revoke room tokens, but **not** public share links ([authorization](../ARCHITECTURE.md), [sharing](../docs/public-sharing.md)). Offline copies cannot instantly learn of revocation. List identity checks exist, but item numeric IDs can be reused after deletion, leaving a documented stale-item risk ([item writes](../docs/item-writes.md)). The current server database may stay SQLite; the missing piece is **browser storage + a protocol**, not necessarily a new server database.
+
+## Practical choices
+
+| Choice | Benefit for this app | Cost / limitation | Stack impact |
+| --- | --- | --- | --- |
+| **A. Clear offline status only**: detect failures, disable saves, optionally show a generic offline page. | Smallest and honest; no unsafe queued edits. | Cannot shop from a lost-connection list unless already visible; no offline editing. | Keep NiceGUI + SQLite. Fix/remove misleading service-worker fallback only if this option is approved. |
+| **B. Read-only downloaded list**: when online, explicitly save selected lists locally; show an offline-safe view. | Can consult items in store; relatively modest conflict surface. | Cannot check off/add items; cached private data remains on the device after server-side revocation until it reconnects/is cleared; requires a real client view, storage lifecycle and device testing. | Keep NiceGUI + SQLite for online use; browser-side UI + IndexedDB for offline view. Do **not** blindly cache NiceGUI's authenticated HTML or share-token URL. |
+| **C. Narrow offline edit mode**: locally render selected lists and queue only item add / check-off (possibly quantity delta later), replay on reconnect. | Best fit if store use really means crossing items off; server can stay SQLite; manageable first experiment. | Requires JavaScript-side list UI, durable queue, a sync API, server deduplication, auth rechecks, conflict UX and tests. Still a substantial second UI/data path alongside NiceGUI. | Keep SQLite; NiceGUI for online room/admin, add a small browser-owned list view and Python JSON API. Scope one list and a few operations first. |
+| **D. Full offline-first list UI**: all list operations run locally then sync. | Most seamless use across devices/connection loss; one offline-capable list editing model rather than two paths in the long run. | Biggest rewrite, migrations and per-action conflict decisions (undo, delete, tags, rename, sharing, room lifecycle); team maintains JS/TS frontend and API. | Replace NiceGUI *for list editing* with a client-rendered PWA (e.g. Vue/Svelte/React or plain JS); Python API + SQLite can remain. Discuss architecture change first. |
+| **E. Adopt a sync product/protocol**: e.g. RxDB with a custom HTTP backend, PowerSync, or PouchDB/CouchDB. | Provides tested local storage/replication building blocks; helpful if scope grows. | Does not define this app's add/restore, auth/revocation or conflict policy; operational, licensing and migration costs. RxDB can use a custom backend but still needs pull/push endpoints and client JS. PowerSync's documented source DBs exclude SQLite and need a sync service + write backend; PouchDB/CouchDB entails a new document database and revision-conflict workflow. | RxDB could retain server SQLite with new protocol/UI. PowerSync likely requires a source DB migration (e.g. PostgreSQL); CouchDB would replace the server DB. Not justified for a four-person MVP without a prototype. |
+
+A PostgreSQL migration **by itself** does not give a browser offline storage or synchronization. Electric Sync similarly provides a **Postgres read path**; its docs explicitly leave write-path sync to the application. SQLite is not the obstacle to a small custom queue; stable IDs, versions, permissions and merge rules are the real work. CRDTs (automatically merging replicated data structures) are interesting for more ambitious collaboration, but don't decide whether a deleted item should reappear, or whether a revoked user may edit.
+
+## How a *limited* queue could behave (proposal to test, not a design commitment)
+
+1. While online and authorized, explicitly prepare **one** list for offline use. Store only that list's minimal snapshot in browser IndexedDB and download a versioned offline shell; avoid treating service-worker HTTP cache as a permission store. Offline view reads its own local data, not NiceGUI's Python event handlers. Mark every locally saved operation **pending** until acknowledged by the server. If local storage fails, do not promise the action was saved.
+2. Persist each operation before displaying it as saved: random stable operation ID, list stable identity, item stable identity where applicable, type/payload and ordering. On return, attempt sync from an open page (plus retry/backoff and periodic/visibility triggers); `navigator.onLine` is only a hint. Do **not** rely on background sync firing on iOS or while the app is closed. A lost response after a successful server write must be safe to retry using the same operation ID.
+3. Server endpoint rechecks **current** room token or public share token and list identity *inside the write transaction*, deduplicates operation IDs, applies allowed intents, records results and provides a fresh snapshot/version. Rejected/revoked/deleted operations remain visible as **needs attention**, not silently discarded or resent forever. Limit batch sizes and scope data per authorized list. Ensure that an old share token or room password does not get an offline bypass when syncing.
+4. Resolve operations against the latest server state, not stale full-row replacements. Example: two people add `milk` → use current add-or-restore/duplicate rules and report the outcome; offline `+1` quantity and online `+1` → apply two deltas; offline `check` and online `uncheck` on the same item → **conflict policy required** (do not pretend both states can hold); offline edit on a deleted item → reject or surface for manual recovery, never silently resurrect. Tag changes should be single intents rather than full-array overwrite. If the same person taps check twice offline, decide whether those are two toggles or one desired-state set; a raw toggle replay is not necessarily safe.
+5. Prior to mutating items, choose stable non-reused identities (the [existing item-ID reuse issue](../docs/item-writes.md) makes this important even online). Decide whether multiple devices/tabs can prepare the same list, how local outbox/snapshot is isolated per room/share identity, how pending edits are exported on failure, and what is cleared on logout/rotation. Server versions/change cursors or even a bounded full-list refresh could work for tiny lists; test their correctness before choosing a change feed.
+
+**Security limit:** A previously downloaded list stays readable on a lost device or to someone with access to that browser even if the room password/share URL is revoked on the server. Offline access cannot guarantee immediate revocation; allow explicit clearing and avoid caching admin screens, tokens in URLs or other rooms by accident. Browser storage can be evicted or cleared; `StorageManager.persist()` can request persistence but browsers may deny it. Do not use the outbox as the only durable copy of important data. Document this trade-off before offering private offline mode.
+
+## Recommendation and questions for the owner
+
+**Recommend A immediately if the goal is truthful behavior; explore B first if seeing the shopping list without signal is enough.** If checking off items is essential, prototype **C** with add + set-complete only, one disposable list, and no production migration yet. Keep server SQLite unless that prototype establishes a reason to change it. D/E should be considered only if the offline list editor becomes a core product feature. This is a recommendation, **not authorization to implement**.
+
+Decisions needed before implementation:
+
+- Is read-only access useful, or must users add and check off items inside the shop? Are edits to details, quantity, tags, lists, and sharing needed offline?
+- For simultaneous conflicting check/uncheck or edit/delete, should we show a conflict for a person to resolve, choose a documented rule (e.g. server order), or keep both as separate shopping actions? Is automatic last-write-wins acceptable for any field?
+- May a private list remain available on a device after room access is revoked, until that device reconnects or its local data is cleared? Do public share lists have the same expectation?
+- Is reopening the app to sync after leaving the shop acceptable, or is **guaranteed** hands-free background sync a requirement? A browser PWA cannot promise the latter across iPhone/Android.
+- Is replacing the list editor with a JS/TS client acceptable if the narrow two-UI approach proves too costly?
+
+## Suggested validation *after* choosing a scope
+
+1. Prototype with disposable room/list and real Chrome Android + iPhone installed-app Safari, not just NiceGUI mock tests. Test first load offline vs prepared offline, airplane mode while editing, app killed/reopened, reconnect, slow/flaky connection, storage eviction/clear, multiple tabs, and update/reinstall of the offline shell.
+2. Rehearse conflicting adds, two completions/opposite states, quantity deltas, deletes/undo, item-ID reuse, list removal, password change and share-link reset **while a second device is offline**. Verify duplicate upload/reordered response cannot apply an action twice.
+3. Inspect cached/offline data and permission boundaries with different rooms and public links; confirm no offline edit is reported as synced until authorized server acknowledgement. Only then estimate migration, support and maintenance cost.
+
+## Sources (official documentation; checked 26 September 2026)
+
+- [NiceGUI project](https://github.com/zauberzeug/nicegui) and [its client/server websocket discussion](https://github.com/zauberzeug/nicegui/discussions/2424); the specific app behavior above is established by the code, not inferred from these links.
+- MDN: [service workers/offline cache](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers), [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), [background sync (limited availability)](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API), [unreliable `navigator.onLine`](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/onLine), [storage eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria), [persistent storage request](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist).
+- [web.dev PWA offline-data guide](https://web.dev/learn/pwa/offline-data/) (storage options and persistence).
+- [RxDB replication](https://rxdb.info/replication.html) and [custom HTTP replication](https://rxdb.info/replication-http.html); [PowerSync backend requirements](https://docs.powersync.com/configuration/app-backend/setup) and [custom conflicts](https://docs.powersync.com/handling-writes/custom-conflict-resolution); [PouchDB replication](https://pouchdb.com/guides/replication.html) and [conflicts](https://pouchdb.com/guides/conflicts.html); [Electric write-path guide](https://electric.ax/docs/guides/writes).
+- [SQLite row ID reuse and AUTOINCREMENT](https://www.sqlite.org/autoinc.html). Product-specific assumptions and policies above are proposals, not claims made by these sources.
+
+## Progress
+
+- [x] Compared current `main` implementation and architecture with offline requirements.
+- [x] Reviewed browser APIs and candidate sync approaches against small-app scope.
+- [ ] Owner selects offline capability and conflict/security expectations.
+- [ ] Implement a bounded prototype **only after explicit approval**; verify on real devices before promising offline editing.

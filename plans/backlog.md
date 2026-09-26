@@ -42,7 +42,7 @@ Configuration, database checks, and recovery instructions live in
 ## UI and PWA
 
 - [ ] Complete the real iPhone and Android acceptance checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md): fresh/password-prompt installs, legacy token migration, old icons, multiple rooms, other pages, deleted rooms, restart, and password revocation. Record OS/browser versions and results; automated cookie-transfer checks do not verify OS installation behavior.
-- [ ] Decide the intended offline behavior. The current service worker does not provide meaningful offline support. Remove misleading fallback behavior or design a tested cache/offline experience; editable offline lists would also require synchronization.
+- [ ] Decide the intended offline behavior. See [offline options and open decisions](offline-options.md). The current service worker does not provide meaningful offline support; do not promise offline editing without an authorized sync design and device tests.
 
 ## Testing, documentation, and tooling
 
