@@ -134,6 +134,14 @@ retain end-to-end list creation and the Share dialog. The room page shows
 message without room navigation. Room deletion removes room navigation from
 either page. The remaining full desktop suite passed three times (40 cases) locally;
 this is not manual multi-user or production device verification.
+## Checked-item visibility checks
+
+Two Chromium/Firefox cases exercise persisted list settings from private and
+public views, immediate/age/recent modes, shared updates, Add/Search restoration
+of a hidden item, and 0-day/0-item behavior. The 24-hour cutoff and per-page
+timer behavior have unit tests; no browser test waits for a real day to pass.
+See [checked-item visibility](checked-item-visibility.md) for current behavior
+and the production-verification boundary.
 
 ## Android emulator (opt-in)
 
