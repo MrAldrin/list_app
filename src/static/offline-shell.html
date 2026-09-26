@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1976d2">
+    <meta name="referrer" content="no-referrer">
+    <title>ListR · Read-only offline view</title>
+    <link rel="stylesheet" href="/static/offline-shell.css">
+    <script defer src="/static/offline-storage.js"></script>
+    <script defer src="/static/offline-shell.js"></script>
+  </head>
+  <body>
+    <main class="offline-card" aria-live="polite">
+      <p class="offline-label">ListR · read-only</p>
+      <h1 id="room-name">Saved lists</h1>
+      <p id="status" class="status">Checking room access and saved copy…</p>
+      <p id="last-saved" class="last-saved"></p>
+      <section id="lists" aria-label="Saved lists"></section>
+    </main>
+  </body>
+</html>
