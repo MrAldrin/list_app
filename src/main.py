@@ -389,6 +389,7 @@ class ItemUndoPayload(TypedDict):
     active_tags: list[str]
     description: str
     quantity: int
+    completed_at: str | None
 
 
 class TagUndoPayload(TypedDict):
@@ -1572,6 +1573,7 @@ def _restore_pending_undo(
             active_tags=payload["active_tags"],
             description=payload["description"],
             quantity=payload["quantity"],
+            completed_at=payload.get("completed_at"),
             expected_slug=list_slug,
         )
         if not restored:
@@ -1981,6 +1983,7 @@ def _delete_item_with_undo(
         "active_tags": it["active_tags"].copy(),
         "description": it["description"],
         "quantity": it["quantity"],
+        "completed_at": it["completed_at"],
     }
     try:
         delete_item_from_list(list_id, it["id"], expected_slug=list_slug)
