@@ -258,3 +258,97 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
             re.compile("No offline copy is ready on this device"), exact=False
         )
     ).to_be_visible()
+
+
+@pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
+@pytest.mark.parametrize("change", ["revoked", "deleted"])
+def test_online_denial_clears_matching_offline_copy(server, sessions, change):
+    member, _visitor = sessions
+    room_slug, _list_slug, _name = prepare_snapshot_data(server)
+    room_url = f"{server.url}/room/{room_slug}"
+    member.goto(room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(member.get_by_role("button", name="Add New List")).to_be_visible()
+    assert offline_record(member, room_slug)["snapshot"]["lists"]
+
+    with sqlite3.connect(server.database) as connection:
+        if change == "revoked":
+            connection.execute(
+                "UPDATE rooms SET authorization_version = authorization_version + 1 WHERE slug = ?",
+                (room_slug,),
+            )
+        else:
+            connection.execute("DELETE FROM rooms WHERE slug = ?", (room_slug,))
+
+    member.goto(room_url)
+    if change == "revoked":
+        expect(member.get_by_label("Room Password", exact=True)).to_be_visible()
+    else:
+        expect(member.get_by_text("Room not found", exact=True)).to_be_visible()
+    member.wait_for_function(
+        "async () => (await window.ListROfflineStorage.readRecord()) === null",
+        timeout=15_000,
+    )
+    server.stop()
+    member.context.set_offline(True)
+    member.goto(room_url, timeout=15_000)
+    expect(
+        member.get_by_text("No offline copy is ready on this device.", exact=False)
+    ).to_be_visible()
+    expect(member.get_by_text("Checked apples", exact=True)).to_have_count(0)
+
+
+@pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
+def test_room_delete_clears_copy_without_offline_client_loaded(server, sessions):
+    member, _visitor = sessions
+    room_slug, _list_slug, _name = prepare_snapshot_data(server)
+    room_url = f"{server.url}/room/{room_slug}"
+    member.goto(room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(member.get_by_role("button", name="Add New List")).to_be_visible()
+    assert offline_record(member, room_slug)["snapshot"]["lists"]
+
+    member.goto(f"{room_url}?admin=true")
+    expect(member.get_by_role("button", name="Add New List")).to_be_visible()
+    assert member.evaluate("Boolean(window.ListROfflineStorage)") is False
+    member.get_by_role("button", name="Room menu").click()
+    member.get_by_text("Delete Room", exact=True).click()
+    member.get_by_label("Enter Room Password to Confirm").fill(server.password)
+    member.get_by_role("button", name="Delete", exact=True).click()
+    member.wait_for_url(server.url + "/")
+    member.goto(room_url)
+    expect(member.get_by_text("Room not found", exact=True)).to_be_visible()
+    member.wait_for_function(
+        "async () => (await window.ListROfflineStorage.readRecord()) === null",
+        timeout=15_000,
+    )
+
+
+@pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
+def test_temporary_snapshot_error_keeps_old_copy_and_timestamp(server, sessions):
+    member, _visitor = sessions
+    room_slug, _list_slug, _name = prepare_snapshot_data(server)
+    room_url = f"{server.url}/room/{room_slug}"
+    member.goto(room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(member.get_by_role("button", name="Add New List")).to_be_visible()
+    old_saved_at = offline_record(member, room_slug)["saved_at"]
+    endpoint = re.compile(r"/api/offline/rooms/.*/snapshot$")
+    member.route(endpoint, lambda route: route.fulfill(status=503, body="unavailable"))
+    member.reload()
+    expect(
+        member.get_by_text("The offline copy could not be updated.", exact=False)
+    ).to_be_visible()
+    record = member.evaluate("window.ListROfflineStorage.readRecord()")
+    assert record["saved_at"] == old_saved_at
+    assert "Checked apples" in json.dumps(record)
+    expect(member.get_by_text("Last saved:", exact=False)).to_be_visible()
+    member.unroute(endpoint)
+    server.stop()
+    member.context.set_offline(True)
+    member.goto(room_url, timeout=15_000)
+    expect(member.get_by_text("Offline · read only", exact=True)).to_be_visible()
+    expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
