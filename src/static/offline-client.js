@@ -113,17 +113,82 @@
     document.getElementById('listr-offline-status')?.remove();
   }
 
-  function showOfflineLink() {
-    if (!activeSlug || !routeAllowsSlug(activeSlug)) return;
+  function addText(parent, tag, text) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    parent.append(element);
+    return element;
+  }
+
+  async function openOfflineView(slug) {
+    if (activeSlug !== slug || document.getElementById('listr-offline-view')) return;
+    let record;
+    try { record = await storage.readRecord(); } catch (_) { /* Storage unavailable. */ }
+    if (activeSlug !== slug || authorizationRejected || navigator.onLine) return;
+    if (record?.snapshot.room.slug !== slug) {
+      await showRefreshWarning(slug, 'No offline copy is ready on this device.');
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'listr-offline-view';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-label', 'Read-only offline view');
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '10001', background: '#f1f5f9',
+      color: '#1e293b', overflowY: 'auto', padding: '16px',
+      font: '16px/1.5 system-ui, sans-serif',
+    });
+    const close = addText(overlay, 'button', 'Close offline view');
+    close.type = 'button';
+    close.addEventListener('click', () => overlay.remove());
+    const card = document.createElement('main');
+    Object.assign(card.style, { maxWidth: '640px', margin: '16px auto', padding: '20px', background: '#fff' });
+    addText(card, 'h1', record.snapshot.room.name);
+    addText(card, 'p', 'Offline · read only');
+    addText(card, 'p', `Last saved: ${formatTime(record)}`);
+    for (const list of record.snapshot.lists) {
+      const section = document.createElement('section');
+      Object.assign(section.style, { borderTop: '1px solid #cbd5e1', padding: '12px 0' });
+      addText(section, 'h2', list.name);
+      if (list.list_tags.length) addText(section, 'p', `Tags: ${list.list_tags.join(', ')}`);
+      const items = document.createElement('ul');
+      for (const item of list.items) {
+        const row = addText(items, 'li', `${item.name} · quantity ${item.quantity}`);
+        if (item.done) row.style.textDecoration = 'line-through';
+        if (item.description) addText(row, 'span', ` — ${item.description}`);
+        if (item.active_tags.length) addText(row, 'span', ` — Tags: ${item.active_tags.join(', ')}`);
+      }
+      section.append(items);
+      card.append(section);
+    }
+    overlay.append(card);
+    document.body.append(overlay);
+  }
+
+  async function showOfflineLink() {
+    const slug = activeSlug;
+    if (!slug || !routeAllowsSlug(slug)) return;
+    let record;
+    try { record = await storage.readRecord(); } catch (_) { /* Storage unavailable. */ }
+    const ready = record?.snapshot.room.slug === slug;
+    if (activeSlug !== slug || navigator.onLine) return;
+    if (!ready) {
+      await showRefreshWarning(slug, 'Offline view is not ready on this device. Reopen the room online.');
+      return;
+    }
     const status = ensureStatusElement();
     status.replaceChildren();
     const message = document.createElement('span');
     message.textContent = 'Connection lost. ';
     const link = document.createElement('a');
-    link.href = `/room/${encodeURIComponent(activeSlug)}`;
+    link.href = `/room/${encodeURIComponent(slug)}`;
     link.textContent = 'Open the read-only offline view';
     link.style.color = 'inherit';
     link.style.fontWeight = '700';
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      openOfflineView(slug);
+    });
     status.append(message, link);
   }
 
@@ -155,9 +220,11 @@
         await storage.saveRecord(snapshot);
         retryCount = 0;
         hideWarning();
+        document.getElementById('listr-offline-view')?.remove();
         return true;
       } catch (error) {
         if (error.definitiveAuthorizationFailure) {
+          document.getElementById('listr-offline-view')?.remove();
           try {
             await storage.clearRecordForRoom(requestedSlug);
             await showRefreshWarning(requestedSlug, 'Room access was rejected; the offline copy was removed.');
@@ -170,6 +237,7 @@
         if (activeSlug !== requestedSlug) return false;
         retryCount += 1;
         await showRefreshWarning(requestedSlug, 'The offline copy could not be updated.');
+        if (!navigator.onLine) await showOfflineLink();
         scheduleRefresh(retryDelay());
         return false;
       } finally {
@@ -214,6 +282,7 @@
       refreshQueued = false;
       window.clearTimeout(requestTimer);
       hideWarning();
+      document.getElementById('listr-offline-view')?.remove();
     },
   };
 

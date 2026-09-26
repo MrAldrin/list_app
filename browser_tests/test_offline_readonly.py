@@ -103,7 +103,7 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     )
     cached_paths = member.evaluate(
         """async () => {
-            const cache = await caches.open('listr-offline-shell-v1');
+            const cache = await caches.open('listr-offline-shell-v2');
             return (await cache.keys()).map((request) => new URL(request.url).pathname).sort();
         }"""
     )
@@ -171,6 +171,13 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     expect(
         member.get_by_role("link", name="Open the read-only offline view", exact=True)
     ).to_be_visible()
+    original_url = member.url
+    member.get_by_role("link", name="Open the read-only offline view").click()
+    offline_view = member.get_by_role("dialog", name="Read-only offline view")
+    expect(offline_view.get_by_text("Offline · read only", exact=True)).to_be_visible()
+    expect(offline_view.get_by_role("heading", name="Home", exact=True)).to_be_visible()
+    assert member.url == original_url  # No new Safari-style top-level navigation.
+    member.get_by_role("button", name="Close offline view").click()
     server.stop()
     # Another update is made while this browser is offline; the open shell refreshes on reconnect.
     member.goto(room_url, timeout=15_000)
@@ -257,6 +264,30 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
         member.get_by_text(
             re.compile("No offline copy is ready on this device"), exact=False
         )
+    ).to_be_visible()
+
+
+@pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
+def test_missing_shell_cache_shows_recovery_page_instead_of_navigation_error(
+    server, sessions
+):
+    member, _visitor = sessions
+    room_slug, _list_slug, _name = prepare_snapshot_data(server)
+    room_url = f"{server.url}/room/{room_slug}"
+    member.goto(room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(
+        member.get_by_role("button", name="Add New List", exact=True)
+    ).to_be_visible()
+    assert offline_record(member, room_slug)
+    member.wait_for_function("navigator.serviceWorker.controller !== null")
+    member.evaluate("caches.delete('listr-offline-shell-v2')")
+    server.stop()
+    member.context.set_offline(True)
+    member.goto(room_url, timeout=15_000)
+    expect(
+        member.get_by_text("Offline view is unavailable on this device.", exact=False)
     ).to_be_visible()
 
 

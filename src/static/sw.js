@@ -1,5 +1,5 @@
 const SHELL_CACHE_PREFIX = 'listr-offline-shell-';
-const SHELL_CACHE_NAME = `${SHELL_CACHE_PREFIX}v1`;
+const SHELL_CACHE_NAME = `${SHELL_CACHE_PREFIX}v2`;
 const SHELL_URL = '/static/offline-shell.html';
 const SHELL_ASSETS = [
   SHELL_URL,
@@ -48,13 +48,30 @@ function isAllowedNavigation(url) {
 
 async function networkFirstNavigation(request) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), NAVIGATION_TIMEOUT_MS);
+  let timeout;
   try {
+    // Safari may not reject an aborted navigation promptly. Race the network so
+    // respondWith always receives a document, even when the fetch hangs.
+    const deadline = new Promise((_, reject) => {
+      timeout = setTimeout(() => {
+        controller.abort();
+        reject(new Error('Navigation timed out'));
+      }, NAVIGATION_TIMEOUT_MS);
+    });
     // HTTP denial and server errors are responses, not network failures: return them as-is.
-    return await fetch(request, { signal: controller.signal });
+    return await Promise.race([fetch(request, { signal: controller.signal }), deadline]);
   } catch (_) {
-    const cache = await caches.open(SHELL_CACHE_NAME);
-    return (await cache.match(SHELL_URL)) || Response.error();
+    try {
+      const cache = await caches.open(SHELL_CACHE_NAME);
+      const shell = await cache.match(SHELL_URL);
+      if (shell) return shell;
+    } catch (_) {
+      // Cache storage may be unavailable even after a worker was installed.
+    }
+    return new Response('<!doctype html><html><meta name="viewport" content="width=device-width, initial-scale=1"><title>ListR offline</title><body><p>Offline view is unavailable on this device. Reopen the room online to prepare it.</p></body></html>', {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
   } finally {
     clearTimeout(timeout);
   }

@@ -68,17 +68,17 @@ test('install caches only the versioned generic shell assets and does not force 
     '/static/offline-storage.js',
     '/static/offline-shell.js',
   ]);
-  assert.deepEqual([...worker.cacheNames], ['listr-offline-shell-v1']);
+  assert.deepEqual([...worker.cacheNames], ['listr-offline-shell-v2']);
   assert.doesNotMatch(workerSource, /skipWaiting|cache\.put/);
 });
 
 test('activation retires only older shell caches after the new worker activates', async () => {
   const worker = createWorker();
   worker.cacheNames.add('listr-offline-shell-v0');
-  worker.cacheNames.add('listr-offline-shell-v1');
+  worker.cacheNames.add('listr-offline-shell-v2');
   const activation = { waitUntil(promise) { this.waitUntilPromise = promise; } };
   await trigger(worker, 'activate', activation);
-  assert.deepEqual([...worker.cacheNames], ['listr-offline-shell-v1']);
+  assert.deepEqual([...worker.cacheNames], ['listr-offline-shell-v2']);
 });
 
 test('only root and a single room route fall back after network failure', async () => {
@@ -91,6 +91,17 @@ test('only root and a single room route fall back after network failure', async 
     assert.ok(event.responsePromise, `${path} should use network-first fallback`);
     const response = await event.responsePromise;
     assert.equal(await response.text(), 'cached:/static/offline-shell.html');
+  }
+});
+
+test('missing cache returns a valid offline document, not an error response', async () => {
+  const worker = createWorker();
+  for (const path of ['/', '/room/room-1']) {
+    const event = fetchEvent(path);
+    worker.listeners.get('fetch')(event);
+    const response = await event.responsePromise;
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /Offline view is unavailable/);
   }
 });
 

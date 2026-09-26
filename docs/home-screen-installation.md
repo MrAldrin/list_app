@@ -71,9 +71,14 @@ Only one room is saved per browser origin: visiting another authorized room
 replaces the prior complete copy. This does not change online access to rooms.
 Older icons opening `/` can use the saved room; room URLs must match the saved
 room. Deep `/list/` bookmarks and `/share/` links are not offline launch paths.
-An already-open online page shows a passive link to saved lists when the browser
-signals a lost connection; its live editing controls should not be treated as
-working offline.
+An already-open online page offers a read-only saved view when the browser
+signals a lost connection and a matching copy exists. The view opens over the
+current page, without following a room link to Safari; close it to return to the
+page. The live editing controls behind it should not be treated as working
+offline. If no matching copy exists, the page shows a warning instead of a link.
+A fresh launch from the home-screen icon still needs the installed service
+worker; if its cached shell is missing, it shows a recovery message instead of
+a browser navigation error. These changes are not yet verified on an iPhone.
 
 On reconnection a definitive authorization denial clears the matching offline
 copy. A temporary network/database/storage failure retains the previous copy
