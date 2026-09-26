@@ -77,8 +77,10 @@ already separated. Larger module refactoring remains deferred in the
   browser transfers cookies, not a guarantee. Existing icons may retain their old
   launch address. Real-device checks remain outstanding; see the
   [installation behavior and checklist](docs/home-screen-installation.md).
-- Offline editing/synchronization is not an implemented capability; the intended
-  offline experience remains a backlog decision.
+- Offline editing/synchronization is not an implemented capability. Automatic,
+  read-only offline viewing of one authorized room on a prepared device is the
+  agreed next step, **not current behavior**; see the [implementation plan](plans/offline-readonly.md).
+  Shared-link offline viewing remains deferred in the [backlog](plans/backlog.md).
 
 ## Evolution and documentation
 
