@@ -70,13 +70,16 @@ def test_deleted_list_mutations_raise_domain_error():
     assert issubclass(ListUnavailable, LookupError)
 
 
-def test_deleting_a_list_refreshes_rooms_without_refreshing_items(monkeypatch):
+def test_deleting_a_list_refreshes_rooms_and_settings_without_items(monkeypatch):
     refresh_lists = Mock()
     refresh_items = Mock()
+    refresh_settings = Mock()
     monkeypatch.setattr("main.list_of_lists.refresh", refresh_lists)
     monkeypatch.setattr("main.item_list.refresh", refresh_items)
+    monkeypatch.setattr("main.visibility_settings_ui.refresh", refresh_settings)
 
     broadcast_updates(refresh_lists=True, refresh_items=False)
 
     refresh_lists.assert_called_once_with()
     refresh_items.assert_not_called()
+    refresh_settings.assert_called_once_with()
