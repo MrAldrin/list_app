@@ -84,9 +84,10 @@ browser's site data also removes the copy (and may remove saved sign-in).
 Public share links are online-only; no token, room password, or private page
 HTML is put in the service-worker cache.
 
-Desktop Chromium/Firefox automated checks verify local HTTP behavior; they do
-**not** prove that an iPhone/Android installed app will launch offline, retain
-storage, or share Safari's login. Complete the real-device checklist below
+Desktop Chromium/Firefox checks verify local HTTP offline fallback and
+self-signed HTTPS cookie-backed snapshots; they do **not** prove that an
+iPhone/Android installed app will launch offline, retain storage, or share
+Safari's login. Complete the real-device checklist below
 before relying on installed-app offline viewing.
 
 ## Implementation and automated checks
