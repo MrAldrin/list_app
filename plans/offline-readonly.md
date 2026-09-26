@@ -1,6 +1,6 @@
 # Automatic read-only offline room viewing — implementation plan
 
-Status: **approved product scope; implementation and tests not started**. This plan is for the `offline-research` change stack based on `main`. It does not describe current behavior. See [option research and sources](offline-options.md), [current architecture](../ARCHITECTURE.md), [remembered room access and installation](../docs/home-screen-installation.md), and [browser-test harness](../docs/browser-testing.md). Any frontend/database architecture change outside the small offline-only browser view must be raised with the owner first.
+Status: **chunks 1–3 implemented; desktop HTTP checks passed; HTTPS and real-device acceptance pending**. This plan is for the `offline-research` change stack based on `main`. For current behavior, see [installation/access](../docs/home-screen-installation.md) and [browser testing](../docs/browser-testing.md). See [option research and sources](offline-options.md), [current architecture](../ARCHITECTURE.md), [remembered room access and installation](../docs/home-screen-installation.md), and [browser-test harness](../docs/browser-testing.md). Any frontend/database architecture change outside the small offline-only browser view must be raised with the owner first.
 
 ## Agreed behavior and limits
 
@@ -62,7 +62,7 @@ Run focused tests at each chunk, then the repository's required Python checks **
 
 - [x] Owner chose automatic, silent, read-only room snapshots; one room per device; accepted offline visibility until reconnect and deferred public shared links/offline editing. No recurring success toast; no misleading delete-only control.
 - [x] Wrote the implementation and in-depth verification plan. **Documentation only**; no new endpoint, browser cache, app UI, or device verification exists yet.
-- [ ] Chunk 1: authorized snapshot endpoint and server tests.
-- [ ] Chunk 2: atomic browser save/retry and failure-state tests.
-- [ ] Chunk 3: independent offline shell and service-worker navigation checks.
-- [ ] Chunk 4: browser/HTTPS/device checks and current-behavior docs; record verified and remaining work separately.
+- [x] Chunk 1: authorized snapshot endpoint and server tests. `GET /api/offline/rooms/{slug}/snapshot` checks the existing grant within the read lock, rejects a complete snapshot over 200 lists, 5,000 items or 1 MiB, and distinguishes denial, transient failure and oversize. Focused API tests passed.
+- [x] Chunk 2: one atomic IndexedDB record, client refresh/retry, failure warning, and preservation of a previous copy on failed storage writes. Automated HTTP Chromium/Firefox checks include a private-list edit, aborted replacement and changed timestamp; broader failure combinations remain to test.
+- [x] Chunk 3: generic offline shell and network-failure-only room/root service-worker fallback. Six Node service-worker checks passed; browser checks confirmed read-only content, wrong-room isolation and empty-room replacement. No desktop test establishes installed-device behavior.
+- [ ] Chunk 4: current-behavior references updated and 48 browser cases passed (`uv run pytest browser_tests -q -n 0 -x`); 358 fast tests and six service-worker checks passed. Disposable HTTPS snapshot/cookie checks, broader browser failure matrix, and actual iPhone/Android installed-app checks remain **unverified**. Do not mark chunk 4 complete until those checks are performed or explicitly deferred by the owner.
