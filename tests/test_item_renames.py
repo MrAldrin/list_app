@@ -51,6 +51,7 @@ def test_normal_rename_preserves_other_fields(rename_items):
         "active_tags": [],
         "description": "cold",
         "quantity": 4,
+        "completed_at": None,
     }
     assert not db.in_transaction
 

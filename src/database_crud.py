@@ -4,10 +4,12 @@ import re
 import secrets
 import threading
 import uuid
+from datetime import UTC, datetime
 
 import bcrypt
 
 from database_setup import db
+from item_visibility import validate_visibility_settings
 
 _DB_LOCK = threading.RLock()
 
@@ -43,6 +45,17 @@ def normalize_item_name(raw: str | None) -> str:
     return (raw or "").strip().lower()
 
 
+def _completion_timestamp(now: datetime | None = None) -> str:
+    timestamp = datetime.now(UTC) if now is None else now
+    if timestamp.tzinfo is None:
+        raise ValueError("Completion timestamp must include a timezone")
+    return (
+        timestamp.astimezone(UTC)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
+
+
 def get_lists(room_id: int):
     with _DB_LOCK:
         rows = db.execute(
@@ -56,7 +69,8 @@ def get_list_details(list_id: int):
     with _DB_LOCK:
         row = db.execute(
             """
-            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug, l.share_token
+            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug, l.share_token,
+                   l.hide_done_mode, l.hide_done_age_days, l.hide_done_recent_count
             FROM lists l
             JOIN rooms r ON l.room_id = r.id
             WHERE l.id = ?
@@ -77,6 +91,9 @@ def get_list_details(list_id: int):
         "room_id": row[4],
         "room_slug": row[5],
         "share_token": row[6],
+        "hide_done_mode": row[7],
+        "hide_done_age_days": row[8],
+        "hide_done_recent_count": row[9],
     }
 
 
@@ -84,7 +101,8 @@ def get_list_details_by_slug(slug: str):
     with _DB_LOCK:
         row = db.execute(
             """
-            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug 
+            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug,
+                   l.hide_done_mode, l.hide_done_age_days, l.hide_done_recent_count
             FROM lists l
             JOIN rooms r ON l.room_id = r.id
             WHERE l.slug = ?
@@ -104,6 +122,9 @@ def get_list_details_by_slug(slug: str):
         "slug": row[3],
         "room_id": row[4],
         "room_slug": row[5],
+        "hide_done_mode": row[6],
+        "hide_done_age_days": row[7],
+        "hide_done_recent_count": row[8],
     }
 
 
@@ -151,6 +172,30 @@ def rotate_list_share_token(
             )
             db.commit()
             return token
+        except Exception:
+            db.rollback()
+            raise
+
+
+def update_list_visibility_settings(
+    list_id: int,
+    *,
+    mode: str,
+    age_days: int,
+    recent_count: int,
+    expected_slug: str | None = None,
+) -> None:
+    """Atomically replace a list's checked-item visibility settings."""
+    validate_visibility_settings(mode, age_days, recent_count)
+    with _DB_LOCK:
+        try:
+            _begin_list_write_locked(list_id, expected_slug)
+            db.execute(
+                "UPDATE lists SET hide_done_mode = ?, hide_done_age_days = ?, "
+                "hide_done_recent_count = ? WHERE id = ?",
+                (mode, age_days, recent_count, list_id),
+            )
+            db.commit()
         except Exception:
             db.rollback()
             raise
@@ -377,8 +422,9 @@ def get_list_data(list_id: int):
     with _DB_LOCK:
         rows = db.execute(
             (
-                "SELECT id, name, done, active_tags, description, quantity FROM items "
-                "WHERE list_id = ? ORDER BY done ASC, name COLLATE NOCASE ASC"
+                "SELECT id, name, done, active_tags, description, quantity, completed_at "
+                "FROM items WHERE list_id = ? "
+                "ORDER BY done ASC, name COLLATE NOCASE ASC"
             ),
             (list_id,),
         ).fetchall()
@@ -396,7 +442,8 @@ def get_list_data(list_id: int):
                 "done": bool(r[2]),
                 "active_tags": active_tags,
                 "description": r[4] or "",
-                "quantity": r[5] if len(r) > 5 and r[5] is not None else 1,
+                "quantity": r[5] if r[5] is not None else 1,
+                "completed_at": r[6],
             }
         )
 
@@ -429,7 +476,10 @@ def add_or_restore_item_atomic(
                 if not existing[1]:
                     db.rollback()
                     return "duplicate_active"
-                db.execute("UPDATE items SET done = 0 WHERE id = ?", (existing[0],))
+                db.execute(
+                    "UPDATE items SET done = 0, completed_at = NULL WHERE id = ?",
+                    (existing[0],),
+                )
                 result = "restored"
             else:
                 db.execute(
@@ -449,7 +499,8 @@ def restore_item(item_id: int, list_id: int, *, expected_slug: str | None = None
         try:
             _begin_list_write_locked(list_id, expected_slug)
             db.execute(
-                "UPDATE items SET done = 0 WHERE id = ? AND list_id = ?",
+                "UPDATE items SET done = 0, completed_at = NULL "
+                "WHERE id = ? AND list_id = ?",
                 (item_id, list_id),
             )
             db.commit()
@@ -480,6 +531,7 @@ def restore_deleted_item(
     description: str,
     quantity: int,
     *,
+    completed_at: str | None = None,
     expected_slug: str | None = None,
 ) -> bool:
     """Restore a deleted item with all fields, unless its name is now taken."""
@@ -493,9 +545,21 @@ def restore_deleted_item(
                 db.rollback()
                 return False
             db.execute(
-                "INSERT INTO items (name, done, list_id, active_tags, description, quantity) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (name, done, list_id, json.dumps(active_tags), description, quantity),
+                """
+                INSERT INTO items (
+                    name, done, list_id, active_tags, description, quantity,
+                    completed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    name,
+                    done,
+                    list_id,
+                    json.dumps(active_tags),
+                    description,
+                    quantity,
+                    completed_at if done else None,
+                ),
             )
             db.commit()
             return True
@@ -511,13 +575,19 @@ def add_item_with_state(
     active_tags: list[str],
     *,
     expected_slug: str | None = None,
+    now: datetime | None = None,
 ):
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
+            completed_at = _completion_timestamp(now) if done else None
             db.execute(
-                "INSERT INTO items (name, done, list_id, active_tags) VALUES (?, ?, ?, ?)",
-                (item_name, done, list_id, json.dumps(active_tags)),
+                """
+                INSERT INTO items (
+                    name, done, list_id, active_tags, completed_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (item_name, done, list_id, json.dumps(active_tags), completed_at),
             )
             db.commit()
         except Exception:
@@ -526,15 +596,30 @@ def add_item_with_state(
 
 
 def update_item_done(
-    item_id: int, list_id: int, done: bool, *, expected_slug: str | None = None
+    item_id: int,
+    list_id: int,
+    done: bool,
+    *,
+    expected_slug: str | None = None,
+    now: datetime | None = None,
 ):
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE items SET done = ? WHERE id = ? AND list_id = ?",
-                (done, item_id, list_id),
-            )
+            if done:
+                completed_at = _completion_timestamp(now)
+                db.execute(
+                    "UPDATE items SET completed_at = CASE WHEN COALESCE(done, 0) = 0 "
+                    "THEN ? ELSE completed_at END, done = 1 "
+                    "WHERE id = ? AND list_id = ?",
+                    (completed_at, item_id, list_id),
+                )
+            else:
+                db.execute(
+                    "UPDATE items SET done = 0, completed_at = NULL "
+                    "WHERE id = ? AND list_id = ?",
+                    (item_id, list_id),
+                )
             db.commit()
         except Exception:
             db.rollback()

@@ -83,6 +83,10 @@ def test_list_tag_intents_reject_stale_identity_and_recover(
         ("toggle_item_active_tag", {"tag": "stale"}),
         ("delete_item", {}),
         ("update_list_tags_settings", {"list_tags": ["stale"]}),
+        (
+            "update_list_visibility_settings",
+            {"mode": "age", "age_days": 3, "recent_count": 4},
+        ),
         ("rename_list", {"new_name": "stale"}),
         ("delete_list", {}),
     ],

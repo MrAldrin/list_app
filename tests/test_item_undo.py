@@ -5,7 +5,7 @@ from database_setup import db
 from main import _restore_pending_undo
 
 
-def pending(name, done=False, tags=None, description="", quantity=1):
+def pending(name, done=False, tags=None, description="", quantity=1, completed_at=None):
     return {
         "kind": "item",
         "payload": {
@@ -14,6 +14,7 @@ def pending(name, done=False, tags=None, description="", quantity=1):
             "active_tags": tags if tags is not None else [],
             "description": description,
             "quantity": quantity,
+            "completed_at": completed_at,
         },
         "token": "test",
         "message": "Deleted item",
@@ -27,7 +28,14 @@ def test_undo_restores_all_fields_after_delete(monkeypatch):
     )
     room_id = crud.get_rooms()[0]["id"]
     list_id, slug = crud.create_list("shopping", room_id)
-    original = pending("Milk", True, ["cold", "weekly"], "whole milk", 4)
+    original = pending(
+        "Milk",
+        True,
+        ["cold", "weekly"],
+        "whole milk",
+        4,
+        "2025-01-02T03:04:05.000000Z",
+    )
     assert crud.restore_deleted_item(list_id, **original["payload"], expected_slug=slug)
     old_id = crud.find_item_by_name(list_id, "Milk")[0]
     crud.delete_item(old_id, list_id, expected_slug=slug)

@@ -41,6 +41,25 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     assert not (startup_directory / "list.db").exists()
 
 
+def test_fresh_schema_adds_visibility_and_completion_columns(tmp_path, monkeypatch):
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "fresh.db"))
+    connection = init_database()
+
+    list_columns = {
+        column[1] for column in connection.execute("PRAGMA table_info(lists)")
+    }
+    item_columns = {
+        column[1] for column in connection.execute("PRAGMA table_info(items)")
+    }
+    assert {
+        "hide_done_mode",
+        "hide_done_age_days",
+        "hide_done_recent_count",
+    } <= list_columns
+    assert "completed_at" in item_columns
+    connection.close()
+
+
 def test_default_room_uses_configured_password_without_resetting_it(
     tmp_path, monkeypatch
 ):
@@ -151,13 +170,21 @@ def test_init_database_repairs_broken_items_foreign_key(tmp_path, monkeypatch):
         CREATE TABLE items (
             id INTEGER PRIMARY KEY,
             name TEXT,
+            description TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 1,
             done BOOLEAN,
             list_id INTEGER NOT NULL,
             active_tags TEXT NOT NULL DEFAULT '[]',
+            completed_at TEXT,
             FOREIGN KEY(list_id) REFERENCES lists_old(id)
         );
-        INSERT INTO items (id, name, done, list_id, active_tags)
-        VALUES (1, 'Apples', 0, 1, '[]');
+        INSERT INTO items (
+            id, name, description, quantity, done, list_id, active_tags,
+            completed_at
+        ) VALUES (
+            1, 'Apples', 'keep cold', 3, 1, 1, '["fruit"]',
+            '2025-01-02T03:04:05.000000Z'
+        );
         """
     )
     legacy_db.commit()
@@ -170,12 +197,129 @@ def test_init_database_repairs_broken_items_foreign_key(tmp_path, monkeypatch):
     assert repaired_db.execute("PRAGMA foreign_key_check").fetchall() == []
     foreign_key = repaired_db.execute("PRAGMA foreign_key_list(items)").fetchone()
     assert foreign_key[2:5] == ("lists", "list_id", "id")
-    assert repaired_db.execute("SELECT name, list_id FROM items").fetchone() == (
+    assert repaired_db.execute(
+        "SELECT name, list_id, description, quantity, active_tags, completed_at "
+        "FROM items"
+    ).fetchone() == (
         "Apples",
         1,
+        "keep cold",
+        3,
+        '["fruit"]',
+        "2025-01-02T03:04:05.000000Z",
     )
 
     repaired_db.close()
+
+
+def test_list_rebuild_preserves_existing_visibility_settings(tmp_path, monkeypatch):
+    database_path = tmp_path / "visibility-rebuild.db"
+    legacy_db = sqlite3.connect(database_path)
+    legacy_db.executescript(
+        """
+        CREATE TABLE rooms (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE,
+            password_hash TEXT NOT NULL
+        );
+        INSERT INTO rooms (id, name, slug, password_hash)
+        VALUES (1, 'Home', 'home-test', 'hash');
+
+        CREATE TABLE lists (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            list_tags TEXT NOT NULL DEFAULT '[]',
+            slug TEXT UNIQUE,
+            room_id INTEGER,
+            hide_done_mode TEXT NOT NULL DEFAULT 'off',
+            hide_done_age_days INTEGER NOT NULL DEFAULT 7,
+            hide_done_recent_count INTEGER NOT NULL DEFAULT 10
+        );
+        CREATE UNIQUE INDEX idx_lists_name ON lists(name);
+        INSERT INTO lists (
+            id, name, list_tags, slug, room_id, hide_done_mode,
+            hide_done_age_days, hide_done_recent_count
+        ) VALUES (1, 'Groceries', '[]', 'groceries-test', 1, 'age', 3, 12);
+        """
+    )
+    legacy_db.commit()
+    legacy_db.close()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    migrated_db = init_database()
+
+    assert migrated_db.execute(
+        "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
+        "FROM lists WHERE id = 1"
+    ).fetchone() == ("age", 3, 12)
+    migrated_db.close()
+
+
+def test_init_database_migrates_legacy_visibility_schema_and_reinitializes(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "legacy-visibility.db"
+    legacy_db = sqlite3.connect(database_path)
+    legacy_db.executescript(
+        """
+        CREATE TABLE rooms (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE,
+            password_hash TEXT NOT NULL
+        );
+        INSERT INTO rooms (id, name, slug, password_hash)
+        VALUES (1, 'Home', 'home-test', 'hash');
+
+        CREATE TABLE lists (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            list_tags TEXT NOT NULL DEFAULT '[]',
+            slug TEXT UNIQUE,
+            room_id INTEGER
+        );
+        CREATE UNIQUE INDEX idx_lists_name ON lists(name);
+        INSERT INTO lists (id, name, list_tags, slug, room_id)
+        VALUES (1, 'Groceries', '[]', 'groceries-test', 1);
+
+        CREATE TABLE items (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            done BOOLEAN,
+            list_id INTEGER NOT NULL,
+            active_tags TEXT NOT NULL DEFAULT '[]',
+            FOREIGN KEY(list_id) REFERENCES lists(id)
+        );
+        INSERT INTO items (id, name, done, list_id, active_tags)
+        VALUES (1, 'Apples', 1, 1, '[]');
+        """
+    )
+    legacy_db.commit()
+    legacy_db.close()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    migrated_db = init_database()
+    assert migrated_db.execute(
+        "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
+        "FROM lists WHERE id = 1"
+    ).fetchone() == ("off", 7, 10)
+    assert migrated_db.execute(
+        "SELECT done, completed_at, name FROM items WHERE id = 1"
+    ).fetchone() == (1, None, "Apples")
+    assert migrated_db.execute("PRAGMA foreign_key_check").fetchall() == []
+    migrated_db.close()
+
+    migrated_db = init_database()
+    assert migrated_db.execute(
+        "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
+        "FROM lists WHERE id = 1"
+    ).fetchone() == ("off", 7, 10)
+    assert migrated_db.execute(
+        "SELECT done, completed_at, name FROM items WHERE id = 1"
+    ).fetchone() == (1, None, "Apples")
+    assert migrated_db.execute("PRAGMA foreign_key_check").fetchall() == []
+    migrated_db.close()
 
 
 def test_init_database_repairs_foreign_key_during_list_migration(tmp_path, monkeypatch):

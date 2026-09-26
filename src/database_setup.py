@@ -70,14 +70,24 @@ def _migrate_lists_to_room_scoped_names(db: sqlite3.Connection) -> None:
             name TEXT NOT NULL,
             list_tags TEXT NOT NULL DEFAULT '[]',
             slug TEXT UNIQUE,
-            room_id INTEGER
+            room_id INTEGER,
+            hide_done_mode TEXT NOT NULL DEFAULT 'off'
+                CHECK (hide_done_mode IN ('off', 'all', 'age', 'recent')),
+            hide_done_age_days INTEGER NOT NULL DEFAULT 7
+                CHECK (hide_done_age_days >= 0),
+            hide_done_recent_count INTEGER NOT NULL DEFAULT 10
+                CHECK (hide_done_recent_count >= 0)
         )
         """
     )
     db.execute(
         """
-        INSERT INTO lists (id, name, list_tags, slug, room_id)
-        SELECT id, name, list_tags, slug, room_id
+        INSERT INTO lists (
+            id, name, list_tags, slug, room_id, hide_done_mode,
+            hide_done_age_days, hide_done_recent_count
+        )
+        SELECT id, name, list_tags, slug, room_id, hide_done_mode,
+               hide_done_age_days, hide_done_recent_count
         FROM lists_old
         """
     )
@@ -95,6 +105,7 @@ def _create_items_table(db: sqlite3.Connection) -> None:
             done BOOLEAN,
             list_id INTEGER NOT NULL,
             active_tags TEXT NOT NULL DEFAULT '[]',
+            completed_at TEXT,
             FOREIGN KEY(list_id) REFERENCES lists(id)
         )
         """
@@ -136,9 +147,11 @@ def _migrate_items_foreign_key(db: sqlite3.Connection) -> None:
     db.execute(
         """
         INSERT INTO items (
-            id, name, description, quantity, done, list_id, active_tags
+            id, name, description, quantity, done, list_id, active_tags,
+            completed_at
         )
-        SELECT id, name, description, quantity, done, list_id, active_tags
+        SELECT id, name, description, quantity, done, list_id, active_tags,
+               completed_at
         FROM items_old
         """
     )
@@ -196,7 +209,13 @@ def init_database():
             name TEXT NOT NULL,
             list_tags TEXT NOT NULL DEFAULT '[]',
             slug TEXT UNIQUE,
-            room_id INTEGER
+            room_id INTEGER,
+            hide_done_mode TEXT NOT NULL DEFAULT 'off'
+                CHECK (hide_done_mode IN ('off', 'all', 'age', 'recent')),
+            hide_done_age_days INTEGER NOT NULL DEFAULT 7
+                CHECK (hide_done_age_days >= 0),
+            hide_done_recent_count INTEGER NOT NULL DEFAULT 10
+                CHECK (hide_done_recent_count >= 0)
         )
         """
     )
@@ -222,6 +241,23 @@ def init_database():
 
     if "room_id" not in columns:
         db.execute("ALTER TABLE lists ADD COLUMN room_id INTEGER")
+
+    list_columns = {row[1] for row in db.execute("PRAGMA table_info(lists)")}
+    if "hide_done_mode" not in list_columns:
+        db.execute(
+            "ALTER TABLE lists ADD COLUMN hide_done_mode TEXT NOT NULL DEFAULT 'off' "
+            "CHECK (hide_done_mode IN ('off', 'all', 'age', 'recent'))"
+        )
+    if "hide_done_age_days" not in list_columns:
+        db.execute(
+            "ALTER TABLE lists ADD COLUMN hide_done_age_days INTEGER NOT NULL "
+            "DEFAULT 7 CHECK (hide_done_age_days >= 0)"
+        )
+    if "hide_done_recent_count" not in list_columns:
+        db.execute(
+            "ALTER TABLE lists ADD COLUMN hide_done_recent_count INTEGER NOT NULL "
+            "DEFAULT 10 CHECK (hide_done_recent_count >= 0)"
+        )
 
     default_room_id = _ensure_default_room(db, app_password)
     db.execute("UPDATE lists SET room_id = ? WHERE room_id IS NULL", (default_room_id,))
@@ -258,6 +294,8 @@ def init_database():
         db.execute("ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''")
     if "quantity" not in item_cols:
         db.execute("ALTER TABLE items ADD COLUMN quantity INTEGER DEFAULT 1")
+    if "completed_at" not in item_cols:
+        db.execute("ALTER TABLE items ADD COLUMN completed_at TEXT")
 
     db.execute(
         "CREATE INDEX IF NOT EXISTS idx_items_list_done_name ON items(list_id, done, name)"
