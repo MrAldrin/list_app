@@ -77,10 +77,14 @@ already separated. Larger module refactoring remains deferred in the
   browser transfers cookies, not a guarantee. Existing icons may retain their old
   launch address. Real-device checks remain outstanding; see the
   [installation behavior and checklist](docs/home-screen-installation.md).
-- Offline editing/synchronization is not an implemented capability. Automatic,
-  read-only offline viewing of one authorized room on a prepared device is the
-  agreed next step, **not current behavior**; see the [implementation plan](plans/offline-readonly.md).
-  Shared-link offline viewing remains deferred in the [backlog](plans/backlog.md).
+- A prepared browser can save one authorized room's lists for read-only offline
+  viewing. This uses a small offline-only browser shell and IndexedDB, not a
+  replacement for the NiceGUI online editor or server SQLite database. The
+  service worker caches only generic shell assets; the snapshot stays in local
+  browser storage. Offline editing/synchronization and shared-link offline
+  viewing are not supported. Desktop browser verification is recorded in the
+  [browser testing guide](docs/browser-testing.md); installed-device acceptance
+  remains outstanding in the [installation guide](docs/home-screen-installation.md).
 
 ## Evolution and documentation
 

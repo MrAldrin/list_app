@@ -49,6 +49,46 @@ manifest.
   room so its legacy token can migrate). Expired, cleared, blocked or revoked
   credentials always require another sign-in.
 
+## Read-only offline viewing on a prepared browser
+
+While an authorized room or private-list page is open, ListR quietly saves all
+lists and items in that room, including lists you have not opened and completed
+items. The saved view is simpler than the online editor: it shows names, details,
+tags, quantities, and completion state, but cannot change anything. It displays
+“Offline · read only” and “Last saved” so you can judge whether changes made
+elsewhere are missing. Reopening a room or private list, returning to its tab,
+reconnecting, or completing an authorized edit attempts to refresh the copy.
+Updates require an open app and a successful server check; closed-app background
+sync is not promised.
+
+To prepare before shopping, open your room online and sign in. The app does
+not yet show a positive “ready” indicator; to confirm a copy exists, briefly
+switch your device offline and open the room from its icon/link, then check that
+all expected lists appear with a “Last saved” time. If you see “No offline copy
+is ready,” do not rely on offline viewing. Browser storage can fail or be
+cleared/evicted, and Safari and installed-app storage may differ.
+Only one room is saved per browser origin: visiting another authorized room
+replaces the prior complete copy. This does not change online access to rooms.
+Older icons opening `/` can use the saved room; room URLs must match the saved
+room. Deep `/list/` bookmarks and `/share/` links are not offline launch paths.
+An already-open online page shows a passive link to saved lists when the browser
+signals a lost connection; its live editing controls should not be treated as
+working offline.
+
+On reconnection a definitive authorization denial clears the matching offline
+copy. A temporary network/database/storage failure retains the previous copy
+and its old timestamp, with a warning. Password changes or room deletion cannot
+erase a disconnected phone immediately: anyone with access to a shared/lost
+phone may still read its downloaded lists until it reconnects. Clearing the
+browser's site data also removes the copy (and may remove saved sign-in).
+Public share links are online-only; no token, room password, or private page
+HTML is put in the service-worker cache.
+
+Desktop Chromium/Firefox automated checks verify local HTTP behavior; they do
+**not** prove that an iPhone/Android installed app will launch offline, retain
+storage, or share Safari's login. Complete the real-device checklist below
+before relying on installed-app offline viewing.
+
 ## Implementation and automated checks
 
 `src/main.py` serves `/room-manifest/{slug}.json` from the same base manifest as
@@ -135,6 +175,15 @@ credentialed CORS or wildcard Socket.IO origins.
   dependency changes were made for this feature.
 
 ## Outstanding real-device acceptance checklist
+
+In addition to the sign-in/install checks below, test this offline behavior on
+an actual installed iPhone Safari app and Android Chrome app/shortcut using
+only disposable rooms. Record OS/browser version, whether the service worker
+controls the page and the snapshot is present, then enter airplane mode,
+force-close and relaunch room and old-root icons, open every list (including one
+never opened online), reconnect and observe changes/deletion/password revocation
+from a second device. Repeat after clearing site storage and after an app/worker
+update. These checks are **pending**, not inferred from desktop tests.
 
 Use HTTPS and disposable rooms. Record OS/browser versions and results. These
 checks have **not** been performed by the coding agent.

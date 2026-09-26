@@ -98,6 +98,38 @@ no deleted list or forbidden write. The full browser suite passed (46 cases),
 alongside 309 fast tests and Ruff checks. This is automated local verification,
 not a manual multi-user or production device check.
 
+## Read-only offline viewing checks
+
+Local verification on this change stack: `uv run pytest browser_tests -q -n 0 -x`
+passed **48 cases** in Chromium and Firefox; `uv run pytest -q` passed **358**
+fast tests and `node --test tests/test_offline_service_worker.test.mjs` passed
+**6** service-worker checks. The browser suite includes one offline scenario per
+engine: prepare a disposable room on HTTP, verify a full saved snapshot and
+service-worker control, drop the connection, reload room and root launch URLs,
+inspect the read-only shell (including unvisited lists and checked items),
+reject wrong-room content, verify the no-copy state, and refresh after reconnect.
+It also checks an aborted IndexedDB write preserves the prior timestamp, a
+private-list edit triggers a refresh, and the HTTP cache contains only generic
+shell assets. The API tests cover cookie and header grants, revoked/expired or
+wrong-room access, bounds, transient DB errors, and the consistency read lock.
+
+The API is `GET /api/offline/rooms/{slug}/snapshot`; it enforces the existing
+room grant, allows the existing same-origin HTTP token header when there is no
+cookie, and returns a versioned read-only room/list/item JSON. It rejects
+snapshots over 200 lists, 5,000 items, or 1 MiB rather than truncating them.
+Definitive denial differs from temporary errors. A single versioned IndexedDB
+record replaces a whole room snapshot in one transaction. The service worker
+caches only generic shell HTML/CSS/JS, and returns a shell on room/root
+navigation only for network failure, not for HTTP errors; it does not cache
+private HTML, tokens, or API JSON. The shell rechecks authorization on an
+online launch. See [installation and privacy limits](home-screen-installation.md#read-only-offline-viewing-on-a-prepared-browser).
+
+Still unverified: HTTPS offline snapshot fetch with copied Secure/HttpOnly
+cookies in a real browser, all combinations of revocation/deletion and storage
+failure in Playwright, and iPhone/Android installed-app/force-close behavior.
+These require dedicated disposable HTTPS/device checks; HTTP fallback tests
+cannot establish them.
+
 ## Remaining boundaries
 
 These are local HTTP checks. They do not verify production HTTPS cookie behavior,
