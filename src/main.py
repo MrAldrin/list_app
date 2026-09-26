@@ -94,7 +94,24 @@ ui.add_head_html(
 ui.add_head_html('<meta name="theme-color" content="#1976d2">', shared=True)
 ui.add_head_html(
     """
+    <script>
+      // Set the page background before NiceGUI loads and applies its dark mode.
+      try {
+        document.documentElement.dataset.listrTheme =
+          localStorage.getItem('listapp_theme') === 'dark' ? 'dark' : 'light';
+      } catch (_) {
+        document.documentElement.dataset.listrTheme = 'light';
+      }
+    </script>
     <style>
+      html[data-listr-theme="dark"] {
+        background-color: #121212;
+        color-scheme: dark;
+      }
+      html[data-listr-theme="dark"] body:not(.body--dark) {
+        background-color: #121212 !important;
+      }
+      html[data-listr-theme="light"] { background-color: white; }
       /* Keep custom light utility colors legible when Quasar dark mode is active. */
       .body--dark .bg-slate-50, .body--dark .bg-slate-100 {
         background-color: #303030 !important;
@@ -927,6 +944,7 @@ async def _add_theme_toggle() -> None:
         dark.toggle()
         try:
             await ui.run_javascript(
+                f"document.documentElement.dataset.listrTheme = {json.dumps('dark' if dark.value else 'light')}; "
                 f"localStorage.setItem('listapp_theme', {json.dumps('dark' if dark.value else 'light')})",
                 timeout=3.0,
             )
