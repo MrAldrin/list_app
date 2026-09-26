@@ -301,10 +301,32 @@ def _refresh_offline_snapshot() -> None:
         ui.run_javascript("window.ListROffline?.refresh()")
 
 
-def _clear_offline_snapshot() -> None:
-    """Clear an already saved copy after this room was deleted online."""
-    if core.loop is not None:
-        ui.run_javascript("window.ListROffline?.clear()")
+async def _clear_offline_snapshot(room_slug: str) -> bool:
+    """Remove only this room's copy, even on pages without the offline client."""
+    if core.loop is None:
+        return False
+    slug = json.dumps(room_slug).replace("<", "\\u003c")
+    try:
+        return bool(
+            await ui.run_javascript(
+                f"""
+                if (!window.ListROfflineStorage) {{
+                    await new Promise((resolve, reject) => {{
+                        const script = document.createElement('script');
+                        script.src = '/static/offline-storage.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.append(script);
+                    }});
+                }}
+                await window.ListROfflineStorage.clearRecordForRoom({slug});
+                return true;
+                """,
+                timeout=5.0,
+            )
+        )
+    except Exception:  # noqa: BLE001 - storage might be unavailable or blocked.
+        return False
 
 
 def _stop_offline_client() -> None:
@@ -1298,6 +1320,8 @@ async def index() -> None:
     storage_read, saved_last_room = await _get_browser_storage("listapp_last_room")
     if storage_read and saved_last_room:
         details = get_room_details_by_slug(saved_last_room)
+        if not details:
+            await _clear_offline_snapshot(saved_last_room)
         if details:
             token_storage_read, token = await _get_browser_storage(
                 _room_token_storage_key(saved_last_room)
@@ -1323,6 +1347,7 @@ async def index() -> None:
                     return
                 if status is RoomAccessStatus.INVALID:
                     _forget_authorized_room(saved_last_room)
+                    await _clear_offline_snapshot(saved_last_room)
                     if access.token:
                         await _remove_room_token(saved_last_room)
                     # Remembering a room is routing, not authorization. Its page
@@ -1391,6 +1416,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
     details = get_room_details_by_slug(slug)
     _add_install_manifest(slug if details else None)
     if not details:
+        await _clear_offline_snapshot(slug)
         ui.label("Room not found").classes("text-xl p-4")
         return
 
@@ -1412,6 +1438,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
 
     if access_status is RoomAccessStatus.INVALID:
         _stop_offline_client()
+        await _clear_offline_snapshot(slug)
         with ui.card().classes("absolute-center w-full max-w-sm"):
             ui.label(f"Enter Room Password for {room_name}").classes(
                 "text-xl font-bold mb-4"
@@ -1607,7 +1634,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                             return
                         dialog.close()
                         _forget_authorized_room(room_slug)
-                        _clear_offline_snapshot()
+                        await _clear_offline_snapshot(room_slug)
                         await _remove_room_token(room_slug)
                         ui.notify("Room deleted", color="negative")
                         ui.navigate.to("/admin" if access.is_admin() else "/")
@@ -2229,6 +2256,8 @@ async def _list_page(slug: str, *, public: bool):
             _remember_authorized_room(room_slug)
         elif access_status is RoomAccessStatus.INVALID:
             _forget_authorized_room(room_slug)
+            if not public:
+                await _clear_offline_snapshot(room_slug)
             if token:
                 await _remove_room_token(room_slug)
 
