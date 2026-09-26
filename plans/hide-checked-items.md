@@ -8,7 +8,7 @@ Reduce clutter without deleting list items. Hidden items remain part of the list
 - When hiding is on, show two mutually exclusive, optional sub-options:
   - **Only after X days**: hide checked items once X full 24-hour periods have elapsed since they were checked. X defaults to 7.
   - **Keep last X checked items**: show the X most recently checked items, regardless of age. X defaults to 10.
-- Both counters accept non-negative whole numbers; 0 hides every checked item. Switching one sub-option on turns the other off. Turning the main switch off reveals everything without deleting its chosen settings.
+- Both counters accept non-negative whole numbers; 0 hides every checked item. Switching one sub-option on turns the other off. Turning the main switch off reveals everything while retaining both numeric values; turning it back on starts in hide-all mode (neither sub-option selected).
 - Unchecked items always remain visible. Tag filtering still applies to the visible items. Options remains available even when no rows are visible. No separate reveal control; turn hiding off to see everything.
 - Shared and private list viewers see the same persisted list setting. Both may edit it under the existing list-identity/authorization rules; settings edits broadcast updates to other viewers.
 
@@ -32,7 +32,7 @@ Reduce clutter without deleting list items. Hidden items remain part of the list
 ## Progress
 
 - [x] Requirements agreed: main switch off; sub-options optional and mutually exclusive; 24-hour days; defaults 7 days/10 items; no separate reveal control.
-- [ ] Slice 1 implemented and verified.
-- [ ] Slice 2 implemented and verified.
-- [ ] Slice 3 references, full checks, and independent review completed.
-- [ ] Production/device verification (if needed; track separately when implementation is done).
+- [x] Slice 1 implemented and verified (migration, timestamp, visibility unit tests; reviewer zero-day finding fixed).
+- [x] Slice 2 implemented and verified (UI and shared-browser tests; scoped timer regression after review finding).
+- [x] Slice 3 references, full checks, and independent review completed. `uv run pytest -q`: 374 passed; `uv run pytest browser_tests -q -n 0`: 48 passed (Chromium/Firefox); Ruff format and lint checks passed. Sol-medium reviewer found no correctness blocker; its timer-scope finding was fixed and covered by a two-client regression.
+- [ ] Production migration/device verification; existing deployment checklist is tracked in [`plans/backlog.md`](backlog.md#deployment-and-recovery--next-priorities). Local automated tests are not production evidence.

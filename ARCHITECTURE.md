@@ -69,6 +69,9 @@ already separated. Larger module refactoring remains deferred in the
   connected users.
 - The add field creates a new item, leaves an existing active item unchanged,
   or unchecks an existing completed item, with feedback to the user.
+- Each list can hide checked-off items immediately, after a full-24-hour age, or
+  except for the last N checked items. Hiding does not remove items from search or
+  matching; see [checked-item visibility](docs/checked-item-visibility.md).
 - `/` is a public remembered-room router; admin tools remain separate at `/admin`.
 - Home-screen installation requests the current room as its launch address,
   without credentials. ListR remains one installed app identity, not one per room;

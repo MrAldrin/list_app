@@ -104,6 +104,7 @@ question before treating it as intended behavior. Do not run an autonomous
 
 - [Deployment, backups, and recovery](docs/deployment.md)
 - [Room invitations](docs/room-invitations.md)
+- [Hiding checked-off items](docs/checked-item-visibility.md)
 - [Home-screen installation and device checks](docs/home-screen-installation.md)
 - [Architecture and security boundaries](ARCHITECTURE.md)
 - [Remaining work](plans/backlog.md)

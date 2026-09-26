@@ -94,9 +94,20 @@ actually sends add, edit, toggle, quantity, tag, and undo events after deletion.
 The room page shows “This list was deleted.” and “Back to room”; the public page
 shows the generic message without room navigation. Room deletion also removes
 room navigation from either page. These tests check the resulting database has
-no deleted list or forbidden write. The full browser suite passed (46 cases),
-alongside 309 fast tests and Ruff checks. This is automated local verification,
-not a manual multi-user or production device check.
+no deleted list or forbidden write. At that checkpoint, the full browser suite
+passed (46 cases), alongside 309 fast tests and Ruff checks. This is automated
+local verification, not a manual multi-user or production device check.
+
+## Checked-item visibility checks
+
+Local verification (2026-09-26): 2 Chromium/Firefox cases exercise persisted
+list settings from private and public views, immediate/age/recent modes, shared
+updates, Add/Search restoration of a hidden item, and 0-day/0-item behavior.
+The full browser suite passed (48 cases); the fast suite passed (374 tests),
+with Ruff formatting and lint checks clean. The 24-hour cutoff and per-page
+timer behavior have unit tests; no browser test waits for a real day to pass.
+See [checked-item visibility](checked-item-visibility.md) for current behavior
+and the production-verification boundary.
 
 ## Remaining boundaries
 
