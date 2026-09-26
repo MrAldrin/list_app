@@ -4,6 +4,7 @@ import os
 import secrets
 import socket
 import sqlite3
+import ssl
 import subprocess
 import sys
 import time
@@ -23,8 +24,15 @@ class TestServer:
     __test__ = False
     password = PASSWORD
 
-    def __init__(self, directory: Path):
+    def __init__(
+        self,
+        directory: Path,
+        *,
+        tls_cert: Path | None = None,
+        tls_key: Path | None = None,
+    ):
         self.directory = directory
+        self.tls_cert = tls_cert
         self.database = directory / "browser-test.db"
         self.log_path = directory / "server.log"
         self.process = None
@@ -32,7 +40,7 @@ class TestServer:
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             self.port = sock.getsockname()[1]
-        self.url = f"http://127.0.0.1:{self.port}"
+        self.url = f"{'https' if tls_cert else 'http'}://127.0.0.1:{self.port}"
         self.env = {
             **{
                 key: value
@@ -49,9 +57,18 @@ class TestServer:
         }
         # The child is a normal server, not NiceGUI's in-process pytest harness.
         self.env.pop("PYTEST_CURRENT_TEST", None)
+        if tls_cert is not None and tls_key is not None:
+            self.env["TEST_SSL_CERTFILE"] = str(tls_cert)
+            self.env["TEST_SSL_KEYFILE"] = str(tls_key)
 
     def start(self):
         self.log_file = self.log_path.open("a")
+        tls_options = (
+            ", ssl_certfile=os.environ['TEST_SSL_CERTFILE'], "
+            "ssl_keyfile=os.environ['TEST_SSL_KEYFILE']"
+            if self.tls_cert
+            else ""
+        )
         self.process = subprocess.Popen(
             [
                 sys.executable,
@@ -60,7 +77,9 @@ class TestServer:
                 "import os; import main; "
                 "main.ui.run(host='127.0.0.1', port=" + str(self.port) + ", "
                 "reload=False, show=False, "
-                "storage_secret=os.environ['NICEGUI_STORAGE_SECRET'])",
+                "storage_secret=os.environ['NICEGUI_STORAGE_SECRET']"
+                + tls_options
+                + ")",
             ],
             cwd=self.directory,
             env=self.env,
@@ -72,7 +91,14 @@ class TestServer:
             if self.process.poll() is not None:
                 break
             try:
-                with urlopen(f"{self.url}/manifest.json", timeout=1) as response:
+                context = (
+                    ssl.create_default_context(cafile=str(self.tls_cert))
+                    if self.tls_cert
+                    else None
+                )
+                with urlopen(
+                    f"{self.url}/manifest.json", timeout=1, context=context
+                ) as response:
                     if response.status == 200:
                         return
             except (URLError, TimeoutError):
