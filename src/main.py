@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import sqlite3
 import uuid
@@ -10,6 +11,7 @@ from urllib.parse import quote, urlsplit
 from nicegui import app, core, ui
 
 from config import app_reload_enabled, require_app_password
+from item_visibility import MAX_HIDE_DONE_COUNT, filter_visible_items
 from ui.install_help import install_help_menu_item
 from ui.room_invitations import creation_form, invitation_controls
 from ui.sharing import share_button
@@ -184,6 +186,7 @@ from database_crud import (
     revoke_room_access_token,
     rotate_list_share_token,
     toggle_item_active_tag,
+    update_list_visibility_settings,
     update_room_password,
 )
 from item_service import (
@@ -509,6 +512,7 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
         list_of_lists.refresh()
     if refresh_items:
         item_list.refresh()
+    visibility_settings_ui.refresh()
 
 
 @LiveClientRefreshable
@@ -697,6 +701,12 @@ def item_list(
         return
 
     list_items, _ = get_list_data(list_id)
+    list_items = filter_visible_items(
+        list_items,
+        details["hide_done_mode"],
+        details["hide_done_age_days"],
+        details["hide_done_recent_count"],
+    )
     list_tags = details["list_tags"]
     quick_tags_active = len(list_tags) > 0
 
@@ -923,6 +933,147 @@ def item_list(
                     ui.button(icon="delete", on_click=delete).props(
                         "flat round dense size=sm color=negative"
                     ).style("margin: -2px")
+
+
+@LiveClientRefreshable
+def visibility_settings_ui(
+    list_id: int,
+    list_identity: str,
+    state: ViewState,
+    is_active: Callable[[], bool],
+    on_unavailable: Callable[[], None],
+) -> None:
+    """Render and persist checked-item options from the latest list settings."""
+    if not is_active():
+        return
+    details = get_list_details_by_identity(list_identity)
+    if (
+        details is None
+        or details["id"] != list_id
+        or not list_identity_matches(details, list_identity)
+    ):
+        ui.timer(0.0, on_unavailable, once=True)
+        return
+
+    mode = details["hide_done_mode"]
+    age_days = details["hide_done_age_days"]
+    recent_count = details["hide_done_recent_count"]
+    if not state["edit_mode"]:
+        return
+
+    def update_setting(field: str, value: bool | int) -> None:
+        if not is_active():
+            return
+        current = get_list_details_by_identity(list_identity)
+        if (
+            current is None
+            or current["id"] != list_id
+            or not list_identity_matches(current, list_identity)
+        ):
+            on_unavailable()
+            return
+
+        current_mode = current["hide_done_mode"]
+        current_age_days = current["hide_done_age_days"]
+        current_recent_count = current["hide_done_recent_count"]
+
+        if field == "enabled":
+            if value:
+                if current_mode == "off":
+                    current_mode = "all"
+            else:
+                current_mode = "off"
+        elif field == "age_mode":
+            if value:
+                current_mode = "age"
+            elif current_mode == "age":
+                current_mode = "all"
+        elif field == "recent_mode":
+            if value:
+                current_mode = "recent"
+            elif current_mode == "recent":
+                current_mode = "all"
+        elif field == "age_days":
+            current_age_days = value
+        elif field == "recent_count":
+            current_recent_count = value
+        else:
+            raise ValueError(f"Unknown visibility setting field: {field}")
+
+        try:
+            update_list_visibility_settings(
+                list_id,
+                mode=current_mode,
+                age_days=current_age_days,
+                recent_count=current_recent_count,
+                expected_slug=list_identity,
+            )
+        except ListUnavailable:
+            on_unavailable()
+            return
+        broadcast_updates()
+
+    def update_count(field: str, value: object) -> None:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or int(value) != value
+            or not 0 <= value <= MAX_HIDE_DONE_COUNT
+        ):
+            ui.notify(
+                f"Enter a whole number between 0 and {MAX_HIDE_DONE_COUNT}.",
+                color="warning",
+                position=NOTIFY_POSITION,
+            )
+            visibility_settings_ui.refresh()
+            return
+        update_setting(field, int(value))
+
+    with ui.column().classes(
+        "w-full mt-2 p-3 bg-slate-50 border border-slate-200 rounded gap-2"
+    ):
+        enabled_switch = ui.switch("Hide checked-off items", value=mode != "off").props(
+            "dense"
+        )
+        enabled_switch.on_value_change(
+            lambda event: update_setting("enabled", bool(event.value))
+        )
+
+        if mode != "off":
+            age_switch = ui.switch("Only after X days", value=mode == "age").props(
+                "dense"
+            )
+            age_switch.on_value_change(
+                lambda event: update_setting("age_mode", bool(event.value))
+            )
+            if mode == "age":
+                age_input = ui.number(
+                    "Days before hiding",
+                    value=age_days,
+                    min=0,
+                    max=MAX_HIDE_DONE_COUNT,
+                    step=1,
+                ).classes("w-full max-w-40")
+                age_input.on("blur", lambda: update_count("age_days", age_input.value))
+
+            recent_switch = ui.switch(
+                "Keep last X checked items", value=mode == "recent"
+            ).props("dense")
+            recent_switch.on_value_change(
+                lambda event: update_setting("recent_mode", bool(event.value))
+            )
+            if mode == "recent":
+                recent_input = ui.number(
+                    "Checked items to keep",
+                    value=recent_count,
+                    min=0,
+                    max=MAX_HIDE_DONE_COUNT,
+                    step=1,
+                ).classes("w-full max-w-40")
+                recent_input.on(
+                    "blur", lambda: update_count("recent_count", recent_input.value)
+                )
 
 
 async def _add_theme_toggle() -> None:
@@ -1881,6 +2032,14 @@ def _create_tags_ui(
 
                         gt_1_switch.on_value_change(toggle_gt_1)
 
+                visibility_settings_ui(
+                    list_id,
+                    list_slug,
+                    state,
+                    is_active,
+                    on_unavailable,
+                )
+
             with ui.row().classes("w-full items-center mt-2 gap-2"):
                 new_tag_input = ui.input("Add Tag").classes("flex-grow")
 
@@ -2111,6 +2270,7 @@ async def _list_page(slug: str, *, public: bool):
         "only_gt_1": False,
     }
     availability_timer = None
+    age_refresh_timer = None
     active_content = None
 
     def is_active() -> bool:
@@ -2127,13 +2287,17 @@ async def _list_page(slug: str, *, public: bool):
         return lookup == "exists"
 
     def transition_to_unavailable() -> None:
-        nonlocal availability_timer
+        nonlocal availability_timer, age_refresh_timer
         if not _transition_list_state(page_state):
             return
         if availability_timer is not None:
             with suppress(Exception):
                 availability_timer.cancel()
             availability_timer = None
+        if age_refresh_timer is not None:
+            with suppress(Exception):
+                age_refresh_timer.cancel()
+            age_refresh_timer = None
 
         try:
             room_exists = get_room_details_by_slug(room_slug) is not None
@@ -2184,6 +2348,19 @@ async def _list_page(slug: str, *, public: bool):
             return
         if _list_lookup_status(slug) == "missing":
             transition_to_unavailable()
+
+    def refresh_age_boundary() -> None:
+        if not is_active():
+            return
+        current = get_list_details_by_identity(slug)
+        if (
+            current is None
+            or current["id"] != list_id
+            or not list_identity_matches(current, slug)
+        ):
+            transition_to_unavailable()
+        elif current["hide_done_mode"] == "age":
+            page_items.refresh()
 
     with (
         ui.card()
@@ -2268,11 +2445,8 @@ async def _list_page(slug: str, *, public: bool):
                 on_unavailable=transition_to_unavailable,
             )
 
-            with (
-                ui.element("div")
-                .classes("w-full")
-                .style("flex: 1 1 auto; min-height: 0; overflow-y: auto;")
-            ):
+            @ui.refreshable
+            def page_items() -> None:
                 item_list(
                     list_id,
                     lambda: view_state["filter_tag"],
@@ -2292,7 +2466,15 @@ async def _list_page(slug: str, *, public: bool):
                     list_slug=slug,
                 )
 
+            with (
+                ui.element("div")
+                .classes("w-full")
+                .style("flex: 1 1 auto; min-height: 0; overflow-y: auto;")
+            ):
+                page_items()
+
         availability_timer = ui.timer(2.0, poll_list_existence)
+        age_refresh_timer = ui.timer(60.0, refresh_age_boundary)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
