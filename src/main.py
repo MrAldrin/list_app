@@ -16,8 +16,49 @@ from ui.sharing import share_button
 
 GLOBAL_APP_PASSWORD = require_app_password()
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+
+OFFLINE_SNAPSHOT_HEADERS = {
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+}
+
+
+def _offline_snapshot_error(status_code: int, error: str) -> JSONResponse:
+    return JSONResponse(
+        {"schema_version": 1, "error": error},
+        status_code=status_code,
+        headers=OFFLINE_SNAPSHOT_HEADERS,
+    )
+
+
+@app.get("/api/offline/rooms/{slug}/snapshot")
+def offline_room_snapshot(slug: str, request: Request) -> JSONResponse:
+    """Return one currently authorized room snapshot; never use a cached grant."""
+    origin = request.headers.get("origin")
+    if origin is not None and origin != str(request.base_url).rstrip("/"):
+        return _offline_snapshot_error(403, "same_origin_required")
+    fetch_site = request.headers.get("sec-fetch-site")
+    if fetch_site is not None and fetch_site != "same-origin":
+        return _offline_snapshot_error(403, "same_origin_required")
+
+    token = request.cookies.get(token_cookie_name(slug))
+    if token is None:
+        token = request.headers.get("x-listapp-room-token")
+    if not token or len(token) > 256:
+        return _offline_snapshot_error(401, "room_authorization_required")
+
+    try:
+        snapshot = get_authorized_room_snapshot(slug, token)
+    except RoomSnapshotTooLarge:
+        return _offline_snapshot_error(413, "snapshot_too_large")
+    except (sqlite3.Error, RoomSnapshotDataError):
+        return _offline_snapshot_error(503, "snapshot_unavailable")
+    if snapshot is None:
+        return _offline_snapshot_error(401, "room_authorization_required")
+    return JSONResponse(snapshot, headers=OFFLINE_SNAPSHOT_HEADERS)
 
 
 # --- PWA and Assets ---
@@ -157,6 +198,8 @@ ui.add_head_html(
 from database_crud import (
     ListUnavailable,
     RoomAccessDenied,
+    RoomSnapshotDataError,
+    RoomSnapshotTooLarge,
     add_list_tag,
     authenticate_room_and_issue_token,
     change_room_password_and_issue_token,
@@ -165,6 +208,7 @@ from database_crud import (
     create_room,
     delete_list_with_room_token,
     delete_room_with_password,
+    get_authorized_room_snapshot,
     get_item_count,
     get_list_data,
     get_list_details,

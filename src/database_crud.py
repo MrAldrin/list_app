@@ -11,6 +11,11 @@ from database_setup import db
 
 _DB_LOCK = threading.RLock()
 
+# Keep room snapshots useful on ordinary devices while bounding a single read.
+MAX_OFFLINE_SNAPSHOT_LISTS = 200
+MAX_OFFLINE_SNAPSHOT_ITEMS = 5_000
+MAX_OFFLINE_SNAPSHOT_BYTES = 1_048_576
+
 
 class ListUnavailable(LookupError):
     """Raised when a mutation targets a list that no longer exists."""
@@ -741,6 +746,14 @@ class RoomAccessDenied(PermissionError):
     """Raised when a token cannot authorize the requested private room action."""
 
 
+class RoomSnapshotTooLarge(ValueError):
+    """Raised rather than returning an incomplete or unbounded room snapshot."""
+
+
+class RoomSnapshotDataError(ValueError):
+    """Raised when persisted snapshot fields cannot be represented safely."""
+
+
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
@@ -767,6 +780,145 @@ def validate_room_access_token(room_slug: str, token: str | None) -> int | None:
     """Return the associated room ID only when the token currently authorizes it."""
     with _DB_LOCK:
         return _valid_room_id_for_token_locked(room_slug, token)
+
+
+def _decode_snapshot_tags(raw_value: str | None) -> list[str]:
+    try:
+        tags = json.loads(raw_value) if raw_value else []
+    except (json.JSONDecodeError, TypeError) as error:
+        raise RoomSnapshotDataError("Invalid persisted tags") from error
+    if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
+        raise RoomSnapshotDataError("Invalid persisted tags")
+    return tags
+
+
+def get_authorized_room_snapshot(room_slug: str, token: str | None) -> dict | None:
+    """Read a bounded, token-authorized room snapshot from one SQLite read view.
+
+    The complete JSON response is limited to 1 MiB, with independent limits of
+    200 lists and 5,000 items. Exceeding any limit rejects the entire snapshot.
+    """
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN")
+            room_id = _valid_room_id_for_token_locked(room_slug, token)
+            if room_id is None:
+                db.rollback()
+                return None
+
+            room_row = db.execute(
+                "SELECT name, slug FROM rooms WHERE id = ?", (room_id,)
+            ).fetchone()
+            if room_row is None:
+                db.rollback()
+                return None
+
+            list_count = db.execute(
+                "SELECT COUNT(*) FROM lists WHERE room_id = ?", (room_id,)
+            ).fetchone()[0]
+            item_count = db.execute(
+                """
+                SELECT COUNT(*)
+                FROM items AS i JOIN lists AS l ON l.id = i.list_id
+                WHERE l.room_id = ?
+                """,
+                (room_id,),
+            ).fetchone()[0]
+            if (
+                list_count > MAX_OFFLINE_SNAPSHOT_LISTS
+                or item_count > MAX_OFFLINE_SNAPSHOT_ITEMS
+            ):
+                raise RoomSnapshotTooLarge
+
+            raw_size = db.execute(
+                """
+                SELECT
+                    length(CAST(? AS BLOB)) + length(CAST(? AS BLOB))
+                    + COALESCE((
+                        SELECT SUM(
+                            COALESCE(length(CAST(name AS BLOB)), 0)
+                            + COALESCE(length(CAST(list_tags AS BLOB)), 0)
+                        ) FROM lists WHERE room_id = ?
+                    ), 0)
+                    + COALESCE((
+                        SELECT SUM(
+                            COALESCE(length(CAST(i.name AS BLOB)), 0)
+                            + COALESCE(length(CAST(i.description AS BLOB)), 0)
+                            + COALESCE(length(CAST(i.active_tags AS BLOB)), 0)
+                        ) FROM items AS i
+                        JOIN lists AS l ON l.id = i.list_id
+                        WHERE l.room_id = ?
+                    ), 0)
+                """,
+                (room_row[0], room_row[1], room_id, room_id),
+            ).fetchone()[0]
+            if raw_size > MAX_OFFLINE_SNAPSHOT_BYTES:
+                raise RoomSnapshotTooLarge
+
+            list_rows = db.execute(
+                """
+                SELECT id, name, list_tags
+                FROM lists WHERE room_id = ?
+                ORDER BY name COLLATE NOCASE ASC
+                """,
+                (room_id,),
+            ).fetchall()
+            lists = [
+                {
+                    "name": row[1],
+                    "list_tags": _decode_snapshot_tags(row[2]),
+                    "items": [],
+                }
+                for row in list_rows
+            ]
+            lists_by_id = {row[0]: index for index, row in enumerate(list_rows)}
+            item_rows = db.execute(
+                """
+                SELECT i.list_id, i.name, i.done, i.active_tags,
+                       i.description, i.quantity
+                FROM items AS i
+                JOIN lists AS l ON l.id = i.list_id
+                WHERE l.room_id = ?
+                ORDER BY l.name COLLATE NOCASE ASC,
+                         i.done ASC, i.name COLLATE NOCASE ASC
+                """,
+                (room_id,),
+            ).fetchall()
+            for row in item_rows:
+                lists[lists_by_id[row[0]]]["items"].append(
+                    {
+                        "name": row[1],
+                        "done": bool(row[2]),
+                        "active_tags": _decode_snapshot_tags(row[3]),
+                        "description": row[4] or "",
+                        "quantity": row[5] if row[5] is not None else 1,
+                    }
+                )
+
+            snapshot = {
+                "schema_version": 1,
+                "room": {"slug": room_row[1], "name": room_row[0]},
+                "lists": lists,
+            }
+            try:
+                response_bytes = json.dumps(
+                    snapshot,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                ).encode("utf-8")
+            except (TypeError, ValueError, UnicodeError) as error:
+                raise RoomSnapshotDataError(
+                    "Invalid persisted snapshot data"
+                ) from error
+            if len(response_bytes) > MAX_OFFLINE_SNAPSHOT_BYTES:
+                raise RoomSnapshotTooLarge
+
+            db.commit()
+            return snapshot
+        except Exception:
+            db.rollback()
+            raise
 
 
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:
