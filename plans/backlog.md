@@ -46,6 +46,17 @@ Configuration, database checks, and recovery instructions live in
 
 ## Testing, documentation, and tooling
 
+- [ ] Add a reusable, opt-in Android emulator test suite on a new change based
+  on `main` for installed-app launch and offline/reconnect behavior. Keep
+  feature-specific tests on their branches; also test combined changes.
+  **Blocked on this PC:** `sudo modprobe kvm_amd` fails with `Operation not
+  supported`; the kernel reports `SVM disabled (by BIOS) in MSR_VM_CR`, and
+  `/dev/kvm` is absent. Owner: enable **SVM Mode / AMD-V** in UEFI/BIOS, reboot,
+  then verify `/dev/kvm` exists and an emulator runs acceptably before
+  installing the Android SDK or writing tests. If acceleration remains
+  unavailable, evaluate hosted Android testing instead. Desktop Playwright
+  emulation cannot prove installed-app behavior; Android emulation does not
+  replace iPhone or occasional real-device checks.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
 - [x] Rechecked the default-room `lastrowid` warning with `ty` and guarded the unexpected `None` case; normal startup remains covered by database setup tests.
 - [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
