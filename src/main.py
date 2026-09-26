@@ -267,6 +267,52 @@ def _room_token_storage_key(room_slug: str) -> str:
     return f"listapp_room_token_{room_slug}"
 
 
+def _enable_offline_client(room_slug: str) -> None:
+    """Start snapshot saving only after this page's room grant was validated."""
+    if core.loop is None:
+        return
+    slug_literal = json.dumps(room_slug).replace("<", "\\u003c")
+    ui.run_javascript(
+        f"""
+        (() => {{
+          const slug = {slug_literal};
+          const loadScript = (path) => new Promise((resolve, reject) => {{
+            const script = document.createElement('script');
+            script.src = path;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.append(script);
+          }});
+          window.__listrOfflineClientLoad ||= (async () => {{
+            if (!window.ListROfflineStorage) await loadScript('/static/offline-storage.js');
+            if (!window.ListROffline) await loadScript('/static/offline-client.js');
+          }})();
+          window.__listrOfflineClientLoad
+            .then(() => window.ListROffline.start(slug))
+            .catch(() => console.warn('Offline snapshot module could not load'));
+        }})();
+        """
+    )
+
+
+def _refresh_offline_snapshot() -> None:
+    """Ask the active authorized page to coalesce a post-write refresh."""
+    if core.loop is not None:
+        ui.run_javascript("window.ListROffline?.refresh()")
+
+
+def _clear_offline_snapshot() -> None:
+    """Clear an already saved copy after this room was deleted online."""
+    if core.loop is not None:
+        ui.run_javascript("window.ListROffline?.clear()")
+
+
+def _stop_offline_client() -> None:
+    """Stop queued refreshes when the current page is not room-authorized."""
+    if core.loop is not None:
+        ui.run_javascript("window.ListROffline?.stop()")
+
+
 async def _cleanup_legacy_room_password_keys() -> bool:
     """Delete only old password keys; token and last-room keys must survive."""
     try:
@@ -555,7 +601,12 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
 
 
 @LiveClientRefreshable
-def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
+def list_of_lists(
+    room_id: int,
+    room_slug: str,
+    access: RoomAccess,
+    after_write: Callable[[], None] | None = None,
+) -> None:
     """Render private room lists only while this page's access remains valid."""
     access_status = access.check()
     if access_status is RoomAccessStatus.UNAVAILABLE:
@@ -653,6 +704,8 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                                 position=NOTIFY_POSITION,
                             )
                             broadcast_updates()
+                            if after_write:
+                                after_write()
 
                         ui.button("Save", on_click=save)
                     new_name_input.on("keyup.enter", save)
@@ -707,6 +760,8 @@ def list_of_lists(room_id: int, room_slug: str, access: RoomAccess) -> None:
                                 position=NOTIFY_POSITION,
                             )
                             broadcast_updates(refresh_lists=True, refresh_items=False)
+                            if after_write:
+                                after_write()
 
                         ui.button("Delete", on_click=confirm).props("color=negative")
                 dialog.open()
@@ -728,6 +783,7 @@ def item_list(
     on_unavailable: Callable[[], None] | None = None,
     *,
     list_slug: str,
+    after_write: Callable[[], None] | None = None,
 ):
     if is_active and not is_active():
         return
@@ -765,6 +821,8 @@ def item_list(
                         on_delete(it)
                         return
                     delete_item_from_list(list_id, it["id"], expected_slug=list_slug)
+                    if after_write:
+                        after_write()
                 except ListUnavailable:
                     if on_unavailable:
                         on_unavailable()
@@ -847,6 +905,8 @@ def item_list(
                             return
                         dialog.close()
                         broadcast_updates()
+                        if after_write:
+                            after_write()
 
                     with ui.row().classes("w-full justify-between items-center pt-2"):
 
@@ -895,6 +955,8 @@ def item_list(
                         on_unavailable()
                     return
                 broadcast_updates()
+                if after_write:
+                    after_write()
 
             checkbox.on_value_change(toggle)
 
@@ -916,6 +978,8 @@ def item_list(
                                 on_unavailable()
                             return
                         broadcast_updates()
+                        if after_write:
+                            after_write()
 
                     with ui.row().classes(
                         "items-center no-wrap gap-0.5 bg-slate-100 rounded px-1 py-0.5 mr-1"
@@ -956,6 +1020,8 @@ def item_list(
                                         on_unavailable()
                                     return
                                 broadcast_updates()
+                                if after_write:
+                                    after_write()
 
                             btn = ui.button(first_letter, on_click=toggle_tag)
                             btn_props = f"round size=12px dense color={color}"
@@ -1335,6 +1401,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
         room_id, slug, admin_requested
     )
     if access_status is RoomAccessStatus.UNAVAILABLE:
+        _stop_offline_client()
         with ui.card().classes("absolute-center w-full max-w-sm"):
             ui.label("Could not verify room access.").classes("text-xl font-bold mb-2")
             ui.label("Please retry. Your saved access was kept.").classes(
@@ -1344,6 +1411,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
         return
 
     if access_status is RoomAccessStatus.INVALID:
+        _stop_offline_client()
         with ui.card().classes("absolute-center w-full max-w-sm"):
             ui.label(f"Enter Room Password for {room_name}").classes(
                 "text-xl font-bold mb-4"
@@ -1382,6 +1450,10 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                 ui.button("Enter", on_click=submit)
             password_input.on("keydown.enter", submit)
         return
+
+    offline_enabled = not admin_requested and not access.is_admin()
+    if offline_enabled:
+        _enable_offline_client(slug)
 
     with ui.card().classes("w-full max-w-sm mx-auto"):
         with ui.row().classes(
@@ -1506,6 +1578,8 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                             await _require_private_room_access(access)
                             return
                         dialog.close()
+                        if offline_enabled:
+                            _refresh_offline_snapshot()
                         ui.navigate.to(f"/room/{room_slug}")
 
                     ui.button("Save", on_click=save)
@@ -1533,6 +1607,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                             return
                         dialog.close()
                         _forget_authorized_room(room_slug)
+                        _clear_offline_snapshot()
                         await _remove_room_token(room_slug)
                         ui.notify("Room deleted", color="negative")
                         ui.navigate.to("/admin" if access.is_admin() else "/")
@@ -1573,6 +1648,8 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                         ui.notify(
                             "List created", color="positive", position=NOTIFY_POSITION
                         )
+                        if offline_enabled:
+                            _refresh_offline_snapshot()
                         ui.navigate.to(f"/list/{new_slug}")
                         broadcast_updates()
 
@@ -1583,7 +1660,12 @@ async def room_page(slug: str, admin: str | None = None) -> None:
         ui.button("Add New List", icon="add", on_click=open_new_list_dialog).classes(
             "w-full mb-4"
         ).props("outline")
-        list_of_lists(room_id=room_id, room_slug=slug, access=access)
+        list_of_lists(
+            room_id=room_id,
+            room_slug=slug,
+            access=access,
+            after_write=_refresh_offline_snapshot if offline_enabled else None,
+        )
 
 
 def _build_pending_undo(action: PendingUndoInput, token: str) -> PendingUndo:
@@ -1606,7 +1688,7 @@ def _build_pending_undo(action: PendingUndoInput, token: str) -> PendingUndo:
 
 def _restore_pending_undo(
     list_id: int, current: PendingUndo, *, list_slug: str
-) -> None:
+) -> bool:
     if current["kind"] == "item":
         payload = current["payload"]
         restored = restore_deleted_item(
@@ -1624,14 +1706,14 @@ def _restore_pending_undo(
                 color="warning",
                 position=NOTIFY_POSITION,
             )
-            return
+            return False
 
         ui.notify(
             f"Restored {payload['name']}",
             color="positive",
             position=NOTIFY_POSITION,
         )
-        return
+        return True
 
     payload = current["payload"]
     add_list_tag(list_id, payload["tag"], expected_slug=list_slug)
@@ -1640,6 +1722,7 @@ def _restore_pending_undo(
         color="positive",
         position=NOTIFY_POSITION,
     )
+    return True
 
 
 def _render_unavailable_list(
@@ -1720,6 +1803,7 @@ def _render_add_item_row(
     list_slug: str,
     is_active: Callable[[], bool],
     on_unavailable: Callable[[], None],
+    after_write: Callable[[], None] | None = None,
 ) -> None:
     with ui.row().classes("w-full items-center no-wrap gap-2 mt-2"):
         search_input = ui.input(label="Add or Search").classes("flex-grow")
@@ -1756,6 +1840,8 @@ def _render_add_item_row(
             elif status == STATUS_ADDED:
                 ui.notify(f"Added {name}", color="positive", position=NOTIFY_POSITION)
 
+            if status in {STATUS_ADDED, STATUS_RESTORED} and after_write:
+                after_write()
             search_input.value = ""
             menu.close()
             search_input.run_method("focus")
@@ -1834,6 +1920,7 @@ def _create_undo_bar(
     tags_ui,
     is_active: Callable[[], bool],
     on_unavailable: Callable[[], None],
+    after_write: Callable[[], None] | None = None,
 ):
     @ui.refreshable
     def undo_bar():
@@ -1854,7 +1941,9 @@ def _create_undo_bar(
                     return
 
                 try:
-                    _restore_pending_undo(list_id, current, list_slug=list_slug)
+                    restored = _restore_pending_undo(
+                        list_id, current, list_slug=list_slug
+                    )
                 except ListUnavailable:
                     on_unavailable()
                     return
@@ -1862,6 +1951,8 @@ def _create_undo_bar(
                 tags_ui.refresh()
                 item_list.refresh()
                 broadcast_updates()
+                if restored and after_write:
+                    after_write()
 
             ui.button("Undo", on_click=undo).props("flat color=primary")
 
@@ -1875,6 +1966,7 @@ def _create_tags_ui(
     set_pending_undo,
     is_active: Callable[[], bool],
     on_unavailable: Callable[[], None],
+    after_write: Callable[[], None] | None = None,
 ):
     @ui.refreshable
     def tags_ui():
@@ -1941,6 +2033,8 @@ def _create_tags_ui(
                         tags_ui.refresh()
                         item_list.refresh()
                         broadcast_updates()
+                        if after_write:
+                            after_write()
 
                 ui.button(icon="add", on_click=add_tag).props("flat round dense")
                 new_tag_input.on("keyup.enter", add_tag)
@@ -1993,6 +2087,8 @@ def _create_tags_ui(
                             tags_ui.refresh()
                             item_list.refresh()
                             broadcast_updates()
+                            if after_write:
+                                after_write()
 
                     with ui.row().classes("items-center no-wrap gap-0"):
                         btn = ui.button(tag, on_click=toggle_filter)
@@ -2016,6 +2112,7 @@ def _delete_item_with_undo(
     set_pending_undo,
     is_active: Callable[[], bool],
     on_unavailable: Callable[[], None],
+    after_write: Callable[[], None] | None = None,
 ) -> None:
     if not is_active():
         return
@@ -2044,6 +2141,8 @@ def _delete_item_with_undo(
     set_pending_undo(item_undo)
     item_list.refresh()
     broadcast_updates()
+    if after_write:
+        after_write()
 
 
 @ui.page("/list/{slug}")
@@ -2057,6 +2156,8 @@ async def shared_list_page(token: str):
 
 
 async def _list_page(slug: str, *, public: bool):
+    if public:
+        _stop_offline_client()
     _add_install_manifest()
     await _add_theme_toggle()
     ui.add_head_html('<meta name="referrer" content="no-referrer">')
@@ -2068,6 +2169,7 @@ async def _list_page(slug: str, *, public: bool):
             else get_list_details_by_slug(slug)
         )
     except sqlite3.Error:
+        _stop_offline_client()
         with (
             ui.card()
             .classes("w-full max-w-sm mx-auto")
@@ -2087,6 +2189,7 @@ async def _list_page(slug: str, *, public: bool):
         return
 
     if not details:
+        _stop_offline_client()
         missing_state: ListPageState = {
             "status": "unavailable",
             "list_id": None,
@@ -2131,9 +2234,16 @@ async def _list_page(slug: str, *, public: bool):
 
     # Legacy slug URLs never disclose tokens or list content without room access.
     if not public and not room_authorized:
+        _stop_offline_client()
         ui.label("Room access required to open this list.")
         ui.button("Open room", on_click=lambda: ui.navigate.to(f"/room/{room_slug}"))
         return
+
+    if not public and room_authorized:
+        _enable_offline_client(room_slug)
+    offline_after_write = (
+        _refresh_offline_snapshot if room_authorized and not public else None
+    )
 
     page_state: ListPageState = {
         "status": "active",
@@ -2240,6 +2350,7 @@ async def _list_page(slug: str, *, public: bool):
                 set_pending_undo=set_pending_undo,
                 is_active=is_active,
                 on_unavailable=transition_to_unavailable,
+                after_write=offline_after_write,
             )
             undo_bar = _create_undo_bar(
                 list_id=list_id,
@@ -2249,6 +2360,7 @@ async def _list_page(slug: str, *, public: bool):
                 tags_ui=tags_ui,
                 is_active=is_active,
                 on_unavailable=transition_to_unavailable,
+                after_write=offline_after_write,
             )
 
             def confirm_reset_share_link() -> None:
@@ -2307,6 +2419,7 @@ async def _list_page(slug: str, *, public: bool):
                 list_slug=slug,
                 is_active=is_active,
                 on_unavailable=transition_to_unavailable,
+                after_write=offline_after_write,
             )
 
             with (
@@ -2325,12 +2438,14 @@ async def _list_page(slug: str, *, public: bool):
                         set_pending_undo,
                         is_active,
                         transition_to_unavailable,
+                        offline_after_write,
                     ),
                     lambda: view_state.get("show_counters", False),
                     lambda: view_state.get("only_gt_1", False),
                     is_active,
                     transition_to_unavailable,
                     list_slug=slug,
+                    after_write=offline_after_write,
                 )
 
         availability_timer = ui.timer(2.0, poll_list_existence)
