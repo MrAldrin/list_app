@@ -42,7 +42,10 @@ Configuration, database checks, and recovery instructions live in
 ## UI and PWA
 
 - [ ] Complete the real iPhone and Android acceptance checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md): fresh/password-prompt installs, legacy token migration, old icons, multiple rooms, other pages, deleted rooms, restart, and password revocation. Record OS/browser versions and results; automated cookie-transfer checks do not verify OS installation behavior.
-- [ ] Decide the intended offline behavior. See [offline options and open decisions](offline-options.md). The current service worker does not provide meaningful offline support; do not promise offline editing without an authorized sync design and device tests.
+- [ ] Implement and verify [automatic read-only offline viewing for one authorized room](offline-readonly.md), including real-device installation checks. The current service worker does not save list data; [option research](offline-options.md) is not implemented behavior.
+- [ ] Longer term, design offline item editing and synchronization, including revoked access, stable item IDs, conflict resolution, and device tests. Do not infer write support from read-only caching; see [offline option research](offline-options.md).
+- [ ] If users need it later, evaluate offline copies of individual public shared links with separate token-rotation/privacy checks. Not part of the room-only [first version](offline-readonly.md).
+- [ ] If shared-device privacy requires an offline opt-out, design a setting that deletes the snapshot **and disables automatic re-download**; a one-off “remove copy” button would immediately undo itself. Not part of the [first version](offline-readonly.md).
 
 ## Testing, documentation, and tooling
 

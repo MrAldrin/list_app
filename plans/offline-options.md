@@ -1,6 +1,6 @@
 # Offline shopping-list options (research, not an implementation plan)
 
-Status: **research only** (26 September 2026). No offline functionality, schema change, frontend migration, or sync endpoint is approved or implemented. This document is based on the `main` revision; other feature branches are not included. The current stack decision remains [NiceGUI + one SQLite database](../ARCHITECTURE.md). This exploration does **not** change it.
+Status: **option research** (26 September 2026). The owner subsequently chose automatic, read-only viewing of one authorized room; see the [agreed implementation plan](offline-readonly.md). The other options below remain comparisons, not approved features. No offline functionality, schema change, frontend migration, or sync endpoint has been implemented. This research is based on the `main` revision; other feature branches are not included. The current stack decision remains [NiceGUI + one SQLite database](../ARCHITECTURE.md).
 
 ## The question in plain terms
 
@@ -66,5 +66,5 @@ Decisions needed before implementation:
 
 - [x] Compared current `main` implementation and architecture with offline requirements.
 - [x] Reviewed browser APIs and candidate sync approaches against small-app scope.
-- [ ] Owner selects offline capability and conflict/security expectations.
+- [x] Owner selected automatic read-only room viewing and accepted the disconnected revocation limit; [implementation plan](offline-readonly.md). Offline editing/conflict rules remain undecided.
 - [ ] Implement a bounded prototype **only after explicit approval**; verify on real devices before promising offline editing.
