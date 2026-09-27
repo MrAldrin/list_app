@@ -1,11 +1,11 @@
 * { box-sizing: border-box; }
-:root {
+:root, .offline-view {
   color-scheme: light;
   --page: #f5f7fa; --card: #fff; --text: #202835; --muted: #657386;
   --line: #e4e9ef; --blue: #1976d2; --tint: #eaf3ff;
   --warning: #79501d; --warning-bg: #fff6e8; --shadow: 0 6px 28px #1d355719;
 }
-:root.dark {
+:root.dark, :root.dark .offline-view, .offline-view.dark {
   color-scheme: dark;
   --page: #121212; --card: #212121; --text: #f1f2f4; --muted: #bac3cd;
   --line: #454545; --blue: #88bfff; --tint: #243b54;

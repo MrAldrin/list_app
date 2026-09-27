@@ -113,9 +113,10 @@
     document.getElementById('listr-offline-status')?.remove();
   }
 
-  function addText(parent, tag, text) {
+  function addText(parent, tag, text, className) {
     const element = document.createElement(tag);
     element.textContent = text;
+    if (className) element.className = className;
     parent.append(element);
     return element;
   }
@@ -134,34 +135,96 @@
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Read-only offline view');
     Object.assign(overlay.style, {
-      position: 'fixed', inset: '0', zIndex: '10001', background: '#f1f5f9',
-      color: '#1e293b', overflowY: 'auto', padding: '16px',
-      font: '16px/1.5 system-ui, sans-serif',
+      position: 'fixed', inset: '0', zIndex: '10001', overflowY: 'auto',
     });
-    const close = addText(overlay, 'button', 'Close offline view');
-    close.type = 'button';
-    close.addEventListener('click', () => overlay.remove());
-    const card = document.createElement('main');
-    Object.assign(card.style, { maxWidth: '640px', margin: '16px auto', padding: '20px', background: '#fff' });
-    addText(card, 'h1', record.snapshot.room.name);
-    addText(card, 'p', 'Offline · read only');
-    addText(card, 'p', `Last saved: ${formatTime(record)}`);
-    for (const list of record.snapshot.lists) {
-      const section = document.createElement('section');
-      Object.assign(section.style, { borderTop: '1px solid #cbd5e1', padding: '12px 0' });
-      addText(section, 'h2', list.name);
-      if (list.list_tags.length) addText(section, 'p', `Tags: ${list.list_tags.join(', ')}`);
-      const items = document.createElement('ul');
-      for (const item of list.items) {
-        const row = addText(items, 'li', `${item.name} · quantity ${item.quantity}`);
-        if (item.done) row.style.textDecoration = 'line-through';
-        if (item.description) addText(row, 'span', ` — ${item.description}`);
-        if (item.active_tags.length) addText(row, 'span', ` — Tags: ${item.active_tags.join(', ')}`);
-      }
-      section.append(items);
-      card.append(section);
+    // Keep the CSS inside this dialog: loading the shell stylesheet globally
+    // would override NiceGUI's online page underneath it.
+    const shadow = overlay.attachShadow({ mode: 'open' });
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = '/static/offline-shell.css';
+    shadow.append(stylesheet);
+    const app = addText(shadow, 'div', '', 'app offline-view');
+    let dark = false;
+    try { dark = localStorage.getItem('listapp_theme') === 'dark'; } catch (_) { /* Optional preference. */ }
+    function applyTheme() {
+      app.classList.toggle('dark', dark);
+      overlay.style.background = dark ? '#121212' : '#f5f7fa';
     }
-    overlay.append(card);
+    applyTheme();
+    const header = addText(app, 'header', '', 'app-header');
+    const logo = addText(header, 'span', '', 'logo');
+    logo.setAttribute('aria-label', 'ListR');
+    addText(logo, 'strong', 'List');
+    addText(logo, 'strong', 'R');
+    const title = addText(header, 'h1', record.snapshot.room.name);
+    const theme = addText(header, 'button', '◐', 'theme-toggle');
+    theme.type = 'button';
+    theme.setAttribute('aria-label', 'Toggle light and dark theme');
+    theme.addEventListener('click', () => {
+      dark = !dark;
+      applyTheme();
+      try { localStorage.setItem('listapp_theme', dark ? 'dark' : 'light'); } catch (_) { /* Optional preference. */ }
+    });
+    const close = addText(header, 'button', '×', 'theme-toggle');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close offline view');
+    close.addEventListener('click', () => overlay.remove());
+    const content = addText(app, 'main', '');
+    const notice = addText(content, 'div', '', 'notice');
+    notice.setAttribute('role', 'status');
+    addText(notice, 'span', '◌', 'signal').setAttribute('aria-hidden', 'true');
+    const message = addText(notice, 'div', '');
+    addText(message, 'p', 'Offline · read only').id = 'status';
+    addText(message, 'p', `Last saved: ${formatTime(record)}`).id = 'last-saved';
+    const lists = addText(content, 'section', '');
+    lists.setAttribute('aria-label', 'Saved lists');
+
+    function renderList(index) {
+      const list = record.snapshot.lists[index];
+      if (!list) return;
+      title.textContent = list.name;
+      lists.replaceChildren();
+      const back = addText(lists, 'button', '‹  Back to room', 'back');
+      back.type = 'button';
+      back.addEventListener('click', renderRoom);
+      addText(lists, 'p', `${list.items.length} ${list.items.length === 1 ? 'item' : 'items'} · saved copy`, 'section-title');
+      if (list.list_tags.length) addText(lists, 'p', `Tags: ${list.list_tags.join(', ')}`, 'item-details');
+      if (!list.items.length) addText(lists, 'p', 'No items in this list when it was last saved.', 'empty');
+      else {
+        const items = addText(lists, 'ul', '', 'items');
+        items.setAttribute('aria-label', 'Saved items, read only');
+        for (const item of list.items) {
+          const row = addText(items, 'li', '', item.done ? 'done' : '');
+          row.setAttribute('aria-label', `${item.name}, ${item.done ? 'checked' : 'not checked'}, quantity ${item.quantity}`);
+          addText(row, 'span', item.done ? '✓' : '', 'check').setAttribute('aria-hidden', 'true');
+          const info = addText(row, 'div', '', 'item-info');
+          addText(info, 'span', item.name, 'item-name');
+          if (item.description) addText(info, 'span', item.description, 'item-details');
+          for (const tag of item.active_tags) addText(info, 'span', `Tags: ${tag}`, 'tag');
+          addText(row, 'span', `× ${item.quantity}`, 'quantity');
+        }
+      }
+      addText(lists, 'p', 'Read only while offline. Reconnect to make changes.', 'footnote');
+    }
+    function renderRoom() {
+      title.textContent = record.snapshot.room.name;
+      lists.replaceChildren();
+      addText(lists, 'p', 'Your saved lists', 'section-title');
+      for (const [index, list] of record.snapshot.lists.entries()) {
+        const button = addText(lists, 'button', '', 'list-link');
+        button.type = 'button';
+        addText(button, 'span', '☷', 'list-icon').setAttribute('aria-hidden', 'true');
+        const label = addText(button, 'span', '', 'list-text');
+        addText(label, 'strong', list.name);
+        addText(label, 'small', `${list.items.length} ${list.items.length === 1 ? 'item' : 'items'}`);
+        addText(button, 'span', '›', 'chevron').setAttribute('aria-hidden', 'true');
+        button.addEventListener('click', () => renderList(index));
+      }
+      if (!record.snapshot.lists.length) addText(lists, 'p', 'No lists in the last saved copy.', 'empty');
+      addText(lists, 'p', 'Open the room online to edit or refresh your lists.', 'footnote');
+    }
+    renderRoom();
     document.body.append(overlay);
   }
 

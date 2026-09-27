@@ -181,8 +181,22 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     offline_view = member.get_by_role("dialog", name="Read-only offline view")
     expect(offline_view.get_by_text("Offline · read only", exact=True)).to_be_visible()
     expect(offline_view.get_by_role("heading", name="Home", exact=True)).to_be_visible()
+    expect(offline_view.locator(".app")).to_have_css("max-width", "420px")
+    offline_view.locator(".list-link").filter(has_text=unsafe_list_name).click()
+    expect(offline_view.get_by_role("heading", name=unsafe_list_name)).to_be_visible()
+    expect(offline_view.get_by_text("Checked apples", exact=True)).to_be_visible()
+    expect(offline_view.get_by_text("Stored notes", exact=True)).to_be_visible()
+    assert offline_view.locator(".items input, .items button").count() == 0
+    assert offline_view.locator("img").count() == 0
+    offline_view.get_by_role("button", name="Toggle light and dark theme").click()
+    expect(offline_view.locator(".app")).to_have_css(
+        "background-color", "rgb(33, 33, 33)"
+    )
+    offline_view.get_by_role("button", name="Toggle light and dark theme").click()
+    offline_view.get_by_role("button", name="Back to room").click()
+    expect(offline_view.get_by_role("heading", name="Home", exact=True)).to_be_visible()
     assert member.url == original_url  # No new Safari-style top-level navigation.
-    member.get_by_role("button", name="Close offline view").click()
+    offline_view.get_by_role("button", name="Close offline view").click()
     server.stop()
     # Another update is made while this browser is offline; the open shell refreshes on reconnect.
     member.goto(room_url, timeout=15_000)
