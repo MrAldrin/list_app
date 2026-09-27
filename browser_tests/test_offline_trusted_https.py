@@ -177,6 +177,21 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
                 "/static/offline-shell.js",
                 "/static/offline-storage.js",
             ]
+            cached_content = page.evaluate(
+                """async () => {
+                    const entries = [];
+                    for (const name of await caches.keys()) {
+                        const cache = await caches.open(name);
+                        for (const request of await cache.keys()) {
+                            entries.push(request.url + (await (await cache.match(request)).text()));
+                        }
+                    }
+                    return entries.join('\\n');
+                }"""
+            )
+            assert room_slug not in cached_content
+            assert server.password not in cached_content
+            assert "Checked apples" not in cached_content
             saved_at = page.evaluate(
                 "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
             )
@@ -199,11 +214,104 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
             page.goto(url)
             expect(page.get_by_role("button", name="Add New List")).to_be_visible()
 
+            # A reachable temporary error must not pretend the saved HTTPS
+            # copy was refreshed or clear it. The next definitive denial must.
+            server.stop()
+            context.set_offline(True)
+            page.goto(url, timeout=15_000)
+            expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
+            old_record = page.evaluate("window.ListROfflineStorage.readRecord()")
+            old_saved_at = old_record["saved_at"]
+            server.start()
+            endpoint = f"**/api/offline/rooms/{room_slug}/snapshot"
+            context.route(
+                endpoint, lambda route: route.fulfill(status=503, body="unavailable")
+            )
+            try:
+                context.set_offline(False)
+                with page.expect_response(
+                    lambda response: (
+                        response.url.endswith(
+                            f"/api/offline/rooms/{room_slug}/snapshot"
+                        )
+                        and response.status == 503
+                    )
+                ):
+                    page.evaluate("window.dispatchEvent(new Event('online'))")
+                expect(
+                    page.get_by_text(
+                        "Could not verify the latest copy · read only", exact=True
+                    )
+                ).to_be_visible()
+                expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
+                assert (
+                    page.evaluate(
+                        "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                    )
+                    == old_saved_at
+                )
+            finally:
+                context.unroute(endpoint)
+
+            # A successful cookie-backed fetch followed by an IndexedDB write
+            # failure must also keep the prior complete copy and timestamp.
+            list_id = server.query("SELECT id FROM lists WHERE slug = 'daily-list'")[0][
+                0
+            ]
+            with sqlite3.connect(server.database) as connection:
+                connection.execute(
+                    """INSERT INTO items (name, done, list_id, active_tags, description, quantity)
+                       VALUES (?, 0, ?, '[]', '', 1)""",
+                    ("New HTTPS item", list_id),
+                )
+            page.evaluate(
+                """() => {
+                    window.__offlinePut = IDBObjectStore.prototype.put;
+                    IDBObjectStore.prototype.put = function () {
+                        throw new DOMException('test quota failure', 'QuotaExceededError');
+                    };
+                }"""
+            )
+            try:
+                with page.expect_response(
+                    lambda response: (
+                        response.url.endswith(
+                            f"/api/offline/rooms/{room_slug}/snapshot"
+                        )
+                        and response.status == 200
+                    )
+                ):
+                    page.evaluate("window.dispatchEvent(new Event('online'))")
+                expect(
+                    page.get_by_text(
+                        "Could not save the latest copy · read only", exact=True
+                    )
+                ).to_be_visible()
+                assert (
+                    page.evaluate("window.ListROfflineStorage.readRecord()")
+                    == old_record
+                )
+                expect(page.get_by_text("New HTTPS item", exact=True)).to_have_count(0)
+            finally:
+                page.evaluate(
+                    "() => { IDBObjectStore.prototype.put = window.__offlinePut; }"
+                )
+            page.evaluate("window.dispatchEvent(new Event('online'))")
+            expect(page.get_by_text("New HTTPS item", exact=True)).to_be_visible()
+            page.wait_for_function(
+                """async (previous) => {
+                    const record = await window.ListROfflineStorage.readRecord();
+                    return record?.saved_at !== previous &&
+                        record.snapshot.lists.some(list =>
+                            list.items.some(item => item.name === 'New HTTPS item'));
+                }""",
+                arg=old_saved_at,
+            )
             # A still-disconnected browser may read its old copy after a
             # password reset. A reachable definitive denial must clear it.
             server.stop()
             context.set_offline(True)
-            page.goto(url, timeout=15_000)
+            page.reload(timeout=15_000)
             expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
             with sqlite3.connect(server.database) as connection:
                 connection.execute(

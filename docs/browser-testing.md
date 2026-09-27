@@ -101,9 +101,10 @@ not a manual multi-user or production device check.
 ## Android emulator (opt-in)
 
 A separate [Android emulator suite](android-emulator-testing.md) opens a private
-room, installs its icon, and checks remembered access and network recovery in
-real Android Chrome against a disposable server. It is not part of the desktop
-Playwright suite; offline viewing and real-device behavior remain unverified.
+room, installs its icon, and checks remembered access, offline cold launch and
+reconnect/denial behavior in Android Chrome against a disposable server. It is
+not part of the desktop Playwright suite; HTTPS on Android and physical-device
+behavior remain unverified.
 
 ## Read-only offline viewing checks
 
@@ -146,8 +147,18 @@ profiles**. Both Chromium and Firefox passed without `ignore_https_errors`:
 Secure/HttpOnly cookie-backed save, service-worker control and generic-only
 cache, offline room and older root navigation with unchanged timestamp, online
 editor recovery, and retained content during disconnection followed by clearing
-on password revocation after reconnect. The full browser suite passed **70 cases** (including 2 trusted-HTTPS cases),
-alongside 358 fast tests, 7 service-worker checks and clean Ruff checks.
+on password revocation after reconnect. The trusted test now also checks Cache
+API response bodies and URLs contain no room slug, disposable password or item
+content; on the cookie-backed shell, a reachable 503 retains the copy and time,
+and a simulated IndexedDB write failure likewise preserves the old complete
+copy until a later successful fetch. On this change stack the complete browser
+suite passed **70 cases** (`uv run pytest browser_tests -q -n 0` with a locally
+extracted, temporary NSS `certutil`), fast tests passed **358** (8 known
+Starlette/httpx warnings), the Node service-worker suite passed **7**, and the
+required Ruff format/lint checks were clean. The first full browser run had one
+unrelated Firefox service-worker installation error during a public-sharing
+server-restart test; that case passed on a focused rerun and all 70 cases passed
+on the second full run.
 
 To run the opt-in trusted test on Linux, provide NSS `certutil` on `PATH` or set
 `LISTR_TEST_CERTUTIL` to its executable. No system install is required: on an
@@ -161,16 +172,17 @@ or system-wide trust store. A missing certutil **fails** rather than skipping.
 
 Still unverified: every combination of revocation/deletion and storage failure,
 iPhone installed-app behavior, Android trusted-HTTPS setup and Railway proxy
-behavior. The Android emulator cold-launch check now passes after allowing Chrome's
-localStorage to settle before force-stop; immediate-kill durability is not
-established. See the [emulator guide](android-emulator-testing.md).
+behavior. The Android emulator now covers reconnect after another session's
+edit and clears a saved copy after online revocation/deletion, after allowing
+Chrome's localStorage to settle before force-stop. Immediate-kill durability is
+not established. See the [emulator guide](android-emulator-testing.md).
 HTTP fallback and self-signed desktop HTTPS tests cannot establish installed-
 device or production proxy behavior.
 
 ## Remaining boundaries
 
-These are local HTTP checks. They do not verify production HTTPS cookie behavior,
-Railway proxy/volume configuration, migration of a copy of the actual production
-database, real iPhone/Android installation, or OS-native share sheets. Playwright
+These are local HTTP and trusted local HTTPS checks. They do not verify Railway
+proxy/volume configuration, migration of a copy of the actual production
+database, physical iPhone/Android installation, or OS-native share sheets. Playwright
 Firefox/Chromium are not evidence of Safari compatibility. Continue with the
 [deployment and device checks](public-sharing.md#rollout-and-verification).
