@@ -55,15 +55,23 @@ activity are checked with ADB; the installed page is checked through Chrome's
 debugging interface because this Android image sometimes exposes only “Web View”
 in the native accessibility tree.
 
-On the offline feature branch, a third opt-in test installs a disposable room,
-waits for its IndexedDB snapshot and service-worker control, then stops the
-server, removes ADB reverse, and enables airplane mode. It confirms a network
-request fails, backgrounds Chrome briefly to let its localStorage flush, then
-force-stops it and relaunches the installed icon without a page reload. It checks
-the read-only shell displays the saved checked item and unchanged timestamp
-without edit controls. It restores the connection and
-checks remembered access to the online editor. This checks a cold launch, not
-HTTPS cookies or a physical phone.
+On the offline feature branch, the third opt-in test runs twice (password
+revocation and room deletion). It installs a disposable room, waits for its
+IndexedDB snapshot and service-worker control, then stops the server, removes
+ADB reverse, and enables airplane mode. It confirms a network request fails,
+backgrounds Chrome briefly to let its localStorage flush, then force-stops it
+and relaunches the installed icon without a page reload. It checks the read-only
+shell displays the saved checked item and unchanged timestamp without edit
+controls. While Android remains disconnected, a separate desktop browser session
+signs in and adds an item to the same list. The Android copy/time remain
+unchanged during this temporary outage; after reconnect, a successful refresh
+brings in the new item, then the online editor loads. The test disconnects
+again, revokes the password or deletes the room, checks the old copy remains
+while disconnected, and checks a reachable denial clears it on reconnect. An
+offline root navigation after denial must show no copy. Root navigation is **not**
+a test of launching a separately installed old root icon, and the cleared-copy
+case is **not** a fresh install. This checks an HTTP cold launch, not HTTPS
+cookies or a physical phone.
 
 Tests remove port mappings and terminate servers afterward. For the dedicated
 `listapp_api35` test AVD, they remove the disposable app icon **only when it is
@@ -73,15 +81,24 @@ not cleared. Tests fail (rather than skip) if the emulator is absent or Chrome's
 first-run screen is unfinished. `adb -e` selects an emulator, never a phone.
 Traces, if added later, must contain only disposable test data.
 
-**Current local checks:** all three Android 15 / Chrome 124 emulator checks
-passed, including cold launch and online recovery after a short background
-settling period (cold-launch check passed twice). Diagnosis: force-stopping
+**Current local checks:** `ANDROID_HOME="$HOME/Android/Sdk" uv run python -m
+pytest android_tests -q -n 0 -x` passed **4 cases** on Android 15 / Chrome 124
+(the two original installation/recovery cases and both offline reconnect/denial
+variants). An earlier run hit duplicate disposable test icons; only those
+verified test icons were removed before rerunning. A separate run exposed a
+timestamp race after the editor's pending refresh; the test now takes its
+baseline from the offline shell before revocation, and the full suite passed.
+Diagnosis: force-stopping
 Chrome immediately after first login/snapshot caused **all** localStorage keys,
 including the room token and routing key, to disappear after relaunch, although
 the IndexedDB snapshot survived. Disconnecting CDP alone did not erase the
 keys; backgrounding Chrome for five seconds before force-stop preserved them.
 The delay is not a readiness signal; the test asserts the token, snapshot and
 online editor after relaunch. Immediate-kill durability is not established,
-so do not claim it on real devices. HTTPS cookies, newer Chrome and physical
-Android/iPhone behavior remain unverified. The offline-specific test belongs
-to the offline feature branch, not the `main`-based test branch.
+so do not claim it on real devices. Fresh/no-copy installed-app launch and an
+actual old root icon are not established by the current harness. Android trusted
+HTTPS has no demonstrated profile-only CA setup like desktop Playwright; do not
+install a device/system CA, disable TLS verification or change Android security
+to make a test pass. HTTPS cookies, newer Chrome and physical Android/iPhone
+behavior remain unverified. The offline-specific test belongs to the offline
+feature branch, not the `main`-based test branch.

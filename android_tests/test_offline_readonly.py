@@ -4,6 +4,7 @@ import socket
 import sqlite3
 import time
 
+import pytest
 from playwright.sync_api import (
     Browser,
     BrowserType,
@@ -54,10 +55,11 @@ def connect_to_chrome(chromium: BrowserType, port: int) -> Browser:
     raise AssertionError("Chrome debugging socket did not reopen after cold launch")
 
 
+@pytest.mark.parametrize("change", ["revoked", "deleted"])
 def test_installed_room_cold_launches_saved_lists_without_network(
-    android_server: TestServer,
+    android_server: TestServer, change: str
 ) -> None:
-    """A prepared room remains read-only after Chrome is force-stopped offline."""
+    """A prepared room refreshes on return and clears after definitive denial."""
     room_slug = android_server.query("SELECT slug FROM rooms WHERE name = 'Home'")[0][0]
     room_id = android_server.query("SELECT id FROM rooms WHERE slug = ?", (room_slug,))[
         0
@@ -195,6 +197,58 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                         "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
                         room_slug,
                     ), "Remembered token disappeared during offline cold launch"
+                    # An old root-launch address also reaches the same saved room.
+                    page.goto(
+                        f"http://localhost:{android_server.port}/", timeout=20_000
+                    )
+                    expect(page.get_by_text("Apples", exact=True)).to_be_visible()
+                    assert (
+                        page.evaluate(
+                            "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                        )
+                        == saved_at
+                    )
+                    page.goto(url, timeout=20_000)
+                    expect(page.get_by_text("Apples", exact=True)).to_be_visible()
+
+                    # Restore only the disposable server for another, independent
+                    # browser session. Android still has no ADB reverse or radio.
+                    android_server.start()
+                    desktop = playwright.chromium.launch()
+                    try:
+                        other = desktop.new_page()
+                        other.goto(android_server.room_url)
+                        other.get_by_label("Room Password", exact=True).fill(
+                            android_server.password
+                        )
+                        other.get_by_role("button", name="Enter", exact=True).click()
+                        expect(
+                            other.get_by_role("button", name="Add New List")
+                        ).to_be_visible()
+                        other.goto(f"{android_server.url}/list/android-groceries")
+                        other.get_by_label("Add or Search", exact=True).fill(
+                            "added from another session"
+                        )
+                        other.get_by_role("button", name="Add", exact=True).click()
+                        expect(
+                            other.get_by_text("added from another session", exact=True)
+                        ).to_be_visible()
+                    finally:
+                        desktop.close()
+                        android_server.stop()
+                    # A temporary outage is not revocation: the old timestamp
+                    # and contents survive until an actual successful refresh.
+                    page.reload(timeout=20_000)
+                    expect(page.get_by_text("Apples", exact=True)).to_be_visible()
+                    expect(
+                        page.get_by_text("added from another session", exact=True)
+                    ).to_have_count(0)
+                    assert (
+                        page.evaluate(
+                            "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                        )
+                        == saved_at
+                    )
                 finally:
                     adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
                     android_server.start()
@@ -206,12 +260,112 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     }""",
                     timeout=20_000,
                 )
+                page.evaluate("window.dispatchEvent(new Event('online'))")
+                page.wait_for_function(
+                    """async (previous) => {
+                        const record = await window.ListROfflineStorage.readRecord();
+                        return record?.saved_at !== previous &&
+                            record?.snapshot.lists.some(list =>
+                                list.items.some(item => item.name === 'added from another session'));
+                    }""",
+                    arg=saved_at,
+                    timeout=20_000,
+                )
+                expect(
+                    page.get_by_text("added from another session", exact=True)
+                ).to_be_visible()
                 page.reload()
                 assert page.evaluate(
                     "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
                     room_slug,
                 ), "Remembered room token disappeared after cold launch"
                 expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+
+                # Disconnect again before revoking the grant/deleting the room.
+                # Until a real server check is possible the saved copy remains.
+                android_server.stop()
+                try:
+                    adb("reverse", "--remove", bridge)
+                    adb("shell", "cmd", "connectivity", "airplane-mode", "enable")
+                    assert (
+                        page.evaluate(
+                            """async () => {
+                            try { await fetch('/manifest.json', {cache: 'no-store'}); return true; }
+                            catch (_) { return false; }
+                        }"""
+                        )
+                        is False
+                    )
+                    page.goto(url, timeout=20_000)
+                    expect(
+                        page.get_by_text("Offline · read only", exact=True)
+                    ).to_be_visible()
+                    expect(
+                        page.get_by_text("added from another session", exact=True)
+                    ).to_be_visible()
+                    refreshed_at = page.evaluate(
+                        "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                    )
+                    with sqlite3.connect(android_server.database) as connection:
+                        if change == "revoked":
+                            connection.execute(
+                                "UPDATE rooms SET authorization_version = authorization_version + 1 WHERE slug = ?",
+                                (room_slug,),
+                            )
+                        else:
+                            connection.execute(
+                                "DELETE FROM rooms WHERE slug = ?", (room_slug,)
+                            )
+                    page.reload(timeout=20_000)
+                    expect(page.get_by_text("Apples", exact=True)).to_be_visible()
+                    assert (
+                        page.evaluate(
+                            "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                        )
+                        == refreshed_at
+                    )
+                finally:
+                    adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
+                    android_server.start()
+                    adb("reverse", bridge, bridge)
+                page.evaluate("window.dispatchEvent(new Event('online'))")
+                page.wait_for_function(
+                    "async () => (await window.ListROfflineStorage.readRecord()) === null",
+                    timeout=20_000,
+                )
+                expect(page.get_by_text("Apples", exact=True)).to_have_count(0)
+                expect(
+                    page.get_by_text("Room access could not be confirmed.", exact=False)
+                ).to_be_visible()
+                page.reload()
+                if change == "revoked":
+                    expect(
+                        page.get_by_label("Room Password", exact=True)
+                    ).to_be_visible()
+                else:
+                    expect(
+                        page.get_by_text("Room not found", exact=True)
+                    ).to_be_visible()
+
+                # Neither the old root address nor a later loss of connectivity
+                # may resurrect a copy that was cleared after a server denial.
+                android_server.stop()
+                try:
+                    adb("reverse", "--remove", bridge)
+                    adb("shell", "cmd", "connectivity", "airplane-mode", "enable")
+                    page.goto(
+                        f"http://localhost:{android_server.port}/", timeout=20_000
+                    )
+                    expect(
+                        page.get_by_text(
+                            "No offline copy is ready on this device.", exact=False
+                        )
+                    ).to_be_visible()
+                    expect(page.get_by_text("Apples", exact=True)).to_have_count(0)
+                finally:
+                    adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
+                    android_server.start()
+                    adb("reverse", bridge, bridge)
             finally:
                 browser.close()
     finally:
