@@ -42,7 +42,7 @@ Configuration, database checks, and recovery instructions live in
 ## UI and PWA
 
 - [ ] Complete the [separate installed-iPhone offline acceptance task](iphone-installed-offline-acceptance.md) and remaining real Android/installation cases in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md). Record OS/browser versions and results; automated cookie-transfer checks do not verify OS installation behavior.
-- [ ] Complete [read-only offline viewing's outstanding real-device and broader failure checks](offline-readonly.md#verification-plan-and-acceptance-gates). The snapshot API, one-room IndexedDB save, and generic service-worker fallback are implemented and tested in desktop HTTP Chromium/Firefox; cookie-backed offline navigation now also passed on trusted local HTTPS in both engines using temporary browser profiles. The offline branch now tests Android emulator cold launch and recovery after a brief background storage-settling period; immediate force-stop after fresh login can lose localStorage keys and remains a limitation. Actual iPhone/Android device behavior is not yet verified. See [current behavior](../docs/home-screen-installation.md#read-only-offline-viewing-on-a-prepared-browser).
+- [ ] Complete [read-only offline viewing's outstanding real-device and broader failure checks](offline-readonly.md#verification-plan-and-acceptance-gates). The local test-hardening slice is complete on its independent stack: desktop HTTP Chromium/Firefox, trusted local HTTPS cookie-backed offline navigation and failure distinctions, and Android emulator installed-room cold launch/reconnect, transient outage, revocation and deletion checks passed. Android trusted HTTPS, a true old-root icon and fresh/no-copy installed launch remain unverified. Immediate force-stop after fresh login can lose localStorage keys. Physical iPhone/Android behavior is not yet verified. See [browser checks](../docs/browser-testing.md#read-only-offline-viewing-checks) and [emulator checks](../docs/android-emulator-testing.md).
 - [ ] Longer term, design offline item editing and synchronization, including revoked access, stable item IDs, conflict resolution, and device tests. Do not infer write support from read-only caching; see [offline option research](offline-options.md).
 - [ ] If users need it later, evaluate offline copies of individual public shared links with separate token-rotation/privacy checks. Not part of the room-only [first version](offline-readonly.md).
 - [ ] If shared-device privacy requires an offline opt-out, design a setting that deletes the snapshot **and disables automatic re-download**; a one-off “remove copy” button would immediately undo itself. Not part of the [first version](offline-readonly.md).
@@ -50,13 +50,14 @@ Configuration, database checks, and recovery instructions live in
 ## Testing, documentation, and tooling
 
 - [ ] Extend the [opt-in Android emulator checks](../docs/android-emulator-testing.md)
-  beyond the verified password-prompt installation, remembered access, and
-  interrupted-network recovery checks: cover password revocation, fresh login,
-  old icons, multiple rooms, and force-close offline relaunch. The offline branch
-  covers cold installed-app offline navigation after background storage settling; test combined changes before integrating. KVM is
-  usable; an Android 15 / Chrome 124 virtual phone is booted with only the
-  owner-approved necessary SDK components installed outside the repo. Neither
-  emulator nor desktop Playwright replaces physical iPhone/Android checks.
+  for fresh/no-copy installed launch, a genuine old-root icon, multiple rooms,
+  and trusted HTTPS if safe profile-only trust becomes feasible. Password-prompt
+  installation, remembered access, interrupted-network recovery, and (on the
+  offline stack) force-close offline relaunch after background storage settling,
+  another session's edit on reconnect, password revocation and room deletion
+  are covered locally. Test combined changes before integrating. KVM is usable;
+  the Android 15 / Chrome 124 virtual phone uses only approved SDK components.
+  Neither emulator nor desktop Playwright replaces physical device checks.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
 - [x] Rechecked the default-room `lastrowid` warning with `ty` and guarded the unexpected `None` case; normal startup remains covered by database setup tests.
 - [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
