@@ -123,7 +123,7 @@ acceptance remains pending without an Android phone.
 
 - [x] Drafted plan against current documentation and independently rebased stacks.
 - [ ] Owner chooses the release scope and accepts or revises the proposed gates.
-- [ ] Implement/verify disposable emulator and trusted-HTTPS tests; finish local checks before requesting hands-on iPhone time.
+- [ ] Automated test-suite hardening: HTTP Chromium/Firefox offline revocation/deletion-on-reconnect checks pass; HTTPS cache inspection passes but trusted-TLS offline navigation is still untested. Android cold-launch saved view works but remembered HTTP access fails after force-stop on the local Chrome 124 emulator. See the browser and Android testing guides for evidence and limits. No iPhone testing requested.
 - [ ] Rehearse selected migrations on separate protected production-backup copies, after owner approval.
 - [ ] Construct and verify the chosen combined release candidate, if applicable.
 - [ ] Owner approves an HTTPS tunnel or separate test deployment; perform and record disposable installed-iPhone checks after local tests pass.

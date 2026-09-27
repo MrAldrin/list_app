@@ -104,8 +104,35 @@ def test_secure_cookie_snapshot_and_revocation(secure_server, browser):
             timeout=20_000,
         )
 
-        # The self-signed test certificate exercises cookie-backed fetching, not
-        # installed-app offline launch (browser trust and device behavior differ).
+        # Inspect every Cache API entry, not only the known shell cache. Neither
+        # private HTML nor API responses may appear in a service-worker cache.
+        cached = page.evaluate(
+            """async () => {
+                const result = [];
+                for (const name of await caches.keys()) {
+                    const cache = await caches.open(name);
+                    for (const request of await cache.keys()) {
+                        result.push(new URL(request.url).pathname);
+                    }
+                }
+                return result.sort();
+            }"""
+        )
+        shell_paths = {
+            "/static/offline-shell.css",
+            "/static/offline-shell.html",
+            "/static/offline-shell.js",
+            "/static/offline-storage.js",
+        }
+        assert set(cached) <= shell_paths
+        if page.evaluate("Boolean(navigator.serviceWorker.controller)"):
+            assert set(cached) == shell_paths
+        else:
+            # Chromium refuses a worker for this untrusted self-signed origin;
+            # cookie checks remain useful but offline HTTPS requires trusted TLS.
+            assert cached == []
+        # This certificate is explicitly ignored by Playwright: this verifies
+        # cookie-backed storage, not trusted-TLS offline navigation or devices.
         with sqlite3.connect(server.database) as connection:
             connection.execute(
                 "UPDATE rooms SET authorization_version = authorization_version + 1 WHERE slug = ?",

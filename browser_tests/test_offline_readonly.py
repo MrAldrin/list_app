@@ -331,6 +331,58 @@ def test_online_denial_clears_matching_offline_copy(server, sessions, change):
 
 
 @pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
+@pytest.mark.parametrize("change", ["revoked", "deleted"])
+def test_offline_copy_survives_until_reconnection_then_clears(server, sessions, change):
+    member, _visitor = sessions
+    room_slug, _list_slug, _name = prepare_snapshot_data(server)
+    room_url = f"{server.url}/room/{room_slug}"
+    member.goto(room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(member.get_by_role("button", name="Add New List")).to_be_visible()
+    old_saved_at = offline_record(member, room_slug)["saved_at"]
+    member.wait_for_function("navigator.serviceWorker.controller !== null")
+
+    server.stop()
+    member.context.set_offline(True)
+    member.goto(room_url, timeout=15_000)
+    expect(member.get_by_text("Offline · read only", exact=True)).to_be_visible()
+    expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
+    assert (
+        member.evaluate("window.ListROfflineStorage.readRecord()")["saved_at"]
+        == old_saved_at
+    )
+
+    with sqlite3.connect(server.database) as connection:
+        if change == "revoked":
+            connection.execute(
+                "UPDATE rooms SET authorization_version = authorization_version + 1 WHERE slug = ?",
+                (room_slug,),
+            )
+        else:
+            connection.execute("DELETE FROM rooms WHERE slug = ?", (room_slug,))
+    # No server check is possible while disconnected: the old copy remains.
+    member.reload(timeout=15_000)
+    expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
+    assert (
+        member.evaluate("window.ListROfflineStorage.readRecord()")["saved_at"]
+        == old_saved_at
+    )
+
+    server.start()
+    member.context.set_offline(False)
+    member.evaluate("window.dispatchEvent(new Event('online'))")
+    member.wait_for_function(
+        "async () => (await window.ListROfflineStorage.readRecord()) === null",
+        timeout=15_000,
+    )
+    expect(member.get_by_text("Checked apples", exact=True)).to_have_count(0)
+    expect(
+        member.get_by_text("Room access could not be confirmed.", exact=False)
+    ).to_be_visible()
+
+
+@pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
 def test_room_delete_clears_copy_without_offline_client_loaded(server, sessions):
     member, _visitor = sessions
     room_slug, _list_slug, _name = prepare_snapshot_data(server)

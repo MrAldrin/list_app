@@ -136,11 +136,21 @@ navigation only for network failure, not for HTTP errors; it does not cache
 private HTML, tokens, or API JSON. The shell rechecks authorization on an
 online launch. See [installation and privacy limits](home-screen-installation.md#read-only-offline-viewing-on-a-prepared-browser).
 
+Additional HTTP Chromium/Firefox checks now verify that a saved copy and its
+original timestamp remain readable while disconnected even after room revocation
+or deletion, then clear on a definitive denial after reconnection (four cases).
+The HTTPS smoke inspects every Cache API entry for private content; Chromium
+currently has **no service-worker cache** for this untrusted self-signed origin,
+so this is not a trusted-HTTPS offline navigation check. Focused offline browser
+checks passed (18 cases); the full browser-suite run timed out after 58 cases,
+so no full-suite pass is claimed for this change.
+
 Still unverified: **offline navigation** on a browser trusting a real HTTPS
-certificate (the disposable smoke certificate is self-signed), every combination
-of revocation/deletion and storage failure, and iPhone/Android installed-app or
-force-close behavior. HTTP fallback and self-signed desktop HTTPS tests cannot
-establish installed-device behavior.
+certificate, every combination of revocation/deletion and storage failure, and
+iPhone installed-app behavior. The Android emulator cold-launch check currently
+fails on remembered HTTP access after force-stop; see the [emulator guide](android-emulator-testing.md).
+HTTP fallback and self-signed desktop HTTPS tests cannot establish installed-
+device or production proxy behavior.
 
 ## Remaining boundaries
 

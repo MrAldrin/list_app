@@ -58,11 +58,11 @@ in the native accessibility tree.
 On the offline feature branch, a third opt-in test installs a disposable room,
 waits for its IndexedDB snapshot and service-worker control, then stops the
 server, removes ADB reverse, and enables airplane mode. It confirms a network
-request fails before opening the installed icon and reloading its room route,
-then checks the read-only shell displays the saved checked item and timestamp
-without edit controls. It restores the connection and checks the online editor
-returns. This exercises a warm installed-app navigation, **not** force-close /
-cold-launch persistence, HTTPS cookies, or a physical phone.
+request fails, force-stops Chrome, relaunches the installed icon without a page
+reload, and checks the read-only shell displays the saved checked item and
+unchanged timestamp without edit controls. It restores the connection and
+checks remembered access to the online editor. This checks a cold launch, not
+HTTPS cookies or a physical phone.
 
 Tests remove port mappings and terminate servers afterward. For the dedicated
 `listapp_api35` test AVD, they remove the disposable app icon **only when it is
@@ -72,10 +72,13 @@ not cleared. Tests fail (rather than skip) if the emulator is absent or Chrome's
 first-run screen is unfinished. `adb -e` selects an emulator, never a phone.
 Traces, if added later, must contain only disposable test data.
 
-**Locally verified:** the two generic Android 15 / Chrome 124 tests passed;
-on the offline feature branch, the installed-app read-only check passed too.
-This verifies a prepared offline room on a warm emulator app launch, plus the
-generic installation, remembered access and network recovery checks. It does
-**not** prove force-close/cold-launch survival, HTTPS cookies, current Chrome
-versions, or a real Android/iPhone installation. The offline-specific test
-belongs to the offline feature branch, not the `main`-based test branch.
+**Current local checks:** the two generic Android 15 / Chrome 124 tests pass.
+The offline-specific cold-launch test **fails after proving the saved view opens
+read-only with the original timestamp**: after force-stopping Chrome, its HTTP
+localStorage room token is absent and the online room prompts for its password
+on reconnect. This is a failed remembered-access gate, not a successful full
+cold-launch/recovery check. The earlier warm-navigation test passed before the
+cold-launch extension. Investigate before claiming reliable installed Android
+recovery; HTTPS cookies, newer Chrome and real devices remain unverified. The
+offline-specific test belongs to the offline feature branch, not the `main`-
+based test branch.

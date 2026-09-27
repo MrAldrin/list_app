@@ -4,7 +4,14 @@ import socket
 import sqlite3
 import time
 
-from playwright.sync_api import Error, expect, sync_playwright
+from playwright.sync_api import (
+    Browser,
+    BrowserType,
+    Error,
+    Page,
+    expect,
+    sync_playwright,
+)
 
 from android_tests.test_android_chrome import (
     adb,
@@ -19,10 +26,38 @@ from android_tests.test_android_chrome import (
 from browser_tests.conftest import TestServer
 
 
-def test_installed_room_opens_saved_lists_without_network(
+def installed_page(browser: Browser, url: str) -> Page:
+    """Find the standalone target, including after Chrome replaces its CDP target."""
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        for context in browser.contexts:
+            for page in context.pages:
+                try:
+                    if page.url == url and page.evaluate(
+                        "matchMedia('(display-mode: standalone)').matches"
+                    ):
+                        return page
+                except Error:
+                    continue
+        time.sleep(0.5)
+    raise AssertionError("Installed room did not open in a standalone target")
+
+
+def connect_to_chrome(chromium: BrowserType, port: int) -> Browser:
+    """Chrome's debugging socket is briefly unavailable after a force-stop."""
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        try:
+            return chromium.connect_over_cdp(f"http://127.0.0.1:{port}", timeout=3000)
+        except Error:
+            time.sleep(0.5)
+    raise AssertionError("Chrome debugging socket did not reopen after cold launch")
+
+
+def test_installed_room_cold_launches_saved_lists_without_network(
     android_server: TestServer,
 ) -> None:
-    """A prepared room stays read-only after an actual server/bridge outage."""
+    """A prepared room remains read-only after Chrome is force-stopped offline."""
     room_slug = android_server.query("SELECT slug FROM rooms WHERE name = 'Home'")[0][0]
     room_id = android_server.query("SELECT id FROM rooms WHERE slug = ?", (room_slug,))[
         0
@@ -48,8 +83,7 @@ def test_installed_room_opens_saved_lists_without_network(
         url,
         "com.android.chrome",
     )
-    # Dismiss an optional Chrome notifications tip without accepting a prompt.
-    # The shared helper still fails on Chrome's first-run terms/privacy screen.
+    # Do not accept Chrome's first-run terms on the user's behalf.
     if "Chrome notifications make things easier" in visible_text():
         adb("shell", "input", "keyevent", "KEYCODE_BACK")
     wait_for_text("Enter Room Password for Home")
@@ -76,21 +110,9 @@ def test_installed_room_opens_saved_lists_without_network(
     adb("forward", forward, "localabstract:chrome_devtools_remote")
     try:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.connect_over_cdp(
-                f"http://127.0.0.1:{debug_port}"
-            )
+            browser = connect_to_chrome(playwright.chromium, debug_port)
             try:
-                pages = [
-                    page
-                    for context in browser.contexts
-                    for page in context.pages
-                    if page.url == url
-                    and page.evaluate(
-                        "matchMedia('(display-mode: standalone)').matches"
-                    )
-                ]
-                assert len(pages) == 1, "Expected the installed room, not a browser tab"
-                page = pages[0]
+                page = installed_page(browser, url)
                 page.get_by_label("Room Password", exact=True).fill(
                     android_server.password
                 )
@@ -108,8 +130,15 @@ def test_installed_room_opens_saved_lists_without_network(
                     arg=room_slug,
                     timeout=20_000,
                 )
-                # Removing ADB reverse alone leaves existing sockets alive; stop
-                # this disposable server as well as disabling the emulator radio.
+                saved_at = page.evaluate(
+                    "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                )
+                assert page.evaluate(
+                    "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
+                    room_slug,
+                )
+                # Remove every network path: ADB reverse can survive airplane mode,
+                # and an existing socket can survive removal of the reverse mapping.
                 android_server.stop()
                 try:
                     adb("reverse", "--remove", bridge)
@@ -123,30 +152,13 @@ def test_installed_room_opens_saved_lists_without_network(
                         )
                         is False
                     )
-                    adb("shell", "input", "keyevent", "KEYCODE_HOME")
+                    # Closing the CDP connection before force-stop avoids relying
+                    # on an already-open page or Chrome's previous process.
+                    browser.close()
+                    adb("shell", "am", "force-stop", "com.android.chrome")
                     launch_installed_webapp(url)
-                    # Chrome can replace the CDP target when the icon opens.
-                    # Select the standalone activity, never the original tab.
-                    deadline = time.monotonic() + 20
-                    while time.monotonic() < deadline:
-                        pages = []
-                        for context in browser.contexts:
-                            for candidate in context.pages:
-                                try:
-                                    if candidate.url == url and candidate.evaluate(
-                                        "matchMedia('(display-mode: standalone)').matches"
-                                    ):
-                                        pages.append(candidate)
-                                except Error:
-                                    continue  # Target replaced during launch.
-                        if pages:
-                            page = pages[-1]
-                            break
-                        time.sleep(0.5)
-                    else:
-                        raise AssertionError("Installed room did not reopen offline")
-                    if not page.get_by_text("Offline · read only", exact=True).count():
-                        page.reload(timeout=20_000)
+                    browser = connect_to_chrome(playwright.chromium, debug_port)
+                    page = installed_page(browser, url)
                     expect(
                         page.get_by_text("Offline · read only", exact=True)
                     ).to_be_visible(timeout=20_000)
@@ -162,13 +174,34 @@ def test_installed_room_opens_saved_lists_without_network(
                     expect(page.get_by_text("Tags: fruit", exact=False)).to_be_visible()
                     expect(page.get_by_text("quantity 3", exact=False)).to_be_visible()
                     expect(page.get_by_text("Last saved:", exact=False)).to_be_visible()
+                    assert (
+                        page.evaluate(
+                            "window.ListROfflineStorage.readRecord().then(r => r.saved_at)"
+                        )
+                        == saved_at
+                    )
                     assert page.locator(".items li.done").count() == 1
                     assert page.locator("input, button").count() == 0
                 finally:
                     adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
                     android_server.start()
                     adb("reverse", bridge, bridge)
+                assert page.evaluate(
+                    "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
+                    room_slug,
+                ), "Remembered token disappeared during offline cold launch"
+                page.wait_for_function(
+                    """async () => {
+                        try { return (await fetch('/manifest.json', {cache: 'no-store'})).ok; }
+                        catch (_) { return false; }
+                    }""",
+                    timeout=20_000,
+                )
                 page.reload()
+                assert page.evaluate(
+                    "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
+                    room_slug,
+                ), "Remembered room token disappeared after cold launch"
                 expect(page.get_by_role("button", name="Add New List")).to_be_visible()
             finally:
                 browser.close()

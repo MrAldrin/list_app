@@ -233,7 +233,13 @@ def test_install_from_password_prompt_opens_standalone_room(
         "com.android.chrome",
     )
     wait_for_text("Enter Room Password for Home")
-    tap_label("Customize and control Google Chrome")
+    screen = visible_text()
+    menu = (
+        "Customize and control Google Chrome"
+        if "Customize and control Google Chrome" in screen
+        else "Update available. More options"
+    )
+    tap_label(menu)
     tap_label("Add to Home screen")
     tap_label("Install")
     wait_for_text("Install app")
