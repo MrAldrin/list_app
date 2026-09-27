@@ -46,15 +46,15 @@ Configuration, database checks, and recovery instructions live in
 
 ## Testing, documentation, and tooling
 
-- [ ] Add a reusable, opt-in Android emulator test suite on a new change based
-  on `main` for installed-app launch and offline/reconnect behavior. Keep
-  feature-specific tests on their branches; also test combined changes.
-  **Blocked on this PC:** `sudo modprobe kvm_amd` fails with `Operation not
-  supported`; the kernel reports `SVM disabled (by BIOS) in MSR_VM_CR`, and
-  `/dev/kvm` is absent. Owner: enable **SVM Mode / AMD-V** in UEFI/BIOS, reboot,
-  then verify `/dev/kvm` exists and an emulator runs acceptably before
-  installing the Android SDK or writing tests. If acceleration remains
-  unavailable, evaluate hosted Android testing instead. Desktop Playwright
+- [ ] Add a reusable, opt-in Android emulator test suite for installed-app
+  launch and offline/reconnect behavior. Keep feature-specific tests on their
+  branches; also test combined changes. **Firmware blocker resolved locally:**
+  after enabling SVM, Linux reports `svm`, loads `kvm_amd`, and the current user
+  can access `/dev/kvm`. Android command-line tools and a local Java runtime
+  were downloaded outside the repo. The owner approved the licenses needed for
+  testing; the Android 35 phone image, ADB, and emulator are installed outside
+  the repo. An Android 15 virtual device booted with usable KVM. Device-dependent
+  tests and installed-app behavior still need verification. Desktop Playwright
   emulation cannot prove installed-app behavior; Android emulation does not
   replace iPhone or occasional real-device checks.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
