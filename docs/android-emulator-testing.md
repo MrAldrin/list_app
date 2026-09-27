@@ -46,7 +46,11 @@ SQLite databases, mapping *only those servers'* loopback ports into the emulator
 via `adb reverse`. The first test opens a private room in Android Chrome. The
 second installs from its password prompt, launches the exact home-screen icon,
 checks that installation did not grant access, signs in, then reopens and reloads
-the installed app to verify remembered access. The native shortcut and standalone
+the installed app to verify remembered access. It also enables airplane mode,
+removes the ADB loopback mapping, and stops the disposable server to prove a
+request fails; then restores all three and reloads to check recovery. ADB
+loopback can stay alive through airplane mode alone, so that is not a valid
+offline test. The native shortcut and standalone
 activity are checked with ADB; the installed page is checked through Chrome's
 debugging interface because this Android image sometimes exposes only “Web View”
 in the native accessibility tree.
@@ -60,9 +64,10 @@ first-run screen is unfinished. `adb -e` selects an emulator, never a phone.
 Traces, if added later, must contain only disposable test data.
 
 **Locally verified:** two opt-in Android 15 / Chrome 124 tests passed after
-Chrome's first-run setup. This proves this emulator's standalone password-prompt
-install and remembered access; it does **not** prove actual airplane-mode
-reconnect, cold-restart survival, HTTPS cookies, offline viewing, current Chrome
+Chrome's first-run setup. This proves standalone password-prompt installation,
+remembered access, a failed network request during an airplane-mode + server
+outage, and recovery after reconnection on this emulator. It does **not** prove
+cold-restart survival, HTTPS cookies, offline navigation/viewing, current Chrome
 versions, or a real Android/iPhone installation. Keep offline-specific tests with
 the offline feature branch or an integration change, not in this `main`-based
 test branch.

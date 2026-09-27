@@ -47,9 +47,9 @@ Configuration, database checks, and recovery instructions live in
 ## Testing, documentation, and tooling
 
 - [ ] Extend the [opt-in Android emulator checks](../docs/android-emulator-testing.md)
-  beyond the verified password-prompt installation and remembered-access smoke
-  tests: cover network disconnect/reconnect, server restart, revoked access,
-  fresh login, old icon, and multiple rooms. Keep offline-specific tests on the
+  beyond the verified password-prompt installation, remembered access, and
+  interrupted-network recovery checks: cover password revocation, fresh login,
+  old icons, multiple rooms, and actual offline navigation. Keep offline-specific tests on the
   offline feature branch and test combined changes before integrating. KVM is
   usable; an Android 15 / Chrome 124 virtual phone is booted with only the
   owner-approved necessary SDK components installed outside the repo. Neither

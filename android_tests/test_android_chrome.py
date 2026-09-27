@@ -275,6 +275,32 @@ def test_install_from_password_prompt_opens_standalone_room(
                 launch_installed_webapp(url)
                 page.reload()
                 expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+
+                # ADB's tunnel can keep existing sockets alive even after its
+                # mapping is removed. Stop the disposable server as well so the
+                # request really fails, then restore all three in finally.
+                bridge = f"tcp:{android_server.port}"
+                android_server.stop()
+                try:
+                    adb("reverse", "--remove", bridge)
+                    adb("shell", "cmd", "connectivity", "airplane-mode", "enable")
+                    assert (
+                        page.evaluate(
+                            """async () => {
+                          try {
+                            await fetch('/manifest.json', {cache: 'no-store'});
+                            return true;
+                          } catch (_) { return false; }
+                        }"""
+                        )
+                        is False
+                    )
+                finally:
+                    adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
+                    android_server.start()
+                    adb("reverse", bridge, bridge)
+                page.reload()
+                expect(page.get_by_role("button", name="Add New List")).to_be_visible()
             finally:
                 browser.close()
     finally:

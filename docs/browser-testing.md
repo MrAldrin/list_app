@@ -101,9 +101,9 @@ not a manual multi-user or production device check.
 ## Android emulator (opt-in)
 
 A separate [Android emulator suite](android-emulator-testing.md) opens a private
-room, installs its icon and checks remembered access in real Android Chrome
-against a disposable server. It is not part of the desktop Playwright suite;
-reconnection, offline viewing and real-device behavior remain unverified.
+room, installs its icon, and checks remembered access and network recovery in
+real Android Chrome against a disposable server. It is not part of the desktop
+Playwright suite; offline viewing and real-device behavior remain unverified.
 
 ## Remaining boundaries
 
