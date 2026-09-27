@@ -139,15 +139,29 @@ online launch. See [installation and privacy limits](home-screen-installation.md
 Additional HTTP Chromium/Firefox checks now verify that a saved copy and its
 original timestamp remain readable while disconnected even after room revocation
 or deletion, then clear on a definitive denial after reconnection (four cases).
-The HTTPS smoke inspects every Cache API entry for private content; Chromium
-currently has **no service-worker cache** for this untrusted self-signed origin,
-so this is not a trusted-HTTPS offline navigation check. Focused offline browser
-checks passed (18 cases); the full browser-suite run timed out after 58 cases,
-so no full-suite pass is claimed for this change.
+The original self-signed HTTPS smoke inspects every Cache API entry; Chromium
+has **no service-worker cache** for that untrusted origin. A separate trusted-
+HTTPS test now uses a disposable local CA imported **only into temporary browser
+profiles**. Both Chromium and Firefox passed without `ignore_https_errors`:
+Secure/HttpOnly cookie-backed save, service-worker control and generic-only
+cache, offline room and older root navigation with unchanged timestamp, online
+editor recovery, and retained content during disconnection followed by clearing
+on password revocation after reconnect. The full browser suite passed **70 cases** (including 2 trusted-HTTPS cases),
+alongside 358 fast tests, 7 service-worker checks and clean Ruff checks.
 
-Still unverified: **offline navigation** on a browser trusting a real HTTPS
-certificate, every combination of revocation/deletion and storage failure, and
-iPhone installed-app behavior. The Android emulator cold-launch check now passes after allowing Chrome's
+To run the opt-in trusted test on Linux, provide NSS `certutil` on `PATH` or set
+`LISTR_TEST_CERTUTIL` to its executable. No system install is required: on an
+Ubuntu host you can download `libnss3-tools` with `/usr/bin/apt-get download`
+into a temporary directory, unpack it with `dpkg-deb -x`, and point the variable
+at `unpacked/usr/bin/certutil`. The test creates a one-day local CA and server
+certificate in pytest's temporary directory. Chromium gets a temporary `HOME`
+containing its own `.pki/nssdb`; Firefox imports only into its temporary test
+profile. No certificate is added to the host, user's normal browser profiles,
+or system-wide trust store. A missing certutil **fails** rather than skipping.
+
+Still unverified: every combination of revocation/deletion and storage failure,
+iPhone installed-app behavior, Android trusted-HTTPS setup and Railway proxy
+behavior. The Android emulator cold-launch check now passes after allowing Chrome's
 localStorage to settle before force-stop; immediate-kill durability is not
 established. See the [emulator guide](android-emulator-testing.md).
 HTTP fallback and self-signed desktop HTTPS tests cannot establish installed-

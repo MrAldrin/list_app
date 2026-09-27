@@ -96,7 +96,7 @@ Physical Android acceptance remains pending without an Android phone.
 
 - [x] Drafted plan against current documentation and independently rebased stacks.
 - [ ] Owner chooses the release scope and accepts or revises the proposed gates.
-- [ ] Automated test-suite hardening: HTTP Chromium/Firefox offline revocation/deletion-on-reconnect checks pass; HTTPS cache inspection passes but trusted-TLS offline navigation is still untested. Android cold launch and online recovery pass on Chrome 124 after a brief background storage-settling period; immediate force-stop after login can lose localStorage keys and remains unverified as a supported case. See the browser and Android testing guides for evidence and limits. No iPhone testing requested.
+- [ ] Automated test-suite hardening: HTTP Chromium/Firefox offline revocation/deletion-on-reconnect checks pass; trusted local HTTPS cookie-backed offline navigation, cache inspection and revocation-on-reconnect pass in Chromium and Firefox with browser-profile-only CA trust; Android trusted HTTPS and Railway proxy behavior remain unverified. Android cold launch and online recovery pass on Chrome 124 after a brief background storage-settling period; immediate force-stop after login can lose localStorage keys and remains unverified as a supported case. See the browser and Android testing guides for evidence and limits. No iPhone testing requested.
 - [ ] Rehearse selected migrations on separate protected production-backup copies, after owner approval.
 - [ ] Construct and verify the chosen combined release candidate, if applicable.
 - [ ] Separate manual [installed-iPhone acceptance task](iphone-installed-offline-acceptance.md) pending; not part of automated test hardening.

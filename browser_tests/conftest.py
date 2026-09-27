@@ -30,9 +30,11 @@ class TestServer:
         *,
         tls_cert: Path | None = None,
         tls_key: Path | None = None,
+        tls_ca: Path | None = None,
     ):
         self.directory = directory
         self.tls_cert = tls_cert
+        self.tls_ca = tls_ca or tls_cert
         self.database = directory / "browser-test.db"
         self.log_path = directory / "server.log"
         self.process = None
@@ -92,7 +94,7 @@ class TestServer:
                 break
             try:
                 context = (
-                    ssl.create_default_context(cafile=str(self.tls_cert))
+                    ssl.create_default_context(cafile=str(self.tls_ca))
                     if self.tls_cert
                     else None
                 )

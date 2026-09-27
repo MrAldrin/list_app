@@ -90,9 +90,9 @@ Public share links are online-only; no token, room password, or private page
 HTML is put in the service-worker cache.
 
 Desktop Chromium/Firefox checks verify local HTTP offline fallback and
-self-signed HTTPS cookie-backed snapshots; they do **not** prove that an
-iPhone/Android installed app will launch offline, retain storage, or share
-Safari's login. Complete the real-device checklist below
+trusted local HTTPS cookie-backed offline navigation in disposable browser
+profiles. They do **not** prove that an iPhone/Android installed app will launch
+offline, retain storage, or share Safari's login. Complete the real-device checklist below
 before relying on installed-app offline viewing.
 
 ## Implementation and automated checks
