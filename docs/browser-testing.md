@@ -98,6 +98,13 @@ no deleted list or forbidden write. The full browser suite passed (46 cases),
 alongside 309 fast tests and Ruff checks. This is automated local verification,
 not a manual multi-user or production device check.
 
+## Android emulator (opt-in)
+
+A separate [Android emulator suite](android-emulator-testing.md) opens a private
+room, installs its icon and checks remembered access in real Android Chrome
+against a disposable server. It is not part of the desktop Playwright suite;
+reconnection, offline viewing and real-device behavior remain unverified.
+
 ## Remaining boundaries
 
 These are local HTTP checks. They do not verify production HTTPS cookie behavior,

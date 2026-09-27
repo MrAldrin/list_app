@@ -46,17 +46,14 @@ Configuration, database checks, and recovery instructions live in
 
 ## Testing, documentation, and tooling
 
-- [ ] Add a reusable, opt-in Android emulator test suite for installed-app
-  launch and offline/reconnect behavior. Keep feature-specific tests on their
-  branches; also test combined changes. **Firmware blocker resolved locally:**
-  after enabling SVM, Linux reports `svm`, loads `kvm_amd`, and the current user
-  can access `/dev/kvm`. Android command-line tools and a local Java runtime
-  were downloaded outside the repo. The owner approved the licenses needed for
-  testing; the Android 35 phone image, ADB, and emulator are installed outside
-  the repo. An Android 15 virtual device booted with usable KVM. Device-dependent
-  tests and installed-app behavior still need verification. Desktop Playwright
-  emulation cannot prove installed-app behavior; Android emulation does not
-  replace iPhone or occasional real-device checks.
+- [ ] Extend the [opt-in Android emulator checks](../docs/android-emulator-testing.md)
+  beyond the verified password-prompt installation and remembered-access smoke
+  tests: cover network disconnect/reconnect, server restart, revoked access,
+  fresh login, old icon, and multiple rooms. Keep offline-specific tests on the
+  offline feature branch and test combined changes before integrating. KVM is
+  usable; an Android 15 / Chrome 124 virtual phone is booted with only the
+  owner-approved necessary SDK components installed outside the repo. Neither
+  emulator nor desktop Playwright replaces physical iPhone/Android checks.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
 - [x] Rechecked the default-room `lastrowid` warning with `ty` and guarded the unexpected `None` case; normal startup remains covered by database setup tests.
 - [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
