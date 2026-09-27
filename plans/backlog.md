@@ -42,7 +42,7 @@ Configuration, database checks, and recovery instructions live in
 ## UI and PWA
 
 - [ ] Complete the real iPhone and Android acceptance checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md): fresh/password-prompt installs, legacy token migration, old icons, multiple rooms, other pages, deleted rooms, restart, and password revocation. Record OS/browser versions and results; automated cookie-transfer checks do not verify OS installation behavior.
-- [ ] Complete [read-only offline viewing's outstanding trusted-HTTPS offline-launch and real-device checks](offline-readonly.md#verification-plan-and-acceptance-gates). The snapshot API, one-room IndexedDB save, and generic service-worker fallback are implemented and tested in desktop HTTP Chromium/Firefox; cookie-backed snapshot fetch was also checked with disposable self-signed HTTPS. Actual installed iPhone/Android launch and persistence are not yet verified. See [current behavior](../docs/home-screen-installation.md#read-only-offline-viewing-on-a-prepared-browser).
+- [ ] Complete [read-only offline viewing's outstanding trusted-HTTPS offline-launch and real-device checks](offline-readonly.md#verification-plan-and-acceptance-gates). The snapshot API, one-room IndexedDB save, and generic service-worker fallback are implemented and tested in desktop HTTP Chromium/Firefox; cookie-backed snapshot fetch was also checked with disposable self-signed HTTPS. The offline branch now has a passing Android emulator warm installed-app offline-navigation check; force-close/cold-launch persistence and actual iPhone/Android device behavior are not yet verified. See [current behavior](../docs/home-screen-installation.md#read-only-offline-viewing-on-a-prepared-browser).
 - [ ] Longer term, design offline item editing and synchronization, including revoked access, stable item IDs, conflict resolution, and device tests. Do not infer write support from read-only caching; see [offline option research](offline-options.md).
 - [ ] If users need it later, evaluate offline copies of individual public shared links with separate token-rotation/privacy checks. Not part of the room-only [first version](offline-readonly.md).
 - [ ] If shared-device privacy requires an offline opt-out, design a setting that deletes the snapshot **and disables automatic re-download**; a one-off “remove copy” button would immediately undo itself. Not part of the [first version](offline-readonly.md).
@@ -52,8 +52,8 @@ Configuration, database checks, and recovery instructions live in
 - [ ] Extend the [opt-in Android emulator checks](../docs/android-emulator-testing.md)
   beyond the verified password-prompt installation, remembered access, and
   interrupted-network recovery checks: cover password revocation, fresh login,
-  old icons, multiple rooms, and actual offline navigation. Keep offline-specific tests on the
-  offline feature branch and test combined changes before integrating. KVM is
+  old icons, multiple rooms, and force-close offline relaunch. The offline branch
+  covers warm installed-app offline navigation; test combined changes before integrating. KVM is
   usable; an Android 15 / Chrome 124 virtual phone is booted with only the
   owner-approved necessary SDK components installed outside the repo. Neither
   emulator nor desktop Playwright replaces physical iPhone/Android checks.

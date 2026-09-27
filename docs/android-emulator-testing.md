@@ -55,6 +55,15 @@ activity are checked with ADB; the installed page is checked through Chrome's
 debugging interface because this Android image sometimes exposes only “Web View”
 in the native accessibility tree.
 
+On the offline feature branch, a third opt-in test installs a disposable room,
+waits for its IndexedDB snapshot and service-worker control, then stops the
+server, removes ADB reverse, and enables airplane mode. It confirms a network
+request fails before opening the installed icon and reloading its room route,
+then checks the read-only shell displays the saved checked item and timestamp
+without edit controls. It restores the connection and checks the online editor
+returns. This exercises a warm installed-app navigation, **not** force-close /
+cold-launch persistence, HTTPS cookies, or a physical phone.
+
 Tests remove port mappings and terminate servers afterward. For the dedicated
 `listapp_api35` test AVD, they remove the disposable app icon **only when it is
 the sole pinned Chrome shortcut**; if other Chrome shortcuts exist, leave them
@@ -63,11 +72,10 @@ not cleared. Tests fail (rather than skip) if the emulator is absent or Chrome's
 first-run screen is unfinished. `adb -e` selects an emulator, never a phone.
 Traces, if added later, must contain only disposable test data.
 
-**Locally verified:** two opt-in Android 15 / Chrome 124 tests passed after
-Chrome's first-run setup. This proves standalone password-prompt installation,
-remembered access, a failed network request during an airplane-mode + server
-outage, and recovery after reconnection on this emulator. It does **not** prove
-cold-restart survival, HTTPS cookies, offline navigation/viewing, current Chrome
-versions, or a real Android/iPhone installation. Keep offline-specific tests with
-the offline feature branch or an integration change, not in this `main`-based
-test branch.
+**Locally verified:** the two generic Android 15 / Chrome 124 tests passed;
+on the offline feature branch, the installed-app read-only check passed too.
+This verifies a prepared offline room on a warm emulator app launch, plus the
+generic installation, remembered access and network recovery checks. It does
+**not** prove force-close/cold-launch survival, HTTPS cookies, current Chrome
+versions, or a real Android/iPhone installation. The offline-specific test
+belongs to the offline feature branch, not the `main`-based test branch.
