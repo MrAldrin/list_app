@@ -10,28 +10,22 @@ stacks (`dev`, `hide-checked-items`, `backup-offline-read-only`) are independent
 rebased onto `main-staging`, **not integrated with each other**. Select which
 features to ship before constructing and validating a release candidate.
 
-The owner has an iPhone but no Mac or physical Android test phone. **Manual
-installed-iPhone testing is possible without a Mac** using Safari and a reachable
-HTTPS test URL. A Mac is needed for iOS Simulator/Safari remote inspection, not
-for the manual acceptance flow. Linux Playwright WebKit is not installed iOS
-Safari, and an Android emulator is not a physical phone. A separate
-non-production Railway HTTPS deployment could test proxy behavior if the owner
-approves its cost and setup, but is not required for the iPhone check: a
-short-lived HTTPS tunnel to a disposable local server is an alternative. Never
-use live Railway or real user data merely to make the phone test reachable.
+The owner has an iPhone but no Mac or physical Android test phone. Installed-
+iPhone acceptance is a [separate manual task](iphone-installed-offline-acceptance.md),
+not part of this automated test-suite hardening work. Linux Playwright WebKit is
+not installed iOS Safari, and an Android emulator is not a physical phone.
+Never use live Railway or real user data for local test coverage.
 
 ## Execution order and approval boundaries
 
-Complete **all automated/local tasks that need no human review first**: design
-and implement disposable emulator/browser checks, run them on the relevant
-independent stacks, and prepare a reproducible iPhone test checklist. Report
-failures and fix them before asking the owner to do hands-on phone testing.
-Owner decisions that are prerequisites (release scope, permission for a public
-tunnel, and permission to handle a production backup) must still be requested
-when reached; this order is not permission to bypass them. Do not start a tunnel
-or access production data unattended. After local checks pass, arrange one short
-manual iPhone session; then make the release decision. Android physical-device
-acceptance remains pending without an Android phone.
+For the current task, design and implement disposable emulator/browser **test-
+suite improvements** and run them on the relevant independent stacks. Report
+failures rather than weakening assertions; changing application behavior requires
+an explicit scope decision. Combining a release candidate, rehearsing a
+production backup, starting a tunnel, deploying, and hands-on iPhone acceptance
+are separate tasks with separate owner gates. See the
+[installed-iPhone task](iphone-installed-offline-acceptance.md) for its procedure.
+Physical Android acceptance remains pending without an Android phone.
 
 ## Proposed slices and evidence
 
@@ -80,38 +74,17 @@ acceptance remains pending without an Android phone.
    opt-in Android suite. Inspect the diff, resolve failures, and record exact
    commands/results. A test passing on an isolated branch is not a pass on the
    combined candidate. Finish these local checks before the owner's phone session.
-6. **Manual iPhone acceptance (only if offline ships, after local checks).**
-   With the owner's explicit approval, start the chosen candidate locally with
-   a **fresh disposable SQLite DB and random test-only secrets** bound to
-   loopback, then expose only that disposable server through a short-lived,
-   reputable HTTPS tunnel with a stable URL for the duration of the session.
-   Agree on the tunnel provider and internet exposure before starting; do not
-   expose production data, credentials or an admin session. An owner-approved
-   separate test Railway environment is an alternative, not an assumed free
-   resource. Avoid publishing credentials in URLs, logs, screenshots or chat.
-   On the iPhone, open the HTTPS URL in Safari, sign in to a disposable room,
-   add it to the Home Screen, verify the installed app has a saved room and
-   meaningful list/item content, then enable airplane mode, force-close and
-   reopen the icon to check read-only lists and Last saved (including a list
-   not opened online). Check the already-open in-page read-only view, old root
-   icon if one exists, reconnect/update, and password revocation or deletion
-   from a second session. Confirm old offline content remains readable while
-   disconnected and is cleared after a definitive online denial. Record iOS /
-   Safari version, URL mode, steps, screenshots with **test data only**, pass /
-   fail and limitations; if storage is evicted or the shell cannot load, report
-   the failure rather than weakening the gate. Shut down the tunnel/server
-   afterward and verify they are no longer reachable. Manual Safari behavior
-   does not establish physical Android behavior or Railway proxy correctness.
+6. **Separate manual iPhone task.** If offline ships, the owner may later
+   authorize [installed-iPhone acceptance](iphone-installed-offline-acceptance.md).
+   This is not an automated test-suite improvement or part of the current task.
 
 ## Owner decision before any release
 
-- Choose the features/release candidate before combined validation. Arrange
-  the iPhone session **after automated/local checks** and explicitly decide
-  whether its results are sufficient. If iPhone testing is blocked, installed
-  iPhone behavior remains unverified; physical Android behavior remains
-  unverified without an Android phone. Do not promise reliable offline shopping
-  on untested devices. A release without offline is safer if that gap is
-  unacceptable.
+- Choose the features/release candidate before combined validation. The
+  [separate installed-iPhone task](iphone-installed-offline-acceptance.md) remains
+  pending after automated/local checks. Installed iPhone and physical Android
+  behavior remain unverified without real-device testing. Do not promise reliable
+  offline shopping on untested devices.
 - Decide how/when a private production backup can be provided for the schema
   rehearsals, without exposing it to tests, public hosting, or version control.
 - Review the deployment checklist and rollback/restore readiness. Only the
@@ -126,5 +99,5 @@ acceptance remains pending without an Android phone.
 - [ ] Automated test-suite hardening: HTTP Chromium/Firefox offline revocation/deletion-on-reconnect checks pass; HTTPS cache inspection passes but trusted-TLS offline navigation is still untested. Android cold-launch saved view works but remembered HTTP access fails after force-stop on the local Chrome 124 emulator. See the browser and Android testing guides for evidence and limits. No iPhone testing requested.
 - [ ] Rehearse selected migrations on separate protected production-backup copies, after owner approval.
 - [ ] Construct and verify the chosen combined release candidate, if applicable.
-- [ ] Owner approves an HTTPS tunnel or separate test deployment; perform and record disposable installed-iPhone checks after local tests pass.
+- [ ] Separate manual [installed-iPhone acceptance task](iphone-installed-offline-acceptance.md) pending; not part of automated test hardening.
 - [ ] Owner makes a separate release decision, including explicit physical Android risk acceptance if offline ships.
