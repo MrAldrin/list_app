@@ -54,10 +54,13 @@ manifest.
 While an authorized room or private-list page is open, ListR quietly saves all
 lists and items in that room, including lists you have not opened and completed
 items. The saved view is simpler than the online editor: it shows names, details,
-tags, quantities, and completion state, but cannot change anything. It displays
-“Offline · read only” and “Last saved” so you can judge whether changes made
-elsewhere are missing. Reopening a room or private list, returning to its tab,
-reconnecting, or completing an authorized edit attempts to refresh the copy.
+tags, quantities, and completion state, but cannot change anything. From an offline
+room launch, tap a saved list to see its read-only item rows, then use “Back to room”
+to pick another; check marks are visual only. The shell follows the online room/list
+layout and the locally saved light/dark theme. It displays “Offline · read only” and
+“Last saved” so you can judge whether changes made elsewhere are missing.
+Reopening a room or private list, returning to its tab, reconnecting, or
+completing an authorized edit attempts to refresh the copy.
 Updates require an open app and a successful server check; closed-app background
 sync is not promised.
 
@@ -72,10 +75,11 @@ replaces the prior complete copy. This does not change online access to rooms.
 Older icons opening `/` can use the saved room; room URLs must match the saved
 room. Deep `/list/` bookmarks and `/share/` links are not offline launch paths.
 An already-open online page offers a read-only saved view when the browser
-signals a lost connection and a matching copy exists. The view opens over the
-current page, without following a room link to Safari; close it to return to the
-page. The live editing controls behind it should not be treated as working
-offline. If no matching copy exists, the page shows a warning instead of a link.
+signals a lost connection and a matching copy exists. That in-page view opens
+over the current page without following a room link to Safari; close it to return
+to the page. This emergency view still uses the compact layout rather than the
+redesigned room-launch shell. The live editing controls behind it should not be
+treated as working offline. If no matching copy exists, the page shows a warning instead of a link.
 A fresh launch from the home-screen icon still needs the installed service
 worker; if its cached shell is missing, it shows a recovery message instead of
 a browser navigation error. These changes are not yet verified on an iPhone.

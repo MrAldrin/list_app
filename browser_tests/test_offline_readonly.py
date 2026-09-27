@@ -39,6 +39,11 @@ def prepare_snapshot_data(server):
     return room_slug, default_slug, unsafe_list_name
 
 
+def open_offline_list(page, name):
+    page.locator(".list-link").filter(has_text=name).click()
+    expect(page.get_by_role("heading", name=name, exact=True)).to_be_visible()
+
+
 def offline_record(page, room_slug):
     page.wait_for_function(
         """async (slug) => {
@@ -103,7 +108,7 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     )
     cached_paths = member.evaluate(
         """async () => {
-            const cache = await caches.open('listr-offline-shell-v2');
+            const cache = await caches.open('listr-offline-shell-v3');
             return (await cache.keys()).map((request) => new URL(request.url).pathname).sort();
         }"""
     )
@@ -183,19 +188,24 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     member.goto(room_url, timeout=15_000)
     expect(member.get_by_text("Offline · read only", exact=True)).to_be_visible()
     expect(member.get_by_role("heading", name="Home", exact=True)).to_be_visible()
-    expect(
-        member.get_by_role("heading", name=unsafe_list_name, exact=True)
-    ).to_be_visible()
+    open_offline_list(member, unsafe_list_name)
     expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
     expect(member.get_by_text("Stored notes", exact=False)).to_be_visible()
     expect(member.get_by_text("Tags: seasonal", exact=False)).to_be_visible()
     expect(member.get_by_text("Tags: produce", exact=False)).to_be_visible()
-    expect(member.get_by_text("quantity 3", exact=False)).to_be_visible()
+    expect(member.get_by_text("\u00d7 3", exact=True)).to_be_visible()
     assert member.locator(".items li.done").count() == 1
-    assert member.locator("input, button").count() == 0
+    assert member.locator("input, button").count() == 2
+    assert member.locator("input, [type=checkbox]").count() == 0
     assert member.locator("img").count() == 0
     assert member.evaluate("window.__offlineXss") is None
     expect(member.get_by_text(re.compile("Last saved:"), exact=False)).to_be_visible()
+    member.get_by_role("button", name="Toggle light and dark theme").click()
+    assert member.evaluate("localStorage.getItem('listapp_theme')") == "dark"
+    member.get_by_role("button", name="Back to room").click()
+    expect(member.get_by_role("button", name=re.compile("Daily"))).to_be_visible()
+    member.reload(timeout=15_000)
+    assert member.evaluate("document.documentElement.classList.contains('dark')")
 
     # A different room slug cannot use the one cached room, but root-launch icons can.
     member.goto(f"{server.url}/room/not-the-saved-room", timeout=15_000)
@@ -205,6 +215,7 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     assert member.get_by_text("Checked apples", exact=True).count() == 0
     member.goto(server.url, timeout=15_000)
     expect(member.get_by_text("Offline · read only", exact=True)).to_be_visible()
+    open_offline_list(member, unsafe_list_name)
     expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
 
     # The shell performs an actual authorized fetch again when connectivity returns.
@@ -221,6 +232,8 @@ def test_one_room_snapshot_survives_offline_and_revalidates_on_return(server, se
     member.context.set_offline(False)
     member.wait_for_function("navigator.onLine === true", timeout=5000)
     member.evaluate("window.dispatchEvent(new Event('online'))")
+    member.get_by_role("button", name="Back to room").click()
+    open_offline_list(member, "Daily")
     expect(
         member.get_by_text("Added while this device was offline", exact=True)
     ).to_be_visible()
@@ -282,7 +295,7 @@ def test_missing_shell_cache_shows_recovery_page_instead_of_navigation_error(
     ).to_be_visible()
     assert offline_record(member, room_slug)
     member.wait_for_function("navigator.serviceWorker.controller !== null")
-    member.evaluate("caches.delete('listr-offline-shell-v2')")
+    member.evaluate("caches.delete('listr-offline-shell-v3')")
     server.stop()
     member.context.set_offline(True)
     member.goto(room_url, timeout=15_000)
@@ -347,6 +360,7 @@ def test_offline_copy_survives_until_reconnection_then_clears(server, sessions, 
     member.context.set_offline(True)
     member.goto(room_url, timeout=15_000)
     expect(member.get_by_text("Offline · read only", exact=True)).to_be_visible()
+    open_offline_list(member, "<img src=x onerror=window.__offlineXss=1>")
     expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
     assert (
         member.evaluate("window.ListROfflineStorage.readRecord()")["saved_at"]
@@ -363,6 +377,7 @@ def test_offline_copy_survives_until_reconnection_then_clears(server, sessions, 
             connection.execute("DELETE FROM rooms WHERE slug = ?", (room_slug,))
     # No server check is possible while disconnected: the old copy remains.
     member.reload(timeout=15_000)
+    open_offline_list(member, "<img src=x onerror=window.__offlineXss=1>")
     expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()
     assert (
         member.evaluate("window.ListROfflineStorage.readRecord()")["saved_at"]
@@ -434,4 +449,5 @@ def test_temporary_snapshot_error_keeps_old_copy_and_timestamp(server, sessions)
     member.context.set_offline(True)
     member.goto(room_url, timeout=15_000)
     expect(member.get_by_text("Offline · read only", exact=True)).to_be_visible()
+    open_offline_list(member, "<img src=x onerror=window.__offlineXss=1>")
     expect(member.get_by_text("Checked apples", exact=True)).to_be_visible()

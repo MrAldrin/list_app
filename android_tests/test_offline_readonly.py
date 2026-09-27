@@ -177,13 +177,14 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     assert page.evaluate(
                         "matchMedia('(display-mode: standalone)').matches"
                     )
+                    page.locator(".list-link").filter(has_text="Groceries").click()
                     expect(
                         page.get_by_role("heading", name="Groceries")
                     ).to_be_visible()
                     expect(page.get_by_text("Apples", exact=True)).to_be_visible()
                     expect(page.get_by_text("Buy green", exact=False)).to_be_visible()
                     expect(page.get_by_text("Tags: fruit", exact=False)).to_be_visible()
-                    expect(page.get_by_text("quantity 3", exact=False)).to_be_visible()
+                    expect(page.get_by_text("\u00d7 3", exact=True)).to_be_visible()
                     expect(page.get_by_text("Last saved:", exact=False)).to_be_visible()
                     assert (
                         page.evaluate(
@@ -192,7 +193,7 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                         == saved_at
                     )
                     assert page.locator(".items li.done").count() == 1
-                    assert page.locator("input, button").count() == 0
+                    assert page.locator("input, [type=checkbox]").count() == 0
                     assert page.evaluate(
                         "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
                         room_slug,
@@ -201,6 +202,7 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     page.goto(
                         f"http://localhost:{android_server.port}/", timeout=20_000
                     )
+                    page.locator(".list-link").filter(has_text="Groceries").click()
                     expect(page.get_by_text("Apples", exact=True)).to_be_visible()
                     assert (
                         page.evaluate(
@@ -209,6 +211,7 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                         == saved_at
                     )
                     page.goto(url, timeout=20_000)
+                    page.locator(".list-link").filter(has_text="Groceries").click()
                     expect(page.get_by_text("Apples", exact=True)).to_be_visible()
 
                     # Restore only the disposable server for another, independent
@@ -239,6 +242,7 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     # A temporary outage is not revocation: the old timestamp
                     # and contents survive until an actual successful refresh.
                     page.reload(timeout=20_000)
+                    page.locator(".list-link").filter(has_text="Groceries").click()
                     expect(page.get_by_text("Apples", exact=True)).to_be_visible()
                     expect(
                         page.get_by_text("added from another session", exact=True)
@@ -300,6 +304,7 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     expect(
                         page.get_by_text("Offline · read only", exact=True)
                     ).to_be_visible()
+                    page.locator(".list-link").filter(has_text="Groceries").click()
                     expect(
                         page.get_by_text("added from another session", exact=True)
                     ).to_be_visible()
@@ -317,6 +322,7 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                                 "DELETE FROM rooms WHERE slug = ?", (room_slug,)
                             )
                     page.reload(timeout=20_000)
+                    page.locator(".list-link").filter(has_text="Groceries").click()
                     expect(page.get_by_text("Apples", exact=True)).to_be_visible()
                     assert (
                         page.evaluate(

@@ -21,7 +21,8 @@ def test_generic_offline_shell_assets_are_served_without_room_data():
     assert "offline-storage.js" in html
     assert "offline-shell.js" in html
     assert "checking room access" in html.lower()
+    assert 'id="theme-toggle"' in html
+    assert 'id="lists"' in html
     assert "<input" not in html.lower()
-    assert "<button" not in html.lower()
     assert "room password" not in html.lower()
     assert "token" not in html.lower()

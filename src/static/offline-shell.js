@@ -4,6 +4,13 @@
   const storage = window.ListROfflineStorage;
   const REQUEST_TIMEOUT_MS = 5000;
   const SNAPSHOT_PATH = '/api/offline/rooms/';
+  let selectedList = null;
+  let currentRecord = null;
+
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const dark = document.documentElement.classList.toggle('dark');
+    try { window.localStorage.setItem('listapp_theme', dark ? 'dark' : 'light'); } catch (_) { /* Optional preference. */ }
+  });
 
   function formatTime(record) {
     const time = new Date(record.saved_at);
@@ -26,49 +33,69 @@
     return element;
   }
 
+  function clearView() {
+    selectedList = null;
+    currentRecord = null;
+    document.getElementById('room-name').textContent = 'Saved lists';
+    document.getElementById('last-saved').textContent = '';
+    document.getElementById('lists').replaceChildren();
+  }
+
   function renderSnapshot(record) {
+    if (currentRecord && currentRecord.snapshot.room.slug !== record.snapshot.room.slug) selectedList = null;
+    currentRecord = record;
     const snapshot = record.snapshot;
-    document.getElementById('room-name').textContent = snapshot.room.name;
-    showLastSaved(record);
     const lists = document.getElementById('lists');
     lists.replaceChildren();
-
-    for (const list of snapshot.lists) {
-      const section = document.createElement('section');
-      section.className = 'list-card';
-      addText(section, 'h2', list.name);
-      if (list.list_tags.length) {
-        addText(section, 'p', `Tags: ${list.list_tags.join(', ')}`, 'list-tags');
-      }
-      const items = document.createElement('ul');
-      items.className = 'items';
-      for (const item of list.items) {
-        const row = document.createElement('li');
-        if (item.done) row.classList.add('done');
-        const name = document.createElement('span');
-        name.textContent = item.name;
-        row.append(name);
-        const quantity = document.createElement('span');
-        quantity.className = 'quantity';
-        quantity.textContent = ` · quantity ${item.quantity}`;
-        row.append(quantity);
-        if (item.description) {
-          const details = document.createElement('span');
-          details.className = 'item-details';
-          details.textContent = ` — ${item.description}`;
-          row.append(details);
-        }
-        if (item.active_tags.length) {
-          const tags = document.createElement('span');
-          tags.className = 'item-details';
-          tags.textContent = ` — Tags: ${item.active_tags.join(', ')}`;
-          row.append(tags);
-        }
-        items.append(row);
-      }
-      section.append(items);
-      lists.append(section);
+    showLastSaved(record);
+    // Lists have no stable ID in the snapshot. If the selected position changed,
+    // return to the room rather than accidentally displaying a different list.
+    if (selectedList !== null && snapshot.lists[selectedList.index]?.name !== selectedList.name) {
+      selectedList = null;
     }
+    const active = selectedList === null ? null : snapshot.lists[selectedList.index];
+    document.getElementById('room-name').textContent = active ? active.name : snapshot.room.name;
+    if (!active) {
+      addText(lists, 'p', 'Your saved lists', 'section-title');
+      for (const [index, list] of snapshot.lists.entries()) {
+        const button = addText(lists, 'button', '', 'list-link');
+        button.type = 'button';
+        addText(button, 'span', '☷', 'list-icon').setAttribute('aria-hidden', 'true');
+        const label = addText(button, 'span', '', 'list-text');
+        addText(label, 'strong', list.name);
+        addText(label, 'small', `${list.items.length} ${list.items.length === 1 ? 'item' : 'items'}`);
+        addText(button, 'span', '›', 'chevron').setAttribute('aria-hidden', 'true');
+        button.addEventListener('click', () => {
+          selectedList = { index, name: list.name };
+          renderSnapshot(currentRecord);
+        });
+      }
+      if (!snapshot.lists.length) addText(lists, 'p', 'No lists in the last saved copy.', 'empty');
+      addText(lists, 'p', 'Open the room online to edit or refresh your lists.', 'footnote');
+      return;
+    }
+
+    const back = addText(lists, 'button', '‹  Back to room', 'back');
+    back.type = 'button';
+    back.addEventListener('click', () => { selectedList = null; renderSnapshot(currentRecord); });
+    addText(lists, 'p', `${active.items.length} ${active.items.length === 1 ? 'item' : 'items'} · saved copy`, 'section-title');
+    if (active.list_tags.length) addText(lists, 'p', `Tags: ${active.list_tags.join(', ')}`, 'item-details');
+    if (!active.items.length) addText(lists, 'p', 'No items in this list when it was last saved.', 'empty');
+    else {
+      const items = addText(lists, 'ul', '', 'items');
+      items.setAttribute('aria-label', 'Saved items, read only');
+      for (const item of active.items) {
+        const row = addText(items, 'li', '', item.done ? 'done' : '');
+        row.setAttribute('aria-label', `${item.name}, ${item.done ? 'checked' : 'not checked'}, quantity ${item.quantity}`);
+        addText(row, 'span', item.done ? '✓' : '', 'check').setAttribute('aria-hidden', 'true');
+        const info = addText(row, 'div', '', 'item-info');
+        addText(info, 'span', item.name, 'item-name');
+        if (item.description) addText(info, 'span', item.description, 'item-details');
+        for (const tag of item.active_tags) addText(info, 'span', `Tags: ${tag}`, 'tag');
+        addText(row, 'span', `× ${item.quantity}`, 'quantity');
+      }
+    }
+    addText(lists, 'p', 'Read only while offline. Reconnect to make changes.', 'footnote');
   }
 
   function requestedSlug() {
@@ -138,21 +165,17 @@
       record = await storage.readRecord();
     } catch (_) {
       setMessage('Offline copy could not be read on this device.');
-      document.getElementById('last-saved').textContent = '';
+      clearView();
       return;
     }
     if (!record) {
       setMessage('No offline copy is ready on this device. Open the room online and sign in to prepare one.');
-      document.getElementById('room-name').textContent = 'Saved lists';
-      document.getElementById('last-saved').textContent = '';
-      document.getElementById('lists').replaceChildren();
+      clearView();
       return;
     }
     if (slug !== null && record.snapshot.room.slug !== slug) {
       setMessage('No offline copy is ready for this room.');
-      document.getElementById('room-name').textContent = 'Saved lists';
-      document.getElementById('last-saved').textContent = '';
-      document.getElementById('lists').replaceChildren();
+      clearView();
       return;
     }
 
@@ -165,11 +188,13 @@
   async function main() {
     if (!storage) {
       setMessage('Offline storage is unavailable in this browser.');
+      clearView();
       return;
     }
     const slug = requestedSlug();
     if (slug === undefined) {
       setMessage('No offline copy is available for this address.');
+      clearView();
       return;
     }
 
@@ -178,11 +203,13 @@
       record = await storage.readRecord();
     } catch (_) {
       setMessage('Offline storage could not be read on this device.');
+      clearView();
       return;
     }
 
     if (slug === null && !record) {
       setMessage('No offline copy is ready on this device. Open the room online and sign in to prepare one.');
+      clearView();
       return;
     }
 
@@ -197,6 +224,7 @@
     if (result.kind === 'saved') {
       if (slug !== null && result.record.snapshot.room.slug !== slug) {
         setMessage('No offline copy is ready for this room.');
+        clearView();
         return;
       }
       setMessage('Online check complete · read only');
@@ -205,9 +233,7 @@
     }
     if (result.kind === 'denied') {
       setMessage('Room access could not be confirmed. Return online and sign in again.');
-      document.getElementById('room-name').textContent = 'Saved lists';
-      document.getElementById('last-saved').textContent = '';
-      document.getElementById('lists').replaceChildren();
+      clearView();
       return;
     }
     if (result.kind === 'network-failure') {

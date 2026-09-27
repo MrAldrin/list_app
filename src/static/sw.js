@@ -1,5 +1,5 @@
 const SHELL_CACHE_PREFIX = 'listr-offline-shell-';
-const SHELL_CACHE_NAME = `${SHELL_CACHE_PREFIX}v2`;
+const SHELL_CACHE_NAME = `${SHELL_CACHE_PREFIX}v3`;
 const SHELL_URL = '/static/offline-shell.html';
 const SHELL_ASSETS = [
   SHELL_URL,

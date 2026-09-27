@@ -101,6 +101,11 @@ def trust_in_test_profile(certutil: str, directory: Path, ca_cert: Path) -> None
     )
 
 
+def open_saved_list(page, name):
+    page.locator(".list-link").filter(has_text=name).click()
+    expect(page.get_by_role("heading", name=name, exact=True)).to_be_visible()
+
+
 @pytest.mark.parametrize("browser", ["chromium", "firefox"], indirect=True)
 def test_trusted_https_cookie_and_cold_offline_navigation(
     tmp_path: Path, browser: Browser
@@ -115,7 +120,7 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
     server = TestServer(tmp_path, tls_cert=cert, tls_key=key, tls_ca=ca_cert)
     try:
         server.start()
-        room_slug, _, _ = prepare_snapshot_data(server)
+        room_slug, _, unsafe_list_name = prepare_snapshot_data(server)
         url = f"{server.url}/room/{room_slug}"
         profile = tmp_path / "profile"
         if browser.browser_type.name == "chromium":
@@ -199,6 +204,7 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
             server.stop()
             page.goto(url, timeout=15_000)
             expect(page.get_by_text("Offline · read only", exact=True)).to_be_visible()
+            open_saved_list(page, unsafe_list_name)
             expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
             assert (
                 page.evaluate(
@@ -206,8 +212,9 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
                 )
                 == saved_at
             )
-            assert page.locator("input, button").count() == 0
+            assert page.locator("input, [type=checkbox]").count() == 0
             page.goto(server.url, timeout=15_000)  # Older root-launch icons.
+            open_saved_list(page, unsafe_list_name)
             expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
             context.set_offline(False)
             server.start()
@@ -219,6 +226,7 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
             server.stop()
             context.set_offline(True)
             page.goto(url, timeout=15_000)
+            open_saved_list(page, unsafe_list_name)
             expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
             old_record = page.evaluate("window.ListROfflineStorage.readRecord()")
             old_saved_at = old_record["saved_at"]
@@ -297,6 +305,8 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
                     "() => { IDBObjectStore.prototype.put = window.__offlinePut; }"
                 )
             page.evaluate("window.dispatchEvent(new Event('online'))")
+            page.get_by_role("button", name="Back to room").click()
+            open_saved_list(page, "Daily")
             expect(page.get_by_text("New HTTPS item", exact=True)).to_be_visible()
             page.wait_for_function(
                 """async (previous) => {
@@ -312,6 +322,7 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
             server.stop()
             context.set_offline(True)
             page.reload(timeout=15_000)
+            open_saved_list(page, unsafe_list_name)
             expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
             with sqlite3.connect(server.database) as connection:
                 connection.execute(
@@ -319,6 +330,7 @@ def test_trusted_https_cookie_and_cold_offline_navigation(
                     (room_slug,),
                 )
             page.reload(timeout=15_000)
+            open_saved_list(page, unsafe_list_name)
             expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
             server.start()
             context.set_offline(False)

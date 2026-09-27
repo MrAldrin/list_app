@@ -13,7 +13,7 @@ def test_service_worker_route():
     response = client.get("/sw.js")
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
-    assert "SHELL_CACHE_NAME = `${SHELL_CACHE_PREFIX}v2`" in response.text
+    assert "SHELL_CACHE_NAME = `${SHELL_CACHE_PREFIX}v3`" in response.text
     assert "self.skipWaiting()" not in response.text
     assert "/static/offline-shell.html" in response.text
     assert "cache.put" not in response.text
