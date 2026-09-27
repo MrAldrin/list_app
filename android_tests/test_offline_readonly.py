@@ -94,8 +94,11 @@ def test_installed_room_cold_launches_saved_lists_without_network(
         else "Update available. More options"
     )
     tap_label(menu)
-    tap_label("Add to Home screen")
-    tap_label("Install")
+    if "Add to Home screen" in visible_text():
+        tap_label("Add to Home screen")
+        tap_label("Install")
+    else:
+        tap_label("Install app")
     wait_for_text("Install app")
     tap_label("Install")
     wait_for_text("Add to home screen")
@@ -155,6 +158,12 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     # Closing the CDP connection before force-stop avoids relying
                     # on an already-open page or Chrome's previous process.
                     browser.close()
+                    # Chrome 124 flushes localStorage asynchronously. Immediately
+                    # killing it after fresh login loses even unrelated routing
+                    # keys. Allow the backgrounded app to settle before force-stop;
+                    # the assertions after relaunch, not this delay, prove access.
+                    adb("shell", "input", "keyevent", "KEYCODE_HOME")
+                    time.sleep(5)
                     adb("shell", "am", "force-stop", "com.android.chrome")
                     launch_installed_webapp(url)
                     browser = connect_to_chrome(playwright.chromium, debug_port)
@@ -182,14 +191,14 @@ def test_installed_room_cold_launches_saved_lists_without_network(
                     )
                     assert page.locator(".items li.done").count() == 1
                     assert page.locator("input, button").count() == 0
+                    assert page.evaluate(
+                        "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
+                        room_slug,
+                    ), "Remembered token disappeared during offline cold launch"
                 finally:
                     adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
                     android_server.start()
                     adb("reverse", bridge, bridge)
-                assert page.evaluate(
-                    "(slug) => Boolean(localStorage.getItem('listapp_room_token_' + slug))",
-                    room_slug,
-                ), "Remembered token disappeared during offline cold launch"
                 page.wait_for_function(
                     """async () => {
                         try { return (await fetch('/manifest.json', {cache: 'no-store'})).ok; }

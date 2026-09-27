@@ -147,8 +147,9 @@ so no full-suite pass is claimed for this change.
 
 Still unverified: **offline navigation** on a browser trusting a real HTTPS
 certificate, every combination of revocation/deletion and storage failure, and
-iPhone installed-app behavior. The Android emulator cold-launch check currently
-fails on remembered HTTP access after force-stop; see the [emulator guide](android-emulator-testing.md).
+iPhone installed-app behavior. The Android emulator cold-launch check now passes after allowing Chrome's
+localStorage to settle before force-stop; immediate-kill durability is not
+established. See the [emulator guide](android-emulator-testing.md).
 HTTP fallback and self-signed desktop HTTPS tests cannot establish installed-
 device or production proxy behavior.
 

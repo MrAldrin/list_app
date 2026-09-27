@@ -58,9 +58,10 @@ in the native accessibility tree.
 On the offline feature branch, a third opt-in test installs a disposable room,
 waits for its IndexedDB snapshot and service-worker control, then stops the
 server, removes ADB reverse, and enables airplane mode. It confirms a network
-request fails, force-stops Chrome, relaunches the installed icon without a page
-reload, and checks the read-only shell displays the saved checked item and
-unchanged timestamp without edit controls. It restores the connection and
+request fails, backgrounds Chrome briefly to let its localStorage flush, then
+force-stops it and relaunches the installed icon without a page reload. It checks
+the read-only shell displays the saved checked item and unchanged timestamp
+without edit controls. It restores the connection and
 checks remembered access to the online editor. This checks a cold launch, not
 HTTPS cookies or a physical phone.
 
@@ -72,13 +73,15 @@ not cleared. Tests fail (rather than skip) if the emulator is absent or Chrome's
 first-run screen is unfinished. `adb -e` selects an emulator, never a phone.
 Traces, if added later, must contain only disposable test data.
 
-**Current local checks:** the two generic Android 15 / Chrome 124 tests pass.
-The offline-specific cold-launch test **fails after proving the saved view opens
-read-only with the original timestamp**: after force-stopping Chrome, its HTTP
-localStorage room token is absent and the online room prompts for its password
-on reconnect. This is a failed remembered-access gate, not a successful full
-cold-launch/recovery check. The earlier warm-navigation test passed before the
-cold-launch extension. Investigate before claiming reliable installed Android
-recovery; HTTPS cookies, newer Chrome and real devices remain unverified. The
-offline-specific test belongs to the offline feature branch, not the `main`-
-based test branch.
+**Current local checks:** all three Android 15 / Chrome 124 emulator checks
+passed, including cold launch and online recovery after a short background
+settling period (cold-launch check passed twice). Diagnosis: force-stopping
+Chrome immediately after first login/snapshot caused **all** localStorage keys,
+including the room token and routing key, to disappear after relaunch, although
+the IndexedDB snapshot survived. Disconnecting CDP alone did not erase the
+keys; backgrounding Chrome for five seconds before force-stop preserved them.
+The delay is not a readiness signal; the test asserts the token, snapshot and
+online editor after relaunch. Immediate-kill durability is not established,
+so do not claim it on real devices. HTTPS cookies, newer Chrome and physical
+Android/iPhone behavior remain unverified. The offline-specific test belongs
+to the offline feature branch, not the `main`-based test branch.
