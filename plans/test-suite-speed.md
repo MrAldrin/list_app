@@ -47,6 +47,17 @@ Implemented follow-up (2026-09-28): seed only the disposable list and random sha
 
 Eight targeted cases passed in **35.68s**. The full serial Chromium/Firefox suite (`uv run pytest browser_tests -q -n 0 --durations=0`) passed **50 cases in 238.22s**, versus the preceding serial profiling run's 281.84s: **43.62s (~15.5%) faster** in this single comparison. Summed pytest phases were setup 38.75s, call 177.21s, teardown 22.22s; compared with 38.82s, 220.49s, 22.45s in the preceding instrumented baseline. Deleted-list call time fell from 130.79s to 87.18s (~43.61s), while other call time was 89.70s versus 90.03s. Different runs have natural variation and the baseline used a small disposable timing plugin, so this is evidence of a substantial local improvement, not a repeatability claim or a production benchmark. Required Ruff format/lint and default pytest checks passed (346 fast tests; existing Starlette/httpx warnings). Recommend **keeping** this scoped change: the saved time is material and authorization/write assertions are preserved; the trade-off is that deleted-list cases now depend on schema columns and no longer check the list-creation or Share-dialog UI themselves. Those UI journeys remain tested separately. Do not silently seed the public-sharing journeys or remove rare edge cases without a separate coverage review.
 
+Sequential repeat benchmarks of the seeded full serial suite (2026-09-28; same command, three additional runs, no overlap):
+
+| Run | Result | Pytest time | Setup | Call | Teardown | Deleted-list calls |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Initial seeded run | 50 passed | 238.22s | 38.75s | 177.21s | 22.22s | 87.18s |
+| Repeat 1 | 50 passed | 237.55s | 38.67s | 176.41s | 22.39s | 85.53s |
+| Repeat 2 | 50 passed | 237.67s | 38.75s | 176.53s | 22.30s | 85.93s |
+| Repeat 3 | 50 passed | 238.59s | 38.65s | 177.62s | 22.23s | 87.17s |
+
+All four seeded runs finished cleanly within **237.55–238.59s**; three repeats alone average ~237.94s. The earlier unseeded instrumented run was 281.84s (50 passed, 220.49s call, 130.79s deleted-list calls), and another uninstrumented serial profile took 282.23s. This supports a roughly **44-second / 16% reduction** on this machine, concentrated in deleted-list call time, not merely random run-to-run fluctuation. Because we did not rerun the unseeded suite in the same benchmark series, avoid claiming a controlled A/B or hardware-independent speedup. `time` measured ~85–86% CPU across repeats; its 733–774 MB maximum RSS is per-process, not aggregate browser/server memory. No failures or teardown errors appeared in these repeats. Remaining call time is ~176–178s: ~86–87s in deletion cases and ~90–91s elsewhere. Next possible improvement is a **coverage review of the 24 stale-action room/public × Chromium/Firefox permutations**: compare each assertion against unit/service coverage and preserve real browser cases for unique WebSocket/revocation and navigation behavior before proposing any removals. This has more potential than revisiting restart (~1.2s per full suite), but requires owner agreement before dropping a scenario. Do not assume parallel workers are reliable based on serial repeat stability.
+
 ## Important distinction: browser workers versus Android workers
 
 The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
@@ -128,7 +139,8 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [ ] Investigate browser teardown errors (Firefox Service Worker installation after restart; Chromium screenshot timeout at four workers) before considering parallelism reliable.
 - [x] Try seeding one stale-deletion prerequisite in isolation; both browser cases passed and became modestly faster, but revert the one-off change pending a coverage/suite-level approach.
 - [x] Seed prerequisites for 28 repetitive deleted-list cases; targeted and full desktop suites pass; one full run improved ~44s versus the preceding baseline (see above).
-- [ ] Repeat the seeded full-suite run if establishing stable runtime for a release recommendation; measure and verify further desktop browser optimizations in small chunks.
+- [x] Repeat the seeded full serial suite three times sequentially; all 50 passed in ~238s with no teardown errors (see above).
+- [ ] Map stale-action browser permutations to existing service/security tests before proposing any case removal; measure and verify further desktop browser optimizations in small chunks.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
 - [ ] Optimize Python setup after higher-impact work.
