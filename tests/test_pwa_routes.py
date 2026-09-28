@@ -24,3 +24,13 @@ def test_manifest_routes():
         assert (
             response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
         )
+
+
+def test_favicon_is_a_file_nicegui_can_serve():
+    from nicegui import helpers
+
+    from main import FAVICON_PATH
+
+    # NiceGUI serves /favicon.ico with FileResponse only for real files;
+    # a URL such as "/static/..." makes every favicon request fail.
+    assert helpers.is_file(FAVICON_PATH)

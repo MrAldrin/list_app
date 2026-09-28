@@ -70,7 +70,10 @@ def _add_install_manifest(room_slug: str | None = None) -> None:
     ui.add_head_html(f'<link rel="manifest" href="{href}">')
 
 
-app.add_static_files("/static", os.path.join(os.path.dirname(__file__), "static"))
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+# NiceGUI serves /favicon.ico from a file on disk, not from a URL.
+FAVICON_PATH = os.path.join(STATIC_DIR, "icons", "favicon-32.png")
+app.add_static_files("/static", STATIC_DIR)
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
 )
@@ -2493,6 +2496,6 @@ if __name__ in {"__main__", "__mp_main__"}:
         port=port,
         reload=app_reload_enabled(),
         title="ListR",
-        favicon="/static/icons/favicon-32.png",
+        favicon=FAVICON_PATH,
         storage_secret=os.environ["NICEGUI_STORAGE_SECRET"],
     )
