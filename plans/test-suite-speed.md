@@ -23,7 +23,9 @@ Sequential follow-up runs on the same machine (2026-09-28; 50 desktop browser ca
 | 2 | 3 | 50 passed plus one teardown error; then 50 passed; then 50 passed | 147.93s, 147.97s, 148.12s |
 | 4 | 2 | 50 passed plus one teardown error in each run | 89.47s, 83.09s |
 
-The two-worker runs were consistently ~148s, but one reported a Firefox Service Worker installation error during teardown of the restart scenario. One four-worker run timed out taking a Chromium teardown screenshot (30s); the other reported the same Firefox Service Worker installation error. All test bodies passed, but runs with teardown errors **do not count as clean passes**. Four workers used roughly 332–361% CPU versus 166–167% at two workers (from `/usr/bin/time -v`); its per-process maximum RSS is not a total-memory measurement. No benchmarks overlapped. Adopt two workers **provisionally** in opt-in desktop browser commands because four has not demonstrated reliable completion; retain serial debugging and the Android `-n 0` command. Investigate teardown flakiness before claiming parallel execution is fully reliable or promoting four workers. The serial baseline above was not repeated.
+The two-worker runs were consistently ~148s, but one reported a Firefox Service Worker installation error during teardown of the restart scenario. One four-worker run timed out taking a Chromium teardown screenshot (30s); the other reported the same Firefox Service Worker installation error. All test bodies passed, but runs with teardown errors **do not count as clean passes**. Four workers used roughly 332–361% CPU versus 166–167% at two workers (from `/usr/bin/time -v`); its per-process maximum RSS is not a total-memory measurement. No benchmarks overlapped. The provisional two-worker recommendation was **retracted**: ~148s remains too slow and one repeat failed in teardown; four workers did not finish cleanly in either run. Desktop documentation retains the serial `-n 0` command pending profiling and reliable improvements; Android also remains `-n 0`. Investigate teardown flakiness before recommending either parallel setting. A subsequent serial profiling run is recorded below.
+
+Serial profiling run (2026-09-28; `uv run pytest browser_tests -q -n 0 --durations=0`): **50 passed in 282.23s**. Summing pytest's 50 per-case phase durations (rounded to hundredths): setup **38.80s** (0.78s/case), call/test actions **221.34s** (4.43s/case), teardown **22.00s** (0.44s/case); ~0.09s is rounding/report overhead. The full suite ran at ~78% CPU according to `/usr/bin/time -v`. The test-action phase accounts for ~78% of wall time, so server/fixture setup alone cannot deliver a substantial reduction. `call` includes browser operations and one test's in-body server restart; `teardown` includes screenshots and trace archiving as well as closing contexts and servers. Individual substeps are not yet timed; do not attribute their costs without measurement. This serial run had no teardown errors. Exploratory inspection of its 92 trace archives (46 scenarios create two contexts; four scenarios do not use `sessions`) shows 526 `Frame.click` calls totaling ~111s and 546 `Frame.expect` calls totaling ~64s; these trace timings include some setup/teardown and may overlap, so they are **not** additive shares of the 221s call phase. They suggest repeated UI interactions deserve focused measurement before trying server or artifact optimizations. Read-only harness review recommends exception-safe timers for repeated UI setup helpers and the in-test restart, followed by server spawn/readiness and per-context artifact/cleanup costs; keep all assertions, diagnostics, and isolation unchanged. A screenshot or trace failure can currently interrupt subsequent cleanup and error assertions (`browser_tests/conftest.py`), so any cleanup refactor needs separate, focused validation rather than being slipped into profiling.
 
 ## Important distinction: browser workers versus Android workers
 
@@ -47,7 +49,7 @@ Proposed execution tiers:
 3. Relevant integration changes and releases: full desktop browser suite across Chromium and Firefox.
 4. Installation, storage, lifecycle, or network changes, plus applicable releases: Android checks and appropriate iPhone acceptance.
 
-The desktop browser worker recommendation is documented in `docs/browser-testing.md`. Update Android guidance and broader execution-tier guidance only after the corresponding coverage/tier decisions are approved. Keep the default Python command free of browser/device requirements.
+The current serial desktop browser command is documented in `docs/browser-testing.md`. Update Android guidance and broader execution-tier guidance only after the corresponding coverage/tier decisions are approved. Keep the default Python command free of browser/device requirements.
 
 ## Priority 2 — Desktop browser parallelism and overhead
 
@@ -99,8 +101,10 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Recorded proposed priorities and browser-versus-Android parallelism distinction.
 - [ ] Owner approves baseline Android coverage and execution tiers.
 - [x] Repeat two-worker browser runs and benchmark four workers; record timings, resource observations, and teardown errors above.
-- [x] Document provisional two-worker desktop commands; keep serial debugging and Android serial.
-- [ ] Investigate browser teardown errors (Firefox Service Worker installation after restart; Chromium screenshot timeout at four workers) before considering four workers reliable.
+- [x] Retract provisional two-worker desktop command after owner feedback; keep desktop and Android serial while profiling.
+- [x] Profile per-case pytest phases in a clean serial full-suite run; test actions dominate (see above).
+- [ ] Break down time inside call/teardown (browser actions, server restart, screenshot, trace archiving); prioritize measured bottlenecks rather than server startup by assumption.
+- [ ] Investigate browser teardown errors (Firefox Service Worker installation after restart; Chromium screenshot timeout at four workers) before considering parallelism reliable.
 - [ ] Measure and verify further approved desktop browser optimizations in small chunks.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
