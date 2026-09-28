@@ -23,9 +23,12 @@ browser is unavailable.
 Four workers are recommended for the full desktop suite on the tested machine:
 14 consecutive clean 50-case full runs after the restart/screenshot fixes
 (70.50–75.10 seconds), then nine clean 52-case full runs (74.83–77.73 seconds)
-after adding a dedicated open-page restart check. Earlier four-worker runs
-failed in teardown; the [measurements and fixes](../plans/test-suite-speed.md)
-explain what changed. Parallel stability on other machines remains unverified.
+after adding a dedicated open-page restart check. The later 40-case suite
+passed three times in 59.11s, 58.96s and 58.49s on the same machine; see the
+[coverage trade-off](../plans/test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
+Earlier four-worker runs failed in teardown; the
+[measurements and fixes](../plans/test-suite-speed.md) explain what changed.
+Parallel stability on other machines remains unverified.
 
 Run a smaller subset while debugging:
 
@@ -110,20 +113,24 @@ for the small four-worker runtime improvement observed on this machine.
 
 ## Deleted-list regression checks
 
-Local verification: 28 new Chromium/Firefox cases passed against disposable app
-processes. Separate browser sessions keep a room page or public link open while
-another session deletes the list. Delayed WebSocket updates ensure the stale page
-actually sends add, edit, toggle, quantity, tag, and undo events after deletion.
-These repeated cases seed only their disposable list/share token; room login, item
-addition, deletion, stale browser actions, and persistence checks still run through
-the real app. The sharing scenarios above retain end-to-end list creation and the
-Share dialog.
-The room page shows “This list was deleted.” and “Back to room”; the public page
-shows the generic message without room navigation. Room deletion also removes
-room navigation from either page. These tests check the resulting database has
-no deleted list or forbidden write. The full browser suite passed (46 cases),
-alongside 309 fast tests and Ruff checks. This is automated local verification,
-not a manual multi-user or production device check.
+The initial 28-case deleted-list matrix has been reduced to **16 cases**:
+all six stale list-deletion actions (add, edit, toggle, quantity, tag, undo)
+run in **both Chromium and Firefox**, with each action run on a room page in
+one engine and a public page in the other. The four room-deletion cases retain
+both page roles in both engines. This drops a role-by-engine crossing for each
+action; a defect specific to a removed crossing may escape detection. See the
+[coverage map and benchmark](../plans/test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
+
+Separate browser sessions keep a room page or public link open while another
+session deletes the list. Delayed WebSocket updates ensure the stale page sends
+its action after deletion. These cases seed only their disposable list/share
+token; room login, item addition, deletion, stale browser actions, and
+persistence checks still run through the real app. The sharing scenarios above
+retain end-to-end list creation and the Share dialog. The room page shows
+“This list was deleted.” and “Back to room”; the public page shows the generic
+message without room navigation. Room deletion removes room navigation from
+either page. The remaining full desktop suite passed three times (40 cases) locally;
+this is not manual multi-user or production device verification.
 
 ## Android emulator (opt-in)
 

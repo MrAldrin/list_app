@@ -66,9 +66,26 @@ def prepare_action(page, action):
     raise AssertionError(action)
 
 
-@pytest.mark.parametrize("role", ["room", "public"])
-@pytest.mark.parametrize("action", ["add", "edit", "toggle", "quantity", "tag", "undo"])
-def test_stale_page_rejects_actions_after_list_deletion(server, sessions, role, action):
+# Each action runs in both engines and on both page roles across the pair.
+# Other sharing tests cover public revocation in both engines; keep the distinct
+# room-deletion navigation matrix below intact.
+@pytest.mark.parametrize(
+    "action, chromium_role",
+    [
+        ("add", "room"),
+        ("edit", "public"),
+        ("toggle", "room"),
+        ("quantity", "public"),
+        ("tag", "room"),
+        ("undo", "public"),
+    ],
+    ids=["add", "edit", "toggle", "quantity", "tag", "undo"],
+)
+def test_stale_page_rejects_actions_after_list_deletion(
+    server, sessions, browser, action, chromium_role
+):
+    other_role = "public" if chromium_role == "room" else "room"
+    role = {"chromium": chromium_role, "firefox": other_role}[browser.browser_type.name]
     member, visitor = sessions
     private_url, link = prepare_list(member, server)
     add_item(member, "milk")

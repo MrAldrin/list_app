@@ -230,17 +230,41 @@ other cases, and worker imbalance would change if tests were removed. The 24
 cases average ~5.26s each including their own server/fixtures; a measured
 candidate A/B would be required to claim any four-worker wall-time benefit.
 
-**Recommendation:** keep the full matrix in the opt-in integration suite for
-now. For a faster editing loop use targeted Chromium cases; do not silently
-change the full-suite command or claim lower-level tests replace browser
-coverage. If the owner chooses a smaller full integration matrix, first agree
-which role/action/engine crossings can be relinquished, then benchmark a
-reversible candidate and verify its surviving checks. No cases were removed
-in this review. A test-strengthening opportunity independent of speed: the
+**Review conclusion at the time:** the full matrix gave the strongest
+integration coverage; removing crossings would require an explicit coverage
+trade-off and a measured candidate. The subsequent owner-approved reduction
+is recorded below. A test-strengthening opportunity independent of speed: the
 current `delayed.sent_events` assertion checks only that *some* event left the
 stale page, not that its payload identifies the intended action; the deleted
 list assertion cannot detect an unrelated action on already-deleted data.
 Investigate that separately before treating permutations as interchangeable.
+
+### Follow-up: reduce role-by-engine crossings (2026-09-28)
+
+The owner prioritized suite speed and delegated the coverage decision. Retain
+all **six distinct list-deletion callbacks in both engines**, with each action
+exercised on a room page in one engine and a public page in the other. Assign
+Chromium Add/Toggle/Tag to room and Edit/Quantity/Undo to public; Firefox uses
+the opposite role for each action. This reduces the list-deletion matrix from
+24 to **12 cases**, rather than dropping an action or a browser engine. The
+four room-deletion navigation cases remain in both roles and engines; all
+public link-rotation security tests remain unchanged. Each surviving case
+still sends the stale UI action over the WebSocket, waits for the server and
+checks unavailable state and persistence. The lost coverage is a *specific*
+engine × role crossing for each action; the Python identity tests cannot
+replace browser callback testing, and a bug isolated to one of these omitted
+crossings may now escape the suite.
+
+Two fresh full four-worker runs of the original 52-case matrix passed in
+**73.62s** and **74.20s**; two sequential full candidate runs passed all
+**40 cases** in **59.11s** and **58.96s**; a final post-format full run
+passed in **58.49s**. The ~15s local improvement exceeds the previous 1–2s
+setup gain, but is not proof of cross-machine performance or
+long-term reliability. The original 126.12s aggregate list-deletion time is
+not the wall-time saving. No screenshot/trace or fixture behavior changed.
+Keep the explicit four-worker desktop command; use targeted cases while
+editing. Future acceptance on other machines and continued flake observation
+remain open.
 
 ## Important distinction: browser workers versus Android workers
 
@@ -328,7 +352,7 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Try scoped public-sharing list seeding with dedicated browser create/login/Share journeys retained; two sequential full candidate runs and two fresh baseline runs passed, with a small measured gain. A quicker navigation strategy did not show an additional gain and was reverted.
 - [x] Time browser teardown substeps with a disposable probe over two full four-worker runs; no teardown optimization justified without weakening diagnostics or stronger evidence.
 - [x] Map stale-action browser permutations to existing service/security tests; record the unique browser behaviors and timing limits above. No removal approved or implemented.
-- [ ] If the owner wants a smaller integration matrix, agree the specific role/action/engine coverage trade-off first, then benchmark and verify a reversible candidate.
+- [x] Owner delegated the smaller-matrix decision: retain every action in both engines, alternate room/public role per engine, keep room-deletion navigation cases; three 40-case four-worker runs passed in ~59s versus two 52-case baselines at ~74s. Cross-machine reliability remains unverified.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
 - [ ] Optimize Python setup after higher-impact work.
