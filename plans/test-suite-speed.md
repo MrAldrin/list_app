@@ -4,6 +4,37 @@
 
 Keep useful regression coverage while shortening the development loop. Desktop browser benchmarking and small, verifiable optimizations are authorized; Android scenario removal or consolidation still requires owner approval. Python optimization is lower priority because the default suite is already relatively fast.
 
+## Resume here — remaining work
+
+This plan is **open**. Desktop browser optimizations and the scoped Python
+speed pass are complete locally; do not repeat them as prerequisites. The
+remaining decisions and checks, in order, are:
+
+1. **Owner decision:** agree which existing Android checks belong in the
+   baseline (including whether the separate password-prompt smoke case is
+   worthwhile) and when Python, desktop browser, Android and real-iPhone
+   checks should run. Review each assertion before removing any scenario;
+   do not add offline-specific tests to the current baseline. See
+   [Priority 1](#priority-1--decide-coverage-and-test-tiers).
+2. **After that decision:** benchmark the approved Android scenarios on the
+   dedicated emulator, serially (`-n 0`). Separate startup, installation,
+   native UI, browser actions and cleanup costs; make one scoped change at a
+   time, retain device-specific behavior and safe cleanup, then repeat and
+   compare clean runs. See [Priority 3](#priority-3--simplify-and-measure-android-checks)
+   and [Android setup](../docs/android-emulator-testing.md).
+3. **Owner/device decision:** agree a small real-iPhone acceptance subset and
+   record device/browser versions and results when a phone is available.
+   Decide separately whether a small Linux WebKit check adds value; it cannot
+   replace iPhone testing. See [iPhone acceptance](#iphone-relevance-and-remaining-acceptance).
+4. **Verification, not an optimization:** repeat the four-worker desktop suite
+   on other machines or CI when available, and observe longer-term flakes.
+   The ~59s local result is not a cross-machine guarantee.
+
+No Android benchmarks or Android scenario removals, real-iPhone checks, or
+other-machine browser checks have been performed for these remaining items. The
+[progress checklist](#progress) below tracks completion; do not infer approval
+from a proposed step.
+
 ## Measured baseline
 
 Local measurements on the current main-staging-based working copy:
@@ -361,7 +392,7 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Reviewed current browser/Android harnesses and historical offline Android tests, including later experiment changes.
 - [x] Measured current Python suite and serial/two-worker desktop browser suites; all passed.
 - [x] Recorded proposed priorities and browser-versus-Android parallelism distinction.
-- [ ] Owner approves baseline Android coverage and execution tiers.
+- [ ] Owner decides baseline Android coverage (including the password-prompt smoke case) and execution tiers; map device-specific assertions to retained coverage before removing scenarios. Do not import offline-only tests.
 - [x] Repeat two-worker browser runs and benchmark four workers; record timings, resource observations, and teardown errors above.
 - [x] Retract provisional two-worker desktop command after owner feedback; keep desktop and Android serial while profiling.
 - [x] Profile per-case pytest phases in a clean serial full-suite run; test actions dominate (see above).
@@ -377,7 +408,8 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Map stale-action browser permutations to existing service/security tests; record the unique browser behaviors and timing limits above. No removal approved or implemented.
 - [x] Owner delegated the smaller-matrix decision: retain every action in both engines, alternate room/public role per engine, keep room-deletion navigation cases; three 40-case four-worker runs passed in ~59s versus two 52-case baselines at ~74s. Cross-machine reliability remains unverified.
 - [x] Strengthen retained stale-deletion cases to match outgoing events to the intended UI controls; 16 targeted Chromium/Firefox cases, the 40-case four-worker browser suite (58.64s), and 346 fast tests passed locally. Ruff format/lint checks passed.
-- [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
-- [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
+- [ ] After coverage approval, profile and benchmark the approved Android scenarios serially on the dedicated emulator; retain installation/lifecycle checks and safe cleanup, repeat clean runs, and record the runtime comparison. Android remains unmeasured.
+- [ ] Agree a small real-iPhone acceptance subset and record versions/results on a real device; decide separately whether optional Linux WebKit coverage is useful.
+- [ ] Verify four-worker desktop browser stability on other machines/CI when available and observe longer-term flakes; local runs alone are not cross-machine acceptance.
 - [x] Remove redundant valid hashes from malformed-hash test setup; 346 fast tests passed in repeated runs, with ~0.5s lower eight-worker runtime locally. Further worker-count trade-offs remain optional.
 - [x] Update the browser testing guide with measured desktop commands and limits; Android guidance remains serial.

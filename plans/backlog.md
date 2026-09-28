@@ -46,14 +46,13 @@ Configuration, database checks, and recovery instructions live in
 
 ## Testing, documentation, and tooling
 
-- [ ] Extend the [opt-in Android emulator checks](../docs/android-emulator-testing.md)
-  beyond the verified password-prompt installation, remembered access, and
-  interrupted-network recovery checks: cover password revocation, fresh login,
-  old icons, multiple rooms, and actual offline navigation. Keep offline-specific tests on the
-  offline feature branch and test combined changes before integrating. KVM is
-  usable; an Android 15 / Chrome 124 virtual phone is booted with only the
-  owner-approved necessary SDK components installed outside the repo. Neither
-  emulator nor desktop Playwright replaces physical iPhone/Android checks.
+- [ ] Resume the [open test-suite speed plan](test-suite-speed.md#resume-here--remaining-work):
+  first decide which existing Android scenarios and execution tiers to keep,
+  then benchmark the approved checks serially before simplifying them. A small
+  real-iPhone acceptance subset and cross-machine desktop browser reliability
+  remain unverified. Do not assume extra Android scenarios are approved or add
+  offline navigation tests to the current baseline; revisit offline-specific
+  device coverage with the future offline feature.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
 - [x] Rechecked the default-room `lastrowid` warning with `ty` and guarded the unexpected `None` case; normal startup remains covered by database setup tests.
 - [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
