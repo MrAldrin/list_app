@@ -122,6 +122,39 @@ removing any existing assertion. It proves recovery of this room page on this
 machine, not reload-free live reconnection or every browser/network interruption. Keep the four-worker desktop recommendation; Android
 remains serial. Longer-term and other-machine reliability are still unknown.
 
+### Follow-up: public-sharing setup (2026-09-28)
+
+A fresh four-worker 52-case baseline passed in 76.37s. A disposable
+per-process Playwright timing probe (not shipped) ran all 18 public-sharing
+cases in 37.63s and attributed, across all workers, ~24.57s to list-creation
+clicks, ~12.89s to Share-dialog close expectations, and ~11.41s to Share-dialog
+clicks. These inclusive method totals are **not** wall-clock savings in a
+parallel run; navigation and expectation waits also contribute. Existing
+service/database tests cover list creation and token persistence, while the
+full browser creation/login/Share journeys remain in the sharing/restart tests.
+
+One-case list seeding kept browser login, Share UI, and invalid-token checks but
+did not improve full-suite wall time (52 passed in 76.30s). Seeding the
+disposable list in seven of nine public-sharing scenarios (both engines) still
+keeps real browser login and Share UI, all 52 cases, separate member/visitor
+contexts, fresh per-test servers and databases, stale-action/persistence checks,
+and all passing-run diagnostics. The two restart journeys retain end-to-end
+browser list creation; a shared seed helper also replaces duplicated setup in
+deleted-list tests without changing their behavior. Two sequential 52-case
+four-worker runs of the initial seven-case candidate passed in **73.44s and
+73.40s**. Fresh unmodified A/B baseline runs, with the candidate temporarily
+set aside and then restored, passed in **75.24s and 75.17s**. A refactored
+shared-helper candidate passed in 74.90s and, after Ruff and fast-suite checks,
+in 73.08s. Thus the observed improvement is small (~1–2s versus the fresh
+baseline) and may vary with worker scheduling;
+other-machine reliability and longer repeats remain unverified.
+
+Changing only setup navigation to `wait_until="domcontentloaded"` produced two
+more passing 52-case runs in 73.82s and 74.56s; no clear additional speedup,
+so this experiment was reverted. We did not eliminate Share UI checks or
+passing-run artifacts just to reduce time. Further speed gains would require
+separate coverage decisions or stronger evidence of a safe bottleneck.
+
 ## Important distinction: browser workers versus Android workers
 
 The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
@@ -199,12 +232,13 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Retract provisional two-worker desktop command after owner feedback; keep desktop and Android serial while profiling.
 - [x] Profile per-case pytest phases in a clean serial full-suite run; test actions dominate (see above).
 - [x] Measure repeated UI setup helpers and in-test restart in targeted and full serial runs; create/share setup dominates the timed call phase (see above).
-- [ ] Split helper time into browser interactions, navigation and expectation waits; measure teardown substeps (screenshot, trace archiving, context close) separately before changing diagnostics.
+- [x] Split public-sharing helper time into browser interactions, navigation and expectation waits with a disposable Playwright probe; Share dialog close and list-creation clicks are costly but overlap across workers. Teardown substeps (screenshot, trace archiving, context close) remain unmeasured; do not change diagnostics without profiling.
 - [x] Investigate browser teardown errors and retain scoped fixes; fourteen 50-case runs and nine additional 52-case full four-worker runs passed. Other-machine and longer-term reliability remain unverified.
 - [x] Add a dedicated open-page restart recovery test for both browser engines; targeted and nine full parallel runs passed.
 - [x] Try seeding one stale-deletion prerequisite in isolation; both browser cases passed and became modestly faster, but revert the one-off change pending a coverage/suite-level approach.
 - [x] Seed prerequisites for 28 repetitive deleted-list cases; targeted and full desktop suites pass; one full run improved ~44s versus the preceding baseline (see above).
 - [x] Repeat the seeded full serial suite three times sequentially; all 50 passed in ~238s with no teardown errors (see above).
+- [x] Try scoped public-sharing list seeding with dedicated browser create/login/Share journeys retained; two sequential full candidate runs and two fresh baseline runs passed, with a small measured gain. A quicker navigation strategy did not show an additional gain and was reverted.
 - [ ] Map stale-action browser permutations to existing service/security tests before proposing any case removal; measure and verify further desktop browser optimizations in small chunks.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.

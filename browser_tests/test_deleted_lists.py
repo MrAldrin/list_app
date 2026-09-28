@@ -1,35 +1,11 @@
 """Stale room and public pages cannot write after another user deletes a list."""
 
 import re
-import secrets
-import sqlite3
-from contextlib import closing
 
 import pytest
 from playwright.sync_api import expect
 from test_public_sharing import DelayedUpdates, add_item
-
-
-def prepare_list(member, server):
-    """Seed prerequisites; keep login and stale browser actions real."""
-    slug = f"browser-groceries-{secrets.token_hex(8)}"
-    token = secrets.token_urlsafe(32)
-    with closing(sqlite3.connect(server.database)) as db, db:
-        db.execute(
-            "INSERT INTO lists (name, slug, room_id, share_token) "
-            "VALUES (?, ?, (SELECT id FROM rooms WHERE name = 'Home'), ?)",
-            ("browser groceries", slug, token),
-        )
-    member.goto(server.room_url)
-    member.get_by_label("Room Password", exact=True).fill(server.password)
-    member.get_by_role("button", name="Enter", exact=True).click()
-    expect(
-        member.get_by_role("button", name="Add New List", exact=True)
-    ).to_be_visible()
-    private_url = f"{server.url}/list/{slug}"
-    member.goto(private_url)
-    expect(member.get_by_text("browser groceries", exact=True)).to_be_visible()
-    return private_url, f"{server.url}/share/{token}"
+from test_public_sharing import seeded_list as prepare_list
 
 
 def delete_list(member, server):

@@ -2,6 +2,9 @@
 
 import json
 import re
+import secrets
+import sqlite3
+from contextlib import closing
 
 from playwright.sync_api import expect
 
@@ -64,6 +67,27 @@ def create_list(member, server):
     expect(member.get_by_text("browser groceries", exact=True)).to_be_visible()
     expect(member).to_have_url(re.compile(r"/list/[^/]+$"))
     return member.url
+
+
+def seeded_list(member, server):
+    """Seed only the disposable prerequisite; still log in through the browser."""
+    slug = f"browser-groceries-{secrets.token_hex(8)}"
+    token = secrets.token_urlsafe(32)
+    with closing(sqlite3.connect(server.database)) as db, db:
+        db.execute(
+            "INSERT INTO lists (name, slug, room_id, share_token) "
+            "VALUES (?, ?, (SELECT id FROM rooms WHERE name = 'Home'), ?)",
+            ("browser groceries", slug, token),
+        )
+    member.goto(server.room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(
+        member.get_by_role("button", name="Add New List", exact=True)
+    ).to_be_visible()
+    member.goto(f"{server.url}/list/{slug}")
+    expect(member.get_by_text("browser groceries", exact=True)).to_be_visible()
+    return member.url, f"{server.url}/share/{token}"
 
 
 def share_link(page):
@@ -202,7 +226,7 @@ def test_open_room_tab_recovers_after_server_restart(server, sessions):
 def test_reset_cancels_public_undo_but_keeps_room_access(server, sessions):
     member, visitor = sessions
     delayed = DelayedUpdates(visitor)
-    private_url = create_list(member, server)
+    private_url, _ = seeded_list(member, server)
     add_item(member, "undo target")
     old_link = share_link(member)
     visitor.goto(old_link)
@@ -233,7 +257,7 @@ def test_reset_cancels_public_undo_but_keeps_room_access(server, sessions):
 def test_revoked_tab_cannot_add_and_existing_room_tab_keeps_access(server, sessions):
     member, visitor = sessions
     delayed = DelayedUpdates(visitor)
-    private_url = create_list(member, server)
+    private_url, _ = seeded_list(member, server)
     link = share_link(member)
     room_tab = member.context.new_page()
     room_tab.goto(private_url)
@@ -254,7 +278,7 @@ def test_revoked_tab_cannot_add_and_existing_room_tab_keeps_access(server, sessi
 
 def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
     member, visitor = sessions
-    create_list(member, server)
+    seeded_list(member, server)
     link = share_link(member)
     member.goto(server.room_url)
     list_card = member.locator(".q-card").filter(
@@ -302,7 +326,7 @@ def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
 def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
     member, _visitor = sessions
     delayed = DelayedUpdates(member)
-    create_list(member, server)
+    seeded_list(member, server)
     member.goto(server.room_url)
     list_card = member.locator(".q-card").filter(
         has=member.get_by_role("button", name="browser groceries", exact=True)
@@ -339,7 +363,7 @@ def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
 def test_revoked_public_tab_cannot_save_tag(server, sessions):
     member, visitor = sessions
     delayed = DelayedUpdates(visitor)
-    create_list(member, server)
+    seeded_list(member, server)
     old_link = share_link(member)
     visitor.goto(old_link)
     visitor.get_by_role("button", name="Options", exact=True).click()
@@ -367,7 +391,7 @@ def test_revoked_public_tab_cannot_save_tag(server, sessions):
 
 def test_cancel_reset_keeps_public_link_working(server, sessions):
     member, visitor = sessions
-    create_list(member, server)
+    seeded_list(member, server)
     link = share_link(member)
     visitor.goto(link)
     expect(visitor.get_by_label("Add or Search", exact=True)).to_be_visible()
@@ -383,7 +407,7 @@ def test_cancel_reset_keeps_public_link_working(server, sessions):
 
 def test_invalid_tokens_never_render_list_contents(server, sessions):
     member, visitor = sessions
-    create_list(member, server)
+    seeded_list(member, server)
     add_item(member, "private contents")
     link = share_link(member)
     for invalid in (link[:-1], f"{server.url}/share/{'x' * 43}"):

@@ -100,8 +100,13 @@ round-trip or the rename rejection's navigation, and checks persisted data.
 This avoids a weak test that only sees a button disappear.
 
 Native OS sharing is intentionally disabled in test contexts so the copy-dialog
-fallback is deterministic. The tests read the generated URL from that dialog;
-OS share sheets and system clipboard behavior are not covered here.
+fallback is deterministic. The sharing tests read the generated URL from that
+dialog; OS share sheets and system clipboard behavior are not covered here.
+Seven public-sharing scenarios seed only their disposable list prerequisite;
+they still log in and open the Share dialog through the real browser. The two
+restart journeys still create their lists end-to-end through the browser. See
+[the measurements](../plans/test-suite-speed.md#follow-up-public-sharing-setup-2026-09-28)
+for the small four-worker runtime improvement observed on this machine.
 
 ## Deleted-list regression checks
 
