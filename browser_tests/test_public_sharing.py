@@ -176,6 +176,29 @@ def test_sharing_live_updates_revocation_and_restart(server, sessions):
         )
 
 
+def test_open_room_tab_recovers_after_server_restart(server, sessions):
+    member, visitor = sessions
+    private_url = create_list(member, server)
+    link = share_link(member)
+    add_item(member, "before restart")
+    expect(member).to_have_url(private_url)
+    assert member.evaluate("async () => !!(await navigator.serviceWorker.ready).active")
+    member.evaluate("window.testDocumentBeforeRestart = true")
+
+    # Keep the member's tab open through a real process restart. NiceGUI
+    # automatically reloads its document when the connection is restored.
+    server.restart()
+    visitor.goto(link)
+    expect(visitor.get_by_text("before restart", exact=True)).to_be_visible()
+    add_item(visitor, "from visitor after restart")
+    expect(member).to_have_url(private_url)
+    expect(member.get_by_text("from visitor after restart", exact=True)).to_be_visible()
+    assert not member.evaluate("window.testDocumentBeforeRestart === true")
+    assert server.query(
+        "SELECT name FROM items WHERE name = ?", ("from visitor after restart",)
+    ) == [("from visitor after restart",)]
+
+
 def test_reset_cancels_public_undo_but_keeps_room_access(server, sessions):
     member, visitor = sessions
     delayed = DelayedUpdates(visitor)

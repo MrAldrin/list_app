@@ -21,10 +21,11 @@ can be installed with `uv run playwright install --with-deps chromium firefox`
 browser is unavailable.
 
 Four workers are recommended for the full desktop suite on the tested machine:
-14 consecutive clean full runs after the restart/screenshot fixes, with all 50
-cases passing in 70.50–75.10 seconds. Earlier four-worker runs failed in
-teardown; the [measurements and fixes](../plans/test-suite-speed.md) explain
-what changed. Parallel stability on other machines remains unverified.
+14 consecutive clean 50-case full runs after the restart/screenshot fixes
+(70.50–75.10 seconds), then nine clean 52-case full runs (74.83–77.73 seconds)
+after adding a dedicated open-page restart check. Earlier four-worker runs
+failed in teardown; the [measurements and fixes](../plans/test-suite-speed.md)
+explain what changed. Parallel stability on other machines remains unverified.
 
 Run a smaller subset while debugging:
 
@@ -51,7 +52,11 @@ not a browser-suite recommendation. Android tests must stay serial (`-n 0`).
 - Restart tests preserve only that test's database, secret, browser contexts,
   storage and registered Service Workers. Before stopping the server, they leave
   live pages for `about:blank`, then navigate back and verify remembered access,
-  revoked links and active Service Workers after restart.
+  revoked links and active Service Workers after restart. A separate test keeps
+  a room list tab open during a real server restart. The app automatically
+  reloads that tab; a visitor then adds an item, and the recovered tab must
+  display the new item without a test-driven reload or navigation (Chromium and
+  Firefox). This does not establish a seamless, reload-free reconnection.
 - The fixture terminates the server and closes browser contexts, including on
   failure. Even if a screenshot fails, it attempts remaining screenshots,
   traces and context closure and reports the diagnostic error. Server tracebacks

@@ -104,6 +104,24 @@ roughly 367–386% aggregate job CPU in measured final runs versus 85% serial;
 at `-n 0`. Repeatability across machines/CI and longer-term flake rates remain
 unverified. See [browser testing](../docs/browser-testing.md) for the run command.
 
+### Follow-up: open-page recovery (2026-09-28)
+
+A new test keeps a room member's list tab open through a real server-process
+restart. A document marker confirmed in both engines that NiceGUI automatically
+reloads this tab. Without navigating/reloading it from the test, a separate
+visitor context opens its public link and adds an item; the recovered member tab
+must display the new item and the database must persist it. Both Chromium and Firefox
+passed in a targeted serial run (2 passed) and six targeted four-worker runs
+(2 passed each). Nine consecutive full four-worker runs passed **52 cases** in
+74.83s, 75.16s, 75.39s, 75.41s, 77.73s, 75.26s, 75.36s, 77.25s and 76.01s,
+with no teardown errors. The last three include an assertion that the tab's
+original document was replaced by an automatic reload. The existing
+storage/Service Worker restart scenario still leaves its pages before restart;
+this separate test restores explicit open-page recovery coverage without
+removing any existing assertion. It proves recovery of this room page on this
+machine, not reload-free live reconnection or every browser/network interruption. Keep the four-worker desktop recommendation; Android
+remains serial. Longer-term and other-machine reliability are still unknown.
+
 ## Important distinction: browser workers versus Android workers
 
 The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
@@ -182,7 +200,8 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Profile per-case pytest phases in a clean serial full-suite run; test actions dominate (see above).
 - [x] Measure repeated UI setup helpers and in-test restart in targeted and full serial runs; create/share setup dominates the timed call phase (see above).
 - [ ] Split helper time into browser interactions, navigation and expectation waits; measure teardown substeps (screenshot, trace archiving, context close) separately before changing diagnostics.
-- [x] Investigate browser teardown errors and retain scoped fixes; fourteen full four-worker runs passed. Other-machine and longer-term reliability remain unverified.
+- [x] Investigate browser teardown errors and retain scoped fixes; fourteen 50-case runs and nine additional 52-case full four-worker runs passed. Other-machine and longer-term reliability remain unverified.
+- [x] Add a dedicated open-page restart recovery test for both browser engines; targeted and nine full parallel runs passed.
 - [x] Try seeding one stale-deletion prerequisite in isolation; both browser cases passed and became modestly faster, but revert the one-off change pending a coverage/suite-level approach.
 - [x] Seed prerequisites for 28 repetitive deleted-list cases; targeted and full desktop suites pass; one full run improved ~44s versus the preceding baseline (see above).
 - [x] Repeat the seeded full serial suite three times sequentially; all 50 passed in ~238s with no teardown errors (see above).
