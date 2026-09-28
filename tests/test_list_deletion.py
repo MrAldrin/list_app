@@ -1,6 +1,7 @@
 import sqlite3
 from unittest.mock import Mock
 
+import main
 from database_crud import ListUnavailable
 from main import (
     _can_return_to_room,
@@ -74,9 +75,13 @@ def test_deleting_a_list_refreshes_rooms_and_settings_without_items(monkeypatch)
     refresh_lists = Mock()
     refresh_items = Mock()
     refresh_settings = Mock()
-    monkeypatch.setattr("main.list_of_lists.refresh", refresh_lists)
-    monkeypatch.setattr("main.item_list.refresh", refresh_items)
-    monkeypatch.setattr("main.visibility_settings_ui.refresh", refresh_settings)
+    # setitem removes the stubs afterwards; setattr would leave NiceGUI's
+    # wrapped refresh on the instance and break later class-level patches.
+    monkeypatch.setitem(main.list_of_lists.__dict__, "refresh", refresh_lists)
+    monkeypatch.setitem(main.item_list.__dict__, "refresh", refresh_items)
+    monkeypatch.setitem(
+        main.visibility_settings_ui.__dict__, "refresh", refresh_settings
+    )
 
     broadcast_updates(refresh_lists=True, refresh_items=False)
 

@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, Mock
 from nicegui import Client, ui
 from nicegui.elements.number import Number
 from nicegui.elements.switch import Switch
+from nicegui.elements.toggle import Toggle
 from nicegui.functions.refreshable import refreshable
 from nicegui.page import page
 
@@ -52,7 +53,13 @@ def settings_switch(client, label):
     return next(
         element
         for element in client.elements.values()
-        if isinstance(element, Switch) and element.text == label
+        if isinstance(element, Switch) and element.props.get("aria-label") == label
+    )
+
+
+def mode_toggle(client):
+    return next(
+        element for element in client.elements.values() if isinstance(element, Toggle)
     )
 
 
@@ -64,7 +71,7 @@ def number_input(client, label):
     return next(
         element
         for element in client.elements.values()
-        if isinstance(element, Number) and element.label == label
+        if isinstance(element, Number) and element.props.get("aria-label") == label
     )
 
 
@@ -92,9 +99,7 @@ def test_options_show_main_switch_off_by_default(monkeypatch):
 
         assert settings_switch(client, "Hide checked-off items").value is False
         assert not any(
-            isinstance(element, Switch)
-            and element.text in {"Only after X days", "Keep last X checked items"}
-            for element in client.elements.values()
+            isinstance(element, Toggle) for element in client.elements.values()
         )
         assert get_list_details(list_id)["hide_done_mode"] == "off"
 
@@ -128,7 +133,7 @@ def test_main_switch_reenables_all_and_settings_updates_merge(
             list_id, mode="recent", age_days=7, recent_count=12, expected_slug=slug
         )
         age_input = number_input(client, "Days before hiding")
-        change_switch(settings_switch(client, "Keep last X checked items"), True)
+        change_switch(mode_toggle(client), "recent")
         age_input.value = 0
         blur(age_input)
         merged = get_list_details(list_id)
@@ -147,7 +152,7 @@ def test_submodes_are_exclusive_and_counter_validation_allows_zero(monkeypatch):
     with Client(page("/")) as client:
         state = make_state()
         render_tags(client, list_id, slug, state)
-        change_switch(settings_switch(client, "Only after X days"), True)
+        change_switch(mode_toggle(client), "age")
         assert get_list_details(list_id)["hide_done_mode"] == "age"
         main.visibility_settings_ui(list_id, slug, state, lambda: True, Mock())
 
@@ -156,8 +161,8 @@ def test_submodes_are_exclusive_and_counter_validation_allows_zero(monkeypatch):
         blur(age_input)
         assert get_list_details(list_id)["hide_done_age_days"] == 0
 
-        # Select recent with the already-rendered mutually exclusive switch.
-        change_switch(settings_switch(client, "Keep last X checked items"), True)
+        # Select recent with the already-rendered single-choice toggle.
+        change_switch(mode_toggle(client), "recent")
         assert get_list_details(list_id)["hide_done_mode"] == "recent"
 
         # Render the recent counter and check both the lower and upper bounds.

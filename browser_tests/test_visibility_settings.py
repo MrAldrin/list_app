@@ -10,6 +10,10 @@ def item_checkbox(page, name):
     return page.get_by_text(name, exact=True).locator("..").get_by_role("checkbox")
 
 
+def mode_button(page, name):
+    return page.locator(".q-btn-toggle").get_by_role("button", name=name, exact=True)
+
+
 def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     member, visitor = sessions
     private_url = create_list(member, server)
@@ -46,7 +50,7 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     expect(item_checkbox(visitor, "milk")).not_to_be_checked()
 
     visitor.get_by_role("button", name="Options", exact=True).click()
-    visitor.get_by_role("switch", name="Only after X days").click()
+    mode_button(visitor, "After X days").click()
     age_input = visitor.get_by_label("Days before hiding", exact=True)
     expect(age_input).to_have_value("7")
     item_checkbox(visitor, "milk").click()
@@ -55,7 +59,9 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     assert server.query(
         "SELECT hide_done_mode FROM lists WHERE name = ?", ("browser groceries",)
     ) == [("age",)]
-    expect(member.get_by_role("switch", name="Only after X days")).to_be_checked()
+    expect(mode_button(member, "After X days")).to_have_attribute(
+        "aria-pressed", "true"
+    )
 
     age_input.fill("0")
     age_input.press("Tab")
@@ -67,11 +73,11 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     expect(visitor.get_by_text("milk", exact=True)).to_be_visible()
     expect(member.get_by_text("milk", exact=True)).to_be_visible()
 
-    visitor.get_by_role("switch", name="Keep last X checked items").click()
-    expect(member.get_by_role("switch", name="Only after X days")).not_to_be_checked()
-    expect(
-        member.get_by_role("switch", name="Keep last X checked items")
-    ).to_be_checked()
+    mode_button(visitor, "Keep last X").click()
+    expect(mode_button(member, "After X days")).to_have_attribute(
+        "aria-pressed", "false"
+    )
+    expect(mode_button(member, "Keep last X")).to_have_attribute("aria-pressed", "true")
     recent_input = visitor.get_by_label("Checked items to keep", exact=True)
     expect(recent_input).to_have_value("10")
     recent_input.fill("0")
@@ -85,10 +91,10 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     expect(visitor.get_by_text("milk", exact=True)).to_be_visible()
     visitor.get_by_role("switch", name="Hide checked-off items").click()
     expect(visitor.get_by_text("milk", exact=True)).not_to_be_visible()
-    expect(member.get_by_role("switch", name="Only after X days")).not_to_be_checked()
-    expect(
-        member.get_by_role("switch", name="Keep last X checked items")
-    ).not_to_be_checked()
+    expect(mode_button(member, "After X days")).to_have_attribute(
+        "aria-pressed", "false"
+    )
+    expect(mode_button(member, "All")).to_have_attribute("aria-pressed", "true")
     assert server.query(
         "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
         "FROM lists WHERE name = ?",

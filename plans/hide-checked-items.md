@@ -35,4 +35,5 @@ Reduce clutter without deleting list items. Hidden items remain part of the list
 - [x] Slice 1 implemented and verified (migration, timestamp, visibility unit tests; reviewer zero-day finding fixed).
 - [x] Slice 2 implemented and verified (UI and shared-browser tests; scoped timer regression after review finding).
 - [x] Slice 3 references, full checks, and independent review completed. `uv run pytest -q`: 374 passed; `uv run pytest browser_tests -q -n 0`: 48 passed (Chromium/Firefox); Ruff format and lint checks passed. Sol-medium reviewer found no correctness blocker; its timer-scope finding was fixed and covered by a two-client regression.
+- [x] Layout follow-up: settings are rows like **Show quantities** (no separate box), and a single-choice toggle (All / After X days / Keep last X) replaces the optional switches. Unit and browser visibility tests updated and passing.
 - [ ] Production migration/device verification; existing deployment checklist is tracked in [`plans/backlog.md`](backlog.md#deployment-and-recovery--next-priorities). Local automated tests are not production evidence.

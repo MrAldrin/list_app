@@ -961,7 +961,7 @@ def visibility_settings_ui(
     if not state["edit_mode"]:
         return
 
-    def update_setting(field: str, value: bool | int) -> None:
+    def update_setting(field: str, value: bool | int | str) -> None:
         if not is_active():
             return
         current = get_list_details_by_identity(list_identity)
@@ -983,16 +983,10 @@ def visibility_settings_ui(
                     current_mode = "all"
             else:
                 current_mode = "off"
-        elif field == "age_mode":
-            if value:
-                current_mode = "age"
-            elif current_mode == "age":
-                current_mode = "all"
-        elif field == "recent_mode":
-            if value:
-                current_mode = "recent"
-            elif current_mode == "recent":
-                current_mode = "all"
+        elif field == "mode":
+            if value not in {"all", "age", "recent"}:
+                return
+            current_mode = value
         elif field == "age_days":
             current_age_days = value
         elif field == "recent_count":
@@ -1030,50 +1024,55 @@ def visibility_settings_ui(
             return
         update_setting(field, int(value))
 
-    with ui.column().classes(
-        "w-full mt-2 p-3 bg-slate-50 border border-slate-200 rounded gap-2"
+    # Rows match "Show quantities" and sit inside the same settings box.
+    with ui.row().classes(
+        "w-full items-center justify-between border-t border-slate-200 pt-1.5"
     ):
-        enabled_switch = ui.switch("Hide checked-off items", value=mode != "off").props(
-            "dense"
+        ui.label("Hide checked-off items").classes("text-sm font-medium text-slate-700")
+        enabled_switch = ui.switch(value=mode != "off").props(
+            'dense aria-label="Hide checked-off items"'
         )
         enabled_switch.on_value_change(
             lambda event: update_setting("enabled", bool(event.value))
         )
 
-        if mode != "off":
-            age_switch = ui.switch("Only after X days", value=mode == "age").props(
-                "dense"
-            )
-            age_switch.on_value_change(
-                lambda event: update_setting("age_mode", bool(event.value))
-            )
-            if mode == "age":
-                age_input = ui.number(
-                    "Days before hiding",
-                    value=age_days,
-                    min=0,
-                    max=MAX_HIDE_DONE_COUNT,
-                    step=1,
-                ).classes("w-full max-w-40")
-                age_input.on("blur", lambda: update_count("age_days", age_input.value))
+    if mode == "off":
+        return
 
-            recent_switch = ui.switch(
-                "Keep last X checked items", value=mode == "recent"
-            ).props("dense")
-            recent_switch.on_value_change(
-                lambda event: update_setting("recent_mode", bool(event.value))
+    # A toggle allows exactly one choice, unlike separate switches.
+    with ui.row().classes("w-full items-center pl-3 border-t border-slate-200 pt-1.5"):
+        mode_toggle = ui.toggle(
+            {"all": "All", "age": "After X days", "recent": "Keep last X"},
+            value=mode,
+        ).props(
+            'dense no-caps unelevated toggle-color="primary" aria-label="Hide mode"'
+        )
+        mode_toggle.on_value_change(lambda event: update_setting("mode", event.value))
+
+    if mode == "age":
+        with ui.row().classes(
+            "w-full items-center justify-between pl-3 border-t border-slate-200 pt-1.5"
+        ):
+            ui.label("Days before hiding").classes("text-sm text-slate-600")
+            age_input = (
+                ui.number(value=age_days, min=0, max=MAX_HIDE_DONE_COUNT, step=1)
+                .props('dense aria-label="Days before hiding"')
+                .classes("w-20")
             )
-            if mode == "recent":
-                recent_input = ui.number(
-                    "Checked items to keep",
-                    value=recent_count,
-                    min=0,
-                    max=MAX_HIDE_DONE_COUNT,
-                    step=1,
-                ).classes("w-full max-w-40")
-                recent_input.on(
-                    "blur", lambda: update_count("recent_count", recent_input.value)
-                )
+            age_input.on("blur", lambda: update_count("age_days", age_input.value))
+    elif mode == "recent":
+        with ui.row().classes(
+            "w-full items-center justify-between pl-3 border-t border-slate-200 pt-1.5"
+        ):
+            ui.label("Checked items to keep").classes("text-sm text-slate-600")
+            recent_input = (
+                ui.number(value=recent_count, min=0, max=MAX_HIDE_DONE_COUNT, step=1)
+                .props('dense aria-label="Checked items to keep"')
+                .classes("w-20")
+            )
+            recent_input.on(
+                "blur", lambda: update_count("recent_count", recent_input.value)
+            )
 
 
 async def _add_theme_toggle() -> None:
