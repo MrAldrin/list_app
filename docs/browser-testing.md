@@ -11,7 +11,7 @@ These are real browser engines, not mocked NiceGUI handlers or desktop clicking.
 ```bash
 uv sync
 uv run playwright install chromium firefox
-uv run pytest browser_tests -q -n 0
+uv run pytest browser_tests -q -n 2
 ```
 
 Playwright downloads its own compatible browsers; installed desktop Chrome or
@@ -19,6 +19,18 @@ Firefox are not required. On supported Linux distributions, missing OS libraries
 can be installed with `uv run playwright install --with-deps chromium firefox`
 (this may require administrator privileges). Do not silently skip tests when a
 browser is unavailable.
+
+Use two workers for the full desktop suite on the benchmarked machine. Sequential
+local runs took about 148 seconds with two workers versus about 286 seconds
+serially (one earlier baseline). Four workers took 83–89 seconds but both runs
+had teardown errors; one of three two-worker runs also had a teardown error.
+This is a provisional speed recommendation, not a claim of flawless parallel
+runs. See [the measurements and follow-up](../plans/test-suite-speed.md).
+Keep a serial command for diagnosing failures:
+
+```bash
+uv run pytest browser_tests -q -n 0
+```
 
 Run a smaller subset while debugging:
 
@@ -30,7 +42,8 @@ uv run pytest browser_tests -q -n 0 -k restart
 The default `uv run pytest -q` still runs the fast tests under `tests/`, without
 requiring browser downloads. Browser tests are separate because they launch real
 processes and must not inherit the unit suite's in-memory database fixtures.
-Use `-n 0` to avoid launching many browsers at once.
+Use an explicit worker count: the global pytest default of eight workers is
+not a browser-suite recommendation; Android tests must stay serial (`-n 0`).
 
 ## Isolation and diagnostics
 

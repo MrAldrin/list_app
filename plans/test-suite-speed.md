@@ -1,0 +1,108 @@
+# Test suite speed and device coverage
+
+## Goal and scope
+
+Keep useful regression coverage while shortening the development loop. Desktop browser benchmarking and small, verifiable optimizations are authorized; Android scenario removal or consolidation still requires owner approval. Python optimization is lower priority because the default suite is already relatively fast.
+
+## Measured baseline
+
+Local measurements on the current main-staging-based working copy:
+
+| Command | Result | Runtime |
+| --- | --- | --- |
+| `uv run pytest -q --durations=20` | 346 passed | 9.22s |
+| `uv run pytest browser_tests -q -n 0 --durations=15` | 50 passed | 285.73s |
+| `uv run pytest browser_tests -q -n 2 --durations=15` | 50 passed | 147.62s |
+
+Two workers reduced desktop browser runtime by about 48% in the initial comparison. Android was not running and was not benchmarked.
+
+Sequential follow-up runs on the same machine (2026-09-28; 50 desktop browser cases each; pytest-reported time):
+
+| Workers | Runs | Outcomes | Runtime |
+| --- | --- | --- | --- |
+| 2 | 3 | 50 passed plus one teardown error; then 50 passed; then 50 passed | 147.93s, 147.97s, 148.12s |
+| 4 | 2 | 50 passed plus one teardown error in each run | 89.47s, 83.09s |
+
+The two-worker runs were consistently ~148s, but one reported a Firefox Service Worker installation error during teardown of the restart scenario. One four-worker run timed out taking a Chromium teardown screenshot (30s); the other reported the same Firefox Service Worker installation error. All test bodies passed, but runs with teardown errors **do not count as clean passes**. Four workers used roughly 332–361% CPU versus 166–167% at two workers (from `/usr/bin/time -v`); its per-process maximum RSS is not a total-memory measurement. No benchmarks overlapped. Adopt two workers **provisionally** in opt-in desktop browser commands because four has not demonstrated reliable completion; retain serial debugging and the Android `-n 0` command. Investigate teardown flakiness before claiming parallel execution is fully reliable or promoting four workers. The serial baseline above was not repeated.
+
+## Important distinction: browser workers versus Android workers
+
+The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
+
+The current Android harness operates one shared emulator via `adb -e`, changes its connectivity, and manipulates Chrome and home-screen icons. Running it with multiple pytest workers would cause interference. Keep Android at `-n 0`. True Android parallelism would require separate emulators, explicit serial targeting, and isolated forwarding/device state per worker. That is extra complexity and resource use, not an initial optimization.
+
+## Priority 1 — Decide coverage and test tiers
+
+Before implementing Android simplifications, agree which scenarios belong on the current baseline:
+
+- **Already present:** `android_tests/test_android_chrome.py` contains a password-prompt smoke check and an installation/standalone-login/remembered-access/network-recovery journey.
+- **Historical only:** the offline experiment adds installed cold launch, saved offline contents, reconnect refresh, and revocation/deletion clearing. Do not import these tests into a branch without the corresponding feature. Review their lessons when the new offline frontend is implemented, rather than restoring the discarded implementation. See [offline findings](../docs/offline-findings.md).
+- **Proposed baseline:** retain a small installation/standalone/remembered-access Android journey. Decide whether the separate password-prompt smoke test earns its overlap through faster diagnostics. Review the recovery assertion separately: it proves reload after an outage, not automatic recovery or offline availability.
+- Retain comprehensive authorization and data-integrity coverage in Python/browser layers. Before removing device permutations, map each assertion to retained coverage and identify any genuinely device-specific interaction being lost.
+
+Proposed execution tiers:
+
+1. During editing: affected Python tests; targeted Chromium cases for UI changes.
+2. Task completion: full Python suite, preserving the repository's required Python quality checks.
+3. Relevant integration changes and releases: full desktop browser suite across Chromium and Firefox.
+4. Installation, storage, lifecycle, or network changes, plus applicable releases: Android checks and appropriate iPhone acceptance.
+
+The desktop browser worker recommendation is documented in `docs/browser-testing.md`. Update Android guidance and broader execution-tier guidance only after the corresponding coverage/tier decisions are approved. Keep the default Python command free of browser/device requirements.
+
+## Priority 2 — Desktop browser parallelism and overhead
+
+Small, independently verifiable experiments:
+
+1. Repeat the two-worker full suite to check stability; benchmark four workers on the same machine. Compare runtime, failures, and resource pressure, without overlapping benchmarks.
+2. Adopt the smallest reliably fast worker count in documented browser commands. Keep a serial debugging command; do not change the global worker setting for Android.
+3. Measure setup, test body, and teardown costs separately. Each case currently creates a fresh server/database and repeats UI setup; browsers themselves are already session-scoped.
+4. Benchmark saving screenshots and trace archives only on failure. Preserve useful failure diagnostics and browser/server error assertions. Recording traces still costs time even if successful archives are discarded; benchmark reduced recording separately.
+5. Seed routine prerequisites or reuse isolated authentication setup where appropriate, while keeping dedicated end-to-end login/create/share tests. Preserve fresh database and browser-session isolation; do not share mutable server state merely to save startup time.
+6. Use targeted Chromium runs during iteration rather than removing Firefox coverage from integration checks. Review the large stale-action matrix for layer-appropriate coverage, without dropping distinct handler/security checks blindly.
+
+Acceptance: unchanged behavioral assertions, all selected cases pass, repeatable runtime improvement, no cross-test contamination, and useful artifacts on deliberate failure.
+
+## Priority 3 — Simplify and measure Android checks
+
+Depends on the coverage decisions in Priority 1. No offline-feature tests are imported by default.
+
+1. Time server startup, installation, native UI inspection, launcher lookup, browser assertions, and cleanup separately on the dedicated emulator.
+2. Keep an already-booted emulator available during relevant work; distinguish emulator startup time from test execution. Benchmark snapshot-based startup only if it preserves a known device state.
+3. Use Chrome's Playwright/CDP connection for web content and event-driven waits; reserve Android accessibility-tree dumps for native installation menus and launcher interactions.
+4. Keep the dedicated emulator free of stale disposable icons using narrowly scoped, safe cleanup. Never clear unrelated Chrome data or shortcuts. Reduce repeated launcher searches without bypassing the actual icon-launch assertion.
+5. Avoid repeating installation and cold-launch journeys for every business-rule variant. Keep representative device-specific lifecycle checks and put broad rule permutations in browser/Python tests, after mapping retained coverage.
+6. Replace avoidable fixed sleeps with observable readiness conditions where reliable. Do not blindly shorten timeouts: successful condition waits already finish early. Historical Chrome persistence delays require evidence before removal.
+7. Keep Android serial. Consider multiple isolated emulators only if the reduced suite is still a measured bottleneck and the additional maintenance/resource cost is justified.
+
+Acceptance: deterministic repeated passes, intact installation/lifecycle assertions, restored connectivity and port mappings after failure, and a documented runtime comparison. Continue to use disposable servers/data only.
+
+## Priority 4 — Python fixture efficiency
+
+The default suite is already about nine seconds, so optimize after the expensive layers.
+
+- Remove unnecessary valid-hash creation immediately overwritten by invalid hashes in `tests/test_password_hashes.py`; preserve invalid-hash rejection and admin-repair coverage.
+- Look for reusable immutable production-cost hashes in other setup paths, never shared mutable database state.
+- Profile subprocess startup and worker scheduling before further changes.
+- Preserve the existing [production-cost hashing decision](test-speed-experiments.md). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.
+- Run all required Ruff and pytest checks after Python changes; compare runtime and coverage rather than only test counts.
+
+## iPhone relevance and remaining acceptance
+
+Android tests can expose shared application bugs in authorization, saved-data handling, and reconnection flows. They cannot establish iPhone correctness: Safari/WebKit, installed-app storage, installation, and background/cold-launch behavior differ from Android Chrome.
+
+Because primary users are on iPhone, prioritize a short real-iPhone acceptance checklist for critical installed-app journeys, especially early in future offline work. Linux Playwright WebKit can add useful engine-level coverage but is not installed iOS Safari; evaluate a small subset rather than multiplying every browser test automatically. Do not make Android the main evidence for iPhone readiness. See [installation acceptance](../docs/home-screen-installation.md#outstanding-real-device-acceptance-checklist) and the [future frontend plan](offline-frontend-migration.md).
+
+## Progress
+
+- [x] Reviewed current browser/Android harnesses and historical offline Android tests, including later experiment changes.
+- [x] Measured current Python suite and serial/two-worker desktop browser suites; all passed.
+- [x] Recorded proposed priorities and browser-versus-Android parallelism distinction.
+- [ ] Owner approves baseline Android coverage and execution tiers.
+- [x] Repeat two-worker browser runs and benchmark four workers; record timings, resource observations, and teardown errors above.
+- [x] Document provisional two-worker desktop commands; keep serial debugging and Android serial.
+- [ ] Investigate browser teardown errors (Firefox Service Worker installation after restart; Chromium screenshot timeout at four workers) before considering four workers reliable.
+- [ ] Measure and verify further approved desktop browser optimizations in small chunks.
+- [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
+- [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
+- [ ] Optimize Python setup after higher-impact work.
+- [ ] Update affected current testing guides with verified results and remaining limits.

@@ -79,7 +79,7 @@ Real-browser sharing tests (Chromium and Firefox, disposable data):
 
 ```bash
 uv run playwright install chromium firefox
-uv run pytest browser_tests -q -n 0
+uv run pytest browser_tests -q -n 2  # Provisional desktop setting; use -n 0 to debug
 ```
 
 Setup, coverage, and diagnostics: [browser testing](docs/browser-testing.md).
