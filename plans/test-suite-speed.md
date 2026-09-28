@@ -191,6 +191,57 @@ saving. Do not disable passing-run screenshots or traces without owner approval.
 A larger speed gain likely needs a separately agreed coverage/interaction
 review rather than teardown micro-optimizations.
 
+### Follow-up: stale-action coverage review (2026-09-28)
+
+`browser_tests/test_deleted_lists.py` has **24 list-deletion cases** (six
+stale actions × room/public page × Chromium/Firefox) and **four room-deletion
+cases** (room/public × both engines, stale Add only). Each uses a fresh server,
+separate member/visitor contexts, real UI deletion, delayed server-to-browser
+WebSocket frames, a real stale click/Enter and a server round-trip barrier.
+Assertions check the unavailable page, room-only navigation when the room
+survives, an outgoing event, and absence of forbidden writes. Removing a
+permutation loses a real browser callback/route/engine combination, not just
+an extra database assertion.
+
+| Action after list deletion | Distinct browser path | Existing lower-level evidence |
+| --- | --- | --- |
+| Add | Input/button callback; shared route versus room route | `tests/test_database_crud.py::test_mutations_fail_without_creating_data_for_deleted_list`; `tests/test_list_identity.py::test_database_writes_reject_reused_list_id` and `test_services_forward_original_slug` |
+| Edit | Open dialog, Save callback with item fields | `tests/test_list_identity.py::test_database_writes_reject_reused_list_id` and `test_services_forward_original_slug`; `tests/test_item_edits.py` covers valid/duplicate edits |
+| Toggle | Checkbox change event | `tests/test_database_crud.py::test_mutations_fail_without_creating_data_for_deleted_list`; `tests/test_list_identity.py` covers DB/service forwarding |
+| Quantity | Options switch and counter click | `tests/test_database_crud.py::test_mutations_fail_without_creating_data_for_deleted_list`; `tests/test_list_identity.py` covers DB/service forwarding; `tests/test_quantity_updates.py` covers valid deltas |
+| Tag | Options and Enter-key callback for list tags | `tests/test_list_identity.py::test_list_tag_intents_reject_stale_identity_and_recover`; `tests/test_list_tag_ui.py` covers stale callback behavior on a *live* list |
+| Undo | Delete item, then click retained Undo control | `tests/test_list_identity.py::test_undo_cannot_restore_into_replacement_list`; `tests/test_item_undo.py` covers valid/conflicting undo |
+
+The lower-level identity tests exercise both a **deleted list with reused ID**
+and a **revoked public token** for each listed operation. They check rejection,
+unchanged replacement state, and transaction recovery, but they do **not**
+exercise a live browser's stale UI handlers or both routing/rendering contexts.
+The existing sharing tests separately cover stale public Add/Edit/Undo/Tag
+after link rotation, not list deletion, and room rename after password change.
+The four room-deletion browser cases uniquely verify that *neither* stale
+page offers room navigation after the room itself disappears; database tests
+cover deletion cascade and `_can_return_to_room` but not that end-to-end view.
+
+The fresh 73.62s four-worker baseline's pytest durations sum to **126.12s**
+across the 24 list-deletion cases (86.95s call, 28.18s setup, 10.99s
+teardown), and **21.18s** across the four room-deletion cases. These are
+**aggregate worker times**, not achievable wall-clock savings: scheduling,
+other cases, and worker imbalance would change if tests were removed. The 24
+cases average ~5.26s each including their own server/fixtures; a measured
+candidate A/B would be required to claim any four-worker wall-time benefit.
+
+**Recommendation:** keep the full matrix in the opt-in integration suite for
+now. For a faster editing loop use targeted Chromium cases; do not silently
+change the full-suite command or claim lower-level tests replace browser
+coverage. If the owner chooses a smaller full integration matrix, first agree
+which role/action/engine crossings can be relinquished, then benchmark a
+reversible candidate and verify its surviving checks. No cases were removed
+in this review. A test-strengthening opportunity independent of speed: the
+current `delayed.sent_events` assertion checks only that *some* event left the
+stale page, not that its payload identifies the intended action; the deleted
+list assertion cannot detect an unrelated action on already-deleted data.
+Investigate that separately before treating permutations as interchangeable.
+
 ## Important distinction: browser workers versus Android workers
 
 The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
@@ -276,7 +327,8 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Repeat the seeded full serial suite three times sequentially; all 50 passed in ~238s with no teardown errors (see above).
 - [x] Try scoped public-sharing list seeding with dedicated browser create/login/Share journeys retained; two sequential full candidate runs and two fresh baseline runs passed, with a small measured gain. A quicker navigation strategy did not show an additional gain and was reverted.
 - [x] Time browser teardown substeps with a disposable probe over two full four-worker runs; no teardown optimization justified without weakening diagnostics or stronger evidence.
-- [ ] Map stale-action browser permutations to existing service/security tests before proposing any case removal; measure and verify further desktop browser optimizations in small chunks.
+- [x] Map stale-action browser permutations to existing service/security tests; record the unique browser behaviors and timing limits above. No removal approved or implemented.
+- [ ] If the owner wants a smaller integration matrix, agree the specific role/action/engine coverage trade-off first, then benchmark and verify a reversible candidate.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
 - [ ] Optimize Python setup after higher-impact work.
