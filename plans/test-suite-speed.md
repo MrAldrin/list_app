@@ -155,6 +155,42 @@ so this experiment was reverted. We did not eliminate Share UI checks or
 passing-run artifacts just to reduce time. Further speed gains would require
 separate coverage decisions or stronger evidence of a safe bottleneck.
 
+### Follow-up: four-worker teardown profiling (2026-09-28)
+
+A fresh unmodified four-worker baseline passed all 52 cases in **73.62s**.
+Its summed pytest phases were setup 54.15s, call 207.06s, and teardown
+27.28s across workers (these are not wall-clock shares). Two sequential full
+runs using a disposable timing plugin outside the repository passed all 52
+cases in **75.00s** and **75.03s**, with no teardown errors. The plugin wrapped
+existing operations in `try/finally` timers; it did not change fixtures,
+assertions, isolation, or saved artifacts. The extra timing and file writes
+may account for some of the difference from baseline.
+
+| Timed operation | Calls per run | Aggregate run 1 | Aggregate run 2 | Highest single call |
+| --- | ---: | ---: | ---: | ---: |
+| Page screenshot | 114 | 5.21s | 5.34s | 0.09s |
+| Context trace stop/archive | 96 | 6.99s | 7.18s | 0.19s |
+| Context close | 100 | 3.25s | 4.38s | 1.21s |
+| Server stop (including in-test restarts) | 56 | 10.57s | 10.32s | 0.21s |
+| Server start (including in-test restarts) | 56 | 40.34s | 40.13s | 0.91s |
+
+Four theme cases use their own browser setup rather than the `sessions`
+fixture; the two restart scenarios each run in both engines, adding four
+server starts and stops. Some tests open extra pages, so screenshot count
+exceeds context count. Screenshot and trace archive
+time together is ~12–13s **summed across four workers**, roughly 3–4s per
+worker in these runs; it is not a 12–13s four-worker wall-clock opportunity.
+Server stopping is ~10s aggregate (~2–3s per worker). The dominant measured
+phase remains test actions (~207s aggregate in the unmodified run). Timings
+are inclusive and not a controlled A/B removal experiment; they do not isolate
+trace recording overhead, disk contention, or idle time on the critical path.
+The earlier experiment that suppressed passing screenshots saved only ~3s
+serial and was reverted by owner choice. **No teardown behavior was changed**:
+keeping failure diagnostics is worth more than an unproven small parallel
+saving. Do not disable passing-run screenshots or traces without owner approval.
+A larger speed gain likely needs a separately agreed coverage/interaction
+review rather than teardown micro-optimizations.
+
 ## Important distinction: browser workers versus Android workers
 
 The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
@@ -232,13 +268,14 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Retract provisional two-worker desktop command after owner feedback; keep desktop and Android serial while profiling.
 - [x] Profile per-case pytest phases in a clean serial full-suite run; test actions dominate (see above).
 - [x] Measure repeated UI setup helpers and in-test restart in targeted and full serial runs; create/share setup dominates the timed call phase (see above).
-- [x] Split public-sharing helper time into browser interactions, navigation and expectation waits with a disposable Playwright probe; Share dialog close and list-creation clicks are costly but overlap across workers. Teardown substeps (screenshot, trace archiving, context close) remain unmeasured; do not change diagnostics without profiling.
+- [x] Split public-sharing helper time into browser interactions, navigation and expectation waits with a disposable Playwright probe; Share dialog close and list-creation clicks are costly but overlap across workers. Profile teardown substeps separately before changing diagnostics.
 - [x] Investigate browser teardown errors and retain scoped fixes; fourteen 50-case runs and nine additional 52-case full four-worker runs passed. Other-machine and longer-term reliability remain unverified.
 - [x] Add a dedicated open-page restart recovery test for both browser engines; targeted and nine full parallel runs passed.
 - [x] Try seeding one stale-deletion prerequisite in isolation; both browser cases passed and became modestly faster, but revert the one-off change pending a coverage/suite-level approach.
 - [x] Seed prerequisites for 28 repetitive deleted-list cases; targeted and full desktop suites pass; one full run improved ~44s versus the preceding baseline (see above).
 - [x] Repeat the seeded full serial suite three times sequentially; all 50 passed in ~238s with no teardown errors (see above).
 - [x] Try scoped public-sharing list seeding with dedicated browser create/login/Share journeys retained; two sequential full candidate runs and two fresh baseline runs passed, with a small measured gain. A quicker navigation strategy did not show an additional gain and was reverted.
+- [x] Time browser teardown substeps with a disposable probe over two full four-worker runs; no teardown optimization justified without weakening diagnostics or stronger evidence.
 - [ ] Map stale-action browser permutations to existing service/security tests before proposing any case removal; measure and verify further desktop browser optimizations in small chunks.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
