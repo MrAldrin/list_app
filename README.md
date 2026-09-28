@@ -35,6 +35,24 @@ uv run python -c 'import secrets; print(secrets.token_urlsafe(32))'
   across restarts. It is not a room password.
 - `.env` is ignored by version control. Never commit passwords, keys, or databases.
 
+### New jj workspace
+
+A jj workspace gets its own copy of tracked files only. Ignored files such as
+`.env`, `list.db` and `.venv` are not copied:
+
+- `.env`: share the main workspace's file with a symlink. From the new workspace:
+
+  ```bash
+  ln -s ../list_app/.env .env
+  ```
+
+- `.venv`: `uv` creates it on the first `uv run`.
+- `list.db`: the app creates an empty database on first start. Each workspace
+  keeps its own test data; do not symlink the main workspace's database.
+
+To test on a phone before deploying, see
+[phone testing](docs/local-network-testing.md).
+
 ## Start the app
 
 ```bash

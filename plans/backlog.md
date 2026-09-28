@@ -33,6 +33,8 @@ Configuration, database checks, and recovery instructions live in
 - [ ] Longer term, set up regular SQLite-consistent off-service backups, retention, restricted access, an owner and failure notification; test restoration with the app stopped, including a hosted restore drill. Weekly Railway volume snapshots alone do not complete this work. See the [backup options](backup-options.md) and [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
 - [ ] Complete and record the deployment guide's outstanding production checks, including persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.
 
+- [ ] Later, add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
+
 ## Database hardening — planned follow-up
 
 - [ ] Introduce versioned, transaction-safe migrations (for example `PRAGMA user_version`) with rollback on failure and tests for fresh, legacy, missing-foreign-key, already-migrated, and invalid-data databases. Check integrity before committing changes.

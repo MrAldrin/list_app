@@ -7,6 +7,8 @@
 - Modular Implementation: Split large tasks into small, testable chunks.
 - GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist).
 
+- When working in a new jj workspace, remind me of the [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
+
 ## Technical Stack ideas
 The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
 
