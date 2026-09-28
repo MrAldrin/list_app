@@ -11,7 +11,7 @@ These are real browser engines, not mocked NiceGUI handlers or desktop clicking.
 ```bash
 uv sync
 uv run playwright install chromium firefox
-uv run pytest browser_tests -q -n 0
+uv run pytest browser_tests -q -n 4
 ```
 
 Playwright downloads its own compatible browsers; installed desktop Chrome or
@@ -20,25 +20,25 @@ can be installed with `uv run playwright install --with-deps chromium firefox`
 (this may require administrator privileges). Do not silently skip tests when a
 browser is unavailable.
 
-Keep the full desktop suite serial for now: the tested two- and four-worker
-runs sometimes failed during teardown, and ~148 seconds with two workers is
-still too slow. The [measurements and next experiments](../plans/test-suite-speed.md)
-track performance and reliability separately. Parallel workers remain an
-opt-in diagnostic experiment, not a recommended default.
+Four workers are recommended for the full desktop suite on the tested machine:
+14 consecutive clean full runs after the restart/screenshot fixes, with all 50
+cases passing in 70.50–75.10 seconds. Earlier four-worker runs failed in
+teardown; the [measurements and fixes](../plans/test-suite-speed.md) explain
+what changed. Parallel stability on other machines remains unverified.
 
 Run a smaller subset while debugging:
 
 ```bash
 uv run pytest browser_tests -q -n 0 -k chromium
 uv run pytest browser_tests -q -n 0 -k restart
+uv run pytest browser_tests -q -n 0  # serial troubleshooting
 ```
 
 The default `uv run pytest -q` still runs the fast tests under `tests/`, without
 requiring browser downloads. Browser tests are separate because they launch real
 processes and must not inherit the unit suite's in-memory database fixtures.
-Use `-n 0` to avoid launching many browsers at once. The global pytest
-default of eight workers is not a browser-suite recommendation; Android tests
-must also stay serial (`-n 0`).
+Use an explicit worker count; the global pytest default of eight workers is
+not a browser-suite recommendation. Android tests must stay serial (`-n 0`).
 
 ## Isolation and diagnostics
 
@@ -48,9 +48,14 @@ must also stay serial (`-n 0`).
 - Test-only passwords and a fresh signing secret override local credentials;
   `.env` loading is disabled and inherited NiceGUI storage/Redis settings are
   removed. No developer/production database is read or copied.
-- Restart tests preserve only that test's database, secret, and browser storage.
+- Restart tests preserve only that test's database, secret, browser contexts,
+  storage and registered Service Workers. Before stopping the server, they leave
+  live pages for `about:blank`, then navigate back and verify remembered access,
+  revoked links and active Service Workers after restart.
 - The fixture terminates the server and closes browser contexts, including on
-  failure. Server tracebacks and unhandled browser JavaScript errors fail tests.
+  failure. Even if a screenshot fails, it attempts remaining screenshots,
+  traces and context closure and reports the diagnostic error. Server tracebacks
+  and unhandled browser JavaScript errors fail tests.
 - Temporary `server.log`, `member-trace.zip`, `visitor-trace.zip`, and screenshots
   help explain failures. Pytest displays the temporary path in failure output.
   Inspect a trace with `uv run playwright show-trace /path/to/member-trace.zip`.

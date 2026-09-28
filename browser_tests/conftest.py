@@ -145,10 +145,29 @@ def sessions(browser, tmp_path):
     try:
         yield tuple(context.new_page() for _, context in contexts)
     finally:
+        cleanup_errors = []
         for role, context in contexts:
-            for index, page in enumerate(context.pages):
-                if not page.is_closed():
-                    page.screenshot(path=str(tmp_path / f"{role}-{index}.png"))
-            context.tracing.stop(path=str(tmp_path / f"{role}-trace.zip"))
-            context.close()
-        assert not errors, "Unhandled browser errors:\n" + "\n".join(errors)
+            try:
+                for index, page in enumerate(context.pages):
+                    if not page.is_closed():
+                        try:
+                            page.screenshot(path=str(tmp_path / f"{role}-{index}.png"))
+                        except Exception as exc:  # noqa: BLE001 - keep cleaning up
+                            cleanup_errors.append(exc)
+                try:
+                    context.tracing.stop(path=str(tmp_path / f"{role}-trace.zip"))
+                except Exception as exc:  # noqa: BLE001 - keep cleaning up
+                    cleanup_errors.append(exc)
+            finally:
+                try:
+                    context.close()
+                except Exception as exc:  # noqa: BLE001 - report cleanup errors
+                    cleanup_errors.append(exc)
+        if errors:
+            cleanup_errors.append(
+                AssertionError("Unhandled browser errors:\n" + "\n".join(errors))
+            )
+        if cleanup_errors:
+            raise ExceptionGroup(
+                "Browser diagnostics and cleanup failed", cleanup_errors
+            )

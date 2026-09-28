@@ -146,6 +146,13 @@ def test_sharing_live_updates_revocation_and_restart(server, sessions):
     add_item(visitor, "apples")
     expect(member.get_by_text("apples", exact=True)).to_be_visible()
 
+    # Leave the live pages before taking the server offline. The browser
+    # contexts retain cookies, localStorage and their Service Worker.
+    for page in (member, visitor):
+        assert page.evaluate(
+            "async () => !!(await navigator.serviceWorker.ready).active"
+        )
+        page.goto("about:blank")
     # Restart with the same test database, signing key, and browser storage.
     server.restart()
     member.goto(server.url)
@@ -162,6 +169,11 @@ def test_sharing_live_updates_revocation_and_restart(server, sessions):
     expect(member.get_by_text("after restart", exact=True)).to_be_visible()
     visitor.goto(old_link)
     expect(visitor.get_by_label("Add or Search", exact=True)).not_to_be_visible()
+    for page in (member, visitor):
+        assert page.evaluate(
+            "async () => { const reg = await navigator.serviceWorker.ready; "
+            "await reg.update(); return !!reg.active; }"
+        )
 
 
 def test_reset_cancels_public_undo_but_keeps_room_access(server, sessions):
@@ -296,6 +308,7 @@ def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
     delayed.resume()
     # The invalid-access response navigates only after the server handles Save.
     expect(member).to_have_url(server.room_url)
+    expect(member.get_by_label("Room Password", exact=True)).to_be_visible()
     assert delayed.sent_events, "The stale browser must actually send its rename"
     assert server.query("SELECT name FROM lists") == [("browser groceries",)]
 

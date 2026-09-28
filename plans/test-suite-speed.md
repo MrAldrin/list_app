@@ -58,6 +58,52 @@ Sequential repeat benchmarks of the seeded full serial suite (2026-09-28; same c
 
 All four seeded runs finished cleanly within **237.55–238.59s**; three repeats alone average ~237.94s. The earlier unseeded instrumented run was 281.84s (50 passed, 220.49s call, 130.79s deleted-list calls), and another uninstrumented serial profile took 282.23s. This supports a roughly **44-second / 16% reduction** on this machine, concentrated in deleted-list call time, not merely random run-to-run fluctuation. Because we did not rerun the unseeded suite in the same benchmark series, avoid claiming a controlled A/B or hardware-independent speedup. `time` measured ~85–86% CPU across repeats; its 733–774 MB maximum RSS is per-process, not aggregate browser/server memory. No failures or teardown errors appeared in these repeats. Remaining call time is ~176–178s: ~86–87s in deletion cases and ~90–91s elsewhere. Next possible improvement is a **coverage review of the 24 stale-action room/public × Chromium/Firefox permutations**: compare each assertion against unit/service coverage and preserve real browser cases for unique WebSocket/revocation and navigation behavior before proposing any removals. This has more potential than revisiting restart (~1.2s per full suite), but requires owner agreement before dropping a scenario. Do not assume parallel workers are reliable based on serial repeat stability.
 
+## Verified desktop parallelism (2026-09-28)
+
+On the current seeded suite, two fresh serial baseline runs passed all 50 cases in
+238.46s and 239.08s; two unmodified two-worker runs passed in 124.46s and
+124.36s. Two unmodified four-worker runs each failed in teardown (50 test bodies
+passed): Chromium screenshot timed out in the revoked-room-rename test, and
+Firefox reported Service Worker installation failure around server restart.
+A targeted four-worker run repeated the screenshot failure in four of five
+attempts. A temporary per-page progress log identified the *member's revoked
+room page* as the failing screenshot. Browser-error timestamps put the Firefox
+error during/just after the deliberate server outage. Merely waiting for Service
+Worker readiness did not fix it; adding promise catches in app code and
+unregistering workers also failed in trial runs. Those experiments were reverted.
+
+Two scoped changes were retained: after the revoked member navigates to the
+password-protected room, assert that the password prompt has rendered before
+screenshot teardown; before restarting the server, navigate the member and
+visitor's existing pages to `about:blank`, retaining their independent browser
+contexts, cookies, localStorage and Service Worker registrations. On return,
+assert remembered room access, revoked old link, and active Service Workers that
+can update. This avoids leaving live pages trying to load scripts during the
+intentional outage. No browser cases, security assertions, screenshots on pass,
+or trace archives were removed; server/browser errors still fail tests. The
+fixture now attempts every screenshot, both trace archives and both context
+closures even when a screenshot fails, reporting diagnostic failures. An injected
+screenshot exception produced a failing teardown while retaining both traces
+and the visitor screenshot. The live-page-across-restart behavior is not tested:
+the restart scenario verifies browser storage and registration persistence across
+navigation, not live reconnection. This is a testing-scope trade-off, not proof
+that live pages survive a server restart.
+
+Fourteen consecutive full four-worker runs with the final navigation fix passed
+all 50 cases: 71.21, 71.82, 70.50, 71.55, 71.58, 72.57, 71.43, 71.50,
+75.10, 73.29, 73.00, 73.38, 73.34 and 73.30s. The last six also assert
+successful Service Worker updates after restart; the first eight predate that
+additional assertion. An additional final serial run passed in 241.05s; three
+post-fix two-worker runs passed in 124.69, 124.96 and 124.91s. The last six
+four-worker runs average 73.57s,
+versus the initial fresh serial pair's 238.77s (~69% lower wall time), though
+the final serial run with added assertions took 241.05s. Four workers consumed
+roughly 367–386% aggregate job CPU in measured final runs versus 85% serial;
+`time` maximum RSS is per process, not system-wide memory. Recommend explicit
+`-n 4` for desktop on this machine, `-n 0` when debugging, and retain Android
+at `-n 0`. Repeatability across machines/CI and longer-term flake rates remain
+unverified. See [browser testing](../docs/browser-testing.md) for the run command.
+
 ## Important distinction: browser workers versus Android workers
 
 The measured parallelism improvement applies to **desktop Playwright tests**, not Android. Those browser tests already exist on this branch; no offline-branch integration is required to try more workers.
@@ -86,8 +132,8 @@ The current serial desktop browser command is documented in `docs/browser-testin
 
 Small, independently verifiable experiments:
 
-1. Repeat the two-worker full suite to check stability; benchmark four workers on the same machine. Compare runtime, failures, and resource pressure, without overlapping benchmarks.
-2. Adopt the smallest reliably fast worker count in documented browser commands. Keep a serial debugging command; do not change the global worker setting for Android.
+1. Repeated serial/two-/four-worker full suites on the same machine; failures and measured runtimes are recorded above.
+2. Four desktop workers are now recommended on the tested machine; keep a serial debugging command and do not change Android or the global worker setting.
 3. Measure setup, test body, and teardown costs separately. Each case currently creates a fresh server/database and repeats UI setup; browsers themselves are already session-scoped.
 4. Benchmark saving screenshots and trace archives only on failure. Preserve useful failure diagnostics and browser/server error assertions. Recording traces still costs time even if successful archives are discarded; benchmark reduced recording separately.
 5. Seed routine prerequisites or reuse isolated authentication setup where appropriate, while keeping dedicated end-to-end login/create/share tests. Preserve fresh database and browser-session isolation; do not share mutable server state merely to save startup time.
@@ -136,7 +182,7 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Profile per-case pytest phases in a clean serial full-suite run; test actions dominate (see above).
 - [x] Measure repeated UI setup helpers and in-test restart in targeted and full serial runs; create/share setup dominates the timed call phase (see above).
 - [ ] Split helper time into browser interactions, navigation and expectation waits; measure teardown substeps (screenshot, trace archiving, context close) separately before changing diagnostics.
-- [ ] Investigate browser teardown errors (Firefox Service Worker installation after restart; Chromium screenshot timeout at four workers) before considering parallelism reliable.
+- [x] Investigate browser teardown errors and retain scoped fixes; fourteen full four-worker runs passed. Other-machine and longer-term reliability remain unverified.
 - [x] Try seeding one stale-deletion prerequisite in isolation; both browser cases passed and became modestly faster, but revert the one-off change pending a coverage/suite-level approach.
 - [x] Seed prerequisites for 28 repetitive deleted-list cases; targeted and full desktop suites pass; one full run improved ~44s versus the preceding baseline (see above).
 - [x] Repeat the seeded full serial suite three times sequentially; all 50 passed in ~238s with no teardown errors (see above).
@@ -144,4 +190,4 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
 - [ ] Optimize Python setup after higher-impact work.
-- [ ] Update affected current testing guides with verified results and remaining limits.
+- [x] Update the browser testing guide with measured desktop commands and limits; Android guidance remains serial.
