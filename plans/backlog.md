@@ -42,7 +42,7 @@ Configuration, database checks, and recovery instructions live in
 ## UI and PWA
 
 - [ ] Complete the real iPhone and Android acceptance checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md): fresh/password-prompt installs, legacy token migration, old icons, multiple rooms, other pages, deleted rooms, restart, and password revocation. Record OS/browser versions and results; automated cookie-transfer checks do not verify OS installation behavior.
-- [ ] Decide the intended offline behavior. The current service worker does not provide meaningful offline support. Remove misleading fallback behavior or design a tested cache/offline experience; editable offline lists would also require synchronization.
+- [ ] Follow the [staged frontend/offline migration plan](offline-frontend-migration.md): validate an actual-iPhone prototype, migrate the frontend, then add offline viewing and later editing on the same foundation. Framework selection and implementation require separate approval; the previous experiment is retained as evidence rather than scheduled for integration.
 
 ## Testing, documentation, and tooling
 

@@ -15,8 +15,12 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   process limits, and recovery procedures belong in the
   [deployment guide](docs/deployment.md).
 
-Keep this stack for the small MVP. Discuss changes before introducing another
-frontend, database, or multi-instance deployment.
+Keep this stack for current small improvements. The agreed future direction is a
+browser-side frontend with a Python API, introduced in stages so offline viewing
+can evolve into offline editing without replacing the interface again. Framework
+selection and implementation remain deferred; see the
+[migration plan](plans/offline-frontend-migration.md). SQLite and Railway need not
+change for this direction. Discuss other stack changes before implementation.
 
 ## Domain and security boundaries
 
@@ -77,8 +81,11 @@ already separated. Larger module refactoring remains deferred in the
   browser transfers cookies, not a guarantee. Existing icons may retain their old
   launch address. Real-device checks remain outstanding; see the
   [installation behavior and checklist](docs/home-screen-installation.md).
-- Offline editing/synchronization is not an implemented capability; the intended
-  offline experience remains a backlog decision.
+- Meaningful offline viewing and editing are not supported on the main baseline.
+  The separate read-only experiment was rolled back in production according to
+  the owner and is retained as evidence, not planned for integration. See the
+  [findings and evidence limits](docs/offline-findings.md). Future offline viewing
+  and editing will use the same browser-side frontend, delivered in stages.
 
 ## Evolution and documentation
 
