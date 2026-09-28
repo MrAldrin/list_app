@@ -330,6 +330,26 @@ The default suite is already about nine seconds, so optimize after the expensive
 - Preserve the existing [production-cost hashing decision](test-speed-experiments.md). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.
 - Run all required Ruff and pytest checks after Python changes; compare runtime and coverage rather than only test counts.
 
+### Python fixture efficiency follow-up (2026-09-28)
+
+The 20 malformed-password-hash cases previously called `create_room`, hashing a
+valid password before immediately replacing that hash with invalid stored data.
+They now insert the invalid stored value directly into the disposable in-memory
+database. Each case still rejects its invalid hash, checks unchanged data and
+transaction state, and verifies admin repair with a production-cost bcrypt hash.
+The valid-hash acceptance case still exercises `create_room` and real bcrypt.
+No production code or hashing cost changed.
+
+Three default eight-worker baselines passed 346 tests in **9.17, 9.15 and
+9.31s**. Three runs after this change passed in **8.73, 8.73 and 8.72s**;
+serial targeted password-hash tests fell from **12.64s** to **8.93s**. These
+are local sequential runs, not controlled A/B or cross-machine predictions.
+Two post-change full runs per worker count: four workers **14.81/15.00s**,
+eight **8.72/8.77s**, twelve **7.57/7.47s**, sixteen **7.29/7.36s**. More
+workers speed up this machine but use more processes and duplicated fixture
+work; leave eight as the portable default until a resource/cost decision is
+made. No bcrypt cost downgrade is justified by these timings.
+
 ## iPhone relevance and remaining acceptance
 
 Android tests can expose shared application bugs in authorization, saved-data handling, and reconnection flows. They cannot establish iPhone correctness: Safari/WebKit, installed-app storage, installation, and background/cold-launch behavior differ from Android Chrome.
@@ -359,5 +379,5 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Strengthen retained stale-deletion cases to match outgoing events to the intended UI controls; 16 targeted Chromium/Firefox cases, the 40-case four-worker browser suite (58.64s), and 346 fast tests passed locally. Ruff format/lint checks passed.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
-- [ ] Optimize Python setup after higher-impact work.
+- [x] Remove redundant valid hashes from malformed-hash test setup; 346 fast tests passed in repeated runs, with ~0.5s lower eight-worker runtime locally. Further worker-count trade-offs remain optional.
 - [x] Update the browser testing guide with measured desktop commands and limits; Android guidance remains serial.

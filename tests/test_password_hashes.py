@@ -22,10 +22,13 @@ from database_setup import db
 )
 @pytest.mark.parametrize("operation", ["verify", "login", "change", "delete"])
 def test_invalid_hash_rejects_password_without_changing_data(stored_hash, operation):
-    room_id, slug = create_room("Broken hash", "password")
-    db.execute(
-        "UPDATE rooms SET password_hash = ? WHERE id = ?", (stored_hash, room_id)
-    )
+    # Seed the malformed stored value directly; creating a valid bcrypt hash
+    # just to overwrite it would add production-cost work to every case.
+    slug = "broken-hash"
+    room_id = db.execute(
+        "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
+        ("Broken hash", slug, stored_hash),
+    ).lastrowid
     db.commit()
     before = db.execute("SELECT * FROM rooms").fetchall()
 
