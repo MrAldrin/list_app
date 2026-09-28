@@ -99,6 +99,10 @@ Local verification: 28 new Chromium/Firefox cases passed against disposable app
 processes. Separate browser sessions keep a room page or public link open while
 another session deletes the list. Delayed WebSocket updates ensure the stale page
 actually sends add, edit, toggle, quantity, tag, and undo events after deletion.
+These repeated cases seed only their disposable list/share token; room login, item
+addition, deletion, stale browser actions, and persistence checks still run through
+the real app. The sharing scenarios above retain end-to-end list creation and the
+Share dialog.
 The room page shows “This list was deleted.” and “Back to room”; the public page
 shows the generic message without room navigation. Room deletion also removes
 room navigation from either page. These tests check the resulting database has

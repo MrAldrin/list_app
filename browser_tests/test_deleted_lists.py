@@ -1,10 +1,35 @@
 """Stale room and public pages cannot write after another user deletes a list."""
 
 import re
+import secrets
+import sqlite3
+from contextlib import closing
 
 import pytest
 from playwright.sync_api import expect
-from test_public_sharing import DelayedUpdates, add_item, create_list, share_link
+from test_public_sharing import DelayedUpdates, add_item
+
+
+def prepare_list(member, server):
+    """Seed prerequisites; keep login and stale browser actions real."""
+    slug = f"browser-groceries-{secrets.token_hex(8)}"
+    token = secrets.token_urlsafe(32)
+    with closing(sqlite3.connect(server.database)) as db, db:
+        db.execute(
+            "INSERT INTO lists (name, slug, room_id, share_token) "
+            "VALUES (?, ?, (SELECT id FROM rooms WHERE name = 'Home'), ?)",
+            ("browser groceries", slug, token),
+        )
+    member.goto(server.room_url)
+    member.get_by_label("Room Password", exact=True).fill(server.password)
+    member.get_by_role("button", name="Enter", exact=True).click()
+    expect(
+        member.get_by_role("button", name="Add New List", exact=True)
+    ).to_be_visible()
+    private_url = f"{server.url}/list/{slug}"
+    member.goto(private_url)
+    expect(member.get_by_text("browser groceries", exact=True)).to_be_visible()
+    return private_url, f"{server.url}/share/{token}"
 
 
 def delete_list(member, server):
@@ -69,9 +94,8 @@ def prepare_action(page, action):
 @pytest.mark.parametrize("action", ["add", "edit", "toggle", "quantity", "tag", "undo"])
 def test_stale_page_rejects_actions_after_list_deletion(server, sessions, role, action):
     member, visitor = sessions
-    private_url = create_list(member, server)
+    private_url, link = prepare_list(member, server)
     add_item(member, "milk")
-    link = share_link(member)
     stale = member.context.new_page() if role == "room" else visitor
     delayed = DelayedUpdates(stale)
     stale.goto(private_url if role == "room" else link)
@@ -102,9 +126,8 @@ def test_stale_page_rejects_actions_after_list_deletion(server, sessions, role, 
 @pytest.mark.parametrize("role", ["room", "public"])
 def test_stale_page_after_room_deletion_has_no_room_navigation(server, sessions, role):
     member, visitor = sessions
-    private_url = create_list(member, server)
+    private_url, link = prepare_list(member, server)
     add_item(member, "milk")
-    link = share_link(member)
     stale = member.context.new_page() if role == "room" else visitor
     delayed = DelayedUpdates(stale)
     stale.goto(private_url if role == "room" else link)
