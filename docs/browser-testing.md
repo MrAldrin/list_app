@@ -123,8 +123,11 @@ action; a defect specific to a removed crossing may escape detection. See the
 
 Separate browser sessions keep a room page or public link open while another
 session deletes the list. Delayed WebSocket updates ensure the stale page sends
-its action after deletion. These cases seed only their disposable list/share
-token; room login, item addition, deletion, stale browser actions, and
+its action after deletion. The list- and room-deletion cases also match the
+outgoing NiceGUI event to the specific clicked control (and check the toggle
+value or tag Enter key), rather than accepting any client event. These cases
+seed only their disposable list/share token; room login, item addition, deletion,
+stale browser actions, and
 persistence checks still run through the real app. The sharing scenarios above
 retain end-to-end list creation and the Share dialog. The room page shows
 “This list was deleted.” and “Back to room”; the public page shows the generic

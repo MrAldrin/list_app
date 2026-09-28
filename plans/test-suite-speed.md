@@ -234,10 +234,13 @@ candidate A/B would be required to claim any four-worker wall-time benefit.
 integration coverage; removing crossings would require an explicit coverage
 trade-off and a measured candidate. The subsequent owner-approved reduction
 is recorded below. A test-strengthening opportunity independent of speed: the
-current `delayed.sent_events` assertion checks only that *some* event left the
-stale page, not that its payload identifies the intended action; the deleted
-list assertion cannot detect an unrelated action on already-deleted data.
-Investigate that separately before treating permutations as interchangeable.
+the original `delayed.sent_events` assertion checked only that *some* event left
+the stale page, not that its payload identified the intended action; the deleted
+list assertion could not detect an unrelated action on already-deleted data.
+The follow-up now checks the specific stale control's outgoing NiceGUI event
+for all retained deletion cases, with value/key checks for Toggle and Tag.
+It does not identify Python callback execution from the wire payload alone;
+server round-trip, rejection and persistence assertions remain necessary.
 
 ### Follow-up: reduce role-by-engine crossings (2026-09-28)
 
@@ -353,6 +356,7 @@ Because primary users are on iPhone, prioritize a short real-iPhone acceptance c
 - [x] Time browser teardown substeps with a disposable probe over two full four-worker runs; no teardown optimization justified without weakening diagnostics or stronger evidence.
 - [x] Map stale-action browser permutations to existing service/security tests; record the unique browser behaviors and timing limits above. No removal approved or implemented.
 - [x] Owner delegated the smaller-matrix decision: retain every action in both engines, alternate room/public role per engine, keep room-deletion navigation cases; three 40-case four-worker runs passed in ~59s versus two 52-case baselines at ~74s. Cross-machine reliability remains unverified.
+- [x] Strengthen retained stale-deletion cases to match outgoing events to the intended UI controls; 16 targeted Chromium/Firefox cases, the 40-case four-worker browser suite (58.64s), and 346 fast tests passed locally. Ruff format/lint checks passed.
 - [ ] Benchmark and simplify approved Android scenarios; Android remains unmeasured.
 - [ ] Agree lightweight iPhone-focused acceptance and optional WebKit coverage.
 - [ ] Optimize Python setup after higher-impact work.
