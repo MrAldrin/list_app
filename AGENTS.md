@@ -5,14 +5,8 @@
 - This is my first web app. So explain the ways of web development in simple terms for me to learn along the way.
 - Dont implement anything before I explicitly tell you to. 
 - Modular Implementation: Split large tasks into small, testable chunks.
+- GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist).
 
-
-## User preferences for agent answers
-
-- Short answers
-- Use bullet points where it makes sense
-- Dont always agree with the user, push back if you disagree
- 
 ## Technical Stack ideas
 The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
 

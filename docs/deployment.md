@@ -2,7 +2,11 @@
 
 ListR uses one NiceGUI application instance and one SQLite database. Production
 runs on Railway with a persistent volume (storage that survives deployments).
-For local setup, see the [README](../README.md).
+Railway watches the GitHub `main` branch: pushing a new `main` revision triggers
+an automatic deployment of the live app. Moving the local `main` bookmark alone
+does not deploy until the change is pushed. Treat a push to `main` as a production
+deployment and follow the checklist below. For local setup, see the
+[README](../README.md).
 
 ## Configuration
 
