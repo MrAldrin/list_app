@@ -59,7 +59,6 @@ Configuration, database checks, and recovery instructions live in
   offline navigation tests to the current baseline; revisit offline-specific
   device coverage with the future offline feature.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
-- [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
 
 ## Deliberately deferred — revisit when needed
 
