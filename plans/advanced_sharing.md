@@ -14,7 +14,7 @@ link; pinning would not grant access to the source room or its other lists.
 ## Boundaries
 
 - The canonical public-link and token design lives in
-  [`public_list_share_tokens.md`](public_list_share_tokens.md). This document
+  [public-sharing guide](../docs/public-sharing.md). This document
   does not define another token format or sharing route.
 - Adding or removing a pin requires valid authorization for the destination
   room.

@@ -4,10 +4,20 @@ Unfinished and deliberately deferred work. Current behavior belongs in
 [`ARCHITECTURE.md`](../ARCHITECTURE.md) and linked `docs/` references;
 completed-work history is preserved in version control.
 
-## Important improvements
+## Pending production and device verification
 
-- [x] Implement secure public list tokens, room-authorized rotation, and restricted old slug URLs. See [current sharing behavior](../docs/public-sharing.md).
-- [ ] Complete the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification); implementation and automated checks do not verify production rollout.
+These features are implemented and covered by local automated tests. Local
+tests are not production or real-device evidence. Follow the
+[deployment checklist](../docs/deployment.md#deployment-checklist) and record
+results (with OS/browser versions for devices) in the linked reference.
+
+- [ ] Complete the deployment guide's outstanding production checks: persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.
+- [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index. The 2026-09-28 production backup copy had no duplicates and started cleanly with the index.
+- [ ] Verify the checked-item visibility migration on production and its behavior on real devices. See [hiding checked-off items](../docs/checked-item-visibility.md#existing-lists-and-verification).
+- [ ] Confirm on Railway that automatic reload is off by default. See [deployment configuration](../docs/deployment.md#configuration).
+- [ ] Complete the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification).
+- [ ] Complete manual multi-user verification for deleted-list handling on real devices or deployment. Local Chromium/Firefox coverage is listed in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
+- [ ] Complete the real iPhone and Android acceptance checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md): fresh/password-prompt installs, legacy token migration, old icons, multiple rooms, other pages, deleted rooms, restart, and password revocation. Automated cookie-transfer checks do not verify OS installation behavior.
 
 ## Security
 
@@ -18,21 +28,15 @@ completed-work history is preserved in version control.
 Current quantity and stale-page safeguards are described in
 [`docs/item-writes.md`](../docs/item-writes.md).
 
-- [ ] After deploying the unique item-name index, confirm production startup logs show no duplicate-name migration error. The 2026-09-28 production backup copy had no duplicates and started cleanly with the index.
-- [ ] Complete manual multi-user verification for deleted-list handling on real devices or deployment. Local Chromium/Firefox tests now cover the specific room message and `Back to room`, generic public message without room navigation, immediate add/edit/toggle/quantity/tag/undo after list deletion, and room deletion. See [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
-- [ ] Address stale item actions when SQLite reuses a deleted maximum `items.id` within the same live list. `main.py`'s `toggle_tag`, `toggle`, `change_qty`, `save`, and `delete` callbacks retain an item ID plus list ID/slug; a reproduced stale quick-tag callback changed a newly created replacement item after the old maximum-ID item was deleted. Decide a separate identity/migration approach (for example, a non-reusable ID migration or a stable per-item generation key) before implementation; the chunk-5 inventory did not authorize schema changes. Add stale-callback regression coverage once the identity approach is approved. See the [write atomicity audit](write-atomicity-audit.md).
-- [ ] Finish chunk 5 of the [write atomicity audit](write-atomicity-audit.md): its verified partial fixes and chunk 6 cross-path regression are recorded there, but item-target identity is unresolved (above). Do not claim broader database stability from these automated checks; deployment and manual concurrency verification are separate.
+- [ ] Resolve item-target identity (chunk 5 of the [write atomicity audit](write-atomicity-audit.md)). SQLite can reuse a deleted maximum `items.id` within the same live list. `main.py`'s `toggle_tag`, `toggle`, `change_qty`, `save`, and `delete` callbacks retain an item ID plus list ID/slug; a reproduced stale quick-tag callback changed a newly created replacement item after the old maximum-ID item was deleted. Decide a separate identity/migration approach (for example, a non-reusable ID migration or a stable per-item generation key) before implementation; schema changes are not yet authorized. Add stale-callback regression coverage once the approach is approved. The audit records the verified partial fixes and chunk 6 cross-path regression; do not claim broader database stability from these automated checks.
 
 ## Deployment and recovery — next priorities
 
 Configuration, database checks, and recovery instructions live in
 [`docs/deployment.md`](../docs/deployment.md).
 
-- [x] Disable automatic reload by default; retain it as an explicit development option. Implemented and covered by configuration tests; see [deployment configuration](../docs/deployment.md#configuration). Railway deployment verification remains pending.
 - [ ] **Your Railway dashboard step:** Open production `list_app` → **Backups** and enable **Weekly** for the `/data` volume; confirm the schedule is listed, then check that a snapshot appears after its first run. The CLI API attempt returned `Not Authorized` and a follow-up query found no schedule; do not assume backups are running. If Weekly is unavailable, check plan/permissions and report back before changing approach. See the [backup options](backup-options.md#weekly-railway-schedule-and-future-home-backup-server).
 - [ ] Longer term, set up regular SQLite-consistent off-service backups, retention, restricted access, an owner and failure notification; test restoration with the app stopped, including a hosted restore drill. Weekly Railway volume snapshots alone do not complete this work. See the [backup options](backup-options.md) and [deployment guide](../docs/deployment.md#sqlite-consistent-backups).
-- [ ] Complete and record the deployment guide's outstanding production checks, including persistence across restart/deployment, migration verification, and remembered room access/password-reset revocation. Earlier repair checks do not establish that the full checklist is complete.
-
 - [ ] Later, add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
 
 ## Database hardening — planned follow-up
@@ -43,7 +47,6 @@ Configuration, database checks, and recovery instructions live in
 
 ## UI and PWA
 
-- [ ] Complete the real iPhone and Android acceptance checklist in [`docs/home-screen-installation.md`](../docs/home-screen-installation.md): fresh/password-prompt installs, legacy token migration, old icons, multiple rooms, other pages, deleted rooms, restart, and password revocation. Record OS/browser versions and results; automated cookie-transfer checks do not verify OS installation behavior.
 - [ ] Follow the [staged frontend/offline migration plan](offline-frontend-migration.md): validate an actual-iPhone prototype, migrate the frontend, then add offline viewing and later editing on the same foundation. Framework selection and implementation require separate approval; the previous experiment is retained as evidence rather than scheduled for integration.
 
 ## Testing, documentation, and tooling
@@ -56,7 +59,6 @@ Configuration, database checks, and recovery instructions live in
   offline navigation tests to the current baseline; revisit offline-specific
   device coverage with the future offline feature.
 - [ ] Extend regression coverage for tags, room creation/deletion, and the correctness tasks above. Track password-change revocation and public-list authorization tests with their existing security plans.
-- [x] Rechecked the default-room `lastrowid` warning with `ty` and guarded the unexpected `None` case; normal startup remains covered by database setup tests.
 - [ ] Revisit the Starlette/httpx test-client deprecation when the dependency stack supports its replacement. With installed NiceGUI 3.15.0, Starlette 1.3.1 and httpx 0.28.1, the warning is emitted by `starlette.testclient` imports in tests; no production callsite or dependency upgrade is warranted solely to suppress it.
 
 ## Deliberately deferred — revisit when needed
@@ -75,7 +77,3 @@ These are not prerequisites for the current small MVP. Revisit when growth, main
 - Add individual accounts/invitations only if per-person permissions or revocation are required; shared room access does not establish individual identity.
 - Normalize JSON tags only when querying or integrity requirements justify separate tables.
 - Reconsider database architecture for multiple replicas, sustained write contention, managed high availability, or multiple regions; discuss any stack change against [`ARCHITECTURE.md`](../ARCHITECTURE.md) first. PostgreSQL, SQLAlchemy/Alembic, and a replacement frontend are not prerequisites for closing this audit.
-
-## Local-only cleanup / verification
-
-- [ ] If retaining the disposable local test database, check whether the audit's malformed test-room password hash remains and repair or remove that test fixture if useful. No production corruption is inferred from that old local finding. Safe rejection of malformed hashes is already implemented; see [`docs/home-screen-installation.md`](../docs/home-screen-installation.md#room-authorization-and-token-persistence).
