@@ -28,13 +28,22 @@ We also have these extra files and folders:
 ## Documentation lifecycle
 - `README.md`: App introduction, quick-start instructions, and links to detailed documentation.
 - `ARCHITECTURE.md`: High-level stack, boundaries, security decisions, and major UX decisions. Keep implementation mechanics in linked reference docs; discuss architectural deviations with the user.
-- `docs/`: Current behavior, technical details, and operational guides. Update affected references when behavior changes; distinguish verified behavior from pending checks.
+- `docs/`: Current behavior, technical details, and operational guides. Update affected references when behavior changes. Top-level docs must meet the quality rules below.
+- `docs/background/`: Supporting detail for docs and plans: investigations, measurements, evidence, audit logs, and the reasoning behind decisions. May be long. Never the primary source for current behavior; link to the top-level doc for that.
 - `plans/`: Proposed work, decisions, implementation steps, and progress tracking at the bottom. Clearly distinguish planned, implemented, and verified work; a plan is not evidence that a feature exists.
 - `plans/backlog.md`: Unfinished or deferred work, with links to detailed plans where useful. Do not use it as an operational reference or a permanent completed-work log.
 - Keep each fact in one primary document and link to it rather than copying it across files.
 - When work finishes, update current references, remove or mark the corresponding backlog item complete, and record any remaining work or verification separately. Remove completed backlog entries during an approved cleanup; version control preserves their history.
-- Retire a completed or superseded plan only after durable decisions have moved to current references, remaining tasks are tracked, and incoming links are updated. Retain plans with unresolved work. Delete retired documents only with user approval or as part of an explicitly approved cleanup; version control keeps the history.
+- Retire a completed or superseded plan only after durable decisions have moved to current references, remaining tasks are tracked, and incoming links are updated. Move evidence or reasoning worth keeping to `docs/background/`. Retain plans with unresolved work. Delete retired documents only with user approval or as part of an explicitly approved cleanup; version control keeps the history.
 - Keep documentation updates scoped to the approved task; this policy does not authorize a repository-wide cleanup.
+
+### Quality rules for top-level docs
+Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
+- Current behavior and decisions only. No progress logs, test counts, dated evidence, or experiment history; put those in `docs/background/` and link to them.
+- Short: aim for about one screen. Checklists and step-by-step guides may be longer.
+- Plain language and short sentences. State facts once; do not stack caveats.
+- Unverified or pending work belongs in `plans/backlog.md`, not in the doc. A short "Pending checks" link to the backlog is enough.
+- When editing a top-level doc, keep it within these rules. If it has grown past them, split detail out to `docs/background/` rather than adding more.
 
 
 ## Tools:
