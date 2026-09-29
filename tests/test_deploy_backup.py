@@ -273,3 +273,20 @@ def test_cleanup_deletes_old_backups_only_on_yes(tmp_path):
     run_main(tmp_path, fake, ["--backup-only"], answers=["y"])
     assert not old.exists()
     assert len(list(backups.glob("*.db"))) == 2
+
+
+def test_check_push_ready_with_real_jj(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("JJ_USER", "Test")
+    monkeypatch.setenv("JJ_EMAIL", "test@example.com")
+    run = deploy_backup.run_command
+    run(["jj", "git", "init", "--quiet"])
+    run(["jj", "describe", "-m", "base"])
+    run(["jj", "bookmark", "set", "main", "-r", "@"])
+    run(["jj", "new", "-m", "feature"])
+    assert "feature" in deploy_backup.check_push_ready(run, "@")
+
+    run(["jj", "new", "main", "-m", "sideways"])
+    run(["jj", "bookmark", "set", "main", "-r", "@"])
+    with pytest.raises(DeployError, match="not an ancestor"):
+        deploy_backup.check_push_ready(run, "description(substring:feature)")

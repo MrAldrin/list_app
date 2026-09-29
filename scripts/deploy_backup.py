@@ -211,7 +211,7 @@ def check_push_ready(run: Runner, rev: str) -> str:
     shipping = run(["jj", "log", "--no-graph", "-r", f"main..({rev})", "-T", template])
     if not shipping.strip():
         raise DeployError(f"Nothing to ship: {rev} adds no changes over main")
-    sideways = run(["jj", "log", "--no-graph", "-r", f"main ~ ::({rev})", "-T", "x"])
+    sideways = run(["jj", "log", "--no-graph", "-r", f"main ~ ::({rev})", "-T", '"x"'])
     if sideways.strip():
         raise DeployError(f"main is not an ancestor of {rev}; rebase first")
     return shipping
