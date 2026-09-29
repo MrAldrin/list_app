@@ -1,132 +1,102 @@
 # Deployment and recovery
 
-ListR uses one NiceGUI application instance and one SQLite database. Production
-runs on Railway with a persistent volume (storage that survives deployments).
-Railway watches the GitHub `main` branch: pushing a new `main` revision triggers
-an automatic deployment of the live app. Moving the local `main` bookmark alone
-does not deploy until the change is pushed. Treat a push to `main` as a production
-deployment and follow the checklist below. For local setup, see the
-[README](../README.md).
+ListR runs as one NiceGUI process with one SQLite database. Production runs on
+Railway with a persistent volume (storage that survives deployments).
+
+Railway deploys automatically when GitHub `main` changes. Moving the local
+`main` bookmark does nothing until it is pushed, so treat a push to `main` as a
+production deployment and follow the [checklist](#deployment-checklist). For
+local setup, see the [README](../README.md).
 
 ## Deploy window
 
-Production uses Railway's Free plan, which only allows deploys between 20:00 and
-08:00 local time (Europe/Oslo). Outside that window, stage approved changes on the
-`main-staging` bookmark and push `main` only once the window opens.
+Railway's Free plan only allows deploys between 20:00 and 08:00 (Europe/Oslo).
+Outside that window, stage approved changes on the `main-staging` bookmark and
+push `main` once the window opens.
 
 ## Configuration
 
 | Variable | Purpose |
 | --- | --- |
-| `APP_PASSWORD` | Required, nonblank admin password; also used when first creating the default `Home` room. |
-| `NICEGUI_STORAGE_SECRET` | Required private signing key for NiceGUI session storage. Use a separate random value and keep it stable across restarts. |
-| `DB_PATH` | Database file path. Production: `/data/list.db` on the `/data` persistent volume. Default: `list.db` in the repository root. |
-| `PORT` | Listening port; defaults to `8080`. The `--port` argument takes precedence. |
-| `APP_RELOAD` | Automatic restart on code changes. Defaults to off; only `true` (case-insensitive, surrounding whitespace ignored) enables it. |
+| `APP_PASSWORD` | Required admin password for `/admin`. Also sets the password of the default `Home` room when it is first created. |
+| `NICEGUI_STORAGE_SECRET` | Required key for signing NiceGUI sessions. Keep it stable; changing it can log people out. |
+| `DB_PATH` | Database file. Production: `/data/list.db`. Default: `list.db` in the repository root. |
+| `PORT` | Listening port, default `8080`. `--port` overrides it. |
+| `APP_RELOAD` | Restart on code changes. Off unless set to `true`. Use only locally. |
 
-Generate separate secrets using the command in the README. The app explicitly
-rejects missing/blank `APP_PASSWORD` before opening the database. There is no
-password-free development mode. `NICEGUI_STORAGE_SECRET` is read directly at
-startup: a missing value fails startup; do not assume blank values are validated.
-
-`APP_PASSWORD` protects `/admin`. Changing it does **not** change existing room
-passwords. Use the room password-reset controls for those; resets revoke existing
-room access tokens. Keep the storage secret unchanged during ordinary deploys;
-rotating it can invalidate NiceGUI sessions.
-
-- Railway uses service environment variables, not the untracked local `.env`.
-- The production app password is randomly generated and stored in Bitwarden.
-- Keep all secrets, database files, and backups out of version control and public logs.
-- Local `.env` values are loaded by `python-dotenv`; existing environment values
-  take precedence.
+- The app refuses to start with a missing or blank `APP_PASSWORD`, or a missing
+  `NICEGUI_STORAGE_SECRET` (a blank secret is not checked). There is no
+  password-free mode. Generate secrets with the command in the README.
+- Changing `APP_PASSWORD` does not change room passwords. Reset those from the
+  room controls; a reset logs out everyone using that room.
+- Railway uses its service variables, not the local `.env`. Locally, `.env` is
+  loaded by `python-dotenv`, and real environment variables win.
+- The production app password is stored in Bitwarden. Keep secrets, databases
+  and backups out of version control and logs.
 
 ## Build and startup
 
-Use Python 3.13 or newer. With uv available:
+Use Python 3.13 or newer:
 
 ```bash
 uv sync --locked
 uv run python src/main.py
 ```
 
-The repository's `Procfile` declares `web: python src/main.py`; this assumes the
-build has installed dependencies into the Python environment used at runtime.
-Use Railway's supplied `PORT` and route traffic to that port. The application
-binds to `0.0.0.0` (all interfaces).
+The `Procfile` runs `python src/main.py`. The app listens on `0.0.0.0` and
+Railway's `PORT`. Startup applies schema changes automatically.
 
-Use `APP_RELOAD=true` only for local development. On Railway, no new variable is
-needed: leave it unset or set it to `false`. With reload off, code updates take
-effect after an explicit restart or deployment, not through a file watcher.
-
-**Known limitations, tracked in the [backlog](../plans/backlog.md):**
-
-- Startup performs schema changes automatically. Versioned, transaction-safe
-  migrations and recurring backup automation are still pending.
-
-## Persistent storage and process limits
+## Storage and process limits
 
 - Mount the Railway volume at `/data` and set `DB_PATH=/data/list.db`.
-  The parent directory must exist and be writable by the application.
-- Keep one application service/instance using this database: no horizontal
-  replicas or extra application workers. The optional development reload supervisor
-  is not a supported multi-worker deployment strategy.
-- Do not place the production database on the temporary deployment filesystem.
-  A wrong or missing `DB_PATH` can create a new, empty database instead of opening
-  the existing one. Check the path before starting or restoring.
+- A wrong or missing `DB_PATH` silently creates a new, empty database. Check it
+  before starting or restoring.
+- Run exactly one app instance against the database: no replicas or extra
+  workers.
 
-## HTTPS and reverse proxy
+## HTTPS and proxy
 
-Use Railway's HTTPS endpoint (or a properly configured HTTPS reverse proxy).
-The proxy must support WebSocket upgrades for NiceGUI's live updates and preserve
-the public host and original HTTPS scheme in the app's normalized request data.
+Use Railway's HTTPS endpoint. The proxy must allow WebSocket upgrades (for live
+updates) and pass on the public host and the original `https` scheme. If the app
+sees HTTPS requests as HTTP, or the wrong host, remembered room access and live
+updates break, because cookie writes and Socket.IO check the origin. Only trust
+forwarded headers from the real proxy.
 
-Cookie writes and Socket.IO handshakes enforce same-origin checks. A mismatched
-host or an app that sees public HTTPS requests as HTTP can break remembered
-access or live updates. Configure forwarded-header trust for the actual proxy;
-do not blindly trust headers from arbitrary internet clients or expose a bypass
-around the trusted proxy. If proxy settings need changing, validate them against
-the installed NiceGUI/Uvicorn version rather than assuming an app CLI flag exists.
-
-HTTPS remembered-room cookies are Secure/HttpOnly/SameSite=Lax. Local HTTP uses
-the localStorage fallback, so local testing alone does not verify production
-cookie behavior. See the [device checklist](home-screen-installation.md).
-
-## Public share-link rollout
-
-Secure public links require an automatic token backfill and restrict old list
-URLs. Back up before deploying and follow the [sharing rollout checks](public-sharing.md#rollout-and-verification).
-Production and real-device verification remain pending.
+On HTTPS, remembered-room cookies are Secure, HttpOnly and SameSite=Lax. Local
+HTTP uses a localStorage fallback instead, so local testing does not prove
+production cookie behavior. See the
+[home-screen device checks](home-screen-installation.md).
 
 ## Deployment checklist
 
 Before deploying:
 
-- [ ] Confirm it is inside the [deploy window](#deploy-window) (20:00–08:00).
-- [ ] Confirm both secrets, absolute `DB_PATH`, volume mount, port, and one instance.
-- [ ] Record the deployed code revision and make a SQLite-consistent backup below.
-- [ ] For schema changes, first start the candidate version against a **separate
-  copy** of the backup in an isolated environment. Never use production's path or
-  expose the copied data publicly.
+- [ ] Inside the [deploy window](#deploy-window) (20:00–08:00).
+- [ ] Both secrets set, `DB_PATH` absolute, volume mounted, one instance.
+- [ ] Note the currently deployed revision and make a
+  [backup](#sqlite-consistent-backups).
+- [ ] For schema changes: start the new version against a **copy** of the backup
+  in an isolated environment first. Never point it at production's path.
 
 After deploying:
 
-- [ ] Review startup logs for errors. Startup enables foreign keys and checks for
-  foreign-key violations after its schema setup; also run the read-only checks below.
-- [ ] Confirm existing rooms, lists, and representative item fields/counts remain.
-- [ ] Test admin login, room login, and add/edit/toggle/delete with disposable data.
-  Check live updates in two browsers and confirm public-list behavior.
-- [ ] Restart/redeploy and confirm a disposable saved item survives. Verify remembered
-  room access and that a room password reset revokes prior access.
-- [ ] Verify HTTPS cookies and home-screen installation on real devices using the
-  linked checklist. Automated tests do not replace these checks.
+- [ ] Startup logs have no errors. Run the [database checks](#read-only-database-checks).
+- [ ] Existing rooms, lists and items are still there.
+- [ ] Admin login, room login, and add/edit/toggle/delete work (use disposable
+  data). Live updates work across two browsers. Public share links work.
+- [ ] After a restart, a disposable item is still saved, remembered room access
+  still works, and a room password reset logs out the old session.
+- [ ] Real-device cookie and home-screen checks from the
+  [device checklist](home-screen-installation.md).
 
-These are instructions, not a claim that all production checks have been run.
+Feature-specific checks, such as [public sharing](public-sharing.md#rollout-and-verification),
+are listed in their own docs. Checks not yet done on production are tracked in
+the [backlog](../plans/backlog.md#pending-production-and-device-verification).
 
 ## SQLite-consistent backups
 
-A raw copy of a live SQLite file can be inconsistent or omit journal/WAL data.
-Use SQLite's backup API for live backups. Run this with Python on the host that
-has the volume mounted; replace the example destination with a **new** filename:
+Copying a live SQLite file can produce a broken copy. Use SQLite's backup API
+instead. Run this on the host with the volume mounted, using a **new** filename:
 
 ```bash
 DB_PATH=/data/list.db BACKUP_PATH=/private/backups/list-before-deploy.db python - <<'PY'
@@ -147,24 +117,17 @@ print('Backup verified:', target)
 PY
 ```
 
-Check the command succeeded before using the backup. Restrict access to the backup
-directory, including pre-existing directories; backups contain private list data
-and authentication records. Transfer a protected copy off the Railway service/volume.
-A backup only on the same volume does not protect against losing that volume.
+- Backups contain private list data and password hashes. Keep the folder
+  private.
+- Move a copy off the Railway volume. A backup on the same volume is lost with
+  it.
 
-**Interim goal, not yet configured:** weekly Railway volume snapshots plus
-occasional manual, SQLite-consistent local copies and a backup before each
-schema-changing deploy. The [one-off production-to-local test](../plans/backup-options.md#evidence-and-limits)
-on 2026-09-24 does not establish a recurring policy or a tested restore.
-Railway's schedule is still **absent**; see the [manual dashboard step and future
-options](../plans/backup-options.md#weekly-railway-schedule-and-future-home-backup-server).
-Choose an owner, failure notification, off-service storage policy and restore
-drill before treating longer-term recovery as operational. The earlier one-time
-repair backup is not a recurring backup policy either.
+Recurring backups are not set up yet. Status and options are in the
+[backup plan](../plans/backup-options.md).
 
 ## Read-only database checks
 
-Run on the mounted volume, or against a backup by changing `DB_PATH`:
+Run on the mounted volume, or on a backup by changing `DB_PATH`:
 
 ```bash
 DB_PATH=/data/list.db python - <<'PY'
@@ -183,30 +146,27 @@ with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True) as db:
 PY
 ```
 
-Expected: integrity `ok`, no foreign-key violations. These checks do not prove
-that all business data survived; compare representative records/counts as well.
+Expected: integrity `ok` and no foreign-key violations. This checks the file's
+structure, not that your data is complete; also compare a few rooms and lists.
 
 ## Restoration and rollback
 
-1. Stop the application and prevent automatic restarts or deploys. Confirm no
-   process is using the database. Arrange maintenance access to the mounted volume.
-2. Select a verified backup and compatible code revision. Restore to a separate
-   file first and run the read-only checks above. Restoring loses changes made
-   since that backup; confirm this trade-off before proceeding.
-3. Preserve the failed database and any `-wal`, `-shm`, or `-journal` sidecar files
-   together in a restricted recovery directory with the app stopped. Do not discard
-   them or combine old sidecars with the restored database.
-4. Copy the verified backup to the configured `DB_PATH`, ensuring the original
-   files/sidecars have been moved aside. Set ownership/permissions so only the
-   intended service and operators can access it and the app can write it.
-5. Start the compatible code, inspect logs, rerun integrity/foreign-key checks,
-   and repeat the smoke and persistence checks. Keep recovery files until success
-   is confirmed.
+1. Stop the app and block automatic restarts and deploys. Make sure nothing is
+   using the database.
+2. Pick a verified backup and a code revision that matches its schema. Restore
+   it to a separate file first and run the read-only checks. Anything changed
+   since the backup will be lost.
+3. Move the current database and any `-wal`, `-shm` or `-journal` files together
+   into a private recovery folder. Never mix old sidecar files with the restored
+   database.
+4. Copy the backup to `DB_PATH`. Make sure the app can write it and nobody else
+   can read it.
+5. Start the app, check the logs, rerun the database checks and the
+   after-deploy checklist. Keep the recovery files until everything works.
 
-**Rolling back code does not undo a database migration.** An older version may
-not understand the newer schema. Restore a matching backup when necessary rather
-than repeatedly starting incompatible versions against the only data copy.
+**Rolling back code does not undo a schema change.** Older code may not
+understand the newer database. Restore a matching backup instead of starting
+incompatible code against your only copy.
 
-Test this procedure on a disposable database before relying on it. A real hosted
-restore drill, recurring backup setup, and device/restart verification remain
-separate backlog work.
+This procedure has not yet been rehearsed on a hosted copy; that drill is
+tracked in the [backlog](../plans/backlog.md#deployment-and-recovery--next-priorities).
