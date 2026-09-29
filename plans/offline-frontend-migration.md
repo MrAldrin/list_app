@@ -13,9 +13,34 @@ evidence and limitations. The current shipped architecture remains NiceGUI.
 
 Use a browser-side frontend that can run without the Python server. Keep Python
 for server-side business rules, authorization and API endpoints; retain SQLite
-and Railway unless a separate requirement justifies changing them. Framework
-selection (for example React, Vue or Svelte) is unresolved. Native iPhone packaging
-is not a prerequisite.
+and Railway unless a separate requirement justifies changing them. Native iPhone
+packaging is not a prerequisite.
+
+## Frontend decision
+
+Owner decision (2026-09-29): **Svelte 5 with SvelteKit in static/SPA mode**
+(`adapter-static`), written in TypeScript. The built frontend is static files
+that talk to the Python API.
+
+- Chosen for readable, compact code, a small app with few users, and SvelteKit's
+  built-in service worker support.
+- Considered: React (largest ecosystem, React Native path, best AI coverage) and
+  Vue. Neither advantage applies to current goals. Rust/WebAssembly frameworks
+  were rejected as a third language with little benefit.
+- NiceGUI 3.17 has no offline support or roadmap for it; the community
+  `nicegui-pyodide` project is experimental and does not support `@ui.page`.
+- Pin Svelte 5 syntax (runes such as `$state`) in project guidance so generated
+  code does not mix in Svelte 4 patterns.
+
+## Where the work lives
+
+- Develop on the `svelte-frontend` bookmark, branched from `main`. Rebase it
+  onto `main` regularly to keep conflicts small. Do not build on
+  `backup-offline-read-only`; it is reference only.
+- Put the Svelte project in `frontend/`; Python stays in `src/`.
+- Additive Python API endpoints may land on `main` in small, separately approved
+  slices before the switch, so the final switch mainly changes which frontend is
+  served. Pushing `main` deploys; follow the deployment checklist.
 
 ## Small, testable stages
 
@@ -78,7 +103,8 @@ can follow later, but the read-only design must leave room for them.
 - [x] Document staged viewing-to-editing migration and early design obligations.
 - [ ] Owner reviews/integrates the shared documentation baseline.
 - [ ] Rebase selected active stacks after explicit approval; preserve experiment.
-- [ ] Choose frontend and agree prototype/API/local-data acceptance criteria.
+- [x] Choose frontend: Svelte 5 + SvelteKit static/SPA (2026-09-29).
+- [ ] Agree prototype/API/local-data acceptance criteria.
 - [ ] Validate the prototype on the actual iPhone and exercise two-device sync.
 - [ ] Implement online frontend migration in separately approved slices.
 - [ ] Implement and verify offline viewing.
