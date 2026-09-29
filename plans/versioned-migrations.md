@@ -68,7 +68,7 @@ Status: approved design, not implemented.
 
 ## Progress
 
-- [ ] 1. Runner
+- [x] 1. Runner
 - [ ] 2. Baseline migration 1
 - [ ] 3. Volume backup at startup
 - [ ] 4. Docs
