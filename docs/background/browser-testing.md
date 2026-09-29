@@ -52,7 +52,7 @@ The original 28 cases were cut to 16. All six stale actions run in both
 engines, with room and public roles alternated per engine; the four
 room-deletion cases keep both roles in both engines. A bug that only appears in
 a dropped role/engine pair could be missed. Coverage map and benchmark:
-[test-suite speed plan](../../plans/test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
+[test-suite speed measurements](test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
 
 ## Past measurements (one machine)
 
@@ -62,8 +62,8 @@ a dropped role/engine pair could be missed. Coverage map and benchmark:
   screenshot fixes, then nine clean 52-case runs (74.8–77.7 s).
 - 40-case suite after the matrix cut: three runs at 58.5–59.1 s.
 - Earlier four-worker runs failed in teardown; see the
-  [test-suite speed plan](../../plans/test-suite-speed.md) for fixes.
+  [test-suite speed measurements](test-suite-speed.md) for fixes.
 - Seeding the sharing setup gave a small gain; see
-  [measurements](../../plans/test-suite-speed.md#follow-up-public-sharing-setup-2026-09-28).
+  [measurements](test-suite-speed.md#follow-up-public-sharing-setup-2026-09-28).
 
 Parallel stability on other machines has not been measured.
