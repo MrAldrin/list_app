@@ -8,7 +8,7 @@ from pathlib import Path
 import bcrypt
 import pytest
 
-from database_setup import init_database
+from database_setup import _backup_path, init_database
 
 
 def test_default_database_path_is_project_relative_from_other_working_directory(
@@ -455,3 +455,33 @@ def test_baseline_runs_only_once(tmp_path, monkeypatch):
     assert db.execute("SELECT COUNT(*) FROM rooms").fetchone()[0] == 0
     assert db.execute("PRAGMA user_version").fetchone()[0] == 1
     db.close()
+
+
+def test_backup_path_defaults_next_to_database(monkeypatch):
+    monkeypatch.delenv("DB_BACKUP_PATH", raising=False)
+    assert _backup_path("/data/list.db") == Path("/data/list-pre-migration.db")
+    assert _backup_path(":memory:") is None
+    monkeypatch.setenv("DB_BACKUP_PATH", "/data/backups/copy.db")
+    assert _backup_path("/data/list.db") == Path("/data/backups/copy.db")
+
+
+def test_legacy_database_is_backed_up_before_migrating(tmp_path, monkeypatch):
+    monkeypatch.delenv("DB_BACKUP_PATH", raising=False)
+    database_path = tmp_path / "list.db"
+    legacy_db = sqlite3.connect(database_path)
+    legacy_db.execute(
+        "CREATE TABLE lists (id INTEGER PRIMARY KEY, name TEXT UNIQUE, "
+        "list_tags TEXT DEFAULT '[]')"
+    )
+    legacy_db.execute("INSERT INTO lists (id, name) VALUES (1, 'Groceries')")
+    legacy_db.commit()
+    legacy_db.close()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    init_database().close()
+
+    with sqlite3.connect(tmp_path / "list-pre-migration.db") as copy:
+        assert copy.execute("PRAGMA user_version").fetchone()[0] == 0
+        assert copy.execute("SELECT id, name FROM lists").fetchall() == [
+            (1, "Groceries")
+        ]

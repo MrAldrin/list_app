@@ -12,3 +12,5 @@ list.db
 # local
 local_only/
 .env
+# pre-migration backups
+*-pre-migration.db*

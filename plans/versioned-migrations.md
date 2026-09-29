@@ -70,6 +70,6 @@ Status: approved design, not implemented.
 
 - [x] 1. Runner
 - [x] 2. Baseline migration 1
-- [ ] 3. Volume backup at startup
+- [x] 3. Volume backup at startup
 - [ ] 4. Docs
 - [ ] 5. Production deploy and check

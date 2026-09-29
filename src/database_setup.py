@@ -18,6 +18,16 @@ def _database_path() -> str:
     return os.environ.get("DB_PATH", str(_DEFAULT_DATABASE_PATH))
 
 
+def _backup_path(database_path: str) -> Path | None:
+    """Where to keep the pre-migration copy; None for in-memory databases."""
+    if configured := os.environ.get("DB_BACKUP_PATH"):
+        return Path(configured)
+    if database_path == ":memory:":
+        return None
+    path = Path(database_path)
+    return path.with_name(f"{path.stem}-pre-migration{path.suffix}")
+
+
 def _create_slug(name: str) -> str:
     safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
     short_uuid = str(uuid.uuid4())[:6]
@@ -341,9 +351,10 @@ def _migrations(app_password: str) -> list[Migration]:
 
 def init_database():
     app_password = require_app_password()
-    db = sqlite3.connect(_database_path(), check_same_thread=False)
+    database_path = _database_path()
+    db = sqlite3.connect(database_path, check_same_thread=False)
     try:
-        run_migrations(db, _migrations(app_password))
+        run_migrations(db, _migrations(app_password), _backup_path(database_path))
     except BaseException:
         db.close()
         raise

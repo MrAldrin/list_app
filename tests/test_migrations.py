@@ -121,3 +121,60 @@ def test_newer_database_than_app_is_refused(tmp_path):
         run_migrations(db, [_create_parents])
 
     assert schema_version(db) == 2
+
+
+def test_backup_holds_pre_migration_state_and_is_private(tmp_path):
+    db = _connect(tmp_path)
+    run_migrations(db, [_create_parents])
+    db.execute("INSERT INTO parents (id) VALUES (1)")
+    db.commit()
+    backup = tmp_path / "backups" / "pre-migration.db"
+
+    run_migrations(db, [_create_parents, _create_children], backup)
+
+    assert backup.stat().st_mode & 0o777 == 0o600
+    with sqlite3.connect(backup) as copy:
+        assert schema_version(copy) == 1
+        assert "children" not in _table_names(copy)
+        assert copy.execute("SELECT id FROM parents").fetchall() == [(1,)]
+    assert not backup.with_name(backup.name + ".tmp").exists()
+
+
+def test_no_backup_when_up_to_date_or_fresh(tmp_path):
+    backup = tmp_path / "pre-migration.db"
+    db = _connect(tmp_path)
+
+    run_migrations(db, [_create_parents], backup)
+    assert not backup.exists()
+
+    run_migrations(db, [_create_parents], backup)
+    assert not backup.exists()
+
+
+def test_new_backup_replaces_previous_one(tmp_path):
+    backup = tmp_path / "pre-migration.db"
+    db = _connect(tmp_path)
+    run_migrations(db, [_create_parents])
+    run_migrations(db, [_create_parents, _create_children], backup)
+
+    def create_extra(db: sqlite3.Connection) -> None:
+        db.execute("CREATE TABLE extra (id INTEGER)")
+
+    run_migrations(db, [_create_parents, _create_children, create_extra], backup)
+
+    with sqlite3.connect(backup) as copy:
+        assert schema_version(copy) == 2
+        assert "children" in _table_names(copy)
+
+
+def test_backup_failure_stops_migration(tmp_path):
+    db = _connect(tmp_path)
+    run_migrations(db, [_create_parents])
+    blocked = tmp_path / "not-a-directory"
+    blocked.write_text("")
+
+    with pytest.raises(MigrationError, match="failed; not migrating"):
+        run_migrations(db, [_create_parents, _create_children], blocked / "copy.db")
+
+    assert schema_version(db) == 1
+    assert "children" not in _table_names(db)
