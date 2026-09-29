@@ -42,7 +42,7 @@ the [deployment checklist](../docs/deployment.md#deployment-checklist).
    verification, the remote script's output parsing, and the stop-on-failure
    order with a fake command runner.
 3. **Docs:** deployment checklist and backup section point to the script;
-   update the backup plan status. Remove the backlog item.
+   update the backup plan status. Replace the backlog item with a manual check.
 4. **First real run (owner):** `--backup-only` against production, outside a
    deploy if preferred. Check that a verified copy lands locally and the temp
    file is gone from the volume.
@@ -51,5 +51,5 @@ the [deployment checklist](../docs/deployment.md#deployment-checklist).
 
 - [x] 1. Plan and backlog
 - [x] 2. Script and tests
-- [ ] 3. Docs
+- [x] 3. Docs
 - [ ] 4. First real run (owner)

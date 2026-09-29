@@ -90,11 +90,13 @@ Before deploying:
 
 - [ ] Inside the [deploy window](#deploy-window) (20:00–08:00).
 - [ ] Both secrets set, `DB_PATH` absolute, volume mounted, one instance.
-- [ ] Note the currently deployed revision and make a
-  [backup](#sqlite-consistent-backups) to this machine. Keep the two newest
-  local copies and delete older ones.
-- [ ] For schema changes: start the new version against a **copy** of the backup
-  in an isolated environment first. Never point it at production's path.
+- [ ] Note the currently deployed revision.
+- [ ] For schema changes: take a backup with
+  [`--backup-only`](#backup-before-deploying) and start the new version against
+  a **copy** of it in an isolated environment first. Never point it at
+  production's path.
+- [ ] Push with the [deploy backup script](#backup-before-deploying), not by
+  hand. It takes a fresh backup first.
 
 After deploying:
 
@@ -111,10 +113,32 @@ Feature-specific checks, such as [public sharing](public-sharing.md#rollout-and-
 are listed in their own docs. Checks not yet done on production are tracked in
 the [backlog](../plans/backlog.md#manual-checks).
 
+## Backup before deploying
+
+`scripts/deploy_backup.py` backs up production to this machine, then pushes
+`main`. Run it from the repository with Railway linked to production:
+
+```bash
+uv run python scripts/deploy_backup.py --rev <revision>   # backup, then push
+uv run python scripts/deploy_backup.py --backup-only      # backup, never push
+```
+
+1. Pushing only works inside the deploy window, and only if `main` is an
+   ancestor of the revision.
+2. It makes a backup-API copy on the volume over `railway ssh` and checks it.
+3. It downloads the copy to `~/.local/share/list_app/backups/`, checks the
+   checksum and integrity, and deletes the volume copy.
+4. It offers to delete local copies beyond the two newest.
+5. It shows the changes that will go live and pushes only after you type `y`.
+
+Any failure stops the script before the push. A copy that fails the local
+checks is kept as `*.db.unverified` for inspection.
+
 ## SQLite-consistent backups
 
 Copying a live SQLite file can produce a broken copy. Use SQLite's backup API
-instead. Run this on the host with the volume mounted, using a **new** filename:
+instead. The [deploy backup script](#backup-before-deploying) does this for
+you. To do it by hand, run this on the host with the volume mounted, using a **new** filename:
 
 ```bash
 DB_PATH=/data/list.db BACKUP_PATH=/private/backups/list-before-deploy.db python - <<'PY'
@@ -143,8 +167,8 @@ PY
   lives on the volume. It protects against a bad migration, not against losing
   the volume.
 
-Recurring backups are not set up yet. Status and options are in the
-[backup plan](../plans/backup-options.md).
+Backups happen on each deploy; recurring backups are not set up. Status and
+options are in the [backup plan](../plans/backup-options.md).
 
 ## Read-only database checks
 

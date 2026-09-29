@@ -12,7 +12,6 @@ In order: the top item is done first.
 
 - [ ] [data] (in progress) Add versioned, all-or-nothing migrations with integrity checks and a pre-migration backup on the volume. Implemented on bookmark `versioned-migrations`; deploy in the next window with the [deploy runbook](versioned-migrations.md#deploy-runbook-step-5).
 - [ ] [bug] Resolve item-target identity: SQLite can reuse a deleted item ID, so stale item actions can change a replacement item. Likely fix: non-reusable IDs via a table rebuild, using the new migrations. See [write atomicity audit](write-atomicity-audit.md) chunk 5 and [findings](../docs/background/write-atomicity-findings.md).
-- [ ] [infra] (in progress) One-command backup before pushing `main`. See the [deploy backup script plan](deploy-backup-script.md).
 
 ## Later
 
@@ -56,4 +55,5 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] Confirm on Railway that automatic reload is off by default. See [deployment configuration](../docs/deployment.md#configuration).
 - [ ] Do the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification).
 - [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
+- [ ] Run the [deploy backup script](../docs/deployment.md#backup-before-deploying) with `--backup-only` once. Check that a verified copy lands locally and no `list-deploy-*` file is left on the volume.
 - [ ] Run the real iPhone and Android checklist in [home-screen installation](../docs/home-screen-installation.md).
