@@ -10,14 +10,14 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [data] Add versioned, all-or-nothing migrations with integrity checks and a pre-migration backup on the volume. See [versioned migrations](versioned-migrations.md).
+- [ ] [data] (in progress) Add versioned, all-or-nothing migrations with integrity checks and a pre-migration backup on the volume. Implemented on bookmark `versioned-migrations`; deploy in the next window with the [deploy runbook](versioned-migrations.md#deploy-runbook-step-5).
 - [ ] [bug] Resolve item-target identity: SQLite can reuse a deleted item ID, so stale item actions can change a replacement item. Likely fix: non-reusable IDs via a table rebuild, using the new migrations. See [write atomicity audit](write-atomicity-audit.md) chunk 5 and [findings](../docs/background/write-atomicity-findings.md).
 
 ## Later
 
 Agreed as worth doing; no date.
 
-- [ ] [infra] Scheduled local backup job that pulls a verified SQLite copy from Railway to this machine or an always-on home machine. Blocker: Railway snapshots are not available on the current plan. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
+- [ ] [infra] Scheduled local backup job that pulls a verified SQLite copy from Railway to this machine or an always-on home machine. Include a restore drill on a hosted copy. Blocker: Railway snapshots are not available on the current plan. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
 - [ ] [data] Evaluate WAL mode and explicitly set and document SQLite's lock-wait timeout. Test locking and backup behavior.
 - [ ] [data] Strengthen field constraints: nullable names, completion state and slugs; quantities below one; length limits; valid tags JSON. Inspect existing data first.

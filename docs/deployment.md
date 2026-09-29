@@ -21,6 +21,7 @@ push `main` once the window opens.
 | `APP_PASSWORD` | Required admin password for `/admin`. Also sets the password of the default `Home` room when it is first created. |
 | `NICEGUI_STORAGE_SECRET` | Required key for signing NiceGUI sessions. Keep it stable; changing it can log people out. |
 | `DB_PATH` | Database file. Production: `/data/list.db`. Default: `list.db` in the repository root. |
+| `DB_BACKUP_PATH` | Pre-migration copy. Default: next to `DB_PATH`, e.g. `/data/list-pre-migration.db`. |
 | `PORT` | Listening port, default `8080`. `--port` overrides it. |
 | `APP_RELOAD` | Restart on code changes. Off unless set to `true`. Use only locally. |
 
@@ -44,7 +45,23 @@ uv run python src/main.py
 ```
 
 The `Procfile` runs `python src/main.py`. The app listens on `0.0.0.0` and
-Railway's `PORT`. Startup applies schema changes automatically.
+Railway's `PORT`.
+
+### Schema migrations
+
+Startup applies schema changes as numbered migrations (`src/migrations.py`).
+SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
+
+- If a migration is pending, the app first writes a verified copy of the
+  database to `DB_BACKUP_PATH`, replacing the previous copy. If that fails,
+  it does not migrate or start.
+- All pending migrations run in one transaction, followed by integrity and
+  foreign-key checks. Any failure rolls everything back and stops startup.
+- The log shows `Database migrated from version X to Y` when anything ran.
+- The app refuses a database newer than its code. Restore a matching backup
+  instead of rolling back code alone.
+- Add changes as a new migration at the end of the list in
+  `src/database_setup.py`. Never edit a deployed one.
 
 ## Storage and process limits
 
@@ -74,7 +91,8 @@ Before deploying:
 - [ ] Inside the [deploy window](#deploy-window) (20:00–08:00).
 - [ ] Both secrets set, `DB_PATH` absolute, volume mounted, one instance.
 - [ ] Note the currently deployed revision and make a
-  [backup](#sqlite-consistent-backups).
+  [backup](#sqlite-consistent-backups) to this machine. Keep the two newest
+  local copies and delete older ones.
 - [ ] For schema changes: start the new version against a **copy** of the backup
   in an isolated environment first. Never point it at production's path.
 
@@ -121,6 +139,9 @@ PY
   private.
 - Move a copy off the Railway volume. A backup on the same volume is lost with
   it.
+- The app's own pre-migration copy (see [schema migrations](#schema-migrations))
+  lives on the volume. It protects against a bad migration, not against losing
+  the volume.
 
 Recurring backups are not set up yet. Status and options are in the
 [backup plan](../plans/backup-options.md).
@@ -153,7 +174,9 @@ structure, not that your data is complete; also compare a few rooms and lists.
 
 1. Stop the app and block automatic restarts and deploys. Make sure nothing is
    using the database.
-2. Pick a verified backup and a code revision that matches its schema. Restore
+2. Pick a verified backup and a code revision that matches its schema. After a
+   bad migration, the pre-migration copy on the volume matches the previous
+   deploy. Restore
    it to a separate file first and run the read-only checks. Anything changed
    since the backup will be lost.
 3. Move the current database and any `-wal`, `-shm` or `-journal` files together

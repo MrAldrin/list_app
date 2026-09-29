@@ -4,7 +4,7 @@ Lifecycle: tracked
 
 Status: manual, verified local copies exist; no recurring backup, alerting, encrypted off-service storage or hosted restore drill is set up.
 
-**Blocker:** Railway volume snapshots are not available on the owner's current Railway plan. Until the plan changes, the only option is a local copy pulled from Railway by a scheduled job on an owner-controlled machine. Keep taking occasional manual backups until that job exists.
+**Blocker:** Railway volume snapshots are not available on the owner's current Railway plan. Until the plan changes, the only option is a local copy pulled from Railway by a scheduled job on an owner-controlled machine. Keep taking occasional manual backups until that job exists. The app also keeps one [pre-migration copy](../docs/deployment.md#schema-migrations) on the volume.
 
 Commands are in the [deployment guide](../docs/deployment.md#sqlite-consistent-backups); option comparison, Railway CLI findings and evidence are in [background](../docs/background/backup-research.md).
 

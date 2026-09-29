@@ -6,7 +6,7 @@ Goal: database changes run once, in order, all-or-nothing, with a backup
 before any change. This is the foundation for the item-ID fix in the
 [backlog](backlog.md#next).
 
-Status: approved design, not implemented.
+Status: steps 1–4 implemented and tested locally; not deployed.
 
 ## Decisions
 
@@ -45,6 +45,9 @@ Status: approved design, not implemented.
   default next to the database file. The backup reuses the procedure in the
   [deployment guide](../docs/deployment.md#sqlite-consistent-backups), but
   replaces the old file only after the new copy is verified.
+- Rebuild a table in SQLite's documented order: create the new table, copy,
+  drop the old one, rename the new one. Renaming the old table first repoints
+  other tables' foreign keys at it.
 - Tests use temporary databases, never production data.
 
 ## Steps
@@ -62,14 +65,56 @@ Status: approved design, not implemented.
 4. **Docs:** update the [deployment guide](../docs/deployment.md) (keep two
    local copies, where the volume copy lives, how to restore from it) and the
    [backup plan](backup-options.md). Remove the backlog item.
-5. **Production:** follow the deployment checklist. After deploy, check the
-   logs show version 1 and that the volume copy exists. Needs approval to push
-   `main`.
+5. **Production:** see the runbook below.
+
+## Deploy runbook (step 5)
+
+For the agent helping the owner deploy. Follow the
+[deployment checklist](../docs/deployment.md#deployment-checklist); this adds
+the migration-specific steps. Report the result of each step before the next.
+
+**What ships:** bookmark `versioned-migrations` and everything below it that is
+not on `main` yet, including the backlog/docs change under `main-staging`.
+Check with `jj log -r 'main..versioned-migrations'`.
+
+1. **Window:** confirm it is 20:00–08:00 Europe/Oslo.
+2. **Fresh backup to this machine:** follow the Railway-side procedure in
+   [backup research](../docs/background/backup-research.md#can-we-use-the-railway-cli-for-direct-queries-or-backups):
+   backup-API copy to a unique file on `/data`, verify it there, download it
+   to `~/.local/share/list_app/backups/list-manual-<UTC timestamp>-<id>.db`,
+   verify checksum and integrity locally, then remove the temporary file from
+   the volume. Keep the two newest local copies; ask the owner before
+   deleting older ones.
+3. **Rehearse on a copy:** copy that backup to the job's temp folder and start
+   the new code against it twice, with a dummy `APP_PASSWORD` and
+   `PYTHON_DOTENV_DISABLED=1`. Expect: first start prints
+   `Database migrated from version 0 to 1`, second prints nothing;
+   `list-pre-migration.db` matches the original; existing values unchanged
+   (new columns are fine); integrity and foreign-key checks clean. Delete the
+   copies afterwards.
+4. **Checks:** `uv run pytest -q`, `uv run ruff format --check .`,
+   `uv run ruff check .` on the bookmark.
+5. **Approval:** show the owner the change list from above and ask for
+   explicit approval to move and push `main`.
+6. **Push:** `jj bookmark set main -r versioned-migrations`, then
+   `jj git push -b main`. Railway deploys from `main`.
+7. **After deploy:**
+   - Logs show `Database migrated from version 0 to 1` and no errors.
+   - `/data/list-pre-migration.db` exists (for example `ls -l /data` over
+     `railway ssh`).
+   - The deployment checklist's after-deploy checks pass; the owner does the
+     browser and device checks.
+8. **If it fails to start:** do not retry blindly. Read the log. Roll back by
+   moving `main` back to the previous revision (the old code ignores the
+   version number); restore a backup only if data looks wrong, following
+   [restoration](../docs/deployment.md#restoration-and-rollback).
+9. **Finish:** tick step 5 below; remove the backlog item; delete this plan in
+   its own final jj change (it is `temporary`) after fixing links to it.
 
 ## Progress
 
 - [x] 1. Runner
 - [x] 2. Baseline migration 1
 - [x] 3. Volume backup at startup
-- [ ] 4. Docs
+- [x] 4. Docs
 - [ ] 5. Production deploy and check

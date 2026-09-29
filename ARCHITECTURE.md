@@ -56,7 +56,8 @@ back from a public list.
 ## Code boundaries
 
 - `src/main.py`: Entry point, routes, UI composition, and live-update wiring.
-- `src/database_setup.py`: SQLite schema initialization and migrations.
+- `src/database_setup.py`: SQLite schema and the list of migrations.
+- `src/migrations.py`: versioned migration runner and pre-migration backup.
 - `src/database_crud.py`: Database reads/writes and persisted authorization.
 - `src/item_service.py`: Item business rules over database operations.
 - `src/room_access.py` and `src/room_cookies.py`: Private-page authorization
