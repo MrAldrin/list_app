@@ -44,7 +44,7 @@ List identity is protected, but individual items are not. SQLite can reuse the
 highest deleted item ID within the same list, so a stale checkbox, quantity,
 tag, edit or delete action can hit a new item that got the old ID. A fix needs
 a design decision first; see the
-[backlog](../plans/backlog.md#data-correctness--next-priorities).
+[backlog](../plans/backlog.md#next).
 
 Finer details and test scope are in
 [background](background/item-writes.md).

@@ -83,4 +83,4 @@ test.
    and password revocation. Try both "Install" and "Add shortcut" if offered.
 
 Results are tracked in the
-[backlog](../plans/backlog.md#pending-production-and-device-verification).
+[backlog](../plans/backlog.md#manual-checks).

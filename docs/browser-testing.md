@@ -76,7 +76,7 @@ stale page then tries add, edit, toggle, quantity, tag or undo.
 
 Each action runs in both engines, with room and public pages split between
 them. Manual multi-user checks on real devices are tracked in the
-[backlog](../plans/backlog.md#pending-production-and-device-verification).
+[backlog](../plans/backlog.md#manual-checks).
 
 ## Limits
 

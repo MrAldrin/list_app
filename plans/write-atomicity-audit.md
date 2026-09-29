@@ -27,7 +27,7 @@ Goal: prevent stale decisions and partial writes in the existing single-instance
 - [x] Chunk 2: item rename; verified that the duplicate check and name update now share a write transaction, stale list identity is rejected before duplicate lookup, and rename failures leave the connection usable.
 - [x] Chunk 3: list rename.
 - [x] Chunk 4: navigation after deletion; the returned ID is discarded by its only UI caller, so no current navigation bug exists.
-- [ ] Chunk 5: remaining write entry points. Paused: item-tag, list-tag, admin password-reset and ID-based write fixes are done; item-ID identity is unresolved (see [backlog](backlog.md#data-correctness--next-priorities)). The remaining-entry inventory is in the [findings](../docs/background/write-atomicity-findings.md).
+- [ ] Chunk 5: remaining write entry points. Paused: item-tag, list-tag, admin password-reset and ID-based write fixes are done; item-ID identity is unresolved (see [backlog](backlog.md#next)). The remaining-entry inventory is in the [findings](../docs/background/write-atomicity-findings.md).
 - [x] Chunk 6: cross-path regression and current-reference updates (scoped automated checks; chunk 5 remains open).
 
 Per-candidate findings and test evidence are in

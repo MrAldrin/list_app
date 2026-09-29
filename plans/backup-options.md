@@ -2,7 +2,11 @@
 
 Lifecycle: tracked
 
-Status: manual, verified local copies exist; no recurring backup, alerting, encrypted off-service storage or hosted restore drill is set up. Interim goal: weekly Railway snapshots plus occasional manual SQLite backups. Commands are in the [deployment guide](../docs/deployment.md#sqlite-consistent-backups); option comparison, Railway CLI findings and evidence are in [background](../docs/background/backup-research.md).
+Status: manual, verified local copies exist; no recurring backup, alerting, encrypted off-service storage or hosted restore drill is set up.
+
+**Blocker:** Railway volume snapshots are not available on the owner's current Railway plan. Until the plan changes, the only option is a local copy pulled from Railway by a scheduled job on an owner-controlled machine. Keep taking occasional manual backups until that job exists.
+
+Commands are in the [deployment guide](../docs/deployment.md#sqlite-consistent-backups); option comparison, Railway CLI findings and evidence are in [background](../docs/background/backup-research.md).
 
 ## Recommended sequence (requires owner approval before production changes)
 
@@ -18,11 +22,11 @@ Status: manual, verified local copies exist; no recurring backup, alerting, encr
    representative data in a protected location. Copy encrypted off-service.
    Do not log secrets, rows or database contents. Keep one extra verified copy
    immediately before schema-changing deploys.
-3. **Add layered scheduling.** Start with Railway **weekly** volume snapshots
-   in the service Backups tab for fast whole-volume recovery. Keep occasional
-   verified SQLite backups on a private local machine. If backup needs grow,
-   separately automate the SQLite backup-API + off-service
-   transfer, retention and alert on missed/failed backups. A separate Railway
+3. **Schedule a pull job.** Railway snapshots are blocked on the current plan
+   (see [below](#scheduled-local-copy-railway-snapshots-blocked)). Run a
+   scheduled job on an owner-controlled machine that makes a SQLite backup-API
+   copy on Railway, downloads and verifies it, and applies retention. Alert
+   on missed or failed backups. A separate Railway
    cron *service* should not be assumed to see the app's volume: Railway's
    docs only guarantee its mount to the attached service, not access from a
    separate cron service. Assess an authorized external scheduler or
@@ -42,31 +46,25 @@ Status: manual, verified local copies exist; no recurring backup, alerting, encr
    failures, free volume space and retention. Review backup access and repeat
    the drill periodically. None of these checks are complete yet.
 
-## Weekly Railway schedule and future home backup server
+## Scheduled local copy (Railway snapshots blocked)
 
-The CLI (5.62.1) has no `railway volume backup` scheduling command, but
-`railway api` exposes the `volumeInstanceBackupScheduleUpdate` mutation. On
-2026-09-25, a read-only query identified the production `/data` volume instance
-and confirmed it had **no** schedule or snapshots. The CLI mutation to enable
-`WEEKLY` returned `Not Authorized`; a follow-up query still returned an empty
-schedule. The reason for rejection is not known; do not infer that Free accounts
-cannot use the Backups tab. No schedule was created.
+**Blocker:** Railway volume snapshots are not available on the owner's current
+Railway plan. The 2026-09-25 CLI attempt to enable a weekly schedule returned
+`Not Authorized`; details are in [background](../docs/background/backup-research.md).
+Revisit only if the Railway plan is upgraded.
 
-**Manual next step:** In Railway's production `list_app` service, open
-**Backups** and select **Weekly** for the `/data` volume. Check it is saved and
-listed; after its first due date, check a snapshot appears. If the control is
-absent or disabled, check the account plan and permissions before changing the
-strategy. Railway's documented weekly snapshots expire after 27 days and are
-not a verified SQLite-consistent off-service copy. Continue occasional manual
-local backups until a separate schedule is designed.
+**Chosen direction, not configured:** a scheduled job that pulls a verified
+SQLite copy from Railway to one of:
 
-**Later option, not configured:** Reuse an old laptop with Linux as an always-on
-backup receiver, separate from Railway. Decide how to produce verified SQLite
-backup-API files, move them without exposing a public file share, encrypt and
-retain them, monitor missed jobs and disk/power/network failure, and drill a
-restore. A powered-off machine cannot meet a weekly schedule. This is not
-needed to start with Railway snapshots; do not set up remote access or backup
-credentials without a separate design and approval.
+- **This machine**, with a reminder or scheduler. Simple, but misses runs when
+  the machine is off.
+- **An always-on home machine** (for example an old Linux laptop). Reliable
+  schedule, but needs secure credentials, disk encryption, power/network
+  monitoring and alerts.
+
+Both use the backup-API procedure in the
+[deployment guide](../docs/deployment.md#sqlite-consistent-backups). Design and
+approve how the job authenticates to Railway before storing any credentials.
 
 ## Progress tracking
 
@@ -75,7 +73,8 @@ credentials without a separate design and approval.
 - [x] Test SQLite backup API locally on disposable WAL-mode data
 - [x] Make and verify one production-to-local copy; remove only the temporary
   Railway copy
-- [ ] Enable and verify Weekly in Railway's dashboard (CLI mutation was denied)
+- [ ] ~~Enable Weekly Railway snapshots~~ blocked: not available on current Railway plan
+- [ ] Choose target machine (this machine or always-on home machine) and schedule the pull job
 - [ ] Choose owner, recovery target, storage, alerts and retention
 - [ ] Design/test automated off-service transfer and hosted restore
   (tracked in the [backlog](backlog.md))

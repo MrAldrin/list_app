@@ -33,6 +33,10 @@ We also have these extra files and folders:
 - `plans/`: Proposed work, decisions, implementation steps, and progress tracking at the bottom. Clearly distinguish planned, implemented, and verified work; a plan is not evidence that a feature exists.
   - Every plan starts with a lifecycle line under its title: `Lifecycle: temporary` (a checklist for approved start-to-finish work, deleted when done) or `Lifecycle: tracked` (open-ended or multi-session work, kept until retired with approval). Choose the label when writing the plan and tell the user which one. A plan without a label counts as `tracked`. `plans/backlog.md` has no label.
 - `plans/backlog.md`: Unfinished or deferred work, with links to detailed plans where useful. Do not use it as an operational reference or a permanent completed-work log.
+  - Sections: **Next** (committed, in order, top first, no size limit), **Later** (agreed, no date), **Ideas** (no promise), **Manual checks** (production and device checks for the user).
+  - Each item starts with a tag listed at the top of the backlog, then a short description and a link. Keep details in the linked plan or doc.
+  - "Do this next" goes at the top of Next. For any other request to add an item, ask which section it goes in, and where in Next if chosen.
+  - Mark an item being worked on across sessions with `(in progress)`. Move items between sections only when the user decides.
 - Keep each fact in one primary document and link to it rather than copying it across files.
 - When work finishes, update current references, remove or mark the corresponding backlog item complete, and record any remaining work or verification separately. Remove completed backlog entries during an approved cleanup; version control preserves their history.
 - Delete a `temporary` plan in its own final jj change, without asking, only when all of these hold: it says `Lifecycle: temporary`; every progress item is checked; its durable decisions have moved to `AGENTS.md`, `docs/`, or the backlog; and no other file links to it (fix links first). Name the deletion in the final summary.

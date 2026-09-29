@@ -91,7 +91,7 @@ After deploying:
 
 Feature-specific checks, such as [public sharing](public-sharing.md#rollout-and-verification),
 are listed in their own docs. Checks not yet done on production are tracked in
-the [backlog](../plans/backlog.md#pending-production-and-device-verification).
+the [backlog](../plans/backlog.md#manual-checks).
 
 ## SQLite-consistent backups
 
@@ -169,4 +169,4 @@ understand the newer database. Restore a matching backup instead of starting
 incompatible code against your only copy.
 
 This procedure has not yet been rehearsed on a hosted copy; that drill is
-tracked in the [backlog](../plans/backlog.md#deployment-and-recovery--next-priorities).
+tracked in the [backlog](../plans/backlog.md#later).
