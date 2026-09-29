@@ -73,42 +73,37 @@ For the agent helping the owner deploy. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist); this adds
 the migration-specific steps. Report the result of each step before the next.
 
-**What ships:** bookmark `versioned-migrations` and everything below it that is
-not on `main` yet, including the backlog/docs change under `main-staging`.
-Check with `jj log -r 'main..versioned-migrations'`.
+**What ships:** bookmark `deploy-backup` and everything below it that is not
+on `main` yet: the migrations and the
+[deploy backup script](../docs/deployment.md#backup-before-deploying). Check
+with `jj log -r 'main..deploy-backup'`.
 
-1. **Window:** confirm it is 20:00–08:00 Europe/Oslo.
-2. **Fresh backup to this machine:** follow the Railway-side procedure in
-   [backup research](../docs/background/backup-research.md#can-we-use-the-railway-cli-for-direct-queries-or-backups):
-   backup-API copy to a unique file on `/data`, verify it there, download it
-   to `~/.local/share/list_app/backups/list-manual-<UTC timestamp>-<id>.db`,
-   verify checksum and integrity locally, then remove the temporary file from
-   the volume. Keep the two newest local copies; ask the owner before
-   deleting older ones.
-3. **Rehearse on a copy:** copy that backup to the job's temp folder and start
+1. **Backup:** `uv run python scripts/deploy_backup.py --backup-only`. It
+   checks the result and keeps the two newest local copies.
+2. **Rehearse on a copy:** copy that backup to the job's temp folder and start
    the new code against it twice, with a dummy `APP_PASSWORD` and
    `PYTHON_DOTENV_DISABLED=1`. Expect: first start prints
    `Database migrated from version 0 to 1`, second prints nothing;
    `list-pre-migration.db` matches the original; existing values unchanged
    (new columns are fine); integrity and foreign-key checks clean. Delete the
    copies afterwards.
-4. **Checks:** `uv run pytest -q`, `uv run ruff format --check .`,
+3. **Checks:** `uv run pytest -q`, `uv run ruff format --check .`,
    `uv run ruff check .` on the bookmark.
-5. **Approval:** show the owner the change list from above and ask for
-   explicit approval to move and push `main`.
-6. **Push:** `jj bookmark set main -r versioned-migrations`, then
-   `jj git push -b main`. Railway deploys from `main`.
-7. **After deploy:**
+4. **Push:** the owner runs
+   `uv run python scripts/deploy_backup.py --rev deploy-backup`. It refuses
+   outside the deploy window, takes one more backup, shows what goes live and
+   pushes `main` only after the owner types `y`. Railway deploys from `main`.
+5. **After deploy:**
    - Logs show `Database migrated from version 0 to 1` and no errors.
    - `/data/list-pre-migration.db` exists (for example `ls -l /data` over
      `railway ssh`).
    - The deployment checklist's after-deploy checks pass; the owner does the
      browser and device checks.
-8. **If it fails to start:** do not retry blindly. Read the log. Roll back by
+6. **If it fails to start:** do not retry blindly. Read the log. Roll back by
    moving `main` back to the previous revision (the old code ignores the
    version number); restore a backup only if data looks wrong, following
    [restoration](../docs/deployment.md#restoration-and-rollback).
-9. **Finish:** tick step 5 below; remove the backlog item; delete this plan in
+7. **Finish:** tick step 5 below; remove the backlog item; delete this plan in
    its own final jj change (it is `temporary`) after fixing links to it.
 
 ## Progress
