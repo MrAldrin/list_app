@@ -1,5 +1,7 @@
 # Staged frontend migration for offline use
 
+Lifecycle: tracked
+
 ## Status and scope
 
 Direction agreed with the owner; implementation is deferred and requires explicit

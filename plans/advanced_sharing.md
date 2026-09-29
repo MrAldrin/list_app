@@ -1,5 +1,7 @@
 # Deferred idea: Cross-room list pinning
 
+Lifecycle: tracked
+
 ## Status
 
 Deferred. This is not part of the current MVP and is separate from the public

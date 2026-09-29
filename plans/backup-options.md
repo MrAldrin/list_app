@@ -1,5 +1,7 @@
 # Backup plan for the Railway SQLite app
 
+Lifecycle: tracked
+
 Status: manual, verified local copies exist; no recurring backup, alerting, encrypted off-service storage or hosted restore drill is set up. Interim goal: weekly Railway snapshots plus occasional manual SQLite backups. Commands are in the [deployment guide](../docs/deployment.md#sqlite-consistent-backups); option comparison, Railway CLI findings and evidence are in [background](../docs/background/backup-research.md).
 
 ## Recommended sequence (requires owner approval before production changes)

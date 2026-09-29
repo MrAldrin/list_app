@@ -1,5 +1,7 @@
 # Test suite speed and device coverage
 
+Lifecycle: tracked
+
 ## Goal and scope
 
 Keep useful regression coverage while shortening the development loop. Desktop browser benchmarking and small, verifiable optimizations are authorized; Android scenario removal or consolidation still requires owner approval. Python optimization is lower priority because the default suite is already relatively fast.

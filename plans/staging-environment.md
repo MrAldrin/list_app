@@ -1,5 +1,7 @@
 # Staging Environment Plan
 
+Lifecycle: tracked
+
 Goal: test a change on a real phone against a real Railway deployment before
 it reaches production.
 
