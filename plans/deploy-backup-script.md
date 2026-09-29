@@ -50,6 +50,6 @@ the [deployment checklist](../docs/deployment.md#deployment-checklist).
 ## Progress
 
 - [x] 1. Plan and backlog
-- [ ] 2. Script and tests
+- [x] 2. Script and tests
 - [ ] 3. Docs
 - [ ] 4. First real run (owner)
