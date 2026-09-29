@@ -70,6 +70,8 @@ def test_migration_rejects_existing_duplicates_without_removing_them(
     connection.execute(
         "INSERT INTO items (list_id, name) VALUES (?, ' milk ')", (list_id,)
     )
+    # Simulate a database from before versioned migrations.
+    connection.execute("PRAGMA user_version = 0")
     connection.commit()
     connection.close()
 
@@ -77,6 +79,7 @@ def test_migration_rejects_existing_duplicates_without_removing_them(
         init_database()
     with sqlite3.connect(path) as check:
         assert check.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 2
+        assert check.execute("PRAGMA user_version").fetchone()[0] == 0
         assert (
             check.execute(
                 "SELECT COUNT(*) FROM sqlite_master WHERE name = 'idx_items_list_name_nocase'"

@@ -19,6 +19,7 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     source_root = Path(__file__).resolve().parents[1]
     shutil.copy(source_root / "src" / "database_setup.py", project_src)
     shutil.copy(source_root / "src" / "config.py", project_src)
+    shutil.copy(source_root / "src" / "migrations.py", project_src)
 
     startup_directory = tmp_path / "different-working-directory"
     startup_directory.mkdir()
@@ -373,3 +374,84 @@ def test_init_database_repairs_foreign_key_during_list_migration(tmp_path, monke
     )
 
     repaired_db.close()
+
+
+def test_fresh_database_is_at_version_one(tmp_path, monkeypatch):
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "fresh.db"))
+    db = init_database()
+    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1
+    db.close()
+
+
+def test_legacy_database_is_repaired_and_set_to_version_one(tmp_path, monkeypatch):
+    database_path = tmp_path / "legacy.db"
+    legacy_db = sqlite3.connect(database_path)
+    legacy_db.executescript(
+        """
+        CREATE TABLE lists (
+            id INTEGER PRIMARY KEY, name TEXT UNIQUE, list_tags TEXT DEFAULT '[]'
+        );
+        INSERT INTO lists (id, name) VALUES (1, 'Groceries');
+        CREATE TABLE items (
+            id INTEGER PRIMARY KEY, name TEXT, done BOOLEAN,
+            list_id INTEGER NOT NULL, active_tags TEXT NOT NULL DEFAULT '[]',
+            FOREIGN KEY(list_id) REFERENCES lists_old(id)
+        );
+        INSERT INTO items (id, name, done, list_id) VALUES (1, 'Apples', 0, 1);
+        """
+    )
+    legacy_db.close()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    db = init_database()
+
+    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert db.execute("PRAGMA foreign_key_check").fetchall() == []
+    assert db.execute("SELECT name, list_id FROM items").fetchall() == [("Apples", 1)]
+    db.close()
+
+
+def test_invalid_legacy_data_rolls_back_everything(tmp_path, monkeypatch):
+    database_path = tmp_path / "orphan.db"
+    legacy_db = sqlite3.connect(database_path)
+    legacy_db.executescript(
+        """
+        CREATE TABLE lists (
+            id INTEGER PRIMARY KEY, name TEXT UNIQUE, list_tags TEXT DEFAULT '[]'
+        );
+        CREATE TABLE items (
+            id INTEGER PRIMARY KEY, name TEXT, done BOOLEAN,
+            list_id INTEGER NOT NULL, active_tags TEXT NOT NULL DEFAULT '[]',
+            FOREIGN KEY(list_id) REFERENCES lists_old(id)
+        );
+        INSERT INTO items (id, name, done, list_id) VALUES (1, 'Orphan', 0, 99);
+        """
+    )
+    legacy_db.close()
+    original_contents = database_path.read_bytes()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    with pytest.raises(sqlite3.IntegrityError, match="missing list"):
+        init_database()
+
+    assert database_path.read_bytes() == original_contents
+    with sqlite3.connect(database_path) as check:
+        assert check.execute("PRAGMA user_version").fetchone()[0] == 0
+        assert "rooms" not in {
+            row[0] for row in check.execute("SELECT name FROM sqlite_master")
+        }
+
+
+def test_baseline_runs_only_once(tmp_path, monkeypatch):
+    # Before versioning, a deleted Home room came back at every restart.
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "once.db"))
+    db = init_database()
+    db.execute("DELETE FROM rooms WHERE name = 'Home'")
+    db.commit()
+    db.close()
+
+    db = init_database()
+    assert db.execute("SELECT COUNT(*) FROM rooms").fetchone()[0] == 0
+    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    db.close()

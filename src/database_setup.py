@@ -3,11 +3,13 @@ import re
 import secrets
 import sqlite3
 import uuid
+from functools import partial
 from pathlib import Path
 
 import bcrypt
 
 from config import require_app_password
+from migrations import Migration, run_migrations
 
 _DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "list.db"
 
@@ -158,14 +160,12 @@ def _migrate_items_foreign_key(db: sqlite3.Connection) -> None:
     db.execute("DROP TABLE items_old")
 
 
-def init_database():
-    app_password = require_app_password()
-    db = sqlite3.connect(_database_path(), check_same_thread=False)
+def _migration_1_baseline(db: sqlite3.Connection, app_password: str) -> None:
+    """Bring fresh and pre-versioning databases to the version 1 schema.
 
-    # Schema migrations may need to rebuild tables. Enforce the relationship
-    # only after all migrations have completed and the data has been checked.
-    db.execute("PRAGMA foreign_keys = OFF")
-
+    Every step checks the current schema first, so it is safe on any legacy
+    database. Add later schema changes as new migrations, not here.
+    """
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS rooms (
@@ -324,8 +324,6 @@ def init_database():
         "GROUP BY list_id, trim(name) COLLATE NOCASE HAVING COUNT(*) > 1"
     ).fetchall()
     if duplicates:
-        db.rollback()
-        db.close()
         raise sqlite3.IntegrityError(
             f"Cannot enforce unique item names; resolve duplicates first: {duplicates}"
         )
@@ -335,16 +333,20 @@ def init_database():
         "WHERE name IS NOT NULL AND trim(name) != ''"
     )
 
-    db.commit()
-    db.execute("PRAGMA foreign_keys = ON")
-    if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
-        raise sqlite3.IntegrityError("Could not enable foreign-key enforcement")
-    foreign_key_errors = db.execute("PRAGMA foreign_key_check").fetchall()
-    if foreign_key_errors:
-        raise sqlite3.IntegrityError(
-            f"Foreign-key check failed after migration: {foreign_key_errors}"
-        )
 
+# Append new migrations; never edit or reorder one that has been deployed.
+def _migrations(app_password: str) -> list[Migration]:
+    return [partial(_migration_1_baseline, app_password=app_password)]
+
+
+def init_database():
+    app_password = require_app_password()
+    db = sqlite3.connect(_database_path(), check_same_thread=False)
+    try:
+        run_migrations(db, _migrations(app_password))
+    except BaseException:
+        db.close()
+        raise
     return db
 
 

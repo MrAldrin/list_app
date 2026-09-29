@@ -17,6 +17,8 @@ def test_additive_invitation_migration_preserves_existing_rows(tmp_path, monkeyp
         (room_id,),
     )
     connection.execute("DROP TABLE room_invitations")
+    # Simulate a database from before versioned migrations.
+    connection.execute("PRAGMA user_version = 0")
     connection.commit()
     tables = ("rooms", "lists", "items", "room_access_tokens")
     before = {
