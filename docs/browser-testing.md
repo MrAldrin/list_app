@@ -1,10 +1,8 @@
 # Real-browser tests
 
-The opt-in `browser_tests/` suite uses Playwright to drive real Chromium and
-Firefox browsers against a separate ListR server process. Each scenario gets
-independent **room-member and public-visitor browser contexts**: cookies,
-localStorage, and server-side browser sessions are not shared between users.
-These are real browser engines, not mocked NiceGUI handlers or desktop clicking.
+`browser_tests/` uses Playwright to drive real Chromium and Firefox against a
+separate ListR server. Each test has separate room-member and public-visitor
+browser contexts, so cookies, storage and sessions are not shared.
 
 ## Run
 
@@ -14,146 +12,75 @@ uv run playwright install chromium firefox
 uv run pytest browser_tests -q -n 4
 ```
 
-Playwright downloads its own compatible browsers; installed desktop Chrome or
-Firefox are not required. On supported Linux distributions, missing OS libraries
-can be installed with `uv run playwright install --with-deps chromium firefox`
-(this may require administrator privileges). Do not silently skip tests when a
-browser is unavailable.
+- Four workers is the tested setting for the full suite (about one minute).
+  Give a worker count explicitly; pytest's default of eight is for the fast
+  suite.
+- Playwright downloads its own browsers. On Linux, missing system libraries can
+  be installed with `uv run playwright install --with-deps chromium firefox`.
+- The plain `uv run pytest -q` does not run these tests.
 
-Four workers are recommended for the full desktop suite on the tested machine:
-14 consecutive clean 50-case full runs after the restart/screenshot fixes
-(70.50–75.10 seconds), then nine clean 52-case full runs (74.83–77.73 seconds)
-after adding a dedicated open-page restart check. The later 40-case suite
-passed three times in 59.11s, 58.96s and 58.49s on the same machine; see the
-[coverage trade-off](../plans/test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
-Earlier four-worker runs failed in teardown; the
-[measurements and fixes](../plans/test-suite-speed.md) explain what changed.
-Parallel stability on other machines remains unverified.
-
-Run a smaller subset while debugging:
+Smaller runs while debugging:
 
 ```bash
 uv run pytest browser_tests -q -n 0 -k chromium
 uv run pytest browser_tests -q -n 0 -k restart
-uv run pytest browser_tests -q -n 0  # serial troubleshooting
+uv run pytest browser_tests -q -n 0  # serial
 ```
 
-The default `uv run pytest -q` still runs the fast tests under `tests/`, without
-requiring browser downloads. Browser tests are separate because they launch real
-processes and must not inherit the unit suite's in-memory database fixtures.
-Use an explicit worker count; the global pytest default of eight workers is
-not a browser-suite recommendation. Android tests must stay serial (`-n 0`).
+## Isolation
 
-## Isolation and diagnostics
+- Each test starts its own server on a random loopback port.
+- The database, storage, logs, screenshots and traces live in pytest's temp
+  folder. `.env` is ignored and test-only secrets are used. Real databases are
+  never touched.
+- Server tracebacks and browser JavaScript errors fail the test.
+- Servers and browsers are always shut down, even on failure.
 
-- Every test starts a server on a dynamically selected **loopback-only** port.
-- Database, NiceGUI storage, working directory, logs, screenshots, and traces are
-  in pytest's temporary directory, not the repository.
-- Test-only passwords and a fresh signing secret override local credentials;
-  `.env` loading is disabled and inherited NiceGUI storage/Redis settings are
-  removed. No developer/production database is read or copied.
-- Restart tests preserve only that test's database, secret, browser contexts,
-  storage and registered Service Workers. Before stopping the server, they leave
-  live pages for `about:blank`, then navigate back and verify remembered access,
-  revoked links and active Service Workers after restart. A separate test keeps
-  a room list tab open during a real server restart. The app automatically
-  reloads that tab; a visitor then adds an item, and the recovered tab must
-  display the new item without a test-driven reload or navigation (Chromium and
-  Firefox). This does not establish a seamless, reload-free reconnection.
-- The fixture terminates the server and closes browser contexts, including on
-  failure. Even if a screenshot fails, it attempts remaining screenshots,
-  traces and context closure and reports the diagnostic error. Server tracebacks
-  and unhandled browser JavaScript errors fail tests.
-- Temporary `server.log`, `member-trace.zip`, `visitor-trace.zip`, and screenshots
-  help explain failures. Pytest displays the temporary path in failure output.
-  Inspect a trace with `uv run playwright show-trace /path/to/member-trace.zip`.
-  These artifacts contain disposable test credentials/data; never use this
-  harness against production or publish traces from real user sessions.
+## Debugging failures
 
-## Verified coverage
+Pytest prints the temp folder path. It contains `server.log`,
+`member-trace.zip`, `visitor-trace.zip` and screenshots. Open a trace with:
 
-Local verification (2026-09-23): **16 browser cases passed** with Playwright
-1.63.0, Chromium 153.0.8010.12, and Firefox 155.0. The 292-test fast suite and
-Ruff formatting/lint checks also passed. The existing Starlette/httpx deprecation
-warning remains unrelated to this suite.
+```bash
+uv run playwright show-trace /path/to/member-trace.zip
+```
 
-The suite has eight scenarios, each run in both browser engines:
+Traces hold test data only. Never point this harness at production.
 
-1. Room login and list creation; legacy URL denied to a visitor; canonical Share
-   link opens without a password; changes appear live in the other session;
-   revoked edits are rejected; replacement links work; a real server restart
-   preserves the new link and remembered room access through `/`.
-2. An already-open public Undo action cannot restore a deleted item after reset;
-   public access does not grant room entry.
-3. An already-open public Add action cannot write after reset, while an existing
-   room-authorized tab remains editable without reloading.
-4. Cancelling the reset confirmation preserves the original link and its access.
-5. Truncated and incorrect tokens expose neither list contents nor editing UI.
-6. A public visitor can add and remove list tags with persisted changes, but sees
-   no list-rename control; a room member can access the rename control.
-7. An already-open public tab sends a tag edit after reset but cannot persist it;
-   the replacement link allows a new tag edit.
-8. An already-open room rename dialog sends Save after a password change revokes
-   its room grant; the list name remains unchanged.
+## What it covers
 
-For stale edit/add/undo/tag and rename scenarios, Playwright **delays
-server-to-browser WebSocket updates** during revocation. The affected tab sends
-real Socket.IO events; the suite then resumes updates, waits for a server
-round-trip or the rename rejection's navigation, and checks persisted data.
-This avoids a weak test that only sees a button disappear.
+- **Public sharing:** room login, Share link without a password, live updates
+  between sessions, link reset, rejected edits from old tabs, bad tokens, tag
+  edits by visitors, and rename rights.
+- **Server restart:** remembered room access and share links survive a restart;
+  an open room tab recovers and shows new items.
+- **Stale actions:** an open tab that acts after a reset, password change or
+  deletion cannot change data. The tests hold back server updates so the stale
+  tab really sends its action, then check the database.
+- **Checked-item visibility:** all modes, from private and public views, with
+  live updates. Day boundaries are covered by unit tests.
+- **Theme:** the theme is remembered per browser, not per room, and is applied
+  before the page scripts load (no flash).
 
-Native OS sharing is intentionally disabled in test contexts so the copy-dialog
-fallback is deterministic. The sharing tests read the generated URL from that
-dialog; OS share sheets and system clipboard behavior are not covered here.
-Seven public-sharing scenarios seed only their disposable list prerequisite;
-they still log in and open the Share dialog through the real browser. The two
-restart journeys still create their lists end-to-end through the browser. See
-[the measurements](../plans/test-suite-speed.md#follow-up-public-sharing-setup-2026-09-28)
-for the small four-worker runtime improvement observed on this machine.
+Scenario-by-scenario detail and past timings are in
+[background](background/browser-testing.md).
 
 ## Deleted-list regression checks
 
-The initial 28-case deleted-list matrix has been reduced to **16 cases**:
-all six stale list-deletion actions (add, edit, toggle, quantity, tag, undo)
-run in **both Chromium and Firefox**, with each action run on a room page in
-one engine and a public page in the other. The four room-deletion cases retain
-both page roles in both engines. This drops a role-by-engine crossing for each
-action; a defect specific to a removed crossing may escape detection. See the
-[coverage map and benchmark](../plans/test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
+Another session deletes the list while a room page or public page is open. The
+stale page then tries add, edit, toggle, quantity, tag or undo.
 
-Separate browser sessions keep a room page or public link open while another
-session deletes the list. Delayed WebSocket updates ensure the stale page sends
-its action after deletion. The list- and room-deletion cases also match the
-outgoing NiceGUI event to the specific clicked control (and check the toggle
-value or tag Enter key), rather than accepting any client event. These cases
-seed only their disposable list/share token; room login, item addition, deletion,
-stale browser actions, and
-persistence checks still run through the real app. The sharing scenarios above
-retain end-to-end list creation and the Share dialog. The room page shows
-“This list was deleted.” and “Back to room”; the public page shows the generic
-message without room navigation. Room deletion removes room navigation from
-either page. The remaining full desktop suite passed three times (40 cases) locally;
-this is not manual multi-user or production device verification.
-## Checked-item visibility checks
+- Room page: shows "This list was deleted." and **Back to room**.
+- Public page: shows a generic message with no room navigation.
+- Room deletion removes room navigation from both.
 
-Two Chromium/Firefox cases exercise persisted list settings from private and
-public views, immediate/age/recent modes, shared updates, Add/Search restoration
-of a hidden item, and 0-day/0-item behavior. The 24-hour cutoff and per-page
-timer behavior have unit tests; no browser test waits for a real day to pass.
-See [checked-item visibility](checked-item-visibility.md) for current behavior
-and the production-verification boundary.
+Each action runs in both engines, with room and public pages split between
+them. Manual multi-user checks on real devices are tracked in the
+[backlog](../plans/backlog.md#pending-production-and-device-verification).
 
-## Android emulator (opt-in)
+## Limits
 
-A separate [Android emulator suite](android-emulator-testing.md) opens a private
-room, installs its icon, and checks remembered access and network recovery in
-real Android Chrome against a disposable server. It is not part of the desktop
-Playwright suite; offline viewing and real-device behavior remain unverified.
-
-## Remaining boundaries
-
-These are local HTTP checks. They do not verify production HTTPS cookie behavior,
-Railway proxy/volume configuration, migration of a copy of the actual production
-database, real iPhone/Android installation, or OS-native share sheets. Playwright
-Firefox/Chromium are not evidence of Safari compatibility. Continue with the
-[deployment and device checks](public-sharing.md#rollout-and-verification).
+These are local HTTP tests in Chromium and Firefox. They do not cover HTTPS
+cookies, Railway, the production database, Safari, real phone installs, or OS
+share sheets. For Android, see the
+[emulator suite](android-emulator-testing.md).
