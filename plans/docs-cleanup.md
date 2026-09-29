@@ -73,7 +73,7 @@ dropped.
 - [x] Step 1: quality rules added to `AGENTS.md`; plan written.
 - [x] Step 2: created `docs/background/`; moved `offline-findings.md` and `test-speed.md`.
 - [x] Step 3: `deployment.md` 212 → ~170 lines. Runbook code kept; pending-status text moved to backlog links. No background file needed.
-- [ ] Step 4: `home-screen-installation.md`
+- [x] Step 4: `home-screen-installation.md` 168 → 86 lines; design, implementation and past results in `background/home-screen-installation.md`.
 - [ ] Step 5: `browser-testing.md`
 - [ ] Step 6: `item-writes.md`
 - [ ] Step 7: light pass on remaining docs
