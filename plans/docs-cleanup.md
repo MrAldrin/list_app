@@ -76,7 +76,7 @@ dropped.
 - [x] Step 4: `home-screen-installation.md` 168 → 86 lines; design, implementation and past results in `background/home-screen-installation.md`.
 - [x] Step 5: `browser-testing.md` 159 → ~85 lines; scenarios, design choices and timings in `background/browser-testing.md`. Added missing theme coverage.
 - [x] Step 6: `item-writes.md` 130 → 50 lines, as a rules + per-action table; implementation notes and test scope in `background/item-writes.md`. Test file references corrected.
-- [ ] Step 7: light pass on remaining docs
+- [x] Step 7: light pass: removed status/evidence text from 5 docs; Android test details and results moved to `background/android-emulator-testing.md`.
 - [ ] Step 8: split evidence out of open plans
 - [ ] Step 9: `README.md` and `ARCHITECTURE.md`
 - [ ] Step 10: final link check

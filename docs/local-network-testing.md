@@ -3,9 +3,6 @@
 Run the app on your laptop and open it on your phone. This is free and catches
 most layout and touch problems before deployment.
 
-Status: verified 2026-09-28 on an iPhone over Tailscale. Home Wi-Fi access also
-worked, but its firewall rule has since been removed.
-
 ## How it works
 
 - `localhost` means "this computer". Your phone cannot reach your laptop's

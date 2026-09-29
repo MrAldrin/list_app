@@ -29,9 +29,7 @@ On a Linux host with KVM (`emulator -accel-check` must report usable):
    "$ANDROID_HOME/emulator/emulator" -avd listapp_api35 -no-audio -gpu swiftshader -no-snapshot
    ```
 
-   The AVD creation command runs **only once**; do not overwrite an existing
-   device. `avdmanager` is the older tool used here to select the exact image
-   already installed; Android CLI's `emulator create` may select another image.
+   Create the AVD **only once**; do not overwrite an existing device.
 3. Complete Chrome's first-run terms/privacy choices **yourself** in the emulator
    window. The tests do not press these buttons or sign in to Google. Unlock the
    virtual phone before starting a test.
@@ -41,33 +39,27 @@ On a Linux host with KVM (`emulator -accel-check` must report usable):
    ANDROID_HOME="$HOME/Android/Sdk" uv run python -m pytest android_tests -q -n 0
    ```
 
-The suite starts temporary ListR servers with disposable credentials and fresh
-SQLite databases, mapping *only those servers'* loopback ports into the emulator
-via `adb reverse`. The first test opens a private room in Android Chrome. The
-second installs from its password prompt, launches the exact home-screen icon,
-checks that installation did not grant access, signs in, then reopens and reloads
-the installed app to verify remembered access. It also enables airplane mode,
-removes the ADB loopback mapping, and stops the disposable server to prove a
-request fails; then restores all three and reloads to check recovery. ADB
-loopback can stay alive through airplane mode alone, so that is not a valid
-offline test. The native shortcut and standalone
-activity are checked with ADB; the installed page is checked through Chrome's
-debugging interface because this Android image sometimes exposes only “Web View”
-in the native accessibility tree.
+## What it checks
 
-Tests remove port mappings and terminate servers afterward. For the dedicated
-`listapp_api35` test AVD, they remove the disposable app icon **only when it is
-the sole pinned Chrome shortcut**; if other Chrome shortcuts exist, leave them
-untouched and clean up the test icon manually. Chrome's normal browser data is
-not cleared. Tests fail (rather than skip) if the emulator is absent or Chrome's
-first-run screen is unfinished. `adb -e` selects an emulator, never a phone.
-Traces, if added later, must contain only disposable test data.
+Two tests run against temporary ListR servers with fresh databases. Only those
+servers' ports are mapped into the emulator (`adb reverse`).
 
-**Locally verified:** two opt-in Android 15 / Chrome 124 tests passed after
-Chrome's first-run setup. This proves standalone password-prompt installation,
-remembered access, a failed network request during an airplane-mode + server
-outage, and recovery after reconnection on this emulator. It does **not** prove
-cold-restart survival, HTTPS cookies, offline navigation/viewing, current Chrome
-versions, or a real Android/iPhone installation. Keep offline-specific tests with
-the offline feature branch or an integration change, not in this `main`-based
-test branch.
+- A private room opens in Android Chrome.
+- Installing from the password prompt does not grant access. After sign-in,
+  reopening and reloading the installed app keeps access.
+- With airplane mode on, the port mapping removed and the server stopped, a
+  request fails; after restoring all three, a reload recovers.
+
+It does not cover cold restarts, HTTPS cookies, offline viewing, or real
+phones. Keep offline-specific tests with the future offline feature.
+
+## Cleanup and safety
+
+- Port mappings and servers are removed afterwards.
+- The test icon is removed only if it is the sole pinned Chrome shortcut on the
+  `listapp_api35` AVD; otherwise remove it by hand. Chrome data is not cleared.
+- Tests fail (not skip) if the emulator is missing or Chrome's first-run screen
+  is unfinished. `adb -e` targets the emulator, never a phone.
+
+How the checks work and past results are in
+[background](background/android-emulator-testing.md).

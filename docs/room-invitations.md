@@ -27,8 +27,8 @@ CAPTCHA is implemented for this feature.
 
 ## Deployment and migration
 
-Normal startup adds `room_invitations` if missing; no manual SQL is needed. Existing room/list rows do not need to be rewritten for this feature. The original local database was not used for destructive testing. Migration was tested twice on a temporary SQLite backup copy, with existing rows compared and integrity/foreign-key checks run.
+Normal startup adds the `room_invitations` table if missing; no manual SQL is needed.
 
-There is no automated backup system or abuse throttling in this feature, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
+There is no abuse throttling, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
 
 Future personal accounts can replace room-password authorization independently of creation invitations.

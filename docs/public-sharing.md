@@ -41,15 +41,10 @@ are unchanged. Replace any previously saved/shared public list URLs with new
 Share links. Rolling back to older application code re-exposes the old public
 slug routes; do not treat that as a security-preserving rollback.
 
-Automated coverage checks legacy migration/restart stability, unique/scoped
-lookup, invalid tokens, rename persistence, room authorization for rotation,
-old-token rejection across mutations and undo, and page access/control visibility.
-The [real-browser suite](browser-testing.md) additionally verifies local sharing,
-revoked actions from stale tabs, live updates, and remembered access after a real
-server restart in Chromium and Firefox. This uses disposable data over HTTP, not
-the production database or a hosted deployment.
+Automated coverage: `tests/test_public_share_tokens.py` and the
+[real-browser suite](browser-testing.md). Both run locally over HTTP only.
 
-**Pending manual deployment checks:**
+**Manual deployment checks:**
 
 - Open a room and list using remembered access on the deployed app.
 - Share to another browser without room access; verify view and item editing.
@@ -57,5 +52,4 @@ the production database or a hosted deployment.
   in the old public tab, then reload the old link. Verify the new link works.
 - Verify unauthorized old slug URLs reveal no contents or new tokens.
 - Restart and verify room access and current public links still work.
-- Check installed-app launch/navigation on iPhone and Android. These real-device
-  checks are not established by automated tests.
+- Check installed-app launch and navigation on iPhone and Android.
