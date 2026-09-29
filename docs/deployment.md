@@ -8,6 +8,12 @@ does not deploy until the change is pushed. Treat a push to `main` as a producti
 deployment and follow the checklist below. For local setup, see the
 [README](../README.md).
 
+## Deploy window
+
+Production uses Railway's Free plan, which only allows deploys between 20:00 and
+08:00 local time (Europe/Oslo). Outside that window, stage approved changes on the
+`main-staging` bookmark and push `main` only once the window opens.
+
 ## Configuration
 
 | Variable | Purpose |
@@ -95,6 +101,7 @@ Production and real-device verification remain pending.
 
 Before deploying:
 
+- [ ] Confirm it is inside the [deploy window](#deploy-window) (20:00–08:00).
 - [ ] Confirm both secrets, absolute `DB_PATH`, volume mount, port, and one instance.
 - [ ] Record the deployed code revision and make a SQLite-consistent backup below.
 - [ ] For schema changes, first start the candidate version against a **separate

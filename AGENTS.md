@@ -5,7 +5,7 @@
 - This is my first web app. So explain the ways of web development in simple terms for me to learn along the way.
 - Dont implement anything before I explicitly tell you to. 
 - Modular Implementation: Split large tasks into small, testable chunks.
-- GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist).
+- GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist). Pushes to `main` are only allowed inside the [deploy window](docs/deployment.md#deploy-window).
 
 - When working in a new jj workspace, remind me of the [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
 
