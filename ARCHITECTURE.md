@@ -11,6 +11,8 @@ learning, targeting up to four simultaneous users rather than large-scale use.
 - **Frontend/backend:** Python with NiceGUI, serving the UI and application logic
   together, with live updates between connected users.
 - **Storage:** SQLite, with one application instance using one database.
+  Schema changes use a small own migration runner, not Alembic, which would
+  add SQLAlchemy.
 - **Hosting:** Railway with persistent volume storage. Deployment configuration,
   process limits, and recovery procedures belong in the
   [deployment guide](docs/deployment.md).

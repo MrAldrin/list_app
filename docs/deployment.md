@@ -54,7 +54,8 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
 
 - If a migration is pending, the app first writes a verified copy of the
   database to `DB_BACKUP_PATH`, replacing the previous copy. If that fails,
-  it does not migrate or start.
+  it does not migrate or start. This runs at app startup because Railway's
+  pre-deploy command has no volume mounted.
 - All pending migrations run in one transaction, followed by integrity and
   foreign-key checks. Any failure rolls everything back and stops startup.
 - The log shows `Database migrated from version X to Y` when anything ran.
@@ -62,6 +63,9 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
   instead of rolling back code alone.
 - Add changes as a new migration at the end of the list in
   `src/database_setup.py`. Never edit a deployed one.
+- Rebuild a table in SQLite's documented order: create the new table, copy,
+  drop the old one, rename the new one. Renaming the old table first repoints
+  other tables' foreign keys at it.
 
 ## Storage and process limits
 

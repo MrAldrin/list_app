@@ -112,4 +112,4 @@ with `jj log -r 'main..deploy-backup'`.
 - [x] 2. Baseline migration 1
 - [x] 3. Volume backup at startup
 - [x] 4. Docs
-- [ ] 5. Production deploy and check
+- [x] 5. Production deploy and check

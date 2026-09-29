@@ -10,7 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [data] (in progress) Add versioned, all-or-nothing migrations with integrity checks and a pre-migration backup on the volume. Implemented on bookmark `versioned-migrations`; deploy in the next window with the [deploy runbook](versioned-migrations.md#deploy-runbook-step-5).
 - [ ] [bug] Resolve item-target identity: SQLite can reuse a deleted item ID, so stale item actions can change a replacement item. Likely fix: non-reusable IDs via a table rebuild, using the new migrations. See [write atomicity audit](write-atomicity-audit.md) chunk 5 and [findings](../docs/background/write-atomicity-findings.md).
 
 ## Later
