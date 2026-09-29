@@ -78,5 +78,5 @@ dropped.
 - [x] Step 6: `item-writes.md` 130 → 50 lines, as a rules + per-action table; implementation notes and test scope in `background/item-writes.md`. Test file references corrected.
 - [x] Step 7: light pass: removed status/evidence text from 5 docs; Android test details and results moved to `background/android-emulator-testing.md`.
 - [x] Step 8: evidence split out of the 3 open plans into `background/test-suite-speed.md`, `background/backup-research.md` and `background/write-atomicity-findings.md`. Open tasks stay in the plans.
-- [ ] Step 9: `README.md` and `ARCHITECTURE.md`
-- [ ] Step 10: final link check
+- [x] Step 9: trimmed status text in `ARCHITECTURE.md`; README docs list completed and browser command set to `-n 4`.
+- [x] Step 10: all relative links and anchors resolve (scripted check). Top-level docs: ~990 → 626 lines.

@@ -51,7 +51,6 @@ Configuration, database checks, and recovery instructions live in
 
 ## Testing, documentation, and tooling
 
-- [ ] Follow the [docs cleanup plan](docs-cleanup.md): shorten top-level docs and move evidence and history to `docs/background/`.
 - [ ] Resume the [open test-suite speed plan](test-suite-speed.md#resume-here--remaining-work):
   first decide which existing Android scenarios and execution tiers to keep,
   then benchmark the approved checks serially before simplifying them. A small

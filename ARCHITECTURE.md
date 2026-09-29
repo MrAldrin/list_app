@@ -28,7 +28,7 @@ change for this direction. Discuss other stack changes before implementation.
   grants management rights; there are no individual owner/member accounts.
 - **List:** Belongs to a room. Its `/share/{token}` URL grants public view/edit
   access using a high-entropy token, but not room management. Authorized room
-  members can reset the link to revoke it for everyone. `/list/{slug}` is now
+  members can reset the link to revoke it for everyone. `/list/{slug}` is
   room-authorized navigation, not public access. See [public sharing](docs/public-sharing.md).
 - **Item:** A list entry, with completion state and optional details/tags for
   organization. Field-level schema details may evolve.
@@ -48,8 +48,8 @@ change for this direction. Discuss other stack changes before implementation.
   existing rooms; expiry/revocation does not affect rooms already created.
   See [room invitations](docs/room-invitations.md).
 
-Token storage, revocation, cookie migration, and browser-security limitations are
-specified in the [remembered-access guide](docs/home-screen-installation.md).
+Token storage, revocation and cookie details are in the
+[remembered-access guide](docs/home-screen-installation.md).
 An unauthorized room visitor sees a password prompt, including when navigating
 back from a public list.
 
@@ -63,9 +63,8 @@ back from a public list.
   context and the HTTPS remembered-access bridge.
 - `src/room_invitations.py` and `src/ui/`: Invitation logic and extracted UI helpers.
 
-This is the current structure, not a claim that all UI and service logic is
-already separated. Larger module refactoring remains deferred in the
-[backlog](plans/backlog.md).
+UI and service logic are not yet fully separated; splitting `src/main.py` is
+deferred in the [backlog](plans/backlog.md).
 
 ## Major UX decisions
 
@@ -80,20 +79,18 @@ already separated. Larger module refactoring remains deferred in the
 - Home-screen installation requests the current room as its launch address,
   without credentials. ListR remains one installed app identity, not one per room;
   switching rooms does not deliberately retarget the installed icon.
-- Installation never grants access. Preserving sign-in is a goal where the
-  browser transfers cookies, not a guarantee. Existing icons may retain their old
-  launch address. Real-device checks remain outstanding; see the
-  [installation behavior and checklist](docs/home-screen-installation.md).
-- Meaningful offline viewing and editing are not supported on the main baseline.
-  The separate read-only experiment was rolled back in production according to
-  the owner and is retained as evidence, not planned for integration. See the
-  [findings and evidence limits](docs/background/offline-findings.md). Future offline viewing
-  and editing will use the same browser-side frontend, delivered in stages.
+- Installation never grants access. Sign-in carries over only where the browser
+  copies cookies into the installed app. See
+  [home-screen installation](docs/home-screen-installation.md).
+- Offline use is not supported. An earlier read-only experiment was rolled back
+  (see [findings](docs/background/offline-findings.md)). Offline viewing and
+  editing will come with the future browser-side frontend, in stages.
 
 ## Evolution and documentation
 
 This document is the source of truth for high-level architecture. If code differs,
 flag it and agree whether to change the implementation or update the decision.
-Keep operational/implementation details in `docs/`, proposed work in `plans/`,
-and unfinished work in the [backlog](plans/backlog.md). Follow the documentation
+Keep current operational details in `docs/`, supporting evidence and history in
+`docs/background/`, proposed work in `plans/`, and unfinished work in the
+[backlog](plans/backlog.md). Follow the documentation
 lifecycle in [AGENTS.md](AGENTS.md).

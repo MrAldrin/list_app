@@ -97,12 +97,11 @@ Real-browser sharing tests (Chromium and Firefox, disposable data):
 
 ```bash
 uv run playwright install chromium firefox
-uv run pytest browser_tests -q -n 0
+uv run pytest browser_tests -q -n 4
 ```
 
 Setup, coverage, and diagnostics: [browser testing](docs/browser-testing.md).
-
-Benchmark results and trade-offs: [test speed decision](docs/background/test-speed.md).
+Why eight workers and real password hashing: [test speed decision](docs/background/test-speed.md).
 
 ## Allium pilot (optional)
 
@@ -120,9 +119,15 @@ question before treating it as intended behavior. Do not run an autonomous
 
 ## Documentation
 
+- [Architecture and security boundaries](ARCHITECTURE.md)
 - [Deployment, backups, and recovery](docs/deployment.md)
+- [Public list sharing](docs/public-sharing.md)
 - [Room invitations](docs/room-invitations.md)
 - [Hiding checked-off items](docs/checked-item-visibility.md)
 - [Home-screen installation and device checks](docs/home-screen-installation.md)
-- [Architecture and security boundaries](ARCHITECTURE.md)
+- [Item writes and stale pages](docs/item-writes.md)
+- Testing: [real browsers](docs/browser-testing.md), [Android emulator](docs/android-emulator-testing.md), [phone over the network](docs/local-network-testing.md)
 - [Remaining work](plans/backlog.md)
+
+Background material (investigations, measurements, evidence) is in
+[`docs/background/`](docs/background/).
