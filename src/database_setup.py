@@ -344,9 +344,58 @@ def _migration_1_baseline(db: sqlite3.Connection, app_password: str) -> None:
     )
 
 
+def _migration_2_item_ids_never_reused(db: sqlite3.Connection) -> None:
+    """Rebuild items with AUTOINCREMENT so a deleted item's ID is never reused.
+
+    Without it, SQLite gives a new row the highest ID + 1, so deleting the
+    newest item lets a stale page's actions hit the next new item.
+    """
+    index_sql = [
+        row[0]
+        for row in db.execute(
+            "SELECT sql FROM sqlite_master "
+            "WHERE type = 'index' AND tbl_name = 'items' AND sql IS NOT NULL"
+        )
+    ]
+    # Nothing references items, so renaming the new table into place is safe.
+    db.execute(
+        """
+        CREATE TABLE items_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            description TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 1,
+            done BOOLEAN,
+            list_id INTEGER NOT NULL,
+            active_tags TEXT NOT NULL DEFAULT '[]',
+            completed_at TEXT,
+            FOREIGN KEY(list_id) REFERENCES lists(id)
+        )
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO items_new (
+            id, name, description, quantity, done, list_id, active_tags,
+            completed_at
+        )
+        SELECT id, name, description, quantity, done, list_id, active_tags,
+               completed_at
+        FROM items
+        """
+    )
+    db.execute("DROP TABLE items")
+    db.execute("ALTER TABLE items_new RENAME TO items")
+    for sql in index_sql:
+        db.execute(sql)
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
-    return [partial(_migration_1_baseline, app_password=app_password)]
+    return [
+        partial(_migration_1_baseline, app_password=app_password),
+        _migration_2_item_ids_never_reused,
+    ]
 
 
 def init_database():

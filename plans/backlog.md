@@ -11,7 +11,7 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 In order: the top item is done first.
 
 - [ ] [infra] Deploy backup script: stream the backup over `railway ssh` from the container's temp folder, so no copy is left on the volume. Railway refuses `volume files delete` from scripts, so today the copy must be deleted by hand. See the [deploy backup script](../docs/deployment.md#backup-before-deploying).
-- [ ] [bug] Resolve item-target identity: SQLite can reuse a deleted item ID, so stale item actions can change a replacement item. Likely fix: non-reusable IDs via a table rebuild, using the new migrations. See [write atomicity audit](write-atomicity-audit.md) chunk 5 and [findings](../docs/background/write-atomicity-findings.md).
+- [ ] [bug] (in progress) Stop item-ID reuse so stale item actions cannot change a new item. Implemented as migration 2 on bookmark `item-id-fix`. Deploy in a later window with the [deployment checklist](../docs/deployment.md#deployment-checklist): rehearse on a fresh backup copy and expect `Database migrated from version 1 to 2`. See [item identity](../docs/item-writes.md#item-identity).
 
 ## Later
 

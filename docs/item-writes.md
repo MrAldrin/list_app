@@ -38,13 +38,11 @@ If the app starts with duplicate item names already in the database, it stops
 with a clear migration error instead of deleting any. Fix the duplicates and
 restart.
 
-## Known gap: item identity
+## Item identity
 
-List identity is protected, but individual items are not. SQLite can reuse the
-highest deleted item ID within the same list, so a stale checkbox, quantity,
-tag, edit or delete action can hit a new item that got the old ID. A fix needs
-a design decision first; see the
-[backlog](../plans/backlog.md#next).
+Item IDs are never reused: the `items` table uses `AUTOINCREMENT` (migration 2).
+A stale checkbox, quantity, tag, edit or delete action on a deleted item
+matches no row and changes nothing. Tests: `tests/test_item_ids.py`.
 
 Finer details and test scope are in
 [background](background/item-writes.md).

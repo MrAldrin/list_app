@@ -8,7 +8,7 @@ from pathlib import Path
 import bcrypt
 import pytest
 
-from database_setup import _backup_path, init_database
+from database_setup import _backup_path, _migrations, init_database
 
 
 def test_default_database_path_is_project_relative_from_other_working_directory(
@@ -376,15 +376,18 @@ def test_init_database_repairs_foreign_key_during_list_migration(tmp_path, monke
     repaired_db.close()
 
 
-def test_fresh_database_is_at_version_one(tmp_path, monkeypatch):
+LATEST_VERSION = len(_migrations("unused"))
+
+
+def test_fresh_database_is_at_latest_version(tmp_path, monkeypatch):
     monkeypatch.setenv("DB_PATH", str(tmp_path / "fresh.db"))
     db = init_database()
-    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
     assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     db.close()
 
 
-def test_legacy_database_is_repaired_and_set_to_version_one(tmp_path, monkeypatch):
+def test_legacy_database_is_repaired_and_set_to_latest_version(tmp_path, monkeypatch):
     database_path = tmp_path / "legacy.db"
     legacy_db = sqlite3.connect(database_path)
     legacy_db.executescript(
@@ -406,7 +409,7 @@ def test_legacy_database_is_repaired_and_set_to_version_one(tmp_path, monkeypatc
     monkeypatch.setenv("DB_PATH", str(database_path))
     db = init_database()
 
-    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
     assert db.execute("PRAGMA foreign_key_check").fetchall() == []
     assert db.execute("SELECT name, list_id FROM items").fetchall() == [("Apples", 1)]
     db.close()
@@ -453,7 +456,7 @@ def test_baseline_runs_only_once(tmp_path, monkeypatch):
 
     db = init_database()
     assert db.execute("SELECT COUNT(*) FROM rooms").fetchone()[0] == 0
-    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
     db.close()
 
 
