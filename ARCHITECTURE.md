@@ -87,7 +87,7 @@ already separated. Larger module refactoring remains deferred in the
 - Meaningful offline viewing and editing are not supported on the main baseline.
   The separate read-only experiment was rolled back in production according to
   the owner and is retained as evidence, not planned for integration. See the
-  [findings and evidence limits](docs/offline-findings.md). Future offline viewing
+  [findings and evidence limits](docs/background/offline-findings.md). Future offline viewing
   and editing will use the same browser-side frontend, delivered in stages.
 
 ## Evolution and documentation

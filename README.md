@@ -102,7 +102,7 @@ uv run pytest browser_tests -q -n 0
 
 Setup, coverage, and diagnostics: [browser testing](docs/browser-testing.md).
 
-Benchmark results and trade-offs: [test speed decision](docs/test-speed.md).
+Benchmark results and trade-offs: [test speed decision](docs/background/test-speed.md).
 
 ## Allium pilot (optional)
 

@@ -4,7 +4,7 @@
 
 Direction agreed with the owner; implementation is deferred and requires explicit
 approval. Continue small improvements to the current app in the meantime.
-See [experiment findings](../docs/offline-findings.md) for the rollback report,
+See [experiment findings](../docs/background/offline-findings.md) for the rollback report,
 evidence and limitations. The current shipped architecture remains NiceGUI.
 
 ## Target

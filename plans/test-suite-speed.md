@@ -311,7 +311,7 @@ The current Android harness operates one shared emulator via `adb -e`, changes i
 Before implementing Android simplifications, agree which scenarios belong on the current baseline:
 
 - **Already present:** `android_tests/test_android_chrome.py` contains a password-prompt smoke check and an installation/standalone-login/remembered-access/network-recovery journey.
-- **Historical only:** the offline experiment adds installed cold launch, saved offline contents, reconnect refresh, and revocation/deletion clearing. Do not import these tests into a branch without the corresponding feature. Review their lessons when the new offline frontend is implemented, rather than restoring the discarded implementation. See [offline findings](../docs/offline-findings.md).
+- **Historical only:** the offline experiment adds installed cold launch, saved offline contents, reconnect refresh, and revocation/deletion clearing. Do not import these tests into a branch without the corresponding feature. Review their lessons when the new offline frontend is implemented, rather than restoring the discarded implementation. See [offline findings](../docs/background/offline-findings.md).
 - **Proposed baseline:** retain a small installation/standalone/remembered-access Android journey. Decide whether the separate password-prompt smoke test earns its overlap through faster diagnostics. Review the recovery assertion separately: it proves reload after an outage, not automatic recovery or offline availability.
 - Retain comprehensive authorization and data-integrity coverage in Python/browser layers. Before removing device permutations, map each assertion to retained coverage and identify any genuinely device-specific interaction being lost.
 
@@ -358,7 +358,7 @@ The default suite is already about nine seconds, so optimize after the expensive
 - Remove unnecessary valid-hash creation immediately overwritten by invalid hashes in `tests/test_password_hashes.py`; preserve invalid-hash rejection and admin-repair coverage.
 - Look for reusable immutable production-cost hashes in other setup paths, never shared mutable database state.
 - Profile subprocess startup and worker scheduling before further changes.
-- Preserve the existing [production-cost hashing decision](../docs/test-speed.md). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.
+- Preserve the existing [production-cost hashing decision](../docs/background/test-speed.md). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.
 - Run all required Ruff and pytest checks after Python changes; compare runtime and coverage rather than only test counts.
 
 ### Python fixture efficiency follow-up (2026-09-28)

@@ -71,7 +71,7 @@ dropped.
 ## Progress
 
 - [x] Step 1: quality rules added to `AGENTS.md`; plan written.
-- [ ] Step 2: create `docs/background/` and move the two historical docs.
+- [x] Step 2: created `docs/background/`; moved `offline-findings.md` and `test-speed.md`.
 - [ ] Step 3: `deployment.md`
 - [ ] Step 4: `home-screen-installation.md`
 - [ ] Step 5: `browser-testing.md`
