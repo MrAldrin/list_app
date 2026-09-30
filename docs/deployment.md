@@ -74,6 +74,9 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
   before starting or restoring.
 - Run exactly one app instance against the database: no replicas or extra
   workers.
+- SQLite uses its default rollback journal, not WAL. A write waits at most
+  1 second for another connection's lock, such as a backup, then fails with
+  `database is locked`. Reasons: [WAL and lock-wait findings](background/sqlite-wal-timeout.md).
 
 ## HTTPS and proxy
 

@@ -488,3 +488,15 @@ def test_legacy_database_is_backed_up_before_migrating(tmp_path, monkeypatch):
         assert copy.execute("SELECT id, name FROM lists").fetchall() == [
             (1, "Groceries")
         ]
+
+
+def test_file_database_uses_rollback_journal_and_one_second_lock_wait(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "fresh.db"))
+    connection = init_database()
+    try:
+        assert connection.execute("PRAGMA busy_timeout").fetchone()[0] == 1000
+        assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
+    finally:
+        connection.close()

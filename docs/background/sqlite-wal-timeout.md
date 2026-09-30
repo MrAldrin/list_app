@@ -81,18 +81,19 @@ Production was not touched.
 - Setting the value explicitly documents the choice. Otherwise it is hidden in
   a Python default.
 
-## Proposed code change (not made; awaiting approval)
+## Resulting change
 
-1. `src/database_setup.py`: add a named constant, for example
-   `LOCK_WAIT_SECONDS = 1.0`, with a one-line reason, and pass
-   `timeout=LOCK_WAIT_SECONDS` to `sqlite3.connect`. No schema change and no
-   migration. The journal mode stays as it is.
-2. Test: open the app database on a temporary file and assert
-   `PRAGMA busy_timeout` is 1000 and `PRAGMA journal_mode` is `delete`. This
-   stops either value from changing by accident.
-3. `docs/deployment.md`, "Storage and process limits": one line stating the
-   rollback journal and the 1-second lock wait, linking here.
-4. Close the backlog item.
+Approved and made: `LOCK_WAIT_SECONDS = 1.0` in `src/database_setup.py`,
+passed as `timeout=` to `sqlite3.connect`. No schema change and no migration;
+the journal mode is unchanged. A test in `tests/test_database_setup.py` checks
+both values. Current behavior is stated in
+[deployment: storage and process limits](../deployment.md#storage-and-process-limits).
+
+This does not fix an observed problem. Today the only other connection is a
+~20 ms deploy backup, so no one would notice either limit. It makes a hidden
+Python default an explicit choice and shortens the worst case if something
+ever holds the lock for long (a stuck script, or a tool opened on the live
+database).
 
 If WAL is enabled later, also make the deploy backup switch its copy to a
 standalone file (`PRAGMA journal_mode=DELETE` on the copy before the checks).

@@ -12,6 +12,10 @@ from config import require_app_password
 from migrations import Migration, run_migrations
 
 _DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "list.db"
+# How long a write waits for another connection's lock (e.g. a backup) before
+# failing. Waiting freezes the whole app, so keep it short.
+# See docs/background/sqlite-wal-timeout.md.
+LOCK_WAIT_SECONDS = 1.0
 
 
 def _database_path() -> str:
@@ -401,7 +405,9 @@ def _migrations(app_password: str) -> list[Migration]:
 def init_database():
     app_password = require_app_password()
     database_path = _database_path()
-    db = sqlite3.connect(database_path, check_same_thread=False)
+    db = sqlite3.connect(
+        database_path, check_same_thread=False, timeout=LOCK_WAIT_SECONDS
+    )
     try:
         run_migrations(db, _migrations(app_password), _backup_path(database_path))
     except BaseException:
