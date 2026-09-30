@@ -238,6 +238,17 @@ def test_failed_download_still_cleans_volume(tmp_path):
     assert fake.names()[-1] == "remote-delete"
 
 
+def test_failed_volume_delete_prints_runnable_command(tmp_path, capsys):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.fail_on = "delete"
+
+    assert run_main(tmp_path, fake, ["--backup-only"]) == 0
+
+    name = next((tmp_path / "backups").glob("*.db")).name
+    expected = f"  railway volume files --volume vol-1 delete /{name}\n"
+    assert expected in capsys.readouterr().out
+
+
 def test_outside_window_push_runs_nothing(tmp_path):
     fake = FakeRailwayAndJj(tmp_path)
 

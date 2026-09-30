@@ -181,10 +181,12 @@ def take_backup(run: Runner, now: datetime, backup_dir: Path) -> Path:
             raise
     finally:
         # The volume copy is temporary; never leave it behind.
+        delete = [*volume_files, "delete", f"/{name}"]
         try:
-            run([*volume_files, "delete", f"/{name}", "--yes"])
+            run([*delete, "--yes"])
         except DeployError as error:
-            print(f"WARNING: could not delete {remote_path}. If it exists, remove it.")
+            print(f"WARNING: could not delete {remote_path}. If it exists, run:")
+            print(f"  {shlex.join(delete)}")
             print(error)
     print(f"Backup verified: {local_path} ({expected['size']} bytes)")
     return local_path
