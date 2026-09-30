@@ -19,7 +19,6 @@ Agreed as worth doing; no date.
 
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
-- [ ] [data] Evaluate WAL mode and explicitly set and document SQLite's lock-wait timeout. Test locking and backup behavior.
 - [ ] [data] Strengthen field constraints: nullable names, completion state and slugs; quantities below one; length limits; valid tags JSON. Inspect existing data first.
 - [ ] [feature] Follow the [frontend/offline migration plan](offline-frontend-migration.md): iPhone prototype, frontend migration, then offline viewing and editing. Framework choice needs separate approval.
 - [ ] [security] After 2027-09-18, remove the temporary legacy room-password localStorage cleanup. Keep token authentication and revocation. See the dated TODO in [`src/main.py`](../src/main.py).
