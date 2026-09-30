@@ -4,6 +4,7 @@ from database_crud import (
     delete_item,
     delete_list,
     get_lists,
+    normalize_display_name,
     normalize_item_name,
     rename_item_if_unique,
     rename_list_if_unique,
@@ -88,7 +89,7 @@ def rename_list_with_checks(
     *,
     expected_slug: str | None = None,
 ) -> tuple[str, str | None]:
-    new_name = normalize_item_name(raw_name)
+    new_name = normalize_display_name(raw_name)
     if not new_name:
         return STATUS_INVALID_NAME, None
 

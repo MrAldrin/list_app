@@ -4,6 +4,7 @@ import re
 
 import pytest
 
+import room_invitations as invitations
 from database_crud import (
     add_item,
     authenticate_room_and_issue_token,
@@ -16,6 +17,7 @@ from database_crud import (
     get_room_details_by_slug,
     get_rooms,
     rename_room,
+    rename_room_with_room_token,
     verify_room,
 )
 from database_setup import db
@@ -44,6 +46,43 @@ def test_create_room_builds_a_readable_unique_slug():
         "name": "Our Flat #2",
         "slug": first_slug,
     }
+
+
+def test_room_names_trim_edges_and_keep_case_and_inner_spaces():
+    _, admin_slug = create_room("  Our  Flat  ", "password")
+    _, token = invitations.create_invitation()
+    invited_slug = invitations.create_room_from_invitation(
+        token, "  Øvre  Hytte  ", "password"
+    )
+
+    assert get_room_details_by_slug(admin_slug)["name"] == "Our  Flat"
+    assert get_room_details_by_slug(invited_slug)["name"] == "Øvre  Hytte"
+
+
+def test_room_renames_trim_edges_and_keep_case():
+    room_id, slug = create_room("Before", "password")
+    _, token = authenticate_room_and_issue_token(slug, "password")
+
+    rename_room(room_id, "  Admin  Name  ")
+    assert get_room_details_by_slug(slug)["name"] == "Admin  Name"
+
+    rename_room_with_room_token(slug, token, "  Token  Name  ")
+    assert get_room_details_by_slug(slug)["name"] == "Token  Name"
+
+
+@pytest.mark.parametrize("rename", ["admin", "token"])
+def test_room_renames_reject_blank_names(rename):
+    room_id, slug = create_room("Keep", "password")
+    _, token = authenticate_room_and_issue_token(slug, "password")
+
+    with pytest.raises(ValueError, match="Room name cannot be empty"):
+        if rename == "admin":
+            rename_room(room_id, "   ")
+        else:
+            rename_room_with_room_token(slug, token, "   ")
+
+    assert get_room_details_by_slug(slug)["name"] == "Keep"
+    assert not db.in_transaction
 
 
 def test_create_room_stores_only_a_password_hash():

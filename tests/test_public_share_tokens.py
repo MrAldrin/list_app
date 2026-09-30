@@ -76,9 +76,9 @@ def test_room_token_can_rename_without_rotating_public_link(shared):
             "New groceries",
             expected_slug=shared.slug,
         )
-        == "new groceries"
+        == "New groceries"
     )
-    assert get_list_details_by_share_token(shared.token)["name"] == "new groceries"
+    assert get_list_details_by_share_token(shared.token)["name"] == "New groceries"
     assert get_list_details(shared.id)["share_token"] == shared.token
 
 
@@ -97,7 +97,7 @@ def test_room_rename_rejects_non_room_grants(shared, credential):
         rename_list_with_room_token(
             room_slug, token, shared.id, "Forbidden", expected_slug=shared.slug
         )
-    assert get_list_details(shared.id)["name"] == "secret groceries"
+    assert get_list_details(shared.id)["name"] == "Secret groceries"
     assert get_list_details(shared.id)["share_token"] == shared.token
 
 
@@ -110,7 +110,7 @@ def test_room_rename_rejects_invalid_name(shared):
             "   ",
             expected_slug=shared.slug,
         )
-    assert get_list_details(shared.id)["name"] == "secret groceries"
+    assert get_list_details(shared.id)["name"] == "Secret groceries"
 
 
 def test_rotation_blocks_already_open_public_writes(shared):
@@ -236,7 +236,7 @@ def test_route_access_and_reset_visibility(shared, monkeypatch, public, authoriz
                 for child in e.default_slot.children
                 if isinstance(child, ui.item_section)
             ]
-            assert ("secret groceries" in labels) == (public or authorized)
+            assert ("Secret groceries" in labels) == (public or authorized)
             assert ("Reset share link" in menu_items) == authorized
             assert ("Share List" in menu_items) == (public or authorized)
             if not public and not authorized:

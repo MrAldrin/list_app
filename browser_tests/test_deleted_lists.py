@@ -11,16 +11,16 @@ from test_public_sharing import seeded_list as prepare_list
 def delete_list(member, server):
     member.goto(server.room_url)
     card = member.locator(".q-card").filter(
-        has=member.get_by_role("button", name="browser groceries", exact=True)
+        has=member.get_by_role("button", name="Browser groceries", exact=True)
     )
     card.get_by_role("button").filter(
         has=member.locator("i", has_text="delete")
     ).click()
     dialog = member.get_by_role("dialog")
-    expect(dialog.get_by_text(re.compile("Delete 'browser groceries'"))).to_be_visible()
+    expect(dialog.get_by_text(re.compile("Delete 'Browser groceries'"))).to_be_visible()
     dialog.get_by_role("button", name="Delete", exact=True).click()
     expect(dialog).not_to_be_visible()
-    assert not server.query("SELECT id FROM lists WHERE name = 'browser groceries'")
+    assert not server.query("SELECT id FROM lists WHERE name = 'Browser groceries'")
 
 
 def prepare_action(page, action):
@@ -146,7 +146,7 @@ def test_stale_page_rejects_actions_after_list_deletion(
         stale.get_by_role("button", name="Back to room").click()
         expect(stale).to_have_url(server.room_url)
     assert not server.query("SELECT id FROM items WHERE name = 'forbidden'")
-    assert not server.query("SELECT id FROM lists WHERE name = 'browser groceries'")
+    assert not server.query("SELECT id FROM lists WHERE name = 'Browser groceries'")
 
 
 @pytest.mark.parametrize("role", ["room", "public"])

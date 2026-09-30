@@ -35,9 +35,9 @@ def test_normal_rename_preserves_list_identity_and_room(rename_lists):
         list_id, room_id, "  New List  ", expected_slug=slug
     )
 
-    assert (status, name) == (STATUS_RENAMED, "new list")
+    assert (status, name) == (STATUS_RENAMED, "New List")
     details = get_list_details(list_id)
-    assert details["name"] == "new list"
+    assert details["name"] == "New List"
     assert details["slug"] == slug
     assert details["room_id"] == room_id
     assert not db.in_transaction
@@ -52,7 +52,7 @@ def test_existing_duplicate_returns_status_without_changing_lists(rename_lists):
         list_id, room_id, " OTHER ", expected_slug=slug
     )
 
-    assert (status, name) == (STATUS_DUPLICATE_NAME, "other")
+    assert (status, name) == (STATUS_DUPLICATE_NAME, "OTHER")
     assert get_list_details(list_id) == before_target
     assert get_list_details(other_id) == before_other
     assert not db.in_transaction

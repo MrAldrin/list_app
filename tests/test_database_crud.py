@@ -65,16 +65,16 @@ def test_create_list_success(room_id):
     assert list_id is not None
     lists = get_lists(room_id)
     assert len(lists) == 1
-    assert any(entry[1] == "groceries" for entry in lists)
+    assert any(entry[1] == "Groceries" for entry in lists)
 
 
 def test_create_list_duplicate(room_id):
     # Verify that creating a list with a name that already exists returns the existing ID.
     create_list(name="Groceries", room_id=room_id)
-    # This should return the same ID and not create a new row
+    # This should return the same ID and keep the first spelling
     create_list(name="GROCERIES", room_id=room_id)
     lists = get_lists(room_id)
-    assert len([entry for entry in lists if entry[1] == "groceries"]) == 1
+    assert [entry[1] for entry in lists] == ["Groceries"]
 
 
 def test_create_list_empty(room_id):
@@ -95,7 +95,7 @@ def test_failed_create_list_rolls_back_and_connection_recovers(room_id):
     ).fetchall()
     db.execute(
         "CREATE TEMP TRIGGER fail_create_list BEFORE INSERT ON lists "
-        "WHEN NEW.name = 'blocked' "
+        "WHEN NEW.name = 'Blocked' "
         "BEGIN SELECT RAISE(ABORT, 'injected list creation failure'); END"
     )
     try:
@@ -116,7 +116,7 @@ def test_failed_create_list_rolls_back_and_connection_recovers(room_id):
         list_id, _ = create_list("Recovered", room_id)
         assert db.execute(
             "SELECT name FROM lists WHERE id = ?", (list_id,)
-        ).fetchone() == ("recovered",)
+        ).fetchone() == ("Recovered",)
     finally:
         db.rollback()
         db.execute("DROP TRIGGER IF EXISTS fail_create_list")
@@ -378,7 +378,7 @@ def test_get_lists_sorting(room_id):
 
     lists = get_lists(room_id)
     names = [entry[1] for entry in lists if entry[1] != "default"]
-    assert names == ["apple", "banana", "zebra"]
+    assert names == ["Apple", "banana", "Zebra"]
 
 
 def test_get_list_data_sorting(room_id):
@@ -761,7 +761,7 @@ def test_token_authorized_list_write_is_denied_after_a_password_reset():
     list_id, _ = create_list_with_room_token(room_slug, token, "Private list")
     lists = get_lists(room_id_value)
     assert len(lists) == 1
-    assert lists[0][:2] == (list_id, "private list")
+    assert lists[0][:2] == (list_id, "Private list")
 
     update_room_password(room_id_value, "new-password")
     with pytest.raises(PermissionError):
@@ -780,7 +780,7 @@ def test_token_cannot_modify_a_list_in_another_room():
         )
 
     assert get_lists(first_room_id) == []
-    assert get_lists(second_room_id)[0][1] == "second room list"
+    assert get_lists(second_room_id)[0][1] == "Second room list"
 
 
 def test_failed_room_rename_rolls_back_and_connection_recovers(room_id):

@@ -30,14 +30,14 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     assert server.query(
         "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
         "FROM lists WHERE name = ?",
-        ("browser groceries",),
+        ("Browser groceries",),
     ) == [("off", 7, 10)]
 
     main_switch.click()
     expect(member.get_by_text("milk", exact=True)).not_to_be_visible()
     expect(visitor.get_by_text("milk", exact=True)).not_to_be_visible()
     assert server.query(
-        "SELECT hide_done_mode FROM lists WHERE name = ?", ("browser groceries",)
+        "SELECT hide_done_mode FROM lists WHERE name = ?", ("Browser groceries",)
     ) == [("all",)]
 
     # Hidden items remain searchable and Add restores the complete history row.
@@ -57,7 +57,7 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     expect(item_checkbox(visitor, "milk")).to_be_checked()
     expect(visitor.get_by_text("milk", exact=True)).to_be_visible()
     assert server.query(
-        "SELECT hide_done_mode FROM lists WHERE name = ?", ("browser groceries",)
+        "SELECT hide_done_mode FROM lists WHERE name = ?", ("Browser groceries",)
     ) == [("age",)]
     expect(mode_button(member, "After X days")).to_have_attribute(
         "aria-pressed", "true"
@@ -98,6 +98,6 @@ def test_visibility_settings_modes_history_and_shared_updates(server, sessions):
     assert server.query(
         "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
         "FROM lists WHERE name = ?",
-        ("browser groceries",),
+        ("Browser groceries",),
     ) == [("all", 1, 0)]
     expect(member).to_have_url(private_url)

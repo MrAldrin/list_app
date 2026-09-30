@@ -64,7 +64,7 @@ def create_list(member, server):
     member.get_by_role("button", name="Add New List", exact=True).click()
     member.get_by_label("List name", exact=True).fill("Browser groceries")
     member.get_by_role("button", name="Save", exact=True).click()
-    expect(member.get_by_text("browser groceries", exact=True)).to_be_visible()
+    expect(member.get_by_text("Browser groceries", exact=True)).to_be_visible()
     expect(member).to_have_url(re.compile(r"/list/[^/]+$"))
     return member.url
 
@@ -77,7 +77,7 @@ def seeded_list(member, server):
         db.execute(
             "INSERT INTO lists (name, slug, room_id, share_token) "
             "VALUES (?, ?, (SELECT id FROM rooms WHERE name = 'Home'), ?)",
-            ("browser groceries", slug, token),
+            ("Browser groceries", slug, token),
         )
     member.goto(server.room_url)
     member.get_by_label("Room Password", exact=True).fill(server.password)
@@ -86,7 +86,7 @@ def seeded_list(member, server):
         member.get_by_role("button", name="Add New List", exact=True)
     ).to_be_visible()
     member.goto(f"{server.url}/list/{slug}")
-    expect(member.get_by_text("browser groceries", exact=True)).to_be_visible()
+    expect(member.get_by_text("Browser groceries", exact=True)).to_be_visible()
     return member.url, f"{server.url}/share/{token}"
 
 
@@ -185,7 +185,7 @@ def test_sharing_live_updates_revocation_and_restart(server, sessions):
         member.get_by_role("button", name="Add New List", exact=True)
     ).to_be_visible()
     expect(member.get_by_label("Room Password", exact=True)).not_to_be_visible()
-    member.get_by_role("button", name="browser groceries", exact=True).click()
+    member.get_by_role("button", name="Browser groceries", exact=True).click()
     expect(member.get_by_text("apples", exact=True)).to_be_visible()
     assert share_link(member) == new_link
     visitor.goto(new_link)
@@ -282,14 +282,14 @@ def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
     link = share_link(member)
     member.goto(server.room_url)
     list_card = member.locator(".q-card").filter(
-        has=member.get_by_role("button", name="browser groceries", exact=True)
+        has=member.get_by_role("button", name="Browser groceries", exact=True)
     )
     expect(
         list_card.get_by_role("button").filter(has=member.locator("i", has_text="edit"))
     ).to_be_visible()
 
     visitor.goto(link)
-    expect(visitor.get_by_text("browser groceries", exact=True)).to_be_visible()
+    expect(visitor.get_by_text("Browser groceries", exact=True)).to_be_visible()
     expect(visitor.get_by_label("List Name", exact=True)).to_have_count(0)
     visitor.get_by_role("button", name="List menu", exact=True).click()
     expect(visitor.get_by_text("Reset share link", exact=True)).to_have_count(0)
@@ -301,7 +301,7 @@ def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
     expect(visitor.get_by_role("button", name="produce", exact=True)).to_be_visible()
     assert json.loads(
         server.query(
-            "SELECT list_tags FROM lists WHERE name = ?", ("browser groceries",)
+            "SELECT list_tags FROM lists WHERE name = ?", ("Browser groceries",)
         )[0][0]
     ) == ["produce"]
 
@@ -315,12 +315,12 @@ def test_public_visitor_edits_tags_but_cannot_rename_list(server, sessions):
     assert (
         json.loads(
             server.query(
-                "SELECT list_tags FROM lists WHERE name = ?", ("browser groceries",)
+                "SELECT list_tags FROM lists WHERE name = ?", ("Browser groceries",)
             )[0][0]
         )
         == []
     )
-    assert server.query("SELECT name FROM lists") == [("browser groceries",)]
+    assert server.query("SELECT name FROM lists") == [("Browser groceries",)]
 
 
 def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
@@ -329,7 +329,7 @@ def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
     seeded_list(member, server)
     member.goto(server.room_url)
     list_card = member.locator(".q-card").filter(
-        has=member.get_by_role("button", name="browser groceries", exact=True)
+        has=member.get_by_role("button", name="Browser groceries", exact=True)
     )
     list_card.get_by_role("button").filter(
         has=member.locator("i", has_text="edit")
@@ -357,7 +357,7 @@ def test_revoked_room_tab_cannot_save_open_rename_dialog(server, sessions):
     expect(member).to_have_url(server.room_url)
     expect(member.get_by_label("Room Password", exact=True)).to_be_visible()
     assert delayed.sent_events, "The stale browser must actually send its rename"
-    assert server.query("SELECT name FROM lists") == [("browser groceries",)]
+    assert server.query("SELECT name FROM lists") == [("Browser groceries",)]
 
 
 def test_revoked_public_tab_cannot_save_tag(server, sessions):

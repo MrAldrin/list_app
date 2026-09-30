@@ -45,6 +45,11 @@ def normalize_item_name(raw: str | None) -> str:
     return (raw or "").strip().lower()
 
 
+def normalize_display_name(raw: str | None) -> str:
+    """Room and list names keep the user's case; only outer whitespace goes."""
+    return (raw or "").strip()
+
+
 def _completion_timestamp(now: datetime | None = None) -> str:
     timestamp = datetime.now(UTC) if now is None else now
     if timestamp.tzinfo is None:
@@ -319,26 +324,34 @@ def toggle_item_active_tag(
             raise
 
 
+def _find_list_by_name_locked(
+    name: str, room_id: int, *, exclude_id: int | None = None
+) -> tuple[int, str] | None:
+    """Match list names ignoring case in Python; SQLite NOCASE only folds A-Z."""
+    wanted = name.strip().casefold()
+    rows = db.execute(
+        "SELECT id, slug, name FROM lists WHERE room_id = ?", (room_id,)
+    ).fetchall()
+    for list_id, slug, existing_name in rows:
+        if list_id != exclude_id and existing_name.strip().casefold() == wanted:
+            return list_id, slug
+    return None
+
+
 def find_list_by_name(name: str, room_id: int):
     with _DB_LOCK:
-        result = db.execute(
-            "SELECT id FROM lists WHERE name = ? COLLATE NOCASE AND room_id = ?",
-            (name, room_id),
-        )
-        return result.fetchone()
+        found = _find_list_by_name_locked(name, room_id)
+    return None if found is None else (found[0],)
 
 
 def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
-    normalized_name = normalize_item_name(name)
+    normalized_name = normalize_display_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
 
-    existing = db.execute(
-        "SELECT id, slug FROM lists WHERE name = ? COLLATE NOCASE AND room_id = ?",
-        (normalized_name, room_id),
-    ).fetchone()
+    existing = _find_list_by_name_locked(normalized_name, room_id)
     if existing:
-        return existing[0], existing[1]
+        return existing
 
     safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
     short_uuid = str(uuid.uuid4())[:6]
@@ -390,12 +403,7 @@ def rename_list_if_unique(
             if not belongs_to_room:
                 raise ListUnavailable(f"List {list_id} is no longer available")
 
-            duplicate = db.execute(
-                "SELECT id FROM lists WHERE name = ? COLLATE NOCASE "
-                "AND room_id = ? AND id != ?",
-                (new_name, room_id, list_id),
-            ).fetchone()
-            if duplicate:
+            if _find_list_by_name_locked(new_name, room_id, exclude_id=list_id):
                 db.rollback()
                 return False
 
@@ -795,7 +803,7 @@ def get_room_details_by_slug(slug: str):
 
 
 def create_room(name: str, plain_password: str):
-    normalized_name = normalize_item_name(name)
+    normalized_name = normalize_display_name(name)
     if not normalized_name:
         raise ValueError("Room name cannot be empty")
     if not plain_password:
@@ -813,7 +821,7 @@ def create_room(name: str, plain_password: str):
         try:
             result = db.execute(
                 "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
-                (name, slug, pw_hash),
+                (normalized_name, slug, pw_hash),
             )
             db.commit()
             return result.lastrowid, slug
@@ -1052,7 +1060,7 @@ def rename_list_with_room_token(
     expected_slug: str | None = None,
 ) -> str:
     """Rename a room list while validating the token and list ownership together."""
-    new_name = normalize_item_name(raw_name)
+    new_name = normalize_display_name(raw_name)
     if not new_name:
         raise ValueError("List name cannot be empty")
 
@@ -1071,14 +1079,7 @@ def rename_list_with_room_token(
                 db.rollback()
                 raise RoomAccessDenied
             _require_list_identity_locked(list_id, expected_slug)
-            duplicate = db.execute(
-                """
-                SELECT id FROM lists
-                WHERE name = ? COLLATE NOCASE AND room_id = ? AND id != ?
-                """,
-                (new_name, room_id, list_id),
-            ).fetchone()
-            if duplicate:
+            if _find_list_by_name_locked(new_name, room_id, exclude_id=list_id):
                 db.rollback()
                 raise ValueError("A list with that name already exists in this room")
             db.execute("UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
@@ -1123,7 +1124,8 @@ def delete_list_with_room_token(
 
 def rename_room_with_room_token(room_slug: str, token: str, new_name: str) -> None:
     """Rename only the room associated with a still-valid token."""
-    if not new_name.strip():
+    new_name = normalize_display_name(new_name)
+    if not new_name:
         raise ValueError("Room name cannot be empty")
 
     with _DB_LOCK:
@@ -1167,6 +1169,9 @@ def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
 
 
 def rename_room(room_id: int, new_name: str):
+    new_name = normalize_display_name(new_name)
+    if not new_name:
+        raise ValueError("Room name cannot be empty")
     with _DB_LOCK:
         try:
             db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))

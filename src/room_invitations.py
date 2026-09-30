@@ -10,7 +10,7 @@ import time
 
 import bcrypt
 
-from database_crud import _DB_LOCK, normalize_item_name
+from database_crud import _DB_LOCK, normalize_display_name
 from database_setup import db
 
 INVITATION_LIFETIME = 7 * 24 * 60 * 60
@@ -88,7 +88,7 @@ def create_room_from_invitation(token: str, name: str, password: str) -> str:
     # Reject invalid links before spending CPU on bcrypt, then recheck at write time.
     if not invitation_is_active(token):
         raise InvitationUnavailable("This invitation is invalid or no longer active.")
-    name = normalize_item_name(name)
+    name = normalize_display_name(name)
     if not name or len(name) > 100:
         raise ValueError("Room name must contain 1-100 characters.")
     if not password.strip() or len(password.encode("utf-8")) > 72:
