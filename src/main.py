@@ -18,6 +18,9 @@ from ui.sharing import share_button
 
 GLOBAL_APP_PASSWORD = require_app_password()
 
+# Quasar draws button text in capitals by default; show names exactly as typed.
+ui.button.default_props("no-caps")
+
 from fastapi import HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 

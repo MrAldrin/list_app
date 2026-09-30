@@ -94,3 +94,18 @@ def test_item_names_are_still_lowercased(room):
     add_or_restore_item(list_id, "  Oat MILK ")
 
     assert [item["name"] for item in get_list_data(list_id)[0]] == ["oat milk"]
+
+
+def test_buttons_show_names_as_typed():
+    # Quasar buttons draw text in capitals unless no-caps is set.
+    from nicegui import Client, ui
+    from nicegui.page import page
+
+    import main
+
+    with Client(page("/")):
+        button = main.ui.button("Weekly Shop")
+
+    assert isinstance(button, ui.button)
+    assert button.text == "Weekly Shop"
+    assert button._props.get("no-caps") is True

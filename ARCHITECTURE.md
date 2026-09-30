@@ -78,6 +78,9 @@ deferred in the [backlog](plans/backlog.md).
 - Each list can hide checked-off items immediately, after a full-24-hour age, or
   except for the last N checked items. Hiding does not remove items from search or
   matching; see [checked-item visibility](docs/checked-item-visibility.md).
+- Room and list names are shown exactly as typed, with only outer spaces
+  removed. Duplicate list names are compared ignoring case. Item names are
+  stored in lowercase so duplicate items are easy to catch.
 - `/` is a public remembered-room router; admin tools remain separate at `/admin`.
 - Home-screen installation requests the current room as its launch address,
   without credentials. ListR remains one installed app identity, not one per room;
