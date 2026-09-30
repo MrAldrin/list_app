@@ -10,8 +10,7 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [infra] Deploy backup script: stream the backup over `railway ssh` from the container's temp folder, so no copy is left on the volume. Railway refuses `volume files delete` from scripts, so today the copy must be deleted by hand. See the [deploy backup script](../docs/deployment.md#backup-before-deploying).
-- [ ] [bug] (in progress) Stop item-ID reuse so stale item actions cannot change a new item. Implemented as migration 2 on bookmark `item-id-fix`. Deploy in a later window with the [deployment checklist](../docs/deployment.md#deployment-checklist): rehearse on a fresh backup copy and expect `Database migrated from version 1 to 2`. See [item identity](../docs/item-writes.md#item-identity).
+- [ ] [infra] Deploy backup script: stream the backup over `railway ssh` from the container's temp folder, so no copy is left on the volume. Railway refuses `volume files delete` from scripts, so today the copy must be deleted by hand. Wake the app with a web request first: while it sleeps, `railway ssh` reaches Railway's account service instead of the container. Stop with a clear message if ssh does not reach the container. See the [deploy backup script](../docs/deployment.md#backup-before-deploying).
 
 ## Later
 
