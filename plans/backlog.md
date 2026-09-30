@@ -24,7 +24,6 @@ Agreed as worth doing; no date.
 - [ ] [feature] Follow the [frontend/offline migration plan](offline-frontend-migration.md): iPhone prototype, frontend migration, then offline viewing and editing. Framework choice needs separate approval.
 - [ ] [security] After 2027-09-18, remove the temporary legacy room-password localStorage cleanup. Keep token authentication and revocation. See the dated TODO in [`src/main.py`](../src/main.py).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
-- [ ] [test] Add regression tests for tags and room creation/deletion.
 
 ## Ideas
 
