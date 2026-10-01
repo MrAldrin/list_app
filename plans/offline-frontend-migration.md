@@ -42,6 +42,27 @@ that talk to the Python API.
   slices before the switch, so the final switch mainly changes which frontend is
   served. Pushing `main` deploys; follow the deployment checklist.
 
+## Learning approach
+
+The owner is new to Svelte and JavaScript; so far the app has been pure Python.
+Treat the first sessions as guided learning, not fast delivery.
+
+- Move slowly at the start: one small concept per step. Explain what a step does
+  and why before writing code, then recap and wait for the owner before moving on.
+- Compare with Python where it helps: npm ≈ uv, `package.json` ≈ `pyproject.toml`,
+  `package-lock.json` ≈ `uv.lock`, `node_modules/` ≈ `.venv/`.
+- Let the owner type or run key commands when it aids learning; review afterwards.
+- Cover the basics roughly in this order before the prototype:
+  1. What runs in the browser vs. on the server, and what "static files" means.
+  2. A `.svelte` component: `<script>`, markup and `<style>` in one file.
+  3. Svelte 5 runes: `$state`, `$derived`, `$props`, then `$effect` sparingly.
+  4. Template logic and events: `{#if}`, `{#each}`, `onclick`.
+  5. SvelteKit routing (`src/routes/+page.svelte`) and fetching from the Python API.
+  6. Building to static files and how Python serves them.
+- Tooling: Node 24 (via `fnm`) and npm are already installed; no global installs.
+  Create the project with `npx sv create frontend` once approved. Use npm, the
+  default in the Svelte docs, rather than bun.
+
 ## Small, testable stages
 
 1. **Validate a thin prototype before committing to a full migration.** One list
@@ -104,6 +125,7 @@ can follow later, but the read-only design must leave room for them.
 - [ ] Owner reviews/integrates the shared documentation baseline.
 - [ ] Rebase selected active stacks after explicit approval; preserve experiment.
 - [x] Choose frontend: Svelte 5 + SvelteKit static/SPA (2026-09-29).
+- [ ] Guided Svelte basics walkthrough (see Learning approach).
 - [ ] Agree prototype/API/local-data acceptance criteria.
 - [ ] Validate the prototype on the actual iPhone and exercise two-device sync.
 - [ ] Implement online frontend migration in separately approved slices.
