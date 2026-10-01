@@ -50,7 +50,7 @@ Railway refuses `volume files delete` from scripts.
 
 ## Progress
 
-- [ ] 1. Script
-- [ ] 2. Tests
-- [ ] 3. Docs and backlog
+- [x] 1. Script
+- [x] 2. Tests
+- [x] 3. Docs and backlog
 - [ ] 4. First real run (owner)

@@ -10,8 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [infra] Deploy backup script: stream the backup over `railway ssh` from the container's temp folder, so no copy is left on the volume. Railway refuses `volume files delete` from scripts, so today the copy must be deleted by hand. Wake the app with a web request first: while it sleeps, `railway ssh` reaches Railway's account service instead of the container. Stop with a clear message if ssh does not reach the container. See the [deploy backup script](../docs/deployment.md#backup-before-deploying).
-
 ## Later
 
 Agreed as worth doing; no date.
@@ -47,6 +45,7 @@ real-device evidence. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist) and record
 results (with OS/browser versions for devices) in the linked doc.
 
+- [ ] [infra] Run `scripts/deploy_backup.py --backup-only` once with the new ssh streaming: expect "Backup verified" and no new `list-deploy-*` file on the volume. See the [streaming plan](deploy-backup-streaming.md).
 - [ ] Finish the deployment guide's outstanding production checks: persistence across restart/deployment, migration verification, remembered room access and password-reset revocation.
 - [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index.
 - [ ] Verify the [checked-item visibility](../docs/checked-item-visibility.md#existing-lists-and-verification) migration on production and real devices.

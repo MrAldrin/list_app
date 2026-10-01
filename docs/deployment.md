@@ -132,11 +132,14 @@ uv run python scripts/deploy_backup.py --backup-only      # backup, never push
 
 1. Pushing only works inside the deploy window, and only if `main` is an
    ancestor of the revision.
-2. It makes a backup-API copy on the volume over `railway ssh` and checks it.
-3. It downloads the copy to `~/.local/share/list_app/backups/`, checks the
-   checksum and integrity, and deletes the volume copy.
-4. It offers to delete local copies beyond the two newest.
-5. It shows the changes that will go live and pushes only after you type `y`.
+2. It wakes the app with a web request. A sleeping Railway app does not
+   answer `railway ssh`.
+3. Over `railway ssh`, it makes a backup-API copy in the container's temp
+   folder (not the volume), checks it, and streams it here as text.
+4. It saves the copy to `~/.local/share/list_app/backups/` and checks the size,
+   checksum and integrity. Nothing is left in the container.
+5. It offers to delete local copies beyond the two newest.
+6. It shows the changes that will go live and pushes only after you type `y`.
 
 Any failure stops the script before the push. A copy that fails the local
 checks is kept as `*.db.unverified` for inspection.
