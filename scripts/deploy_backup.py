@@ -9,8 +9,11 @@ Procedure and reasoning: docs/deployment.md#backup-before-deploying.
 """
 
 import argparse
+import base64
+import binascii
 import hashlib
 import json
+import os
 import re
 import secrets
 import shlex
@@ -28,24 +31,24 @@ VOLUME_MOUNT = "/data"
 SOURCE_DB = f"{VOLUME_MOUNT}/list.db"
 KEEP_BACKUPS = 2
 DEPLOY_TIMEZONE = ZoneInfo("Europe/Oslo")
+# A sleeping Railway app starts on the first web request.
+APP_URL = "https://listapp-production-d627.up.railway.app/"
 RESULT_PREFIX = "BACKUP_RESULT "
+DATA_BEGIN = "BACKUP_DATA_BEGIN"
+DATA_END = "BACKUP_DATA_END"
 TIMESTAMP_PATTERN = re.compile(r"-(\d{8}T\d{6}Z)-")
 
-# Runs on the Railway service, where the volume is mounted. Writes a
-# backup-API copy to a new file, checks it, and prints its size and checksum.
-# Removes its own file if anything fails.
+# Runs on the Railway service. Makes a backup-API copy in a temp folder (not
+# the volume), checks it, and prints its size and checksum, then the file as
+# base64 text between marker lines. The temp folder is always removed.
 REMOTE_BACKUP_CODE = """\
-import hashlib, json, os, shutil, sqlite3
+import base64, hashlib, json, os, sqlite3, sys, tempfile
 from contextlib import closing
 from pathlib import Path
 
 source = Path(os.environ['DB_SOURCE']).resolve(strict=True)
-target = Path(os.environ['BACKUP_PATH'])
-needed = 2 * source.stat().st_size + 10_000_000
-if shutil.disk_usage(target.parent).free < needed:
-    raise SystemExit('Not enough free space on the volume')
-target.touch(mode=0o600, exist_ok=False)
-try:
+with tempfile.TemporaryDirectory(prefix='list-backup-') as folder:
+    target = Path(folder) / 'backup.db'
     with closing(sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)) as src:
         with closing(sqlite3.connect(target)) as dst:
             src.backup(dst)
@@ -54,11 +57,11 @@ try:
     if integrity != [('ok',)] or foreign_keys:
         raise SystemExit(f'Check failed: {integrity} {foreign_keys}')
     data = target.read_bytes()
-except BaseException:
-    target.unlink(missing_ok=True)
-    raise
 result = {'sha256': hashlib.sha256(data).hexdigest(), 'size': len(data)}
 print('BACKUP_RESULT ' + json.dumps(result))
+print('BACKUP_DATA_BEGIN')
+sys.stdout.write(base64.encodebytes(data).decode())
+print('BACKUP_DATA_END')
 """
 
 Runner = Callable[[list[str]], str]
@@ -108,9 +111,19 @@ def find_production_volume(volume_list_json: str) -> tuple[str, str]:
     return info.get("project", "?"), volumes[0]["id"]
 
 
-def remote_backup_command(remote_path: str) -> list[str]:
-    env = f"DB_SOURCE={shlex.quote(SOURCE_DB)} BACKUP_PATH={shlex.quote(remote_path)}"
-    script = f"{env} python - <<'PY'\n{REMOTE_BACKUP_CODE}PY"
+def wake_app(run: Runner) -> None:
+    print(f"Waking the app: {APP_URL}")
+    curl = ["curl", "--fail", "--silent", "--show-error", "--output", "/dev/null"]
+    try:
+        run([*curl, "--max-time", "90", "--retry", "2", "--retry-all-errors", APP_URL])
+    except DeployError as error:
+        raise DeployError(f"Could not wake the app at {APP_URL}\n{error}") from None
+
+
+def remote_backup_command() -> list[str]:
+    script = (
+        f"DB_SOURCE={shlex.quote(SOURCE_DB)} python - <<'PY'\n{REMOTE_BACKUP_CODE}PY"
+    )
     return ["railway", "ssh", "--", "sh", "-c", script]
 
 
@@ -122,7 +135,36 @@ def parse_remote_result(output: str) -> dict:
                 result.get("size"), int
             ):
                 return result
+    if '"account"' in output:
+        # Seen when the app is asleep: Railway's account service answers
+        # instead of the container.
+        raise DeployError(
+            "railway ssh did not reach the app's container (Railway's account "
+            "service answered instead). The app may still be starting; wait a "
+            f"minute and run the script again.\n{output}"
+        )
     raise DeployError(f"Remote backup gave no result:\n{output}")
+
+
+def parse_remote_backup(output: str) -> tuple[dict, bytes]:
+    """Return (size and checksum, file bytes) from the remote backup output."""
+    output = output.replace("\r", "")  # A terminal session may add \r.
+    result = parse_remote_result(output)
+    lines = output.splitlines()
+    try:
+        begin = lines.index(DATA_BEGIN)
+        end = lines.index(DATA_END, begin)
+        data = base64.b64decode("".join(lines[begin + 1 : end]), validate=True)
+    except (ValueError, binascii.Error):
+        raise DeployError("Remote backup data is missing or incomplete") from None
+    return result, data
+
+
+def write_new_file(path: Path, data: bytes) -> None:
+    """Write data to a new 0600 file; refuse to overwrite."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as file:
+        file.write(data)
 
 
 def verify_local_backup(path: Path, expected: dict) -> None:
@@ -160,34 +202,21 @@ def take_backup(run: Runner, now: datetime, backup_dir: Path) -> Path:
     )
     print(f"Railway project {project}, environment production, volume {volume}")
 
-    volume_files = ["railway", "volume", "files", "--volume", volume]
-    name = backup_name(now, secrets.token_hex(4))
-    remote_path = f"{VOLUME_MOUNT}/{name}"
-    local_path = backup_dir / name
+    local_path = backup_dir / backup_name(now, secrets.token_hex(4))
     prepare_backup_dir(backup_dir)
     if local_path.exists():
         raise DeployError(f"Refusing to overwrite {local_path}")
 
+    wake_app(run)
+    print("Creating the backup over railway ssh (nothing is written to the volume)")
+    expected, data = parse_remote_backup(run(remote_backup_command()))
+    print(f"Saving to {local_path}")
+    write_new_file(local_path, data)
     try:
-        print(f"Creating backup on the volume: {remote_path}")
-        expected = parse_remote_result(run(remote_backup_command(remote_path)))
-        print(f"Downloading to {local_path}")
-        run([*volume_files, "download", f"/{name}", str(local_path)])
-        local_path.chmod(0o600)
-        try:
-            verify_local_backup(local_path, expected)
-        except DeployError:
-            local_path.rename(local_path.with_suffix(".db.unverified"))
-            raise
-    finally:
-        # The volume copy is temporary; never leave it behind.
-        delete = [*volume_files, "delete", f"/{name}"]
-        try:
-            run([*delete, "--yes"])
-        except DeployError as error:
-            print(f"WARNING: could not delete {remote_path}. If it exists, run:")
-            print(f"  {shlex.join(delete)}")
-            print(error)
+        verify_local_backup(local_path, expected)
+    except DeployError:
+        local_path.rename(local_path.with_suffix(".db.unverified"))
+        raise
     print(f"Backup verified: {local_path} ({expected['size']} bytes)")
     return local_path
 
