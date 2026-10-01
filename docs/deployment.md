@@ -123,7 +123,10 @@ the [backlog](../plans/backlog.md#manual-checks).
 ## Backup before deploying
 
 `scripts/deploy_backup.py` backs up production to this machine, then pushes
-`main`. Run it from the repository with Railway linked to production:
+`main`. jj has no hooks and `jj git push` does not run git hooks, so pushing
+through this script is how a push gets a fresh backup. Run it from the
+repository with Railway linked to production; it stops for any other
+environment:
 
 ```bash
 uv run python scripts/deploy_backup.py --rev <revision>   # backup, then push

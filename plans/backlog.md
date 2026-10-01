@@ -45,7 +45,6 @@ real-device evidence. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist) and record
 results (with OS/browser versions for devices) in the linked doc.
 
-- [ ] [infra] Run `scripts/deploy_backup.py --backup-only` once with the new ssh streaming: expect "Backup verified" and no new `list-deploy-*` file on the volume. See the [streaming plan](deploy-backup-streaming.md).
 - [ ] Finish the deployment guide's outstanding production checks: persistence across restart/deployment, migration verification, remembered room access and password-reset revocation.
 - [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index.
 - [ ] Verify the [checked-item visibility](../docs/checked-item-visibility.md#existing-lists-and-verification) migration on production and real devices.
