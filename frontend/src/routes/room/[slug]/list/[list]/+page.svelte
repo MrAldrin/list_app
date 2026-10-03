@@ -7,12 +7,20 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { closeRoom, openRoom, type Item, type List, type RoomHandle } from '#lib/data/index.ts';
+	import {
+		closeRoom,
+		openRoom,
+		type HideDone,
+		type Item,
+		type List,
+		type RoomHandle
+	} from '#lib/data/index.ts';
 	import AddItem from '#lib/list/AddItem.svelte';
 	import ItemDialog from '#lib/list/ItemDialog.svelte';
 	import ItemRow from '#lib/list/ItemRow.svelte';
 	import ListHeader from '#lib/list/ListHeader.svelte';
 	import ListOptions from '#lib/list/ListOptions.svelte';
+	import ListTags from '#lib/list/ListTags.svelte';
 	import {
 		addFeedback,
 		showsQuantity,
@@ -20,6 +28,7 @@
 		UNDO_DURATION,
 		type QuantityView
 	} from '#lib/list/items.ts';
+	import { activeFilter, filterByTag } from '#lib/list/tags.ts';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -46,6 +55,9 @@
 	let view = $state<QuantityView>({ showQuantities: false, onlyAboveOne: false });
 	/** The item in the edit dialog, as it was when the dialog opened. */
 	let editing = $state.raw<Item | null>(null);
+	/** The tag chip the items are filtered by (page state, as in NiceGUI). */
+	let chosenTag = $state<string | null>(null);
+	const filterTag = $derived(activeFilter(chosenTag, list?.tags ?? []));
 
 	// "Hide after N days" depends on the clock, so the visible items are
 	// worked out again every minute (NiceGUI does the same).
@@ -73,6 +85,39 @@
 
 	function changeQuantity(item: Item, delta: number) {
 		void room!.changeQuantity(item, delta);
+	}
+
+	function toggleTag(item: Item, tag: string) {
+		void room!.toggleItemTag(item, tag);
+	}
+
+	async function addTag(target: List, tag: string): Promise<boolean> {
+		// The chip shows at once; a rejection is shown by the store as a toast.
+		const result = await room!.addListTag(target, tag);
+		return result.ok;
+	}
+
+	/** Deletes at once and offers "Undo" for a few seconds, like item deletes. */
+	function deleteTag(target: List, tag: string) {
+		if (chosenTag === tag) chosenTag = null;
+		const handle = room!;
+		const deleted = handle.removeListTag(target, tag);
+		const toastId = toasts.show(`Deleted tag ${tag}`, 'danger', {
+			duration: UNDO_DURATION,
+			action: { label: 'Undo', run: () => void undoDeleteTag(handle, target, tag) }
+		});
+		void deleted.then((result) => {
+			if (!result.ok) toasts.dismiss(toastId);
+		});
+	}
+
+	async function undoDeleteTag(handle: RoomHandle, target: List, tag: string) {
+		const result = await handle.addListTag(target, tag);
+		if (result.ok) toasts.show(`Restored tag ${tag}`, 'success');
+	}
+
+	function setHideDone(target: List, changes: Partial<HideDone>) {
+		void room!.setVisibility(target, changes);
 	}
 
 	async function saveItem(
@@ -144,17 +189,32 @@
 			</div>
 		{/if}
 		{#if optionsOpen}
-			<ListOptions bind:view />
+			<ListOptions
+				bind:view
+				hideDone={current.hide_done}
+				onHideDone={(changes) => setHideDone(current, changes)}
+			/>
 		{/if}
+		<ListTags
+			tags={current.tags}
+			filter={filterTag}
+			editing={optionsOpen}
+			onFilter={(tag) => (chosenTag = tag)}
+			onAdd={(tag) => addTag(current, tag)}
+			onDelete={(tag) => deleteTag(current, tag)}
+		/>
 		<AddItem items={room.store.itemsOf(current.uid)} onAdd={(name) => addItem(current, name)} />
 		<ul class="items">
-			{#each room.store.visibleItemsOf(current.uid, now) as item (item.uid)}
+			<!-- Hide checked items first (on the whole list), then filter by tag. -->
+			{#each filterByTag(room.store.visibleItemsOf(current.uid, now), filterTag) as item (item.uid)}
 				<ItemRow
 					{item}
 					showQuantity={showsQuantity(item.quantity, view)}
 					showDelete={optionsOpen}
+					listTags={current.tags}
 					onToggle={(done) => toggle(item, done)}
 					onQuantity={(delta) => changeQuantity(item, delta)}
+					onTag={(tag) => toggleTag(item, tag)}
 					onOpen={() => (editing = item)}
 					onDelete={() => deleteItem(item)}
 				/>

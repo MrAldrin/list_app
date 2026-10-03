@@ -411,6 +411,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 84 | An "Options" button (then "Done") opens "Show quantities" and "Only show minimum 2" and shows a delete button on each row, as NiceGUI's edit mode. These are page state only, reset when the page is left. The − button is disabled at 1 (NiceGUI sends a write that changes nothing) | Same layout as NiceGUI; 2.6 adds tags and hide-done settings to the same panel | Show the stepper always | Low |
 | 85 | Undo of an item delete is an "Undo" button in the "Deleted X" toast, for 5 s (NiceGUI: an undo bar in Options mode, 5 s). Toasts got an optional action and duration. Delete is optimistic; the toast goes if the delete fails | The phone user sees the undo where the message is, also outside Options mode | An undo bar like NiceGUI | Low |
 | 86 | The edit dialog starts from the item as it was when opened (sent as `base_seq`), closes on success, `item_not_found` and `list_unavailable`, and stays open on a blank or duplicate name (message as a toast). Saving shows no toast, as NiceGUI | Same as the list rename dialog (decision 78) | Live-update the open dialog | Low |
+| 87 | Deleting a tag is optimistic and shows "Deleted tag X" with "Undo" for 5 s (undo = `list.tag_add`, then "Restored tag X"), like item deletes (decision 85). The "Add Tag" field ignores a blank or existing tag (exact match) and keeps the text, as NiceGUI; it clears after a success unless retyped | One undo pattern on the phone | NiceGUI's undo bar | Low |
+| 88 | The tag filter is page state. A filter on a tag that is gone (deleted here or elsewhere) stops filtering; NiceGUI keeps filtering by a tag it no longer shows. Hiding runs on the whole list before the filter | No empty list with no visible reason | Copy NiceGUI | Low |
+| 89 | Hide mode is a radio group styled as a segmented control; a number saves on `change` (blur or Enter) and only when it differs; a bad number shows NiceGUI's warning and resets the field. No hidden-items count or "show hidden" button (NiceGUI has none) | Accessible single choice; no write per keystroke | NiceGUI's write on every blur | Low |
+| 90 | Tag colors keep NiceGUI's order (blue, green, red, orange, purple, teal, pink) as Material 700 shades, 300 in dark mode; item tag buttons are 32 px circles | Quasar's 500 shades are hard to read as outlined text on white; rows stay one line on a phone | Quasar's colors; 44 px buttons | Low |
 
 ## Progress
 
@@ -440,7 +444,7 @@ Milestone 2: prototype UI
 - [x] 2.3 Room page (`frontend/src/lib/room/RoomLists.svelte`, toasts and dialogs in `lib/ui/`, list page placeholder; fix: room stores outlive the page that opened them, `room-lifetime.svelte.test.ts`; decisions 76–80)
 - [x] 2.4 List page: items, add, check (`frontend/src/routes/room/[slug]/list/[list]/`, `lib/list/`, old link shape `routes/list/[slug]`; notice toasts shared in `lib/ui/notice-toasts.svelte.ts`; decisions 81–83)
 - [x] 2.5 Quantity, edit, delete with undo (`lib/list/ItemRow.svelte`, `ItemDialog.svelte`, `ListOptions.svelte`; toast actions in `lib/ui/toasts.svelte.ts`; decisions 84–86)
-- [ ] 2.6 Tags and hide-done settings
+- [x] 2.6 Tags and hide-done settings (`lib/list/ListTags.svelte`, `HideDoneSettings.svelte`, `tags.ts`, `hide-done.ts`, tag buttons in `ItemRow.svelte`, colors in `app.css`; decisions 87–90)
 - [ ] 2.7 Live updates and error states
 - [ ] 2.8 Browser tests
 - [ ] 2.9 iPhone test prep

@@ -1,12 +1,23 @@
 <!--
-	The "Options" panel of the list page. These switches only change what this
-	page shows; nothing is saved (as in NiceGUI).
+	The "Options" panel of the list page. The quantity switches only change
+	what this page shows; nothing is saved (as in NiceGUI). The hide-done
+	settings below them are saved for the list.
 -->
 <script lang="ts">
+	import type { HideDone } from '#lib/data/index.ts';
+	import HideDoneSettings from './HideDoneSettings.svelte';
 	import type { QuantityView } from './items';
 
 	// `$bindable` lets the parent write <ListOptions bind:view={…} />.
-	let { view = $bindable() }: { view: QuantityView } = $props();
+	let {
+		view = $bindable(),
+		hideDone,
+		onHideDone
+	}: {
+		view: QuantityView;
+		hideDone: HideDone;
+		onHideDone: (changes: Partial<HideDone>) => void;
+	} = $props();
 </script>
 
 <section class="card" aria-label="Options">
@@ -20,6 +31,7 @@
 			<input type="checkbox" role="switch" bind:checked={view.onlyAboveOne} />
 		</label>
 	{/if}
+	<HideDoneSettings settings={hideDone} onChange={onHideDone} />
 </section>
 
 <style>

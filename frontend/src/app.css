@@ -24,6 +24,18 @@
 	--focus: #2563eb;
 	--shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 
+	/* Tag colors, by the tag's place in the list (NiceGUI's TAG_COLORS):
+	   blue, green, red, orange, purple, teal, pink. */
+	--tag-0: #1976d2;
+	--tag-1: #2e7d32;
+	--tag-2: #d32f2f;
+	--tag-3: #e65100;
+	--tag-4: #7b1fa2;
+	--tag-5: #00796b;
+	--tag-6: #c2185b;
+	/* Text on a filled tag. */
+	--tag-text: #ffffff;
+
 	--radius: 10px;
 	/* Apple and Google advise touch targets of at least 44px. */
 	--touch: 44px;
@@ -54,6 +66,15 @@
 		--success: #66bb6a;
 		--focus: #8ab4f8;
 		--shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+
+		--tag-0: #64b5f6;
+		--tag-1: #81c784;
+		--tag-2: #e57373;
+		--tag-3: #ffb74d;
+		--tag-4: #ba68c8;
+		--tag-5: #4db6ac;
+		--tag-6: #f06292;
+		--tag-text: #111418;
 	}
 }
 

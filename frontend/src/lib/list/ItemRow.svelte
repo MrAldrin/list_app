@@ -1,27 +1,34 @@
 <!--
 	One item: a checkbox, the name (tap to edit), a note icon when it has a
-	description, the quantity stepper (when "Show quantities" is on) and, in
-	Options mode, a delete button. Checkbox and stepper change at once; the
-	data layer sends the change in the background.
+	description, the quantity stepper (when "Show quantities" is on), a letter
+	button per list tag (filled when the item has the tag) and, in Options
+	mode, a delete button. Checkbox, stepper and tags change at once; the data
+	layer sends the change in the background.
 -->
 <script lang="ts">
 	import type { Item } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { tagColor, tagLetter } from './tags';
 
 	let {
 		item,
 		showQuantity,
 		showDelete,
+		listTags,
 		onToggle,
 		onQuantity,
+		onTag,
 		onOpen,
 		onDelete
 	}: {
 		item: Item;
 		showQuantity: boolean;
 		showDelete: boolean;
+		/** The list's tags, sorted; each gets a letter button. */
+		listTags: readonly string[];
 		onToggle: (done: boolean) => void;
 		onQuantity: (delta: number) => void;
+		onTag: (tag: string) => void;
 		onOpen: () => void;
 		onDelete: () => void;
 	} = $props();
@@ -60,6 +67,25 @@
 			<button type="button" aria-label="More {item.name}" onclick={() => onQuantity(1)}>
 				<Icon name="add" />
 			</button>
+		</div>
+	{/if}
+	{#if listTags.length > 0}
+		<div class="tags">
+			{#each listTags as tag, index (tag)}
+				{@const on = item.tags.includes(tag)}
+				<button
+					class="tag"
+					class:on
+					style:--tag={tagColor(index)}
+					type="button"
+					aria-label="{tag} tag for {item.name}"
+					aria-pressed={on}
+					title={tag}
+					onclick={() => onTag(tag)}
+				>
+					{tagLetter(tag)}
+				</button>
+			{/each}
 		</div>
 	{/if}
 	{#if showDelete}
@@ -138,6 +164,32 @@
 		min-width: 1.5rem;
 		text-align: center;
 		font-weight: 700;
+	}
+
+	.tags {
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+		flex-shrink: 0;
+	}
+
+	/* A round letter button: outlined, filled when the item has the tag. */
+	.tag {
+		width: 2rem;
+		height: 2rem;
+		min-width: 0;
+		min-height: 0;
+		padding: 0;
+		border: 1.5px solid var(--tag);
+		border-radius: 50%;
+		color: var(--tag);
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+
+	.tag.on {
+		background: var(--tag);
+		color: var(--tag-text);
 	}
 
 	.delete {
