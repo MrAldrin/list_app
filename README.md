@@ -126,6 +126,7 @@ question before treating it as intended behavior. Do not run an autonomous
 - [Hiding checked-off items](docs/checked-item-visibility.md)
 - [Home-screen installation and device checks](docs/home-screen-installation.md)
 - [Item writes and stale pages](docs/item-writes.md)
+- [JSON API for the Svelte frontend](docs/api.md)
 - Testing: [real browsers](docs/browser-testing.md), [Android emulator](docs/android-emulator-testing.md), [phone over the network](docs/local-network-testing.md)
 - [Remaining work](plans/backlog.md)
 

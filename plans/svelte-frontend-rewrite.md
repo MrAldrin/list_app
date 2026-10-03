@@ -210,7 +210,7 @@ Goal: the plumbing exists, NiceGUI is unchanged, all tests pass.
   Replace the starter page with a placeholder. Keep `frontend/build/` out of git.
 - **0.2** Python serves `frontend/build/` at `/app/` with SPA fallback, only if
   the folder exists. Test: `/app/` returns the page, `/` still returns NiceGUI.
-- **0.3** Write `docs/api.md`: endpoint list, request and response shapes,
+- **0.3** Write [`docs/api.md`](../docs/api.md): endpoint list, request and response shapes,
   error format, `op_id`, the changes feed. This is the contract for later steps.
 - **0.4** Migration: `uid` on lists and items (backfill existing rows),
   `change_seq` on rooms, `changed_seq` on lists and items, `deletions` and
@@ -339,13 +339,23 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 15 | Vite proxy keeps the `Host` header (no `changeOrigin`) | The server's same-origin check compares `Origin` with the host, so dev writes pass | Rewrite the host and relax the check in dev | Low |
 | 16 | `/app` redirects to `/app/` with a temporary (307) redirect | The app moves to `/` at the switch; browsers must not cache the redirect | Permanent 308 | Low |
 | 17 | Missing files under `/app/_app/` return 404, not `index.html`; the routes are added at startup only if `frontend/build/index.html` exists | Serving HTML as JavaScript hides errors after a deploy; no build means no `/app/` at all | Fall back for every path; check the folder on each request | Low |
+| 18 | API contract: `/api/v1`, JSON only, `uid`s only, one error shape with a short fixed code list; unknown room and no access look the same | Small, predictable surface for the client and tests | Per-endpoint error shapes | Low before Milestone 2 |
+| 19 | One write endpoint `POST …/ops` with intent ops; business rejections are HTTP 200 `rejected` and stored by `op_id` like successes; HTTP errors are not stored; same `op_id` with another body is 409 | One retry-safe path that the offline queue can reuse | One REST endpoint per action | Medium after Milestone 2 |
+| 20 | Session endpoints set NiceGUI's `__Host-` cookies on HTTPS; on plain HTTP they use `listapp-room-<hash>` / `listapp-last-room` without `Secure` | Browsers refuse `__Host-` cookies without `Secure`, so the same name cannot work on HTTP | Drop the `__Host-` prefix everywhere (weaker) | Low |
+| 21 | `item.set_done {done}` instead of `item.toggle_done` | The backend sets a value (`update_item_done`); a set is safe to replay and to queue offline, a toggle is not | A toggle op | Low |
+| 22 | `list.create` with an existing name returns that list (`created: false`), not a rejection | Matches `_create_list_locked` and NiceGUI, which opens the existing list | Reject as `duplicate_name` | Low |
+| 23 | Stale item ops reject with `item_not_found`; `item.delete` of a gone item is applied. Needs the item write helpers to report "no row matched" (small change in 1.5) | The client can tell the user; a repeated delete is not an error | Silent no-op as in NiceGUI | Low |
+| 24 | `list.visibility` sends only changed fields; the server merges with stored values in the write transaction (extend `update_list_visibility_settings` in 1.6) | Intent, not values: two devices changing different fields do not overwrite each other | Send all three fields | Low |
+| 25 | The changes feed always includes `room`; a full snapshot also when `since` is ahead of the room `seq` | Rooms have no `changed_seq`; the room object is tiny. A restored database must not leave clients with phantom data | Track room `changed_seq` | Low |
+| 26 | Extra endpoint `GET /api/v1/last-room`; SSE sends a `revoked` event before closing; keep-alive every ~15 s | The last-room cookie is HTTP-only, so the start page needs the server to read it; `EventSource` cannot read an error status | Readable last-room cookie; silent close | Low |
+| 27 | `base_seq` is required on `list.rename` and `item.edit` but ignored: last write wins until Milestone 6. In `recent` mode the client ranks items without `completed_at` in no fixed order | Fields exist for later conflict rules; creation order would need the integer `id` | Expose a creation rank | Low |
 
 ## Progress
 
 Milestone 0: foundations
 - [x] 0.1 Frontend setup (adapter-static, base `/app`, `/api` proxy, Vitest 5 with `npm run test`)
 - [x] 0.2 Python serves `/app/` (`src/svelte_frontend.py`; restart the server after the first build)
-- [ ] 0.3 API contract doc
+- [x] 0.3 API contract doc ([`docs/api.md`](../docs/api.md); decisions 18–27)
 - [ ] 0.4 Offline-ready schema migration
 - [ ] 0.5 Writes bump `change_seq` and record deletions
 - [ ] 0.6 README dev setup
