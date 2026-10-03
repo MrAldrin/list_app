@@ -396,6 +396,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 69 | Client `uid`s for `list.create` and `item.add`; `newId()` falls back to `crypto.getRandomValues` without `randomUUID` (plain HTTP) | Offline-ready; the iPhone test runs over HTTP | Server-made `uid`s | Low |
 | 70 | Client sorting: lists by name and items open first then name, both like SQLite `NOCASE` (folds only A–Z, then code points), ties by `uid`. Visibility port: `recent` ties go by `uid` (Python: creation id, which the API does not send); times are parsed by our own ISO parser in microseconds, a time without a zone as UTC | Same order as NiceGUI; `Date.parse` reads zone-less times as local time | `localeCompare` | Low |
 | 71 | While an op's answer is open, the store applies no changes feed: a refresh waits, a feed that arrives meanwhile is dropped, and one refresh runs after the answer. The op leaves the overlay in the same step as the feed that has it. With no answer (network, 5xx) the hold is released so live updates go on during retries, and that op's projection is marked uncertain: `quantity_delta` and `toggle_tag` are not projected until its answer (other projected ops are safe to apply twice) | The server wakes streams at the same moment it answers, so the feed often came first: quantity counted twice, a toggled tag flickered on, off, on | Accept the double count during retries | Low |
+| 72 | Start page sends any room code to the room page without checking that the room exists; no Admin button yet | The API never tells whether a room exists (decision 18), so a wrong code shows the password prompt and then "Wrong room or password."; admin comes in 3.3 | An endpoint that checks the slug | Low |
+| 73 | Password prompt says "Enter Room Password" without the room name, and shows the API text "Wrong room or password." (NiceGUI: "Incorrect password") | Without access the API gives no room name; the same text covers a wrong code | Show the slug | Low |
+| 74 | A "Log out" button in the room header (NiceGUI has none). After signing out the page opens the room again and shows the password prompt; `last-room` stays (decision 40) | The owner asked for it; reopening gives a clean store | Go to the start page | Low |
+| 75 | Imports through `#lib/…` name the file with its extension (`#lib/data/index.ts`) | `package.json` subpath imports map paths literally; SvelteKit 3 allows `.ts` extensions | Relative imports | Low |
 
 ## Progress
 
@@ -421,7 +425,7 @@ Milestone 1: API
 Milestone 2: prototype UI
 - [x] 2.1 Data layer (`frontend/src/lib/data/`, entry point `index.ts`: `openRoom(slug)` returns `store` + actions; Vitest next to each module; decisions 63–70)
   - Fix after review: feeds are held while a write's answer is open, so a write never shows twice or flickers (decision 71; race tests in `room-store.test.ts` and `index.test.ts`).
-- [ ] 2.2 Room login and start page
+- [x] 2.2 Room login and start page (`frontend/src/routes/+page.svelte`, `routes/room/[slug]/`, `lib/room/`, `lib/room-link.ts`, global `src/app.css`; decisions 72–75)
 - [ ] 2.3 Room page
 - [ ] 2.4 List page: items, add, check
 - [ ] 2.5 Quantity, edit, delete with undo

@@ -1,6 +1,123 @@
+<!--
+	The start page (/app/). Like NiceGUI's `/`, it is a router: if this browser
+	signed in to a room before, it goes straight to that room. Otherwise it
+	asks for the room link or code.
+-->
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { lastRoom } from '#lib/data/index.ts';
+	import { roomSlugFromInput } from '#lib/room-link.ts';
+
+	// `$state` makes a variable reactive: the page updates when it changes.
+	let checking = $state(true);
+	let warning = $state('');
+	let roomInput = $state('');
+	let error = $state('');
+
+	function openRoomPage(slug: string, replace = false) {
+		// `resolve` adds the app's base path (/app) to the route.
+		// `replaceState` keeps the start page out of the back-button history.
+		return goto(resolve('/room/[slug]', { slug }), { replaceState: replace });
+	}
+
+	// `$effect` runs after the page is shown in the browser; here once.
+	$effect(() => {
+		lastRoom()
+			.then((slug) => {
+				// Remembering a room is routing only: the room page asks for the
+				// password if this browser has no access any more.
+				if (slug) return openRoomPage(slug, true);
+				checking = false;
+			})
+			.catch(() => {
+				warning = 'Could not check your last room. Open your room link to continue.';
+				checking = false;
+			});
+	});
+
+	function submit(event: SubmitEvent) {
+		// Stop the browser from sending the form and reloading the page;
+		// we handle it here instead.
+		event.preventDefault();
+		if (!roomInput.trim()) {
+			error = 'Enter a room link or code';
+			return;
+		}
+		const slug = roomSlugFromInput(roomInput);
+		if (!slug) {
+			error = 'Invalid room link. Check the link/code.';
+			return;
+		}
+		error = '';
+		void openRoomPage(slug);
+	}
+</script>
+
 <svelte:head>
 	<title>ListR</title>
 </svelte:head>
 
-<h1>ListR – Svelte prototype</h1>
-<p>This page is a placeholder. The real app comes in later steps.</p>
+<main class="page">
+	{#if checking}
+		<p class="muted">Loading…</p>
+	{:else}
+		<!-- A <form> makes Enter in the field submit, with no extra code. -->
+		<form class="card" onsubmit={submit} novalidate>
+			<h1>Open your room link to continue</h1>
+			<p class="muted">Paste your room link or room code if needed.</p>
+			{#if warning}
+				<p class="warning" role="status">{warning}</p>
+			{/if}
+			<label for="room-input">Room link or code</label>
+			<input
+				id="room-input"
+				bind:value={roomInput}
+				autocomplete="off"
+				autocapitalize="none"
+				spellcheck="false"
+				aria-invalid={error ? 'true' : undefined}
+				aria-describedby={error ? 'room-error' : undefined}
+			/>
+			{#if error}
+				<p id="room-error" class="error" role="alert">{error}</p>
+			{/if}
+			<div class="actions">
+				<button class="primary" type="submit">Open Room</button>
+			</div>
+		</form>
+	{/if}
+</main>
+
+<style>
+	/* These styles only apply to this page (Svelte adds a unique class). */
+	main {
+		padding-top: 15vh;
+	}
+
+	form {
+		display: grid;
+		gap: var(--gap);
+	}
+
+	h1 {
+		font-size: 1.3rem;
+	}
+
+	label {
+		font-weight: 600;
+	}
+
+	.error {
+		color: var(--danger);
+	}
+
+	.warning {
+		color: var(--warning);
+	}
+
+	.actions {
+		display: flex;
+		justify-content: flex-end;
+	}
+</style>

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import favicon from '#lib/assets/favicon.svg';
+	// Importing a CSS file here adds it to every page.
+	import '../app.css';
 
 	let { children } = $props();
 </script>

@@ -1,0 +1,162 @@
+/*
+ * Global styles for the whole app. Components keep their own styles in a
+ * <style> block (Svelte scopes those to the component). Only shared basics
+ * and the color variables live here.
+ *
+ * CSS variables (custom properties) start with `--`. Components read them
+ * with `var(--name)`, so dark mode only has to change the values below.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--bg: #f4f5f7;
+	--surface: #ffffff;
+	--text: #1f2933;
+	--text-muted: #5f6b7a;
+	--border: #d5dae1;
+	--primary: #2563eb;
+	--primary-text: #ffffff;
+	--danger: #c62828;
+	--danger-text: #ffffff;
+	--warning: #b45309;
+	--success: #2e7d32;
+	--focus: #2563eb;
+	--shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+
+	--radius: 10px;
+	/* Apple and Google advise touch targets of at least 44px. */
+	--touch: 44px;
+	--gap: 0.75rem;
+
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
+	line-height: 1.4;
+}
+
+/* The browser tells us whether the phone or computer is in dark mode. */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #111418;
+		--surface: #1c2128;
+		--text: #e6e9ee;
+		--text-muted: #9aa5b1;
+		--border: #343b45;
+		--primary: #5b8def;
+		--primary-text: #0b1220;
+		--danger: #ef5350;
+		--danger-text: #1a0505;
+		--warning: #f0a04b;
+		--success: #66bb6a;
+		--focus: #8ab4f8;
+		--shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	/* 16px or more stops iPhone Safari from zooming into input fields. */
+	font-size: 16px;
+}
+
+h1,
+h2,
+p {
+	margin: 0;
+}
+
+a {
+	color: var(--primary);
+}
+
+button,
+input {
+	font: inherit;
+	color: inherit;
+}
+
+input {
+	min-height: var(--touch);
+	width: 100%;
+	padding: 0 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--surface);
+}
+
+button {
+	min-height: var(--touch);
+	min-width: var(--touch);
+	padding: 0 1rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius);
+	background: transparent;
+	cursor: pointer;
+}
+
+button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+/* Button styles used across pages: <button class="primary">. */
+button.primary {
+	background: var(--primary);
+	color: var(--primary-text);
+}
+
+button.danger {
+	background: var(--danger);
+	color: var(--danger-text);
+}
+
+button.outline {
+	border-color: var(--border);
+	background: var(--surface);
+}
+
+/* A visible focus ring for keyboard users only (not on every tap). */
+:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
+}
+
+/* Text for screen readers only, for example a label of an icon button. */
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* The centered column every page uses; full width on phones. */
+.page {
+	max-width: 32rem;
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+.card {
+	background: var(--surface);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+	padding: 1rem;
+}
+
+.muted {
+	color: var(--text-muted);
+}
