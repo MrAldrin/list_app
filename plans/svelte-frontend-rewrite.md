@@ -6,8 +6,9 @@ The step-by-step implementation plan for replacing the NiceGUI frontend with
 Svelte. The direction and the reasons for it are in the
 [migration plan](offline-frontend-migration.md). This file is the "how".
 
-Status: approved by the owner on 2026-10-03 as the working plan. The first agent
-session reviews it with the owner before Milestone 0 starts.
+Status: approved by the owner on 2026-10-03 as the working plan. Reviewed on
+2026-10-03 before Milestone 0; the small changes from that review are in the
+[decisions log](#decisions-log) (rows 8–13).
 
 ## Read this first (for every agent session)
 
@@ -126,9 +127,12 @@ These rules exist so offline editing later is an addition, not a rewrite.
 - **Stable public IDs.** Lists and items get a `uid` column: a UUID string,
   unique, never reused. The API only exposes `uid`, never the integer `id`.
   The client may create the `uid` itself, which is needed to create items
-  offline.
+  offline. A trigger fills `uid` for rows inserted without one (NiceGUI).
+  Undo of a delete creates a new row with a new `uid`.
 - **Change sequence.** Each room has a `change_seq` counter. Every write in the
-  room increases it and stamps the changed row with `changed_seq`.
+  room increases it and stamps the changed row with `changed_seq`. SQLite
+  triggers do this, so no write path (NiceGUI, API, share, admin) can forget it.
+  A room rename also bumps it, so the feed can carry the room name.
 - **Deletions are recorded.** A `deletions` table stores `(room_id, kind, uid,
   changed_seq)`. Clients learn about deletions from it, so a stale device
   cannot bring a deleted item back.
@@ -138,7 +142,8 @@ These rules exist so offline editing later is an addition, not a rewrite.
   after reconnect, the client always uses this feed.
 - **Retry-safe writes.** Every write carries a client-made `op_id` (UUID). The
   server stores processed `op_id`s with their result for at least 30 days, and
-  returns the same result if the same `op_id` arrives again.
+  returns the same result if the same `op_id` arrives again. Old entries are
+  pruned at startup.
 - **Intent, not values.** Writes say what the user did ("toggle done", "add 1
   to quantity"), as the current NiceGUI app already does.
 - **Edits carry a base version.** Rename and edit send the `changed_seq` they
@@ -155,6 +160,8 @@ These rules exist so offline editing later is an addition, not a rewrite.
 
 - Room access works as today: the room password gives a room token, stored in
   an HTTP-only cookie (secure on HTTPS). The browser never stores passwords.
+  On plain HTTP (local network testing) the cookie is HTTP-only but not secure;
+  the Svelte app does not use the NiceGUI localStorage fallback.
 - Every API request checks room access on the server, in the same transaction
   as the read or write, like the current pages do.
 - Writes need a same-origin request (reuse the `Origin` check in
@@ -197,9 +204,10 @@ From Milestone 2 on, also run the Svelte browser tests:
 
 Goal: the plumbing exists, NiceGUI is unchanged, all tests pass.
 
-- **0.1** Frontend setup: `adapter-static` (SPA fallback `index.html`),
-  `paths.base = '/app'`, Vite proxy for `/api`, Vitest with `npm run test`.
-  Replace the starter page with a placeholder.
+- **0.1** Frontend setup: replace `adapter-auto` with `adapter-static` (SPA
+  fallback `index.html`), `paths.base = '/app'`, Vite proxy for `/api`, Vitest
+  with `npm run test`. SvelteKit 3 keeps this config in `vite.config.ts`.
+  Replace the starter page with a placeholder. Keep `frontend/build/` out of git.
 - **0.2** Python serves `frontend/build/` at `/app/` with SPA fallback, only if
   the folder exists. Test: `/app/` returns the page, `/` still returns NiceGUI.
 - **0.3** Write `docs/api.md`: endpoint list, request and response shapes,
@@ -208,8 +216,9 @@ Goal: the plumbing exists, NiceGUI is unchanged, all tests pass.
   `change_seq` on rooms, `changed_seq` on lists and items, `deletions` and
   `processed_ops` tables. Test the migration on a copy of a realistic database,
   and that NiceGUI still works.
-- **0.5** Every existing write path bumps `change_seq` and records deletions,
-  inside the same transaction. Tests per write type.
+- **0.5** SQLite triggers on lists, items and rooms bump `change_seq`, stamp
+  `changed_seq`, fill missing `uid`s and record deletions, inside the same
+  transaction as the write. Tests per existing write type.
 - **0.6** Docs: add "Running the Svelte frontend" to the README and the
   dev-server setup.
 
@@ -223,12 +232,13 @@ Goal: everything the prototype needs, as tested JSON endpoints.
   "who am I". Tests: wrong password, revoked token, password change revokes.
 - **1.3** Changes feed (`since`), including deletions. Tests: full load, delta,
   deletion, no access.
-- **1.4** List writes: create, rename, delete (with `op_id`).
+- **1.4** List writes: create, rename, delete. Includes the shared `op_id`
+  helper (store and replay results) that all later writes use.
 - **1.5** Item writes: add-or-restore, toggle done, quantity delta, edit
   details, delete, undo (restore).
 - **1.6** Tags and hide-done settings writes.
-- **1.7** Idempotency: replaying an `op_id` returns the stored result. Tests for
-  each write type.
+- **1.7** Idempotency sweep: replaying an `op_id` returns the stored result,
+  for every write type, including failed writes. Pruning of old `op_id`s.
 - **1.8** Live updates: Server-Sent Events at
   `/api/v1/rooms/{slug}/events`, sending only "new seq N". The client then
   reads the changes feed. Bridge both ways with NiceGUI's `broadcast_updates`.
@@ -319,6 +329,12 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 5 | Deletions in a separate table, not soft-delete flags | Existing queries and unique indexes stay as they are | `deleted_at` on each row | Medium |
 | 6 | Browser tests in Python Playwright | One test stack for both frontends | Playwright for Node | Low |
 | 7 | Prototype scope = everyday list use; management, sharing, admin in Milestone 3 | Fast route to Gate A | Everything before Gate A | Low |
+| 8 | `change_seq`, `changed_seq`, `uid` fill and deletions done by SQLite triggers | One place; no write path can forget it; same transaction for free | Bump in each `database_crud.py` write | Low: drop triggers in a migration |
+| 9 | The shared `op_id` helper is built with the first writes (1.4) | Later writes reuse it instead of retrofitting | Add it in 1.7 | Low |
+| 10 | Undo of a delete creates a new `uid` | `uid`s are never reused, matching item IDs | Restore the old `uid` | Low |
+| 11 | Room renames bump `change_seq`; the feed carries the room name | Room page header stays live | Room name only from "who am I" | Low |
+| 12 | API cookie on plain HTTP is HTTP-only, not secure; no localStorage fallback | Safer than localStorage; needed for iPhone tests on the local network | Copy NiceGUI's localStorage fallback | Low |
+| 13 | Old `op_id`s are pruned at startup (older than 30 days) | Simple; the table stays small | A scheduled job | Low |
 
 ## Progress
 
