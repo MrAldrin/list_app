@@ -59,3 +59,4 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
 - [ ] Run the [deploy backup script](../docs/deployment.md#backup-before-deploying) with `--backup-only` once. Check that a verified copy lands locally and no `list-deploy-*` file is left on the volume.
 - [ ] Run the real iPhone and Android checklist in [home-screen installation](../docs/home-screen-installation.md).
+- [ ] [test] Gate A: test the Svelte prototype on the laptop and the iPhone with the [Gate A checklist](svelte-frontend-rewrite.md#gate-a-checklist).

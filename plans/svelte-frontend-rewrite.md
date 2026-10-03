@@ -265,6 +265,50 @@ Copying the current layout is fine; a polished design is not needed.
   the local network (see the [local network guide](../docs/local-network-testing.md)),
   and a short test checklist for the owner. Then stop at **Gate A**.
 
+### Gate A checklist
+
+For the owner, on this laptop and the iPhone. Setup and the script are in the
+[local network guide](../docs/local-network-testing.md#svelte-prototype).
+
+**Setup:** stop the normal app, run
+`uv run python scripts/serve_svelte_local.py`, turn on Tailscale on the phone.
+Open the printed `/app/` address in Safari on the iPhone and
+<http://localhost:8080/app/> on the laptop. Room `Home`, password
+`APP_PASSWORD`.
+
+**Cookies on plain HTTP:** the Svelte app keeps room access in an HTTP-only
+cookie (`listapp-room-…`, not `Secure`); NiceGUI keeps it in localStorage. So
+NiceGUI and Svelte need separate logins on the local network, and so do the
+laptop (`localhost`) and the phone (`100.x`). On HTTPS both use the same
+`__Host-` cookie (decisions 12 and 20).
+
+- [ ] **Login:** a wrong password says "Wrong room or password."; the right one
+  opens the room. Open `/app/` again: it goes straight to the room. Log out and
+  back in.
+- [ ] **Lists:** create, rename, delete (asks first). The same name in other
+  letter case opens the existing list.
+- [ ] **Items:** add; add a duplicate (warning); check and uncheck; type a
+  checked item's name to restore it; quantity + and − (Options); edit name,
+  notes and quantity.
+- [ ] **Undo:** delete an item, tap Undo within 5 s. Same for a tag.
+- [ ] **Tags:** add tags, tag items with the round buttons, filter by a tag.
+- [ ] **Hide-done:** try All, After X days and Keep last X; a bad number shows
+  a warning.
+- [ ] **Live, laptop and phone:** open the same list on both. Changes on one
+  show on the other within about a second, both ways.
+- [ ] **NiceGUI side by side:** open the same list in NiceGUI (address without
+  `/app/`). Changes show in both directions. Change the room password in
+  NiceGUI: the Svelte pages ask for the password again.
+- [ ] **Background and resume:** leave the phone in another app (or locked) for
+  over 30 s, change something on the laptop, come back: the change is there.
+- [ ] **Airplane mode:** turn it on for about 10 s, check an item ("Reconnecting…"
+  or "Saving…" shows), turn it off: the change saves and the laptop shows it.
+  Offline use is not built yet, so a reload while offline fails.
+- [ ] **Feel on the phone:** tap sizes, the keyboard and the add field,
+  scrolling, dark mode.
+- [ ] **Review** the [decisions log](#decisions-log) and decide: continue,
+  adjust or stop. Note findings (iOS version) here or tell the agent.
+
 ### Milestone 3: the rest of the app
 
 Goal: Svelte can do everything NiceGUI does. Start after Gate A.
@@ -421,6 +465,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 94 | Svelte browser tests run in Chromium and Firefox (the shared `browser` fixture) on a 390×844 touch screen, without `is_mobile` | Same engines as the NiceGUI tests; `is_mobile` works only in Chromium; WebKit is not installed and is still not iPhone Safari (Gate A covers that) | Chromium only; add WebKit | Low |
 | 95 | A session fixture runs `npm run build` when `frontend/build/index.html` is missing or older than any frontend source; without `npm` the tests fail with "run `npm run build`". A file lock stops parallel workers from building twice | A stale build would test old code; never a silent skip | Always fail and ask for a build | Low |
 | 96 | `conftest.py`: the `sessions` cleanup (screenshots, traces, browser errors) moved into a `BrowserSessions` class, shared with a new `open_session(role, **options)` factory. NiceGUI steps in Svelte tests use their own desktop context and login | One copy of the diagnostics; NiceGUI and Svelte keep separate logins on HTTP anyway | Copy the fixture | Low |
+| 97 | Phone test script `scripts/serve_svelte_local.py`: builds, then runs `src/main.py` with a test database in `~/.local/share/list_app/svelte-phone-test/` (own NiceGUI storage, no auto-reload), port 8080, and prints the `/app/` address per network (Tailscale first). It refuses the repository's `list.db` | Port 8080 is the one the firewall and Tailscale rules allow; the folder sits next to the deploy backups, outside the repo; the normal start is unchanged | A README section only; a shell script | Low |
 
 ## Progress
 
@@ -453,7 +498,7 @@ Milestone 2: prototype UI
 - [x] 2.6 Tags and hide-done settings (`lib/list/ListTags.svelte`, `HideDoneSettings.svelte`, `tags.ts`, `hide-done.ts`, tag buttons in `ItemRow.svelte`, colors in `app.css`; decisions 87–90)
 - [x] 2.7 Live updates and error states (`lib/ui/ConnectionStatus.svelte`, `LoadError.svelte`, `routes/+error.svelte`, `lib/data/status.ts`, stream state in `events.ts` and the store; checked by hand with two browsers, NiceGUI, a server restart, a revoked password and faked 503s; decisions 91–93)
 - [x] 2.8 Browser tests (`browser_tests/test_svelte_{rooms,items,live}.py`, helpers `svelte_app.py`, fixtures `svelte_build`, `svelte_server`, `open_session` in `conftest.py`; 8 tests × 2 engines, about 15 s with the default workers; stable over repeated runs; decisions 94–96)
-- [ ] 2.9 iPhone test prep
+- [x] 2.9 iPhone test prep (`scripts/serve_svelte_local.py`, test `tests/test_serve_svelte_local.py`, [local network guide](../docs/local-network-testing.md#svelte-prototype), [Gate A checklist](#gate-a-checklist), backlog Manual checks entry; decision 97)
 - [ ] **Gate A: owner prototype review**
 
 Milestone 3: rest of the app

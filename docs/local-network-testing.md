@@ -34,6 +34,28 @@ Access is limited in two places. Both must allow port `8080`:
 3. Open `http://100.121.200.49:8080`. Include `http://`; `https` does not work.
 4. Stop the app with `Ctrl+C` when done.
 
+## Svelte prototype
+
+The new Svelte app runs next to NiceGUI under `/app/`. One command builds it
+and starts the app with a separate test database:
+
+```bash
+uv run python scripts/serve_svelte_local.py
+```
+
+- Stop the normal app first: both use port `8080`, the only port the firewall
+  rules allow.
+- It prints the phone address, for example `http://100.121.200.49:8080/app/`.
+  NiceGUI is the same address without `/app/`.
+- The test database is in `~/.local/share/list_app/svelte-phone-test/`, never
+  `list.db` or production. A new one has one room, `Home`, with
+  `APP_PASSWORD` as its password. `--db` picks another file.
+- `--skip-build` reuses the last build; `--port` changes the port.
+- Sign in to NiceGUI and to the Svelte app separately. On plain `http` they
+  keep room access in different places.
+
+What to check is in the [Gate A checklist](../plans/svelte-frontend-rewrite.md#gate-a-checklist).
+
 ## If the page loads forever
 
 - Check that the app is running and Tailscale is on for the phone.
