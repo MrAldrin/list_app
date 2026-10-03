@@ -9,20 +9,27 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { lastRoom } from '#lib/data/index.ts';
+	import LoadError from '#lib/ui/LoadError.svelte';
 
 	let message = $state('');
+	let failed = $state(false);
+
+	async function go(list: string) {
+		try {
+			const slug = await lastRoom();
+			if (slug) {
+				return goto(resolve('/room/[slug]/list/[list]', { slug, list }), { replaceState: true });
+			}
+			failed = false;
+			message = 'Open your room link to continue.';
+		} catch {
+			failed = true;
+			message = 'Could not check your last room. Open your room link to continue.';
+		}
+	}
 
 	$effect(() => {
-		const list = page.params.slug ?? '';
-		lastRoom()
-			.then((slug) => {
-				if (slug)
-					return goto(resolve('/room/[slug]/list/[list]', { slug, list }), { replaceState: true });
-				message = 'Open your room link to continue.';
-			})
-			.catch(() => {
-				message = 'Could not check your last room. Open your room link to continue.';
-			});
+		void go(page.params.slug ?? '');
 	});
 </script>
 
@@ -31,7 +38,10 @@
 </svelte:head>
 
 <main class="page">
-	{#if message}
+	{#if failed}
+		<LoadError title={message} onRetry={() => go(page.params.slug ?? '')} />
+		<a href={resolve('/')}>Open a room</a>
+	{:else if message}
 		<div class="card">
 			<p>{message}</p>
 			<a href={resolve('/')}>Open a room</a>

@@ -1,12 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LiveUpdates, type LiveHost, type SessionState } from './events';
+import {
+	LiveUpdates,
+	STALE_AFTER_HIDDEN,
+	type LiveHost,
+	type LiveState,
+	type SessionState
+} from './events';
 import { FakeEventSource, FakeVisibility, settle } from './test-helpers';
 
 function setup(session: SessionState = 'signed_in') {
+	const states: LiveState[] = [];
 	const host = {
 		seq: 5,
+		stale: false as boolean,
 		refresh: vi.fn(async () => {}),
-		authRequired: vi.fn()
+		authRequired: vi.fn(),
+		liveChanged: (state: LiveState) => states.push(state)
 	} satisfies LiveHost;
 	const checkSession = vi.fn(async () => session);
 	const onReconnect = vi.fn();
@@ -20,7 +29,7 @@ function setup(session: SessionState = 'signed_in') {
 		reconnectDelays: [1000, 5000],
 		visibility: visibility as unknown as Document
 	});
-	return { host, checkSession, onReconnect, visibility, live };
+	return { host, checkSession, onReconnect, visibility, live, states };
 }
 
 describe('LiveUpdates', () => {
@@ -141,5 +150,66 @@ describe('LiveUpdates', () => {
 		await vi.advanceTimersByTimeAsync(60_000);
 		expect(host.refresh).not.toHaveBeenCalled();
 		expect(FakeEventSource.instances).toHaveLength(1);
+	});
+
+	it('reports its state for the connection indicator', async () => {
+		const { live, states } = setup();
+		live.start();
+		expect(live.state).toBe('connecting');
+		FakeEventSource.last.open();
+		FakeEventSource.last.fail(true); // the browser retries
+		FakeEventSource.last.open();
+		FakeEventSource.last.fail(false); // closed: we retry after a pause
+		await settle();
+		expect(live.state).toBe('reconnecting');
+		await vi.advanceTimersByTimeAsync(1000);
+		FakeEventSource.last.open();
+		live.stop();
+		expect(states).toEqual([
+			'connecting',
+			'open',
+			'reconnecting',
+			'open',
+			'reconnecting',
+			'open',
+			'stopped'
+		]);
+	});
+
+	it('stops with state "stopped" when access is revoked', async () => {
+		const { live, states } = setup('signed_out');
+		live.start();
+		FakeEventSource.last.open();
+		FakeEventSource.last.revoked();
+		await settle();
+		expect(states.at(-1)).toBe('stopped');
+	});
+
+	it('reads again on an equal seq while the last read failed', () => {
+		const { host, live } = setup();
+		live.start();
+		FakeEventSource.last.open();
+		host.stale = true;
+		FakeEventSource.last.seq(5);
+		expect(host.refresh).toHaveBeenCalledTimes(1);
+	});
+
+	it('opens a new stream when the page was hidden for a while', () => {
+		const { host, visibility, live } = setup();
+		live.start();
+		const first = FakeEventSource.last;
+		first.open();
+
+		visibility.set('hidden');
+		vi.advanceTimersByTime(STALE_AFTER_HIDDEN - 1);
+		visibility.set('visible');
+		expect(FakeEventSource.instances).toHaveLength(1);
+
+		visibility.set('hidden');
+		vi.advanceTimersByTime(STALE_AFTER_HIDDEN);
+		visibility.set('visible');
+		expect(first.closed).toBe(true);
+		expect(FakeEventSource.instances).toHaveLength(2);
+		expect(host.refresh).toHaveBeenCalledTimes(2);
 	});
 });

@@ -21,19 +21,32 @@
 		return goto(resolve('/room/[slug]', { slug }), { replaceState: replace });
 	}
 
+	let retrying = $state(false);
+
+	/** Goes to the last room of this browser, if any. */
+	async function checkLastRoom() {
+		try {
+			const slug = await lastRoom();
+			// Remembering a room is routing only: the room page asks for the
+			// password if this browser has no access any more.
+			if (slug) return openRoomPage(slug, true);
+			warning = '';
+		} catch {
+			// Server down or busy: the form still works, and Retry asks again.
+			warning = 'Could not check your last room. Open your room link to continue.';
+		}
+		checking = false;
+	}
+
+	async function retry() {
+		retrying = true;
+		await checkLastRoom();
+		retrying = false;
+	}
+
 	// `$effect` runs after the page is shown in the browser; here once.
 	$effect(() => {
-		lastRoom()
-			.then((slug) => {
-				// Remembering a room is routing only: the room page asks for the
-				// password if this browser has no access any more.
-				if (slug) return openRoomPage(slug, true);
-				checking = false;
-			})
-			.catch(() => {
-				warning = 'Could not check your last room. Open your room link to continue.';
-				checking = false;
-			});
+		void checkLastRoom();
 	});
 
 	function submit(event: SubmitEvent) {
@@ -67,7 +80,12 @@
 			<h1>Open your room link to continue</h1>
 			<p class="muted">Paste your room link or room code if needed.</p>
 			{#if warning}
-				<p class="warning" role="status">{warning}</p>
+				<div class="warning-row">
+					<p class="warning" role="status">{warning}</p>
+					<button class="outline" type="button" disabled={retrying} onclick={retry}>
+						{retrying ? 'Retrying…' : 'Retry'}
+					</button>
+				</div>
 			{/if}
 			<label for="room-input">Room link or code</label>
 			<input
@@ -114,6 +132,12 @@
 
 	.warning {
 		color: var(--warning);
+	}
+
+	.warning-row {
+		display: flex;
+		align-items: center;
+		gap: var(--gap);
 	}
 
 	.actions {

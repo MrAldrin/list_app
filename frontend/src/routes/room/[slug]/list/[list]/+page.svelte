@@ -30,6 +30,8 @@
 	} from '#lib/list/items.ts';
 	import { activeFilter, filterByTag } from '#lib/list/tags.ts';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
+	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
+	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
@@ -164,10 +166,11 @@
 	{:else if room.store.status === 'auth_required'}
 		<RoomLogin onLogin={(password) => room!.login(password)} />
 	{:else if room.store.status === 'error'}
-		<div class="card problem">
-			<p>Could not verify room access. Please retry.</p>
-			<button class="outline" type="button" onclick={() => room?.store.refresh()}>Retry</button>
-		</div>
+		<LoadError
+			title="Could not load this list."
+			detail={room.store.error}
+			onRetry={() => room!.store.refresh()}
+		/>
 	{:else if !list}
 		<div class="card problem" role="status">
 			<p>{UNAVAILABLE_LIST_MESSAGE}</p>
@@ -183,10 +186,11 @@
 		/>
 		{#if room.store.error}
 			<!-- The items below may be out of date; they stay usable. -->
-			<div class="card problem" role="status">
-				<p>Could not load the latest changes.</p>
-				<button class="outline" type="button" onclick={() => room?.store.refresh()}>Retry</button>
-			</div>
+			<LoadError
+				title="Could not load the latest changes."
+				detail={room.store.error}
+				onRetry={() => room!.store.refresh()}
+			/>
 		{/if}
 		{#if optionsOpen}
 			<ListOptions
@@ -229,6 +233,9 @@
 				onClose={() => (editing = null)}
 			/>
 		{/if}
+	{/if}
+	{#if room && room.store.status !== 'auth_required'}
+		<ConnectionStatus store={room.store} />
 	{/if}
 </main>
 

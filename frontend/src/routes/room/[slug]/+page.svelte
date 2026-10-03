@@ -9,6 +9,8 @@
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
+	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
+	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
@@ -52,28 +54,26 @@
 	{:else if room.store.status === 'auth_required'}
 		<RoomLogin onLogin={(password) => room!.login(password)} />
 	{:else if room.store.status === 'error'}
-		<div class="card problem">
-			<p>Could not verify room access. Please retry.</p>
-			<button class="outline" type="button" onclick={() => room?.store.refresh()}>Retry</button>
-		</div>
+		<!-- The first load failed (server down or busy). It also retries by
+		     itself when the live stream gets through again. -->
+		<LoadError
+			title="Could not load this room."
+			detail={room.store.error}
+			onRetry={() => room!.store.refresh()}
+		/>
 	{:else}
 		<RoomHeader name={room.store.room?.name ?? ''} onLogout={signOut} />
 		{#if room.store.error}
 			<!-- The lists below may be out of date; they stay usable. -->
-			<div class="card problem" role="status">
-				<p>Could not load the latest changes.</p>
-				<button class="outline" type="button" onclick={() => room?.store.refresh()}>Retry</button>
-			</div>
+			<LoadError
+				title="Could not load the latest changes."
+				detail={room.store.error}
+				onRetry={() => room!.store.refresh()}
+			/>
 		{/if}
 		<RoomLists {room} />
 	{/if}
+	{#if room && room.store.status !== 'auth_required'}
+		<ConnectionStatus store={room.store} />
+	{/if}
 </main>
-
-<style>
-	.problem {
-		display: grid;
-		gap: var(--gap);
-		justify-items: start;
-		margin-bottom: 1rem;
-	}
-</style>

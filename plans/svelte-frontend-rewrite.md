@@ -415,6 +415,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 88 | The tag filter is page state. A filter on a tag that is gone (deleted here or elsewhere) stops filtering; NiceGUI keeps filtering by a tag it no longer shows. Hiding runs on the whole list before the filter | No empty list with no visible reason | Copy NiceGUI | Low |
 | 89 | Hide mode is a radio group styled as a segmented control; a number saves on `change` (blur or Enter) and only when it differs; a bad number shows NiceGUI's warning and resets the field. No hidden-items count or "show hidden" button (NiceGUI has none) | Accessible single choice; no write per keystroke | NiceGUI's write on every blur | Low |
 | 90 | Tag colors keep NiceGUI's order (blue, green, red, orange, purple, teal, pink) as Material 700 shades, 300 in dark mode; item tag buttons are 32 px circles | Quasar's 500 shades are hard to read as outlined text on white; rows stay one line on a phone | Quasar's colors; 44 px buttons | Low |
+| 91 | Connection indicator: the store reports `live` (stream state), `queued` and `retrying`; pure `connectionStatus()` turns them into "Reconnecting…", "Connecting…" or "Saving…", shown as a small pill at the top only after 800 ms. Failed and rejected writes stay warning toasts with the server's message (decision 76) | Quick saves never flicker; short texts fit between the header buttons on a phone | A banner; a count of waiting changes | Low |
+| 92 | The stream is reopened when a page was hidden for 30 s or more. A `seq` event also reads the feed when the last read failed (`store.stale`), so a failed first load heals when the stream gets through | Keep-alives are comments, which `EventSource` does not report, so a dead connection on a phone cannot be seen; without the stale check an equal `seq` never retried | A client watchdog with server `ping` events | Low |
+| 93 | First-load failure shows "Could not load this room." (or list) with the error text and Retry (NiceGUI: "Could not verify room access. Please retry."). The start page and `/app/list/{slug}` get Retry for a failed last-room check. A root `+error.svelte` shows "Page not found" with a link to the start page | Says what failed and why; one `LoadError` component | Copy NiceGUI's text | Low |
 
 ## Progress
 
@@ -445,7 +448,7 @@ Milestone 2: prototype UI
 - [x] 2.4 List page: items, add, check (`frontend/src/routes/room/[slug]/list/[list]/`, `lib/list/`, old link shape `routes/list/[slug]`; notice toasts shared in `lib/ui/notice-toasts.svelte.ts`; decisions 81–83)
 - [x] 2.5 Quantity, edit, delete with undo (`lib/list/ItemRow.svelte`, `ItemDialog.svelte`, `ListOptions.svelte`; toast actions in `lib/ui/toasts.svelte.ts`; decisions 84–86)
 - [x] 2.6 Tags and hide-done settings (`lib/list/ListTags.svelte`, `HideDoneSettings.svelte`, `tags.ts`, `hide-done.ts`, tag buttons in `ItemRow.svelte`, colors in `app.css`; decisions 87–90)
-- [ ] 2.7 Live updates and error states
+- [x] 2.7 Live updates and error states (`lib/ui/ConnectionStatus.svelte`, `LoadError.svelte`, `routes/+error.svelte`, `lib/data/status.ts`, stream state in `events.ts` and the store; checked by hand with two browsers, NiceGUI, a server restart, a revoked password and faked 503s; decisions 91–93)
 - [ ] 2.8 Browser tests
 - [ ] 2.9 iPhone test prep
 - [ ] **Gate A: owner prototype review**

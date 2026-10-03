@@ -16,11 +16,22 @@ const CLOSED = 2;
 
 export type SessionState = 'signed_in' | 'signed_out' | 'unknown';
 
+/**
+ * The stream's state: `connecting` until the first open, `open`, then
+ * `reconnecting` while it is down (the browser or we try again), `stopped`
+ * when not running (also after access was revoked).
+ */
+export type LiveState = 'stopped' | 'connecting' | 'open' | 'reconnecting';
+
 /** What the stream updates. `RoomStore` implements it. */
 export interface LiveHost {
 	readonly seq: number;
+	/** True while the last read failed: the next `seq` event reads again even if equal. */
+	readonly stale?: boolean;
 	refresh(): Promise<void>;
 	authRequired(): void;
+	/** Hears each change of the stream's state, for a connection indicator. */
+	liveChanged?(state: LiveState): void;
 }
 
 type VisibilityTarget = Pick<
@@ -43,6 +54,13 @@ export interface LiveUpdatesOptions {
 
 export const RECONNECT_DELAYS = [1_000, 2_000, 5_000, 10_000, 30_000];
 
+/**
+ * A page hidden this long gets a new stream when it shows again. Phones may
+ * cut a hidden page's connection without an error, and keep-alives are
+ * comments, which `EventSource` does not report, so we cannot tell.
+ */
+export const STALE_AFTER_HIDDEN = 30_000;
+
 export class LiveUpdates {
 	readonly #options: LiveUpdatesOptions;
 	readonly #create: EventSourceFactory;
@@ -54,6 +72,8 @@ export class LiveUpdates {
 	#hasOpened = false;
 	#attempt = 0;
 	#timer: ReturnType<typeof setTimeout> | null = null;
+	#state: LiveState = 'stopped';
+	#hiddenAt: number | null = null;
 
 	constructor(options: LiveUpdatesOptions) {
 		this.#options = options;
@@ -71,11 +91,17 @@ export class LiveUpdates {
 		return this.#running;
 	}
 
+	get state(): LiveState {
+		return this.#state;
+	}
+
 	start(): void {
 		if (this.#running) return;
 		this.#running = true;
 		this.#hasOpened = false;
 		this.#attempt = 0;
+		this.#hiddenAt = null;
+		this.#setState('connecting');
 		this.#visibility?.addEventListener('visibilitychange', this.#onVisibilityChange);
 		this.#connect();
 	}
@@ -86,6 +112,13 @@ export class LiveUpdates {
 		this.#clearTimer();
 		this.#source?.close();
 		this.#source = null;
+		this.#setState('stopped');
+	}
+
+	#setState(state: LiveState): void {
+		if (state === this.#state) return;
+		this.#state = state;
+		this.#options.host.liveChanged?.(state);
 	}
 
 	#connect(): void {
@@ -98,6 +131,7 @@ export class LiveUpdates {
 		source.addEventListener('open', () => {
 			if (!current()) return;
 			this.#attempt = 0;
+			this.#setState('open');
 			// The first open is followed by a `seq` event. After a drop we may have
 			// missed changes, so read them now.
 			if (this.#hasOpened) this.#reconnected();
@@ -107,7 +141,8 @@ export class LiveUpdates {
 			if (!current()) return;
 			const seq = readSeq(event);
 			// A lower seq means the database was restored: the feed then sends a full snapshot.
-			if (seq !== null && seq !== this.#options.host.seq) void this.#options.host.refresh();
+			const { host } = this.#options;
+			if (seq !== null && (seq !== host.seq || host.stale)) void host.refresh();
 		});
 		source.addEventListener('revoked', () => {
 			if (!current()) return;
@@ -115,6 +150,7 @@ export class LiveUpdates {
 		});
 		source.addEventListener('error', () => {
 			if (!current()) return;
+			this.#setState('reconnecting');
 			// While connecting, the browser retries by itself. Closed means it gave up
 			// (for example a 401 answer), so we decide.
 			if (source.readyState === CLOSED) void this.#closed();
@@ -124,6 +160,7 @@ export class LiveUpdates {
 	async #closed(): Promise<void> {
 		this.#source?.close();
 		this.#source = null;
+		this.#setState('reconnecting');
 		const session = await this.#options.checkSession().catch((): SessionState => 'unknown');
 		if (!this.#running || this.#source) return;
 		if (session === 'signed_out') {
@@ -146,8 +183,14 @@ export class LiveUpdates {
 
 	// Phones pause hidden pages and may drop the stream without telling us.
 	#onVisibilityChange = () => {
-		if (!this.#running || this.#visibility?.visibilityState !== 'visible') return;
-		if (!this.#source || this.#source.readyState === CLOSED) {
+		if (!this.#running) return;
+		if (this.#visibility?.visibilityState !== 'visible') {
+			this.#hiddenAt ??= Date.now();
+			return;
+		}
+		const hiddenFor = this.#hiddenAt === null ? 0 : Date.now() - this.#hiddenAt;
+		this.#hiddenAt = null;
+		if (!this.#source || this.#source.readyState === CLOSED || hiddenFor >= STALE_AFTER_HIDDEN) {
 			this.#attempt = 0;
 			this.#connect();
 		}

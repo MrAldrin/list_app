@@ -8,6 +8,7 @@ import { groupItemsByList, sortLists } from './order';
 import { mergeFeed } from './feed';
 import { filterVisibleItems } from './visibility';
 import type { QueueHost } from './write-queue';
+import type { LiveHost, LiveState } from './events';
 
 export type RoomStatus = 'loading' | 'ready' | 'auth_required' | 'error';
 
@@ -44,7 +45,7 @@ export function createRoomStore(slug: string, source: FeedSource): RoomStore {
 	return store ?? new RoomStore(slug, source);
 }
 
-export class RoomStore implements QueueHost {
+export class RoomStore implements QueueHost, LiveHost {
 	readonly slug: string;
 	readonly #source: FeedSource;
 
@@ -55,6 +56,12 @@ export class RoomStore implements QueueHost {
 	/** The last refresh error, if the data may be out of date. */
 	error = $state<string | null>(null);
 	notice = $state.raw<Notice | null>(null);
+	/** The live-updates stream (see `LiveState`). */
+	live = $state<LiveState>('stopped');
+	/** Writes not answered by the server yet. */
+	queued = $state(0);
+	/** True while a write got no answer and is being tried again. */
+	retrying = $state(false);
 
 	#server = $state.raw<RoomData>(EMPTY);
 	#pending = $state.raw<readonly PendingOp[]>([]);
@@ -75,6 +82,11 @@ export class RoomStore implements QueueHost {
 	constructor(slug: string, source: FeedSource) {
 		this.slug = slug;
 		this.#source = source;
+	}
+
+	/** True while the last read failed, so the data may be out of date. */
+	get stale(): boolean {
+		return this.error !== null || this.status === 'error';
 	}
 
 	/** Server state only, without pending ops. */
@@ -204,6 +216,8 @@ export class RoomStore implements QueueHost {
 		this.seq = 0;
 		this.error = null;
 		this.status = status;
+		this.queued = 0;
+		this.retrying = false;
 		this.#sending = null;
 		this.#held?.resolve();
 		this.#held = null;
@@ -233,6 +247,7 @@ export class RoomStore implements QueueHost {
 	// QueueHost: the write queue reports what happens to each op.
 
 	opQueued(op: SentOp): void {
+		this.queued += 1;
 		if (!isProjected(op)) return;
 		this.#pending = [...this.#pending, { op, at: nowIso(), appliedSeq: null }];
 	}
@@ -242,6 +257,7 @@ export class RoomStore implements QueueHost {
 	}
 
 	opSettled(op: SentOp, response: OpResponse): void {
+		this.#done();
 		if (response.status === 'rejected') {
 			this.#drop(op.op_id);
 			this.notify(response.code, response.message);
@@ -257,6 +273,7 @@ export class RoomStore implements QueueHost {
 	}
 
 	opFailed(op: SentOp, error: unknown): void {
+		this.#done();
 		this.#drop(op.op_id);
 		if (error instanceof ApiError) this.notify(error.code, error.message);
 		else this.notify('unknown', 'The change could not be saved.');
@@ -264,6 +281,8 @@ export class RoomStore implements QueueHost {
 	}
 
 	opUnanswered(op: SentOp, maybeApplied: boolean): void {
+		// 401 (`maybeApplied` false): it waits for sign-in, not for the server.
+		this.retrying = maybeApplied;
 		// Live updates go on while the op is retried; a feed may then contain it.
 		if (maybeApplied) this.#update(op.op_id, { uncertain: true });
 		this.#answered(false);
@@ -271,6 +290,15 @@ export class RoomStore implements QueueHost {
 
 	authRequired(): void {
 		this.status = 'auth_required';
+	}
+
+	liveChanged(state: LiveState): void {
+		this.live = state;
+	}
+
+	#done(): void {
+		this.queued = Math.max(0, this.queued - 1);
+		this.retrying = false;
 	}
 
 	#update(opId: string, changes: Partial<PendingOp>): void {

@@ -537,3 +537,46 @@ describe('feeds while a write is in flight', () => {
 		expect(store.item(item.uid)?.quantity).toBe(3);
 	});
 });
+
+describe('connection state for the indicator', () => {
+	it('counts waiting writes and tells when one is retried', () => {
+		const store = storeWith();
+		const list = makeList();
+		const first = sent({ type: 'item.add', list_uid: list.uid, name: 'bread' });
+		const second = sent({ type: 'list.tag_add', list_uid: list.uid, tag: 'Lidl' });
+		store.opQueued(first);
+		store.opQueued(second);
+		expect(store.queued).toBe(2);
+
+		store.opSending(first);
+		store.opUnanswered(first, true);
+		expect(store.retrying).toBe(true);
+		store.opSending(first);
+		store.opSettled(first, { op_id: first.op_id, status: 'applied', result: {}, seq: 0 });
+		expect(store.queued).toBe(1);
+		expect(store.retrying).toBe(false);
+
+		store.opSending(second);
+		store.opUnanswered(second, false); // 401: waits for sign-in, not retried
+		expect(store.retrying).toBe(false);
+		store.opFailed(second, new ApiError(422, 'invalid_request', 'This request is not valid.'));
+		expect(store.queued).toBe(0);
+	});
+
+	it('forgets waiting writes when cleared', () => {
+		const store = storeWith();
+		store.opQueued(sent({ type: 'list.create', name: 'X' }));
+		store.clear();
+		expect(store.queued).toBe(0);
+	});
+
+	it('follows the live stream and is stale after a failed read', async () => {
+		const store = storeWith(vi.fn().mockRejectedValue(new NetworkError()));
+		store.liveChanged('reconnecting');
+		expect(store.live).toBe('reconnecting');
+		expect(store.stale).toBe(false);
+		await store.refresh();
+		expect(store.status).toBe('error');
+		expect(store.stale).toBe(true);
+	});
+});
