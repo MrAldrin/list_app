@@ -10,7 +10,7 @@
 import { Api, api as defaultApi } from './api';
 import { LiveUpdates, type EventSourceFactory, type SessionState } from './events';
 import { newId } from './ids';
-import { RoomStore } from './room-store.svelte';
+import { createRoomStore, RoomStore } from './room-store.svelte';
 import { ApiError } from './types';
 import type {
 	HideDone,
@@ -65,7 +65,7 @@ export class RoomHandle {
 	constructor(slug: string, options: RoomOptions = {}) {
 		this.slug = slug;
 		this.#api = options.api ?? defaultApi;
-		this.store = new RoomStore(slug, this.#api);
+		this.store = createRoomStore(slug, this.#api);
 		this.#queue = new WriteQueue(slug, this.#api, this.store, {
 			retryDelays: options.retryDelays
 		});

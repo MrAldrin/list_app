@@ -25,6 +25,25 @@ export interface FeedSource {
 const EMPTY: RoomData = { lists: new Map(), items: new Map() };
 const NO_ITEMS: readonly Item[] = Object.freeze([]);
 
+/**
+ * Creates a room store that lives as long as the browser page, not as long as
+ * the component that opened it.
+ *
+ * Svelte ties each `$derived` to the effect that runs while it is created, and
+ * freezes it when that effect ends (the `derived_inert` warning). Rooms are
+ * opened inside a page's effect but outlive the page (see `openRoom`), so the
+ * store is created in its own effect root, which never ends.
+ */
+export function createRoomStore(slug: string, source: FeedSource): RoomStore {
+	let store: RoomStore | undefined;
+	$effect.root(() => {
+		store = new RoomStore(slug, source);
+	});
+	// Code compiled for the server (also unit tests in Node) has no effects,
+	// so `$effect.root` does not call us there: create the store directly.
+	return store ?? new RoomStore(slug, source);
+}
+
 export class RoomStore implements QueueHost {
 	readonly slug: string;
 	readonly #source: FeedSource;

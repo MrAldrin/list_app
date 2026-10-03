@@ -400,6 +400,11 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 73 | Password prompt says "Enter Room Password" without the room name, and shows the API text "Wrong room or password." (NiceGUI: "Incorrect password") | Without access the API gives no room name; the same text covers a wrong code | Show the slug | Low |
 | 74 | A "Log out" button in the room header (NiceGUI has none). After signing out the page opens the room again and shows the password prompt; `last-room` stays (decision 40) | The owner asked for it; reopening gives a clean store | Go to the start page | Low |
 | 75 | Imports through `#lib/…` name the file with its extension (`#lib/data/index.ts`) | `package.json` subpath imports map paths literally; SvelteKit 3 allows `.ts` extensions | Relative imports | Low |
+| 76 | Toasts: `lib/ui/toasts.svelte.ts` (store) and `Toast.svelte` (in the root layout). The room page turns `store.notice` (rejected or failed writes) into warning toasts; pages show success toasts themselves. The toast area is a `popover`, so it shows above an open dialog | One place for messages, like `ui.notify`; an open `<dialog>` sits in the browser's top layer, above any `z-index` | Error text inside each dialog | Low |
+| 77 | Dialogs use the native `<dialog>` with `showModal()`, shown with `{#if}` (`Dialog`, `NameDialog`, `ConfirmDialog` in `lib/ui/`) | Escape, focus trap and backdrop come free; no UI library | A custom overlay `div` | Low |
+| 78 | "List created" shows only when a list was created; an existing name (ignoring case) opens that list without a toast (NiceGUI says "List created" both times). Create and rename keep the dialog open on a rejection, and close it on `list_unavailable`, like NiceGUI | The toast must not claim a change that did not happen | Copy NiceGUI exactly | Low |
+| 79 | Fix in the data layer: `createRoomStore()` creates each room store in its own `$effect.root`. Test `room-lifetime.svelte.test.ts` runs in happy-dom (new dev dependency); Vitest resolves Svelte with the `browser` condition | Svelte freezes a `$derived` when the effect that created it ends (`derived_inert`). Rooms are opened in the page's effect but outlive it (decision 68), so the room page showed stale lists after visiting a list | Open rooms outside any effect; jsdom | Low |
+| 80 | `/app/list/[slug]` is a placeholder until 2.4; its link goes to `/app/`, which opens the last room | Room links and "create opens the list" work now | No list route yet | Low |
 
 ## Progress
 
@@ -426,7 +431,7 @@ Milestone 2: prototype UI
 - [x] 2.1 Data layer (`frontend/src/lib/data/`, entry point `index.ts`: `openRoom(slug)` returns `store` + actions; Vitest next to each module; decisions 63–70)
   - Fix after review: feeds are held while a write's answer is open, so a write never shows twice or flickers (decision 71; race tests in `room-store.test.ts` and `index.test.ts`).
 - [x] 2.2 Room login and start page (`frontend/src/routes/+page.svelte`, `routes/room/[slug]/`, `lib/room/`, `lib/room-link.ts`, global `src/app.css`; decisions 72–75)
-- [ ] 2.3 Room page
+- [x] 2.3 Room page (`frontend/src/lib/room/RoomLists.svelte`, toasts and dialogs in `lib/ui/`, list page placeholder; fix: room stores outlive the page that opened them, `room-lifetime.svelte.test.ts`; decisions 76–80)
 - [ ] 2.4 List page: items, add, check
 - [ ] 2.5 Quantity, edit, delete with undo
 - [ ] 2.6 Tags and hide-done settings

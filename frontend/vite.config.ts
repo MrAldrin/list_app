@@ -29,6 +29,8 @@ export default defineConfig({
 			'/api': { target: 'http://localhost:8080' }
 		}
 	},
+	// Tests use Svelte's browser code, as the app does (it never runs on a server).
+	resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
 	test: {
 		include: ['src/**/*.test.ts']
 	}
