@@ -381,6 +381,8 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 54 | `quantity` and `delta` must be −1,000,000 to 1,000,000 (else 422); an edit or restore quantity below 1 saves 1, as in NiceGUI | Large numbers would overflow SQLite's 64-bit integers (a 500); the floor reuses NiceGUI's rule | 422 below 1; no bound | Low |
 | 55 | `item.restore` lowercases and trims the name like `item.add`; `completed_at` must be readable (else 422) and is saved as UTC with `Z`; tags and description are saved as sent. A client `uid` is checked before the list (as in `list.create`) | The feed shape comes back unchanged; a bad time never reaches the database | Store the time as sent | Low |
 | 56 | `item.delete` of an item that is gone or in another list is `applied` with no change, and still notifies listeners (decision 51: every applied op) | A repeated delete is not an error; the client cannot tell gone from moved | Reject as `item_not_found` | Low |
+| 57 | `list.tag_add` trims the tag and rejects an empty one as `invalid_name` (NiceGUI ignores it silently); `list.tag_remove` and `item.toggle_tag` use the tag exactly as sent. Tags compare case-sensitively, as in NiceGUI | Same tag rules in both UIs; the client gets a clear answer for an empty tag | Lowercase or case-insensitive tags | Low |
+| 58 | `list.visibility` needs at least one field (else 422). Sent fields are range-checked before the transaction (missing ones as defaults); the merged values are checked again by `update_list_visibility_settings_locked`, which the NiceGUI function now calls with all three | A no-op request is a client bug; out-of-range values never reach the database | Accept an empty change | Low |
 
 ## Progress
 
@@ -398,7 +400,7 @@ Milestone 1: API
 - [x] 1.3 Changes feed (`src/api/changes.py`, [`tests/test_api_changes.py`](../tests/test_api_changes.py); decisions 43–45)
 - [x] 1.4 List writes (`src/api/ops.py`, `src/api/idempotency.py`, `src/live_updates.py`, [`tests/test_api_list_ops.py`](../tests/test_api_list_ops.py); decisions 46–52)
 - [x] 1.5 Item writes (`src/api/ops.py`, [`tests/test_api_item_ops.py`](../tests/test_api_item_ops.py), shared `tests/api_helpers.py`; decisions 53–56)
-- [ ] 1.6 Tags and hide-done writes
+- [x] 1.6 Tags and hide-done writes (`src/api/ops.py`, [`tests/test_api_tag_ops.py`](../tests/test_api_tag_ops.py); decisions 57–58)
 - [ ] 1.7 Idempotent `op_id`
 - [ ] 1.8 Live updates (SSE + NiceGUI bridge)
 - [ ] 1.9 Concurrency tests

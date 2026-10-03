@@ -192,9 +192,9 @@ names are lowercased.
 | `list.create` | `name`, `uid`? | `{"list_uid", "slug", "created"}`. If a list with that name exists (ignoring case), it is returned with `created: false` and the client `uid` is not used. |
 | `list.rename` | `list_uid`, `name`, `base_seq` | – |
 | `list.delete` | `list_uid` | Deletes the list and all its items. |
-| `list.tag_add` | `list_uid`, `tag` | Adds one tag; no change if it exists. Also used to undo a tag delete. |
-| `list.tag_remove` | `list_uid`, `tag` | Removes one tag from the list. Item tags are not changed. |
-| `list.visibility` | `list_uid`, `mode`?, `age_days`?, `recent_count`? | Sends only the changed fields; the server keeps the others. Out-of-range values give 422. |
+| `list.tag_add` | `list_uid`, `tag` | Adds one tag (trimmed); no change if it exists. Tags match exactly, case included. Also used to undo a tag delete. |
+| `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list; no change if it is not there. Item tags are not changed. |
+| `list.visibility` | `list_uid`, `mode`?, `age_days`?, `recent_count`? | Sends only the changed fields (at least one); the server keeps the others. Out-of-range values give 422. |
 | `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). |
 | `item.set_done` | `list_uid`, `item_uid`, `done` | Sets the state. Checking an already checked item keeps its `completed_at`. |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |

@@ -22,6 +22,7 @@ from pydantic import (
     StrictStr,
     TypeAdapter,
     ValidationError,
+    model_validator,
 )
 
 from api.access import room_access
@@ -31,6 +32,7 @@ from api.requests import json_object
 from database_crud import (
     add_or_restore_item_locked,
     adjust_item_quantity_locked,
+    change_list_tag_locked,
     create_or_find_list_locked,
     delete_item_locked,
     delete_list_locked,
@@ -45,11 +47,19 @@ from database_crud import (
     rename_list_if_unique_locked,
     restore_deleted_item_locked,
     savepoint_locked,
+    toggle_item_active_tag_locked,
     uid_in_use_locked,
     update_item_details_locked,
     update_item_done_locked,
+    update_list_visibility_settings_locked,
 )
 from item_service import STATUS_DUPLICATE_ACTIVE, clamp_quantity, normalize_item_details
+from item_visibility import (
+    DEFAULT_HIDE_DONE_AGE_DAYS,
+    DEFAULT_HIDE_DONE_MODE,
+    DEFAULT_HIDE_DONE_RECENT_COUNT,
+    validate_visibility_settings,
+)
 from live_updates import notify_room_changed
 
 router = APIRouter()
@@ -107,6 +117,40 @@ class ListDelete(Op):
     list_uid: Uuid
 
 
+class ListTagAdd(Op):
+    type: Literal["list.tag_add"]
+    list_uid: Uuid
+    tag: StrictStr
+
+
+class ListTagRemove(Op):
+    type: Literal["list.tag_remove"]
+    list_uid: Uuid
+    tag: StrictStr
+
+
+class ListVisibility(Op):
+    type: Literal["list.visibility"]
+    list_uid: Uuid
+    mode: StrictStr | None = None
+    age_days: StrictInt | None = None
+    recent_count: StrictInt | None = None
+
+    @model_validator(mode="after")
+    def _check_ranges(self) -> "ListVisibility":
+        if self.mode is None and self.age_days is None and self.recent_count is None:
+            raise ValueError("Send at least one setting")
+        # Fields not sent are checked when merged with the stored values.
+        validate_visibility_settings(
+            DEFAULT_HIDE_DONE_MODE if self.mode is None else self.mode,
+            DEFAULT_HIDE_DONE_AGE_DAYS if self.age_days is None else self.age_days,
+            DEFAULT_HIDE_DONE_RECENT_COUNT
+            if self.recent_count is None
+            else self.recent_count,
+        )
+        return self
+
+
 class ItemAdd(Op):
     type: Literal["item.add"]
     list_uid: Uuid
@@ -138,6 +182,11 @@ class ItemEdit(ItemOp):
     base_seq: BaseSeq
 
 
+class ItemToggleTag(ItemOp):
+    type: Literal["item.toggle_tag"]
+    tag: StrictStr
+
+
 class ItemDelete(ItemOp):
     type: Literal["item.delete"]
 
@@ -158,10 +207,14 @@ AnyOp = Annotated[
     ListCreate
     | ListRename
     | ListDelete
+    | ListTagAdd
+    | ListTagRemove
+    | ListVisibility
     | ItemAdd
     | ItemSetDone
     | ItemQuantityDelta
     | ItemEdit
+    | ItemToggleTag
     | ItemDelete
     | ItemRestore,
     Field(discriminator="type"),
@@ -255,6 +308,27 @@ def list_delete(room_id: int, op: ListDelete) -> dict[str, Any]:
     return {}
 
 
+def list_tag_add(room_id: int, op: ListTagAdd) -> dict[str, Any]:
+    list_id = _room_list_id(room_id, op.list_uid)
+    # Trimmed and nonempty, like a list name (NiceGUI's tag input).
+    change_list_tag_locked(list_id, _list_name(op.tag), add=True)
+    return {}
+
+
+def list_tag_remove(room_id: int, op: ListTagRemove) -> dict[str, Any]:
+    list_id = _room_list_id(room_id, op.list_uid)
+    change_list_tag_locked(list_id, op.tag, add=False)
+    return {}
+
+
+def list_visibility(room_id: int, op: ListVisibility) -> dict[str, Any]:
+    list_id = _room_list_id(room_id, op.list_uid)
+    update_list_visibility_settings_locked(
+        list_id, mode=op.mode, age_days=op.age_days, recent_count=op.recent_count
+    )
+    return {}
+
+
 def item_add(room_id: int, op: ItemAdd) -> dict[str, Any]:
     uid = _new_uid(op.uid)
     list_id = _room_list_id(room_id, op.list_uid)
@@ -294,6 +368,13 @@ def item_edit(room_id: int, op: ItemEdit) -> dict[str, Any]:
     return {}
 
 
+def item_toggle_tag(room_id: int, op: ItemToggleTag) -> dict[str, Any]:
+    list_id = _room_list_id(room_id, op.list_uid)
+    item_id = _list_item_id(list_id, op.item_uid)
+    _item_found(toggle_item_active_tag_locked(item_id, list_id, op.tag))
+    return {}
+
+
 def item_delete(room_id: int, op: ItemDelete) -> dict[str, Any]:
     list_id = _room_list_id(room_id, op.list_uid)
     item_id = item_id_for_uid_locked(list_id, op.item_uid)
@@ -325,10 +406,14 @@ HANDLERS: dict[str, Callable[[int, Any], dict[str, Any]]] = {
     "list.create": list_create,
     "list.rename": list_rename,
     "list.delete": list_delete,
+    "list.tag_add": list_tag_add,
+    "list.tag_remove": list_tag_remove,
+    "list.visibility": list_visibility,
     "item.add": item_add,
     "item.set_done": item_set_done,
     "item.quantity_delta": item_quantity_delta,
     "item.edit": item_edit,
+    "item.toggle_tag": item_toggle_tag,
     "item.delete": item_delete,
     "item.restore": item_restore,
 }

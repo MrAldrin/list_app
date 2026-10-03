@@ -203,15 +203,42 @@ def update_list_visibility_settings(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE lists SET hide_done_mode = ?, hide_done_age_days = ?, "
-                "hide_done_recent_count = ? WHERE id = ?",
-                (mode, age_days, recent_count, list_id),
+            update_list_visibility_settings_locked(
+                list_id, mode=mode, age_days=age_days, recent_count=recent_count
             )
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def update_list_visibility_settings_locked(
+    list_id: int,
+    *,
+    mode: str | None = None,
+    age_days: int | None = None,
+    recent_count: int | None = None,
+) -> None:
+    """Change the given visibility settings; None keeps the stored value.
+
+    The merge happens inside the caller's write transaction, so two devices
+    changing different fields do not overwrite each other. Raises ValueError
+    when the merged settings are out of range. The list must exist.
+    """
+    stored = db.execute(
+        "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count "
+        "FROM lists WHERE id = ?",
+        (list_id,),
+    ).fetchone()
+    mode = stored[0] if mode is None else mode
+    age_days = stored[1] if age_days is None else age_days
+    recent_count = stored[2] if recent_count is None else recent_count
+    validate_visibility_settings(mode, age_days, recent_count)
+    db.execute(
+        "UPDATE lists SET hide_done_mode = ?, hide_done_age_days = ?, "
+        "hide_done_recent_count = ? WHERE id = ?",
+        (mode, age_days, recent_count, list_id),
+    )
 
 
 def update_list_tags_settings(
@@ -236,29 +263,35 @@ def _change_list_tag(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            row = db.execute(
-                "SELECT list_tags FROM lists WHERE id = ?", (list_id,)
-            ).fetchone()
-            list_tags = _decode_tags(row[0])
-
-            if add:
-                if tag not in list_tags:
-                    list_tags = sorted([*list_tags, tag], key=str.lower)
-                    db.execute(
-                        "UPDATE lists SET list_tags = ? WHERE id = ?",
-                        (json.dumps(list_tags), list_id),
-                    )
-            else:
-                updated_tags = [existing for existing in list_tags if existing != tag]
-                if updated_tags != list_tags:
-                    db.execute(
-                        "UPDATE lists SET list_tags = ? WHERE id = ?",
-                        (json.dumps(updated_tags), list_id),
-                    )
+            change_list_tag_locked(list_id, tag, add=add)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
+    """Add or remove one list tag on the stored tags; no write if unchanged.
+
+    Call inside a write transaction; the list must exist.
+    """
+    row = db.execute("SELECT list_tags FROM lists WHERE id = ?", (list_id,)).fetchone()
+    list_tags = _decode_tags(row[0])
+
+    if add:
+        if tag not in list_tags:
+            list_tags = sorted([*list_tags, tag], key=str.lower)
+            db.execute(
+                "UPDATE lists SET list_tags = ? WHERE id = ?",
+                (json.dumps(list_tags), list_id),
+            )
+    else:
+        updated_tags = [existing for existing in list_tags if existing != tag]
+        if updated_tags != list_tags:
+            db.execute(
+                "UPDATE lists SET list_tags = ? WHERE id = ?",
+                (json.dumps(updated_tags), list_id),
+            )
 
 
 def add_list_tag(list_id: int, tag: str, *, expected_slug: str | None = None) -> None:
@@ -304,26 +337,35 @@ def toggle_item_active_tag(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            row = db.execute(
-                "SELECT active_tags FROM items WHERE id = ? AND list_id = ?",
-                (item_id, list_id),
-            ).fetchone()
-            if row is None:
-                db.commit()
-                return
-            active_tags = _decode_tags(row[0])
-            if tag in active_tags:
-                active_tags.remove(tag)
-            else:
-                active_tags.append(tag)
-            db.execute(
-                "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
-                (json.dumps(active_tags), item_id, list_id),
-            )
+            # A stale item matches no row and changes nothing.
+            toggle_item_active_tag_locked(item_id, list_id, tag)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def toggle_item_active_tag_locked(item_id: int, list_id: int, tag: str) -> bool:
+    """Toggle one tag on the stored item tags; False if no such item.
+
+    Call inside a write transaction.
+    """
+    row = db.execute(
+        "SELECT active_tags FROM items WHERE id = ? AND list_id = ?",
+        (item_id, list_id),
+    ).fetchone()
+    if row is None:
+        return False
+    active_tags = _decode_tags(row[0])
+    if tag in active_tags:
+        active_tags.remove(tag)
+    else:
+        active_tags.append(tag)
+    db.execute(
+        "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
+        (json.dumps(active_tags), item_id, list_id),
+    )
+    return True
 
 
 def _find_list_by_name_locked(
