@@ -1,56 +1,47 @@
-# sv
+# Svelte frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The new browser-side frontend (SvelteKit in SPA mode, Svelte 5). It is built
+step by step following the [rewrite plan](../plans/svelte-frontend-rewrite.md)
+and talks to Python through the [JSON API](../docs/api.md). NiceGUI stays the
+live app until the switch.
 
-## Creating a project
+## Setup
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+Use Node 24 via [fnm](https://github.com/Schniz/fnm) and npm (not bun or
+pnpm). Do not install packages globally. Run every command from this folder.
 
 ```sh
-# recreate this project
-npx sv@1.0.1 create --template minimal --types ts --install npm frontend
+fnm use        # picks Node 24 from .node-version
+npm install
 ```
 
-## Adding features
+## Develop
 
-Add features to your project with `sv add`:
+Run two servers:
 
-```sh
-npx sv add
-```
+1. Python, from the repository root: `uv run python src/main.py` (port 8080).
+2. Svelte, from here: `npm run dev` (port 5173).
 
-For example, to add Tailwind CSS:
+Open <http://localhost:5173/app/>. Vite reloads the page when you save a file.
+It forwards `/api/…` requests to Python on 8080, so the browser sees one origin
+and the room cookies work.
 
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
+## Build
 
 ```sh
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+This writes static files to `build/` (ignored by version control). Restart the
+Python server once after the first build; it then serves the app at
+<http://localhost:8080/app/>. Later builds need no restart.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Checks
+
+```sh
+npm run format && npm run lint && npm run check && npm run test && npm run build
+```
+
+- `format` / `lint`: Prettier and ESLint.
+- `check`: TypeScript and Svelte type checks.
+- `test`: Vitest unit tests (`src/**/*.test.ts`).

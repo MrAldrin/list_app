@@ -356,6 +356,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 32 | Update triggers have a guard `WHEN NEW.changed_seq IS OLD.changed_seq`, on top of SQLite's default `recursive_triggers = OFF` | Without it the insert trigger's own stamp would fire the update trigger (double bump); also safe if recursive triggers are ever turned on | Column lists in `UPDATE OF` | Low |
 | 33 | Every update that matches a row bumps, even with equal values (same visibility values, share-link reset) | Simple; an extra unchanged row in the feed is harmless | Compare old and new values in the trigger | Low |
 | 34 | Deleting a list records a `deletions` row for each of its items, then the list | Follows from per-row triggers; clients drop the items of a deleted list anyway | Skip item rows when the list goes too | Low |
+| 35 | `frontend/README.md` replaces the `sv` starter text with the dev guide; `frontend/.node-version` pins Node 24 for `fnm use` | The main README stays short and links to it; `fnm` picks the version without flags | All details in the main README; no version file | Low |
 
 ## Progress
 
@@ -365,7 +366,7 @@ Milestone 0: foundations
 - [x] 0.3 API contract doc ([`docs/api.md`](../docs/api.md); decisions 18–27)
 - [x] 0.4 Offline-ready schema migration (migration 3; tested on a copy of `list.db`: 4 rooms, 4 lists, 46 items kept, 50 unique `uid`s; decisions 28–30)
 - [x] 0.5 Writes bump `change_seq` and record deletions (migration 4; [change tracking](../docs/change-tracking.md); decisions 31–34. NiceGUI needs no code change: the triggers cover its writes and it never selects `*`)
-- [ ] 0.6 README dev setup
+- [x] 0.6 README dev setup (README section + [frontend guide](../frontend/README.md); decision 35)
 
 Milestone 1: API
 - [ ] 1.1 API package and access helper
