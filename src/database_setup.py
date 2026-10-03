@@ -394,11 +394,58 @@ def _migration_2_item_ids_never_reused(db: sqlite3.Connection) -> None:
         db.execute(sql)
 
 
+def _migration_3_offline_ready_schema(db: sqlite3.Connection) -> None:
+    """Add public uids, change counters and the deletions and op_id tables.
+
+    Lists and items get a ``uid`` (UUID v4 string) for the JSON API, and a
+    ``changed_seq`` stamped from their room's ``change_seq``.
+    """
+    db.execute("ALTER TABLE rooms ADD COLUMN change_seq INTEGER NOT NULL DEFAULT 0")
+    for table in ("lists", "items"):
+        db.execute(f"ALTER TABLE {table} ADD COLUMN uid TEXT")
+        db.execute(
+            f"ALTER TABLE {table} ADD COLUMN changed_seq INTEGER NOT NULL DEFAULT 0"
+        )
+        for (row_id,) in db.execute(f"SELECT id FROM {table}").fetchall():
+            db.execute(
+                f"UPDATE {table} SET uid = ? WHERE id = ?", (str(uuid.uuid4()), row_id)
+            )
+        db.execute(f"CREATE UNIQUE INDEX idx_{table}_uid ON {table}(uid)")
+
+    # Deleting a room removes its rows here (foreign keys are on in the app).
+    db.execute(
+        """
+        CREATE TABLE deletions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL CHECK (kind IN ('list', 'item')),
+            uid TEXT NOT NULL,
+            changed_seq INTEGER NOT NULL
+        )
+        """
+    )
+    db.execute("CREATE INDEX idx_deletions_room_seq ON deletions(room_id, changed_seq)")
+    db.execute(
+        """
+        CREATE TABLE processed_ops (
+            op_id TEXT PRIMARY KEY,
+            room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+            request_hash TEXT NOT NULL,
+            response_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+                DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        )
+        """
+    )
+    db.execute("CREATE INDEX idx_processed_ops_created_at ON processed_ops(created_at)")
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
         partial(_migration_1_baseline, app_password=app_password),
         _migration_2_item_ids_never_reused,
+        _migration_3_offline_ready_schema,
     ]
 
 

@@ -349,6 +349,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 25 | The changes feed always includes `room`; a full snapshot also when `since` is ahead of the room `seq` | Rooms have no `changed_seq`; the room object is tiny. A restored database must not leave clients with phantom data | Track room `changed_seq` | Low |
 | 26 | Extra endpoint `GET /api/v1/last-room`; SSE sends a `revoked` event before closing; keep-alive every ~15 s | The last-room cookie is HTTP-only, so the start page needs the server to read it; `EventSource` cannot read an error status | Readable last-room cookie; silent close | Low |
 | 27 | `base_seq` is required on `list.rename` and `item.edit` but ignored: last write wins until Milestone 6. In `recent` mode the client ranks items without `completed_at` in no fixed order | Fields exist for later conflict rules; creation order would need the integer `id` | Expose a creation rank | Low |
+| 28 | Migration 3 backfills `uid`s in Python (`uuid4`); existing rows and rooms start at `changed_seq`/`change_seq` 0 | Simple and testable; a first sync (`since=0`) is a full snapshot anyway | Generate in SQL; start at 1 | Low |
+| 29 | `deletions` and `processed_ops` reference `rooms` with `ON DELETE CASCADE`; `processed_ops.created_at` defaults to UTC ISO time | Foreign keys are on in the app, so a room delete leaves no orphans without extra code | Delete them in triggers or in `delete_room` | Low |
+| 30 | Tests that fake a pre-versioning database now build it from the version 1 baseline (`test_invitation_migration`); `test_item_ids` runs only migrations 1–2 | Migration 2 cannot rerun on a schema with later columns and indexes; real databases never reset `user_version` | Make every migration rerunnable | Low |
 
 ## Progress
 
@@ -356,7 +359,7 @@ Milestone 0: foundations
 - [x] 0.1 Frontend setup (adapter-static, base `/app`, `/api` proxy, Vitest 5 with `npm run test`)
 - [x] 0.2 Python serves `/app/` (`src/svelte_frontend.py`; restart the server after the first build)
 - [x] 0.3 API contract doc ([`docs/api.md`](../docs/api.md); decisions 18–27)
-- [ ] 0.4 Offline-ready schema migration
+- [x] 0.4 Offline-ready schema migration (migration 3; tested on a copy of `list.db`: 4 rooms, 4 lists, 46 items kept, 50 unique `uid`s; decisions 28–30)
 - [ ] 0.5 Writes bump `change_seq` and record deletions
 - [ ] 0.6 README dev setup
 

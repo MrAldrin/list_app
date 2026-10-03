@@ -27,6 +27,10 @@ def clean_db(home_password_hash):
     db.execute("DELETE FROM lists")
     db.execute("DELETE FROM room_access_tokens")
     db.execute("DELETE FROM rooms")
+    # Room deletes cascade to these; clear them anyway in case a test left
+    # rows behind with foreign keys off.
+    db.execute("DELETE FROM deletions")
+    db.execute("DELETE FROM processed_ops")
     room_id = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", f"home-{str(uuid.uuid4())[:6]}", home_password_hash),

@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 
 import database_crud as crud
-from database_setup import _migration_1_baseline, init_database
+from database_setup import _migration_1_baseline, _migrations, init_database
 from migrations import run_migrations
 
 
@@ -65,7 +65,7 @@ def _version_one_database(path) -> sqlite3.Connection:
     return db
 
 
-def test_migration_keeps_items_and_indexes_and_stops_id_reuse(tmp_path, monkeypatch):
+def test_migration_keeps_items_and_indexes_and_stops_id_reuse(tmp_path):
     path = tmp_path / "list.db"
     db = _version_one_database(path)
     room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
@@ -86,8 +86,9 @@ def test_migration_keeps_items_and_indexes_and_stops_id_reuse(tmp_path, monkeypa
     ).fetchall()
     db.close()
 
-    monkeypatch.setenv("DB_PATH", str(path))
-    db = init_database()
+    # Run up to migration 2 only; later migrations add columns and indexes.
+    db = sqlite3.connect(path)
+    run_migrations(db, _migrations("pw")[:2])
 
     assert db.execute("PRAGMA user_version").fetchone()[0] == 2
     assert db.execute("SELECT * FROM items ORDER BY id").fetchall() == rows_before
