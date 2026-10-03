@@ -335,11 +335,13 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 11 | Room renames bump `change_seq`; the feed carries the room name | Room page header stays live | Room name only from "who am I" | Low |
 | 12 | API cookie on plain HTTP is HTTP-only, not secure; no localStorage fallback | Safer than localStorage; needed for iPhone tests on the local network | Copy NiceGUI's localStorage fallback | Low |
 | 13 | Old `op_id`s are pruned at startup (older than 30 days) | Simple; the table stays small | A scheduled job | Low |
+| 14 | SPA fallback file is `index.html`, nothing prerendered (`ssr = false`, `prerender = false` in the root layout) | One file serves every `/app/` URL; no prerendered home page to clash with | `200.html` fallback, or prerender some pages | Low |
+| 15 | Vite proxy keeps the `Host` header (no `changeOrigin`) | The server's same-origin check compares `Origin` with the host, so dev writes pass | Rewrite the host and relax the check in dev | Low |
 
 ## Progress
 
 Milestone 0: foundations
-- [ ] 0.1 Frontend setup
+- [x] 0.1 Frontend setup (adapter-static, base `/app`, `/api` proxy, Vitest 5 with `npm run test`)
 - [ ] 0.2 Python serves `/app/`
 - [ ] 0.3 API contract doc
 - [ ] 0.4 Offline-ready schema migration

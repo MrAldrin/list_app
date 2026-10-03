@@ -1,11 +1,6 @@
-<script lang="ts">
-let listName: string = 'Groceries';
-</script>
+<svelte:head>
+	<title>ListR</title>
+</svelte:head>
 
-<h1>{listName}</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
-
-<style>
-h1{
-color: teal;}
-</style>
+<h1>ListR – Svelte prototype</h1>
+<p>This page is a placeholder. The real app comes in later steps.</p>
