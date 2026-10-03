@@ -33,7 +33,7 @@ HTTP errors use one shape:
 | 405 | `invalid_request` | Known API path, wrong method (`Allow` header lists the right ones) |
 | 413 | `invalid_request` | Body larger than 64 KB |
 | 415 | `invalid_request` | Write without `Content-Type: application/json` |
-| 422 | `invalid_request` | Body is not a JSON object, missing, unknown or wrong fields (types are strict: `"3"` is not a number), unknown op `type`, bad `since`, a client `uid` already used |
+| 422 | `invalid_request` | Body is not a JSON object, missing, unknown or wrong fields (types are strict: `"3"` is not a number), a number out of range, unknown op `type`, bad `since`, a client `uid` already used |
 | 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical) |
 | 401 | `not_authenticated` | No room cookie, revoked or expired token, or unknown room |
 | 403 | `forbidden_origin` | Write without a same-origin `Origin` header |
@@ -198,14 +198,15 @@ names are lowercased.
 | `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). |
 | `item.set_done` | `list_uid`, `item_uid`, `done` | Sets the state. Checking an already checked item keeps its `completed_at`. |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
-| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; minimum 1. |
+| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. The description is trimmed. |
 | `item.toggle_tag` | `list_uid`, `item_uid`, `tag` | Toggles one tag on the stored item tags. |
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
-| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at` | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid"}`. `completed_at` is kept only when `done`. |
+| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at` | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. |
 
 `?` means optional. A client `uid` must be a UUID that was never used by any
 list or item, in any room, even a deleted one; if it was, the server answers
-422.
+422. `quantity` and `delta` are whole numbers from −1,000,000 to 1,000,000.
+`completed_at` is an ISO 8601 time; without a time zone it counts as UTC.
 
 `base_seq` is the `changed_seq` the edit was based on. It is required but not
 yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
@@ -221,7 +222,9 @@ yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
 | `list_unavailable` | every op with `list_uid` | The list is no longer available. |
 | `item_not_found` | `item.set_done`, `item.quantity_delta`, `item.edit`, `item.toggle_tag` | The item is no longer available. |
 
-A list in another room counts as `list_unavailable`, like a deleted one.
+A list in another room counts as `list_unavailable`, like a deleted one. An
+item in another list counts as `item_not_found` (`item.delete`: applied, no
+change).
 
 ## Live updates
 

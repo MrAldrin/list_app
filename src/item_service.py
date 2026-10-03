@@ -55,6 +55,25 @@ def rename_item_with_checks(
     return STATUS_RENAMED, new_name
 
 
+def clamp_quantity(quantity: int) -> int:
+    """Quantities are whole numbers from 1 up."""
+    return max(1, int(quantity))
+
+
+def normalize_item_details(
+    raw_name: str | None, raw_description: str | None, quantity: int | None
+) -> tuple[str, str, int | None]:
+    """Edit dialog values as saved: (name, description, quantity).
+
+    The name is "" when blank (invalid). A None quantity keeps the stored one.
+    """
+    return (
+        normalize_item_name(raw_name),
+        (raw_description or "").strip(),
+        None if quantity is None else clamp_quantity(quantity),
+    )
+
+
 def update_item_details_with_checks(
     list_id: int,
     item_id: int,
@@ -65,7 +84,9 @@ def update_item_details_with_checks(
     expected_slug: str | None = None,
 ) -> tuple[str, str | None]:
     """Validate an item edit, then save every field together or none of them."""
-    new_name = normalize_item_name(raw_name)
+    new_name, description, quantity = normalize_item_details(
+        raw_name, raw_description, quantity
+    )
     if not new_name:
         return STATUS_INVALID_NAME, None
 
@@ -73,8 +94,8 @@ def update_item_details_with_checks(
         item_id=item_id,
         list_id=list_id,
         name=new_name,
-        description=(raw_description or "").strip(),
-        quantity=None if quantity is None else max(1, int(quantity)),
+        description=description,
+        quantity=quantity,
         expected_slug=expected_slug,
     )
     if not saved:
@@ -116,7 +137,7 @@ def toggle_item_done(
 def set_item_quantity(
     list_id: int, item_id: int, quantity: int, *, expected_slug: str | None = None
 ) -> str:
-    qty = max(1, int(quantity))
+    qty = clamp_quantity(quantity)
     update_item_quantity(
         item_id=item_id, list_id=list_id, quantity=qty, expected_slug=expected_slug
     )

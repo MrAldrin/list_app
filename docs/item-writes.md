@@ -17,7 +17,9 @@ newer changes or writing half an update.
 - **One transaction per user action.** Multi-field changes either all succeed
   or all roll back. Failed writes leave no open transaction.
 
-All helpers live in `src/database_crud.py`.
+All helpers live in `src/database_crud.py`. The [JSON API](api.md) calls
+their `_locked` variants inside its room transaction, so both UIs share one
+copy of each rule.
 
 ## Per action
 

@@ -7,6 +7,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from typing import Literal
 
 import bcrypt
 
@@ -495,31 +496,42 @@ def add_or_restore_item_atomic(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            existing = db.execute(
-                "SELECT id, done FROM items WHERE list_id = ? "
-                "AND trim(name) = ? COLLATE NOCASE",
-                (list_id, item_name),
-            ).fetchone()
-            if existing:
-                if not existing[1]:
-                    db.rollback()
-                    return "duplicate_active"
-                db.execute(
-                    "UPDATE items SET done = 0, completed_at = NULL WHERE id = ?",
-                    (existing[0],),
-                )
-                result = "restored"
-            else:
-                db.execute(
-                    "INSERT INTO items (name, done, list_id) VALUES (?, 0, ?)",
-                    (item_name, list_id),
-                )
-                result = "added"
+            result, _ = add_or_restore_item_locked(item_name, list_id)
             db.commit()
             return result
         except Exception:
             db.rollback()
             raise
+
+
+def add_or_restore_item_locked(
+    item_name: str, list_id: int, *, uid: str | None = None
+) -> tuple[str, int]:
+    """Add an item, uncheck a checked one, or report an active duplicate.
+
+    Returns (status, item ID): "added", "restored" or "duplicate_active"
+    (nothing written). Names match ignoring case and outer spaces. `uid` is
+    the client's public ID for a new item; it is not used otherwise. Call
+    inside a write transaction with a normalized, nonempty name.
+    """
+    existing = db.execute(
+        "SELECT id, done FROM items WHERE list_id = ? "
+        "AND trim(name) = ? COLLATE NOCASE",
+        (list_id, item_name),
+    ).fetchone()
+    if existing:
+        if not existing[1]:
+            return "duplicate_active", existing[0]
+        db.execute(
+            "UPDATE items SET done = 0, completed_at = NULL WHERE id = ?",
+            (existing[0],),
+        )
+        return "restored", existing[0]
+    result = db.execute(
+        "INSERT INTO items (name, done, list_id, uid) VALUES (?, 0, ?, ?)",
+        (item_name, list_id, uid),
+    )
+    return "added", result.lastrowid
 
 
 def restore_item(item_id: int, list_id: int, *, expected_slug: str | None = None):
@@ -566,34 +578,63 @@ def restore_deleted_item(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            if db.execute(
-                "SELECT 1 FROM items WHERE list_id = ? AND trim(name) = ? COLLATE NOCASE",
-                (list_id, name.strip()),
-            ).fetchone():
-                db.rollback()
-                return False
-            db.execute(
-                """
-                INSERT INTO items (
-                    name, done, list_id, active_tags, description, quantity,
-                    completed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    name,
-                    done,
-                    list_id,
-                    json.dumps(active_tags),
-                    description,
-                    quantity,
-                    completed_at if done else None,
-                ),
+            item_id = restore_deleted_item_locked(
+                list_id,
+                name,
+                done,
+                active_tags,
+                description,
+                quantity,
+                completed_at=completed_at,
             )
             db.commit()
-            return True
+            return item_id is not None
         except Exception:
             db.rollback()
             raise
+
+
+def restore_deleted_item_locked(
+    list_id: int,
+    name: str,
+    done: bool,
+    active_tags: list[str],
+    description: str,
+    quantity: int,
+    *,
+    completed_at: str | None = None,
+    uid: str | None = None,
+) -> int | None:
+    """Insert a deleted item again as a new row; return its ID.
+
+    None (nothing written) when an item with that name exists, ignoring case
+    and outer spaces. `completed_at` is kept only when `done`. Call inside a
+    write transaction.
+    """
+    if db.execute(
+        "SELECT 1 FROM items WHERE list_id = ? AND trim(name) = ? COLLATE NOCASE",
+        (list_id, name.strip()),
+    ).fetchone():
+        return None
+    result = db.execute(
+        """
+        INSERT INTO items (
+            name, done, list_id, active_tags, description, quantity,
+            completed_at, uid
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            name,
+            done,
+            list_id,
+            json.dumps(active_tags),
+            description,
+            quantity,
+            completed_at if done else None,
+            uid,
+        ),
+    )
+    return result.lastrowid
 
 
 def add_item_with_state(
@@ -634,24 +675,35 @@ def update_item_done(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            if done:
-                completed_at = _completion_timestamp(now)
-                db.execute(
-                    "UPDATE items SET completed_at = CASE WHEN COALESCE(done, 0) = 0 "
-                    "THEN ? ELSE completed_at END, done = 1 "
-                    "WHERE id = ? AND list_id = ?",
-                    (completed_at, item_id, list_id),
-                )
-            else:
-                db.execute(
-                    "UPDATE items SET done = 0, completed_at = NULL "
-                    "WHERE id = ? AND list_id = ?",
-                    (item_id, list_id),
-                )
+            update_item_done_locked(item_id, list_id, done, now=now)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def update_item_done_locked(
+    item_id: int, list_id: int, done: bool, *, now: datetime | None = None
+) -> bool:
+    """Set the done state; False if no such item. Call in a write transaction.
+
+    Checking sets `completed_at` unless the item is already checked;
+    unchecking clears it.
+    """
+    if done:
+        result = db.execute(
+            "UPDATE items SET completed_at = CASE WHEN COALESCE(done, 0) = 0 "
+            "THEN ? ELSE completed_at END, done = 1 "
+            "WHERE id = ? AND list_id = ?",
+            (_completion_timestamp(now), item_id, list_id),
+        )
+    else:
+        result = db.execute(
+            "UPDATE items SET done = 0, completed_at = NULL "
+            "WHERE id = ? AND list_id = ?",
+            (item_id, list_id),
+        )
+    return result.rowcount > 0
 
 
 def find_duplicate_name(list_id: int, item_id: int, new_name: str):
@@ -722,24 +774,39 @@ def update_item_details(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            duplicate = db.execute(
-                "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
-                "AND id != ? AND list_id = ?",
-                (name, item_id, list_id),
-            ).fetchone()
-            if duplicate:
-                db.rollback()
-                return False
-            db.execute(
-                "UPDATE items SET name = ?, description = ?, "
-                "quantity = COALESCE(?, quantity) WHERE id = ? AND list_id = ?",
-                (name, description, quantity, item_id, list_id),
+            status = update_item_details_locked(
+                item_id, list_id, name, description, quantity
             )
             db.commit()
-            return True
+            # A stale item matches no row and changes nothing.
+            return status != "duplicate"
         except Exception:
             db.rollback()
             raise
+
+
+def update_item_details_locked(
+    item_id: int, list_id: int, name: str, description: str, quantity: int | None
+) -> Literal["saved", "duplicate", "missing"]:
+    """Save name, description and quantity together, or nothing.
+
+    "duplicate": another item of the list has the name (ignoring case and
+    outer spaces). "missing": no such item. None keeps the quantity. Call
+    inside a write transaction with checked values.
+    """
+    duplicate = db.execute(
+        "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
+        "AND id != ? AND list_id = ?",
+        (name, item_id, list_id),
+    ).fetchone()
+    if duplicate:
+        return "duplicate"
+    result = db.execute(
+        "UPDATE items SET name = ?, description = ?, "
+        "quantity = COALESCE(?, quantity) WHERE id = ? AND list_id = ?",
+        (name, description, quantity, item_id, list_id),
+    )
+    return "saved" if result.rowcount > 0 else "missing"
 
 
 def update_item_quantity(
@@ -765,29 +832,43 @@ def adjust_item_quantity(
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE items SET quantity = MAX(1, COALESCE(quantity, 1) + ?) "
-                "WHERE id = ? AND list_id = ?",
-                (delta, item_id, list_id),
-            )
+            adjust_item_quantity_locked(item_id, list_id, delta)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def adjust_item_quantity_locked(item_id: int, list_id: int, delta: int) -> bool:
+    """Add `delta`, never below 1 (empty counts as 1); False if no such item.
+
+    Call inside a write transaction.
+    """
+    result = db.execute(
+        "UPDATE items SET quantity = MAX(1, COALESCE(quantity, 1) + ?) "
+        "WHERE id = ? AND list_id = ?",
+        (delta, item_id, list_id),
+    )
+    return result.rowcount > 0
 
 
 def delete_item(item_id: int, list_id: int, *, expected_slug: str | None = None):
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "DELETE FROM items WHERE id = ? AND list_id = ?",
-                (item_id, list_id),
-            )
+            delete_item_locked(item_id, list_id)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def delete_item_locked(item_id: int, list_id: int) -> bool:
+    """Delete an item of the list; False if it was already gone."""
+    result = db.execute(
+        "DELETE FROM items WHERE id = ? AND list_id = ?", (item_id, list_id)
+    )
+    return result.rowcount > 0
 
 
 def delete_list(list_id: int, *, expected_slug: str | None = None):
@@ -961,10 +1042,15 @@ def get_list_changes_locked(room_id: int, since: int | None) -> list[dict]:
     ]
 
 
+def normalize_completion_time(value: object) -> str | None:
+    """A completion time as stored (UTC with Z), or None when unreadable."""
+    completed_at = parse_completion_time(value)
+    return None if completed_at is None else _completion_timestamp(completed_at)
+
+
 def _feed_completed_at(done: bool, stored: object) -> str | None:
     """UTC with Z, or None when not done or the stored time is unreadable."""
-    completed_at = parse_completion_time(stored) if done else None
-    return None if completed_at is None else _completion_timestamp(completed_at)
+    return normalize_completion_time(stored) if done else None
 
 
 def get_item_changes_locked(room_id: int, since: int | None) -> list[dict]:
@@ -1021,6 +1107,18 @@ def list_id_for_uid_locked(room_id: int, list_uid: str) -> int | None:
 
 def get_list_uid_locked(list_id: int) -> str:
     return db.execute("SELECT uid FROM lists WHERE id = ?", (list_id,)).fetchone()[0]
+
+
+def item_id_for_uid_locked(list_id: int, item_uid: str) -> int | None:
+    """The item's integer ID, or None if it is gone or in another list."""
+    row = db.execute(
+        "SELECT id FROM items WHERE uid = ? AND list_id = ?", (item_uid, list_id)
+    ).fetchone()
+    return row[0] if row else None
+
+
+def get_item_uid_locked(item_id: int) -> str:
+    return db.execute("SELECT uid FROM items WHERE id = ?", (item_id,)).fetchone()[0]
 
 
 def uid_in_use_locked(uid: str) -> bool:

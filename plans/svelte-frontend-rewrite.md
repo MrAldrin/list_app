@@ -377,6 +377,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 50 | `list.rename` checks the list before the name; `list.delete` of a gone list is `list_unavailable` (a replay of the original delete still returns its stored `applied`) | Matches the contract ("every op with `list_uid`"); unavailable is the more useful answer | Treat a repeated delete as applied, like `item.delete` | Low |
 | 51 | `src/live_updates.py` holds listeners; ops notify after commit, outside the lock, once per applied op (also `list.create` that found an existing list), never for rejections or replays. main.py's listener hands `broadcast_updates` to NiceGUI's loop with `call_soon_threadsafe` and does nothing when NiceGUI is not running; a failing listener is logged, never fails the write | API routes run in worker threads and NiceGUI refreshes create loop tasks; no circular import from main.py; 1.8 adds SSE as another listener | Call `broadcast_updates` directly; skip notify for no-change ops | Low |
 | 52 | `processed_ops` pruning is a NiceGUI `on_startup` handler; a database error is logged and startup goes on. List writes reuse new locked helpers (`create_or_find_list_locked`, `rename_list_if_unique_locked`, `delete_list_locked`) that the NiceGUI paths now call too | Startup must not fail over housekeeping; one copy of each list rule | Prune in `init_database()`; separate API copies of the rules | Low |
+| 53 | Item write helpers got `_locked` variants that report a stale item (`False`, or `"missing"` for the edit); the NiceGUI functions call them and ignore it, so NiceGUI keeps its silent no-op. Edit values are normalized by `item_service.normalize_item_details` / `clamp_quantity`, used by both UIs | One copy of each rule; the API can answer `item_not_found` | Separate API queries | Low |
+| 54 | `quantity` and `delta` must be −1,000,000 to 1,000,000 (else 422); an edit or restore quantity below 1 saves 1, as in NiceGUI | Large numbers would overflow SQLite's 64-bit integers (a 500); the floor reuses NiceGUI's rule | 422 below 1; no bound | Low |
+| 55 | `item.restore` lowercases and trims the name like `item.add`; `completed_at` must be readable (else 422) and is saved as UTC with `Z`; tags and description are saved as sent. A client `uid` is checked before the list (as in `list.create`) | The feed shape comes back unchanged; a bad time never reaches the database | Store the time as sent | Low |
+| 56 | `item.delete` of an item that is gone or in another list is `applied` with no change, and still notifies listeners (decision 51: every applied op) | A repeated delete is not an error; the client cannot tell gone from moved | Reject as `item_not_found` | Low |
 
 ## Progress
 
@@ -393,7 +397,7 @@ Milestone 1: API
 - [x] 1.2 Room session (`src/api/session.py`, [`tests/test_api_session.py`](../tests/test_api_session.py); decisions 40–42)
 - [x] 1.3 Changes feed (`src/api/changes.py`, [`tests/test_api_changes.py`](../tests/test_api_changes.py); decisions 43–45)
 - [x] 1.4 List writes (`src/api/ops.py`, `src/api/idempotency.py`, `src/live_updates.py`, [`tests/test_api_list_ops.py`](../tests/test_api_list_ops.py); decisions 46–52)
-- [ ] 1.5 Item writes
+- [x] 1.5 Item writes (`src/api/ops.py`, [`tests/test_api_item_ops.py`](../tests/test_api_item_ops.py), shared `tests/api_helpers.py`; decisions 53–56)
 - [ ] 1.6 Tags and hide-done writes
 - [ ] 1.7 Idempotent `op_id`
 - [ ] 1.8 Live updates (SSE + NiceGUI bridge)
