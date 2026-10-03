@@ -42,6 +42,11 @@ the [write atomicity audit](../../plans/write-atomicity-audit.md).
   successful writes. Rejections leave data unchanged with no open transaction;
   successful writes keep room access, list slug, share token, tags,
   descriptions and quantities.
+- `tests/test_api_concurrency.py` runs two API clients on one room: stale
+  writes on a deleted item or list, renames, a duplicate-add race, parallel
+  quantity deltas, undo after a re-add, and API writes mixed with NiceGUI
+  writes from threads. Each client's copy built from the changes feed must
+  equal a full load and the database.
 - The cross-path test does not simulate browser callbacks. None of these tests
   prove every write path, real-device behavior or production concurrency.
 

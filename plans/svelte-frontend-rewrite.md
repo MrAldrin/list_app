@@ -407,7 +407,7 @@ Milestone 1: API
 - [x] 1.6 Tags and hide-done writes (`src/api/ops.py`, [`tests/test_api_tag_ops.py`](../tests/test_api_tag_ops.py); decisions 57–58)
 - [x] 1.7 Idempotent `op_id` ([`tests/test_api_idempotency.py`](../tests/test_api_idempotency.py): applied and rejected case per op type; no code change needed; `docs/api.md` checked against every op)
 - [x] 1.8 Live updates (SSE + NiceGUI bridge) (`src/api/events.py`, `src/live_updates.py`, [`tests/test_api_events.py`](../tests/test_api_events.py); decisions 59–62)
-- [ ] 1.9 Concurrency tests
+- [x] 1.9 Concurrency tests ([`tests/test_api_concurrency.py`](../tests/test_api_concurrency.py): two clients, stale item and list writes, renames (the `uid` and the slug stay), add race, quantity sums, undo after re-add, NiceGUI writes interleaved, parallel threads; no bug found, no code change)
 
 Milestone 2: prototype UI
 - [ ] 2.1 Data layer
