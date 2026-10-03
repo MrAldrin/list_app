@@ -23,6 +23,11 @@
 	{#each toasts.items as toast (toast.id)}
 		<div class="toast {toast.kind}">
 			<span>{toast.message}</span>
+			{#if toast.action}
+				<button class="action" type="button" onclick={() => toasts.act(toast.id)}>
+					{toast.action.label}
+				</button>
+			{/if}
 			<button type="button" aria-label="Dismiss" onclick={() => toasts.dismiss(toast.id)}>
 				<Icon name="close" />
 			</button>
@@ -88,5 +93,11 @@
 	button {
 		color: inherit;
 		padding: 0;
+	}
+
+	.action {
+		padding: 0 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
 	}
 </style>

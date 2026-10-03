@@ -9,9 +9,17 @@
 	import { page } from '$app/state';
 	import { closeRoom, openRoom, type Item, type List, type RoomHandle } from '#lib/data/index.ts';
 	import AddItem from '#lib/list/AddItem.svelte';
+	import ItemDialog from '#lib/list/ItemDialog.svelte';
 	import ItemRow from '#lib/list/ItemRow.svelte';
 	import ListHeader from '#lib/list/ListHeader.svelte';
-	import { addFeedback, UNAVAILABLE_LIST_MESSAGE } from '#lib/list/items.ts';
+	import ListOptions from '#lib/list/ListOptions.svelte';
+	import {
+		addFeedback,
+		showsQuantity,
+		UNAVAILABLE_LIST_MESSAGE,
+		UNDO_DURATION,
+		type QuantityView
+	} from '#lib/list/items.ts';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -32,6 +40,12 @@
 	showNoticesAsToasts(() => room?.store);
 
 	const list = $derived(room?.store.listBySlug(listSlug));
+
+	// What this page shows; not saved, as in NiceGUI.
+	let optionsOpen = $state(false);
+	let view = $state<QuantityView>({ showQuantities: false, onlyAboveOne: false });
+	/** The item in the edit dialog, as it was when the dialog opened. */
+	let editing = $state.raw<Item | null>(null);
 
 	// "Hide after N days" depends on the clock, so the visible items are
 	// worked out again every minute (NiceGUI does the same).
@@ -56,6 +70,43 @@
 	function toggle(item: Item, done: boolean) {
 		void room!.setDone(item, done);
 	}
+
+	function changeQuantity(item: Item, delta: number) {
+		void room!.changeQuantity(item, delta);
+	}
+
+	async function saveItem(
+		item: Item,
+		changes: { name: string; description: string; quantity: number }
+	) {
+		const result = await room!.editItem(item, changes);
+		// A blank or duplicate name keeps the dialog open to fix it (the store
+		// shows why). It closes when the item or the list is gone.
+		if (result.ok || result.code === 'item_not_found' || result.code === 'list_unavailable') {
+			editing = null;
+		}
+	}
+
+	/** Deletes at once and offers "Undo" for a few seconds. */
+	function deleteItem(item: Item) {
+		editing = null;
+		const handle = room!;
+		const deleted = handle.deleteItem(item);
+		const toastId = toasts.show(`Deleted ${item.name}`, 'danger', {
+			duration: UNDO_DURATION,
+			action: { label: 'Undo', run: () => void undoDelete(handle, item) }
+		});
+		void deleted.then((result) => {
+			if (!result.ok) toasts.dismiss(toastId);
+		});
+	}
+
+	async function undoDelete(handle: RoomHandle, item: Item) {
+		const result = await handle.restoreItem(item.uid);
+		if (result.ok) toasts.show(`Restored ${item.name}`, 'success');
+		// "Cannot undo: item name already exists" comes from the store.
+		else if (result.code === 'undo_unavailable') toasts.show(result.message, 'warning');
+	}
 </script>
 
 <svelte:head>
@@ -79,7 +130,12 @@
 		</div>
 	{:else}
 		{@const current = list}
-		<ListHeader name={current.name} {roomHref} />
+		<ListHeader
+			name={current.name}
+			{roomHref}
+			{optionsOpen}
+			onToggleOptions={() => (optionsOpen = !optionsOpen)}
+		/>
 		{#if room.store.error}
 			<!-- The items below may be out of date; they stay usable. -->
 			<div class="card problem" role="status">
@@ -87,12 +143,32 @@
 				<button class="outline" type="button" onclick={() => room?.store.refresh()}>Retry</button>
 			</div>
 		{/if}
+		{#if optionsOpen}
+			<ListOptions bind:view />
+		{/if}
 		<AddItem items={room.store.itemsOf(current.uid)} onAdd={(name) => addItem(current, name)} />
 		<ul class="items">
 			{#each room.store.visibleItemsOf(current.uid, now) as item (item.uid)}
-				<ItemRow {item} onToggle={(done) => toggle(item, done)} />
+				<ItemRow
+					{item}
+					showQuantity={showsQuantity(item.quantity, view)}
+					showDelete={optionsOpen}
+					onToggle={(done) => toggle(item, done)}
+					onQuantity={(delta) => changeQuantity(item, delta)}
+					onOpen={() => (editing = item)}
+					onDelete={() => deleteItem(item)}
+				/>
 			{/each}
 		</ul>
+		{#if editing}
+			{@const item = editing}
+			<ItemDialog
+				{item}
+				onSave={(changes) => saveItem(item, changes)}
+				onDelete={() => deleteItem(item)}
+				onClose={() => (editing = null)}
+			/>
+		{/if}
 	{/if}
 </main>
 

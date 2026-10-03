@@ -37,3 +37,24 @@ export function addFeedback(
 		? { message: `Restored ${name}!`, kind: 'info' }
 		: { message: `Added ${name}`, kind: 'success' };
 }
+
+/** How long "Undo" stays after deleting an item, as NiceGUI's undo bar (5 s). */
+export const UNDO_DURATION = 5_000;
+
+/** View options of the list page ("Options"). They are not saved, as in NiceGUI. */
+export interface QuantityView {
+	/** "Show quantities": the − / + stepper on each row. */
+	showQuantities: boolean;
+	/** "Only show minimum 2": the stepper only for quantities of 2 or more. */
+	onlyAboveOne: boolean;
+}
+
+/** Whether a row shows its quantity stepper. */
+export function showsQuantity(quantity: number, view: QuantityView): boolean {
+	return view.showQuantities && (!view.onlyAboveOne || quantity > 1);
+}
+
+/** A quantity after − or +; never below 1, like the server. */
+export function stepQuantity(quantity: number, delta: number): number {
+	return Math.max(1, quantity + delta);
+}

@@ -43,4 +43,24 @@ describe('Toasts', () => {
 		vi.runAllTimers();
 		expect(toasts.items).toEqual([]);
 	});
+
+	it('runs an action once and closes its toast', () => {
+		const toasts = new Toasts();
+		const run = vi.fn();
+		const id = toasts.show('Deleted milk', 'danger', { action: { label: 'Undo', run } });
+		expect(toasts.items[0].action?.label).toBe('Undo');
+		toasts.act(id);
+		toasts.act(id);
+		expect(run).toHaveBeenCalledTimes(1);
+		expect(toasts.items).toEqual([]);
+	});
+
+	it('can stay for its own duration', () => {
+		const toasts = new Toasts(1_000);
+		toasts.show('Deleted milk', 'danger', { duration: 5_000 });
+		vi.advanceTimersByTime(4_999);
+		expect(toasts.items).toHaveLength(1);
+		vi.advanceTimersByTime(1);
+		expect(toasts.items).toEqual([]);
+	});
 });

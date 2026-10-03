@@ -408,6 +408,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 81 | List page at `/app/room/{room}/list/{list}`. `/app/list/{slug}` (the NiceGUI shape) sends the browser there with the last room (`GET /last-room`). At 4.2, `/list/{slug}` can use the same page, or the server can redirect with the list's room (NiceGUI already shows that room to anyone with the list link, via "Open room") | The changes feed is per room, so the page must know the room; with it in the URL the page never guesses, and it reuses the room's store and password prompt | A list-to-room lookup endpoint; only the last room | Low |
 | 82 | A list that is missing from the loaded room shows "This list was deleted or is not in this room." with "Back to room"; without access the room password prompt shows | The client cannot tell deleted from never in this room. NiceGUI says "This list was deleted." | NiceGUI's text | Low |
 | 83 | Add field: Enter or Add sends `item.add` (not optimistic, the overlay does not project adds). The field clears after added, restored and "already on the list" (as NiceGUI), and only if nothing new was typed meanwhile; other failures keep the text. Focus stays in the field. Up to 3 suggestions (names that contain the text, from all items incl. hidden), a tap adds or restores, as in NiceGUI | Fast entry on the phone; no lost typing | Clear at once before the answer | Low |
+| 84 | An "Options" button (then "Done") opens "Show quantities" and "Only show minimum 2" and shows a delete button on each row, as NiceGUI's edit mode. These are page state only, reset when the page is left. The − button is disabled at 1 (NiceGUI sends a write that changes nothing) | Same layout as NiceGUI; 2.6 adds tags and hide-done settings to the same panel | Show the stepper always | Low |
+| 85 | Undo of an item delete is an "Undo" button in the "Deleted X" toast, for 5 s (NiceGUI: an undo bar in Options mode, 5 s). Toasts got an optional action and duration. Delete is optimistic; the toast goes if the delete fails | The phone user sees the undo where the message is, also outside Options mode | An undo bar like NiceGUI | Low |
+| 86 | The edit dialog starts from the item as it was when opened (sent as `base_seq`), closes on success, `item_not_found` and `list_unavailable`, and stays open on a blank or duplicate name (message as a toast). Saving shows no toast, as NiceGUI | Same as the list rename dialog (decision 78) | Live-update the open dialog | Low |
 
 ## Progress
 
@@ -436,7 +439,7 @@ Milestone 2: prototype UI
 - [x] 2.2 Room login and start page (`frontend/src/routes/+page.svelte`, `routes/room/[slug]/`, `lib/room/`, `lib/room-link.ts`, global `src/app.css`; decisions 72–75)
 - [x] 2.3 Room page (`frontend/src/lib/room/RoomLists.svelte`, toasts and dialogs in `lib/ui/`, list page placeholder; fix: room stores outlive the page that opened them, `room-lifetime.svelte.test.ts`; decisions 76–80)
 - [x] 2.4 List page: items, add, check (`frontend/src/routes/room/[slug]/list/[list]/`, `lib/list/`, old link shape `routes/list/[slug]`; notice toasts shared in `lib/ui/notice-toasts.svelte.ts`; decisions 81–83)
-- [ ] 2.5 Quantity, edit, delete with undo
+- [x] 2.5 Quantity, edit, delete with undo (`lib/list/ItemRow.svelte`, `ItemDialog.svelte`, `ListOptions.svelte`; toast actions in `lib/ui/toasts.svelte.ts`; decisions 84–86)
 - [ ] 2.6 Tags and hide-done settings
 - [ ] 2.7 Live updates and error states
 - [ ] 2.8 Browser tests

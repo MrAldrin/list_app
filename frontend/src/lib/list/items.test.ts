@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { addFeedback, itemSuggestions, normalizeItemName } from './items';
+import {
+	addFeedback,
+	itemSuggestions,
+	normalizeItemName,
+	showsQuantity,
+	stepQuantity
+} from './items';
 
 const named = (...names: string[]) => names.map((name) => ({ name }));
 
@@ -36,5 +42,26 @@ describe('addFeedback', () => {
 	it('uses the NiceGUI texts', () => {
 		expect(addFeedback('added', 'milk')).toEqual({ message: 'Added milk', kind: 'success' });
 		expect(addFeedback('restored', 'milk')).toEqual({ message: 'Restored milk!', kind: 'info' });
+	});
+});
+
+describe('showsQuantity', () => {
+	it('hides the stepper unless "Show quantities" is on', () => {
+		expect(showsQuantity(3, { showQuantities: false, onlyAboveOne: false })).toBe(false);
+		expect(showsQuantity(1, { showQuantities: true, onlyAboveOne: false })).toBe(true);
+	});
+
+	it('with "Only show minimum 2", shows it only from 2', () => {
+		const view = { showQuantities: true, onlyAboveOne: true };
+		expect(showsQuantity(1, view)).toBe(false);
+		expect(showsQuantity(2, view)).toBe(true);
+	});
+});
+
+describe('stepQuantity', () => {
+	it('adds the step and never goes below 1', () => {
+		expect(stepQuantity(2, 1)).toBe(3);
+		expect(stepQuantity(2, -1)).toBe(1);
+		expect(stepQuantity(1, -1)).toBe(1);
 	});
 });
