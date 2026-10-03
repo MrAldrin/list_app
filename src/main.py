@@ -13,6 +13,7 @@ from nicegui import app, core, ui
 
 from config import app_reload_enabled, require_app_password
 from item_visibility import MAX_HIDE_DONE_COUNT, filter_visible_items
+from svelte_frontend import register_svelte_frontend
 from ui.install_help import install_help_menu_item
 from ui.room_invitations import creation_form, invitation_controls
 from ui.sharing import share_button
@@ -90,6 +91,8 @@ def serve_apple_touch_icon() -> FileResponse:
     )
 
 
+# The Svelte prototype, served at /app/ only when frontend/build/ exists.
+register_svelte_frontend(app)
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
 )

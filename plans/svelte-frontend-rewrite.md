@@ -337,12 +337,14 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 13 | Old `op_id`s are pruned at startup (older than 30 days) | Simple; the table stays small | A scheduled job | Low |
 | 14 | SPA fallback file is `index.html`, nothing prerendered (`ssr = false`, `prerender = false` in the root layout) | One file serves every `/app/` URL; no prerendered home page to clash with | `200.html` fallback, or prerender some pages | Low |
 | 15 | Vite proxy keeps the `Host` header (no `changeOrigin`) | The server's same-origin check compares `Origin` with the host, so dev writes pass | Rewrite the host and relax the check in dev | Low |
+| 16 | `/app` redirects to `/app/` with a temporary (307) redirect | The app moves to `/` at the switch; browsers must not cache the redirect | Permanent 308 | Low |
+| 17 | Missing files under `/app/_app/` return 404, not `index.html`; the routes are added at startup only if `frontend/build/index.html` exists | Serving HTML as JavaScript hides errors after a deploy; no build means no `/app/` at all | Fall back for every path; check the folder on each request | Low |
 
 ## Progress
 
 Milestone 0: foundations
 - [x] 0.1 Frontend setup (adapter-static, base `/app`, `/api` proxy, Vitest 5 with `npm run test`)
-- [ ] 0.2 Python serves `/app/`
+- [x] 0.2 Python serves `/app/` (`src/svelte_frontend.py`; restart the server after the first build)
 - [ ] 0.3 API contract doc
 - [ ] 0.4 Offline-ready schema migration
 - [ ] 0.5 Writes bump `change_seq` and record deletions
