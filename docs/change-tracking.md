@@ -17,7 +17,9 @@ links, admin) is covered, and a rolled-back write leaves no trace.
 - `processed_ops`: stored API results per `op_id`, for retry-safe writes.
 
 Deleting a room removes its `deletions` and `processed_ops` rows
-(`ON DELETE CASCADE`).
+(`ON DELETE CASCADE`). Otherwise `deletions` rows are kept for now; pruning
+them is decided with the offline work (Milestone 6 of the
+[rewrite plan](../plans/svelte-frontend-rewrite.md)).
 
 ## What the triggers do
 

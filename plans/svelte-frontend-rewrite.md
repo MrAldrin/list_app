@@ -309,7 +309,10 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
 ### Milestone 6: offline editing
 
 - **6.1** Design note in `docs/`: conflict rules for edits, deletes, duplicate
-  names and multiple devices. Pick the simplest safe rules; log them.
+  names and multiple devices. Pick the simplest safe rules; log them. Also
+  decide how long `deletions` rows are kept and prune them; the changes feed
+  then sends a full snapshot when `since` is older than the oldest kept
+  record (not built yet: deletions are never pruned before this step).
 - **6.2** Persist the write queue in IndexedDB; sync on reconnect and on app
   open. No reliance on iPhone background sync.
 - **6.3** UI for pending, failed and conflicting changes.
@@ -364,6 +367,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 40 | Sign-in keeps an older token of the same room (no revoke); sign-out clears only the room cookie, not `last-room` | Matches NiceGUI; on HTTPS a NiceGUI tab may hold the old token | Revoke the old token on sign-in | Low |
 | 41 | Sign-out with a database error is 503 and keeps the cookie | A cleared cookie with a live token would hide that sign-out failed | Clear the cookie anyway | Low |
 | 42 | Sign-in password longer than 1,024 characters is 422 | Bounds bcrypt input; no room has such a password (bcrypt limit is 72 bytes) | No limit | Low |
+| 43 | The feed reads stored values like NiceGUI's `get_list_data`: missing quantity 1, missing description `""`, bad or non-list tags JSON `[]` (non-text tags dropped), `completed_at` rewritten as UTC with `Z`, `null` when not done or unreadable. One `_decode_tags` helper now serves NiceGUI reads too | The client gets one clean shape; both UIs show the same values | Send raw stored values | Low |
+| 44 | Deletion records are not pruned in the prototype, so the "older than the kept deletions" full snapshot never happens yet; pruning moves to 6.1 | Nothing needs it before offline use; the table is small | Prune now with a fixed age | Low |
+| 45 | Feed `since` is required, 0 to 2^63−1 (else 422); lists and items come in creation order | SQLite integers are 64-bit; the client sorts anyway | Default `since=0` | Low |
 
 ## Progress
 
@@ -378,7 +384,7 @@ Milestone 0: foundations
 Milestone 1: API
 - [x] 1.1 API package and access helper (`src/api/`, [`tests/test_api_basics.py`](../tests/test_api_basics.py); decisions 36–39)
 - [x] 1.2 Room session (`src/api/session.py`, [`tests/test_api_session.py`](../tests/test_api_session.py); decisions 40–42)
-- [ ] 1.3 Changes feed
+- [x] 1.3 Changes feed (`src/api/changes.py`, [`tests/test_api_changes.py`](../tests/test_api_changes.py); decisions 43–45)
 - [ ] 1.4 List writes
 - [ ] 1.5 Item writes
 - [ ] 1.6 Tags and hide-done writes

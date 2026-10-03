@@ -134,7 +134,12 @@ Each room has a counter `seq`; every write in the room increases it.
   no deletions. The client replaces all its data for the room.
 - The server also sends a full snapshot when it cannot serve the delta: `since`
   is larger than the current `seq` (for example after a database restore), or
-  older than the deletion records it keeps.
+  older than the deletion records it keeps. Deletion records are not pruned
+  yet, so for now only the first case happens.
+- `since` is required: a whole number from 0 up; anything else gives 422.
+- Stored values are read the way NiceGUI reads them: a missing quantity is 1,
+  a missing description is `""`, unreadable tags are `[]`, and an unreadable
+  `completed_at` is `null`.
 - Otherwise (`full: false`) the client upserts `lists` and `items` by `uid` and
   removes each `uid` in `deletions`.
 - A deleted list means its items are gone too. The client drops them, whether or

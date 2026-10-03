@@ -31,7 +31,7 @@ def _utc_datetime(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-def _parse_completion_time(value: object) -> datetime | None:
+def parse_completion_time(value: object) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
     try:
@@ -70,7 +70,7 @@ def filter_visible_items(
             if not item.get("done", False):
                 visible.append(item)
                 continue
-            completed_at = _parse_completion_time(item.get("completed_at"))
+            completed_at = parse_completion_time(item.get("completed_at"))
             if completed_at is None or completed_at > cutoff:
                 visible.append(item)
         return visible
@@ -78,7 +78,7 @@ def filter_visible_items(
     checked_items = [item for item in items if item.get("done", False)]
 
     def recent_key(item: Mapping[str, Any]) -> tuple[bool, datetime, int]:
-        completed_at = _parse_completion_time(item.get("completed_at"))
+        completed_at = parse_completion_time(item.get("completed_at"))
         return (
             completed_at is not None,
             completed_at or datetime.min.replace(tzinfo=UTC),

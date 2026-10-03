@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 import bcrypt
 
 from database_setup import db
-from item_visibility import validate_visibility_settings
+from item_visibility import parse_completion_time, validate_visibility_settings
 
 _DB_LOCK = threading.RLock()
 
@@ -52,6 +52,17 @@ def normalize_display_name(raw: str | None) -> str:
     return (raw or "").strip()
 
 
+def _decode_tags(raw: str | None) -> list[str]:
+    """Stored list or item tags; bad JSON or a non-list reads as no tags."""
+    try:
+        tags = json.loads(raw) if raw else []
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(tags, list):
+        return []
+    return [tag for tag in tags if isinstance(tag, str)]
+
+
 def _completion_timestamp(now: datetime | None = None) -> str:
     timestamp = datetime.now(UTC) if now is None else now
     if timestamp.tzinfo is None:
@@ -86,10 +97,7 @@ def get_list_details(list_id: int):
         ).fetchone()
     if not row:
         return None
-    try:
-        list_tags = json.loads(row[2]) if row[2] else []
-    except json.JSONDecodeError:
-        list_tags = []
+    list_tags = _decode_tags(row[2])
     return {
         "id": row[0],
         "name": row[1],
@@ -118,10 +126,7 @@ def get_list_details_by_slug(slug: str):
         ).fetchone()
     if not row:
         return None
-    try:
-        list_tags = json.loads(row[2]) if row[2] else []
-    except json.JSONDecodeError:
-        list_tags = []
+    list_tags = _decode_tags(row[2])
     return {
         "id": row[0],
         "name": row[1],
@@ -233,10 +238,7 @@ def _change_list_tag(
             row = db.execute(
                 "SELECT list_tags FROM lists WHERE id = ?", (list_id,)
             ).fetchone()
-            try:
-                list_tags = json.loads(row[0]) if row[0] else []
-            except json.JSONDecodeError:
-                list_tags = []
+            list_tags = _decode_tags(row[0])
 
             if add:
                 if tag not in list_tags:
@@ -308,10 +310,7 @@ def toggle_item_active_tag(
             if row is None:
                 db.commit()
                 return
-            try:
-                active_tags = json.loads(row[0]) if row[0] else []
-            except json.JSONDecodeError:
-                active_tags = []
+            active_tags = _decode_tags(row[0])
             if tag in active_tags:
                 active_tags.remove(tag)
             else:
@@ -441,10 +440,7 @@ def get_list_data(list_id: int):
 
     list_items = []
     for r in rows:
-        try:
-            active_tags = json.loads(r[3]) if r[3] else []
-        except json.JSONDecodeError:
-            active_tags = []
+        active_tags = _decode_tags(r[3])
         list_items.append(
             {
                 "id": r[0],
@@ -893,6 +889,97 @@ def get_room_details_locked(room_id: int) -> dict | None:
     """Room slug and name; call inside room_token_transaction()."""
     row = db.execute("SELECT slug, name FROM rooms WHERE id = ?", (room_id,)).fetchone()
     return {"slug": row[0], "name": row[1]} if row else None
+
+
+# Changes feed readers (docs/api.md, "Reading: the changes feed"). Call them in
+# one room_token_transaction(), so the rows match the room seq. `since=None`
+# reads every row; otherwise only rows changed after that seq.
+
+
+def get_room_seq_locked(room_id: int) -> int:
+    return db.execute(
+        "SELECT change_seq FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()[0]
+
+
+def _since_bound(since: int | None) -> int:
+    # Rows from before change tracking have changed_seq 0.
+    return -1 if since is None else since
+
+
+def get_list_changes_locked(room_id: int, since: int | None) -> list[dict]:
+    rows = db.execute(
+        """
+        SELECT uid, slug, name, list_tags, hide_done_mode, hide_done_age_days,
+               hide_done_recent_count, changed_seq
+        FROM lists
+        WHERE room_id = ? AND changed_seq > ?
+        ORDER BY id
+        """,
+        (room_id, _since_bound(since)),
+    ).fetchall()
+    return [
+        {
+            "uid": row[0],
+            "slug": row[1],
+            "name": row[2],
+            "tags": sorted(_decode_tags(row[3]), key=str.lower),
+            "hide_done": {
+                "mode": row[4],
+                "age_days": row[5],
+                "recent_count": row[6],
+            },
+            "changed_seq": row[7],
+        }
+        for row in rows
+    ]
+
+
+def _feed_completed_at(done: bool, stored: object) -> str | None:
+    """UTC with Z, or None when not done or the stored time is unreadable."""
+    completed_at = parse_completion_time(stored) if done else None
+    return None if completed_at is None else _completion_timestamp(completed_at)
+
+
+def get_item_changes_locked(room_id: int, since: int | None) -> list[dict]:
+    rows = db.execute(
+        """
+        SELECT i.uid, l.uid, i.name, i.done, i.completed_at, i.quantity,
+               i.description, i.active_tags, i.changed_seq
+        FROM items AS i
+        JOIN lists AS l ON l.id = i.list_id
+        WHERE l.room_id = ? AND i.changed_seq > ?
+        ORDER BY i.id
+        """,
+        (room_id, _since_bound(since)),
+    ).fetchall()
+    items = []
+    for row in rows:
+        done = bool(row[3])
+        # Same defaults as get_list_data(), which NiceGUI renders.
+        items.append(
+            {
+                "uid": row[0],
+                "list_uid": row[1],
+                "name": row[2],
+                "done": done,
+                "completed_at": _feed_completed_at(done, row[4]),
+                "quantity": row[5] if row[5] is not None else 1,
+                "description": row[6] or "",
+                "tags": _decode_tags(row[7]),
+                "changed_seq": row[8],
+            }
+        )
+    return items
+
+
+def get_deletions_locked(room_id: int, since: int) -> list[dict]:
+    rows = db.execute(
+        "SELECT kind, uid FROM deletions WHERE room_id = ? AND changed_seq > ? "
+        "ORDER BY changed_seq, id",
+        (room_id, since),
+    ).fetchall()
+    return [{"kind": row[0], "uid": row[1]} for row in rows]
 
 
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:
