@@ -352,6 +352,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 28 | Migration 3 backfills `uid`s in Python (`uuid4`); existing rows and rooms start at `changed_seq`/`change_seq` 0 | Simple and testable; a first sync (`since=0`) is a full snapshot anyway | Generate in SQL; start at 1 | Low |
 | 29 | `deletions` and `processed_ops` reference `rooms` with `ON DELETE CASCADE`; `processed_ops.created_at` defaults to UTC ISO time | Foreign keys are on in the app, so a room delete leaves no orphans without extra code | Delete them in triggers or in `delete_room` | Low |
 | 30 | Tests that fake a pre-versioning database now build it from the version 1 baseline (`test_invitation_migration`); `test_item_ids` runs only migrations 1–2 | Migration 2 cannot rerun on a schema with later columns and indexes; real databases never reset `user_version` | Make every migration rerunnable | Low |
+| 31 | Triggers live in their own migration 4, not in migration 3 | One migration per step; the triggers can be dropped or replaced on their own | Put them in migration 3 | Low |
+| 32 | Update triggers have a guard `WHEN NEW.changed_seq IS OLD.changed_seq`, on top of SQLite's default `recursive_triggers = OFF` | Without it the insert trigger's own stamp would fire the update trigger (double bump); also safe if recursive triggers are ever turned on | Column lists in `UPDATE OF` | Low |
+| 33 | Every update that matches a row bumps, even with equal values (same visibility values, share-link reset) | Simple; an extra unchanged row in the feed is harmless | Compare old and new values in the trigger | Low |
+| 34 | Deleting a list records a `deletions` row for each of its items, then the list | Follows from per-row triggers; clients drop the items of a deleted list anyway | Skip item rows when the list goes too | Low |
 
 ## Progress
 
@@ -360,7 +364,7 @@ Milestone 0: foundations
 - [x] 0.2 Python serves `/app/` (`src/svelte_frontend.py`; restart the server after the first build)
 - [x] 0.3 API contract doc ([`docs/api.md`](../docs/api.md); decisions 18–27)
 - [x] 0.4 Offline-ready schema migration (migration 3; tested on a copy of `list.db`: 4 rooms, 4 lists, 46 items kept, 50 unique `uid`s; decisions 28–30)
-- [ ] 0.5 Writes bump `change_seq` and record deletions
+- [x] 0.5 Writes bump `change_seq` and record deletions (migration 4; [change tracking](../docs/change-tracking.md); decisions 31–34. NiceGUI needs no code change: the triggers cover its writes and it never selects `*`)
 - [ ] 0.6 README dev setup
 
 Milestone 1: API

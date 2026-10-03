@@ -440,12 +440,109 @@ def _migration_3_offline_ready_schema(db: sqlite3.Connection) -> None:
     db.execute("CREATE INDEX idx_processed_ops_created_at ON processed_ops(created_at)")
 
 
+# A random UUID v4 as a lowercase string: version nibble 4, variant 8/9/a/b.
+_SQL_UUID4 = (
+    "lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || "
+    "substr(lower(hex(randomblob(2))), 2) || '-' || "
+    "substr('89ab', 1 + (random() & 3), 1) || "
+    "substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))"
+)
+_ITEM_ROOM_ID = "(SELECT room_id FROM lists WHERE id = {row}.list_id)"
+_ROOM_SEQ = "(SELECT change_seq FROM rooms WHERE id = {room_id})"
+
+# Change tracking: see docs/change-tracking.md. The update triggers skip the
+# triggers' own changed_seq stamp (WHEN guard), so they never loop, even if
+# recursive triggers were turned on. A migration that rebuilds rooms, lists or
+# items drops these triggers and must create them again. Migration 4 creates
+# them from this dict: change a trigger only in a new migration that drops and
+# recreates it.
+_CHANGE_TRACKING_TRIGGERS = {
+    "lists_track_insert": f"""
+        AFTER INSERT ON lists
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = NEW.room_id;
+            UPDATE lists
+            SET changed_seq = COALESCE({_ROOM_SEQ.format(room_id="NEW.room_id")},
+                                       changed_seq),
+                uid = COALESCE(uid, {_SQL_UUID4})
+            WHERE id = NEW.id;
+        END""",
+    "lists_track_update": f"""
+        AFTER UPDATE ON lists
+        WHEN NEW.changed_seq IS OLD.changed_seq
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = NEW.room_id;
+            UPDATE lists
+            SET changed_seq = COALESCE({_ROOM_SEQ.format(room_id="NEW.room_id")},
+                                       changed_seq)
+            WHERE id = NEW.id;
+        END""",
+    "lists_track_delete": """
+        AFTER DELETE ON lists
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = OLD.room_id;
+            INSERT INTO deletions (room_id, kind, uid, changed_seq)
+            SELECT id, 'list', OLD.uid, change_seq FROM rooms
+            WHERE id = OLD.room_id AND OLD.uid IS NOT NULL;
+        END""",
+    "items_track_insert": f"""
+        AFTER INSERT ON items
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1
+            WHERE id = {_ITEM_ROOM_ID.format(row="NEW")};
+            UPDATE items
+            SET changed_seq = COALESCE(
+                    {_ROOM_SEQ.format(room_id=_ITEM_ROOM_ID.format(row="NEW"))},
+                    changed_seq),
+                uid = COALESCE(uid, {_SQL_UUID4})
+            WHERE id = NEW.id;
+        END""",
+    "items_track_update": f"""
+        AFTER UPDATE ON items
+        WHEN NEW.changed_seq IS OLD.changed_seq
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1
+            WHERE id = {_ITEM_ROOM_ID.format(row="NEW")};
+            UPDATE items
+            SET changed_seq = COALESCE(
+                    {_ROOM_SEQ.format(room_id=_ITEM_ROOM_ID.format(row="NEW"))},
+                    changed_seq)
+            WHERE id = NEW.id;
+        END""",
+    # An item whose list is already gone records nothing: clients drop the
+    # items of a deleted list themselves.
+    "items_track_delete": f"""
+        AFTER DELETE ON items
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1
+            WHERE id = {_ITEM_ROOM_ID.format(row="OLD")};
+            INSERT INTO deletions (room_id, kind, uid, changed_seq)
+            SELECT r.id, 'item', OLD.uid, r.change_seq
+            FROM lists AS l JOIN rooms AS r ON r.id = l.room_id
+            WHERE l.id = OLD.list_id AND OLD.uid IS NOT NULL;
+        END""",
+    # Only renames: password and token changes do not change room data.
+    "rooms_track_rename": """
+        AFTER UPDATE OF name ON rooms
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = NEW.id;
+        END""",
+}
+
+
+def _migration_4_change_tracking_triggers(db: sqlite3.Connection) -> None:
+    """Bump room change_seq, stamp changed_seq, fill uids, record deletions."""
+    for name, body in _CHANGE_TRACKING_TRIGGERS.items():
+        db.execute(f"CREATE TRIGGER {name} {body}")
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
         partial(_migration_1_baseline, app_password=app_password),
         _migration_2_item_ids_never_reused,
         _migration_3_offline_ready_schema,
+        _migration_4_change_tracking_triggers,
     ]
 
 

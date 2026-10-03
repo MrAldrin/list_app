@@ -136,6 +136,7 @@ Each room has a counter `seq`; every write in the room increases it.
   not the feed also lists them.
 - `room` is always included, so a room rename shows up.
 - Store `seq` and send it as `since` next time.
+- How the server tracks changes: [change tracking](change-tracking.md).
 
 ## Writing: operations
 
