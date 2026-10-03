@@ -6,6 +6,9 @@
 // - 401: pause. The ops stay queued; `resume()` after signing in sends them.
 // - Any other HTTP error (403, 409, 415, 422, …): that op fails; go on.
 // - 200 `applied` or `rejected`: done; go on.
+//
+// The host hears when an op goes out and when it comes back, so the room can
+// hold back changes feeds while an answer is open (see RoomStore).
 
 import { isRetryable } from './api';
 import { newId } from './ids';
@@ -14,11 +17,18 @@ import type { Op, OpResponse, SentOp } from './types';
 
 /** What the queue tells its room. `RoomStore` implements it. */
 export interface QueueHost {
-	readonly seq: number;
-	refresh(): Promise<void>;
 	opQueued(op: SentOp): void;
+	/** The op is on its way; its answer is open. */
+	opSending(op: SentOp): void;
+	/** The answer is applied or rejected; the host reads the changes it needs. */
 	opSettled(op: SentOp, response: OpResponse): void;
+	/** The op failed for good (HTTP error); it is dropped. */
 	opFailed(op: SentOp, error: unknown): void;
+	/**
+	 * No answer; the op stays queued. `maybeApplied` is true when the server may
+	 * have applied it (no answer, 5xx), false when it surely did not (401).
+	 */
+	opUnanswered(op: SentOp, maybeApplied: boolean): void;
 	authRequired(): void;
 }
 
@@ -153,11 +163,13 @@ export class WriteQueue {
 
 	async #sendOne(op: SentOp): Promise<void> {
 		let response: OpResponse;
+		this.#host.opSending(op);
 		try {
 			response = await this.#sender.sendOp(this.#slug, op);
 		} catch (error) {
 			if (this.#disposed) return;
 			if (isRetryable(error)) {
+				this.#host.opUnanswered(op, true);
 				const delay = this.#delays[Math.min(this.#attempt, this.#delays.length - 1)];
 				this.#attempt += 1;
 				await this.#sleep(delay);
@@ -166,6 +178,7 @@ export class WriteQueue {
 			this.#attempt = 0;
 			if (error instanceof ApiError && error.status === 401) {
 				this.#paused = true;
+				this.#host.opUnanswered(op, false);
 				this.#host.authRequired();
 				return;
 			}
@@ -181,8 +194,6 @@ export class WriteQueue {
 		this.#host.opSettled(op, response);
 		this.#waiters.get(op.op_id)?.resolve(response);
 		this.#waiters.delete(op.op_id);
-		// Someone (maybe this op) changed the room: read the changes.
-		if (response.seq > this.#host.seq) void this.#host.refresh();
 	}
 
 	#finish(op: SentOp): void {

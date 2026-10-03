@@ -48,6 +48,10 @@ export class RoomStore implements QueueHost {
 	#noticeId = 0;
 	#inflight: Promise<void> | null = null;
 	#queued: Promise<void> | null = null;
+	/** The op whose answer is open. While set, no feed is applied. */
+	#sending: string | null = null;
+	/** A refresh that waits for that answer. */
+	#held: { promise: Promise<void>; resolve: () => void } | null = null;
 
 	constructor(slug: string, source: FeedSource) {
 		this.slug = slug;
@@ -109,8 +113,13 @@ export class RoomStore implements QueueHost {
 	/**
 	 * Reads the changes since our `seq`. At most one request runs, and at most
 	 * one more is queued; later calls share the queued one.
+	 *
+	 * While a write's answer is open, the refresh waits for it: a feed may
+	 * already contain that write while its projection is still shown, which
+	 * would count it twice (or make a toggled tag flicker).
 	 */
 	refresh(): Promise<void> {
+		if (this.#sending !== null) return this.#hold();
 		if (!this.#inflight) {
 			this.#inflight = this.#load().finally(() => {
 				this.#inflight = null;
@@ -140,6 +149,11 @@ export class RoomStore implements QueueHost {
 	async #load(): Promise<void> {
 		try {
 			const feed = await this.#source.changes(this.slug, this.seq);
+			if (this.#sending !== null) {
+				// A write went out meanwhile: read again after its answer.
+				void this.#hold();
+				return;
+			}
 			this.applyFeed(feed);
 			this.error = null;
 			this.status = 'ready';
@@ -171,6 +185,30 @@ export class RoomStore implements QueueHost {
 		this.seq = 0;
 		this.error = null;
 		this.status = status;
+		this.#sending = null;
+		this.#held?.resolve();
+		this.#held = null;
+	}
+
+	#hold(): Promise<void> {
+		if (!this.#held) {
+			let resolve!: () => void;
+			const promise = new Promise<void>((done) => {
+				resolve = done;
+			});
+			this.#held = { promise, resolve };
+		}
+		return this.#held.promise;
+	}
+
+	/** The open answer came (or will not come for now): run the held refresh. */
+	#answered(refresh: boolean): void {
+		this.#sending = null;
+		const held = this.#held;
+		this.#held = null;
+		if (!held && !refresh) return;
+		const done = this.refresh();
+		if (held) void done.then(held.resolve);
 	}
 
 	// QueueHost: the write queue reports what happens to each op.
@@ -180,29 +218,46 @@ export class RoomStore implements QueueHost {
 		this.#pending = [...this.#pending, { op, at: nowIso(), appliedSeq: null }];
 	}
 
+	opSending(op: SentOp): void {
+		this.#sending = op.op_id;
+	}
+
 	opSettled(op: SentOp, response: OpResponse): void {
 		if (response.status === 'rejected') {
 			this.#drop(op.op_id);
 			this.notify(response.code, response.message);
-			return;
-		}
-		if (response.seq <= this.seq) {
+		} else if (response.seq <= this.seq) {
 			this.#drop(op.op_id);
-			return;
+		} else {
+			// Our data is older than the op (a replay answers with the op's own
+			// seq), so it does not contain it: project it until the feed has it.
+			this.#update(op.op_id, { appliedSeq: response.seq, uncertain: false });
 		}
-		this.#pending = this.#pending.map((pending) =>
-			pending.op.op_id === op.op_id ? { ...pending, appliedSeq: response.seq } : pending
-		);
+		// Someone (maybe this op) changed the room: read the changes.
+		this.#answered(response.seq > this.seq);
 	}
 
 	opFailed(op: SentOp, error: unknown): void {
 		this.#drop(op.op_id);
 		if (error instanceof ApiError) this.notify(error.code, error.message);
 		else this.notify('unknown', 'The change could not be saved.');
+		this.#answered(false);
+	}
+
+	opUnanswered(op: SentOp, maybeApplied: boolean): void {
+		// Live updates go on while the op is retried; a feed may then contain it.
+		if (maybeApplied) this.#update(op.op_id, { uncertain: true });
+		this.#answered(false);
 	}
 
 	authRequired(): void {
 		this.status = 'auth_required';
+	}
+
+	#update(opId: string, changes: Partial<PendingOp>): void {
+		this.#pending = this.#pending.map((pending) =>
+			pending.op.op_id === opId ? { ...pending, ...changes } : pending
+		);
 	}
 
 	#drop(opId: string): void {

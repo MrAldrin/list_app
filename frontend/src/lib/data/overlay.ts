@@ -14,7 +14,16 @@ export interface PendingOp {
 	at: string;
 	/** The room `seq` after the server applied it; null while not answered. */
 	appliedSeq: number | null;
+	/**
+	 * Sent without an answer (it is being retried): the server may have applied
+	 * it already, so a feed may include it. Ops that are not safe to apply twice
+	 * are then not projected (see `project`).
+	 */
+	uncertain?: boolean;
 }
+
+/** Ops whose projection would count twice if the server data already has them. */
+const NOT_IDEMPOTENT = new Set<SentOp['type']>(['item.quantity_delta', 'item.toggle_tag']);
 
 const PROJECTED = new Set<SentOp['type']>([
 	'item.set_done',
@@ -46,7 +55,8 @@ export function project(server: RoomData, pending: readonly PendingOp[]): RoomDa
 	const lists = new Map(server.lists);
 	const items = new Map(server.items);
 
-	for (const { op, at } of pending) {
+	for (const { op, at, uncertain } of pending) {
+		if (uncertain && NOT_IDEMPOTENT.has(op.type)) continue;
 		switch (op.type) {
 			case 'item.set_done':
 			case 'item.quantity_delta':

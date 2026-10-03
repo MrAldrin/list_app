@@ -87,6 +87,40 @@ describe('RoomHandle', () => {
 		expect(store.item(milk.uid)).toEqual(serverMilk);
 	});
 
+	it.each([
+		['quantity_delta', 'quantity', 3],
+		['toggle_tag', 'tags', []]
+	] as const)(
+		'shows %s once when the live update comes before the answer',
+		async (_name, field, expected) => {
+			const { room, store, ops, feeds, api } = await opened();
+			const result =
+				field === 'quantity' ? room.changeQuantity(milk, 1) : room.toggleItemTag(milk, 'Lidl');
+			const seen = [store.item(milk.uid)?.[field]];
+			await settle();
+			expect(ops).toHaveLength(1);
+
+			// The server commits, wakes the stream, then answers the op.
+			const serverMilk = { ...milk, [field]: expected, changed_seq: 6 };
+			feeds.push(makeFeed({ seq: 6, items: [serverMilk] }));
+			FakeEventSource.last.open();
+			FakeEventSource.last.seq(6);
+			await settle();
+			seen.push(store.item(milk.uid)?.[field]);
+			expect(api.changes).toHaveBeenCalledTimes(1); // held until the answer
+
+			ops[0].answer.resolve(applied(ops[0].op, 6));
+			await settle();
+			seen.push(store.item(milk.uid)?.[field]);
+			expect((await result).ok).toBe(true);
+
+			expect(seen).toEqual([expected, expected, expected]);
+			expect(store.item(milk.uid)).toEqual(serverMilk);
+			expect(store.pendingOps).toHaveLength(0);
+			expect(api.changes).toHaveBeenCalledTimes(2);
+		}
+	);
+
 	it('reverts a rejected change and surfaces its message', async () => {
 		const { room, store, ops } = await opened();
 		const result = room.changeQuantity(milk, 1);

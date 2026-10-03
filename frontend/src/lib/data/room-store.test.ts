@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { project } from './overlay';
 import { RoomStore } from './room-store.svelte';
-import { deferred, makeFeed, makeItem, makeList, ROOM, settle } from './test-helpers';
+import {
+	deferred,
+	makeFeed,
+	makeItem,
+	makeList,
+	ROOM,
+	settle,
+	type Deferred
+} from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Op, SentOp } from './types';
 
@@ -233,7 +241,7 @@ describe('optimistic overlay', () => {
 		expect(store.item(item.uid)).toEqual(serverItem);
 	});
 
-	it('drops an applied op at once if the feed is already there', () => {
+	it('drops an applied op at once if the data already has its seq (replay)', () => {
 		const { store, list, item } = loaded();
 		const op = sent({
 			type: 'item.quantity_delta',
@@ -242,11 +250,10 @@ describe('optimistic overlay', () => {
 			delta: 1
 		});
 		store.opQueued(op);
-		store.applyFeed(makeFeed({ seq: 7, items: [{ ...item, quantity: 3 }] }));
-		expect(store.item(item.uid)?.quantity).toBe(4); // still pending: counted twice for now
-
-		store.opSettled(op, { op_id: op.op_id, status: 'applied', result: {}, seq: 6 });
-		expect(store.item(item.uid)?.quantity).toBe(3);
+		store.opSending(op);
+		store.opSettled(op, { op_id: op.op_id, status: 'applied', result: {}, seq: 5 });
+		expect(store.pendingOps).toHaveLength(0);
+		expect(store.item(item.uid)?.quantity).toBe(2);
 	});
 
 	it('reverts a rejected op and shows its message', () => {
@@ -375,5 +382,158 @@ describe('project', () => {
 			recent_count: 3
 		});
 		expect(list.hide_done.mode).toBe('off');
+	});
+});
+
+describe('feeds while a write is in flight', () => {
+	function setup() {
+		const list = makeList();
+		const item = makeItem(list.uid, { quantity: 2, tags: ['Lidl'] });
+		const feeds: Deferred<Feed>[] = [];
+		const changes = vi.fn((_slug: string, since: number) => {
+			void since;
+			const answer = deferred<Feed>();
+			feeds.push(answer);
+			return answer.promise;
+		});
+		const store = storeWith(changes);
+		store.applyFeed(makeFeed({ seq: 5, full: true, lists: [list], items: [item] }));
+		return { store, list, item, feeds, changes };
+	}
+
+	it('holds a refresh until the answer, then applies the feed and drops the op together', async () => {
+		const { store, list, item, feeds, changes } = setup();
+		const op = sent({
+			type: 'item.quantity_delta',
+			list_uid: list.uid,
+			item_uid: item.uid,
+			delta: 1
+		});
+		store.opQueued(op);
+		store.opSending(op);
+		const seen = [store.item(item.uid)?.quantity];
+
+		// The live update for our own write comes before the op's answer.
+		const held = store.refresh();
+		expect(changes).not.toHaveBeenCalled();
+		seen.push(store.item(item.uid)?.quantity);
+
+		store.opSettled(op, { op_id: op.op_id, status: 'applied', result: {}, seq: 6 });
+		expect(changes).toHaveBeenCalledTimes(1);
+		seen.push(store.item(item.uid)?.quantity);
+
+		feeds[0].resolve(makeFeed({ seq: 6, items: [{ ...item, quantity: 3 }] }));
+		await held;
+		seen.push(store.item(item.uid)?.quantity);
+
+		expect(seen).toEqual([3, 3, 3, 3]);
+		expect(store.pendingOps).toHaveLength(0);
+		expect(changes).toHaveBeenCalledTimes(1);
+	});
+
+	it('drops a feed that arrives while a write is in flight and reads again after the answer', async () => {
+		const { store, list, item, feeds, changes } = setup();
+		const op = sent({
+			type: 'item.toggle_tag',
+			list_uid: list.uid,
+			item_uid: item.uid,
+			tag: 'Lidl'
+		});
+
+		const early = store.refresh(); // started before the write went out
+		store.opQueued(op);
+		store.opSending(op);
+		feeds[0].resolve(makeFeed({ seq: 6, items: [{ ...item, tags: [] }] }));
+		await early;
+		expect(store.seq).toBe(5);
+		expect(store.item(item.uid)?.tags).toEqual([]);
+
+		store.opSettled(op, { op_id: op.op_id, status: 'applied', result: {}, seq: 6 });
+		await settle();
+		expect(changes).toHaveBeenCalledTimes(2);
+		expect(store.item(item.uid)?.tags).toEqual([]);
+		feeds[1].resolve(makeFeed({ seq: 6, items: [{ ...item, tags: [] }] }));
+		await settle();
+		expect(store.item(item.uid)?.tags).toEqual([]);
+		expect(store.pendingOps).toHaveLength(0);
+	});
+
+	it('releases a held refresh on a rejection or a failure', async () => {
+		const { store, list, item, feeds, changes } = setup();
+		const op = sent({ type: 'item.delete', list_uid: list.uid, item_uid: item.uid });
+		store.opQueued(op);
+		store.opSending(op);
+		void store.refresh();
+		store.opSettled(op, {
+			op_id: op.op_id,
+			status: 'rejected',
+			code: 'list_unavailable',
+			message: 'The list is no longer available.',
+			seq: 5
+		});
+		expect(store.item(item.uid)).toEqual(item);
+		expect(changes).toHaveBeenCalledTimes(1);
+		feeds[0].resolve(makeFeed({ seq: 5 }));
+		await settle();
+
+		const failing = sent({ type: 'item.delete', list_uid: list.uid, item_uid: item.uid });
+		store.opQueued(failing);
+		store.opSending(failing);
+		void store.refresh();
+		store.opFailed(failing, new ApiError(422, 'invalid_request', 'Nope.'));
+		await settle();
+		expect(changes).toHaveBeenCalledTimes(2);
+	});
+
+	it('keeps live updates during a retry and stops projecting ops that are not safe twice', async () => {
+		const { store, list, item, feeds, changes } = setup();
+		const delta = sent({
+			type: 'item.quantity_delta',
+			list_uid: list.uid,
+			item_uid: item.uid,
+			delta: 1
+		});
+		const check = sent({
+			type: 'item.set_done',
+			list_uid: list.uid,
+			item_uid: item.uid,
+			done: true
+		});
+		store.opQueued(delta);
+		store.opQueued(check);
+		store.opSending(delta);
+		expect(store.item(item.uid)).toMatchObject({ quantity: 3, done: true });
+
+		// No answer: the server may or may not have applied it.
+		store.opUnanswered(delta, true);
+		expect(store.item(item.uid)).toMatchObject({ quantity: 2, done: true });
+
+		void store.refresh();
+		expect(changes).toHaveBeenCalledTimes(1);
+		feeds[0].resolve(makeFeed({ seq: 6, items: [{ ...item, quantity: 3 }] }));
+		await settle();
+		expect(store.item(item.uid)?.quantity).toBe(3);
+
+		// The retry gets the stored answer of the first try.
+		store.opSending(delta);
+		store.opSettled(delta, { op_id: delta.op_id, status: 'applied', result: {}, seq: 6 });
+		expect(store.item(item.uid)?.quantity).toBe(3);
+		expect(store.pendingOps.map((pending) => pending.op.op_id)).toEqual([check.op_id]);
+	});
+
+	it('projects again when the retry answer is newer than the data', () => {
+		const { store, list, item } = setup();
+		const delta = sent({
+			type: 'item.quantity_delta',
+			list_uid: list.uid,
+			item_uid: item.uid,
+			delta: 1
+		});
+		store.opQueued(delta);
+		store.opSending(delta);
+		store.opUnanswered(delta, true);
+		store.opSending(delta);
+		store.opSettled(delta, { op_id: delta.op_id, status: 'applied', result: {}, seq: 7 });
+		expect(store.item(item.uid)?.quantity).toBe(3);
 	});
 });

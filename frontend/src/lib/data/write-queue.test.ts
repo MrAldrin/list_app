@@ -22,11 +22,11 @@ function fakeSender() {
 
 function fakeHost() {
 	return {
-		seq: 0,
-		refresh: vi.fn(async () => {}),
 		opQueued: vi.fn(),
+		opSending: vi.fn(),
 		opSettled: vi.fn(),
 		opFailed: vi.fn(),
+		opUnanswered: vi.fn(),
 		authRequired: vi.fn()
 	} satisfies QueueHost;
 }
@@ -64,24 +64,19 @@ describe('WriteQueue', () => {
 		expect(queue.pending).toHaveLength(0);
 	});
 
-	it('refreshes the room when an answer has a newer seq', async () => {
+	it('tells the host when an answer is open and when it comes', async () => {
 		const sender = fakeSender();
 		const host = fakeHost();
-		host.seq = 5;
 		const queue = new WriteQueue('home', sender, host);
 
 		const sent = queue.send(DELETE);
 		await settle();
-		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 5));
-		await sent;
-		expect(host.refresh).not.toHaveBeenCalled();
+		expect(host.opSending).toHaveBeenCalledWith(sender.calls[0].op);
+		expect(host.opSettled).not.toHaveBeenCalled();
 
-		const next = queue.send(DELETE);
-		await settle();
-		sender.calls[1].answer.resolve(applied(sender.calls[1].op, 6));
-		await next;
-		expect(host.opSettled).toHaveBeenCalledTimes(2);
-		expect(host.refresh).toHaveBeenCalledTimes(1);
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 6));
+		await sent;
+		expect(host.opSettled).toHaveBeenCalledWith(sender.calls[0].op, applied(sender.calls[0].op, 6));
 	});
 
 	it('retries the same op_id after a network error or 503, keeping the order', async () => {
@@ -95,6 +90,7 @@ describe('WriteQueue', () => {
 		sender.calls[0].answer.reject(new NetworkError());
 		await settle();
 		expect(sender.calls).toHaveLength(1);
+		expect(host.opUnanswered).toHaveBeenCalledWith(sender.calls[0].op, true);
 
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(sender.calls).toHaveLength(2);
@@ -139,6 +135,7 @@ describe('WriteQueue', () => {
 		await settle();
 
 		expect(host.authRequired).toHaveBeenCalledTimes(1);
+		expect(host.opUnanswered).toHaveBeenCalledWith(sender.calls[0].op, false);
 		expect(queue.paused).toBe(true);
 		expect(queue.pending).toHaveLength(2);
 		void queue.send(op('c'));
