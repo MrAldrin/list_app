@@ -30,13 +30,16 @@ HTTP errors use one shape:
 | Status | `code` | When |
 |---|---|---|
 | 400 | `invalid_request` | Body is not valid JSON |
+| 405 | `invalid_request` | Known API path, wrong method (`Allow` header lists the right ones) |
+| 413 | `invalid_request` | Body larger than 64 KB |
 | 415 | `invalid_request` | Write without `Content-Type: application/json` |
-| 422 | `invalid_request` | Missing or wrong fields, unknown op `type`, bad `since`, a client `uid` already used |
+| 422 | `invalid_request` | Body is not a JSON object, missing or wrong fields, unknown op `type`, bad `since`, a client `uid` already used |
 | 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical) |
 | 401 | `not_authenticated` | No room cookie, revoked or expired token, or unknown room |
 | 403 | `forbidden_origin` | Write without a same-origin `Origin` header |
 | 404 | `not_found` | Unknown API path |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
+| 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
 | 503 | `unavailable` | Database busy or failing; retry later. Saved access stays. |
 
 There is no rate limiting; the app has none today.

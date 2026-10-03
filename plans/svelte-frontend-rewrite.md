@@ -357,6 +357,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 33 | Every update that matches a row bumps, even with equal values (same visibility values, share-link reset) | Simple; an extra unchanged row in the feed is harmless | Compare old and new values in the trigger | Low |
 | 34 | Deleting a list records a `deletions` row for each of its items, then the list | Follows from per-row triggers; clients drop the items of a deleted list anyway | Skip item rows when the list goes too | Low |
 | 35 | `frontend/README.md` replaces the `sv` starter text with the dev guide; `frontend/.node-version` pins Node 24 for `fnm use` | The main README stays short and links to it; `fnm` picks the version without flags | All details in the main README; no version file | Low |
+| 36 | API error handlers wrap NiceGUI's and answer only for `/api` paths; added 405, 413 and 500 `internal_error` to the error table | NiceGUI pages keep their own error pages; every API answer has the JSON shape | A catch-all `/api` route; separate app | Low |
+| 37 | Room access = `database_crud.room_token_transaction()` (lock + `BEGIN`/`BEGIN IMMEDIATE` + token check, commit or roll back) wrapped by `api.access.room_access()`; HTTPS reads only `__Host-` cookies, HTTP only the plain names | Same pattern as the `*_with_room_token` functions; later steps read and write in the checked transaction | Validate first, then a second transaction | Low |
+| 38 | Same-origin and JSON rules are one router-wide dependency; bodies are parsed by hand (max 64 KB), not by FastAPI body models | A route cannot forget the check; the origin check runs before any body parsing; we control the error codes | Per-route dependency; FastAPI body models | Low |
+| 39 | `Cache-Control: no-store` comes from a pure ASGI middleware for `/api` paths | Covers errors too and does not buffer the SSE stream (1.8) | `BaseHTTPMiddleware`; set it per route | Low |
 
 ## Progress
 
@@ -369,7 +373,7 @@ Milestone 0: foundations
 - [x] 0.6 README dev setup (README section + [frontend guide](../frontend/README.md); decision 35)
 
 Milestone 1: API
-- [ ] 1.1 API package and access helper
+- [x] 1.1 API package and access helper (`src/api/`, [`tests/test_api_basics.py`](../tests/test_api_basics.py); decisions 36–39)
 - [ ] 1.2 Room session
 - [ ] 1.3 Changes feed
 - [ ] 1.4 List writes

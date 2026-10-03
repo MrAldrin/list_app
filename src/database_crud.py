@@ -4,6 +4,8 @@ import re
 import secrets
 import threading
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 import bcrypt
@@ -860,6 +862,31 @@ def validate_room_access_token(room_slug: str, token: str | None) -> int | None:
     """Return the associated room ID only when the token currently authorizes it."""
     with _DB_LOCK:
         return _valid_room_id_for_token_locked(room_slug, token)
+
+
+@contextmanager
+def room_token_transaction(
+    room_slug: str, token: str | None, *, write: bool = False
+) -> Iterator[int]:
+    """Hold the database lock and one transaction; yield the authorized room ID.
+
+    The token is checked inside the transaction, so the caller's reads or
+    writes in the `with` block see the same state the check saw. Raises
+    RoomAccessDenied when the token does not authorize the room. Commits when
+    the block ends normally and rolls back on any exception. Use write=True
+    for blocks that write (takes SQLite's write lock up front).
+    """
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            room_id = _valid_room_id_for_token_locked(room_slug, token)
+            if room_id is None:
+                raise RoomAccessDenied
+            yield room_id
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
 
 
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:

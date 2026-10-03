@@ -178,6 +178,7 @@ ui.add_head_html(
     shared=True,
 )
 
+from api import register_api
 from database_crud import (
     ListUnavailable,
     RoomAccessDenied,
@@ -234,6 +235,8 @@ from room_cookies import (
 )
 
 register_room_cookie_routes(app)
+# The JSON API for the Svelte frontend, under /api/v1 (docs/api.md).
+register_api(app)
 # Cookie credentials require same-origin websocket and polling handshakes.
 core.sio.eio.cors_allowed_origins = same_origin_socket
 

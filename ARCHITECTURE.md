@@ -67,6 +67,8 @@ back from a public list.
   context and the HTTPS remembered-access bridge.
 - `src/room_invitations.py` and `src/ui/`: Invitation logic and extracted UI helpers.
 - `src/svelte_frontend.py`: Serves the built Svelte prototype under `/app/`.
+- `src/api/`: JSON API for the Svelte frontend under `/api/v1`; the contract is
+  in [docs/api.md](docs/api.md).
 
 UI and service logic are not yet fully separated; splitting `src/main.py` is
 deferred in the [backlog](plans/backlog.md).
