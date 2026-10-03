@@ -4,12 +4,12 @@
 	access, and shows the room's lists once the data layer has loaded them.
 -->
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { closeRoom, logout, openRoom, type RoomHandle } from '#lib/data/index.ts';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
+	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	// `$derived` recomputes when what it reads changes (here: the URL).
@@ -29,14 +29,7 @@
 	});
 
 	// Messages from the data layer (a rejected or failed change) become toasts.
-	$effect(() => {
-		const store = room?.store;
-		const notice = store?.notice;
-		if (!store || !notice) return;
-		// `untrack`: reading the toast list here must not re-run this effect.
-		untrack(() => toasts.show(notice.message, 'warning'));
-		store.dismissNotice();
-	});
+	showNoticesAsToasts(() => room?.store);
 
 	async function signOut() {
 		const result = await logout(slug);

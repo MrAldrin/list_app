@@ -405,6 +405,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 78 | "List created" shows only when a list was created; an existing name (ignoring case) opens that list without a toast (NiceGUI says "List created" both times). Create and rename keep the dialog open on a rejection, and close it on `list_unavailable`, like NiceGUI | The toast must not claim a change that did not happen | Copy NiceGUI exactly | Low |
 | 79 | Fix in the data layer: `createRoomStore()` creates each room store in its own `$effect.root`. Test `room-lifetime.svelte.test.ts` runs in happy-dom (new dev dependency); Vitest resolves Svelte with the `browser` condition | Svelte freezes a `$derived` when the effect that created it ends (`derived_inert`). Rooms are opened in the page's effect but outlive it (decision 68), so the room page showed stale lists after visiting a list | Open rooms outside any effect; jsdom | Low |
 | 80 | `/app/list/[slug]` is a placeholder until 2.4; its link goes to `/app/`, which opens the last room | Room links and "create opens the list" work now | No list route yet | Low |
+| 81 | List page at `/app/room/{room}/list/{list}`. `/app/list/{slug}` (the NiceGUI shape) sends the browser there with the last room (`GET /last-room`). At 4.2, `/list/{slug}` can use the same page, or the server can redirect with the list's room (NiceGUI already shows that room to anyone with the list link, via "Open room") | The changes feed is per room, so the page must know the room; with it in the URL the page never guesses, and it reuses the room's store and password prompt | A list-to-room lookup endpoint; only the last room | Low |
+| 82 | A list that is missing from the loaded room shows "This list was deleted or is not in this room." with "Back to room"; without access the room password prompt shows | The client cannot tell deleted from never in this room. NiceGUI says "This list was deleted." | NiceGUI's text | Low |
+| 83 | Add field: Enter or Add sends `item.add` (not optimistic, the overlay does not project adds). The field clears after added, restored and "already on the list" (as NiceGUI), and only if nothing new was typed meanwhile; other failures keep the text. Focus stays in the field. Up to 3 suggestions (names that contain the text, from all items incl. hidden), a tap adds or restores, as in NiceGUI | Fast entry on the phone; no lost typing | Clear at once before the answer | Low |
 
 ## Progress
 
@@ -432,7 +435,7 @@ Milestone 2: prototype UI
   - Fix after review: feeds are held while a write's answer is open, so a write never shows twice or flickers (decision 71; race tests in `room-store.test.ts` and `index.test.ts`).
 - [x] 2.2 Room login and start page (`frontend/src/routes/+page.svelte`, `routes/room/[slug]/`, `lib/room/`, `lib/room-link.ts`, global `src/app.css`; decisions 72–75)
 - [x] 2.3 Room page (`frontend/src/lib/room/RoomLists.svelte`, toasts and dialogs in `lib/ui/`, list page placeholder; fix: room stores outlive the page that opened them, `room-lifetime.svelte.test.ts`; decisions 76–80)
-- [ ] 2.4 List page: items, add, check
+- [x] 2.4 List page: items, add, check (`frontend/src/routes/room/[slug]/list/[list]/`, `lib/list/`, old link shape `routes/list/[slug]`; notice toasts shared in `lib/ui/notice-toasts.svelte.ts`; decisions 81–83)
 - [ ] 2.5 Quantity, edit, delete with undo
 - [ ] 2.6 Tags and hide-done settings
 - [ ] 2.7 Live updates and error states

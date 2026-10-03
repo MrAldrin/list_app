@@ -1,0 +1,39 @@
+// Small rules of the list page, kept out of the components so Vitest can
+// test them. They copy what NiceGUI's list page does (`src/main.py`).
+
+import { compareCodePoints } from '#lib/data/order.ts';
+import type { Item } from '#lib/data/index.ts';
+import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
+
+/** Shown when the list is gone or not in this room. */
+export const UNAVAILABLE_LIST_MESSAGE = 'This list was deleted or is not in this room.';
+
+/** How many names the add field suggests, as in NiceGUI. */
+export const MAX_SUGGESTIONS = 3;
+
+/** Like Python's `normalize_item_name`: outer spaces removed, lowercase. */
+export function normalizeItemName(raw: string): string {
+	return raw.trim().toLowerCase();
+}
+
+/**
+ * Names the add field suggests while typing: the list's item names that
+ * contain the typed text, sorted, at most three. Hidden checked items count
+ * too, so typing finds them and a tap brings them back.
+ */
+export function itemSuggestions(items: readonly Pick<Item, 'name'>[], typed: string): string[] {
+	const text = normalizeItemName(typed);
+	if (!text) return [];
+	const names = [...new Set(items.map((item) => item.name))].sort(compareCodePoints);
+	return names.filter((name) => name.toLowerCase().includes(text)).slice(0, MAX_SUGGESTIONS);
+}
+
+/** The toast after adding: NiceGUI's "Added milk" or "Restored milk!". */
+export function addFeedback(
+	outcome: 'added' | 'restored',
+	name: string
+): { message: string; kind: ToastKind } {
+	return outcome === 'restored'
+		? { message: `Restored ${name}!`, kind: 'info' }
+		: { message: `Added ${name}`, kind: 'success' };
+}

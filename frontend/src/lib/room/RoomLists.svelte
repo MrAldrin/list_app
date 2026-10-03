@@ -26,7 +26,7 @@
 		creating = false;
 		// An existing name (ignoring case) gives the existing list, like NiceGUI.
 		if (result.result.created) toasts.show('List created', 'success');
-		await goto(resolve('/list/[slug]', { slug: result.result.slug }));
+		await goto(resolve('/room/[slug]/list/[list]', { slug: room.slug, list: result.result.slug }));
 	}
 
 	async function renameList(list: List, name: string) {
@@ -59,7 +59,9 @@
 		<!-- `(list.uid)` is the key: Svelte uses it to match rows when the order changes. -->
 		{#each room.store.lists as list (list.uid)}
 			<li class="card">
-				<a href={resolve('/list/[slug]', { slug: list.slug })}>{list.name}</a>
+				<a href={resolve('/room/[slug]/list/[list]', { slug: room.slug, list: list.slug })}
+					>{list.name}</a
+				>
 				<button
 					class="icon"
 					type="button"
