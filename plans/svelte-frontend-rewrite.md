@@ -370,6 +370,13 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 43 | The feed reads stored values like NiceGUI's `get_list_data`: missing quantity 1, missing description `""`, bad or non-list tags JSON `[]` (non-text tags dropped), `completed_at` rewritten as UTC with `Z`, `null` when not done or unreadable. One `_decode_tags` helper now serves NiceGUI reads too | The client gets one clean shape; both UIs show the same values | Send raw stored values | Low |
 | 44 | Deletion records are not pruned in the prototype, so the "older than the kept deletions" full snapshot never happens yet; pruning moves to 6.1 | Nothing needs it before offline use; the table is small | Prune now with a fixed age | Low |
 | 45 | Feed `since` is required, 0 to 2^63−1 (else 422); lists and items come in creation order | SQLite integers are 64-bit; the client sorts anyway | Default `since=0` | Low |
+| 46 | Op bodies are strict pydantic models per `type` (`extra="forbid"`, strict types); UUIDs are stored in lowercase hyphen form; the request hash is sha256 of the checked body as canonical JSON (includes `op_id` and `type`) | Typos and wrong types fail loudly (422); harmless spelling differences are not a 409 | Lax parsing; hash the raw bytes | Low |
+| 47 | Each op runs in a `SAVEPOINT` inside the access transaction; a rejection rolls back to it, then the response is stored | A rejected op can never leave a partial write or a seq bump, even if a handler wrote first | Trust every handler to check before writing | Low |
+| 48 | A client `uid` counts as used if any list, item or `deletions` row has it, in any room; it is checked before the name rules | `uid`s are never reused, also across rooms; a bad request stays a 422 whatever the name | Check only the same room | Low |
+| 49 | `list_unavailable` message is NiceGUI's "The list is no longer available."; `item_not_found` says "The item is no longer available." (doc said "This …") | Same text in both UIs | Keep "This …" | Low |
+| 50 | `list.rename` checks the list before the name; `list.delete` of a gone list is `list_unavailable` (a replay of the original delete still returns its stored `applied`) | Matches the contract ("every op with `list_uid`"); unavailable is the more useful answer | Treat a repeated delete as applied, like `item.delete` | Low |
+| 51 | `src/live_updates.py` holds listeners; ops notify after commit, outside the lock, once per applied op (also `list.create` that found an existing list), never for rejections or replays. main.py's listener hands `broadcast_updates` to NiceGUI's loop with `call_soon_threadsafe` and does nothing when NiceGUI is not running; a failing listener is logged, never fails the write | API routes run in worker threads and NiceGUI refreshes create loop tasks; no circular import from main.py; 1.8 adds SSE as another listener | Call `broadcast_updates` directly; skip notify for no-change ops | Low |
+| 52 | `processed_ops` pruning is a NiceGUI `on_startup` handler; a database error is logged and startup goes on. List writes reuse new locked helpers (`create_or_find_list_locked`, `rename_list_if_unique_locked`, `delete_list_locked`) that the NiceGUI paths now call too | Startup must not fail over housekeeping; one copy of each list rule | Prune in `init_database()`; separate API copies of the rules | Low |
 
 ## Progress
 
@@ -385,7 +392,7 @@ Milestone 1: API
 - [x] 1.1 API package and access helper (`src/api/`, [`tests/test_api_basics.py`](../tests/test_api_basics.py); decisions 36–39)
 - [x] 1.2 Room session (`src/api/session.py`, [`tests/test_api_session.py`](../tests/test_api_session.py); decisions 40–42)
 - [x] 1.3 Changes feed (`src/api/changes.py`, [`tests/test_api_changes.py`](../tests/test_api_changes.py); decisions 43–45)
-- [ ] 1.4 List writes
+- [x] 1.4 List writes (`src/api/ops.py`, `src/api/idempotency.py`, `src/live_updates.py`, [`tests/test_api_list_ops.py`](../tests/test_api_list_ops.py); decisions 46–52)
 - [ ] 1.5 Item writes
 - [ ] 1.6 Tags and hide-done writes
 - [ ] 1.7 Idempotent `op_id`

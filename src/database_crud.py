@@ -345,23 +345,36 @@ def find_list_by_name(name: str, room_id: int):
     return None if found is None else (found[0],)
 
 
-def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
+def create_or_find_list_locked(
+    name: str, room_id: int, *, uid: str | None = None
+) -> tuple[int, str, bool]:
+    """Create a list, or return the one with that name (ignoring case).
+
+    Returns (list ID, slug, created). `uid` is the client's new public ID;
+    None lets the trigger make one. It is not used for an existing list.
+    """
     normalized_name = normalize_display_name(name)
     if not normalized_name:
         raise ValueError("List name cannot be empty")
 
     existing = _find_list_by_name_locked(normalized_name, room_id)
     if existing:
-        return existing
+        return existing[0], existing[1], False
 
     safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
     short_uuid = str(uuid.uuid4())[:6]
     slug = f"{safe_name}-{short_uuid}"
     result = db.execute(
-        "INSERT INTO lists (name, slug, room_id, share_token) VALUES (?, ?, ?, ?)",
-        (normalized_name, slug, room_id, secrets.token_urlsafe(32)),
+        "INSERT INTO lists (name, slug, room_id, share_token, uid) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (normalized_name, slug, room_id, secrets.token_urlsafe(32), uid),
     )
-    return result.lastrowid, slug
+    return result.lastrowid, slug, True
+
+
+def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
+    list_id, slug, _ = create_or_find_list_locked(name, room_id)
+    return list_id, slug
 
 
 def create_list(name: str, room_id: int):
@@ -404,19 +417,28 @@ def rename_list_if_unique(
             if not belongs_to_room:
                 raise ListUnavailable(f"List {list_id} is no longer available")
 
-            if _find_list_by_name_locked(new_name, room_id, exclude_id=list_id):
+            if not rename_list_if_unique_locked(list_id, room_id, new_name):
                 db.rollback()
                 return False
-
-            db.execute(
-                "UPDATE lists SET name = ? WHERE id = ? AND room_id = ?",
-                (new_name, list_id, room_id),
-            )
             db.commit()
             return True
         except Exception:
             db.rollback()
             raise
+
+
+def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> bool:
+    """Rename a list of the room; False (no change) if another list has the name.
+
+    Call inside a write transaction, with a normalized, nonempty name.
+    """
+    if _find_list_by_name_locked(new_name, room_id, exclude_id=list_id):
+        return False
+    db.execute(
+        "UPDATE lists SET name = ? WHERE id = ? AND room_id = ?",
+        (new_name, list_id, room_id),
+    )
+    return True
 
 
 def get_item_count(list_id: int) -> int:
@@ -772,14 +794,18 @@ def delete_list(list_id: int, *, expected_slug: str | None = None):
     with _DB_LOCK:
         try:
             _begin_list_write_locked(list_id, expected_slug)
-            # First delete all items in the list
-            db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
-            # Then delete the list itself
-            db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+            delete_list_locked(list_id)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def delete_list_locked(list_id: int) -> None:
+    """Delete a list and its items; call inside a write transaction."""
+    # Items first, so each item delete is recorded for its room.
+    db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
+    db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
 
 
 def get_rooms():
@@ -980,6 +1006,87 @@ def get_deletions_locked(room_id: int, since: int) -> list[dict]:
         (room_id, since),
     ).fetchall()
     return [{"kind": row[0], "uid": row[1]} for row in rows]
+
+
+# API write helpers. Call them inside a room_token_transaction(write=True).
+
+
+def list_id_for_uid_locked(room_id: int, list_uid: str) -> int | None:
+    """The list's integer ID, or None if it is gone or in another room."""
+    row = db.execute(
+        "SELECT id FROM lists WHERE uid = ? AND room_id = ?", (list_uid, room_id)
+    ).fetchone()
+    return row[0] if row else None
+
+
+def get_list_uid_locked(list_id: int) -> str:
+    return db.execute("SELECT uid FROM lists WHERE id = ?", (list_id,)).fetchone()[0]
+
+
+def uid_in_use_locked(uid: str) -> bool:
+    """True if a list or item has, or had, this public ID (in any room)."""
+    return (
+        db.execute(
+            "SELECT 1 FROM lists WHERE uid = :uid "
+            "UNION ALL SELECT 1 FROM items WHERE uid = :uid "
+            "UNION ALL SELECT 1 FROM deletions WHERE uid = :uid LIMIT 1",
+            {"uid": uid},
+        ).fetchone()
+        is not None
+    )
+
+
+@contextmanager
+def savepoint_locked() -> Iterator[None]:
+    """Undo the block's writes if it raises; the outer transaction goes on."""
+    db.execute("SAVEPOINT block")
+    try:
+        yield
+    except BaseException:
+        db.execute("ROLLBACK TO block")
+        db.execute("RELEASE block")
+        raise
+    db.execute("RELEASE block")
+
+
+def find_processed_op_locked(op_id: str) -> tuple[int, str, str] | None:
+    """(room ID, request hash, response JSON) stored for an op_id, or None."""
+    row = db.execute(
+        "SELECT room_id, request_hash, response_json FROM processed_ops "
+        "WHERE op_id = ?",
+        (op_id,),
+    ).fetchone()
+    return (row[0], row[1], row[2]) if row else None
+
+
+def store_processed_op_locked(
+    op_id: str, room_id: int, request_hash: str, response_json: str
+) -> None:
+    db.execute(
+        "INSERT INTO processed_ops (op_id, room_id, request_hash, response_json) "
+        "VALUES (?, ?, ?, ?)",
+        (op_id, room_id, request_hash, response_json),
+    )
+
+
+PROCESSED_OP_DAYS = 30
+
+
+def prune_processed_ops(max_age_days: int = PROCESSED_OP_DAYS) -> int:
+    """Delete stored op results older than `max_age_days`; return the count."""
+    with _DB_LOCK:
+        try:
+            # created_at uses the same text format, so text order is time order.
+            result = db.execute(
+                "DELETE FROM processed_ops WHERE created_at < "
+                "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)",
+                (f"-{int(max_age_days)} days",),
+            )
+            db.commit()
+            return result.rowcount
+        except Exception:
+            db.rollback()
+            raise
 
 
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:
@@ -1199,10 +1306,9 @@ def rename_list_with_room_token(
                 db.rollback()
                 raise RoomAccessDenied
             _require_list_identity_locked(list_id, expected_slug)
-            if _find_list_by_name_locked(new_name, room_id, exclude_id=list_id):
+            if not rename_list_if_unique_locked(list_id, room_id, new_name):
                 db.rollback()
                 raise ValueError("A list with that name already exists in this room")
-            db.execute("UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
             db.commit()
             return new_name
         except Exception:
@@ -1234,8 +1340,7 @@ def delete_list_with_room_token(
                     raise ListUnavailable(f"List {list_id} is no longer available")
                 raise RoomAccessDenied
             _require_list_identity_locked(list_id, expected_slug)
-            db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
-            db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+            delete_list_locked(list_id)
             db.commit()
         except Exception:
             db.rollback()

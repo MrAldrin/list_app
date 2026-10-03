@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import math
 import os
 import sqlite3
@@ -201,6 +202,7 @@ from database_crud import (
     get_rooms,
     list_identity_matches,
     normalize_item_name,
+    prune_processed_ops,
     remove_list_tag,
     rename_list_with_room_token,
     rename_room,
@@ -226,6 +228,7 @@ from item_service import (
     toggle_item_done,
     update_item_details_with_checks,
 )
+from live_updates import register_listener
 from room_access import RoomAccess, RoomAccessStatus
 from room_cookies import (
     LAST_ROOM_COOKIE,
@@ -237,6 +240,17 @@ from room_cookies import (
 register_room_cookie_routes(app)
 # The JSON API for the Svelte frontend, under /api/v1 (docs/api.md).
 register_api(app)
+
+
+def _prune_processed_ops() -> None:
+    """Drop stored API op results older than 30 days; never block startup."""
+    try:
+        prune_processed_ops()
+    except sqlite3.Error:
+        logging.getLogger(__name__).exception("Could not prune processed_ops")
+
+
+app.on_startup(_prune_processed_ops)
 # Cookie credentials require same-origin websocket and polling handshakes.
 core.sio.eio.cors_allowed_origins = same_origin_socket
 
@@ -538,6 +552,21 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
     if refresh_items:
         item_list.refresh()
     visibility_settings_ui.refresh()
+
+
+def _refresh_nicegui_pages(room_id: int) -> None:
+    """Refresh open NiceGUI pages after an API write (live_updates listener).
+
+    API routes run in a worker thread, but NiceGUI refreshes create tasks on
+    its event loop, so hand the refresh to that loop.
+    """
+    loop = core.loop
+    if loop is None or loop.is_closed():
+        return  # NiceGUI is not running: no pages to refresh.
+    loop.call_soon_threadsafe(broadcast_updates)
+
+
+register_listener(_refresh_nicegui_pages)
 
 
 @LiveClientRefreshable

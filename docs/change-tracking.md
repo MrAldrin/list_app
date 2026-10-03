@@ -15,6 +15,7 @@ links, admin) is covered, and a rolled-back write leaves no trace.
 - `deletions`: one row per deleted list or item: `room_id`, `kind` (`list` or
   `item`), `uid`, `changed_seq`.
 - `processed_ops`: stored API results per `op_id`, for retry-safe writes.
+  Rows older than 30 days are deleted when the server starts.
 
 Deleting a room removes its `deletions` and `processed_ops` rows
 (`ON DELETE CASCADE`). Otherwise `deletions` rows are kept for now; pruning

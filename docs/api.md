@@ -33,7 +33,7 @@ HTTP errors use one shape:
 | 405 | `invalid_request` | Known API path, wrong method (`Allow` header lists the right ones) |
 | 413 | `invalid_request` | Body larger than 64 KB |
 | 415 | `invalid_request` | Write without `Content-Type: application/json` |
-| 422 | `invalid_request` | Body is not a JSON object, missing or wrong fields, unknown op `type`, bad `since`, a client `uid` already used |
+| 422 | `invalid_request` | Body is not a JSON object, missing, unknown or wrong fields (types are strict: `"3"` is not a number), unknown op `type`, bad `since`, a client `uid` already used |
 | 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical) |
 | 401 | `not_authenticated` | No room cookie, revoked or expired token, or unknown room |
 | 403 | `forbidden_origin` | Write without a same-origin `Origin` header |
@@ -173,10 +173,14 @@ Responses (HTTP 200), one applied and one rejected:
   `seq`. Show `message` to the user.
 - **Retry-safe.** Applied and rejected results are stored for at least 30
   days. Sending the same `op_id` with the same body returns the stored response
-  unchanged. The same `op_id` with a different body gives 409 `op_id_reused`.
+  unchanged. The same `op_id` with a different body, or for another room,
+  gives 409 `op_id_reused`. "Same body" means the same fields and values after
+  checking: key order, UUID letter case and an optional field sent as `null`
+  do not count. Results older than 30 days are removed when the server starts.
 - HTTP errors (401, 403, 422, 503, …) are **not** stored. Fix the cause and
   retry with the same `op_id`.
-- The client reads the changes feed to get the new data.
+- The client reads the changes feed to get the new data. Open NiceGUI pages
+  refresh after each applied op.
 
 ### Operation types
 
@@ -199,8 +203,9 @@ names are lowercased.
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
 | `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at` | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid"}`. `completed_at` is kept only when `done`. |
 
-`?` means optional. A client `uid` must be a UUID that was never used; if it
-was, the server answers 422.
+`?` means optional. A client `uid` must be a UUID that was never used by any
+list or item, in any room, even a deleted one; if it was, the server answers
+422.
 
 `base_seq` is the `changed_seq` the edit was based on. It is required but not
 yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
@@ -213,8 +218,8 @@ yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
 | `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
 | `duplicate_active` | `item.add` | 'x' is already on the list |
 | `undo_name_taken` | `item.restore` | Cannot undo: item name already exists |
-| `list_unavailable` | every op with `list_uid` | This list is no longer available. |
-| `item_not_found` | `item.set_done`, `item.quantity_delta`, `item.edit`, `item.toggle_tag` | This item is no longer available. |
+| `list_unavailable` | every op with `list_uid` | The list is no longer available. |
+| `item_not_found` | `item.set_done`, `item.quantity_delta`, `item.edit`, `item.toggle_tag` | The item is no longer available. |
 
 A list in another room counts as `list_unavailable`, like a deleted one.
 
