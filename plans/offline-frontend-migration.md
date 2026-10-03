@@ -4,8 +4,8 @@ Lifecycle: tracked
 
 ## Status and scope
 
-Direction agreed with the owner; implementation is deferred and requires explicit
-approval. Continue small improvements to the current app in the meantime.
+This file holds the direction and the reasons. The step-by-step work, milestones
+and owner gates are in the [Svelte rewrite plan](svelte-frontend-rewrite.md).
 See [experiment findings](../docs/background/offline-findings.md) for the rollback report,
 evidence and limitations. The current shipped architecture remains NiceGUI.
 
@@ -36,52 +36,29 @@ that talk to the Python API.
 
 - Develop on the `svelte-frontend` bookmark, branched from `main`. Rebase it
   onto `main` regularly to keep conflicts small. Do not build on
-  `backup-offline-read-only`; it is reference only.
+  `backup-offline-read-only` (reference only) or `svelte-learning` (practice).
 - Put the Svelte project in `frontend/`; Python stays in `src/`.
-- Additive Python API endpoints may land on `main` in small, separately approved
-  slices before the switch, so the final switch mainly changes which frontend is
-  served. Pushing `main` deploys; follow the deployment checklist.
+- The API and the Svelte frontend stay on the branch until the production switch
+  (Gate B in the rewrite plan). Pushing `main` deploys; follow the deployment
+  checklist.
 
 ## Learning approach
 
-The owner is new to Svelte and JavaScript; so far the app has been pure Python.
-Treat the first sessions as guided learning, not fast delivery.
+The owner learns Svelte by hand on the `svelte-learning` branch, separate from
+the implementation. That branch is practice code and is never merged.
 
-- Move slowly at the start: one small concept per step. Explain what a step does
-  and why before writing code, then recap and wait for the owner before moving on.
-- Compare with Python where it helps: npm ≈ uv, `package.json` ≈ `pyproject.toml`,
-  `package-lock.json` ≈ `uv.lock`, `node_modules/` ≈ `.venv/`.
-- Let the owner type or run key commands when it aids learning; review afterwards.
-- Cover the basics roughly in this order before the prototype:
-  1. What runs in the browser vs. on the server, and what "static files" means.
-  2. A `.svelte` component: `<script>`, markup and `<style>` in one file.
-  3. Svelte 5 runes: `$state`, `$derived`, `$props`, then `$effect` sparingly.
-  4. Template logic and events: `{#if}`, `{#each}`, `onclick`.
-  5. SvelteKit routing (`src/routes/+page.svelte`) and fetching from the Python API.
-  6. Building to static files and how Python serves them.
-- Tooling: Node 24 (via `fnm`) and npm are already installed; no global installs.
-  Create the project with `npx sv create frontend` once approved. Use npm, the
-  default in the Svelte docs, rather than bun.
+## Order of work
 
-## Small, testable stages
+Owner decision (2026-10-03): build an online prototype first, test it on the
+laptop and the iPhone, then migrate the rest, then add offline viewing and
+editing. Offline is built last but designed for from the start (see below), so
+no part needs a second rewrite. Milestones and gates are in the
+[Svelte rewrite plan](svelte-frontend-rewrite.md).
 
-1. **Validate a thin prototype before committing to a full migration.** One list
-   on the actual iPhone: open online, save locally, close, enable airplane mode,
-   and reopen from the home screen. Verify saved content and clear stale/offline
-   indicators. Prototype the eventual synchronization contract, including a
-   two-device conflict, before treating the design as settled.
-2. **Introduce the new frontend online first.** Agree the API and authorization
-   boundary, then migrate in bounded slices. Keep server-side access checks and
-   business rules; do not duplicate them blindly in a new UI.
-3. **Deliver offline viewing in that same frontend.** Cache startup assets with a
-   service worker and persist structured list data locally (normally IndexedDB).
-   Use the same rendering path online and offline rather than a separate shell.
-4. **Add offline editing.** Persist local operations, retry them safely, synchronize
-   on reconnect/reopen, and expose pending/failed/conflicting changes. Do not rely
-   on iPhone background synchronization while the app is closed.
-
-Each stage needs its own agreed acceptance checks before implementation. Offline
-viewing can ship before editing; it need not wait for a complete sync engine.
+- Keep server-side access checks and business rules in Python; do not duplicate
+  them in the new UI.
+- Offline viewing can ship before offline editing.
+- Do not rely on iPhone background synchronization while the app is closed.
 
 ## Design early to avoid a second rewrite
 
@@ -125,9 +102,6 @@ can follow later, but the read-only design must leave room for them.
 - [ ] Owner reviews/integrates the shared documentation baseline.
 - [ ] Rebase selected active stacks after explicit approval; preserve experiment.
 - [x] Choose frontend: Svelte 5 + SvelteKit static/SPA (2026-09-29).
-- [ ] Guided Svelte basics walkthrough (see Learning approach).
-- [ ] Agree prototype/API/local-data acceptance criteria.
-- [ ] Validate the prototype on the actual iPhone and exercise two-device sync.
-- [ ] Implement online frontend migration in separately approved slices.
-- [ ] Implement and verify offline viewing.
-- [ ] Implement and verify offline editing and synchronization.
+- [x] Guided Svelte basics walkthrough (continues on `svelte-learning`).
+- [x] Agree milestones and gates: see the [Svelte rewrite plan](svelte-frontend-rewrite.md) (2026-10-03).
+- [ ] Implementation, testing and gates: tracked in the rewrite plan.

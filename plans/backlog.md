@@ -10,6 +10,8 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
+- [ ] [feature] (in progress) Svelte frontend rewrite, on the `svelte-frontend` branch only: prototype, migration, then offline. Follow the [Svelte rewrite plan](svelte-frontend-rewrite.md).
+
 ## Later
 
 Agreed as worth doing; no date.
@@ -17,7 +19,6 @@ Agreed as worth doing; no date.
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
 - [ ] [data] Strengthen field constraints: nullable names, completion state and slugs; quantities below one; length limits; valid tags JSON. Inspect existing data first.
-- [ ] [feature] Follow the [frontend/offline migration plan](offline-frontend-migration.md): iPhone prototype, frontend migration, then offline viewing and editing. Svelte 5 + SvelteKit is chosen; implementation needs separate approval.
 - [ ] [security] After 2027-09-18, remove the temporary legacy room-password localStorage cleanup. Keep token authentication and revocation. See the dated TODO in [`src/main.py`](../src/main.py).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.

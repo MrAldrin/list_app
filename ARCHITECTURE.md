@@ -20,8 +20,9 @@ learning, targeting up to four simultaneous users rather than large-scale use.
 Keep this stack for current small improvements. The agreed future direction is a
 browser-side frontend with a Python API, introduced in stages so offline viewing
 can evolve into offline editing without replacing the interface again. The chosen
-frontend is Svelte 5 with SvelteKit in static/SPA mode; implementation is not yet
-approved. See the [migration plan](plans/offline-frontend-migration.md). SQLite and Railway need not
+frontend is Svelte 5 with SvelteKit in static/SPA mode, built on a separate branch
+following the [rewrite plan](plans/svelte-frontend-rewrite.md); see the
+[migration plan](plans/offline-frontend-migration.md) for the reasons. SQLite and Railway need not
 change for this direction. Discuss other stack changes before implementation.
 
 ## Domain and security boundaries
