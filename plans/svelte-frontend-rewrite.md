@@ -383,6 +383,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 56 | `item.delete` of an item that is gone or in another list is `applied` with no change, and still notifies listeners (decision 51: every applied op) | A repeated delete is not an error; the client cannot tell gone from moved | Reject as `item_not_found` | Low |
 | 57 | `list.tag_add` trims the tag and rejects an empty one as `invalid_name` (NiceGUI ignores it silently); `list.tag_remove` and `item.toggle_tag` use the tag exactly as sent. Tags compare case-sensitively, as in NiceGUI | Same tag rules in both UIs; the client gets a clear answer for an empty tag | Lowercase or case-insensitive tags | Low |
 | 58 | `list.visibility` needs at least one field (else 422). Sent fields are range-checked before the transaction (missing ones as defaults); the merged values are checked again by `update_list_visibility_settings_locked`, which the NiceGUI function now calls with all three | A no-op request is a client bug; out-of-range values never reach the database | Accept an empty change | Low |
+| 59 | SSE wake-up hub in `src/live_updates.py`: one `asyncio.Event` per open stream, woken with `call_soon_threadsafe`. API writes wake their room's streams, NiceGUI writes wake all. On each wake the stream checks access and reads the seq in a worker thread, and sends `seq` only when it changed | Wakes come from worker threads and NiceGUI's loop; dedupe makes extra wakes harmless; ≤4 users need nothing fancier | A global counter with one `Condition` per loop; polling the DB | Low |
+| 60 | `broadcast_updates()` = `refresh_open_pages()` + `wake_streams()`; the API listener schedules only `refresh_open_pages`, and `notify_room_changed` wakes streams itself. Three listener tests in `test_api_list_ops.py` now name `refresh_open_pages` | Each side is told once per write, and no path can loop back into the other | Let `broadcast_updates` call `notify_room_changed` with a guard flag | Low |
+| 61 | Streams end on shutdown: an idle stream checks every 0.5 s whether uvicorn's `should_exit` is set, found through the installed SIGTERM handler (the bound `Server.handle_exit`) | Uvicorn waits for open responses before the app's shutdown hooks run, so an open stream blocked Ctrl+C, SIGTERM and reloads (checked by hand: >10 s hang before, ~0.6 s after, also in reload mode). NiceGUI's `Server.instance` is not set in reload workers | `timeout_graceful_shutdown` in `ui.run` (cuts every request); the `sse-starlette` package | Low |
+| 62 | NiceGUI room rename, password change, admin password reset and room delete now call `wake_streams()` (they never called `broadcast_updates`). Any other change shows up at the next keep-alive, which also checks access and seq. A database error during a stream closes it without an event | Streams send the new room name or `revoked` at once; the client reconnects after a close | Leave them to the keep-alive | Low |
 
 ## Progress
 
@@ -402,7 +406,7 @@ Milestone 1: API
 - [x] 1.5 Item writes (`src/api/ops.py`, [`tests/test_api_item_ops.py`](../tests/test_api_item_ops.py), shared `tests/api_helpers.py`; decisions 53–56)
 - [x] 1.6 Tags and hide-done writes (`src/api/ops.py`, [`tests/test_api_tag_ops.py`](../tests/test_api_tag_ops.py); decisions 57–58)
 - [x] 1.7 Idempotent `op_id` ([`tests/test_api_idempotency.py`](../tests/test_api_idempotency.py): applied and rejected case per op type; no code change needed; `docs/api.md` checked against every op)
-- [ ] 1.8 Live updates (SSE + NiceGUI bridge)
+- [x] 1.8 Live updates (SSE + NiceGUI bridge) (`src/api/events.py`, `src/live_updates.py`, [`tests/test_api_events.py`](../tests/test_api_events.py); decisions 59–62)
 - [ ] 1.9 Concurrency tests
 
 Milestone 2: prototype UI

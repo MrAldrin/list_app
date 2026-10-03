@@ -228,7 +228,7 @@ from item_service import (
     toggle_item_done,
     update_item_details_with_checks,
 )
-from live_updates import register_listener
+from live_updates import register_listener, wake_streams
 from room_access import RoomAccess, RoomAccessStatus
 from room_cookies import (
     LAST_ROOM_COOKIE,
@@ -544,7 +544,8 @@ class LiveClientRefreshable(ui.refreshable):
         self.targets = live_targets
 
 
-def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) -> None:
+def refresh_open_pages(refresh_lists: bool = True, refresh_items: bool = True) -> None:
+    """Refresh open NiceGUI pages only (no API stream wake-up)."""
     # Do not pass kwargs into refresh(): NiceGUI merges kwargs into all refresh targets.
     # Passing one user's room kwargs can therefore overwrite other users' room context.
     if refresh_lists:
@@ -554,16 +555,27 @@ def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) ->
     visibility_settings_ui.refresh()
 
 
+def broadcast_updates(refresh_lists: bool = True, refresh_items: bool = True) -> None:
+    """After a NiceGUI write: refresh open pages and wake the API live streams.
+
+    Wakes the streams directly, not through live_updates.notify_room_changed(),
+    so the NiceGUI listener below does not refresh the pages a second time.
+    """
+    refresh_open_pages(refresh_lists, refresh_items)
+    wake_streams()
+
+
 def _refresh_nicegui_pages(room_id: int) -> None:
     """Refresh open NiceGUI pages after an API write (live_updates listener).
 
     API routes run in a worker thread, but NiceGUI refreshes create tasks on
-    its event loop, so hand the refresh to that loop.
+    its event loop, so hand the refresh to that loop. The API write already
+    woke the live streams, so this only refreshes pages.
     """
     loop = core.loop
     if loop is None or loop.is_closed():
         return  # NiceGUI is not running: no pages to refresh.
-    loop.call_soon_threadsafe(broadcast_updates)
+    loop.call_soon_threadsafe(refresh_open_pages)
 
 
 register_listener(_refresh_nicegui_pages)
@@ -1271,6 +1283,8 @@ def room_list_ui() -> None:
                                 )
                                 room_list_ui.refresh()
                                 return
+                            # Old tokens are revoked: close the room's API streams.
+                            wake_streams()
                             dialog.close()
                             ui.notify("Password reset successfully", color="positive")
                             room_list_ui.refresh()
@@ -1626,6 +1640,8 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                         if not changed:
                             ui.notify("Incorrect current password", color="negative")
                             return
+                        # Old tokens are revoked: close the room's API streams.
+                        wake_streams()
 
                         _changed_room_id, new_token = changed
                         if not await _store_room_access(room_slug, new_token):
@@ -1673,6 +1689,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                         except RoomAccessDenied:
                             await _require_private_room_access(access)
                             return
+                        wake_streams()  # The API streams send the new seq.
                         dialog.close()
                         ui.navigate.to(f"/room/{room_slug}")
 
@@ -1699,6 +1716,7 @@ async def room_page(slug: str, admin: str | None = None) -> None:
                         ):
                             ui.notify("Incorrect password", color="negative")
                             return
+                        wake_streams()  # The room's API streams close.
                         dialog.close()
                         _forget_authorized_room(room_slug)
                         await _remove_room_token(room_slug)

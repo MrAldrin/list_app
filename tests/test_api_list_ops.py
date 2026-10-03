@@ -584,7 +584,7 @@ def test_nicegui_refresh_runs_on_the_event_loop(monkeypatch):
         refresh_threads.append(threading.current_thread())
         refreshed.set()
 
-    monkeypatch.setattr(main, "broadcast_updates", fake_broadcast)
+    monkeypatch.setattr(main, "refresh_open_pages", fake_broadcast)
     monkeypatch.setattr(main.core, "loop", loop)
     try:
         main._refresh_nicegui_pages(1)  # from this (non-loop) thread
@@ -599,7 +599,7 @@ def test_nicegui_refresh_runs_on_the_event_loop(monkeypatch):
 def test_nicegui_refresh_without_a_running_app_does_nothing(monkeypatch):
     monkeypatch.setattr(main.core, "loop", None)
     monkeypatch.setattr(
-        main, "broadcast_updates", lambda: pytest.fail("must not refresh")
+        main, "refresh_open_pages", lambda: pytest.fail("must not refresh")
     )
     main._refresh_nicegui_pages(1)
 
@@ -617,7 +617,8 @@ def test_api_write_refreshes_nicegui_pages(room, monkeypatch):
 
     monkeypatch.setattr(main.core, "loop", FakeLoop())
     op(client, slug, {"op_id": new_id(), "type": "list.create", "name": "Shop"})
-    assert scheduled == [main.broadcast_updates]
+    # Only the refresh: the API write already woke the live streams.
+    assert scheduled == [main.refresh_open_pages]
 
 
 def test_a_failing_listener_does_not_fail_the_write(room, monkeypatch):

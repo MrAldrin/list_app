@@ -69,8 +69,8 @@ back from a public list.
 - `src/svelte_frontend.py`: Serves the built Svelte prototype under `/app/`.
 - `src/api/`: JSON API for the Svelte frontend under `/api/v1`; the contract is
   in [docs/api.md](docs/api.md).
-- `src/live_updates.py`: Tells open pages that a room changed after an API
-  write; `src/main.py` registers the NiceGUI refresh.
+- `src/live_updates.py`: Tells open NiceGUI pages and API live streams that a
+  room changed; `src/main.py` registers the NiceGUI refresh.
 
 UI and service logic are not yet fully separated; splitting `src/main.py` is
 deferred in the [backlog](plans/backlog.md).

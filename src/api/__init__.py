@@ -5,7 +5,7 @@ The contract is in docs/api.md. Register it with `register_api(app)`.
 
 from fastapi import APIRouter, Depends, FastAPI
 
-from api import changes, ops, session
+from api import changes, events, ops, session
 from api.errors import install_error_handlers
 from api.requests import NoStoreMiddleware, check_write_request
 
@@ -18,6 +18,7 @@ def build_router() -> APIRouter:
     router.include_router(session.router)
     router.include_router(changes.router)
     router.include_router(ops.router)
+    router.include_router(events.router)
     return router
 
 

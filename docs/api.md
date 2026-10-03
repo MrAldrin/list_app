@@ -242,10 +242,15 @@ data: {}
 ```
 
 - `seq` is sent once on connect and after each write in the room, from either
-  UI.
+  UI. It is sent only when the room `seq` changed, so the same value never
+  comes twice in a row.
 - A keep-alive comment is sent about every 15 seconds.
-- Access is checked again on every message. When access is gone, the server
-  sends `revoked` and closes the stream. The client then calls
-  `GET …/session` and shows the sign-in prompt on 401.
+- Access and `seq` are checked again on every message, keep-alives included.
+  When access is gone, the server sends `revoked` and closes the stream. The
+  client then calls `GET …/session` and shows the sign-in prompt on 401.
 - Without access at connect time, the response is the 401 JSON error.
+- Headers: `Content-Type: text/event-stream`, `Cache-Control: no-store`,
+  `X-Accel-Buffering: no` (no proxy buffering).
+- The server closes the stream when it shuts down or restarts, and when the
+  database is unavailable.
 - On a dropped connection the client reconnects and reads the changes feed.
