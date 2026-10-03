@@ -76,7 +76,15 @@ def room_access(
     room looks the same) and 503 `unavailable` on database errors. The
     transaction commits when the block ends and rolls back on any error.
     """
-    token = room_token(request, slug)
+    with token_access(slug, room_token(request, slug), write=write) as room:
+        yield room
+
+
+@contextmanager
+def token_access(
+    slug: str, token: str | None, *, write: bool = False
+) -> Iterator[RoomContext]:
+    """Like room_access(), for a token that is not in a cookie yet."""
     if token is None:
         raise ApiError(401, "not_authenticated")
     try:

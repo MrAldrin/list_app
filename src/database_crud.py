@@ -889,6 +889,12 @@ def room_token_transaction(
             raise
 
 
+def get_room_details_locked(room_id: int) -> dict | None:
+    """Room slug and name; call inside room_token_transaction()."""
+    row = db.execute("SELECT slug, name FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    return {"slug": row[0], "name": row[1]} if row else None
+
+
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:
     token = secrets.token_urlsafe(32)
     db.execute(

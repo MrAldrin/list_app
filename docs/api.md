@@ -78,7 +78,9 @@ Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
   without `Secure`. No localStorage fallback.
 
 `GET …/session` with a revoked token returns 401 and clears the cookie. A
-password change revokes all tokens of the room. `last-room` is routing only: it
+password change revokes all tokens of the room. If `DELETE …/session` cannot
+revoke the token (503), it keeps the cookie so the client can retry. Signing
+out on HTTPS also signs NiceGUI out in that browser (same cookie). `last-room` is routing only: it
 names the last room this browser signed in to, not whether access still works.
 
 ## Data shapes

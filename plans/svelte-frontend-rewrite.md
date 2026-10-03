@@ -361,6 +361,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 37 | Room access = `database_crud.room_token_transaction()` (lock + `BEGIN`/`BEGIN IMMEDIATE` + token check, commit or roll back) wrapped by `api.access.room_access()`; HTTPS reads only `__Host-` cookies, HTTP only the plain names | Same pattern as the `*_with_room_token` functions; later steps read and write in the checked transaction | Validate first, then a second transaction | Low |
 | 38 | Same-origin and JSON rules are one router-wide dependency; bodies are parsed by hand (max 64 KB), not by FastAPI body models | A route cannot forget the check; the origin check runs before any body parsing; we control the error codes | Per-route dependency; FastAPI body models | Low |
 | 39 | `Cache-Control: no-store` comes from a pure ASGI middleware for `/api` paths | Covers errors too and does not buffer the SSE stream (1.8) | `BaseHTTPMiddleware`; set it per route | Low |
+| 40 | Sign-in keeps an older token of the same room (no revoke); sign-out clears only the room cookie, not `last-room` | Matches NiceGUI; on HTTPS a NiceGUI tab may hold the old token | Revoke the old token on sign-in | Low |
+| 41 | Sign-out with a database error is 503 and keeps the cookie | A cleared cookie with a live token would hide that sign-out failed | Clear the cookie anyway | Low |
+| 42 | Sign-in password longer than 1,024 characters is 422 | Bounds bcrypt input; no room has such a password (bcrypt limit is 72 bytes) | No limit | Low |
 
 ## Progress
 
@@ -374,7 +377,7 @@ Milestone 0: foundations
 
 Milestone 1: API
 - [x] 1.1 API package and access helper (`src/api/`, [`tests/test_api_basics.py`](../tests/test_api_basics.py); decisions 36–39)
-- [ ] 1.2 Room session
+- [x] 1.2 Room session (`src/api/session.py`, [`tests/test_api_session.py`](../tests/test_api_session.py); decisions 40–42)
 - [ ] 1.3 Changes feed
 - [ ] 1.4 List writes
 - [ ] 1.5 Item writes
