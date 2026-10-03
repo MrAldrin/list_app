@@ -28,6 +28,7 @@ Smaller runs while debugging:
 uv run pytest browser_tests -q -n 0 -k chromium
 uv run pytest browser_tests -q -n 0 -k restart
 uv run pytest browser_tests -q -n 0  # serial
+uv run pytest browser_tests -q -k svelte  # Svelte app only
 ```
 
 ## Isolation
@@ -64,6 +65,17 @@ Traces hold test data only. Never point this harness at production.
   live updates. Day boundaries are covered by unit tests.
 - **Theme:** the theme is remembered per browser, not per room, and is applied
   before the page scripts load (no flash).
+- **Svelte app (`test_svelte_*.py`):** on a phone-sized screen: start page,
+  login and remembered room; list create, rename and delete; items, quantity,
+  edit, delete and undo; tags, filter and hide-done; live updates between two
+  phones and with NiceGUI; a list deleted while open; a password change that
+  revokes open pages.
+
+## Svelte build
+
+The Svelte tests need `frontend/build/`. If it is missing or older than the
+frontend sources, the tests run `npm run build` first. Without `npm` on the
+`PATH` they fail and ask you to run `npm run build` in `frontend/`.
 
 Scenario-by-scenario detail and past timings are in
 [background](background/browser-testing.md).

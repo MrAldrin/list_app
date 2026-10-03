@@ -1,7 +1,9 @@
 """Opt-in real-browser tests; never use the developer's database or credentials."""
 
+import fcntl
 import os
 import secrets
+import shutil
 import socket
 import sqlite3
 import subprocess
@@ -13,7 +15,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "browser-test-room-password"
@@ -102,9 +104,12 @@ class TestServer:
             return connection.execute(sql, parameters).fetchall()
 
     @property
+    def room_slug(self):
+        return self.query("SELECT slug FROM rooms WHERE name = 'Home'")[0][0]
+
+    @property
     def room_url(self):
-        slug = self.query("SELECT slug FROM rooms WHERE name = 'Home'")[0][0]
-        return f"{self.url}/room/{slug}"
+        return f"{self.url}/room/{self.room_slug}"
 
 
 @pytest.fixture
@@ -128,34 +133,41 @@ def browser(request):
         browser.close()
 
 
-@pytest.fixture
-def sessions(browser, tmp_path):
-    """Separate cookie jars, localStorage, and NiceGUI sessions (not just tabs)."""
-    contexts = []
-    errors = []
-    for role in ("member", "visitor"):
-        context = browser.new_context(viewport={"width": 1280, "height": 900})
+class BrowserSessions:
+    """Separate browser contexts with traces, screenshots and error checks."""
+
+    def __init__(self, browser, directory: Path):
+        self.browser = browser
+        self.directory = directory
+        self.contexts = []
+        self.errors = []
+
+    def new_page(self, role: str, **options) -> Page:
+        """Open a page in a new context: its own cookies, storage and session."""
+        context = self.browser.new_context(**options)
+        self.contexts.append((role, context))
         # Exercise the copy-dialog fallback, not OS-native sharing dialogs.
         context.add_init_script(
             "Object.defineProperty(navigator, 'share', {value: undefined})"
         )
-        context.on("weberror", lambda error: errors.append(str(error.error)))
+        context.on("weberror", lambda error: self.errors.append(str(error.error)))
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
-        contexts.append((role, context))
-    try:
-        yield tuple(context.new_page() for _, context in contexts)
-    finally:
+        return context.new_page()
+
+    def close(self):
         cleanup_errors = []
-        for role, context in contexts:
+        for role, context in self.contexts:
             try:
                 for index, page in enumerate(context.pages):
                     if not page.is_closed():
                         try:
-                            page.screenshot(path=str(tmp_path / f"{role}-{index}.png"))
+                            page.screenshot(
+                                path=str(self.directory / f"{role}-{index}.png")
+                            )
                         except Exception as exc:  # noqa: BLE001 - keep cleaning up
                             cleanup_errors.append(exc)
                 try:
-                    context.tracing.stop(path=str(tmp_path / f"{role}-trace.zip"))
+                    context.tracing.stop(path=str(self.directory / f"{role}-trace.zip"))
                 except Exception as exc:  # noqa: BLE001 - keep cleaning up
                     cleanup_errors.append(exc)
             finally:
@@ -163,11 +175,105 @@ def sessions(browser, tmp_path):
                     context.close()
                 except Exception as exc:  # noqa: BLE001 - report cleanup errors
                     cleanup_errors.append(exc)
-        if errors:
+        if self.errors:
             cleanup_errors.append(
-                AssertionError("Unhandled browser errors:\n" + "\n".join(errors))
+                AssertionError("Unhandled browser errors:\n" + "\n".join(self.errors))
             )
         if cleanup_errors:
             raise ExceptionGroup(
                 "Browser diagnostics and cleanup failed", cleanup_errors
             )
+
+
+@pytest.fixture
+def sessions(browser, tmp_path):
+    """Separate cookie jars, localStorage, and NiceGUI sessions (not just tabs)."""
+    browser_sessions = BrowserSessions(browser, tmp_path)
+    try:
+        yield tuple(
+            browser_sessions.new_page(role, viewport={"width": 1280, "height": 900})
+            for role in ("member", "visitor")
+        )
+    finally:
+        browser_sessions.close()
+
+
+# Svelte frontend ------------------------------------------------------------
+
+FRONTEND = ROOT / "frontend"
+BUILD_INDEX = FRONTEND / "build" / "index.html"
+BUILD_INPUTS = (
+    "src",
+    "static",
+    "package.json",
+    "package-lock.json",
+    "vite.config.ts",
+    "tsconfig.json",
+)
+
+
+def _newest_build_input() -> float:
+    newest = 0.0
+    for name in BUILD_INPUTS:
+        path = FRONTEND / name
+        files = path.rglob("*") if path.is_dir() else [path]
+        for file in files:
+            if file.is_file():
+                newest = max(newest, file.stat().st_mtime)
+    return newest
+
+
+def _svelte_build_is_current() -> bool:
+    return (
+        BUILD_INDEX.is_file() and BUILD_INDEX.stat().st_mtime >= _newest_build_input()
+    )
+
+
+@pytest.fixture(scope="session")
+def svelte_build(tmp_path_factory):
+    """Make sure frontend/build matches frontend/src; build it if needed.
+
+    The test servers serve /app/ only if the build exists when they start.
+    """
+    # pytest-xdist workers share the parent of their base temp folder.
+    shared = tmp_path_factory.getbasetemp()
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        shared = shared.parent
+    with (shared / "svelte-build.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if _svelte_build_is_current():
+            return
+        npm = shutil.which("npm")
+        if npm is None:
+            pytest.fail(
+                "The Svelte build is missing or older than frontend/src, and npm "
+                "is not on PATH. Run `npm run build` in frontend/ first."
+            )
+        print("Building the Svelte frontend (npm run build)")
+        result = subprocess.run(
+            [npm, "run", "build"],
+            cwd=FRONTEND,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0 or not BUILD_INDEX.is_file():
+            pytest.fail(
+                "`npm run build` failed in frontend/:\n" + result.stdout + result.stderr
+            )
+
+
+@pytest.fixture
+def svelte_server(svelte_build, server):
+    """The test server with the Svelte app at /app/."""
+    return server
+
+
+@pytest.fixture
+def open_session(browser, tmp_path):
+    """Open pages in new browser contexts: `open_session(role, **options)`."""
+    browser_sessions = BrowserSessions(browser, tmp_path)
+    try:
+        yield browser_sessions.new_page
+    finally:
+        browser_sessions.close()

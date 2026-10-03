@@ -418,6 +418,9 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 91 | Connection indicator: the store reports `live` (stream state), `queued` and `retrying`; pure `connectionStatus()` turns them into "Reconnecting…", "Connecting…" or "Saving…", shown as a small pill at the top only after 800 ms. Failed and rejected writes stay warning toasts with the server's message (decision 76) | Quick saves never flicker; short texts fit between the header buttons on a phone | A banner; a count of waiting changes | Low |
 | 92 | The stream is reopened when a page was hidden for 30 s or more. A `seq` event also reads the feed when the last read failed (`store.stale`), so a failed first load heals when the stream gets through | Keep-alives are comments, which `EventSource` does not report, so a dead connection on a phone cannot be seen; without the stale check an equal `seq` never retried | A client watchdog with server `ping` events | Low |
 | 93 | First-load failure shows "Could not load this room." (or list) with the error text and Retry (NiceGUI: "Could not verify room access. Please retry."). The start page and `/app/list/{slug}` get Retry for a failed last-room check. A root `+error.svelte` shows "Page not found" with a link to the start page | Says what failed and why; one `LoadError` component | Copy NiceGUI's text | Low |
+| 94 | Svelte browser tests run in Chromium and Firefox (the shared `browser` fixture) on a 390×844 touch screen, without `is_mobile` | Same engines as the NiceGUI tests; `is_mobile` works only in Chromium; WebKit is not installed and is still not iPhone Safari (Gate A covers that) | Chromium only; add WebKit | Low |
+| 95 | A session fixture runs `npm run build` when `frontend/build/index.html` is missing or older than any frontend source; without `npm` the tests fail with "run `npm run build`". A file lock stops parallel workers from building twice | A stale build would test old code; never a silent skip | Always fail and ask for a build | Low |
+| 96 | `conftest.py`: the `sessions` cleanup (screenshots, traces, browser errors) moved into a `BrowserSessions` class, shared with a new `open_session(role, **options)` factory. NiceGUI steps in Svelte tests use their own desktop context and login | One copy of the diagnostics; NiceGUI and Svelte keep separate logins on HTTP anyway | Copy the fixture | Low |
 
 ## Progress
 
@@ -449,7 +452,7 @@ Milestone 2: prototype UI
 - [x] 2.5 Quantity, edit, delete with undo (`lib/list/ItemRow.svelte`, `ItemDialog.svelte`, `ListOptions.svelte`; toast actions in `lib/ui/toasts.svelte.ts`; decisions 84–86)
 - [x] 2.6 Tags and hide-done settings (`lib/list/ListTags.svelte`, `HideDoneSettings.svelte`, `tags.ts`, `hide-done.ts`, tag buttons in `ItemRow.svelte`, colors in `app.css`; decisions 87–90)
 - [x] 2.7 Live updates and error states (`lib/ui/ConnectionStatus.svelte`, `LoadError.svelte`, `routes/+error.svelte`, `lib/data/status.ts`, stream state in `events.ts` and the store; checked by hand with two browsers, NiceGUI, a server restart, a revoked password and faked 503s; decisions 91–93)
-- [ ] 2.8 Browser tests
+- [x] 2.8 Browser tests (`browser_tests/test_svelte_{rooms,items,live}.py`, helpers `svelte_app.py`, fixtures `svelte_build`, `svelte_server`, `open_session` in `conftest.py`; 8 tests × 2 engines, about 15 s with the default workers; stable over repeated runs; decisions 94–96)
 - [ ] 2.9 iPhone test prep
 - [ ] **Gate A: owner prototype review**
 
