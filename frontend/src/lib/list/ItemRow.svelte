@@ -96,11 +96,14 @@
 </li>
 
 <style>
+	/* Rows are shorter than the usual 44px touch size, so more items fit on
+	   the screen; tap areas stay full width where there is room. */
 	li {
+		--row: 36px;
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
-		min-height: var(--touch);
+		min-height: var(--row);
 		border-bottom: 1px solid var(--border);
 	}
 
@@ -108,7 +111,7 @@
 		display: grid;
 		place-items: center;
 		width: var(--touch);
-		height: var(--touch);
+		height: var(--row);
 		flex-shrink: 0;
 		cursor: pointer;
 	}
@@ -124,6 +127,13 @@
 	}
 
 	/* The name is a button that fills the row, so it is easy to tap. */
+	/* Buttons are 44px high by default; here they fit the shorter row. */
+	.name,
+	.qty button,
+	.delete {
+		min-height: var(--row);
+	}
+
 	.name {
 		flex: 1;
 		min-width: 0;
@@ -184,8 +194,8 @@
 
 	/* A round letter button: outlined, filled when the item has the tag. */
 	.tag {
-		width: 2rem;
-		height: 2rem;
+		width: 26px;
+		height: 26px;
 		min-width: 0;
 		min-height: 0;
 		padding: 0;
