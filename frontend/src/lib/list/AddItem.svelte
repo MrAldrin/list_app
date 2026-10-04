@@ -1,8 +1,9 @@
 <!--
 	The "Add or Search" field. Enter (or the Add button) adds the item, or
 	brings back a checked one. While typing, it suggests up to three names
-	already in the list. The field keeps focus, so the next item can be typed
-	at once.
+	already in the list; arrow keys highlight one and Enter picks it, Escape
+	closes the list. The field keeps focus, so the next item can be typed at
+	once.
 -->
 <script lang="ts">
 	import type { Item } from '#lib/data/index.ts';
@@ -21,11 +22,38 @@
 	let text = $state('');
 	let input = $state<HTMLInputElement>();
 	const suggestions = $derived(itemSuggestions(items, text));
+	/** The suggestion highlighted with the arrow keys; -1 for none. */
+	let active = $state(-1);
+	/** Escape hides the suggestions until the text changes. */
+	let closed = $state(false);
+	const shown = $derived(closed ? [] : suggestions);
+
+	function typed() {
+		active = -1;
+		closed = false;
+	}
+
+	// Arrow keys move the highlight and wrap around at either end.
+	function keydown(event: KeyboardEvent) {
+		const count = shown.length;
+		if (event.key === 'ArrowDown' && count > 0) {
+			event.preventDefault();
+			active = (active + 1) % count;
+		} else if (event.key === 'ArrowUp' && count > 0) {
+			event.preventDefault();
+			active = active <= 0 ? count - 1 : active - 1;
+		} else if (event.key === 'Escape' && count > 0) {
+			event.preventDefault();
+			closed = true;
+			active = -1;
+		}
+	}
 
 	async function add(raw: string) {
 		const name = normalizeItemName(raw);
 		if (!name) return;
 		const sent = text;
+		active = -1;
 		input?.focus();
 		const clear = await onAdd(name);
 		// Clear only if nothing new was typed while waiting for the server.
@@ -34,7 +62,7 @@
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
-		void add(text);
+		void add(active >= 0 && shown[active] ? shown[active] : text);
 	}
 
 	// Pressing a button would move the focus away from the field (and close
@@ -49,6 +77,9 @@
 		<input
 			bind:this={input}
 			bind:value={text}
+			oninput={typed}
+			onkeydown={keydown}
+			aria-activedescendant={active >= 0 ? `suggestion-${active}` : undefined}
 			aria-label="Add or Search"
 			placeholder="Add or Search"
 			autocomplete="off"
@@ -60,11 +91,13 @@
 		</button>
 	</form>
 
-	{#if suggestions.length > 0}
+	{#if shown.length > 0}
 		<ul aria-label="Suggestions">
-			{#each suggestions as name (name)}
+			{#each shown as name, index (name)}
 				<li>
 					<button
+						id="suggestion-{index}"
+						class:active={index === active}
 						type="button"
 						onpointerdown={keepFocus}
 						onmousedown={keepFocus}
@@ -115,5 +148,9 @@
 		text-align: left;
 		border-radius: 0;
 		overflow-wrap: anywhere;
+	}
+
+	li button.active {
+		background: var(--border);
 	}
 </style>

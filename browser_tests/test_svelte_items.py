@@ -48,6 +48,16 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(page.get_by_text("Restored apples!")).to_be_visible()
     expect(page.get_by_role("checkbox", name="apples")).not_to_be_checked()
 
+    # Keyboard: arrows highlight a suggestion, Enter picks it, Escape closes.
+    suggestions = page.get_by_role("list", name="Suggestions")
+    field.fill("a")
+    field.press("Escape")
+    expect(suggestions).to_be_hidden()
+    field.fill("bre")
+    field.press("ArrowDown")
+    field.press("Enter")
+    expect(page.get_by_text("'bread' is already on the list")).to_be_visible()
+
     # Quantity: shown from Options; "Less" is disabled at 1.
     page.get_by_role("button", name="Options").click()
     page.get_by_role("switch", name="Show quantities").check()
