@@ -313,6 +313,11 @@ laptop (`localhost`) and the phone (`100.x`). On HTTPS both use the same
 
 Goal: Svelte can do everything NiceGUI does. Start after Gate A.
 
+- **3.0** Replace the SSE shutdown workaround (reading uvicorn's internal
+  `should_exit` through the signal handler in `src/api/events.py`) with
+  uvicorn's official `timeout_graceful_shutdown`, passed through `ui.run()`.
+  Test that stopping the server with an open stream is quick. Decided at the
+  Gate A review.
 - **3.1** Room management: rename room, change password, delete room.
 - **3.2** Public share links: view and edit by token, reset link. Port the
   [public sharing](../docs/public-sharing.md) rules and their tests.
@@ -506,6 +511,7 @@ Milestone 2: prototype UI
 - [ ] **Gate A: owner prototype review**
 
 Milestone 3: rest of the app
+- [ ] 3.0 Official shutdown timeout for SSE
 - [ ] 3.1 Room management
 - [ ] 3.2 Public share links
 - [ ] 3.3 Admin
