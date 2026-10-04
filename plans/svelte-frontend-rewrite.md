@@ -306,7 +306,10 @@ laptop (`localhost`) and the phone (`100.x`). On HTTPS both use the same
   Offline use is not built yet, so a reload while offline fails.
 - [ ] **Feel on the phone:** tap sizes, the keyboard and the add field,
   scrolling, dark mode.
-- [ ] **Review** the [decisions log](#decisions-log) and decide: continue,
+- [ ] **Review** the [decisions log](#decisions-log) in a fresh session. The
+  agent first sorts the rows into "needs the owner" (product and UX choices),
+  "worth knowing" (security and data) and "technical detail"; the owner then
+  goes through only the first group, one row at a time. Then decide: continue,
   adjust or stop. Note findings (iOS version) here or tell the agent.
 
 ### Milestone 3: the rest of the app
