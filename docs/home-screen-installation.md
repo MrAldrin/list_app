@@ -20,6 +20,9 @@ installed app, so no second sign-in is needed.
   rooms do not become separate apps. A browser may reuse an existing install.
 - **No secrets in manifests:** only the public room slug. Never passwords,
   tokens, room names, invitation links or `admin=true`.
+- **Apple icon:** pages declare the home-screen icon. The conventional
+  `/apple-touch-icon.png` and `/apple-touch-icon-precomposed.png` paths serve
+  the same image for browsers that request those paths directly.
 - **Switching rooms** does not retarget an installed icon.
 - **Old icons** may keep opening `/`. Browsers decide whether to update them.
   Deleting an icon may also delete its saved login.

@@ -26,6 +26,18 @@ def test_manifest_routes():
         )
 
 
+def test_apple_touch_icon_fallback_routes() -> None:
+    client = TestClient(app)
+    original = client.get("/static/icons/apple-touch-icon.png")
+    assert original.status_code == 200
+    assert original.content.startswith(b"\x89PNG\r\n\x1a\n")
+    for path in ["/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"]:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "image/png"
+        assert response.content == original.content
+
+
 def test_favicon_is_a_file_nicegui_can_serve():
     from nicegui import helpers
 

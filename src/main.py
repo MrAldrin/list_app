@@ -1,3 +1,4 @@
+import asyncio
 import json
 import math
 import os
@@ -77,6 +78,18 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 # NiceGUI serves /favicon.ico from a file on disk, not from a URL.
 FAVICON_PATH = os.path.join(STATIC_DIR, "icons", "favicon-32.png")
 app.add_static_files("/static", STATIC_DIR)
+
+
+@app.get("/apple-touch-icon.png")
+@app.get("/apple-touch-icon-precomposed.png")
+def serve_apple_touch_icon() -> FileResponse:
+    """Support browsers that request the conventional root icon paths."""
+    return FileResponse(
+        os.path.join(STATIC_DIR, "icons", "apple-touch-icon.png"),
+        media_type="image/png",
+    )
+
+
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
 )
@@ -1083,9 +1096,12 @@ def visibility_settings_ui(
 
 async def _add_theme_toggle() -> None:
     """Apply and remember this browser's theme without sharing it between users."""
+    client = ui.context.client
+    if client.is_deleted:
+        raise asyncio.CancelledError
     saved_theme = None
     try:
-        ui.context.client.request  # Isolated UI tests have no browser request.
+        client.request  # Isolated UI tests have no browser request.
     except RuntimeError:
         saved_theme = None
     else:
@@ -1095,6 +1111,10 @@ async def _add_theme_toggle() -> None:
             )
         except Exception:  # noqa: BLE001 - browser storage can be unavailable.
             saved_theme = None
+    # A disconnect during the browser await can delete this page. Cancel its
+    # setup too, so callers do not go on creating more elements for it.
+    if client.is_deleted:
+        raise asyncio.CancelledError
     dark = ui.dark_mode(value=saved_theme == "dark")
 
     async def change_theme() -> None:
