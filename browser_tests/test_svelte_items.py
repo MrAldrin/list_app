@@ -165,6 +165,15 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
         "aria-pressed", "true"
     )
 
+    # An exact duplicate warns; another letter case is a new tag.
+    tag_field.fill("Lidl")
+    tag_field.press("Enter")
+    expect(page.get_by_text("'Lidl' is already a tag")).to_be_visible()
+    expect(tag_field).to_have_value("")
+    tag_field.fill("lidl")
+    tag_field.press("Enter")
+    expect(chips.get_by_role("button", name="lidl", exact=True)).to_be_visible()
+
     # Hide-done "All": checked items disappear; switching it off shows them.
     hide = page.get_by_role("switch", name="Hide checked-off items")
     expect(hide).not_to_be_checked()
@@ -184,5 +193,5 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk", "apples"])
 
     [(tags, mode)] = server.query("SELECT list_tags, hide_done_mode FROM lists")
-    assert sorted(json.loads(tags)) == ["Lidl", "Market"]
+    assert sorted(json.loads(tags)) == ["Lidl", "Market", "lidl"]
     assert mode == "off"

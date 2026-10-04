@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import Icon from '#lib/ui/Icon.svelte';
+	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import { newTag, tagColor } from './tags';
 
 	let {
@@ -33,7 +34,15 @@
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		const tag = newTag(text, tags);
-		if (tag === null) return;
+		if (tag === null) {
+			// Exact match only: "fruit" next to "Fruit" is allowed.
+			const name = text.trim();
+			if (name) {
+				toasts.show(`'${name}' is already a tag`, 'warning');
+				text = '';
+			}
+			return;
+		}
 		const sent = text;
 		input?.focus();
 		const clear = await onAdd(tag);
