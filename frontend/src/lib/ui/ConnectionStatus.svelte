@@ -46,7 +46,8 @@
 		transform: translateX(-50%);
 		/* Fits between the back and Options buttons on a phone. */
 		max-width: 10rem;
-		z-index: 5;
+		/* Above the sticky top bar and add field (z-index 10). */
+		z-index: 20;
 		pointer-events: none;
 	}
 
