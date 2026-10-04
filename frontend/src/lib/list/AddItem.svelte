@@ -2,7 +2,8 @@
 	The "Add or Search" field. Enter (or the Add button) adds the item, or
 	brings back a checked one. While typing, it suggests up to three names
 	already in the list; arrow keys highlight one and Enter picks it, Escape
-	closes the list. The field keeps focus, so the next item can be typed at
+	closes the list. Leaving the field hides the list (the text stays); coming
+	back shows it again. The field keeps focus, so the next item can be typed at
 	once.
 -->
 <script lang="ts">
@@ -26,7 +27,14 @@
 	let active = $state(-1);
 	/** Escape hides the suggestions until the text changes. */
 	let closed = $state(false);
-	const shown = $derived(closed ? [] : suggestions);
+	/** Suggestions show only while the field has focus. */
+	let focused = $state(false);
+	const shown = $derived(closed || !focused ? [] : suggestions);
+
+	function blurred() {
+		focused = false;
+		active = -1;
+	}
 
 	function typed() {
 		active = -1;
@@ -79,6 +87,8 @@
 			bind:value={text}
 			oninput={typed}
 			onkeydown={keydown}
+			onfocus={() => (focused = true)}
+			onblur={blurred}
 			aria-activedescendant={active >= 0 ? `suggestion-${active}` : undefined}
 			aria-label="Add or Search"
 			placeholder="Add or Search"

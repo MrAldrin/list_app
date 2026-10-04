@@ -58,6 +58,16 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     field.press("Enter")
     expect(page.get_by_text("'bread' is already on the list")).to_be_visible()
 
+    # Leaving the field hides the suggestions but keeps the text; back shows them.
+    field.fill("mi")
+    expect(suggestions).to_be_visible()
+    field.blur()
+    expect(suggestions).to_be_hidden()
+    expect(field).to_have_value("mi")
+    field.focus()
+    expect(suggestions).to_be_visible()
+    field.fill("")
+
     # Quantity: shown from Options; "Less" is disabled at 1.
     page.get_by_role("button", name="Options").click()
     page.get_by_role("switch", name="Show quantities").check()
