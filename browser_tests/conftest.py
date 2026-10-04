@@ -119,7 +119,7 @@ def server(tmp_path):
         assert "Traceback (most recent call last)" not in log, log
 
 
-@pytest.fixture(scope="session", params=["chromium", "firefox"])
+@pytest.fixture(scope="session", params=["chromium", "firefox", "webkit"])
 def browser(request):
     with sync_playwright() as playwright:
         browser = getattr(playwright, request.param).launch()

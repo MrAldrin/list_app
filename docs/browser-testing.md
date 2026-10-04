@@ -1,14 +1,14 @@
 # Real-browser tests
 
-`browser_tests/` uses Playwright to drive real Chromium and Firefox against a
-separate ListR server. Each test has separate room-member and public-visitor
+`browser_tests/` uses Playwright to drive real Chromium, Firefox and WebKit
+against a separate ListR server. Each test has separate room-member and public-visitor
 browser contexts, so cookies, storage and sessions are not shared.
 
 ## Run
 
 ```bash
 uv sync
-uv run playwright install chromium firefox
+uv run playwright install chromium firefox webkit
 uv run pytest browser_tests -q -n 4
 ```
 
@@ -16,7 +16,10 @@ uv run pytest browser_tests -q -n 4
   Give a worker count explicitly; pytest's default of eight is for the fast
   suite.
 - Playwright downloads its own browsers. On Linux, missing system libraries can
-  be installed with `uv run playwright install --with-deps chromium firefox`.
+  be installed with `uv run playwright install --with-deps chromium firefox webkit`.
+  On this laptop WebKit needed `sudo apt-get install libavif16`.
+- WebKit is the engine of every iPhone browser. Playwright's Linux WebKit is
+  close to Safari but not identical, so real iPhone checks are still needed.
 - The plain `uv run pytest -q` does not run these tests.
 
 Smaller runs while debugging:
@@ -80,7 +83,7 @@ them. Manual multi-user checks on real devices are tracked in the
 
 ## Limits
 
-These are local HTTP tests in Chromium and Firefox. They do not cover HTTPS
+These are local HTTP tests in Chromium, Firefox and WebKit. They do not cover HTTPS
 cookies, Railway, the production database, Safari, real phone installs, or OS
 share sheets. For Android, see the
 [emulator suite](android-emulator-testing.md).

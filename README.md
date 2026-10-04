@@ -93,10 +93,10 @@ uv run pytest -q -n 2  # Two workers
 uv run pytest -q -n 0  # Serial (also use this with --pdb)
 ```
 
-Real-browser sharing tests (Chromium and Firefox, disposable data):
+Real-browser sharing tests (Chromium, Firefox and WebKit, disposable data):
 
 ```bash
-uv run playwright install chromium firefox
+uv run playwright install chromium firefox webkit
 uv run pytest browser_tests -q -n 4
 ```
 

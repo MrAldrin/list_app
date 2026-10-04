@@ -116,7 +116,10 @@ def test_stale_page_rejects_actions_after_list_deletion(
     server, sessions, browser, action, chromium_role
 ):
     other_role = "public" if chromium_role == "room" else "room"
-    role = {"chromium": chromium_role, "firefox": other_role}[browser.browser_type.name]
+    # WebKit (iPhone engine) takes the Chromium role, so both roles stay covered.
+    role = {"chromium": chromium_role, "firefox": other_role, "webkit": chromium_role}[
+        browser.browser_type.name
+    ]
     member, visitor = sessions
     private_url, link = prepare_list(member, server)
     add_item(member, "milk")
