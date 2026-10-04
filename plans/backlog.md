@@ -10,7 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [docs] Svelte vs NiceGUI difference review: list where the Svelte UI differs from NiceGUI (e.g. the header no longer stays fixed when scrolling), then decide each with the owner. Afterwards resume the [Gate A checklist](svelte-frontend-rewrite.md#gate-a-checklist) at Tags.
 - [ ] [feature] (in progress) Svelte frontend rewrite, on the `svelte-frontend` branch only: prototype, migration, then offline. Follow the [Svelte rewrite plan](svelte-frontend-rewrite.md).
 
 ## Later
