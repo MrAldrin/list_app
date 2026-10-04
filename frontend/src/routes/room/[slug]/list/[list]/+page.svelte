@@ -24,6 +24,7 @@
 	import {
 		addFeedback,
 		showsQuantity,
+		DELETED_LIST_MESSAGE,
 		UNAVAILABLE_LIST_MESSAGE,
 		UNDO_DURATION,
 		type QuantityView
@@ -51,6 +52,13 @@
 	showNoticesAsToasts(() => room?.store);
 
 	const list = $derived(room?.store.listBySlug(listSlug));
+
+	// The list this page has shown. If it then goes missing, it was deleted;
+	// a list that was never there may also be a wrong link.
+	let shownSlug = $state<string | null>(null);
+	$effect(() => {
+		if (list) shownSlug = listSlug;
+	});
 
 	// What this page shows; not saved, as in NiceGUI.
 	let optionsOpen = $state(false);
@@ -173,8 +181,8 @@
 		/>
 	{:else if !list}
 		<div class="card problem" role="status">
-			<p>{UNAVAILABLE_LIST_MESSAGE}</p>
-			<a href={roomHref}>Back to room</a>
+			<p>{shownSlug === listSlug ? DELETED_LIST_MESSAGE : UNAVAILABLE_LIST_MESSAGE}</p>
+			<a class="back" href={roomHref}>Back to room</a>
 		</div>
 	{:else}
 		{@const current = list}
@@ -243,8 +251,23 @@
 	.problem {
 		display: grid;
 		gap: var(--gap);
-		justify-items: start;
+		justify-items: center;
+		text-align: center;
 		margin-bottom: 1rem;
+	}
+
+	/* A link that looks like an outlined button, as in NiceGUI. It stays a
+	   link because it goes to another page. */
+	.back {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--touch);
+		padding: 0 1rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+		font-weight: 600;
+		text-decoration: none;
 	}
 
 	.items {

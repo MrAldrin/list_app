@@ -82,9 +82,7 @@ def test_list_deleted_while_open(svelte_server, open_session):
 
     deleter.get_by_role("button", name="Delete Groceries").click()
     deleter.get_by_role("dialog").get_by_role("button", name="Delete").click()
-    expect(
-        viewer.get_by_text("This list was deleted or is not in this room.")
-    ).to_be_visible()
+    expect(viewer.get_by_text("This list was deleted.")).to_be_visible()
     viewer.get_by_role("link", name="Back to room").click()
     expect(viewer).to_have_url(room_app_url(server))
     expect(viewer.get_by_text("No lists yet. Create your first one!")).to_be_visible()

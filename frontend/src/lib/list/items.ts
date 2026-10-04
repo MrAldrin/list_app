@@ -6,7 +6,10 @@ import type { Item } from '#lib/data/index.ts';
 import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 
 /** Shown when the list is gone or not in this room. */
-export const UNAVAILABLE_LIST_MESSAGE = 'This list was deleted or is not in this room.';
+export const UNAVAILABLE_LIST_MESSAGE = 'List not found. It may have been deleted.';
+
+/** Shown when the list disappears while its page is open, so it surely was deleted. */
+export const DELETED_LIST_MESSAGE = 'This list was deleted.';
 
 /** How many names the add field suggests, as in NiceGUI. */
 export const MAX_SUGGESTIONS = 3;
