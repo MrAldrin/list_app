@@ -272,25 +272,26 @@ For the owner, on this laptop and the iPhone. Setup and the script are in the
 
 **Setup:** stop the normal app, run
 `uv run python scripts/serve_svelte_local.py`, turn on Tailscale on the phone.
-Open the printed `/app/` address in Safari on the iPhone and
-<http://localhost:8080/app/> on the laptop. Room `Home`, password
+On the iPhone, open the
+[HTTPS address](../docs/local-network-testing.md#https-on-the-phone) in Safari,
+like production. On the laptop, open <http://localhost:8080/app/>. Room `Home`
+(the script prints its code, like `home-217c10`), password
 `APP_PASSWORD`.
 
-**Cookies on plain HTTP:** the Svelte app keeps room access in an HTTP-only
-cookie (`listapp-room-…`, not `Secure`); NiceGUI keeps it in localStorage. So
-NiceGUI and Svelte need separate logins on the local network, and so do the
-laptop (`localhost`) and the phone (`100.x`). On HTTPS both use the same
-`__Host-` cookie (decisions 12 and 20).
+**Separate logins:** the laptop (`localhost`) and the phone (HTTPS address) are
+different sites, so each logs in on its own. On HTTPS, NiceGUI and Svelte share
+the `__Host-` cookie (decisions 12 and 20); on the laptop's plain HTTP they
+need separate logins.
 
-- [ ] **Login:** a wrong password says "Wrong room or password."; the right one
+- [x] **Login:** a wrong password says "Wrong room or password."; the right one
   opens the room. Open `/app/` again: it goes straight to the room. Log out and
   back in.
-- [ ] **Lists:** create, rename, delete (asks first). The same name in other
+- [x] **Lists:** create, rename, delete (asks first). The same name in other
   letter case opens the existing list.
-- [ ] **Items:** add; add a duplicate (warning); check and uncheck; type a
+- [x] **Items:** add; add a duplicate (warning); check and uncheck; type a
   checked item's name to restore it; quantity + and − (Options); edit name,
   notes and quantity.
-- [ ] **Undo:** delete an item, tap Undo within 5 s. Same for a tag.
+- [x] **Undo:** delete an item, tap Undo within 5 s. Same for a tag.
 - [ ] **Tags:** add tags, tag items with the round buttons, filter by a tag.
 - [ ] **Hide-done:** try All, After X days and Keep last X; a bad number shows
   a warning.
@@ -321,15 +322,23 @@ Goal: Svelte can do everything NiceGUI does. Start after Gate A.
   uvicorn's official `timeout_graceful_shutdown`, passed through `ui.run()`.
   Test that stopping the server with an open stream is quick. Decided at the
   Gate A review.
-- **3.1** Room management: rename room, change password, delete room.
+- **3.1** Room management: rename room, change password, delete room. Also
+  decide at the start of 3.1: say "Room not found" before the password prompt
+  (changes decisions 18 and 72), and possibly a longer random part in room
+  codes so that is safe. Raised at the Gate A review.
 - **3.2** Public share links: view and edit by token, reset link. Port the
   [public sharing](../docs/public-sharing.md) rules and their tests.
 - **3.3** Admin: login, room overview, password reset.
 - **3.4** Creation invitations: issue, revoke, create a room from a link.
 - **3.5** Home-screen install: manifest, icons, launch URL rules from
   [home-screen installation](../docs/home-screen-installation.md).
-- **3.6** Theme, small UX details and accessibility pass.
-- **3.7** Port the remaining NiceGUI browser tests to Svelte versions.
+- **3.6** Theme, small UX details and accessibility pass. Include: creating a
+  list whose name exists (any letter case) shows "Opened existing list" instead
+  of opening it silently; names stay unique ignoring case. Raised at Gate A.
+- **3.7** Port the remaining NiceGUI browser tests to Svelte versions. Also
+  add a layout check for toasts (small, inside the screen). WebKit runs
+  already, but no test checked the toast size, and only the real iPhone
+  showed the full-height bug. Raised at Gate A.
 
 ### Milestone 4: the switch
 
@@ -474,7 +483,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 91 | Connection indicator: the store reports `live` (stream state), `queued` and `retrying`; pure `connectionStatus()` turns them into "Reconnecting…", "Connecting…" or "Saving…", shown as a small pill at the top only after 800 ms. Failed and rejected writes stay warning toasts with the server's message (decision 76) | Quick saves never flicker; short texts fit between the header buttons on a phone | A banner; a count of waiting changes | Low |
 | 92 | The stream is reopened when a page was hidden for 30 s or more. A `seq` event also reads the feed when the last read failed (`store.stale`), so a failed first load heals when the stream gets through | Keep-alives are comments, which `EventSource` does not report, so a dead connection on a phone cannot be seen; without the stale check an equal `seq` never retried | A client watchdog with server `ping` events | Low |
 | 93 | First-load failure shows "Could not load this room." (or list) with the error text and Retry (NiceGUI: "Could not verify room access. Please retry."). The start page and `/app/list/{slug}` get Retry for a failed last-room check. A root `+error.svelte` shows "Page not found" with a link to the start page | Says what failed and why; one `LoadError` component | Copy NiceGUI's text | Low |
-| 94 | Svelte browser tests run in Chromium and Firefox (the shared `browser` fixture) on a 390×844 touch screen, without `is_mobile` | Same engines as the NiceGUI tests; `is_mobile` works only in Chromium; WebKit is not installed and is still not iPhone Safari (Gate A covers that) | Chromium only; add WebKit | Low |
+| 94 | Svelte browser tests run in Chromium, Firefox and WebKit (the shared `browser` fixture) on a 390×844 touch screen, without `is_mobile` | Same engines as the NiceGUI tests; `is_mobile` works only in Chromium; Playwright's WebKit is still not iPhone Safari (Gate A found a toast bug only the iPhone showed) | Chromium only | Low |
 | 95 | A session fixture runs `npm run build` when `frontend/build/index.html` is missing or older than any frontend source; without `npm` the tests fail with "run `npm run build`". A file lock stops parallel workers from building twice | A stale build would test old code; never a silent skip | Always fail and ask for a build | Low |
 | 96 | `conftest.py`: the `sessions` cleanup (screenshots, traces, browser errors) moved into a `BrowserSessions` class, shared with a new `open_session(role, **options)` factory. NiceGUI steps in Svelte tests use their own desktop context and login | One copy of the diagnostics; NiceGUI and Svelte keep separate logins on HTTP anyway | Copy the fixture | Low |
 | 97 | Phone test script `scripts/serve_svelte_local.py`: builds, then runs `src/main.py` with a test database in `~/.local/share/list_app/svelte-phone-test/` (own NiceGUI storage, no auto-reload), port 8080, and prints the `/app/` address per network (Tailscale first). It refuses the repository's `list.db` | Port 8080 is the one the firewall and Tailscale rules allow; the folder sits next to the deploy backups, outside the repo; the normal start is unchanged | A README section only; a shell script | Low |
@@ -515,13 +524,13 @@ Milestone 2: prototype UI
 
 Milestone 3: rest of the app
 - [ ] 3.0 Official shutdown timeout for SSE
-- [ ] 3.1 Room management
+- [ ] 3.1 Room management (incl. "Room not found" and room code length)
 - [ ] 3.2 Public share links
 - [ ] 3.3 Admin
 - [ ] 3.4 Creation invitations
 - [ ] 3.5 Home-screen install
 - [ ] 3.6 Theme, UX and accessibility
-- [ ] 3.7 Port remaining browser tests
+- [ ] 3.7 Port remaining browser tests (incl. toast layout check)
 
 Milestone 4: switch
 - [ ] 4.1 Production build
