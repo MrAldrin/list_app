@@ -341,6 +341,10 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
 
 ### Milestone 5: offline viewing
 
+- **5.0** HTTPS for phone testing (for example `tailscale serve`), because
+  service workers and `__Host-` cookies need HTTPS. Update the serve script and
+  the [local network guide](../docs/local-network-testing.md). Decided at the
+  Gate A review: plain HTTP is fine until here.
 - **5.1** Service worker (SvelteKit's built-in support) caches the app files.
 - **5.2** The data layer stores lists and items in IndexedDB, with a schema
   version for upgrades.
@@ -519,6 +523,7 @@ Milestone 4: switch
 - [ ] **Gate B: owner approves production switch**
 
 Milestone 5: offline viewing
+- [ ] 5.0 HTTPS for phone testing
 - [ ] 5.1 Service worker
 - [ ] 5.2 IndexedDB storage
 - [ ] 5.3 Offline indicators
