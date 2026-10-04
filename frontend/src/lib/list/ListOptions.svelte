@@ -56,14 +56,4 @@
 		border-top: 1px solid var(--border);
 		color: var(--text-muted);
 	}
-
-	input {
-		width: 1.4rem;
-		height: 1.4rem;
-		min-height: 0;
-		margin: 0;
-		padding: 0;
-		accent-color: var(--primary);
-		cursor: pointer;
-	}
 </style>

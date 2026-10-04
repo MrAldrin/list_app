@@ -119,16 +119,6 @@
 		color: var(--text-muted);
 	}
 
-	input[type='checkbox'] {
-		width: 1.4rem;
-		height: 1.4rem;
-		min-height: 0;
-		margin: 0;
-		padding: 0;
-		accent-color: var(--primary);
-		cursor: pointer;
-	}
-
 	/* A segmented control: three joined buttons, the chosen one filled. */
 	.modes {
 		display: flex;
