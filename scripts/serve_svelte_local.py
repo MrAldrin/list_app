@@ -10,8 +10,10 @@ addresses to open on the phone. Guide: docs/local-network-testing.md.
 
 import argparse
 import ipaddress
+import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -56,6 +58,32 @@ def phone_urls(addresses: list[str], port: int) -> list[str]:
     return lines
 
 
+def serve_https_urls(status: dict, port: int) -> list[str]:
+    """Tailscale Serve HTTPS addresses that forward to this port."""
+    targets = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+    urls = []
+    for host_port, web in (status.get("Web") or {}).items():
+        proxy = (web.get("Handlers") or {}).get("/", {}).get("Proxy")
+        if proxy in targets:
+            host = host_port.removesuffix(":443")
+            urls.append(f"https://{host}/app/")
+    return urls
+
+
+def tailscale_serve_status() -> dict:
+    """`tailscale serve status --json`, or {} when Tailscale is unavailable."""
+    try:
+        output = subprocess.run(
+            ["tailscale", "serve", "status", "--json"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        return json.loads(output or "{}")
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
+        return {}
+
+
 def server_env(database: Path, base: dict[str, str]) -> dict[str, str]:
     """The app's environment: test database and storage, no auto-reload."""
     return {
@@ -64,6 +92,21 @@ def server_env(database: Path, base: dict[str, str]) -> dict[str, str]:
         "NICEGUI_STORAGE_PATH": str(database.parent / "nicegui"),
         "APP_RELOAD": "false",
     }
+
+
+def prepare_database(env: dict[str, str]) -> None:
+    """Create or migrate the test database the same way the app does."""
+    code = "import database_setup"
+    if subprocess.run(
+        [sys.executable, "-c", code], cwd=ROOT / "src", env=env, check=False
+    ).returncode:
+        sys.exit("Could not set up the test database.")
+
+
+def room_codes(database: Path) -> list[tuple[str, str]]:
+    """(name, code) for each room, to type on the start page."""
+    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as db:
+        return db.execute("SELECT name, slug FROM rooms ORDER BY name").fetchall()
 
 
 def build_frontend() -> None:
@@ -95,13 +138,23 @@ def main() -> None:
         print("No .env found. See README.md#new-jj-workspace.", file=sys.stderr)
 
     database.parent.mkdir(parents=True, exist_ok=True)
+    env = server_env(database, dict(os.environ))
+    prepare_database(env)
     print(f"\nTest database: {database}")
-    print("A new test database has one room, Home; its password is APP_PASSWORD.")
+    print("Rooms (a new test database has Home; its password is APP_PASSWORD):")
+    for name, code in room_codes(database):
+        print(f"  {name}: room code {code}")
+    https_urls = serve_https_urls(tailscale_serve_status(), args.port)
     print("\nOpen on the phone (NiceGUI is the same address without /app/):")
-    for line in phone_urls(network_addresses(), args.port) or [
-        f"http://<laptop-ip>:{args.port}/app/  (find the IP with `hostname -I`)"
-    ]:
-        print(f"  {line}")
+    if https_urls:
+        for url in https_urls:
+            print(f"  {url}  (HTTPS, like production)")
+    else:
+        print("  No Tailscale Serve HTTPS found; see docs/local-network-testing.md.")
+        for line in phone_urls(network_addresses(), args.port) or [
+            f"http://<laptop-ip>:{args.port}/app/  (find the IP with `hostname -I`)"
+        ]:
+            print(f"  {line}")
     print(f"On this laptop: http://localhost:{args.port}/app/")
     print("Stop with Ctrl+C.\n", flush=True)
 
@@ -109,7 +162,7 @@ def main() -> None:
     os.execve(
         sys.executable,
         [sys.executable, main_py, "--port", str(args.port)],
-        server_env(database, dict(os.environ)),
+        env,
     )
 
 

@@ -45,11 +45,13 @@ uv run python scripts/serve_svelte_local.py
 
 - Stop the normal app first: both use port `8080`, the only port the firewall
   rules allow.
-- It prints direct HTTP addresses. For phone testing, use the HTTPS address
-  below instead. NiceGUI is the same address without `/app/`.
+- It prints the [HTTPS address](#https-on-the-phone) for the phone, or plain
+  HTTP addresses if Tailscale Serve is not set up. NiceGUI is the same address
+  without `/app/`.
 - The test database is in `~/.local/share/list_app/svelte-phone-test/`, never
   `list.db` or production. A new one has one room, `Home`, with
-  `APP_PASSWORD` as its password. `--db` picks another file.
+  `APP_PASSWORD` as its password. The script prints each room's code, which
+  the start page asks for. `--db` picks another file.
 - `--skip-build` reuses the last build; `--port` changes the port.
 - Sign in to NiceGUI and to the Svelte app separately. On plain `http` they
   keep room access in different places.
