@@ -165,23 +165,47 @@
 		transform: scale(0.75);
 	}
 
+	/* A small grey box with − count +, like NiceGUI: compact, so the name
+	   keeps its room, but a bit bigger than NiceGUI's for thumbs. */
 	.qty {
 		display: flex;
 		align-items: center;
 		flex-shrink: 0;
+		/* Extra space on the sides, so a tap meant for the name or a tag does
+		   not hit − or +. */
+		margin: 0 0.25rem;
+		padding: 0 0.125rem;
 		border-radius: var(--radius);
-		background: var(--bg);
+		/* The rows sit on the page background, so the box needs another
+		   color to show. */
+		background: var(--border);
 	}
 
 	.qty button {
+		width: 20px;
+		height: 28px;
+		min-width: 0;
+		min-height: 0;
 		padding: 0;
 		display: grid;
 		place-items: center;
+		color: var(--text);
 	}
 
+	/* The icons are 24px; a bit smaller fits the box. */
+	.qty :global(svg) {
+		width: 18px;
+		height: 18px;
+	}
+
+	/* One digit wide; 10 and above make the box a little wider. Tabular
+	   digits all have the same width, so 1 and 8 take the same space. */
 	.count {
-		min-width: 1.5rem;
+		font-variant-numeric: tabular-nums;
+		min-width: 1ch;
+		padding: 0 0.125rem;
 		text-align: center;
+		font-size: 0.875rem;
 		font-weight: 700;
 	}
 
