@@ -44,39 +44,47 @@
 	}
 </script>
 
-<form onsubmit={submit} novalidate>
-	<input
-		bind:this={input}
-		bind:value={text}
-		aria-label="Add or Search"
-		placeholder="Add or Search"
-		autocomplete="off"
-		autocapitalize="none"
-		enterkeyhint="enter"
-	/>
-	<button class="primary" type="submit" onpointerdown={keepFocus} onmousedown={keepFocus}>
-		Add
-	</button>
-</form>
+<div class="add">
+	<form onsubmit={submit} novalidate>
+		<input
+			bind:this={input}
+			bind:value={text}
+			aria-label="Add or Search"
+			placeholder="Add or Search"
+			autocomplete="off"
+			autocapitalize="none"
+			enterkeyhint="enter"
+		/>
+		<button class="primary" type="submit" onpointerdown={keepFocus} onmousedown={keepFocus}>
+			Add
+		</button>
+	</form>
 
-{#if suggestions.length > 0}
-	<ul aria-label="Suggestions">
-		{#each suggestions as name (name)}
-			<li>
-				<button
-					type="button"
-					onpointerdown={keepFocus}
-					onmousedown={keepFocus}
-					onclick={() => add(name)}
-				>
-					{name}
-				</button>
-			</li>
-		{/each}
-	</ul>
-{/if}
+	{#if suggestions.length > 0}
+		<ul aria-label="Suggestions">
+			{#each suggestions as name (name)}
+				<li>
+					<button
+						type="button"
+						onpointerdown={keepFocus}
+						onmousedown={keepFocus}
+						onclick={() => add(name)}
+					>
+						{name}
+					</button>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+</div>
 
 <style>
+	/* The suggestions float over the items below, so the list does not jump
+	   while typing. */
+	.add {
+		position: relative;
+	}
+
 	form {
 		display: flex;
 		gap: 0.5rem;
@@ -89,8 +97,13 @@
 	}
 
 	ul {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		z-index: 5;
 		list-style: none;
-		margin: 0 0 0.5rem;
+		margin: 0.25rem 0 0;
 		padding: 0.25rem 0;
 		background: var(--surface);
 		border-radius: var(--radius);
