@@ -14,7 +14,7 @@ most layout and touch problems before deployment.
 
 ## Current setup (Tailscale)
 
-Access is limited in two places. Both must allow port `8080`:
+Access is limited in two places. Direct HTTP access uses port `8080`:
 
 - **Tailscale access rules** (<https://login.tailscale.com/admin/acls>): a rule
   "iphone to list app dev server" allows only the iPhone (`100.121.206.45`) to
@@ -45,8 +45,8 @@ uv run python scripts/serve_svelte_local.py
 
 - Stop the normal app first: both use port `8080`, the only port the firewall
   rules allow.
-- It prints the phone address, for example `http://100.121.200.49:8080/app/`.
-  NiceGUI is the same address without `/app/`.
+- It prints direct HTTP addresses. For phone testing, use the HTTPS address
+  below instead. NiceGUI is the same address without `/app/`.
 - The test database is in `~/.local/share/list_app/svelte-phone-test/`, never
   `list.db` or production. A new one has one room, `Home`, with
   `APP_PASSWORD` as its password. `--db` picks another file.
@@ -55,6 +55,37 @@ uv run python scripts/serve_svelte_local.py
   keep room access in different places.
 
 What to check is in the [Gate A checklist](../plans/svelte-frontend-rewrite.md#gate-a-checklist).
+
+## HTTPS on the phone
+
+Tailscale Serve forwards private HTTPS traffic to the app on local port `8080`.
+It is configured in the background; start the app normally and keep Tailscale
+connected on both devices. Open:
+
+<https://hsa-linux-mint.tail54e8e1.ts.net/app/>
+
+Use this hostname instead of `localhost` or the laptop's numeric IP. Sign in
+again when switching from HTTP: the browser treats these as different sites.
+
+Show the configured HTTPS address with:
+
+```bash
+tailscale serve status
+```
+
+To configure Serve again if needed:
+
+```bash
+sudo tailscale serve --bg http://127.0.0.1:8080
+```
+
+Enable HTTPS certificates if prompted, but leave optional Funnel disabled.
+Funnel exposes services to the public internet; Serve stays within the tailnet.
+Certificate issuance publishes the device hostname in public certificate logs.
+
+The iPhone's Tailscale grant must allow `tcp:443` to the laptop. Direct HTTP
+access on `tcp:8080` is optional; removing that grant does not stop Serve from
+forwarding to local port `8080`. The app must still be running.
 
 ## If the page loads forever
 
@@ -73,8 +104,8 @@ Guest Wi-Fi often blocks devices from reaching each other.
 
 ## Limits
 
-- It uses plain `http`, not `https`. Home-screen install and other features
-  that need HTTPS may behave differently from production.
+- Direct IP addresses use plain HTTP. Use Tailscale Serve's HTTPS hostname
+  for secure cookies and features that require HTTPS.
 - It uses an empty test database. Changes to the database structure may still
   fail on production's older data.
 - It uses local `.env` settings, not Railway's settings, volume or build.

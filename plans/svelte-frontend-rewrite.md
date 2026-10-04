@@ -349,10 +349,10 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
 
 ### Milestone 5: offline viewing
 
-- **5.0** HTTPS for phone testing (for example `tailscale serve`), because
-  service workers and `__Host-` cookies need HTTPS. Update the serve script and
-  the [local network guide](../docs/local-network-testing.md). Decided at the
-  Gate A review: plain HTTP is fine until here.
+- **5.0** HTTPS for phone testing through background Tailscale Serve. See the
+  [local network guide](../docs/local-network-testing.md#https-on-the-phone).
+  The script still prints direct HTTP addresses; use `tailscale serve status`
+  to find the HTTPS address. Updating script output is not an offline blocker.
 - **5.1** Service worker (SvelteKit's built-in support) caches the app files.
 - **5.2** The data layer stores lists and items in IndexedDB, with a schema
   version for upgrades.
@@ -532,7 +532,11 @@ Milestone 4: switch
 - [ ] **Gate B: owner approves production switch**
 
 Milestone 5: offline viewing
-- [ ] 5.0 HTTPS for phone testing
+- [x] 5.0 HTTPS for phone testing: owner enabled background Tailscale Serve
+  without Funnel, opened the Svelte room on iPhone over HTTPS, and confirmed
+  sign-in survived a refresh. HTTP port 8080 access remains allowed by choice.
+  Script output is unchanged; the guide explains how to find the HTTPS URL.
+  This verifies phone access and refresh persistence, not offline support.
 - [ ] 5.1 Service worker
 - [ ] 5.2 IndexedDB storage
 - [ ] 5.3 Offline indicators
