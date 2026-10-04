@@ -1,10 +1,10 @@
 <!--
 	A modal dialog, built on the browser's own <dialog> element. The browser
 	then handles the dark backdrop, keeps keyboard focus inside the dialog and
-	closes it with Escape.
+	closes it with Escape. A click on the backdrop closes it too, as NiceGUI.
 
 	Show it with {#if …}<Dialog …>…</Dialog>{/if}: it opens when it appears, and
-	calls `onClose` when the user closes it (Escape). The parent then hides it.
+	calls `onClose` when the user closes it (Escape or a click outside). The parent then hides it.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
@@ -20,9 +20,23 @@
 		// `showModal()` (not `show()`) makes the rest of the page inert.
 		dialog?.showModal();
 	});
+
+	// A backdrop click targets the <dialog> itself, but so does a click on its
+	// padding; only a point outside the box closes it.
+	function closeOnBackdrop(event: MouseEvent) {
+		if (!dialog || event.target !== dialog) return;
+		const box = dialog.getBoundingClientRect();
+		const inside =
+			event.clientX >= box.left &&
+			event.clientX <= box.right &&
+			event.clientY >= box.top &&
+			event.clientY <= box.bottom;
+		if (!inside) dialog.close();
+	}
 </script>
 
-<dialog bind:this={dialog} aria-labelledby={titleId} onclose={onClose}>
+<!-- The keyboard way to close is Escape, which the browser handles. -->
+<dialog bind:this={dialog} aria-labelledby={titleId} onclose={onClose} onclick={closeOnBackdrop}>
 	<h2 id={titleId}>{title}</h2>
 	<!-- The dialog's content, passed in by the parent between the tags. -->
 	{@render children()}

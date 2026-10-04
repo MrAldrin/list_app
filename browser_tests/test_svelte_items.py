@@ -70,8 +70,16 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(quantity).to_contain_text("2")
     expect(page.get_by_role("button", name="Less apples")).to_be_disabled()
 
-    # Edit: a duplicate name is refused; name, notes and quantity save together.
+    # A click inside the dialog (also on its edge) keeps it; outside closes it.
     dialog = page.get_by_role("dialog")
+    page.get_by_role("button", name="milk", exact=True).click()
+    expect(dialog).to_be_visible()
+    dialog.click(position={"x": 4, "y": 4})
+    expect(dialog).to_be_visible()
+    page.mouse.click(4, 4)
+    expect(dialog).to_be_hidden()
+
+    # Edit: a duplicate name is refused; name, notes and quantity save together.
     page.get_by_role("button", name="milk", exact=True).click()
     expect(dialog.get_by_label("Item Name")).to_have_value("milk")
     dialog.get_by_label("Item Name").fill("Apples")
