@@ -45,7 +45,7 @@
 	}
 </script>
 
-<Dialog title="Edit Item" {onClose}>
+<Dialog title="Edit Item" {onClose} focusBox>
 	<form onsubmit={submit} novalidate>
 		<label for={nameId}>Item Name</label>
 		<input id={nameId} bind:value={name} autocomplete="off" enterkeyhint="done" />

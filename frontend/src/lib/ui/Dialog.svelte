@@ -9,8 +9,18 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	let { title, onClose, children }: { title: string; onClose: () => void; children: Snippet } =
-		$props();
+	let {
+		title,
+		onClose,
+		focusBox = false,
+		children
+	}: {
+		title: string;
+		onClose: () => void;
+		/** Focus the dialog, not its first field, so a phone keyboard stays closed. */
+		focusBox?: boolean;
+		children: Snippet;
+	} = $props();
 
 	// `$props.id()` gives an id that is unique on the page.
 	const titleId = $props.id();
@@ -19,6 +29,7 @@
 	$effect(() => {
 		// `showModal()` (not `show()`) makes the rest of the page inert.
 		dialog?.showModal();
+		if (focusBox) dialog?.focus();
 	});
 
 	// A backdrop click targets the <dialog> itself, but so does a click on its
@@ -36,7 +47,13 @@
 </script>
 
 <!-- The keyboard way to close is Escape, which the browser handles. -->
-<dialog bind:this={dialog} aria-labelledby={titleId} onclose={onClose} onclick={closeOnBackdrop}>
+<dialog
+	bind:this={dialog}
+	aria-labelledby={titleId}
+	tabindex={focusBox ? -1 : undefined}
+	onclose={onClose}
+	onclick={closeOnBackdrop}
+>
 	<h2 id={titleId}>{title}</h2>
 	<!-- The dialog's content, passed in by the parent between the tags. -->
 	{@render children()}
@@ -51,6 +68,10 @@
 		background: var(--surface);
 		color: var(--text);
 		box-shadow: var(--shadow);
+	}
+
+	dialog:focus {
+		outline: none;
 	}
 
 	dialog::backdrop {

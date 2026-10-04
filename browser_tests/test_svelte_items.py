@@ -74,6 +74,8 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     dialog = page.get_by_role("dialog")
     page.get_by_role("button", name="milk", exact=True).click()
     expect(dialog).to_be_visible()
+    # No field has focus, so a phone keyboard stays closed.
+    expect(dialog).to_be_focused()
     dialog.click(position={"x": 4, "y": 4})
     expect(dialog).to_be_visible()
     page.mouse.click(4, 4)
