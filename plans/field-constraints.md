@@ -102,6 +102,15 @@ change before deploy, so migration 3 should:
 
 ## Proposed migration approach
 
+**Coordination with the Svelte branch.** The `svelte-frontend` branch adds its
+own migrations (3: `uid`, change counters and new tables; 4: change-tracking
+triggers). Whichever branch reaches `main` second renumbers its migrations to
+come after the other's, during the rebase; never renumber one that is deployed.
+If Svelte lands first, this rebuild must also keep the new columns
+(`uid`, `changed_seq`, `change_seq`) and recreate the triggers, because
+dropping a table drops its triggers. See `docs/change-tracking.md` on that
+branch.
+
 1. First change: app-side length limits and messages (room, list and item names
    100; description 1000; tag 30). Tests for each limit.
 2. Second change: migration 3, `_migration_3_field_constraints`, appended in
