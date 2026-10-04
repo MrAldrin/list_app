@@ -267,7 +267,7 @@ Copying the current layout is fine; a polished design is not needed.
 
 ### Gate A checklist
 
-Resume at Tags. The NiceGUI difference review is done (decision 98).
+Resume at Review, in a fresh session. The NiceGUI difference review is done (decision 98).
 
 For the owner, on this laptop and the iPhone. Setup and the script are in the
 [local network guide](../docs/local-network-testing.md#svelte-prototype).
@@ -294,21 +294,29 @@ need separate logins.
   checked item's name to restore it; quantity + and − (Options); edit name,
   notes and quantity.
 - [x] **Undo:** delete an item, tap Undo within 5 s. Same for a tag.
-- [ ] **Tags:** add tags, tag items with the round buttons, filter by a tag.
-- [ ] **Hide-done:** try All, After X days and Keep last X; a bad number shows
+- [x] **Tags:** add tags, tag items with the round buttons, filter by a tag.
+  An exact duplicate warns; another letter case is a new tag.
+- [x] **Hide-done:** try All, After X days and Keep last X; a bad number shows
   a warning.
-- [ ] **Live, laptop and phone:** open the same list on both. Changes on one
+- [x] **Live, laptop and phone:** open the same list on both. Changes on one
   show on the other within about a second, both ways.
-- [ ] **NiceGUI side by side:** open the same list in NiceGUI (address without
+- [x] **NiceGUI side by side:** open the same list in NiceGUI (address without
   `/app/`). Changes show in both directions. Change the room password in
   NiceGUI: the Svelte pages ask for the password again.
-- [ ] **Background and resume:** leave the phone in another app (or locked) for
+  Finding: after a Svelte rename, the open NiceGUI list page keeps the old
+  title until reload (the room page updates). Not fixed: NiceGUI goes in 4.3.
+- [x] **Background and resume:** leave the phone in another app (or locked) for
   over 30 s, change something on the laptop, come back: the change is there.
-- [ ] **Airplane mode:** turn it on for about 10 s, check an item ("Reconnecting…"
+- [x] **Airplane mode:** turn it on for about 10 s, check an item ("Reconnecting…"
   or "Saving…" shows), turn it off: the change saves and the laptop shows it.
   Offline use is not built yet, so a reload while offline fails.
-- [ ] **Feel on the phone:** tap sizes, the keyboard and the add field,
+  Fixed: the status pill was hidden behind the sticky top bar.
+- [x] **Feel on the phone:** tap sizes, the keyboard and the add field,
   scrolling, dark mode.
+  Finding: after a dark mode switch, Safari's bars keep the old color until
+  you scroll. Deferred to the backlog (Later).
+  Also fixed: dialogs close on a click outside; the edit dialog no longer
+  opens the keyboard; suggestions hide when the add field loses focus.
 - [ ] **Review** the [decisions log](#decisions-log) in a fresh session. The
   agent first sorts the rows into "needs the owner" (product and UX choices),
   "worth knowing" (security and data) and "technical detail"; the owner then
