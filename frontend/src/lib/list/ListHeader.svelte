@@ -56,6 +56,9 @@
 	h1 {
 		margin: 0.25rem 0 0.5rem;
 		font-size: 1.5rem;
-		overflow-wrap: anywhere;
+		/* Long names end with "…" instead of taking more lines. */
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

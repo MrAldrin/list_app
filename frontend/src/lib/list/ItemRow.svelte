@@ -45,7 +45,7 @@
 		/>
 	</label>
 	<button class="name" type="button" onclick={onOpen}>
-		<span>{item.name}</span>
+		<span class="text">{item.name}</span>
 		{#if item.description}
 			<span class="note" title={item.description}>
 				<Icon name="description" />
@@ -132,7 +132,15 @@
 		gap: 0.25rem;
 		padding: 0 0.25rem;
 		text-align: left;
-		overflow-wrap: anywhere;
+	}
+
+	/* Long names stay on one line and end with "…"; the edit dialog shows
+	   the full name. */
+	.text {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.done .name {
@@ -142,6 +150,7 @@
 
 	.note {
 		display: flex;
+		flex-shrink: 0;
 		color: var(--text-muted);
 		transform: scale(0.75);
 	}

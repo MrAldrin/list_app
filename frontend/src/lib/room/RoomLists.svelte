@@ -60,7 +60,7 @@
 		{#each room.store.lists as list (list.uid)}
 			<li class="card">
 				<a href={resolve('/room/[slug]/list/[list]', { slug: room.slug, list: list.slug })}
-					>{list.name}</a
+					><span>{list.name}</span></a
 				>
 				<button
 					class="icon"
@@ -155,7 +155,14 @@
 		color: var(--text);
 		font-size: 1.1rem;
 		text-decoration: none;
-		overflow-wrap: anywhere;
+	}
+
+	/* Long names stay on one line and end with "…". */
+	a span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.icon {
