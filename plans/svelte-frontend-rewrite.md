@@ -267,6 +267,9 @@ Copying the current layout is fine; a polished design is not needed.
 
 ### Gate A checklist
 
+Paused after Undo for a review of where Svelte differs from NiceGUI (top of
+[backlog](backlog.md#next)). Resume at Tags.
+
 For the owner, on this laptop and the iPhone. Setup and the script are in the
 [local network guide](../docs/local-network-testing.md#svelte-prototype).
 
