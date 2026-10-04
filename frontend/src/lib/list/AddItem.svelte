@@ -112,16 +112,20 @@
 </div>
 
 <style>
-	/* The suggestions float over the items below, so the list does not jump
-	   while typing. */
+	/* The field sticks just below the list page's top bar while the page
+	   scrolls. Sticky also anchors the suggestions, which float over the
+	   items below, so the list does not jump while typing. */
 	.add {
-		position: relative;
+		position: sticky;
+		top: var(--touch);
+		z-index: 10;
+		background: var(--bg);
 	}
 
 	form {
 		display: flex;
 		gap: 0.5rem;
-		margin: 0.5rem 0;
+		padding: 0.5rem 0;
 	}
 
 	input {
