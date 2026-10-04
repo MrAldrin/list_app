@@ -31,13 +31,15 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(item_names(page)).to_have_count(3)
 
     # Check off: the item moves below the open items; uncheck moves it back.
-    page.get_by_role("checkbox", name="apples").check()
+    with page.expect_response(saved_op):
+        page.get_by_role("checkbox", name="apples").check()
     expect(item_names(page)).to_have_text(["bread", "milk", "apples"])
     page.get_by_role("checkbox", name="apples").uncheck()
     expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
 
     # Adding a checked-off item restores it (here through a suggestion).
-    page.get_by_role("checkbox", name="apples").check()
+    with page.expect_response(saved_op):
+        page.get_by_role("checkbox", name="apples").check()
     expect(page.get_by_role("checkbox", name="apples")).to_be_checked()
     field.fill("app")
     page.get_by_role("list", name="Suggestions").get_by_role(
@@ -90,6 +92,15 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
         ("bread", 1, "", 0),
         ("oat milk", 3, "lactose free", 0),
     ]
+
+
+def saved_op(response) -> bool:
+    """True for a successful write (op) response from the API."""
+    return (
+        response.request.method == "POST"
+        and response.url.endswith("/ops")
+        and response.ok
+    )
 
 
 def test_tags_filter_and_hide_done(svelte_server, open_session):
@@ -147,9 +158,13 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     # Hide-done "All": checked items disappear; switching it off shows them.
     hide = page.get_by_role("switch", name="Hide checked-off items")
     expect(hide).not_to_be_checked()
-    page.get_by_role("checkbox", name="apples").check()
+    with page.expect_response(saved_op):
+        page.get_by_role("checkbox", name="apples").check()
     expect(page.get_by_role("checkbox", name="apples")).to_be_checked()
-    hide.check()
+    # The switch updates the screen at once and saves in the background.
+    # Wait for the save before reloading, or the reload can cancel it.
+    with page.expect_response(saved_op):
+        hide.check()
     expect(page.get_by_role("radio", name="All")).to_be_checked()
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
     page.reload()
