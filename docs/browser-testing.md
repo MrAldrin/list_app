@@ -70,7 +70,10 @@ Traces hold test data only. Never point this harness at production.
   edit, delete and undo; tags, filter and hide-done; live updates between two
   phones and with NiceGUI; a list deleted while open; a password change that
   revokes open pages; light and dark mode (shared with NiceGUI); names for
-  every control and keyboard focus.
+  every control and keyboard focus. Also Svelte versions of the NiceGUI tests
+  above (share links, restart, stale actions, hide-done), and toasts that stay
+  small and inside the screen. The mapping is in the
+  [port map](background/browser-test-port-map.md).
 
 ## Svelte build
 
