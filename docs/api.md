@@ -1,8 +1,8 @@
 # JSON API (Svelte frontend)
 
 The contract between the Python server and the Svelte app. It covers the
-prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md))
-and room management. Share links, admin and invitations come in Milestone 3
+prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md)),
+room management and share links. Admin and invitations come in Milestone 3
 and are added here when they are built.
 
 The business rules are the same as in NiceGUI: see
@@ -13,7 +13,8 @@ The business rules are the same as in NiceGUI: see
 - Base path `/api/v1`. Requests and responses are JSON (`Content-Type:
   application/json`). Every response has `Cache-Control: no-store`.
 - Lists and items are identified by `uid`, a UUID string. A `uid` is never
-  reused. Integer IDs, password hashes, tokens and share tokens are never sent.
+  reused. Integer IDs, password hashes and room tokens are never sent. Share
+  tokens are sent only to room members, by the share-link endpoints.
 - A room is identified by its `slug` (the same as in `/room/{slug}`).
 - Every room request checks room access on the server, in the same transaction
   as the read or write.
@@ -36,9 +37,11 @@ HTTP errors use one shape:
 | 422 | `invalid_request` | Body is not a JSON object, missing, unknown or wrong fields (types are strict: `"3"` is not a number), a number out of range, unknown op `type`, bad `since`, a client `uid` already used |
 | 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical) |
 | 401 | `not_authenticated` | No room cookie, revoked or expired token, or unknown room |
+| 401 | `share_unavailable` | Share link: the token opens no list (never issued, reset, or the list was deleted; identical) |
 | 403 | `forbidden_origin` | Write without a same-origin `Origin` header |
 | 403 | `wrong_password` | Change password or delete room: wrong room password (you have access) |
 | 404 | `not_found` | Unknown API path |
+| 404 | `list_unavailable` | Share-link endpoints: the list is gone or in another room |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
 | 503 | `unavailable` | Database busy or failing; retry later. Saved access stays. |
@@ -109,6 +112,46 @@ unknown room. The password is checked in the same transaction.
 - Passwords are at most 1,024 characters (else 422).
 - Open streams of the room are woken after the answer is sent: they send
   `revoked` to signed-out devices (live updates, below).
+
+## Share links
+
+A share link (`/app/share/{token}`) opens one list for viewing and editing
+without the room password. The rules are in [public sharing](public-sharing.md).
+The token is in the path; it is never a cookie, and it never gives room access.
+
+Share holders:
+
+| Request | Body | Success |
+|---|---|---|
+| `GET /api/v1/share/{token}/changes?since=N` | – | 200 feed of the one list (below) |
+| `POST /api/v1/share/{token}/ops` | an op | 200, like `…/ops` of a room |
+| `GET /api/v1/share/{token}/events` | – | the live stream, like a room's |
+
+- The feed is always a full snapshot (`full: true`) of the list and its
+  items, with `room: null`, `deletions: []` and the list's `slug` as `""`.
+  `since` is checked (as for rooms) but not used. `seq` is the room's `seq`,
+  the same number op answers and the stream send.
+- Ops: the list ops `list.tag_add`, `list.tag_remove`, `list.visibility` and
+  every item op, as on NiceGUI's public page. Other types (`room.rename`,
+  `list.create`, `list.rename`, `list.delete`) are 422. A `list_uid` other
+  than the shared list's is rejected as `list_unavailable`. Ops are stored per
+  room, as for room ops, so retries are safe.
+- The token is checked in the same transaction as each read and write. After a
+  reset every request with the old token is 401 `share_unavailable`, also the
+  retry of an op sent before. The stream sends `revoked` and closes.
+
+Room members (need the room cookie; 401 `not_authenticated` without it):
+
+| Request | Body | Success |
+|---|---|---|
+| `GET /api/v1/rooms/{slug}/lists/{list_uid}/share-link` | – | 200 `{"token": "…"}` |
+| `POST /api/v1/rooms/{slug}/lists/{list_uid}/share-link` | `{}` | 200 `{"token": "…"}`: the new token |
+
+- Reset gives the list a new token and the old link stops working for
+  everyone. Room access and the list's room are checked in the same write
+  transaction. It is not an op (the answer holds a token, which must not be
+  stored for replays); a second reset does no harm.
+- Changing the room password does not reset share links.
 
 ## Data shapes
 

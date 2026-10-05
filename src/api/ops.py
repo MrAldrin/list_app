@@ -9,6 +9,7 @@ one, so a retry gets the same answer.
 
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Request
@@ -25,7 +26,7 @@ from pydantic import (
     model_validator,
 )
 
-from api.access import room_access
+from api.access import room_access, share_access
 from api.errors import ApiError
 from api.idempotency import Response, request_hash, run_once_locked
 from api.requests import json_object
@@ -253,12 +254,23 @@ EMPTY_NAME = "Name cannot be empty"
 UNDO_NAME_TAKEN = "Cannot undo: item name already exists"
 
 
-def _room_list_id(room_id: int, list_uid: str) -> int:
-    list_id = list_id_for_uid_locked(room_id, list_uid)
-    if list_id is None:
-        # Deleted, or in another room: the client cannot tell which.
-        raise OpRejected("list_unavailable", LIST_UNAVAILABLE)
-    return list_id
+@dataclass(frozen=True)
+class OpScope:
+    """What an op may touch: a whole room, or one list through a share link."""
+
+    room_id: int
+    # Set for share links: no other list of the room is reachable.
+    shared_list_id: int | None = None
+
+    def list_id(self, list_uid: str) -> int:
+        list_id = list_id_for_uid_locked(self.room_id, list_uid)
+        if list_id is None or (
+            self.shared_list_id is not None and list_id != self.shared_list_id
+        ):
+            # Deleted, or in another room (or not the shared list): the client
+            # cannot tell which.
+            raise OpRejected("list_unavailable", LIST_UNAVAILABLE)
+        return list_id
 
 
 def _list_item_id(list_id: int, item_uid: str) -> int:
@@ -294,57 +306,57 @@ def _new_uid(uid: str | None) -> str | None:
     return uid
 
 
-def room_rename(room_id: int, op: RoomRename) -> dict[str, Any]:
+def room_rename(scope: OpScope, op: RoomRename) -> dict[str, Any]:
     # Room names need not be unique, as in NiceGUI.
-    rename_room_locked(room_id, _display_name(op.name))
+    rename_room_locked(scope.room_id, _display_name(op.name))
     return {}
 
 
-def list_create(room_id: int, op: ListCreate) -> dict[str, Any]:
+def list_create(scope: OpScope, op: ListCreate) -> dict[str, Any]:
     uid = _new_uid(op.uid)
     list_id, slug, created = create_or_find_list_locked(
-        _display_name(op.name), room_id, uid=uid
+        _display_name(op.name), scope.room_id, uid=uid
     )
     return {"list_uid": get_list_uid_locked(list_id), "slug": slug, "created": created}
 
 
-def list_rename(room_id: int, op: ListRename) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def list_rename(scope: OpScope, op: ListRename) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     name = _display_name(op.name)
-    if not rename_list_if_unique_locked(list_id, room_id, name):
+    if not rename_list_if_unique_locked(list_id, scope.room_id, name):
         raise OpRejected("duplicate_name", f"'{name}' already exists in this room")
     return {}
 
 
-def list_delete(room_id: int, op: ListDelete) -> dict[str, Any]:
-    delete_list_locked(_room_list_id(room_id, op.list_uid))
+def list_delete(scope: OpScope, op: ListDelete) -> dict[str, Any]:
+    delete_list_locked(scope.list_id(op.list_uid))
     return {}
 
 
-def list_tag_add(room_id: int, op: ListTagAdd) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def list_tag_add(scope: OpScope, op: ListTagAdd) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     # Trimmed and nonempty, like a list name (NiceGUI's tag input).
     change_list_tag_locked(list_id, _display_name(op.tag), add=True)
     return {}
 
 
-def list_tag_remove(room_id: int, op: ListTagRemove) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def list_tag_remove(scope: OpScope, op: ListTagRemove) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     change_list_tag_locked(list_id, op.tag, add=False)
     return {}
 
 
-def list_visibility(room_id: int, op: ListVisibility) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def list_visibility(scope: OpScope, op: ListVisibility) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     update_list_visibility_settings_locked(
         list_id, mode=op.mode, age_days=op.age_days, recent_count=op.recent_count
     )
     return {}
 
 
-def item_add(room_id: int, op: ItemAdd) -> dict[str, Any]:
+def item_add(scope: OpScope, op: ItemAdd) -> dict[str, Any]:
     uid = _new_uid(op.uid)
-    list_id = _room_list_id(room_id, op.list_uid)
+    list_id = scope.list_id(op.list_uid)
     name = _item_name(op.name)
     outcome, item_id = add_or_restore_item_locked(name, list_id, uid=uid)
     if outcome == STATUS_DUPLICATE_ACTIVE:
@@ -352,22 +364,22 @@ def item_add(room_id: int, op: ItemAdd) -> dict[str, Any]:
     return {"item_uid": get_item_uid_locked(item_id), "outcome": outcome}
 
 
-def item_set_done(room_id: int, op: ItemSetDone) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def item_set_done(scope: OpScope, op: ItemSetDone) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
     _item_found(update_item_done_locked(item_id, list_id, op.done))
     return {}
 
 
-def item_quantity_delta(room_id: int, op: ItemQuantityDelta) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def item_quantity_delta(scope: OpScope, op: ItemQuantityDelta) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
     _item_found(adjust_item_quantity_locked(item_id, list_id, op.delta))
     return {}
 
 
-def item_edit(room_id: int, op: ItemEdit) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
     name, description, quantity = normalize_item_details(
         op.name, op.description, op.quantity
@@ -381,15 +393,15 @@ def item_edit(room_id: int, op: ItemEdit) -> dict[str, Any]:
     return {}
 
 
-def item_toggle_tag(room_id: int, op: ItemToggleTag) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def item_toggle_tag(scope: OpScope, op: ItemToggleTag) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
     _item_found(toggle_item_active_tag_locked(item_id, list_id, op.tag))
     return {}
 
 
-def item_delete(room_id: int, op: ItemDelete) -> dict[str, Any]:
-    list_id = _room_list_id(room_id, op.list_uid)
+def item_delete(scope: OpScope, op: ItemDelete) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
     item_id = item_id_for_uid_locked(list_id, op.item_uid)
     if item_id is not None:
         delete_item_locked(item_id, list_id)
@@ -397,9 +409,9 @@ def item_delete(room_id: int, op: ItemDelete) -> dict[str, Any]:
     return {}
 
 
-def item_restore(room_id: int, op: ItemRestore) -> dict[str, Any]:
+def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
     uid = _new_uid(op.uid)
-    list_id = _room_list_id(room_id, op.list_uid)
+    list_id = scope.list_id(op.list_uid)
     item_id = restore_deleted_item_locked(
         list_id,
         _item_name(op.name),
@@ -415,7 +427,7 @@ def item_restore(room_id: int, op: ItemRestore) -> dict[str, Any]:
     return {"item_uid": get_item_uid_locked(item_id)}
 
 
-HANDLERS: dict[str, Callable[[int, Any], dict[str, Any]]] = {
+HANDLERS: dict[str, Callable[[OpScope, Any], dict[str, Any]]] = {
     "room.rename": room_rename,
     "list.create": list_create,
     "list.rename": list_rename,
@@ -433,10 +445,29 @@ HANDLERS: dict[str, Callable[[int, Any], dict[str, Any]]] = {
 }
 
 
-def _apply_locked(room_id: int, op: Any) -> Response:
+# What a share link may do: everything inside its list (as on NiceGUI's
+# public page), nothing to the room or to the list itself.
+SHARE_OP_TYPES = frozenset(
+    {
+        "list.tag_add",
+        "list.tag_remove",
+        "list.visibility",
+        "item.add",
+        "item.set_done",
+        "item.quantity_delta",
+        "item.edit",
+        "item.toggle_tag",
+        "item.delete",
+        "item.restore",
+    }
+)
+
+
+def _apply_locked(scope: OpScope, op: Any) -> Response:
+    room_id = scope.room_id
     try:
         with savepoint_locked():
-            result = HANDLERS[op.type](room_id, op)
+            result = HANDLERS[op.type](scope, op)
     except OpRejected as rejection:
         return {
             "op_id": op.op_id,
@@ -460,10 +491,27 @@ def post_op(
     op = parse_op(body)
     body_hash = request_hash(op)
     with room_access(request, slug, write=True) as room:
+        scope = OpScope(room.room_id)
         response, replayed = run_once_locked(
-            room.room_id, op.op_id, body_hash, lambda: _apply_locked(room.room_id, op)
+            room.room_id, op.op_id, body_hash, lambda: _apply_locked(scope, op)
         )
     # After the commit, outside the database lock.
     if not replayed and response["status"] == "applied":
         notify_room_changed(room.room_id)
+    return response
+
+
+def run_share_op(token: str, body: dict[str, Any]) -> Response:
+    """`POST /api/v1/share/{token}/ops`: one op on the shared list only."""
+    op = parse_op(body)
+    if op.type not in SHARE_OP_TYPES:
+        raise ApiError(422, "invalid_request", "A share link cannot do this.")
+    body_hash = request_hash(op)
+    with share_access(token, write=True) as share:
+        scope = OpScope(share.room_id, shared_list_id=share.list_id)
+        response, replayed = run_once_locked(
+            share.room_id, op.op_id, body_hash, lambda: _apply_locked(scope, op)
+        )
+    if not replayed and response["status"] == "applied":
+        notify_room_changed(share.room_id)
     return response

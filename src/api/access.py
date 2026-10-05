@@ -14,7 +14,12 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from api.errors import ApiError
-from database_crud import RoomAccessDenied, room_token_transaction
+from database_crud import (
+    RoomAccessDenied,
+    ShareLinkDenied,
+    room_token_transaction,
+    share_token_transaction,
+)
 from room_cookies import (
     LAST_ROOM_COOKIE,
     PLAIN_LAST_ROOM_COOKIE,
@@ -94,4 +99,33 @@ def token_access(
         raise ApiError(401, "not_authenticated") from None
     except sqlite3.Error:
         # Fail closed, but keep the cookie: the access may still be valid.
+        raise ApiError(503, "unavailable") from None
+
+
+@dataclass(frozen=True)
+class ShareContext:
+    """The one list a share link opens, valid inside share_access().
+
+    `room_id` is for change tracking and stored ops only. A share link never
+    gives room access: every read and write is limited to `list_id`.
+    """
+
+    room_id: int
+    list_id: int
+
+
+@contextmanager
+def share_access(token: str, *, write: bool = False) -> Iterator[ShareContext]:
+    """Check a share token and run the block in the same database transaction.
+
+    Raises ApiError 401 `share_unavailable` when the token opens no list
+    (never issued, reset, or the list was deleted: they look the same) and
+    503 on database errors.
+    """
+    try:
+        with share_token_transaction(token, write=write) as (room_id, list_id):
+            yield ShareContext(room_id=room_id, list_id=list_id)
+    except ShareLinkDenied:
+        raise ApiError(401, "share_unavailable") from None
+    except sqlite3.Error:
         raise ApiError(503, "unavailable") from None

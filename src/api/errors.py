@@ -25,6 +25,8 @@ MESSAGES = {
     "invalid_request": "This request is not valid.",
     "invalid_password": "Wrong room or password.",
     "not_authenticated": "Sign in to this room.",
+    "share_unavailable": "This list was deleted or this share link was reset.",
+    "list_unavailable": "The list is no longer available.",
     "wrong_password": "Incorrect password",
     "forbidden_origin": "This request must come from this site.",
     "not_found": "Not found.",

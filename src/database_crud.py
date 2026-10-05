@@ -147,14 +147,66 @@ def list_identity_matches(details: dict, identity: str) -> bool:
     return details["slug"] == identity
 
 
-def get_list_details_by_share_token(token: str):
-    if not token or len(token) != 43:
+# Share tokens are secrets.token_urlsafe(32): always 43 characters.
+SHARE_TOKEN_LENGTH = 43
+
+
+def _list_for_share_token_locked(token: str | None) -> tuple[int, int] | None:
+    """(list_id, room_id) of the list this share token opens, or None."""
+    if not token or len(token) != SHARE_TOKEN_LENGTH:
         return None
+    row = db.execute(
+        "SELECT id, room_id FROM lists WHERE share_token = ?", (token,)
+    ).fetchone()
+    return (row[0], row[1]) if row else None
+
+
+def get_list_details_by_share_token(token: str):
     with _DB_LOCK:
-        row = db.execute(
-            "SELECT id FROM lists WHERE share_token = ?", (token,)
-        ).fetchone()
-        return get_list_details(row[0]) if row else None
+        found = _list_for_share_token_locked(token)
+        return get_list_details(found[0]) if found else None
+
+
+class ShareLinkDenied(LookupError):
+    """The share token opens no list: never issued, reset, or the list is gone."""
+
+
+@contextmanager
+def share_token_transaction(
+    token: str | None, *, write: bool = False
+) -> Iterator[tuple[int, int]]:
+    """Like room_token_transaction(), for a public share token.
+
+    Yields (room_id, list_id) of the shared list. The token is checked inside
+    the transaction, so a reset blocks every later read and write with the old
+    token. Raises ShareLinkDenied without a matching list. A share token never
+    grants room access: callers must limit reads and writes to this list.
+    """
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            found = _list_for_share_token_locked(token)
+            if found is None:
+                raise ShareLinkDenied
+            list_id, room_id = found
+            yield room_id, list_id
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
+
+
+def get_share_token_locked(list_id: int) -> str:
+    return db.execute(
+        "SELECT share_token FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()[0]
+
+
+def rotate_share_token_locked(list_id: int) -> str:
+    """Give the list a new share token; the old link stops working at once."""
+    token = secrets.token_urlsafe(32)
+    db.execute("UPDATE lists SET share_token = ? WHERE id = ?", (token, list_id))
+    return token
 
 
 def get_list_details_by_identity(identity: str):
@@ -179,10 +231,7 @@ def rotate_list_share_token(
             if room_id is None or row is None or row[0] != room_id:
                 raise PermissionError("Room access required")
             _require_list_identity_locked(list_id, expected_slug)
-            token = secrets.token_urlsafe(32)
-            db.execute(
-                "UPDATE lists SET share_token = ? WHERE id = ?", (token, list_id)
-            )
+            token = rotate_share_token_locked(list_id)
             db.commit()
             return token
         except Exception:
@@ -1056,16 +1105,20 @@ def _since_bound(since: int | None) -> int:
     return -1 if since is None else since
 
 
-def get_list_changes_locked(room_id: int, since: int | None) -> list[dict]:
+def get_list_changes_locked(
+    room_id: int, since: int | None, *, list_id: int | None = None
+) -> list[dict]:
+    """Lists of the room changed after `since`; only `list_id` if given."""
     rows = db.execute(
         """
         SELECT uid, slug, name, list_tags, hide_done_mode, hide_done_age_days,
                hide_done_recent_count, changed_seq
         FROM lists
-        WHERE room_id = ? AND changed_seq > ?
+        WHERE room_id = :room_id AND changed_seq > :since
+          AND (:list_id IS NULL OR id = :list_id)
         ORDER BY id
         """,
-        (room_id, _since_bound(since)),
+        {"room_id": room_id, "since": _since_bound(since), "list_id": list_id},
     ).fetchall()
     return [
         {
@@ -1095,17 +1148,21 @@ def _feed_completed_at(done: bool, stored: object) -> str | None:
     return normalize_completion_time(stored) if done else None
 
 
-def get_item_changes_locked(room_id: int, since: int | None) -> list[dict]:
+def get_item_changes_locked(
+    room_id: int, since: int | None, *, list_id: int | None = None
+) -> list[dict]:
+    """Items of the room changed after `since`; only of `list_id` if given."""
     rows = db.execute(
         """
         SELECT i.uid, l.uid, i.name, i.done, i.completed_at, i.quantity,
                i.description, i.active_tags, i.changed_seq
         FROM items AS i
         JOIN lists AS l ON l.id = i.list_id
-        WHERE l.room_id = ? AND i.changed_seq > ?
+        WHERE l.room_id = :room_id AND i.changed_seq > :since
+          AND (:list_id IS NULL OR l.id = :list_id)
         ORDER BY i.id
         """,
-        (room_id, _since_bound(since)),
+        {"room_id": room_id, "since": _since_bound(since), "list_id": list_id},
     ).fetchall()
     items = []
     for row in rows:
