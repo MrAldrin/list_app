@@ -1,9 +1,9 @@
 # JSON API (Svelte frontend)
 
 The contract between the Python server and the Svelte app. It covers the
-prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md)).
-Room management, share links, admin and invitations come in Milestone 3 and
-are added here when they are built.
+prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md))
+and room management. Share links, admin and invitations come in Milestone 3
+and are added here when they are built.
 
 The business rules are the same as in NiceGUI: see
 [item writes](item-writes.md) and [checked-item visibility](checked-item-visibility.md).
@@ -37,6 +37,7 @@ HTTP errors use one shape:
 | 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical) |
 | 401 | `not_authenticated` | No room cookie, revoked or expired token, or unknown room |
 | 403 | `forbidden_origin` | Write without a same-origin `Origin` header |
+| 403 | `wrong_password` | Change password or delete room: wrong room password (you have access) |
 | 404 | `not_found` | Unknown API path |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
@@ -55,6 +56,7 @@ Every `POST` and `DELETE` must:
   has no body).
 
 `GET` requests have no side effects and need only the cookie.
+`DELETE /api/v1/rooms/{slug}` has a JSON body.
 
 ## Room session
 
@@ -82,6 +84,31 @@ password change revokes all tokens of the room. If `DELETE …/session` cannot
 revoke the token (503), it keeps the cookie so the client can retry. Signing
 out on HTTPS also signs NiceGUI out in that browser (same cookie). `last-room` is routing only: it
 names the last room this browser signed in to, not whether access still works.
+
+## Room management
+
+Rename is an op (`room.rename`, below). Changing the password and deleting
+the room need the room password, so they have their own endpoints: they are
+not ops, are never stored and are not retry-safe. Both need room access (the
+cookie) first; without it the answer is 401 `not_authenticated`, as for an
+unknown room. The password is checked in the same transaction.
+
+| Request | Body | Success |
+|---|---|---|
+| `POST /api/v1/rooms/{slug}/password` | `{"current_password", "new_password"}` | 200 `{"room": {"slug", "name"}}`, sets new cookies |
+| `DELETE /api/v1/rooms/{slug}` | `{"password"}` | 204, clears the room cookie |
+
+- **Change password:** a wrong current password is 403 `wrong_password`
+  ("Incorrect current password"); nothing changes. A new password that is
+  blank (only spaces) or longer than 72 bytes is 422 with a message. It is
+  saved as typed. Every token of the room is revoked; this browser gets a new
+  one in the cookie. Other devices must sign in again.
+- **Delete room:** a wrong password is 403 `wrong_password` ("Incorrect
+  password"). Deletes the room and all its lists and items; this cannot be
+  undone. Clears the room cookie, and `last-room` when it names this room.
+- Passwords are at most 1,024 characters (else 422).
+- Open streams of the room are woken after the answer is sent: they send
+  `revoked` to signed-out devices (live updates, below).
 
 ## Data shapes
 
@@ -189,6 +216,7 @@ names are lowercased.
 
 | `type` | Fields | Result / notes |
 |---|---|---|
+| `room.rename` | `name` | Trimmed, case kept. Room names need not be unique. The new name shows in the feed's `room`. |
 | `list.create` | `name`, `uid`? | `{"list_uid", "slug", "created"}`. If a list with that name exists (ignoring case), it is returned with `created: false` and the client `uid` is not used. |
 | `list.rename` | `list_uid`, `name`, `base_seq` | – |
 | `list.delete` | `list_uid` | Deletes the list and all its items. |
@@ -215,7 +243,7 @@ yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
 
 | `code` | Operations | Message (as in NiceGUI) |
 |---|---|---|
-| `invalid_name` | `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
+| `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
 | `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
 | `duplicate_active` | `item.add` | 'x' is already on the list |
 | `undo_name_taken` | `item.restore` | Cannot undo: item name already exists |

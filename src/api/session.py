@@ -39,7 +39,7 @@ class SignInBody(BaseModel):
     password: str = Field(max_length=MAX_PASSWORD_LENGTH)
 
 
-def _set_cookie(response: Response, request: Request, name: str, value: str) -> None:
+def set_cookie(response: Response, request: Request, name: str, value: str) -> None:
     response.set_cookie(
         name,
         value,
@@ -51,10 +51,10 @@ def _set_cookie(response: Response, request: Request, name: str, value: str) -> 
     )
 
 
-def _clear_room_cookie(response: Response, request: Request, slug: str) -> None:
+def clear_cookie(response: Response, request: Request, name: str) -> None:
     # Deleting needs the same Path and Secure flag the cookie was set with.
     response.delete_cookie(
-        room_cookie_name(request, slug),
+        name,
         path="/",
         secure=is_https(request),
         httponly=True,
@@ -78,8 +78,8 @@ def sign_in(
     with token_access(slug, token) as room:
         details = get_room_details_locked(room.room_id)
     response = JSONResponse({"room": details})
-    _set_cookie(response, request, room_cookie_name(request, slug), token)
-    _set_cookie(response, request, last_room_cookie_name(request), slug)
+    set_cookie(response, request, room_cookie_name(request, slug), token)
+    set_cookie(response, request, last_room_cookie_name(request), slug)
     return response
 
 
@@ -94,7 +94,7 @@ def who_am_i(slug: str, request: Request) -> Response:
         response = error_response(error.status, error.code, error.message)
         if room_cookie_name(request, slug) in request.cookies:
             # A revoked or expired token is useless; drop it from the browser.
-            _clear_room_cookie(response, request, slug)
+            clear_cookie(response, request, room_cookie_name(request, slug))
         return response
     return JSONResponse({"room": details})
 
@@ -109,7 +109,7 @@ def sign_out(slug: str, request: Request) -> Response:
             # Keep the cookie so the client can retry; the token is still live.
             raise ApiError(503, "unavailable") from None
     response = Response(status_code=204)
-    _clear_room_cookie(response, request, slug)
+    clear_cookie(response, request, room_cookie_name(request, slug))
     return response
 
 

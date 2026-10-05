@@ -45,6 +45,7 @@ from database_crud import (
     normalize_display_name,
     normalize_item_name,
     rename_list_if_unique_locked,
+    rename_room_locked,
     restore_deleted_item_locked,
     savepoint_locked,
     toggle_item_active_tag_locked,
@@ -96,6 +97,11 @@ class Op(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     op_id: Uuid
+
+
+class RoomRename(Op):
+    type: Literal["room.rename"]
+    name: StrictStr
 
 
 class ListCreate(Op):
@@ -204,7 +210,8 @@ class ItemRestore(Op):
 
 
 AnyOp = Annotated[
-    ListCreate
+    RoomRename
+    | ListCreate
     | ListRename
     | ListDelete
     | ListTagAdd
@@ -274,7 +281,7 @@ def _item_name(raw: str) -> str:
     return name
 
 
-def _list_name(raw: str) -> str:
+def _display_name(raw: str) -> str:
     name = normalize_display_name(raw)
     if not name:
         raise OpRejected("invalid_name", EMPTY_NAME)
@@ -287,17 +294,23 @@ def _new_uid(uid: str | None) -> str | None:
     return uid
 
 
+def room_rename(room_id: int, op: RoomRename) -> dict[str, Any]:
+    # Room names need not be unique, as in NiceGUI.
+    rename_room_locked(room_id, _display_name(op.name))
+    return {}
+
+
 def list_create(room_id: int, op: ListCreate) -> dict[str, Any]:
     uid = _new_uid(op.uid)
     list_id, slug, created = create_or_find_list_locked(
-        _list_name(op.name), room_id, uid=uid
+        _display_name(op.name), room_id, uid=uid
     )
     return {"list_uid": get_list_uid_locked(list_id), "slug": slug, "created": created}
 
 
 def list_rename(room_id: int, op: ListRename) -> dict[str, Any]:
     list_id = _room_list_id(room_id, op.list_uid)
-    name = _list_name(op.name)
+    name = _display_name(op.name)
     if not rename_list_if_unique_locked(list_id, room_id, name):
         raise OpRejected("duplicate_name", f"'{name}' already exists in this room")
     return {}
@@ -311,7 +324,7 @@ def list_delete(room_id: int, op: ListDelete) -> dict[str, Any]:
 def list_tag_add(room_id: int, op: ListTagAdd) -> dict[str, Any]:
     list_id = _room_list_id(room_id, op.list_uid)
     # Trimmed and nonempty, like a list name (NiceGUI's tag input).
-    change_list_tag_locked(list_id, _list_name(op.tag), add=True)
+    change_list_tag_locked(list_id, _display_name(op.tag), add=True)
     return {}
 
 
@@ -403,6 +416,7 @@ def item_restore(room_id: int, op: ItemRestore) -> dict[str, Any]:
 
 
 HANDLERS: dict[str, Callable[[int, Any], dict[str, Any]]] = {
+    "room.rename": room_rename,
     "list.create": list_create,
     "list.rename": list_rename,
     "list.delete": list_delete,

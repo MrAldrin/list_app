@@ -1373,30 +1373,63 @@ def change_room_password_and_issue_token(
         try:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                """
-                SELECT id, password_hash
-                FROM rooms
-                WHERE slug = ?
-                """,
-                (room_slug,),
+                "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
             ).fetchone()
-            if not row or not _password_matches(current_plain_password, row[1]):
+            token = (
+                change_room_password_locked(
+                    row[0], current_plain_password, new_plain_password
+                )
+                if row
+                else None
+            )
+            if token is None:
                 db.rollback()
                 return None
-
-            new_hash = bcrypt.hashpw(
-                new_plain_password.encode("utf-8"), bcrypt.gensalt()
-            ).decode("utf-8")
-            authorization_version = _replace_room_password_locked(row[0], new_hash)
-            if authorization_version is None:
-                db.rollback()
-                return None
-            token = _insert_room_access_token_locked(row[0], authorization_version)
             db.commit()
             return row[0], token
         except Exception:
             db.rollback()
             raise
+
+
+# bcrypt refuses longer passwords (bcrypt 5 raises ValueError).
+MAX_PASSWORD_BYTES = 72
+
+
+def check_new_room_password(new_plain_password: str) -> None:
+    """The rules for a new room password, as NiceGUI's change dialog has them.
+
+    Blank (only spaces) is refused; the password is saved as typed. Raises
+    ValueError with a message for the user.
+    """
+    if not new_plain_password.strip():
+        raise ValueError("New password cannot be empty")
+    if len(new_plain_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise ValueError(
+            f"The password cannot be longer than {MAX_PASSWORD_BYTES} bytes"
+        )
+
+
+def change_room_password_locked(
+    room_id: int, current_plain_password: str, new_plain_password: str
+) -> str | None:
+    """Check the current password, set the new one, revoke every token.
+
+    Returns a fresh token for the changing device, or None for a wrong current
+    password (nothing changed). Call inside a write transaction.
+    """
+    row = db.execute(
+        "SELECT password_hash FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()
+    if not row or not _password_matches(current_plain_password, row[0]):
+        return None
+    new_hash = bcrypt.hashpw(
+        new_plain_password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+    authorization_version = _replace_room_password_locked(room_id, new_hash)
+    if authorization_version is None:
+        return None
+    return _insert_room_access_token_locked(room_id, authorization_version)
 
 
 def create_list_with_room_token(
@@ -1500,11 +1533,32 @@ def rename_room_with_room_token(room_slug: str, token: str, new_name: str) -> No
             if room_id is None:
                 db.rollback()
                 raise RoomAccessDenied
-            db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
+            rename_room_locked(room_id, new_name)
             db.commit()
         except Exception:
             db.rollback()
             raise
+
+
+def delete_room_with_password_locked(room_id: int, plain_password: str) -> bool:
+    """Delete the room and all its lists and items if the password matches.
+
+    False for a wrong password (nothing changed). Call inside a write
+    transaction. Tokens, deletion records and stored ops go by cascade.
+    """
+    row = db.execute(
+        "SELECT password_hash FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()
+    if not row or not _password_matches(plain_password, row[0]):
+        return False
+    list_rows = db.execute(
+        "SELECT id FROM lists WHERE room_id = ?", (room_id,)
+    ).fetchall()
+    for list_row in list_rows:
+        db.execute("DELETE FROM items WHERE list_id = ?", (list_row[0],))
+    db.execute("DELETE FROM lists WHERE room_id = ?", (room_id,))
+    db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
+    return True
 
 
 def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
@@ -1513,24 +1567,24 @@ def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
         try:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                "SELECT id, password_hash FROM rooms WHERE slug = ?", (room_slug,)
+                "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
             ).fetchone()
-            if not row or not _password_matches(plain_password, row[1]):
+            if not row or not delete_room_with_password_locked(row[0], plain_password):
                 db.rollback()
                 return False
-            room_id = row[0]
-            list_rows = db.execute(
-                "SELECT id FROM lists WHERE room_id = ?", (room_id,)
-            ).fetchall()
-            for list_row in list_rows:
-                db.execute("DELETE FROM items WHERE list_id = ?", (list_row[0],))
-            db.execute("DELETE FROM lists WHERE room_id = ?", (room_id,))
-            db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
             db.commit()
             return True
         except Exception:
             db.rollback()
             raise
+
+
+def rename_room_locked(room_id: int, new_name: str) -> None:
+    """Rename a room (trimmed, case kept). Call inside a write transaction."""
+    new_name = normalize_display_name(new_name)
+    if not new_name:
+        raise ValueError("Room name cannot be empty")
+    db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
 
 
 def rename_room(room_id: int, new_name: str):
@@ -1539,7 +1593,7 @@ def rename_room(room_id: int, new_name: str):
         raise ValueError("Room name cannot be empty")
     with _DB_LOCK:
         try:
-            db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
+            rename_room_locked(room_id, new_name)
             db.commit()
         except Exception:
             db.rollback()

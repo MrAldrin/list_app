@@ -68,6 +68,8 @@ RESTORE = {
 }
 
 CASES = [
+    applied("room.rename", lambda c: {"name": "Cabin"}),
+    rejected("room.rename", "invalid_name", lambda c: {"name": " "}),
     applied("list.create", lambda c: {"name": "Market"}),
     rejected("list.create", "invalid_name", lambda c: {"name": " "}),
     applied(
