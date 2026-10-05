@@ -10,7 +10,7 @@
 import { Api, api as defaultApi } from './api';
 import { LiveUpdates, type EventSourceFactory, type SessionState } from './events';
 import { newId } from './ids';
-import { createRoomStore, RoomStore } from './room-store.svelte';
+import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { ApiError } from './types';
 import type {
 	HideDone,
@@ -40,7 +40,10 @@ type ListRef = Pick<List, 'uid'>;
 type ItemRef = Pick<Item, 'uid' | 'list_uid'>;
 
 /** The API calls a room needs; tests pass a fake. */
-export type RoomApi = Pick<Api, 'changes' | 'sendOp' | 'login' | 'whoAmI' | 'eventsUrl'>;
+export type RoomApi = Pick<
+	Api,
+	'changes' | 'sendOp' | 'login' | 'whoAmI' | 'eventsUrl' | 'changePassword' | 'deleteRoom'
+>;
 
 export interface RoomOptions {
 	api?: RoomApi;
@@ -62,6 +65,8 @@ export class RoomHandle {
 	readonly #live: LiveUpdates;
 	/** Deleted items, kept so `restoreItem` can bring them back. */
 	readonly #deleted = new Map<string, Item>();
+	/** An open password change: session checks wait for it (see `changePassword`). */
+	#passwordChange: Promise<unknown> | null = null;
 	#users = 0;
 
 	constructor(slug: string, options: RoomOptions = {}) {
@@ -100,6 +105,44 @@ export class RoomHandle {
 	release(): void {
 		this.#users = Math.max(0, this.#users - 1);
 		if (this.#users === 0) this.#live.stop();
+	}
+
+	// Room
+
+	renameRoom(name: string): Promise<ActionResult> {
+		return this.#run({ type: 'room.rename', name });
+	}
+
+	/**
+	 * Changes the room password. Not a queued op: it needs the server now, and
+	 * passwords are never stored for retries. The answer brings a new cookie;
+	 * all other devices must sign in again.
+	 */
+	async changePassword(currentPassword: string, newPassword: string): Promise<ActionResult<Room>> {
+		const change = this.#api.changePassword(this.slug, currentPassword, newPassword);
+		// Our own stream is revoked too. Its "who am I" check must wait for the
+		// new cookie, or it would see the old token and sign us out.
+		this.#passwordChange = change.catch(() => undefined);
+		try {
+			return { ok: true, result: await change };
+		} catch (error) {
+			return failed(error);
+		} finally {
+			this.#passwordChange = null;
+		}
+	}
+
+	/** Deletes the room with all its lists and items, then forgets it here. */
+	async deleteRoom(password: string): Promise<ActionResult> {
+		try {
+			await this.#api.deleteRoom(this.slug, password);
+		} catch (error) {
+			return failed(error);
+		}
+		// 'loading', not 'auth_required': the page leaves; no password prompt flashes.
+		this.#forget('loading');
+		if (rooms.get(this.slug) === this) rooms.delete(this.slug);
+		return { ok: true, result: {} };
 	}
 
 	// Lists
@@ -210,10 +253,14 @@ export class RoomHandle {
 
 	/** Forgets this room's data and queued writes. */
 	signedOut(): void {
+		this.#forget('auth_required');
+	}
+
+	#forget(status: RoomStatus): void {
 		this.#live.stop();
 		this.#queue.dispose(new ApiError(401, 'not_authenticated', 'Signed out.'));
 		this.#deleted.clear();
-		this.store.clear('auth_required');
+		this.store.clear(status);
 	}
 
 	async #run<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
@@ -231,6 +278,7 @@ export class RoomHandle {
 	}
 
 	async #checkSession(): Promise<SessionState> {
+		if (this.#passwordChange) await this.#passwordChange;
 		try {
 			await this.#api.whoAmI(this.slug);
 			return 'signed_in';

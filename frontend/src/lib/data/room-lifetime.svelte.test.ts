@@ -15,6 +15,8 @@ function fakeApi(): RoomApi {
 		sendOp: vi.fn(),
 		login: vi.fn(async () => ROOM),
 		whoAmI: vi.fn(async () => ROOM),
+		changePassword: vi.fn(async () => ROOM),
+		deleteRoom: vi.fn(async () => undefined),
 		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
 	};
 }

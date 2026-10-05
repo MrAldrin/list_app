@@ -1,12 +1,16 @@
-<!-- The top bar of the room page: app name, room name and the sign-out button. -->
+<!-- The top bar of the room page: app name, room name, sign-out and the room menu. -->
 <script lang="ts">
-	let { name, onLogout }: { name: string; onLogout: () => void } = $props();
+	import type { RoomHandle } from '#lib/data/index.ts';
+	import RoomMenu from './RoomMenu.svelte';
+
+	let { room, onLogout }: { room: RoomHandle; onLogout: () => void } = $props();
 </script>
 
 <header>
 	<span class="brand" aria-hidden="true">List<b>R</b></span>
-	<h1>{name}</h1>
+	<h1>{room.store.room?.name ?? ''}</h1>
 	<button class="outline" type="button" onclick={onLogout}>Log out</button>
+	<RoomMenu {room} />
 </header>
 
 <style>

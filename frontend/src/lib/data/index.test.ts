@@ -33,6 +33,8 @@ function fakeApi() {
 		}),
 		login: vi.fn(async () => ROOM),
 		whoAmI: vi.fn(async () => ROOM),
+		changePassword: vi.fn(async () => ROOM),
+		deleteRoom: vi.fn(async (): Promise<void> => undefined),
 		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
 	} satisfies RoomApi;
 	return { api, feeds, ops };
@@ -238,6 +240,120 @@ describe('RoomHandle', () => {
 		expect(store.lists).toEqual([]);
 		expect(store.status).toBe('auth_required');
 		expect(FakeEventSource.last.closed).toBe(true);
+	});
+});
+
+describe('room management', () => {
+	beforeEach(() => {
+		FakeEventSource.reset();
+	});
+
+	it('renames the room with an op and resolves once the feed has the name', async () => {
+		const { room, store, ops, feeds } = await opened();
+		const result = room.renameRoom('Cabin');
+		await settle();
+		expect(ops[0].op).toMatchObject({ type: 'room.rename', name: 'Cabin' });
+		expect(ops[0].op.op_id).toEqual(expect.any(String));
+
+		feeds.push(makeFeed({ seq: 6, room: { ...ROOM, name: 'Cabin' } }));
+		ops[0].answer.resolve(applied(ops[0].op, 6));
+		expect(await result).toEqual({ ok: true, result: {} });
+		expect(store.room?.name).toBe('Cabin');
+	});
+
+	it('reports a rejected room rename', async () => {
+		const { room, store, ops } = await opened();
+		const result = room.renameRoom(' ');
+		await settle();
+		ops[0].answer.resolve({
+			op_id: ops[0].op.op_id,
+			status: 'rejected',
+			code: 'invalid_name',
+			message: 'Name cannot be empty',
+			seq: 5
+		});
+		expect(await result).toEqual({
+			ok: false,
+			code: 'invalid_name',
+			message: 'Name cannot be empty'
+		});
+		expect(store.room?.name).toBe('Home');
+	});
+
+	it('changes the password and stays signed in when its own stream is revoked', async () => {
+		const { room, store, api } = await opened();
+		const answer = deferred<typeof ROOM>();
+		api.changePassword.mockReturnValueOnce(answer.promise);
+		const stream = FakeEventSource.last;
+		stream.open();
+
+		const result = room.changePassword('old', 'new');
+		expect(api.changePassword).toHaveBeenCalledWith(ROOM.slug, 'old', 'new');
+		// The server revokes the old token before this browser has the new cookie.
+		stream.revoked();
+		await settle();
+		expect(api.whoAmI).not.toHaveBeenCalled();
+
+		answer.resolve(ROOM);
+		expect(await result).toEqual({ ok: true, result: ROOM });
+		await settle();
+		expect(api.whoAmI).toHaveBeenCalledTimes(1);
+		expect(store.status).toBe('ready');
+	});
+
+	it('reports a wrong current password and keeps the room', async () => {
+		const { room, store, api } = await opened();
+		api.changePassword.mockRejectedValueOnce(
+			new ApiError(403, 'wrong_password', 'Incorrect current password')
+		);
+		expect(await room.changePassword('bad', 'new')).toEqual({
+			ok: false,
+			code: 'wrong_password',
+			message: 'Incorrect current password'
+		});
+		expect(store.status).toBe('ready');
+		expect(store.lists).toEqual([list]);
+	});
+
+	it('deletes the room and forgets its data and queued writes', async () => {
+		const { room, store, api } = await opened();
+		const pending = room.setDone(milk, true);
+		expect(await room.deleteRoom('secret')).toEqual({ ok: true, result: {} });
+		expect(api.deleteRoom).toHaveBeenCalledWith(ROOM.slug, 'secret');
+		expect(await pending).toMatchObject({ ok: false });
+		expect(store.lists).toEqual([]);
+		// No password prompt flashes while the page leaves.
+		expect(store.status).toBe('loading');
+		expect(FakeEventSource.last.closed).toBe(true);
+	});
+
+	it('keeps the room when the delete password is wrong', async () => {
+		const { room, store, api } = await opened();
+		api.deleteRoom.mockRejectedValueOnce(new ApiError(403, 'wrong_password', 'Incorrect password'));
+		expect(await room.deleteRoom('bad')).toEqual({
+			ok: false,
+			code: 'wrong_password',
+			message: 'Incorrect password'
+		});
+		expect(store.status).toBe('ready');
+		expect(store.lists).toEqual([list]);
+		expect(FakeEventSource.last.closed).toBe(false);
+	});
+
+	it('opens a deleted room afresh', async () => {
+		const { api } = fakeApi();
+		const options = {
+			api,
+			createEventSource: (url: string) => new FakeEventSource(url),
+			visibility: null
+		};
+		const first = openRoom('deleted-room', options);
+		await settle();
+		expect((await first.deleteRoom('secret')).ok).toBe(true);
+		closeRoom(first);
+		const again = openRoom('deleted-room', options);
+		expect(again).not.toBe(first);
+		closeRoom(again);
 	});
 });
 

@@ -62,7 +62,7 @@
 			onRetry={() => room!.store.refresh()}
 		/>
 	{:else}
-		<RoomHeader name={room.store.room?.name ?? ''} onLogout={signOut} />
+		<RoomHeader {room} onLogout={signOut} />
 		{#if room.store.error}
 			<!-- The lists below may be out of date; they stay usable. -->
 			<LoadError

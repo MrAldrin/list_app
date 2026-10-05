@@ -79,6 +79,21 @@ export class Api {
 		return this.request<void>('DELETE', roomPath(slug, 'session'));
 	}
 
+	/** Changes the room password. The answer sets a new room cookie; other devices are signed out. */
+	changePassword(slug: string, currentPassword: string, newPassword: string): Promise<Room> {
+		return this.request<{ room: Room }>('POST', roomPath(slug, 'password'), {
+			current_password: currentPassword,
+			new_password: newPassword
+		}).then((data) => data.room);
+	}
+
+	/** Deletes the room with all its lists and items. */
+	deleteRoom(slug: string, password: string): Promise<void> {
+		return this.request<void>('DELETE', `${API_BASE}/rooms/${encodeURIComponent(slug)}`, {
+			password
+		});
+	}
+
 	/** The slug of the last room this browser signed in to, or null. */
 	lastRoom(): Promise<string | null> {
 		return this.request<{ slug: string | null }>('GET', `${API_BASE}/last-room`).then(

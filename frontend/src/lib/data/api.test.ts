@@ -98,6 +98,33 @@ describe('Api', () => {
 		expect(last.mock.calls[0][0]).toBe('/api/v1/last-room');
 	});
 
+	it('has the room management calls', async () => {
+		const room = { slug: 'home', name: 'Home' };
+		const change = fakeFetch(json(200, { room }));
+		expect(await new Api(change).changePassword('home', 'old', 'new')).toEqual(room);
+		expect(change.mock.calls[0][0]).toBe('/api/v1/rooms/home/password');
+		expect(change.mock.calls[0][1]?.method).toBe('POST');
+		expect(JSON.parse(change.mock.calls[0][1]?.body as string)).toEqual({
+			current_password: 'old',
+			new_password: 'new'
+		});
+
+		const remove = fakeFetch(new Response(null, { status: 204 }));
+		await expect(new Api(remove).deleteRoom('home', 'secret')).resolves.toBeUndefined();
+		expect(remove.mock.calls[0][0]).toBe('/api/v1/rooms/home');
+		expect(remove.mock.calls[0][1]?.method).toBe('DELETE');
+		expect(JSON.parse(remove.mock.calls[0][1]?.body as string)).toEqual({ password: 'secret' });
+
+		const wrong = fakeFetch(
+			json(403, { error: { code: 'wrong_password', message: 'Incorrect password' } })
+		);
+		await expect(new Api(wrong).deleteRoom('home', 'bad')).rejects.toMatchObject({
+			status: 403,
+			code: 'wrong_password',
+			message: 'Incorrect password'
+		});
+	});
+
 	it('builds the events URL', () => {
 		expect(new Api(fakeFetch(json(200, {}))).eventsUrl('home')).toBe('/api/v1/rooms/home/events');
 	});

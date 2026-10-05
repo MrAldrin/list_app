@@ -55,6 +55,10 @@ export interface Feed {
 
 // Operations: one type per op in docs/api.md. `op_id` is added by the write queue.
 
+export interface RoomRenameOp {
+	type: 'room.rename';
+	name: string;
+}
 export interface ListCreateOp {
 	type: 'list.create';
 	name: string;
@@ -138,6 +142,7 @@ export interface ItemRestoreOp {
 }
 
 export type Op =
+	| RoomRenameOp
 	| ListCreateOp
 	| ListRenameOp
 	| ListDeleteOp
@@ -195,6 +200,7 @@ export type ErrorCode =
 	| 'invalid_request'
 	| 'invalid_password'
 	| 'not_authenticated'
+	| 'wrong_password'
 	| 'forbidden_origin'
 	| 'not_found'
 	| 'op_id_reused'
