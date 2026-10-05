@@ -15,7 +15,7 @@
 	import ChangePasswordDialog from './ChangePasswordDialog.svelte';
 	import DeleteRoomDialog from './DeleteRoomDialog.svelte';
 
-	let { room }: { room: RoomHandle } = $props();
+	let { room, backToAdmin = false }: { room: RoomHandle; backToAdmin?: boolean } = $props();
 
 	let dialog = $state<'share' | 'rename' | 'password' | 'delete' | null>(null);
 	let shareUrl = $state('');
@@ -43,7 +43,8 @@
 	async function deleted() {
 		dialog = null;
 		toasts.show('Room deleted', 'danger');
-		await goto(resolve('/'));
+		// As NiceGUI: back to the admin page when the room was opened from there.
+		await goto(backToAdmin ? resolve('/admin') : resolve('/'));
 	}
 </script>
 

@@ -7,6 +7,8 @@ import type { Feed, OpResponse, Room, SentOp, ShareLink } from './types';
 /** The API sits at the origin root, not under the app's `/app` base path. */
 export const API_BASE = '/api/v1';
 
+const ADMIN = `${API_BASE}/admin`;
+
 export type FetchFn = typeof fetch;
 
 function roomPath(slug: string, rest: string): string {
@@ -119,6 +121,39 @@ export class Api {
 
 	eventsUrl(slug: string): string {
 		return roomPath(slug, 'events');
+	}
+
+	// Admin (APP_PASSWORD): never gives room access.
+
+	adminLogin(password: string): Promise<void> {
+		return this.request<void>('POST', `${ADMIN}/session`, { password }).then(() => undefined);
+	}
+
+	/** Resolves when signed in as admin; `ApiError` 401 `admin_required` when not. */
+	adminSession(): Promise<void> {
+		return this.request<void>('GET', `${ADMIN}/session`).then(() => undefined);
+	}
+
+	adminLogout(): Promise<void> {
+		return this.request<void>('DELETE', `${ADMIN}/session`);
+	}
+
+	/** Every room, by name ignoring case. */
+	adminRooms(): Promise<Room[]> {
+		return this.request<{ rooms: Room[] }>('GET', `${ADMIN}/rooms`).then((data) => data.rooms);
+	}
+
+	adminCreateRoom(name: string, password: string): Promise<Room> {
+		return this.request<{ room: Room }>('POST', `${ADMIN}/rooms`, { name, password }).then(
+			(data) => data.room
+		);
+	}
+
+	/** Sets a new room password; every device of the room must sign in again. */
+	adminResetPassword(slug: string, newPassword: string): Promise<void> {
+		return this.request<void>('POST', `${ADMIN}/rooms/${encodeURIComponent(slug)}/password`, {
+			new_password: newPassword
+		}).then(() => undefined);
 	}
 
 	// Share links (room members): the token for `/app/share/{token}`.

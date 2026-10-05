@@ -1,16 +1,31 @@
-<!-- The top bar of the room page: app name, room name, sign-out and the room menu. -->
+<!--
+	The top bar of the room page: app name, room name, sign-out and the room
+	menu. Opened from the admin page, a back link to it replaces the app name.
+-->
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { RoomHandle } from '#lib/data/index.ts';
+	import Icon from '#lib/ui/Icon.svelte';
 	import RoomMenu from './RoomMenu.svelte';
 
-	let { room, onLogout }: { room: RoomHandle; onLogout: () => void } = $props();
+	let {
+		room,
+		backToAdmin = false,
+		onLogout
+	}: { room: RoomHandle; backToAdmin?: boolean; onLogout: () => void } = $props();
 </script>
 
 <header>
-	<span class="brand" aria-hidden="true">List<b>R</b></span>
+	{#if backToAdmin}
+		<a class="back" href={resolve('/admin')} aria-label="Back to admin"
+			><Icon name="arrow_back" /></a
+		>
+	{:else}
+		<span class="brand" aria-hidden="true">List<b>R</b></span>
+	{/if}
 	<h1>{room.store.room?.name ?? ''}</h1>
 	<button class="outline" type="button" onclick={onLogout}>Log out</button>
-	<RoomMenu {room} />
+	<RoomMenu {room} {backToAdmin} />
 </header>
 
 <style>
@@ -19,6 +34,17 @@
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 1rem;
+	}
+
+	/* A link styled like a round icon button, with a large touch area. */
+	.back {
+		display: grid;
+		place-items: center;
+		width: var(--touch);
+		height: var(--touch);
+		flex-shrink: 0;
+		border-radius: 50%;
+		color: var(--text);
 	}
 
 	.brand {

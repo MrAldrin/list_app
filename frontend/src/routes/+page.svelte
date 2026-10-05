@@ -1,7 +1,7 @@
 <!--
 	The start page (/app/). Like NiceGUI's `/`, it is a router: if this browser
 	signed in to a room before, it goes straight to that room. Otherwise it
-	asks for the room link or code.
+	asks for the room link or code, and offers the admin page.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -102,6 +102,9 @@
 			{/if}
 			<div class="actions">
 				<button class="primary" type="submit">Open Room</button>
+				<button class="outline" type="button" onclick={() => goto(resolve('/admin'))}>
+					Admin
+				</button>
 			</div>
 		</form>
 	{/if}
@@ -143,5 +146,6 @@
 	.actions {
 		display: flex;
 		justify-content: flex-end;
+		gap: 0.5rem;
 	}
 </style>

@@ -5,7 +5,8 @@
 -->
 <script lang="ts">
 	import { page } from '$app/state';
-	import { closeRoom, logout, openRoom, type RoomHandle } from '#lib/data/index.ts';
+	import { admin, closeRoom, logout, openRoom, type RoomHandle } from '#lib/data/index.ts';
+	import { openedFromAdmin } from '#lib/admin/admin-links.ts';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
@@ -28,6 +29,25 @@
 		const handle = openRoom(slug);
 		room = handle;
 		return () => closeRoom(handle);
+	});
+
+	// Opened from the admin page (`?admin=true`) by a signed-in admin: the
+	// header leads back there, as in NiceGUI. It never gives room access.
+	const fromAdmin = $derived(openedFromAdmin(page.url));
+	let isAdmin = $state(false);
+	$effect(() => {
+		isAdmin = false;
+		if (!fromAdmin) return;
+		let current = true;
+		admin
+			.signedIn()
+			.then((signedIn) => {
+				if (current) isAdmin = signedIn;
+			})
+			.catch(() => undefined); // Without an answer, keep the normal header.
+		return () => {
+			current = false;
+		};
 	});
 
 	// Messages from the data layer (a rejected or failed change) become toasts.
@@ -62,7 +82,7 @@
 			onRetry={() => room!.store.refresh()}
 		/>
 	{:else}
-		<RoomHeader {room} onLogout={signOut} />
+		<RoomHeader {room} backToAdmin={isAdmin} onLogout={signOut} />
 		{#if room.store.error}
 			<!-- The lists below may be out of date; they stay usable. -->
 			<LoadError

@@ -6,12 +6,14 @@
 //   closeRoom(room);                   // stop live updates
 //
 //   const shared = openShare(token);   // a share link: one list, same API
+//   await admin.login(password);       // admin: sign-in, rooms, password reset
 //
 // Components never call `fetch` themselves.
 
 import { Api, api as defaultApi } from './api';
 import { LiveUpdates, type EventSourceFactory, type SessionState } from './events';
 import { newId } from './ids';
+import { failed, type ActionResult } from './result';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { ShareApi } from './share';
 import { ApiError } from './types';
@@ -29,6 +31,8 @@ import type {
 import { WriteQueue } from './write-queue';
 
 export * from './types';
+export type { ActionResult } from './result';
+export * as admin from './admin';
 export type { RoomStatus, Notice } from './room-store.svelte';
 export type { LiveState } from './events';
 export { connectionStatus, CONNECTION_STATUS_DELAY, type ConnectionStatus } from './status';
@@ -36,9 +40,6 @@ export { RoomStore } from './room-store.svelte';
 export { filterVisibleItems, DEFAULT_HIDE_DONE, MAX_HIDE_DONE_COUNT } from './visibility';
 export { sortItems, sortLists, sortTags } from './order';
 export { newId } from './ids';
-
-export type ActionResult<R = Record<string, never>> =
-	{ ok: true; result: R } | { ok: false; code: string; message: string };
 
 type ListRef = Pick<List, 'uid'>;
 type ItemRef = Pick<Item, 'uid' | 'list_uid'>;
@@ -327,12 +328,6 @@ export class RoomHandle {
 
 function itemKeys(item: ItemRef) {
 	return { list_uid: item.list_uid, item_uid: item.uid };
-}
-
-function failed(error: unknown): { ok: false; code: string; message: string } {
-	if (error instanceof ApiError) return { ok: false, code: error.code, message: error.message };
-	if (error instanceof Error) return { ok: false, code: 'network', message: error.message };
-	return { ok: false, code: 'unknown', message: 'Something went wrong.' };
 }
 
 // The open rooms of this page. A room stays here after `closeRoom`, so its
