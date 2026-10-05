@@ -6,6 +6,7 @@
 	import { resolve } from '$app/paths';
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
+	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import RoomMenu from './RoomMenu.svelte';
 
 	let {
@@ -26,6 +27,7 @@
 	<h1>{room.store.room?.name ?? ''}</h1>
 	<button class="outline" type="button" onclick={onLogout}>Log out</button>
 	<RoomMenu {room} {backToAdmin} />
+	<ThemeToggle />
 </header>
 
 <style>

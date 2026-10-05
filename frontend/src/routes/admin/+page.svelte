@@ -11,6 +11,7 @@
 	import AdminInvitations from '#lib/admin/AdminInvitations.svelte';
 	import AdminRooms from '#lib/admin/AdminRooms.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
+	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let status = $state<'checking' | 'signed_out' | 'signed_in' | 'error'>('checking');
@@ -54,7 +55,10 @@
 		<header>
 			<span class="brand" aria-hidden="true">List<b>R</b></span>
 			<h1 class="visually-hidden">Admin</h1>
-			<button class="outline" type="button" onclick={signOut}>Log out</button>
+			<div class="end">
+				<button class="outline" type="button" onclick={signOut}>Log out</button>
+				<ThemeToggle />
+			</div>
 		</header>
 		<AdminRooms onSignedOut={() => (status = 'signed_out')} />
 		<AdminInvitations onSignedOut={() => (status = 'signed_out')} />
@@ -71,6 +75,12 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 1rem;
+	}
+
+	.end {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.brand {

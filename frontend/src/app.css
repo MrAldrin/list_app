@@ -8,13 +8,16 @@
  */
 
 :root {
-	color-scheme: light dark;
+	/* Light unless `data-theme="dark"` (set in app.html and lib/ui/theme.svelte.ts). */
+	color-scheme: light;
 
 	--bg: #f4f5f7;
 	--surface: #ffffff;
 	--text: #1f2933;
 	--text-muted: #5f6b7a;
 	--border: #d5dae1;
+	/* Edges of fields and switches: at least 3:1 against the page (WCAG). */
+	--control-border: #7b8594;
 	--primary: #2563eb;
 	--primary-text: #ffffff;
 	--danger: #c62828;
@@ -29,7 +32,7 @@
 	--tag-0: #1976d2;
 	--tag-1: #2e7d32;
 	--tag-2: #d32f2f;
-	--tag-3: #e65100;
+	--tag-3: #c43e00;
 	--tag-4: #7b1fa2;
 	--tag-5: #00796b;
 	--tag-6: #c2185b;
@@ -50,32 +53,33 @@
 	line-height: 1.4;
 }
 
-/* The browser tells us whether the phone or computer is in dark mode. */
-@media (prefers-color-scheme: dark) {
-	:root {
-		--bg: #111418;
-		--surface: #1c2128;
-		--text: #e6e9ee;
-		--text-muted: #9aa5b1;
-		--border: #343b45;
-		--primary: #5b8def;
-		--primary-text: #0b1220;
-		--danger: #ef5350;
-		--danger-text: #1a0505;
-		--warning: #f0a04b;
-		--success: #66bb6a;
-		--focus: #8ab4f8;
-		--shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+/* Dark mode: the phone's or computer's mode, or the choice saved with the
+   toggle button. */
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--bg: #111418;
+	--surface: #1c2128;
+	--text: #e6e9ee;
+	--text-muted: #9aa5b1;
+	--border: #343b45;
+	--control-border: #6b7686;
+	--primary: #5b8def;
+	--primary-text: #0b1220;
+	--danger: #ef5350;
+	--danger-text: #1a0505;
+	--warning: #f0a04b;
+	--success: #66bb6a;
+	--focus: #8ab4f8;
+	--shadow: 0 1px 3px rgb(0 0 0 / 0.5);
 
-		--tag-0: #64b5f6;
-		--tag-1: #81c784;
-		--tag-2: #e57373;
-		--tag-3: #ffb74d;
-		--tag-4: #ba68c8;
-		--tag-5: #4db6ac;
-		--tag-6: #f06292;
-		--tag-text: #111418;
-	}
+	--tag-0: #64b5f6;
+	--tag-1: #81c784;
+	--tag-2: #e57373;
+	--tag-3: #ffb74d;
+	--tag-4: #ba68c8;
+	--tag-5: #4db6ac;
+	--tag-6: #f06292;
+	--tag-text: #111418;
 }
 
 *,
@@ -113,7 +117,7 @@ input {
 	min-height: var(--touch);
 	width: 100%;
 	padding: 0 0.75rem;
-	border: 1px solid var(--border);
+	border: 1px solid var(--control-border);
 	border-radius: var(--radius);
 	background: var(--surface);
 }
@@ -121,7 +125,7 @@ input {
 textarea {
 	width: 100%;
 	padding: 0.5rem 0.75rem;
-	border: 1px solid var(--border);
+	border: 1px solid var(--control-border);
 	border-radius: var(--radius);
 	background: var(--surface);
 	resize: vertical;
@@ -171,7 +175,7 @@ input[role='switch'] {
 	padding: 0;
 	border: none;
 	border-radius: 999px;
-	background: var(--border);
+	background: var(--control-border);
 	cursor: pointer;
 	transition: background 0.15s;
 }

@@ -7,6 +7,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import Icon from '#lib/ui/Icon.svelte';
+	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 
 	let {
 		name,
@@ -35,6 +36,7 @@
 			{optionsOpen ? 'Done' : 'Options'}
 		</button>
 		{@render menu?.()}
+		<ThemeToggle />
 	</div>
 </header>
 <h1>{name}</h1>
