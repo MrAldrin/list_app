@@ -2,8 +2,11 @@
 
 - This project should create a MVP of a list app for the web. 
 - It should be simple, and slowly add more features.
-- This is my first web app. So explain the ways of web development in simple terms for me to learn along the way.
-- Dont implement anything before I explicitly tell you to. 
+- This is my first web app. So explain the ways of web development in simple terms for me to learn.
+- Don't implement while we are only discussing. Start work when:
+  - the user asks for it directly;
+  - a handoff document says the user approved starting it; or
+  - you are a subagent, and the agent that briefed you passes on the user's approval.
 - Modular Implementation: Split large tasks into small, testable chunks.
 - GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist). Pushes to `main` are only allowed inside the [deploy window](docs/deployment.md#deploy-window).
 
