@@ -1419,6 +1419,34 @@ def update_room_password(
             raise
 
 
+def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int | None:
+    """Admin reset: set a room's password by slug and revoke all its tokens.
+
+    Returns the room id, or None when no room has this slug (nothing changed).
+    The caller checks admin sign-in and the password rules first.
+    """
+    if not new_plain_password:
+        raise ValueError("Password cannot be empty")
+
+    pw_hash = bcrypt.hashpw(
+        new_plain_password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
+            ).fetchone()
+            if row is None or _replace_room_password_locked(row[0], pw_hash) is None:
+                db.rollback()
+                return None
+            db.commit()
+            return row[0]
+        except Exception:
+            db.rollback()
+            raise
+
+
 def change_room_password_and_issue_token(
     room_slug: str, current_plain_password: str, new_plain_password: str
 ) -> tuple[int, str] | None:
@@ -1461,7 +1489,12 @@ def check_new_room_password(new_plain_password: str) -> None:
     """
     if not new_plain_password.strip():
         raise ValueError("New password cannot be empty")
-    if len(new_plain_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+    check_password_length(new_plain_password)
+
+
+def check_password_length(plain_password: str) -> None:
+    """Refuse a password bcrypt cannot hash, with a message for the user."""
+    if len(plain_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
         raise ValueError(
             f"The password cannot be longer than {MAX_PASSWORD_BYTES} bytes"
         )

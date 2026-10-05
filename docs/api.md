@@ -2,7 +2,7 @@
 
 The contract between the Python server and the Svelte app. It covers the
 prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md)),
-room management and share links. Admin and invitations come in Milestone 3
+room management, share links and admin. Invitations come in Milestone 3
 and are added here when they are built.
 
 The business rules are the same as in NiceGUI: see
@@ -35,18 +35,20 @@ HTTP errors use one shape:
 | 413 | `invalid_request` | Body larger than 64 KB |
 | 415 | `invalid_request` | Write without `Content-Type: application/json` |
 | 422 | `invalid_request` | Body is not a JSON object, missing, unknown or wrong fields (types are strict: `"3"` is not a number), a number out of range, unknown op `type`, bad `since`, a client `uid` already used |
-| 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical) |
+| 401 | `invalid_password` | `POST …/session`: wrong password **or** unknown room (identical); admin sign-in: wrong password |
+| 401 | `admin_required` | Admin endpoint without admin sign-in |
 | 401 | `not_authenticated` | No room cookie, revoked or expired token, or unknown room |
 | 401 | `share_unavailable` | Share link: the token opens no list (never issued, reset, or the list was deleted; identical) |
 | 403 | `forbidden_origin` | Write without a same-origin `Origin` header |
 | 403 | `wrong_password` | Change password or delete room: wrong room password (you have access) |
 | 404 | `not_found` | Unknown API path |
 | 404 | `list_unavailable` | Share-link endpoints: the list is gone or in another room |
+| 404 | `room_unavailable` | Admin password reset: no room has this slug |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
 | 503 | `unavailable` | Database busy or failing; retry later. Saved access stays. |
 
-There is no rate limiting; the app has none today.
+There is no rate limiting, also not for the admin password; the app has none today.
 
 ## Writes: same-origin rule
 
@@ -152,6 +154,39 @@ Room members (need the room cookie; 401 `not_authenticated` without it):
   transaction. It is not an op (the answer holds a token, which must not be
   stored for replays); a second reset does no harm.
 - Changing the room password does not reset share links.
+
+## Admin
+
+The admin password is `APP_PASSWORD`. Admin sign-in is the flag NiceGUI's
+`/admin` uses in its per-browser user storage (found through NiceGUI's signed
+`session` cookie). So signing in or out on one UI does the same on the other,
+in the same browser. Admin sign-in never gives room access: the room
+endpoints ignore it, and admin endpoints never set a room cookie.
+
+| Request | Body | Success |
+|---|---|---|
+| `POST /api/v1/admin/session` | `{"password"}` | 200 `{}` |
+| `GET /api/v1/admin/session` | – | 200 `{}`; 401 `admin_required` when not signed in |
+| `DELETE /api/v1/admin/session` | – | 204, also when not signed in |
+| `GET /api/v1/admin/rooms` | – | 200 `{"rooms": [{"slug", "name"}]}` |
+| `POST /api/v1/admin/rooms` | `{"name", "password"}` | 200 `{"room": {"slug", "name"}}` |
+| `POST /api/v1/admin/rooms/{slug}/password` | `{"new_password"}` | 200 `{}` |
+
+- **Sign-in:** a wrong password is 401 `invalid_password` ("Wrong password").
+  It does not sign out an admin who is signed in. The check is exact and in
+  constant time.
+- Every other admin endpoint is 401 `admin_required` without admin sign-in,
+  checked before the body or the room.
+- **Rooms:** every room, by name ignoring case.
+- **Create room:** the name is trimmed and must not be empty ("Room name
+  cannot be empty"); the password must not be empty ("Password cannot be
+  empty"), at most 72 bytes, and is saved as typed. Both give 422. Creating
+  a room does not sign the admin in to it.
+- **Password reset:** no current password needed. The new password follows
+  the change-password rules above (422 when blank or longer than 72 bytes).
+  Every token of the room is revoked and its streams are woken. A room that is
+  gone is 404 `room_unavailable`.
+- Passwords are at most 1,024 characters (else 422).
 
 ## Data shapes
 

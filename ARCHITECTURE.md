@@ -65,6 +65,8 @@ back from a public list.
 - `src/item_service.py`: Item business rules over database operations.
 - `src/room_access.py` and `src/room_cookies.py`: Private-page authorization
   context and the HTTPS remembered-access bridge.
+- `src/admin_access.py`: The admin password check and sign-in flag, shared by
+  NiceGUI's `/admin` and the API.
 - `src/room_invitations.py` and `src/ui/`: Invitation logic and extracted UI helpers.
 - `src/svelte_frontend.py`: Serves the built Svelte prototype under `/app/`.
 - `src/api/`: JSON API for the Svelte frontend under `/api/v1`; the contract is

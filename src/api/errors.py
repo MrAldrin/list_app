@@ -28,6 +28,8 @@ MESSAGES = {
     "share_unavailable": "This list was deleted or this share link was reset.",
     "list_unavailable": "The list is no longer available.",
     "wrong_password": "Incorrect password",
+    "admin_required": "Admin sign-in required",
+    "room_unavailable": "Room changed or no longer exists; refresh and try again",
     "forbidden_origin": "This request must come from this site.",
     "not_found": "Not found.",
     "op_id_reused": "This op_id was already used for another request.",

@@ -12,6 +12,7 @@ from urllib.parse import quote, urlsplit
 
 from nicegui import app, core, ui
 
+from admin_access import admin_password_matches
 from config import app_reload_enabled, require_app_password
 from item_visibility import MAX_HIDE_DONE_COUNT, filter_visible_items
 from svelte_frontend import register_svelte_frontend
@@ -19,6 +20,7 @@ from ui.install_help import install_help_menu_item
 from ui.room_invitations import creation_form, invitation_controls
 from ui.sharing import share_button
 
+# Checked at startup: the app does not start without an admin password.
 GLOBAL_APP_PASSWORD = require_app_password()
 # On stop or reload, uvicorn waits this long for open responses, then cancels
 # them. Live update streams never end by themselves (src/api/events.py).
@@ -1189,7 +1191,7 @@ async def admin_login() -> None:
     await _add_theme_toggle()
 
     def try_login() -> None:
-        if password.value == GLOBAL_APP_PASSWORD:
+        if admin_password_matches(password.value or ""):
             app.storage.user.update({"authenticated": True})
             ui.navigate.to("/admin")
         else:
