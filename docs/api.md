@@ -2,8 +2,7 @@
 
 The contract between the Python server and the Svelte app. It covers the
 prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md)),
-room management, share links and admin. Invitations come in Milestone 3
-and are added here when they are built.
+room management, share links, admin and creation invitations.
 
 The business rules are the same as in NiceGUI: see
 [item writes](item-writes.md) and [checked-item visibility](checked-item-visibility.md).
@@ -44,6 +43,7 @@ HTTP errors use one shape:
 | 404 | `not_found` | Unknown API path |
 | 404 | `list_unavailable` | Share-link endpoints: the list is gone or in another room |
 | 404 | `room_unavailable` | Admin password reset: no room has this slug |
+| 404 | `invitation_unavailable` | Creation invitation: unknown, expired, revoked or deleted (identical) |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
 | 503 | `unavailable` | Database busy or failing; retry later. Saved access stays. |
@@ -60,7 +60,8 @@ Every `POST` and `DELETE` must:
 - send a JSON body with `Content-Type: application/json` (`DELETE …/session`
   has no body).
 
-`GET` requests have no side effects and need only the cookie.
+`GET` requests change no data and need only the cookie. One exception is
+housekeeping: listing invitations deletes old inactive ones, as in NiceGUI.
 `DELETE /api/v1/rooms/{slug}` has a JSON body.
 
 ## Room session
@@ -187,6 +188,46 @@ endpoints ignore it, and admin endpoints never set a room cookie.
   Every token of the room is revoked and its streams are woken. A room that is
   gone is 404 `room_unavailable`.
 - Passwords are at most 1,024 characters (else 422).
+
+## Creation invitations
+
+An invitation link (`/app/create-room/{token}`) lets anyone create a new room.
+The rules are in [room invitations](room-invitations.md). Invitations never
+give access to any room, also not to the room they create.
+
+Admins (need admin sign-in; 401 `admin_required` first, as above):
+
+| Request | Body | Success |
+|---|---|---|
+| `GET /api/v1/admin/invitations` | – | 200 `{"invitations": [invitation]}`, newest first |
+| `POST /api/v1/admin/invitations` | `{}` | 200 `{"invitation", "token"}` |
+| `POST /api/v1/admin/invitations/{id}/revoke` | `{}` | 200 `{}` |
+
+```json
+{"id": 3, "status": "active", "created_at": "2026-10-05T09:12:00Z",
+ "expires_at": "2026-10-12T09:12:00Z", "revoked_at": null}
+```
+
+- `status` is `active`, `revoked` or `expired` (revoked wins). Times are UTC.
+- An invitation is valid for 7 days and can be used many times.
+- The token is only in the answer that issues it; only its sha256 is stored.
+- Listing deletes invitations that have been inactive for 7 days.
+- Revoking an unknown or already revoked invitation changes nothing. Rooms
+  created with it keep working. `id` must be a whole number from 1 (else 422).
+
+Anyone with the link (no sign-in):
+
+| Request | Body | Success |
+|---|---|---|
+| `GET /api/v1/invitations/{token}` | – | 200 `{}` when it can create a room |
+| `POST /api/v1/invitations/{token}/rooms` | `{"name", "password"}` | 200 `{"room": {"slug", "name"}}` |
+
+- A link that cannot create a room is 404 `invitation_unavailable`, the same
+  for every reason. The invitation is checked again in the write transaction.
+- The name is trimmed and must have 1–100 characters. The password must not
+  be blank, at most 72 bytes, and is saved as typed. Both give 422 with
+  NiceGUI's message. Passwords are at most 1,024 characters in the body.
+- No cookie is set: the creator signs in to the new room with its password.
 
 ## Data shapes
 

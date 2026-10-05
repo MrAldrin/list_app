@@ -1,6 +1,5 @@
 """Small invitation views; room access continues to use the existing flow."""
 
-import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 
@@ -12,6 +11,7 @@ from room_invitations import (
     create_room_from_invitation,
     get_invitations,
     invitation_is_active,
+    invitation_status,
     revoke_invitation,
 )
 
@@ -41,19 +41,10 @@ def invitation_controls(is_admin: Callable[[], bool], base_url: str) -> None:
             return
         for invitation in get_invitations():
             invitation_id = invitation["id"]
-            active = (
-                invitation["revoked_at"] is None
-                and invitation["expires_at"] > time.time()
-            )
-            status = (
-                "Revoked"
-                if invitation["revoked_at"] is not None
-                else "Active"
-                if active
-                else "Expired"
-            )
+            status = invitation_status(invitation)
+            active = status == "active"
             with ui.column().classes("w-full gap-1"):
-                ui.label(f"Invitation #{invitation_id}: {status}")
+                ui.label(f"Invitation #{invitation_id}: {status.capitalize()}")
                 ui.label(f"Created {_utc(invitation['created_at'])}").classes("text-xs")
                 ui.label(f"Expires {_utc(invitation['expires_at'])}").classes("text-xs")
                 if active:

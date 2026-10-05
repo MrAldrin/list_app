@@ -15,6 +15,7 @@ from database_setup import db
 
 INVITATION_LIFETIME = 7 * 24 * 60 * 60
 INVITATION_RETENTION = 7 * 24 * 60 * 60
+UNAVAILABLE_MESSAGE = "This invitation is invalid or no longer active."
 
 
 class InvitationUnavailable(ValueError):
@@ -59,6 +60,18 @@ def get_invitations() -> list[dict]:
     ]
 
 
+def invitation_status(invitation: dict) -> str:
+    """`revoked`, `active` or `expired`, for an admin listing row.
+
+    Revocation wins over expiry, as on NiceGUI's admin page.
+    """
+    if invitation["revoked_at"] is not None:
+        return "revoked"
+    if invitation["expires_at"] > time.time():
+        return "active"
+    return "expired"
+
+
 def revoke_invitation(invitation_id: int) -> None:
     with _DB_LOCK, db:
         db.execute(
@@ -87,7 +100,7 @@ def invitation_is_active(token: str) -> bool:
 def create_room_from_invitation(token: str, name: str, password: str) -> str:
     # Reject invalid links before spending CPU on bcrypt, then recheck at write time.
     if not invitation_is_active(token):
-        raise InvitationUnavailable("This invitation is invalid or no longer active.")
+        raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
     name = normalize_display_name(name)
     if not name or len(name) > 100:
         raise ValueError("Room name must contain 1-100 characters.")
@@ -99,9 +112,7 @@ def create_room_from_invitation(token: str, name: str, password: str) -> str:
         try:
             db.execute("BEGIN IMMEDIATE")
             if not _is_active_locked(token):
-                raise InvitationUnavailable(
-                    "This invitation is invalid or no longer active."
-                )
+                raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
             db.execute(
                 "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
                 (name, slug, password_hash),

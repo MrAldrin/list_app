@@ -18,6 +18,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from room_invitations import UNAVAILABLE_MESSAGE as INVITATION_UNAVAILABLE
+
 API_PREFIX = "/api"
 NO_STORE = "no-store"
 
@@ -30,6 +32,7 @@ MESSAGES = {
     "wrong_password": "Incorrect password",
     "admin_required": "Admin sign-in required",
     "room_unavailable": "Room changed or no longer exists; refresh and try again",
+    "invitation_unavailable": INVITATION_UNAVAILABLE,
     "forbidden_origin": "This request must come from this site.",
     "not_found": "Not found.",
     "op_id_reused": "This op_id was already used for another request.",

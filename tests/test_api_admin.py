@@ -11,49 +11,22 @@ import json
 from unittest.mock import patch
 
 import pytest
-from api_helpers import HTTPS, assert_error, client_for, home
-from fastapi import FastAPI
+from api_helpers import (
+    APP_PASSWORD,
+    HTTPS,
+    admin,
+    assert_error,
+    browser,
+    client_for,
+    home,
+    sign_in,
+)
 from nicegui import core
-from nicegui.storage import RequestTrackingMiddleware, Storage
-from starlette.middleware.sessions import SessionMiddleware
 from starlette.testclient import TestClient
 
 import database_crud as crud
 from admin_access import ADMIN_STORAGE_KEY, admin_password_matches
-from api import register_api
 from database_setup import db
-
-APP_PASSWORD = "test-only-app-password"  # tests/conftest.py
-
-
-@pytest.fixture(scope="module")
-def admin_app(tmp_path_factory) -> FastAPI:
-    test_app = FastAPI()
-    register_api(test_app)
-    # The order ui.run() adds them in: session cookie outside, tracking inside.
-    test_app.add_middleware(RequestTrackingMiddleware)
-    test_app.add_middleware(SessionMiddleware, secret_key="test-only-secret")
-    with patch.object(Storage, "path", tmp_path_factory.mktemp("nicegui")):
-        yield test_app
-
-
-def browser(admin_app: FastAPI, *, origin: str | None = HTTPS) -> TestClient:
-    return TestClient(
-        admin_app,
-        base_url=HTTPS,
-        headers={"Origin": origin} if origin else {},
-        raise_server_exceptions=False,
-    )
-
-
-def sign_in(client: TestClient, password: str = APP_PASSWORD):
-    return client.post("/api/v1/admin/session", json={"password": password})
-
-
-def admin(admin_app: FastAPI) -> TestClient:
-    client = browser(admin_app)
-    assert sign_in(client).status_code == 200
-    return client
 
 
 def nicegui_user_storage(client: TestClient) -> dict:

@@ -3,6 +3,7 @@
 import uuid
 from typing import Any
 
+from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 import database_crud as crud
@@ -100,3 +101,30 @@ def row_counts() -> tuple[int, int, int]:
         db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         for table in ("lists", "items", "deletions")
     )
+
+
+# Admin. Admin sign-in lives in NiceGUI's `app.storage.user`, which needs
+# NiceGUI's session middleware. Tests never call `ui.run()`, which adds it in
+# production, so admin tests serve the same API router from a small app with
+# that middleware. The `admin_app` fixture is in `conftest.py`.
+
+APP_PASSWORD = "test-only-app-password"  # tests/conftest.py
+
+
+def browser(admin_app: FastAPI, *, origin: str | None = HTTPS) -> TestClient:
+    return TestClient(
+        admin_app,
+        base_url=HTTPS,
+        headers={"Origin": origin} if origin else {},
+        raise_server_exceptions=False,
+    )
+
+
+def sign_in(client: TestClient, password: str = APP_PASSWORD):
+    return client.post("/api/v1/admin/session", json={"password": password})
+
+
+def admin(admin_app: FastAPI) -> TestClient:
+    client = browser(admin_app)
+    assert sign_in(client).status_code == 200
+    return client
