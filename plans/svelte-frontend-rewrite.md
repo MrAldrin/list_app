@@ -325,7 +325,7 @@ need separate logins.
   Outcome (2026-10-05): **continue**. The owner went through rows 7, 22/78,
   57, 72/73, 83–89, 91 and 93 and kept them all. Changes, in the
   [backlog](backlog.md): Next, before Milestone 3: save "Show quantities" and
-  "Only show minimum 2" per list (84), and an "Opened existing list" info
+  "Only show minimum 2" per list (84; later decided differently, see the row), and an "Opened existing list" info
   toast (78). Later: longer undo (85, 87). Ideas: a hidden-items count (89).
   Manual checks: time the reconnect after going offline (67, 92). The
   testing fixes above get no decision rows; they match NiceGUI.
@@ -349,9 +349,8 @@ Goal: Svelte can do everything NiceGUI does. Start after Gate A.
 - **3.4** Creation invitations: issue, revoke, create a room from a link.
 - **3.5** Home-screen install: manifest, icons, launch URL rules from
   [home-screen installation](../docs/home-screen-installation.md).
-- **3.6** Theme, small UX details and accessibility pass. Include: creating a
-  list whose name exists (any letter case) shows "Opened existing list" instead
-  of opening it silently; names stay unique ignoring case. Raised at Gate A.
+- **3.6** Theme, small UX details and accessibility pass. Include: names stay
+  unique ignoring case. Raised at Gate A.
 - **3.7** Port the remaining NiceGUI browser tests to Svelte versions. Also
   add a layout check for toasts (small, inside the screen). WebKit runs
   already, but no test checked the toast size, and only the real iPhone
@@ -484,7 +483,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 75 | Imports through `#lib/…` name the file with its extension (`#lib/data/index.ts`) | `package.json` subpath imports map paths literally; SvelteKit 3 allows `.ts` extensions | Relative imports | Low |
 | 76 | Toasts: `lib/ui/toasts.svelte.ts` (store) and `Toast.svelte` (in the root layout). The room page turns `store.notice` (rejected or failed writes) into warning toasts; pages show success toasts themselves. The toast area is a `popover`, so it shows above an open dialog | One place for messages, like `ui.notify`; an open `<dialog>` sits in the browser's top layer, above any `z-index` | Error text inside each dialog | Low |
 | 77 | Dialogs use the native `<dialog>` with `showModal()`, shown with `{#if}` (`Dialog`, `NameDialog`, `ConfirmDialog` in `lib/ui/`) | Escape, focus trap and backdrop come free; no UI library | A custom overlay `div` | Low |
-| 78 | "List created" shows only when a list was created; an existing name (ignoring case) opens that list without a toast (NiceGUI says "List created" both times). Create and rename keep the dialog open on a rejection, and close it on `list_unavailable`, like NiceGUI | The toast must not claim a change that did not happen | Copy NiceGUI exactly | Low |
+| 78 | "List created" shows only when a list was created; an existing name (ignoring case) opens that list with an info toast "Opened existing list" (NiceGUI says "List created" both times). Create and rename keep the dialog open on a rejection, and close it on `list_unavailable`, like NiceGUI | The toast must not claim a change that did not happen; the owner asked at Gate A to be told the list already existed | Copy NiceGUI exactly | Low |
 | 79 | Fix in the data layer: `createRoomStore()` creates each room store in its own `$effect.root`. Test `room-lifetime.svelte.test.ts` runs in happy-dom (new dev dependency); Vitest resolves Svelte with the `browser` condition | Svelte freezes a `$derived` when the effect that created it ends (`derived_inert`). Rooms are opened in the page's effect but outlive it (decision 68), so the room page showed stale lists after visiting a list | Open rooms outside any effect; jsdom | Low |
 | 80 | `/app/list/[slug]` is a placeholder until 2.4; its link goes to `/app/`, which opens the last room | Room links and "create opens the list" work now | No list route yet | Low |
 | 81 | List page at `/app/room/{room}/list/{list}`. `/app/list/{slug}` (the NiceGUI shape) sends the browser there with the last room (`GET /last-room`). At 4.2, `/list/{slug}` can use the same page, or the server can redirect with the list's room (NiceGUI already shows that room to anyone with the list link, via "Open room") | The changes feed is per room, so the page must know the room; with it in the URL the page never guesses, and it reuses the room's store and password prompt | A list-to-room lookup endpoint; only the last room | Low |

@@ -24,8 +24,9 @@
 		const result = await room.createList(name);
 		if (!result.ok) return; // The store shows why, as a toast.
 		creating = false;
-		// An existing name (ignoring case) gives the existing list, like NiceGUI.
+		// An existing name (ignoring case) opens the existing list, and says so.
 		if (result.result.created) toasts.show('List created', 'success');
+		else toasts.show('Opened existing list', 'info');
 		await goto(resolve('/room/[slug]/list/[list]', { slug: room.slug, list: result.result.slug }));
 	}
 

@@ -55,11 +55,12 @@ def test_room_page_creates_renames_and_deletes_lists(svelte_server, open_session
     create_list(page, "apples")
     page.go_back()
 
-    # The same name in other letter case opens the existing list.
+    # The same name in other letter case opens the existing list, and says so.
     page.get_by_role("button", name="Add New List").click()
     page.get_by_label("List name").fill("GROCERIES")
     page.get_by_label("List name").press("Enter")
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
+    expect(page.get_by_text("Opened existing list")).to_be_visible()
     page.go_back()
     expect(list_links(page)).to_have_text(["apples", "Groceries"])
 
