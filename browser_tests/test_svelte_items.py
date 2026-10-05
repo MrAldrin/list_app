@@ -42,19 +42,25 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
         page.get_by_role("checkbox", name="apples").check()
     expect(page.get_by_role("checkbox", name="apples")).to_be_checked()
     field.fill("app")
-    page.get_by_role("list", name="Suggestions").get_by_role(
-        "button", name="apples"
+    page.get_by_role("listbox", name="Suggestions").get_by_role(
+        "option", name="apples"
     ).click()
     expect(page.get_by_text("Restored apples!")).to_be_visible()
     expect(page.get_by_role("checkbox", name="apples")).not_to_be_checked()
 
     # Keyboard: arrows highlight a suggestion, Enter picks it, Escape closes.
-    suggestions = page.get_by_role("list", name="Suggestions")
+    # The field is a combobox, so screen readers hear the highlighted option.
+    suggestions = page.get_by_role("listbox", name="Suggestions")
     field.fill("a")
+    expect(field).to_have_attribute("aria-expanded", "true")
     field.press("Escape")
     expect(suggestions).to_be_hidden()
+    expect(field).to_have_attribute("aria-expanded", "false")
     field.fill("bre")
     field.press("ArrowDown")
+    bread = suggestions.get_by_role("option", name="bread")
+    expect(bread).to_have_attribute("aria-selected", "true")
+    expect(field).to_have_attribute("aria-activedescendant", bread.get_attribute("id"))
     field.press("Enter")
     expect(page.get_by_text("'bread' is already on the list")).to_be_visible()
 

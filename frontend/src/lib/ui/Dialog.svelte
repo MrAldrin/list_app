@@ -27,9 +27,23 @@
 	let dialog = $state<HTMLDialogElement>();
 
 	$effect(() => {
+		if (!dialog) return;
+		const box = dialog;
+		// The button that opened the dialog, to give the focus back afterwards.
+		const opener = document.activeElement;
 		// `showModal()` (not `show()`) makes the rest of the page inert.
-		dialog?.showModal();
-		if (focusBox) dialog?.focus();
+		box.showModal();
+		if (focusBox) box.focus();
+		return () => {
+			// Closing with Escape gives the focus back by itself. A dialog the
+			// page removes (after Save, say) would leave it nowhere, so keyboard
+			// and screen reader users would start again at the top.
+			const focus = document.activeElement;
+			const lost = !focus || focus === document.body || box.contains(focus);
+			if (lost && opener instanceof HTMLElement && opener.isConnected) {
+				opener.focus({ preventScroll: true });
+			}
+		};
 	});
 
 	// A backdrop click targets the <dialog> itself, but so does a click on its

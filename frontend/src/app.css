@@ -28,8 +28,9 @@
 	--shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 
 	/* Tag colors, by the tag's place in the list (NiceGUI's TAG_COLORS):
-	   blue, green, red, orange, purple, teal, pink. */
-	--tag-0: #1976d2;
+	   blue, green, red, orange, purple, teal, pink. Dark enough for 4.5:1 on
+	   the page (app-colors.test.ts checks every pair). */
+	--tag-0: #1565c0;
 	--tag-1: #2e7d32;
 	--tag-2: #d32f2f;
 	--tag-3: #c43e00;
@@ -206,6 +207,16 @@ input[role='switch']:checked::before {
 :focus-visible {
 	outline: 3px solid var(--focus);
 	outline-offset: 2px;
+}
+
+/* Some people turn motion off (Reduce motion on the iPhone): no sliding
+   switches. ConnectionStatus.svelte stops its own pulse. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0s !important;
+	}
 }
 
 /* Text for screen readers only, for example a label of an icon button. */

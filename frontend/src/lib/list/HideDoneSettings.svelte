@@ -152,6 +152,12 @@
 		outline-offset: -3px;
 	}
 
+	/* The chosen mode is filled with the focus color, so its ring takes the
+	   text color instead. */
+	.modes .selected:has(:focus-visible) {
+		outline-color: var(--primary-text);
+	}
+
 	.count {
 		width: 6rem;
 		min-height: 2.25rem;

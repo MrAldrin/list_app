@@ -30,6 +30,8 @@
 	/** Suggestions show only while the field has focus. */
 	let focused = $state(false);
 	const shown = $derived(closed || !focused ? [] : suggestions);
+	// Unique ids on the page, for the ARIA links between field and suggestions.
+	const listId = $props.id();
 
 	function blurred() {
 		focused = false;
@@ -89,7 +91,11 @@
 			onkeydown={keydown}
 			onfocus={() => (focused = true)}
 			onblur={blurred}
-			aria-activedescendant={active >= 0 ? `suggestion-${active}` : undefined}
+			role="combobox"
+			aria-autocomplete="list"
+			aria-expanded={shown.length > 0}
+			aria-controls={shown.length > 0 ? listId : undefined}
+			aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
 			aria-label="Add or Search"
 			placeholder="Add or Search"
 			autocomplete="off"
@@ -102,12 +108,16 @@
 	</form>
 
 	{#if shown.length > 0}
-		<ul aria-label="Suggestions">
+		<!-- A combobox's popup: screen readers announce the highlighted option
+		     while the focus stays in the field. -->
+		<ul id={listId} role="listbox" aria-label="Suggestions">
 			{#each shown as name, index (name)}
-				<li>
+				<li role="none">
 					<button
-						id="suggestion-{index}"
+						id="{listId}-{index}"
 						class:active={index === active}
+						role="option"
+						aria-selected={index === active}
 						type="button"
 						onpointerdown={keepFocus}
 						onmousedown={keepFocus}
