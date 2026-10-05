@@ -251,6 +251,7 @@ data: {}
 - Without access at connect time, the response is the 401 JSON error.
 - Headers: `Content-Type: text/event-stream`, `Cache-Control: no-store`,
   `X-Accel-Buffering: no` (no proxy buffering).
-- The server closes the stream when it shuts down or restarts, and when the
-  database is unavailable.
+- The server closes the stream when it shuts down or restarts (after at most
+  `SHUTDOWN_TIMEOUT_SECONDS` in `src/main.py`), and when the database is
+  unavailable.
 - On a dropped connection the client reconnects and reads the changes feed.

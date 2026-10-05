@@ -503,6 +503,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 96 | `conftest.py`: the `sessions` cleanup (screenshots, traces, browser errors) moved into a `BrowserSessions` class, shared with a new `open_session(role, **options)` factory. NiceGUI steps in Svelte tests use their own desktop context and login | One copy of the diagnostics; NiceGUI and Svelte keep separate logins on HTTP anyway | Copy the fixture | Low |
 | 97 | Phone test script `scripts/serve_svelte_local.py`: builds, then runs `src/main.py` with a test database in `~/.local/share/list_app/svelte-phone-test/` (own NiceGUI storage, no auto-reload), port 8080, and prints the `/app/` address per network (Tailscale first). It refuses the repository's `list.db` | Port 8080 is the one the firewall and Tailscale rules allow; the folder sits next to the deploy backups, outside the repo; the normal start is unchanged | A README section only; a shell script | Low |
 | 98 | Gate A difference review against NiceGUI. Match NiceGUI: on the list page the top bar (back, Options) and the add field stay on screen (`position: sticky`); long list and item names stay on one line with "…"; Options on/off settings are sliding switches; the row quantity stepper is a compact grey box (20 px buttons, same-width digits). Item rows are 36 px high (checkbox tap area stays 44 px wide). Keep Svelte: start page errors under the field, start card near the top, toasts at the bottom, the browser checkbox, hint text instead of floating labels | The owner decided each row; phone rows need room for tags, stepper and delete; the keyboard covers centered content | Full NiceGUI look; 44 px rows | Low |
+| 99 | Streams end on shutdown through uvicorn's `timeout_graceful_shutdown`, set to 1 s (`SHUTDOWN_TIMEOUT_SECONDS` in `src/main.py`, passed through `ui.run()`; the browser test server passes it too). Replaces decision 61: the `should_exit` check and the 0.5 s poll in `src/api/events.py` are gone. Uvicorn logs "Cancel N running task(s), timeout graceful shutdown exceeded" when it cuts a stream; that is expected. The two tests of the old check were replaced by `tests/test_server_shutdown.py`, which starts `src/main.py`, opens a stream and sends SIGTERM (fails without the timeout; about 1.3 s with it). Ctrl+C in reload mode checked by hand: 1.3 s | Owner decision at Gate A: official setting over uvicorn internals. 1 s is far longer than any normal request (SQLite writes take milliseconds) and keeps reloads quick | 2–5 s (slower reloads and deploy stops while a stream is open) | Low |
 
 ## Progress
 
@@ -539,7 +540,7 @@ Milestone 2: prototype UI
 - [x] **Gate A: owner prototype review** (2026-10-05: continue; see the [Gate A checklist](#gate-a-checklist))
 
 Milestone 3: rest of the app
-- [ ] 3.0 Official shutdown timeout for SSE
+- [x] 3.0 Official shutdown timeout for SSE (`src/main.py`, `src/api/events.py`, [`tests/test_server_shutdown.py`](../tests/test_server_shutdown.py), browser test server in `browser_tests/conftest.py`; decision 99, replaces 61)
 - [ ] 3.1 Room management
 - [ ] 3.2 Public share links
 - [ ] 3.3 Admin

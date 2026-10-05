@@ -62,7 +62,8 @@ class TestServer:
                 "import os; import main; "
                 "main.ui.run(host='127.0.0.1', port=" + str(self.port) + ", "
                 "reload=False, show=False, "
-                "storage_secret=os.environ['NICEGUI_STORAGE_SECRET'])",
+                "storage_secret=os.environ['NICEGUI_STORAGE_SECRET'], "
+                "timeout_graceful_shutdown=main.SHUTDOWN_TIMEOUT_SECONDS)",
             ],
             cwd=self.directory,
             env=self.env,

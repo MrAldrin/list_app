@@ -6,11 +6,14 @@ changed the room (see `live_updates`) and for a keep-alive. On every wake it
 checks access and reads the seq in one short transaction, in a worker thread
 so the event loop is not blocked. It sends `seq` only when the seq changed,
 so extra wakes are harmless.
+
+The stream never ends by itself. On shutdown, uvicorn waits up to
+`timeout_graceful_shutdown` seconds (set in `main.py`) for open responses,
+then cancels them, which closes the stream.
 """
 
 import asyncio
 import json
-import signal
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Request
@@ -24,25 +27,10 @@ from database_crud import get_room_seq_locked
 
 # Seconds between keep-alive comments. Tests set it lower.
 KEEPALIVE_SECONDS = 15.0
-# How often an idle stream checks whether the server is shutting down.
-SHUTDOWN_POLL_SECONDS = 0.5
 
 KEEPALIVE = ": keep-alive\n\n"
 
 router = APIRouter()
-
-
-def server_is_stopping() -> bool:
-    """True once uvicorn was told to stop (Ctrl+C, SIGTERM, a reload).
-
-    Uvicorn waits for open responses to finish before it shuts the app down,
-    so an endless stream would block shutdown and reloads. Uvicorn installs
-    its server's `handle_exit` as the signal handler; the bound method leads
-    to the server and its `should_exit` flag. It works in reload mode too,
-    where NiceGUI's `Server.instance` is not set in the worker process.
-    """
-    server = getattr(signal.getsignal(signal.SIGTERM), "__self__", None)
-    return bool(getattr(server, "should_exit", False))
 
 
 def _room_seq(slug: str, token: str | None) -> tuple[int, int]:
@@ -77,15 +65,10 @@ async def _stream(slug: str, token: str | None, room_id: int) -> AsyncIterator[s
             elif loop.time() >= next_keepalive:
                 yield KEEPALIVE
                 next_keepalive = loop.time() + KEEPALIVE_SECONDS
-            # Wait for a wake or the keep-alive, checking for shutdown.
-            while True:
-                if server_is_stopping():
-                    return
-                remaining = next_keepalive - loop.time()
-                if remaining <= 0:
-                    break
-                if await subscription.wait(min(remaining, SHUTDOWN_POLL_SECONDS)):
-                    break
+            # Wait for a wake or the keep-alive.
+            remaining = next_keepalive - loop.time()
+            if remaining > 0:
+                await subscription.wait(remaining)
 
 
 @router.get("/rooms/{slug}/events")

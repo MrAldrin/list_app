@@ -6,12 +6,10 @@ a small fake connection, and every wait has a timeout.
 """
 
 import asyncio
-import signal
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 import pytest
-import uvicorn
 from api_helpers import HTTPS, assert_error, client_for, default_list, home, new_id
 from api_helpers import op as api_op
 from starlette.testclient import TestClient
@@ -340,35 +338,6 @@ def test_client_disconnect_stops_the_stream(room):
         assert not live_updates._subscriptions
 
     run(test)
-
-
-def test_server_shutdown_ends_the_stream(room, monkeypatch):
-    _, slug = room
-    stopping = False
-    monkeypatch.setattr(events, "server_is_stopping", lambda: stopping)
-    monkeypatch.setattr(events, "SHUTDOWN_POLL_SECONDS", 0.05)
-
-    async def test() -> None:
-        nonlocal stopping
-        stream = SseConnection(slug, token_for(slug))
-        await stream.open()
-        await stream.next_event()
-        stopping = True
-        assert await stream.ended()
-
-    run(test)
-
-
-def test_server_is_stopping_follows_uvicorn():
-    server = uvicorn.Server(uvicorn.Config(main.app))
-    previous = signal.signal(signal.SIGTERM, server.handle_exit)
-    try:
-        assert not events.server_is_stopping()
-        server.handle_exit(signal.SIGTERM, None)
-        assert events.server_is_stopping()
-    finally:
-        signal.signal(signal.SIGTERM, previous)
-    assert not events.server_is_stopping()
 
 
 def test_each_side_is_told_once_without_a_loop(room, monkeypatch):

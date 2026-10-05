@@ -20,6 +20,9 @@ from ui.room_invitations import creation_form, invitation_controls
 from ui.sharing import share_button
 
 GLOBAL_APP_PASSWORD = require_app_password()
+# On stop or reload, uvicorn waits this long for open responses, then cancels
+# them. Live update streams never end by themselves (src/api/events.py).
+SHUTDOWN_TIMEOUT_SECONDS = 1
 
 # Quasar draws button text in capitals by default; show names exactly as typed.
 ui.button.default_props("no-caps")
@@ -2574,4 +2577,5 @@ if __name__ in {"__main__", "__mp_main__"}:
         title="ListR",
         favicon=FAVICON_PATH,
         storage_secret=os.environ["NICEGUI_STORAGE_SECRET"],
+        timeout_graceful_shutdown=SHUTDOWN_TIMEOUT_SECONDS,
     )
