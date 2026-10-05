@@ -339,10 +339,9 @@ Goal: Svelte can do everything NiceGUI does. Start after Gate A.
   uvicorn's official `timeout_graceful_shutdown`, passed through `ui.run()`.
   Test that stopping the server with an open stream is quick. Decided at the
   Gate A review.
-- **3.1** Room management: rename room, change password, delete room. Also
-  decide at the start of 3.1: say "Room not found" before the password prompt
-  (changes decisions 18 and 72), and possibly a longer random part in room
-  codes so that is safe. Raised at the Gate A review.
+- **3.1** Room management: rename room, change password, delete room. The
+  owner decided at Gate A (rows 72/73) to keep "Wrong room or password" for an
+  unknown room; so no "Room not found" and no longer room codes.
 - **3.2** Public share links: view and edit by token, reset link. Port the
   [public sharing](../docs/public-sharing.md) rules and their tests.
 - **3.3** Admin: login, room overview, password reset.
@@ -541,7 +540,7 @@ Milestone 2: prototype UI
 
 Milestone 3: rest of the app
 - [ ] 3.0 Official shutdown timeout for SSE
-- [ ] 3.1 Room management (incl. "Room not found" and room code length)
+- [ ] 3.1 Room management
 - [ ] 3.2 Public share links
 - [ ] 3.3 Admin
 - [ ] 3.4 Creation invitations
