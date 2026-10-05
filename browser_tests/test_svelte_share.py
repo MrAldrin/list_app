@@ -216,3 +216,94 @@ def test_room_menu_shares_the_room_link(svelte_server, open_session):
     )
     dialog.get_by_role("button", name="Close").click()
     expect(dialog).to_have_count(0)
+
+
+def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
+    svelte_server, open_session
+):
+    server = svelte_server
+    member = without_share_sheet(open_session("member", **PHONE))
+    visitor = open_session("visitor", **PHONE)
+    sign_in(member, server)
+    list_url = create_list(member, "Groceries")
+    add_item(member, "milk")
+    link = share_link(member)
+
+    # The room's own list address asks a visitor for the room password.
+    visitor.goto(list_url)
+    expect(visitor.get_by_label("Room Password")).to_be_visible()
+    expect(visitor.get_by_text("milk")).to_have_count(0)
+
+    # By the link: tags can be added and deleted.
+    visitor.goto(link)
+    visitor.get_by_role("button", name="Options").click()
+    visitor.get_by_label("Add Tag").fill("produce")
+    visitor.get_by_label("Add Tag").press("Enter")
+    tags = visitor.get_by_role("list", name="Tags")
+    expect(tags.get_by_role("button", name="produce", exact=True)).to_be_visible()
+    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == ["produce"]
+    with visitor.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
+        visitor.get_by_role("button", name="Delete tag produce").click()
+    assert answer.value.ok
+    expect(visitor.get_by_text("Deleted tag produce")).to_be_visible()
+    expect(tags.get_by_role("button", name="produce", exact=True)).to_have_count(0)
+    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == []
+
+    # No rename or delete of the list, and no reset of the link.
+    expect(visitor.get_by_role("button", name=re.compile("^Rename"))).to_have_count(0)
+    expect(visitor.get_by_label("List Name")).to_have_count(0)
+    expect(
+        visitor.get_by_role("button", name=re.compile("^Delete Groceries"))
+    ).to_have_count(0)
+    visitor.get_by_role("button", name="List menu").click()
+    expect(visitor.get_by_role("button", name="Share List")).to_be_visible()
+    expect(visitor.get_by_role("button", name="Reset share link")).to_have_count(0)
+    assert server.query("SELECT name FROM lists") == [("Groceries",)]
+
+
+def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_session):
+    server = svelte_server
+    member = without_share_sheet(open_session("member", **PHONE))
+    sign_in(member, server)
+    create_list(member, "Groceries")
+    add_item(member, "milk")
+
+    # An item edit from a dialog that was open during the reset.
+    editor = open_session("editor", **PHONE)
+    hold_live_updates(editor)
+    editor.goto(share_link(member))
+    editor.get_by_role("button", name="milk", exact=True).click()
+    editor.get_by_role("dialog").get_by_label("Item Name").fill("forbidden edit")
+    reset_link(member)
+    with editor.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
+        editor.get_by_role("dialog").get_by_role("button", name="Save").click()
+    assert answer.value.status == 401
+    expect(editor.get_by_text(RESET_MESSAGE)).to_be_visible()
+    assert server.query("SELECT name FROM items") == [("milk",)]
+
+    # A new tag typed before the next reset and sent after it.
+    tagger = open_session("tagger", **PHONE)
+    hold_live_updates(tagger)
+    tagger.goto(share_link(member))
+    tagger.get_by_role("button", name="Options").click()
+    tagger.get_by_label("Add Tag").fill("revoked tag")
+    reset_link(member)
+    with tagger.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
+        tagger.get_by_label("Add Tag").press("Enter")
+    assert answer.value.status == 401
+    expect(tagger.get_by_text(RESET_MESSAGE)).to_be_visible()
+    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == []
+
+    # The new link can add a tag.
+    tagger.goto(share_link(member))
+    tagger.get_by_role("button", name="Options").click()
+    tagger.get_by_label("Add Tag").fill("current tag")
+    tagger.get_by_label("Add Tag").press("Enter")
+    expect(
+        tagger.get_by_role("list", name="Tags").get_by_role(
+            "button", name="current tag", exact=True
+        )
+    ).to_be_visible()
+    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == [
+        "current tag"
+    ]
