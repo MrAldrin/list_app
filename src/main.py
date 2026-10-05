@@ -14,6 +14,12 @@ from nicegui import app, core, ui
 
 from admin_access import admin_password_matches
 from config import app_reload_enabled, require_app_password
+from install_manifest import (
+    MANIFEST_CACHE_CONTROL,
+    MANIFEST_MEDIA_TYPE,
+    manifest_with_start_url,
+    room_start_url,
+)
 from item_visibility import MAX_HIDE_DONE_COUNT, filter_visible_items
 from svelte_frontend import register_svelte_frontend
 from ui.install_help import install_help_menu_item
@@ -59,16 +65,10 @@ def serve_room_manifest(slug: str):
     # room names, passwords, tokens, or incoming query parameters.
     if not get_room_details_by_slug(slug):
         raise HTTPException(status_code=404, detail="Room not found")
-    with open(
-        os.path.join(os.path.dirname(__file__), "static", "manifest.json"),
-        encoding="utf-8",
-    ) as manifest_file:
-        manifest = json.load(manifest_file)
-    manifest["start_url"] = f"/room/{quote(slug, safe='')}"
     return JSONResponse(
-        manifest,
-        media_type="application/manifest+json",
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        manifest_with_start_url(room_start_url("", slug)),
+        media_type=MANIFEST_MEDIA_TYPE,
+        headers={"Cache-Control": MANIFEST_CACHE_CONTROL},
     )
 
 

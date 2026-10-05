@@ -3,12 +3,23 @@
 The Svelte app is a single-page app: one index.html plus static files. Real
 files are served as they are. Any other URL under /app/ gets index.html, and
 the router in the browser picks the page.
+
+The home-screen install manifests are made here too (see
+docs/home-screen-installation.md): the same rules as NiceGUI's, with launch
+addresses under /app/.
 """
 
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+
+from install_manifest import (
+    MANIFEST_CACHE_CONTROL,
+    MANIFEST_MEDIA_TYPE,
+    manifest_with_start_url,
+    room_start_url,
+)
 
 BASE_PATH = "/app"
 DEFAULT_BUILD_DIR = Path(__file__).resolve().parent.parent / "frontend" / "build"
@@ -43,6 +54,17 @@ def _find_file(build_dir: Path, relative_path: str) -> Path | None:
     return candidate
 
 
+def _manifest_response(start_url: str) -> JSONResponse:
+    return JSONResponse(
+        manifest_with_start_url(start_url),
+        media_type=MANIFEST_MEDIA_TYPE,
+        headers={
+            "Cache-Control": MANIFEST_CACHE_CONTROL,
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 def register_svelte_frontend(app: FastAPI, build_dir: Path = DEFAULT_BUILD_DIR) -> bool:
     """Add the /app/ routes if a build exists. Return True if routes were added."""
     build_dir = build_dir.resolve()
@@ -54,6 +76,18 @@ def register_svelte_frontend(app: FastAPI, build_dir: Path = DEFAULT_BUILD_DIR) 
     def redirect_to_app(request: Request) -> RedirectResponse:
         query = request.url.query
         return RedirectResponse(f"{BASE_PATH}/" + (f"?{query}" if query else ""))
+
+    # Added before the catch-all below, so these win over index.html.
+    @app.get(BASE_PATH + "/manifest.webmanifest", include_in_schema=False)
+    def serve_app_manifest() -> JSONResponse:
+        # The start page opens the last remembered room.
+        return _manifest_response(f"{BASE_PATH}/")
+
+    @app.get(BASE_PATH + "/room-manifest/{slug}.webmanifest", include_in_schema=False)
+    def serve_app_room_manifest(slug: str) -> JSONResponse:
+        # Not checked against the database: the Svelte app never tells whether
+        # a room exists. An unknown room's icon opens its password prompt.
+        return _manifest_response(room_start_url(BASE_PATH, slug))
 
     @app.api_route(
         BASE_PATH + "/{path:path}", methods=["GET", "HEAD"], include_in_schema=False
