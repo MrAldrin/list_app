@@ -11,6 +11,12 @@ export const UNAVAILABLE_LIST_MESSAGE = 'List not found. It may have been delete
 /** Shown when the list disappears while its page is open, so it surely was deleted. */
 export const DELETED_LIST_MESSAGE = 'This list was deleted.';
 
+/** A share link that opens no list, on load (NiceGUI's text). */
+export const SHARE_UNAVAILABLE_MESSAGE = 'This list was deleted or you no longer have access.';
+
+/** A share link that stopped working while its page was open (NiceGUI's text). */
+export const SHARE_RESET_MESSAGE = 'This list was deleted or this share link was reset.';
+
 /** How many names the add field suggests, as in NiceGUI. */
 export const MAX_SUGGESTIONS = 3;
 

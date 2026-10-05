@@ -16,6 +16,10 @@
   Old URLs never publicly redirect to a new token. Room access survives rotation.
 - Share links are independent of room passwords. Changing a room password revokes
   room authorization, **not public share links**; reset those separately if needed.
+- The Svelte app (under `/app/` until the switch) has the same list menu and
+  rules. Its links are `/app/share/<token>` with the same token, so both UIs
+  open the same list. Its room menu has **Share Room**, like NiceGUI's. The
+  API is in [share links](api.md#share-links).
 
 ## Implementation
 
@@ -24,7 +28,9 @@
 Renaming lists and restarting the app preserve tokens. Tokens are stored in
 plaintext: the database already contains the list contents. Treat URLs, browser
 history, server request logs, and backups as sensitive. List pages suppress
-outgoing referrers; this does not eliminate all URL leakage.
+outgoing referrers (Svelte: a `same-origin` policy, because `no-referrer` would
+also blank the `Origin` its API writes need); this does not eliminate all URL
+leakage.
 
 Public list callbacks carry `share:<token>` as their `expected_slug` identity.
 Database mutations check that identity inside their write transaction, so reset
@@ -41,8 +47,10 @@ are unchanged. Replace any previously saved/shared public list URLs with new
 Share links. Rolling back to older application code re-exposes the old public
 slug routes; do not treat that as a security-preserving rollback.
 
-Automated coverage: `tests/test_public_share_tokens.py` and the
-[real-browser suite](browser-testing.md). Both run locally over HTTP only.
+Automated coverage: `tests/test_public_share_tokens.py`,
+`tests/test_api_share.py` and the [real-browser suite](browser-testing.md)
+(`test_public_sharing.py`, `test_svelte_share.py`). All run locally over HTTP
+only.
 
 **Manual deployment checks:**
 

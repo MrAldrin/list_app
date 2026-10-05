@@ -2,7 +2,7 @@
 // components never call `fetch` themselves.
 
 import { ApiError, NetworkError } from './types';
-import type { Feed, OpResponse, Room, SentOp } from './types';
+import type { Feed, OpResponse, Room, SentOp, ShareLink } from './types';
 
 /** The API sits at the origin root, not under the app's `/app` base path. */
 export const API_BASE = '/api/v1';
@@ -11,6 +11,14 @@ export type FetchFn = typeof fetch;
 
 function roomPath(slug: string, rest: string): string {
 	return `${API_BASE}/rooms/${encodeURIComponent(slug)}/${rest}`;
+}
+
+function sharePath(token: string, rest: string): string {
+	return `${API_BASE}/share/${encodeURIComponent(token)}/${rest}`;
+}
+
+function shareLinkPath(slug: string, listUid: string): string {
+	return roomPath(slug, `lists/${encodeURIComponent(listUid)}/share-link`);
 }
 
 /** Statuses worth retrying later with the same request: the server is down or busy. */
@@ -111,6 +119,31 @@ export class Api {
 
 	eventsUrl(slug: string): string {
 		return roomPath(slug, 'events');
+	}
+
+	// Share links (room members): the token for `/app/share/{token}`.
+
+	shareLink(slug: string, listUid: string): Promise<ShareLink> {
+		return this.request<ShareLink>('GET', shareLinkPath(slug, listUid));
+	}
+
+	/** Gives the list a new share token; the old link stops working for everyone. */
+	resetShareLink(slug: string, listUid: string): Promise<ShareLink> {
+		return this.request<ShareLink>('POST', shareLinkPath(slug, listUid), {});
+	}
+
+	// A share link's own reads and writes: one list, by its token.
+
+	shareChanges(token: string, since: number): Promise<Feed> {
+		return this.request<Feed>('GET', sharePath(token, `changes?since=${since}`));
+	}
+
+	sendShareOp(token: string, op: SentOp): Promise<OpResponse> {
+		return this.request<OpResponse>('POST', sharePath(token, 'ops'), op);
+	}
+
+	shareEventsUrl(token: string): string {
+		return sharePath(token, 'events');
 	}
 }
 

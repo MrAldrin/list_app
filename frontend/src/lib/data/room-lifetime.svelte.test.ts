@@ -17,6 +17,8 @@ function fakeApi(): RoomApi {
 		whoAmI: vi.fn(async () => ROOM),
 		changePassword: vi.fn(async () => ROOM),
 		deleteRoom: vi.fn(async () => undefined),
+		shareLink: vi.fn(async () => ({ token: 'token' })),
+		resetShareLink: vi.fn(async () => ({ token: 'token' })),
 		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
 	};
 }

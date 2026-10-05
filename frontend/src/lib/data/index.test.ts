@@ -35,6 +35,8 @@ function fakeApi() {
 		whoAmI: vi.fn(async () => ROOM),
 		changePassword: vi.fn(async () => ROOM),
 		deleteRoom: vi.fn(async (): Promise<void> => undefined),
+		shareLink: vi.fn(async () => ({ token: 'share-token' })),
+		resetShareLink: vi.fn(async () => ({ token: 'new-token' })),
 		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
 	} satisfies RoomApi;
 	return { api, feeds, ops };
@@ -354,6 +356,33 @@ describe('room management', () => {
 		const again = openRoom('deleted-room', options);
 		expect(again).not.toBe(first);
 		closeRoom(again);
+	});
+});
+
+describe('share links (room members)', () => {
+	beforeEach(() => {
+		FakeEventSource.reset();
+	});
+
+	it('reads the share link of a list', async () => {
+		const { room, api } = await opened();
+		expect(await room.shareLink(list)).toEqual({ ok: true, result: { token: 'share-token' } });
+		expect(api.shareLink).toHaveBeenCalledWith(ROOM.slug, list.uid);
+	});
+
+	it('resets the share link and reports a failure', async () => {
+		const { room, api } = await opened();
+		expect(await room.resetShareLink(list)).toEqual({ ok: true, result: { token: 'new-token' } });
+		expect(api.resetShareLink).toHaveBeenCalledWith(ROOM.slug, list.uid);
+
+		api.resetShareLink.mockRejectedValueOnce(
+			new ApiError(404, 'list_unavailable', 'The list is no longer available.')
+		);
+		expect(await room.resetShareLink(list)).toEqual({
+			ok: false,
+			code: 'list_unavailable',
+			message: 'The list is no longer available.'
+		});
 	});
 });
 

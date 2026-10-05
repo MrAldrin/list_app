@@ -4,11 +4,14 @@
 
 	let {
 		question,
+		detail,
 		confirmLabel,
 		onConfirm,
 		onClose
 	}: {
 		question: string;
+		/** A line under the question, such as what happens next. */
+		detail?: string;
 		confirmLabel: string;
 		onConfirm: () => Promise<void>;
 		onClose: () => void;
@@ -27,6 +30,9 @@
 </script>
 
 <Dialog title={question} {onClose}>
+	{#if detail}
+		<p class="detail">{detail}</p>
+	{/if}
 	<div class="actions">
 		<button type="button" onclick={onClose}>Cancel</button>
 		<button class="danger" type="button" disabled={busy} onclick={confirm}>{confirmLabel}</button>
@@ -34,6 +40,10 @@
 </Dialog>
 
 <style>
+	.detail {
+		margin-bottom: 0.75rem;
+	}
+
 	.actions {
 		display: flex;
 		justify-content: flex-end;

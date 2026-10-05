@@ -36,7 +36,7 @@ them is decided with the offline work (Milestone 6 of the
 - Deleting a list with items records each item, then the list.
 - Password, token and room-creation writes do not bump. Resetting a share link
   does (it updates the list row); this is harmless, since the share token is
-  never sent to clients.
+  never in the changes feed.
 - A write that matches no row (a stale item) changes nothing.
 
 ## Rules for code

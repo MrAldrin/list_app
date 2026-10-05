@@ -15,6 +15,7 @@ export interface HideDone {
 
 export interface List {
 	uid: string;
+	/** Empty in a share link's feed: the slug is room navigation. */
 	slug: string;
 	name: string;
 	/** Sorted ignoring case. */
@@ -47,7 +48,8 @@ export interface Deletion {
 export interface Feed {
 	seq: number;
 	full: boolean;
-	room: Room;
+	/** Null in a share link's feed: the link opens one list, not the room. */
+	room: Room | null;
 	lists: List[];
 	items: Item[];
 	deletions: Deletion[];
@@ -200,6 +202,8 @@ export type ErrorCode =
 	| 'invalid_request'
 	| 'invalid_password'
 	| 'not_authenticated'
+	| 'share_unavailable'
+	| 'list_unavailable'
 	| 'wrong_password'
 	| 'forbidden_origin'
 	| 'not_found'
@@ -226,4 +230,9 @@ export class NetworkError extends Error {
 		super(message);
 		this.name = 'NetworkError';
 	}
+}
+
+/** A list's share token (`…/share-link`); room members only. */
+export interface ShareLink {
+	token: string;
 }

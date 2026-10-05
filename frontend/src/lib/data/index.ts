@@ -5,12 +5,15 @@
 //   await room.addItem(list, 'milk');  // writes: { ok, result } or { ok: false, message }
 //   closeRoom(room);                   // stop live updates
 //
+//   const shared = openShare(token);   // a share link: one list, same API
+//
 // Components never call `fetch` themselves.
 
 import { Api, api as defaultApi } from './api';
 import { LiveUpdates, type EventSourceFactory, type SessionState } from './events';
 import { newId } from './ids';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
+import { ShareApi } from './share';
 import { ApiError } from './types';
 import type {
 	HideDone,
@@ -20,7 +23,8 @@ import type {
 	List,
 	ListCreateResult,
 	Op,
-	Room
+	Room,
+	ShareLink
 } from './types';
 import { WriteQueue } from './write-queue';
 
@@ -42,11 +46,21 @@ type ItemRef = Pick<Item, 'uid' | 'list_uid'>;
 /** The API calls a room needs; tests pass a fake. */
 export type RoomApi = Pick<
 	Api,
-	'changes' | 'sendOp' | 'login' | 'whoAmI' | 'eventsUrl' | 'changePassword' | 'deleteRoom'
+	| 'changes'
+	| 'sendOp'
+	| 'login'
+	| 'whoAmI'
+	| 'eventsUrl'
+	| 'changePassword'
+	| 'deleteRoom'
+	| 'shareLink'
+	| 'resetShareLink'
 >;
 
 export interface RoomOptions {
 	api?: RoomApi;
+	/** For `openShare`: the client its share endpoints use. */
+	shareApi?: ConstructorParameters<typeof ShareApi>[0];
 	createEventSource?: EventSourceFactory;
 	retryDelays?: readonly number[];
 	reconnectDelays?: readonly number[];
@@ -143,6 +157,21 @@ export class RoomHandle {
 		this.#forget('loading');
 		if (rooms.get(this.slug) === this) rooms.delete(this.slug);
 		return { ok: true, result: {} };
+	}
+
+	// Share links
+
+	/** The list's share token, for `/app/share/{token}`. Not cached: a reset elsewhere changes it. */
+	shareLink(list: ListRef): Promise<ActionResult<ShareLink>> {
+		return this.#call(() => this.#api.shareLink(this.slug, list.uid));
+	}
+
+	/**
+	 * Gives the list a new share link; the old one stops working for everyone.
+	 * Not a queued op: it needs the server now, and room members only.
+	 */
+	resetShareLink(list: ListRef): Promise<ActionResult<ShareLink>> {
+		return this.#call(() => this.#api.resetShareLink(this.slug, list.uid));
 	}
 
 	// Lists
@@ -277,6 +306,14 @@ export class RoomHandle {
 		}
 	}
 
+	async #call<R>(request: () => Promise<R>): Promise<ActionResult<R>> {
+		try {
+			return { ok: true, result: await request() };
+		} catch (error) {
+			return failed(error);
+		}
+	}
+
 	async #checkSession(): Promise<SessionState> {
 		if (this.#passwordChange) await this.#passwordChange;
 		try {
@@ -316,6 +353,34 @@ export function openRoom(slug: string, options?: RoomOptions): RoomHandle {
 /** Stops live updates for one `openRoom` call. */
 export function closeRoom(room: RoomHandle): void {
 	room.release();
+}
+
+// The open share links of this page, by token, kept like rooms.
+const shares = new Map<string, RoomHandle>();
+
+/**
+ * Opens a share link (or reuses the open one): its one list, read and written
+ * with the token. The handle's `slug` is the token and `store.room` is null.
+ * When the link is reset or the list deleted, `store.status` becomes
+ * `auth_required`, and queued writes wait there; they are never sent with a
+ * room cookie.
+ */
+export function openShare(token: string, options: RoomOptions = {}): RoomHandle {
+	let share = shares.get(token);
+	if (!share) {
+		share = new RoomHandle(token, {
+			...options,
+			api: new ShareApi(options.shareApi ?? defaultApi)
+		});
+		shares.set(token, share);
+	}
+	share.retain();
+	return share;
+}
+
+/** Stops live updates for one `openShare` call. */
+export function closeShare(share: RoomHandle): void {
+	share.release();
 }
 
 /** Signs in to a room. An open room reloads and sends the writes that waited. */

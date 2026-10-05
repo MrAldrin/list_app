@@ -1,25 +1,41 @@
 <!--
-	The top of the list page: a back link to the room, the "Options" button
-	(it says "Done" while the options are open) and the list name. The bar
-	stays at the top of the screen while the page scrolls; the name does not.
+	The top of the list page: a back link to the room (the app name on a
+	share link, as NiceGUI), the "Options" button (it says "Done" while the
+	options are open), the list menu and the list name. The bar stays at the
+	top of the screen while the page scrolls; the name does not.
 -->
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 
 	let {
 		name,
 		roomHref,
 		optionsOpen,
-		onToggleOptions
-	}: { name: string; roomHref: string; optionsOpen: boolean; onToggleOptions: () => void } =
-		$props();
+		onToggleOptions,
+		menu
+	}: {
+		name: string;
+		/** Null on a share link: it gives no way into the room. */
+		roomHref: string | null;
+		optionsOpen: boolean;
+		onToggleOptions: () => void;
+		menu?: Snippet;
+	} = $props();
 </script>
 
 <header class="bar">
-	<a class="back" href={roomHref} aria-label="Back to room"><Icon name="arrow_back" /></a>
-	<button type="button" aria-expanded={optionsOpen} onclick={onToggleOptions}>
-		{optionsOpen ? 'Done' : 'Options'}
-	</button>
+	{#if roomHref}
+		<a class="back" href={roomHref} aria-label="Back to room"><Icon name="arrow_back" /></a>
+	{:else}
+		<span class="brand" aria-hidden="true">List<b>R</b></span>
+	{/if}
+	<div class="end">
+		<button type="button" aria-expanded={optionsOpen} onclick={onToggleOptions}>
+			{optionsOpen ? 'Done' : 'Options'}
+		</button>
+		{@render menu?.()}
+	</div>
 </header>
 <h1>{name}</h1>
 
@@ -48,7 +64,23 @@
 		color: var(--text);
 	}
 
-	.bar button {
+	.brand {
+		font-size: 1.2rem;
+		font-weight: 700;
+	}
+
+	.brand b {
+		color: var(--primary);
+		font-weight: 900;
+	}
+
+	.end {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.end > button {
 		color: var(--primary);
 		font-weight: 600;
 	}
