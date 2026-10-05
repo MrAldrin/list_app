@@ -69,6 +69,7 @@ back from a public list.
   NiceGUI's `/admin` and the API.
 - `src/room_invitations.py` and `src/ui/`: Invitation logic and extracted UI helpers.
 - `src/svelte_frontend.py`: Serves the built Svelte prototype under `/app/`.
+- `src/install_manifest.py`: Home-screen install manifests for both frontends.
 - `src/api/`: JSON API for the Svelte frontend under `/api/v1`; the contract is
   in [docs/api.md](docs/api.md).
 - `src/live_updates.py`: Tells open NiceGUI pages and API live streams that a

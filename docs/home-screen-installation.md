@@ -2,7 +2,8 @@
 
 ## How to install
 
-Open the room, sign in, then use **Add to Home Screen**. The icon then opens
+Open the room, sign in, then use **Add to Home Screen**. The room menu (⋮)
+has an **Add to Home Screen** entry with the steps. The icon then opens
 that room directly. On iOS 17.2+ the login cookie is usually copied into the
 installed app, so no second sign-in is needed.
 
@@ -28,6 +29,22 @@ installed app, so no second sign-in is needed.
   Deleting an icon may also delete its saved login.
 - **Deleted rooms** show "Room not found" and never open another room.
 - **Root `/`** is a public router, not the admin login. Admin stays at `/admin`.
+
+### Svelte app (`/app/`, until the switch)
+
+The same rules, with launch addresses under `/app/`:
+
+- The room page links `/app/room-manifest/{slug}.webmanifest`
+  (`start_url` `/app/room/{slug}`). Every other page links
+  `/app/manifest.webmanifest` (`start_url` `/app/`). The link changes when
+  the page changes inside the app.
+- Both are made from NiceGUI's `manifest.json` (`src/install_manifest.py`), so
+  `id` and `scope` stay `/`: one app identity with NiceGUI installs.
+- The room manifest does not check that the room exists, because the Svelte
+  app never tells. A deleted room's icon shows the password prompt, and
+  signing in says "Wrong room or password."
+- Icons are NiceGUI's files under `/static/icons/`.
+- No service worker yet.
 
 ## Remembered access
 

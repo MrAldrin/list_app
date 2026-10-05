@@ -1,12 +1,13 @@
 <!--
 	The room menu (the ⋮ button in the room header): share the room link,
-	rename the room, change its password, delete it. Texts and order match
+	home-screen install help, rename the room, change its password, delete it. Texts and order match
 	NiceGUI's room menu. Each entry closes the menu and opens a dialog.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { RoomHandle } from '#lib/data/index.ts';
+	import InstallHelpDialog from '#lib/install/InstallHelpDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
@@ -17,10 +18,10 @@
 
 	let { room, backToAdmin = false }: { room: RoomHandle; backToAdmin?: boolean } = $props();
 
-	let dialog = $state<'share' | 'rename' | 'password' | 'delete' | null>(null);
+	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | null>(null);
 	let shareUrl = $state('');
 
-	function choose(close: () => void, next: 'rename' | 'password' | 'delete') {
+	function choose(close: () => void, next: 'install' | 'rename' | 'password' | 'delete') {
 		close();
 		dialog = next;
 	}
@@ -51,6 +52,7 @@
 <MenuButton label="Room menu">
 	{#snippet children(close)}
 		<button type="button" onclick={() => share(close)}>Share Room</button>
+		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
 		<hr />
 		<button type="button" onclick={() => choose(close, 'rename')}>Rename Room</button>
 		<button type="button" onclick={() => choose(close, 'password')}>Change Password</button>
@@ -62,6 +64,8 @@
 
 {#if dialog === 'share'}
 	<ShareDialog kind="room" url={shareUrl} onClose={() => (dialog = null)} />
+{:else if dialog === 'install'}
+	<InstallHelpDialog onClose={() => (dialog = null)} />
 {:else if dialog === 'rename'}
 	<NameDialog
 		title="Rename Room"

@@ -8,6 +8,14 @@
 		     leak. Not "no-referrer": that also blanks the Origin of our own API
 		     writes, which the server checks. -->
 		<meta name="referrer" content="same-origin" />
+		<!-- Home-screen install, as NiceGUI's pages: the icons are NiceGUI's
+		     files, served by Python at /static/ (the dev server forwards them).
+		     The manifest link is set per page in routes/+layout.svelte. -->
+		<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

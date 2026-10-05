@@ -26,7 +26,10 @@ export default defineConfig({
 			// sees one origin and cookies work. The Host header is kept
 			// (no changeOrigin), so the server's same-origin check still passes.
 			// Responses are streamed as they arrive, so Server-Sent Events work too.
-			'/api': { target: 'http://localhost:8080' }
+			'/api': { target: 'http://localhost:8080' },
+			// Home-screen install: Python makes the manifests and serves the icons.
+			'^/app/(manifest\\.webmanifest|room-manifest/)': { target: 'http://localhost:8080' },
+			'/static/icons/': { target: 'http://localhost:8080' }
 		}
 	},
 	// Tests use Svelte's browser code, as the app does (it never runs on a server).

@@ -24,7 +24,8 @@ Run two servers:
 
 Open <http://localhost:5173/app/>. Vite reloads the page when you save a file.
 It forwards `/api/…` requests to Python on 8080, so the browser sees one origin
-and the room cookies work.
+and the room cookies work. The install manifests and icons come from Python
+too.
 
 ## Build
 
