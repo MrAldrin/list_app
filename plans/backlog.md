@@ -10,6 +10,8 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
+- [ ] [bug] "Show quantities" and "Only show minimum 2" reset when the page is left; save them per list for everyone, like hide-done. Needs a database change and an API op; decide whether NiceGUI saves them too. Then update decision 84 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
+- [ ] [feature] Svelte: creating a list whose name exists opens that list with an info toast "Opened existing list" (neutral color, unlike the green "List created"). Then update decision 78 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] (in progress) Svelte frontend rewrite, on the `svelte-frontend` branch only: prototype, migration, then offline. Follow the [Svelte rewrite plan](svelte-frontend-rewrite.md).
 
 ## Later
@@ -26,6 +28,7 @@ Agreed as worth doing; no date.
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [security] Room sign-in answers faster for an unknown room than for a wrong password, because bcrypt is skipped. This reveals which rooms exist. Check a dummy hash for unknown rooms. See `authenticate_room_and_issue_token` in [`src/database_crud.py`](../src/database_crud.py).
 - [ ] [bug] The item tag filter keeps filtering by a tag after it is deleted elsewhere, while the tag button is gone. Clear the filter when its tag disappears. See the tag filter in [`src/main.py`](../src/main.py).
+- [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 
 ## Ideas
 
@@ -40,6 +43,7 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
 - [feature] Individual accounts/invitations, only if per-person permissions or revocation are needed.
+- [feature] Svelte list page: a "5 checked items hidden" line at the bottom when hide-done hides items. See decision 89 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [refactor] Split `src/main.py` into route/auth/UI modules and move to a proper Python package.
 - [refactor] Replace the global SQLite connection with a connection/context-manager layer.
 - [data] Add timestamps and change versions for debugging, conflict detection or audit history.
@@ -61,4 +65,4 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
 - [ ] Run the [deploy backup script](../docs/deployment.md#backup-before-deploying) with `--backup-only` once. Check that a verified copy lands locally and no `list-deploy-*` file is left on the volume.
 - [ ] Run the real iPhone and Android checklist in [home-screen installation](../docs/home-screen-installation.md).
-- [ ] [test] Gate A: test the Svelte prototype on the laptop and the iPhone with the [Gate A checklist](svelte-frontend-rewrite.md#gate-a-checklist).
+- [ ] [test] Svelte on the iPhone: go offline, then back online, and wait up to 30 s without refreshing. If the pill stays longer, file a reconnect bug. One case on 2026-10-04 hung ~10 s (within the retry delays). See decisions 67 and 92 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).

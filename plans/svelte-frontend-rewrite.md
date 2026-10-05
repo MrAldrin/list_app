@@ -317,11 +317,18 @@ need separate logins.
   you scroll. Deferred to the backlog (Later).
   Also fixed: dialogs close on a click outside; the edit dialog no longer
   opens the keyboard; suggestions hide when the add field loses focus.
-- [ ] **Review** the [decisions log](#decisions-log) in a fresh session. The
+- [x] **Review** the [decisions log](#decisions-log) in a fresh session. The
   agent first sorts the rows into "needs the owner" (product and UX choices),
   "worth knowing" (security and data) and "technical detail"; the owner then
   goes through only the first group, one row at a time. Then decide: continue,
   adjust or stop. Note findings (iOS version) here or tell the agent.
+  Outcome (2026-10-05): **continue**. The owner went through rows 7, 22/78,
+  57, 72/73, 83–89, 91 and 93 and kept them all. Changes, in the
+  [backlog](backlog.md): Next, before Milestone 3: save "Show quantities" and
+  "Only show minimum 2" per list (84), and an "Opened existing list" info
+  toast (78). Later: longer undo (85, 87). Ideas: a hidden-items count (89).
+  Manual checks: time the reconnect after going offline (67, 92). The
+  testing fixes above get no decision rows; they match NiceGUI.
 
 ### Milestone 3: the rest of the app
 
@@ -531,7 +538,7 @@ Milestone 2: prototype UI
 - [x] 2.7 Live updates and error states (`lib/ui/ConnectionStatus.svelte`, `LoadError.svelte`, `routes/+error.svelte`, `lib/data/status.ts`, stream state in `events.ts` and the store; checked by hand with two browsers, NiceGUI, a server restart, a revoked password and faked 503s; decisions 91–93)
 - [x] 2.8 Browser tests (`browser_tests/test_svelte_{rooms,items,live}.py`, helpers `svelte_app.py`, fixtures `svelte_build`, `svelte_server`, `open_session` in `conftest.py`; 8 tests × 2 engines, about 15 s with the default workers; stable over repeated runs; decisions 94–96)
 - [x] 2.9 iPhone test prep (`scripts/serve_svelte_local.py`, test `tests/test_serve_svelte_local.py`, [local network guide](../docs/local-network-testing.md#svelte-prototype), [Gate A checklist](#gate-a-checklist), backlog Manual checks entry; decision 97)
-- [ ] **Gate A: owner prototype review**
+- [x] **Gate A: owner prototype review** (2026-10-05: continue; see the [Gate A checklist](#gate-a-checklist))
 
 Milestone 3: rest of the app
 - [ ] 3.0 Official shutdown timeout for SSE
