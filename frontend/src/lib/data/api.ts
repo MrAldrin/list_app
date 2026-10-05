@@ -2,7 +2,15 @@
 // components never call `fetch` themselves.
 
 import { ApiError, NetworkError } from './types';
-import type { Feed, OpResponse, Room, SentOp, ShareLink } from './types';
+import type {
+	Feed,
+	Invitation,
+	IssuedInvitation,
+	OpResponse,
+	Room,
+	SentOp,
+	ShareLink
+} from './types';
 
 /** The API sits at the origin root, not under the app's `/app` base path. */
 export const API_BASE = '/api/v1';
@@ -17,6 +25,10 @@ function roomPath(slug: string, rest: string): string {
 
 function sharePath(token: string, rest: string): string {
 	return `${API_BASE}/share/${encodeURIComponent(token)}/${rest}`;
+}
+
+function invitationPath(token: string, rest = ''): string {
+	return `${API_BASE}/invitations/${encodeURIComponent(token)}${rest}`;
 }
 
 function shareLinkPath(slug: string, listUid: string): string {
@@ -154,6 +166,39 @@ export class Api {
 		return this.request<void>('POST', `${ADMIN}/rooms/${encodeURIComponent(slug)}/password`, {
 			new_password: newPassword
 		}).then(() => undefined);
+	}
+
+	/** Every kept invitation, newest first. */
+	adminInvitations(): Promise<Invitation[]> {
+		return this.request<{ invitations: Invitation[] }>('GET', `${ADMIN}/invitations`).then(
+			(data) => data.invitations
+		);
+	}
+
+	/** A new 7-day invitation. Its token is never sent again. */
+	adminIssueInvitation(): Promise<IssuedInvitation> {
+		return this.request<IssuedInvitation>('POST', `${ADMIN}/invitations`, {});
+	}
+
+	adminRevokeInvitation(id: number): Promise<void> {
+		return this.request<void>('POST', `${ADMIN}/invitations/${id}/revoke`, {}).then(
+			() => undefined
+		);
+	}
+
+	// Creation invitations (anyone with the link): no sign-in.
+
+	/** Resolves when the link can create a room; `ApiError` 404 `invitation_unavailable` when not. */
+	checkInvitation(token: string): Promise<void> {
+		return this.request<void>('GET', invitationPath(token)).then(() => undefined);
+	}
+
+	/** Creates a room. The creator is not signed in to it. */
+	createRoomFromInvitation(token: string, name: string, password: string): Promise<Room> {
+		return this.request<{ room: Room }>('POST', invitationPath(token, '/rooms'), {
+			name,
+			password
+		}).then((data) => data.room);
 	}
 
 	// Share links (room members): the token for `/app/share/{token}`.

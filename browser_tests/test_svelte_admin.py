@@ -5,21 +5,9 @@ create a room and reset a room password. Admin never opens a room by itself.
 import re
 
 from playwright.sync_api import expect
-from svelte_app import PHONE, app_url, sign_in
+from svelte_app import ADMIN_PHONE, PHONE, admin_sign_in, app_url, sign_in
 
 RESET_PASSWORD = "an-admin-reset-password"
-
-# NiceGUI pages install a service worker that forwards page loads. Playwright's
-# WebKit then sends those loads without cookies, so NiceGUI's middleware starts
-# a new session and the admin sign-in seems gone. Block service workers here:
-# these tests visit NiceGUI's /admin, and Svelte has no service worker yet.
-ADMIN_PHONE = {**PHONE, "service_workers": "block"}
-
-
-def admin_sign_in(page, server) -> None:
-    page.get_by_label("Admin Password").fill(server.password)
-    page.get_by_role("button", name="Log in").click()
-    expect(page.get_by_role("button", name="Create New Room")).to_be_visible()
 
 
 def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):

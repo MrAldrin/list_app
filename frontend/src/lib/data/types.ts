@@ -236,3 +236,18 @@ export class NetworkError extends Error {
 export interface ShareLink {
 	token: string;
 }
+
+/** A creation invitation in the admin list. Times are UTC ISO strings. */
+export interface Invitation {
+	id: number;
+	status: 'active' | 'revoked' | 'expired';
+	created_at: string;
+	expires_at: string;
+	revoked_at: string | null;
+}
+
+/** A new invitation and its token: the only time the token is sent. */
+export interface IssuedInvitation {
+	invitation: Invitation;
+	token: string;
+}

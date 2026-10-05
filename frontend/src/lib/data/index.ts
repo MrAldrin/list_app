@@ -6,7 +6,8 @@
 //   closeRoom(room);                   // stop live updates
 //
 //   const shared = openShare(token);   // a share link: one list, same API
-//   await admin.login(password);       // admin: sign-in, rooms, password reset
+//   await admin.login(password);       // admin: sign-in, rooms, password reset, invitations
+//   await invitation.createRoom(…);    // a creation invitation link
 //
 // Components never call `fetch` themselves.
 
@@ -33,6 +34,7 @@ import { WriteQueue } from './write-queue';
 export * from './types';
 export type { ActionResult } from './result';
 export * as admin from './admin';
+export * as invitation from './invitation';
 export type { RoomStatus, Notice } from './room-store.svelte';
 export type { LiveState } from './events';
 export { connectionStatus, CONNECTION_STATUS_DELAY, type ConnectionStatus } from './status';

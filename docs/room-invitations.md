@@ -25,6 +25,10 @@ callbacks. Creators choose a room password and then use the normal room sign-in
 flow; invitations do not introduce individual accounts. No rate limiting or
 CAPTCHA is implemented for this feature.
 
+The Svelte app has the same flow at `/app/admin` and `/app/create-room/{token}`,
+through the [JSON API](api.md#creation-invitations) and the same rules. Both
+apps share the invitations: a link from either one works in both.
+
 ## Deployment and migration
 
 Normal startup adds the `room_invitations` table if missing; no manual SQL is needed.

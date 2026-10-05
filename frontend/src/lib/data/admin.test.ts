@@ -137,4 +137,36 @@ describe('admin data layer', () => {
 		expect(offline).toMatchObject({ ok: false, code: 'network' });
 		expect(admin.isSignedOut(offline)).toBe(false);
 	});
+
+	it('lists, issues and revokes invitations', async () => {
+		const invitation = {
+			id: 3,
+			status: 'active',
+			created_at: '2026-10-05T09:12:00Z',
+			expires_at: '2026-10-12T09:12:00Z',
+			revoked_at: null
+		};
+		const fetch = fakeFetch(
+			json(200, { invitations: [invitation] }),
+			json(200, { invitation, token: 'secret-token' }),
+			json(200, {}),
+			error(401, 'admin_required', 'Admin sign-in required')
+		);
+		const client = new Api(fetch);
+
+		expect(await admin.invitations(client)).toEqual({ ok: true, result: [invitation] });
+		expect(call(fetch, 0)).toMatchObject({ url: '/api/v1/admin/invitations', method: 'GET' });
+		expect(await admin.issueInvitation(client)).toEqual({
+			ok: true,
+			result: { invitation, token: 'secret-token' }
+		});
+		expect(call(fetch, 1)).toEqual({ url: '/api/v1/admin/invitations', method: 'POST', body: {} });
+		expect(await admin.revokeInvitation(3, client)).toEqual({ ok: true, result: undefined });
+		expect(call(fetch, 2)).toEqual({
+			url: '/api/v1/admin/invitations/3/revoke',
+			method: 'POST',
+			body: {}
+		});
+		expect(admin.isSignedOut(await admin.revokeInvitation(3, client))).toBe(true);
+	});
 });

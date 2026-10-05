@@ -1,5 +1,6 @@
-// Admin: sign in with the app password, see every room, create a room and
-// reset a room password (docs/api.md, "Admin"). Admin sign-in never gives
+// Admin: sign in with the app password, see every room, create a room,
+// reset a room password and manage creation invitations (docs/api.md,
+// "Admin" and "Creation invitations"). Admin sign-in never gives
 // room access; opening a room still needs its password.
 //
 //   import { admin } from '#lib/data/index.ts';
@@ -7,7 +8,7 @@
 
 import { api as defaultApi, type Api } from './api';
 import { failed, type ActionResult } from './result';
-import { ApiError, type Room } from './types';
+import { ApiError, type Invitation, type IssuedInvitation, type Room } from './types';
 
 type AdminApi = Pick<
 	Api,
@@ -17,6 +18,9 @@ type AdminApi = Pick<
 	| 'adminRooms'
 	| 'adminCreateRoom'
 	| 'adminResetPassword'
+	| 'adminInvitations'
+	| 'adminIssueInvitation'
+	| 'adminRevokeInvitation'
 >;
 
 async function attempt<R>(request: () => Promise<R>): Promise<ActionResult<R>> {
@@ -72,4 +76,23 @@ export function resetPassword(
 	client: AdminApi = defaultApi
 ): Promise<ActionResult<void>> {
 	return attempt(() => client.adminResetPassword(slug, newPassword));
+}
+
+export function invitations(client: AdminApi = defaultApi): Promise<ActionResult<Invitation[]>> {
+	return attempt(() => client.adminInvitations());
+}
+
+/** Issues a 7-day invitation. Show its link now: the token is never sent again. */
+export function issueInvitation(
+	client: AdminApi = defaultApi
+): Promise<ActionResult<IssuedInvitation>> {
+	return attempt(() => client.adminIssueInvitation());
+}
+
+/** Stops further room creation with this invitation; rooms made with it stay. */
+export function revokeInvitation(
+	id: number,
+	client: AdminApi = defaultApi
+): Promise<ActionResult<void>> {
+	return attempt(() => client.adminRevokeInvitation(id));
 }

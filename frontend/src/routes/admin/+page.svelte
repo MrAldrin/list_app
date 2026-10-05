@@ -1,12 +1,14 @@
 <!--
 	The admin page (/app/admin; NiceGUI: /admin and /admin/login). Without
-	admin sign-in it asks for the app password; then it shows every room.
+	admin sign-in it asks for the app password; then it shows every room and
+	the creation invitations.
 	Admin sign-in is shared with NiceGUI's admin page in this browser, and it
 	never opens a room by itself.
 -->
 <script lang="ts">
 	import { admin } from '#lib/data/index.ts';
 	import AdminLogin from '#lib/admin/AdminLogin.svelte';
+	import AdminInvitations from '#lib/admin/AdminInvitations.svelte';
 	import AdminRooms from '#lib/admin/AdminRooms.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -55,6 +57,7 @@
 			<button class="outline" type="button" onclick={signOut}>Log out</button>
 		</header>
 		<AdminRooms onSignedOut={() => (status = 'signed_out')} />
+		<AdminInvitations onSignedOut={() => (status = 'signed_out')} />
 	{/if}
 </main>
 

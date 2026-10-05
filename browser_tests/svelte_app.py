@@ -10,6 +10,12 @@ expect.set_options(timeout=10_000)
 PHONE = {"viewport": {"width": 390, "height": 844}, "has_touch": True}
 DESKTOP = {"viewport": {"width": 1280, "height": 900}}
 
+# NiceGUI pages install a service worker that forwards page loads. Playwright's
+# WebKit then sends those loads without cookies, so NiceGUI's middleware starts
+# a new session and the admin sign-in seems gone. Admin tests block service
+# workers: they visit NiceGUI pages, and Svelte has no service worker yet.
+ADMIN_PHONE = {**PHONE, "service_workers": "block"}
+
 
 def app_url(server, path: str = "") -> str:
     return f"{server.url}/app/{path}"
@@ -58,3 +64,9 @@ def nicegui_sign_in(page: Page, server) -> None:
     page.get_by_label("Room Password", exact=True).fill(server.password)
     page.get_by_role("button", name="Enter", exact=True).click()
     expect(page.get_by_role("button", name="Room menu")).to_be_visible()
+
+
+def admin_sign_in(page, server) -> None:
+    page.get_by_label("Admin Password").fill(server.password)
+    page.get_by_role("button", name="Log in").click()
+    expect(page.get_by_role("button", name="Create New Room")).to_be_visible()
