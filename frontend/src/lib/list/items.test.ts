@@ -3,7 +3,9 @@ import {
 	addFeedback,
 	itemSuggestions,
 	normalizeItemName,
-	showsQuantity,
+	loadShowQuantities,
+	quantityBadge,
+	saveShowQuantities,
 	stepQuantity
 } from './items';
 
@@ -45,16 +47,51 @@ describe('addFeedback', () => {
 	});
 });
 
-describe('showsQuantity', () => {
-	it('hides the stepper unless "Show quantities" is on', () => {
-		expect(showsQuantity(3, { showQuantities: false, onlyAboveOne: false })).toBe(false);
-		expect(showsQuantity(1, { showQuantities: true, onlyAboveOne: false })).toBe(true);
+describe('quantityBadge', () => {
+	it('shows ×N from 2 when the stepper is off', () => {
+		expect(quantityBadge(1, false)).toBeNull();
+		expect(quantityBadge(2, false)).toBe('×2');
 	});
 
-	it('with "Only show minimum 2", shows it only from 2', () => {
-		const view = { showQuantities: true, onlyAboveOne: true };
-		expect(showsQuantity(1, view)).toBe(false);
-		expect(showsQuantity(2, view)).toBe(true);
+	it('is not needed when the stepper shows the number', () => {
+		expect(quantityBadge(3, true)).toBeNull();
+	});
+});
+
+describe('show quantities setting', () => {
+	function memoryStorage(): Storage {
+		const data = new Map<string, string>();
+		return {
+			get length() {
+				return data.size;
+			},
+			clear: () => data.clear(),
+			key: (index) => [...data.keys()][index] ?? null,
+			getItem: (key) => data.get(key) ?? null,
+			setItem: (key, value) => void data.set(key, value),
+			removeItem: (key) => void data.delete(key)
+		};
+	}
+
+	it('is off until saved, and saved per list', () => {
+		const storage = memoryStorage();
+		expect(loadShowQuantities('a', storage)).toBe(false);
+		saveShowQuantities('a', true, storage);
+		expect(loadShowQuantities('a', storage)).toBe(true);
+		expect(loadShowQuantities('b', storage)).toBe(false);
+		saveShowQuantities('a', false, storage);
+		expect(loadShowQuantities('a', storage)).toBe(false);
+	});
+
+	it('works without storage', () => {
+		const blocked = memoryStorage();
+		blocked.getItem = () => {
+			throw new Error('blocked');
+		};
+		blocked.setItem = blocked.getItem;
+		expect(loadShowQuantities('a', blocked)).toBe(false);
+		expect(() => saveShowQuantities('a', true, blocked)).not.toThrow();
+		expect(loadShowQuantities('a', null)).toBe(false);
 	});
 });
 

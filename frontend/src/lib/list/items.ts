@@ -44,17 +44,45 @@ export function addFeedback(
 /** How long "Undo" stays after deleting an item, as NiceGUI's undo bar (5 s). */
 export const UNDO_DURATION = 5_000;
 
-/** View options of the list page ("Options"). They are not saved, as in NiceGUI. */
-export interface QuantityView {
-	/** "Show quantities": the − / + stepper on each row. */
-	showQuantities: boolean;
-	/** "Only show minimum 2": the stepper only for quantities of 2 or more. */
-	onlyAboveOne: boolean;
+/**
+ * The "×2" shown after an item's name, so everyone sees a quantity of 2 or
+ * more. Null when the quantity is 1, or when the stepper already shows it.
+ */
+export function quantityBadge(quantity: number, showQuantities: boolean): string | null {
+	return quantity > 1 && !showQuantities ? `×${quantity}` : null;
 }
 
-/** Whether a row shows its quantity stepper. */
-export function showsQuantity(quantity: number, view: QuantityView): boolean {
-	return view.showQuantities && (!view.onlyAboveOne || quantity > 1);
+const SHOW_QUANTITIES_KEY = 'list-app:show-quantities:';
+
+/** The browser's localStorage, or null where it is blocked (private mode, tests). */
+function browserStorage(): Storage | null {
+	try {
+		return globalThis.localStorage ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * "Show quantities" (the − / + stepper on every row) for one list. A personal
+ * setting: saved in this browser only, off when nothing is saved.
+ */
+export function loadShowQuantities(listUid: string, storage = browserStorage()): boolean {
+	try {
+		return storage?.getItem(SHOW_QUANTITIES_KEY + listUid) === 'true';
+	} catch {
+		return false;
+	}
+}
+
+/** Saves "Show quantities" for one list; does nothing where storage is blocked. */
+export function saveShowQuantities(listUid: string, on: boolean, storage = browserStorage()): void {
+	try {
+		if (on) storage?.setItem(SHOW_QUANTITIES_KEY + listUid, 'true');
+		else storage?.removeItem(SHOW_QUANTITIES_KEY + listUid);
+	} catch {
+		// Storage full or blocked: the switch still works until the page is left.
+	}
 }
 
 /** A quantity after − or +; never below 1, like the server. */

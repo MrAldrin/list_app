@@ -115,6 +115,22 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(page.get_by_text("Restored bread")).to_be_visible()
     expect(item_names(page)).to_have_text(["apples", "bread", re.compile("^oat milk")])
 
+    # Without the stepper, a quantity of 2 or more shows as "x3" for everyone.
+    show_quantities = page.get_by_role("switch", name="Show quantities")
+    show_quantities.uncheck()
+    expect(page.get_by_role("group", name="Quantity of oat milk")).to_be_hidden()
+    expect(page.get_by_role("button", name=re.compile("^oat milk"))).to_contain_text(
+        "\N{MULTIPLICATION SIGN}3"
+    )
+    expect(page.get_by_role("button", name="apples", exact=True)).not_to_contain_text(
+        "\N{MULTIPLICATION SIGN}"
+    )
+
+    # "Show quantities" is saved in this browser, so it survives a reload.
+    show_quantities.check()
+    page.reload()
+    expect(page.get_by_role("group", name="Quantity of oat milk")).to_contain_text("3")
+
     assert server.query(
         "SELECT name, quantity, COALESCE(description, ''), done FROM items ORDER BY name"
     ) == [

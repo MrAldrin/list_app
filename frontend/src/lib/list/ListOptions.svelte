@@ -1,20 +1,19 @@
 <!--
-	The "Options" panel of the list page. The quantity switches only change
-	what this page shows; nothing is saved (as in NiceGUI). The hide-done
-	settings below them are saved for the list.
+	The "Options" panel of the list page. "Show quantities" is personal and
+	saved in this browser; the hide-done settings below it are saved for the
+	list, for everyone.
 -->
 <script lang="ts">
 	import type { HideDone } from '#lib/data/index.ts';
 	import HideDoneSettings from './HideDoneSettings.svelte';
-	import type { QuantityView } from './items';
 
 	// `$bindable` lets the parent write <ListOptions bind:view={…} />.
 	let {
-		view = $bindable(),
+		showQuantities = $bindable(),
 		hideDone,
 		onHideDone
 	}: {
-		view: QuantityView;
+		showQuantities: boolean;
 		hideDone: HideDone;
 		onHideDone: (changes: Partial<HideDone>) => void;
 	} = $props();
@@ -23,14 +22,8 @@
 <section class="card" aria-label="Options">
 	<label class="switch">
 		<span>Show quantities</span>
-		<input type="checkbox" role="switch" bind:checked={view.showQuantities} />
+		<input type="checkbox" role="switch" bind:checked={showQuantities} />
 	</label>
-	{#if view.showQuantities}
-		<label class="switch sub">
-			<span>Only show minimum 2</span>
-			<input type="checkbox" role="switch" bind:checked={view.onlyAboveOne} />
-		</label>
-	{/if}
 	<HideDoneSettings settings={hideDone} onChange={onHideDone} />
 </section>
 
@@ -49,11 +42,5 @@
 		min-height: var(--touch);
 		font-weight: 500;
 		cursor: pointer;
-	}
-
-	.sub {
-		padding-left: 0.75rem;
-		border-top: 1px solid var(--border);
-		color: var(--text-muted);
 	}
 </style>

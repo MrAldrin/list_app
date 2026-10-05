@@ -23,11 +23,11 @@
 	import ListTags from '#lib/list/ListTags.svelte';
 	import {
 		addFeedback,
-		showsQuantity,
+		loadShowQuantities,
+		saveShowQuantities,
 		DELETED_LIST_MESSAGE,
 		UNAVAILABLE_LIST_MESSAGE,
-		UNDO_DURATION,
-		type QuantityView
+		UNDO_DURATION
 	} from '#lib/list/items.ts';
 	import { activeFilter, filterByTag } from '#lib/list/tags.ts';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
@@ -60,9 +60,15 @@
 		if (list) shownSlug = listSlug;
 	});
 
-	// What this page shows; not saved, as in NiceGUI.
 	let optionsOpen = $state(false);
-	let view = $state<QuantityView>({ showQuantities: false, onlyAboveOne: false });
+	// "Show quantities": personal, saved per list in this browser.
+	// A writable `$derived`: read again when the list changes, set by the switch.
+	const listUid = $derived(list?.uid);
+	let showQuantities = $derived(listUid ? loadShowQuantities(listUid) : false);
+	function setShowQuantities(on: boolean) {
+		showQuantities = on;
+		if (listUid) saveShowQuantities(listUid, on);
+	}
 	/** The item in the edit dialog, as it was when the dialog opened. */
 	let editing = $state.raw<Item | null>(null);
 	/** The tag chip the items are filtered by (page state, as in NiceGUI). */
@@ -202,7 +208,7 @@
 		{/if}
 		{#if optionsOpen}
 			<ListOptions
-				bind:view
+				bind:showQuantities={() => showQuantities, setShowQuantities}
 				hideDone={current.hide_done}
 				onHideDone={(changes) => setHideDone(current, changes)}
 			/>
@@ -221,7 +227,7 @@
 			{#each filterByTag(room.store.visibleItemsOf(current.uid, now), filterTag) as item (item.uid)}
 				<ItemRow
 					{item}
-					showQuantity={showsQuantity(item.quantity, view)}
+					showQuantity={showQuantities}
 					showDelete={optionsOpen}
 					listTags={current.tags}
 					onToggle={(done) => toggle(item, done)}

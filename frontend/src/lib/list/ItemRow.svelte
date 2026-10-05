@@ -1,6 +1,7 @@
 <!--
 	One item: a checkbox, the name (tap to edit), a note icon when it has a
-	description, the quantity stepper (when "Show quantities" is on), a letter
+	description, "×2" for a quantity of 2 or more, the quantity stepper (when
+	"Show quantities" is on; it replaces "×2"), a letter
 	button per list tag (filled when the item has the tag) and, in Options
 	mode, a delete button. Checkbox, stepper and tags change at once; the data
 	layer sends the change in the background.
@@ -8,6 +9,7 @@
 <script lang="ts">
 	import type { Item } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { quantityBadge } from './items';
 	import { tagColor, tagLetter } from './tags';
 
 	let {
@@ -32,6 +34,8 @@
 		onOpen: () => void;
 		onDelete: () => void;
 	} = $props();
+
+	const badge = $derived(quantityBadge(item.quantity, showQuantity));
 </script>
 
 <li class:done={item.done}>
@@ -51,6 +55,9 @@
 				<Icon name="description" />
 				<span class="visually-hidden">(has notes)</span>
 			</span>
+		{/if}
+		{#if badge}
+			<span class="badge">{badge}</span>
 		{/if}
 	</button>
 	{#if showQuantity}
@@ -167,6 +174,15 @@
 
 	/* A small grey box with − count +, like NiceGUI: compact, so the name
 	   keeps its room, but a bit bigger than NiceGUI's for thumbs. */
+	/* Part of the name, so everyone sees the quantity without Options. */
+	.badge {
+		flex-shrink: 0;
+		color: var(--text-muted);
+		font-size: 0.875rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
 	.qty {
 		display: flex;
 		align-items: center;
