@@ -2,6 +2,7 @@ import { version } from '$app/env';
 import { assets, immutable, prerendered } from '$app/manifest';
 import { resolve } from '$app/paths';
 import { self } from '$app/service-worker';
+import { isNetworkOnlyNavigation } from './lib/worker-routes';
 
 const CACHE_PREFIX = 'listr-app-shell-';
 const CACHE_NAME = `${CACHE_PREFIX}${version}`;
@@ -87,6 +88,7 @@ self.addEventListener('fetch', (event) => {
 	if (url.origin !== ORIGIN || isApiPath(url.pathname)) return;
 
 	if (request.mode === 'navigate') {
+		if (isNetworkOnlyNavigation(url.pathname)) return;
 		event.respondWith(
 			(async () => {
 				await discardUnusedVersions();
