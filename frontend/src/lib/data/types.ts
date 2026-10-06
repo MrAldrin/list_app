@@ -48,7 +48,10 @@ export interface Deletion {
 export interface Feed {
 	seq: number;
 	full: boolean;
-	/** Null in a share link's feed: the link opens one list, not the room. */
+	/**
+	 * Null in a share link's feed, unless this browser has access to the list's
+	 * room: then the room, for "back to room" and "Reset share link".
+	 */
 	room: Room | null;
 	lists: List[];
 	items: Item[];

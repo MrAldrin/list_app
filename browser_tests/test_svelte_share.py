@@ -307,3 +307,94 @@ def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_se
     assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == [
         "current tag"
     ]
+
+
+def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
+    svelte_server, open_session
+):
+    """Decision 146: as in NiceGUI, a browser with room access sees both."""
+    server = svelte_server
+    member = without_share_sheet(open_session("member", **PHONE))
+    visitor = open_session("visitor", **PHONE)
+    sign_in(member, server)
+    create_list(member, "Groceries")
+    add_item(member, "milk")
+    link = share_link(member)
+
+    # The member opens the link: the back arrow and the reset are there.
+    member.goto(link)
+    expect(member.get_by_role("heading", name="Groceries")).to_be_visible()
+    back = member.get_by_role("link", name="Back to room")
+    expect(back).to_be_visible()
+    member.get_by_role("button", name="List menu").click()
+    expect(member.get_by_role("button", name="Reset share link")).to_be_visible()
+    member.keyboard.press("Escape")
+    back.click()
+    expect(member).to_have_url(re.compile(rf"/app/room/{server.room_slug}$"))
+    expect(member.get_by_role("link", name="Groceries")).to_be_visible()
+
+    # Reset from the share page: the old link stops, the page follows the new one.
+    visitor.goto(link)
+    expect(item_names(visitor)).to_have_text(["milk"])
+    member.goto(link)
+    reset_link(member)
+    expect(member).to_have_url(re.compile(r"/app/share/[A-Za-z0-9_-]{43}$"))
+    assert not member.url.endswith(link.rsplit("/", 1)[1])
+    assert member.url.endswith(share_token(server))
+    expect(item_names(member)).to_have_text(["milk"])
+    expect(member.get_by_role("link", name="Back to room")).to_be_visible()
+    expect(visitor.get_by_text(RESET_MESSAGE)).to_be_visible()
+    add_item(member, "bread")
+    assert server.query("SELECT name FROM items ORDER BY name") == [
+        ("bread",),
+        ("milk",),
+    ]
+
+
+def test_without_room_access_the_share_page_reveals_nothing_about_the_room(
+    svelte_server, open_session
+):
+    server = svelte_server
+    member = without_share_sheet(open_session("member", **PHONE))
+    visitor = open_session("visitor", **PHONE)
+    sign_in(member, server)
+    create_list(member, "Groceries")
+    link = share_link(member)
+    slug = server.room_slug
+
+    def check_hidden(page: Page, seen: list[str]) -> None:
+        expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
+        expect(page.get_by_role("link", name="Back to room")).to_have_count(0)
+        page.get_by_role("button", name="List menu").click()
+        expect(page.get_by_role("button", name="Share List")).to_be_visible()
+        expect(page.get_by_role("button", name="Reset share link")).to_have_count(0)
+        page.keyboard.press("Escape")
+        assert not any(slug in page_text for page_text in seen), "room slug leaked"
+        assert not any('"Home"' in page_text for page_text in seen), "room name leaked"
+        assert slug not in page.content()
+        assert not page.locator(f"a[href*='{slug}']").count()
+
+    # A browser that never had the room cookie.
+    bodies: list[str] = []
+    visitor.on(
+        "response",
+        lambda response: (
+            bodies.append(response.text())
+            if "/api/" in response.url or response.url == link
+            else None
+        ),
+    )
+    visitor.goto(link)
+    check_hidden(visitor, bodies)
+
+    # A member whose cookie is gone (as after sign-out or a password change).
+    member.context.clear_cookies()
+    stale: list[str] = []
+    member.on(
+        "response",
+        lambda response: (
+            stale.append(response.text()) if "/api/" in response.url else None
+        ),
+    )
+    member.goto(link)
+    check_hidden(member, stale)

@@ -41,7 +41,8 @@ function fakeShareApi() {
 			ops.push({ op, answer });
 			return answer.promise;
 		}),
-		shareEventsUrl: (token: string) => `/api/v1/share/${token}/events`
+		shareEventsUrl: (token: string) => `/api/v1/share/${token}/events`,
+		resetShareLink: vi.fn(async () => ({ token: 'new' }))
 	};
 	return { api, feeds, ops };
 }
@@ -90,7 +91,7 @@ describe('ShareApi', () => {
 		const shareApi = new ShareApi(new Api(fetch));
 		expect(await shareApi.shareLink(TOKEN)).toEqual({ token: TOKEN });
 		for (const call of [
-			() => shareApi.resetShareLink(),
+			() => shareApi.resetShareLink(TOKEN, 'list-a'),
 			() => shareApi.login(),
 			() => shareApi.changePassword(),
 			() => shareApi.deleteRoom()
@@ -98,6 +99,35 @@ describe('ShareApi', () => {
 			await expect(call()).rejects.toMatchObject({ status: 403 });
 		}
 		expect(fetch).not.toHaveBeenCalled();
+	});
+});
+
+describe('ShareApi room members', () => {
+	function memberApi(room: { slug: string; name: string } | null) {
+		const reset = vi.fn<(slug: string, listUid: string) => Promise<{ token: string }>>(
+			async () => ({ token: 'n'.repeat(43) })
+		);
+		const api = {
+			shareChanges: vi.fn(async () => makeFeed({ room, lists: [list] })),
+			sendShareOp: vi.fn(),
+			shareEventsUrl: () => '',
+			resetShareLink: reset
+		};
+		return { shareApi: new ShareApi(api), reset };
+	}
+
+	it('resets through the room endpoint when the feed named the room', async () => {
+		const { shareApi, reset } = memberApi({ slug: 'home', name: 'Home' });
+		await shareApi.changes(TOKEN, 0);
+		expect(await shareApi.resetShareLink(TOKEN, 'list-a')).toEqual({ token: 'n'.repeat(43) });
+		expect(reset).toHaveBeenCalledWith('home', 'list-a');
+	});
+
+	it('cannot reset when the feed named no room', async () => {
+		const { shareApi, reset } = memberApi(null);
+		await shareApi.changes(TOKEN, 0);
+		await expect(shareApi.resetShareLink(TOKEN, 'list-a')).rejects.toMatchObject({ status: 403 });
+		expect(reset).not.toHaveBeenCalled();
 	});
 });
 

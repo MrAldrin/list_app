@@ -1052,6 +1052,11 @@ def _valid_room_id_for_token_locked(room_slug: str, token: str | None) -> int | 
     return row[0] if row else None
 
 
+def room_matches_token_locked(room_slug: str, room_id: int, token: str | None) -> bool:
+    """Whether the token authorizes this room; call inside a transaction."""
+    return _valid_room_id_for_token_locked(room_slug, token) == room_id
+
+
 def validate_room_access_token(room_slug: str, token: str | None) -> int | None:
     """Return the associated room ID only when the token currently authorizes it."""
     with _DB_LOCK:

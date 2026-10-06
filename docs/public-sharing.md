@@ -14,6 +14,11 @@
 - Room navigation continues using `/list/<slug>`, now requiring room access.
   An unauthorized visitor sees a room-entry button, not list contents or a token.
   Old URLs never publicly redirect to a new token. Room access survives rotation.
+- On the share page, a browser that also has access to the list's room gets the
+  back arrow to the room and "Reset share link". Any other browser (no cookie,
+  another room's cookie, a stale cookie) gets neither, and nothing on the page
+  or in the API answers names the room. The server decides this on each read;
+  the reset itself still goes through the room endpoint and its checks.
 - Share links are independent of room passwords. Changing a room password revokes
   room authorization, **not public share links**; reset those separately if needed.
 - The Svelte app (under `/app/` until the switch) has the same list menu and

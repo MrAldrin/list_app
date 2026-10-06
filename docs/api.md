@@ -131,7 +131,11 @@ Share holders:
 | `GET /api/v1/share/{token}/events` | – | the live stream, like a room's |
 
 - The feed is always a full snapshot (`full: true`) of the list and its
-  items, with `room: null`, `deletions: []` and the list's `slug` as `""`.
+  items, with `deletions: []` and the list's `slug` as `""`. `room` is `null`,
+  except when the request's cookie for the list's room is valid at that moment:
+  then it is `{"slug", "name"}` of that room, so the page can offer "back to
+  room" and "Reset share link". A missing, stale or other room's cookie gives
+  `null`, and no other part of a share answer names the room.
   `since` is checked (as for rooms) but not used. `seq` is the room's `seq`,
   the same number op answers and the stream send.
 - Ops: the list ops `list.tag_add`, `list.tag_remove`, `list.visibility` and

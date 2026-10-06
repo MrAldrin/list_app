@@ -417,6 +417,51 @@ def test_a_share_link_never_gives_room_access(shared):
     assert share_token(shared["list_id"]) == shared["token"]
 
 
+# The room, for this browser's room members only (decision 146)
+
+
+def test_share_feed_names_the_room_only_for_a_member_of_that_room(shared):
+    member = client_for(shared["slug"])
+    feed = share_changes(member, shared["token"]).json()
+    assert feed["room"] == {"slug": shared["slug"], "name": "Home"}
+    # The member still sees the same list data as a visitor.
+    visitor = share_changes(public_client(), shared["token"]).json()
+    assert {**feed, "room": None} == visitor
+
+
+def test_share_feed_reveals_nothing_about_the_room_without_access(shared):
+    _, cabin_slug = crud.create_room("Cabin", "cabin-pw")
+    cabin = client_for(cabin_slug, "cabin-pw")
+    stale = client_for(shared["slug"])
+    # The member's password changes elsewhere: the old cookie is stale.
+    other = client_for(shared["slug"])
+    response = other.post(
+        f"/api/v1/rooms/{shared['slug']}/password",
+        json={"current_password": "pw", "new_password": "new-pw"},
+    )
+    assert response.status_code == 200
+    forged = client_for()
+    forged.cookies.set(f"__Host-listapp-room-{'0' * 64}", shared["token"])
+    for client in (public_client(), cabin, stale, forged):
+        response = share_changes(client, shared["token"])
+        assert response.status_code == 200
+        assert response.json()["room"] is None
+        # Not the slug, not the room name, anywhere in the answer.
+        assert shared["slug"] not in response.text
+        assert "Home" not in response.text
+        assert response.headers["cache-control"] == "no-store"
+    # A room cookie of another room does not open this list's room.
+    assert cabin_slug not in share_changes(cabin, shared["token"]).text
+
+
+def test_a_member_who_clears_the_cookie_gets_nothing(shared):
+    member = client_for(shared["slug"])
+    assert share_changes(member, shared["token"]).json()["room"] is not None
+    member.delete(f"/api/v1/rooms/{shared['slug']}/session")
+    member.cookies.clear()
+    assert share_changes(member, shared["token"]).json()["room"] is None
+
+
 # Reading and resetting the link (room members)
 
 

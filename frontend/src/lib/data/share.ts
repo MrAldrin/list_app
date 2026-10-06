@@ -4,7 +4,8 @@
 // `ShareApi` answers the calls a `RoomHandle` makes with the share endpoints,
 // so the store, the write queue and live updates work unchanged. The token
 // takes the place of the room slug. A share link never gives room access:
-// the room-only calls fail without asking the server.
+// the room-only calls fail without asking the server (a room member's
+// reset of the link is the one exception, see `resetShareLink`).
 
 import type { Api } from './api';
 import { ApiError } from './types';
@@ -19,14 +20,22 @@ function notForShareLinks(): Promise<never> {
 }
 
 export class ShareApi implements RoomApi {
-	readonly #api: Pick<Api, 'shareChanges' | 'sendShareOp' | 'shareEventsUrl'>;
+	readonly #api: Pick<Api, 'shareChanges' | 'sendShareOp' | 'shareEventsUrl' | 'resetShareLink'>;
 
-	constructor(api: Pick<Api, 'shareChanges' | 'sendShareOp' | 'shareEventsUrl'>) {
+	constructor(
+		api: Pick<Api, 'shareChanges' | 'sendShareOp' | 'shareEventsUrl' | 'resetShareLink'>
+	) {
 		this.#api = api;
 	}
 
-	changes(token: string, since: number): Promise<Feed> {
-		return this.#api.shareChanges(token, since);
+	/** The room slug per link, while the feed says this browser is a member. */
+	readonly #roomSlugs = new Map<string, string>();
+
+	async changes(token: string, since: number): Promise<Feed> {
+		const feed = await this.#api.shareChanges(token, since);
+		if (feed.room) this.#roomSlugs.set(token, feed.room.slug);
+		else this.#roomSlugs.delete(token);
+		return feed;
 	}
 
 	sendOp(token: string, op: SentOp): Promise<OpResponse> {
@@ -63,8 +72,13 @@ export class ShareApi implements RoomApi {
 		return notForShareLinks();
 	}
 
-	/** Only room members can reset a link. */
-	resetShareLink(): Promise<ShareLink> {
-		return notForShareLinks();
+	/**
+	 * Only room members can reset a link: the feed names the room only for
+	 * them (decision 146), and the reset goes through the room's own endpoint,
+	 * which checks the room cookie again.
+	 */
+	resetShareLink(token: string, listUid: string): Promise<ShareLink> {
+		const slug = this.#roomSlugs.get(token);
+		return slug ? this.#api.resetShareLink(slug, listUid) : notForShareLinks();
 	}
 }

@@ -1,7 +1,8 @@
 <!--
 	The list itself: header, options, tags, the add field and the items, with
-	every edit. The room's list page and the share-link page both show it; on a
-	share link there is no way back to the room and no "Reset share link".
+	every edit. The room's list page and the share-link page both show it; a
+	share link shows the way back to the room and "Reset share link" only to
+	browsers that have access to the room.
 -->
 <script lang="ts">
 	import type { HideDone, Item, List, RoomHandle } from '#lib/data/index.ts';
@@ -21,14 +22,17 @@
 		room,
 		list,
 		roomHref,
-		canReset
+		canReset,
+		onReset
 	}: {
 		room: RoomHandle;
 		list: List;
-		/** The back link; null on a share link. */
+		/** The back link; null on a share link without room access. */
 		roomHref: string | null;
 		/** Room members may reset the share link. */
 		canReset: boolean;
+		/** Called with the new share token after a reset. */
+		onReset?: (token: string) => void;
 	} = $props();
 
 	let optionsOpen = $state(false);
@@ -148,7 +152,7 @@
 	onToggleOptions={() => (optionsOpen = !optionsOpen)}
 >
 	{#snippet menu()}
-		<ListMenu {room} {list} {canReset} />
+		<ListMenu {room} {list} {canReset} {onReset} />
 	{/snippet}
 </ListHeader>
 {#if room.store.error}

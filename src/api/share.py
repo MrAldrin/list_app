@@ -16,7 +16,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
 
-from api.access import room_access, share_access
+from api.access import room_access, room_token, share_access
 from api.changes import MAX_SEQ
 from api.errors import ApiError
 from api.idempotency import Response
@@ -25,9 +25,11 @@ from api.requests import json_object, parse_body
 from database_crud import (
     get_item_changes_locked,
     get_list_changes_locked,
+    get_room_details_locked,
     get_room_seq_locked,
     get_share_token_locked,
     list_id_for_uid_locked,
+    room_matches_token_locked,
     rotate_share_token_locked,
 )
 from live_updates import notify_room_changed
@@ -35,23 +37,44 @@ from live_updates import notify_room_changed
 router = APIRouter()
 
 
+def _room_for_member(request: Request, room_id: int) -> dict[str, str] | None:
+    """The list's room, only when this request's room cookie grants access.
+
+    The cookie's name holds the room slug, so the slug is read from the
+    database first and then checked against the cookie in the same
+    transaction. A stale or foreign cookie gives None.
+    """
+    details = get_room_details_locked(room_id)
+    if details is None:
+        return None
+    token = room_token(request, details["slug"])
+    if not room_matches_token_locked(details["slug"], room_id, token):
+        return None
+    return details
+
+
 @router.get("/share/{token}/changes")
 def share_changes(
-    token: str, since: Annotated[int, Query(ge=0, le=MAX_SEQ)]
+    token: str, since: Annotated[int, Query(ge=0, le=MAX_SEQ)], request: Request
 ) -> dict[str, Any]:
     """The shared list and its items, always as a full snapshot.
 
     Deltas would need the room's deletion records, which also name items of
     other lists. One list is small, so `since` is checked but not used. The
     list's `slug` is left out: it is room navigation, not a public address.
+
+    `room` is null, unless this browser's cookie for the list's room is valid
+    right now: then it is the room's slug and name, so the page can offer
+    "back to room" and "Reset share link". Anyone else learns nothing.
     """
     del since
     with share_access(token) as share:
+        room = _room_for_member(request, share.room_id)
         lists = get_list_changes_locked(share.room_id, None, list_id=share.list_id)
         return {
             "seq": get_room_seq_locked(share.room_id),
             "full": True,
-            "room": None,
+            "room": room,
             "lists": [{**row, "slug": ""} for row in lists],
             "items": get_item_changes_locked(
                 share.room_id, None, list_id=share.list_id

@@ -16,12 +16,15 @@
 	let {
 		room,
 		list,
-		canReset
+		canReset,
+		onReset
 	}: {
 		room: RoomHandle;
 		list: Pick<List, 'uid'>;
 		/** Room members may reset the link; share-link visitors may not. */
 		canReset: boolean;
+		/** Called with the new token after a reset (a share page follows it). */
+		onReset?: (token: string) => void;
 	} = $props();
 
 	let dialog = $state<'share' | 'reset' | null>(null);
@@ -69,6 +72,7 @@
 			token = result.result.token;
 			dialog = null;
 			toasts.show('Share link reset', 'success');
+			onReset?.(result.result.token);
 			return;
 		}
 		toasts.show(result.message, 'warning');
