@@ -9,6 +9,8 @@ docs/home-screen-installation.md): the same rules as NiceGUI's, with launch
 addresses under /app/.
 """
 
+import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -20,6 +22,12 @@ from install_manifest import (
     manifest_with_start_url,
     room_start_url,
 )
+
+logger = logging.getLogger(__name__)
+
+# Set to "true" in the production image: a missing build then stops startup
+# instead of serving an app without its frontend.
+REQUIRE_BUILD_ENV = "REQUIRE_FRONTEND_BUILD"
 
 BASE_PATH = "/app"
 DEFAULT_BUILD_DIR = Path(__file__).resolve().parent.parent / "frontend" / "build"
@@ -70,6 +78,12 @@ def register_svelte_frontend(app: FastAPI, build_dir: Path = DEFAULT_BUILD_DIR) 
     build_dir = build_dir.resolve()
     index_file = build_dir / "index.html"
     if not index_file.is_file():
+        message = (
+            f"Svelte build not found: {index_file}. Run `npm run build` in frontend/."
+        )
+        if os.environ.get(REQUIRE_BUILD_ENV, "").strip().lower() == "true":
+            raise RuntimeError(message)
+        logger.warning(message)
         return False
 
     @app.get(BASE_PATH, include_in_schema=False)

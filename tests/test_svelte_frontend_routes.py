@@ -181,3 +181,20 @@ def test_app_is_served_through_the_nicegui_middleware(nicegui_app):
     assert response.headers["cache-control"] == "public, max-age=31536000, immutable"
     # The app's own middleware runs for /app/ too, and other routes still work.
     assert client.get("/manifest.json").status_code == 200
+
+
+def test_missing_build_stops_startup_when_required(tmp_path, monkeypatch):
+    monkeypatch.setenv("REQUIRE_FRONTEND_BUILD", "true")
+    with pytest.raises(RuntimeError, match="Svelte build not found"):
+        register_svelte_frontend(FastAPI(), tmp_path / "no-build")
+
+
+def test_missing_build_is_only_logged_when_not_required(tmp_path, monkeypatch, caplog):
+    monkeypatch.delenv("REQUIRE_FRONTEND_BUILD", raising=False)
+    assert not register_svelte_frontend(FastAPI(), tmp_path / "no-build")
+    assert "Svelte build not found" in caplog.text
+
+
+def test_present_build_is_fine_when_required(build_dir, monkeypatch):
+    monkeypatch.setenv("REQUIRE_FRONTEND_BUILD", "true")
+    assert register_svelte_frontend(FastAPI(), build_dir)

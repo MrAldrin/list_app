@@ -59,6 +59,7 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] Finish the deployment guide's outstanding production checks: persistence across restart/deployment, migration verification, remembered room access and password-reset revocation.
 - [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index.
 - [ ] Verify the [checked-item visibility](../docs/checked-item-visibility.md#existing-lists-and-verification) migration on production and real devices.
+- [ ] Before the Svelte switch (Gate B): check the Railway service uses the new `Dockerfile` build, has no dashboard build or start command, and still has the volume at `/data` and `DB_PATH`. See [production image](../docs/deployment.md#production-image).
 - [ ] Confirm on Railway that automatic reload is off by default. See [deployment configuration](../docs/deployment.md#configuration).
 - [ ] Do the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification).
 - [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).

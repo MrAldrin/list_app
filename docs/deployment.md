@@ -44,8 +44,34 @@ uv sync --locked
 uv run python src/main.py
 ```
 
-The `Procfile` runs `python src/main.py`. The app listens on `0.0.0.0` and
-Railway's `PORT`.
+The app listens on `0.0.0.0` and Railway's `PORT`.
+
+### Production image
+
+Railway builds the root `Dockerfile` (`railway.json` pins the builder), so the
+repository fully defines the build. It has two stages:
+
+1. Node 24: `npm ci && npm run build` in `frontend/`, which writes
+   `frontend/build/`. Only that folder is kept.
+2. Python 3.13 with `uv sync --locked --no-dev`, the `src/` code and the build.
+   It starts `python src/main.py`. There is no `Procfile`.
+
+The image sets `REQUIRE_FRONTEND_BUILD=true`. If `frontend/build/` is missing,
+startup fails with "Svelte build not found" instead of serving a broken app.
+Without that variable (local runs) the server only logs a warning.
+
+`frontend/build/` is not committed, so the build must run on every deploy. To
+test the image locally (needs podman or docker):
+
+```bash
+podman build -t listapp-test .
+podman run --rm -p 8080:8080 -e APP_PASSWORD=test-password-123 \
+  -e NICEGUI_STORAGE_SECRET=test-secret-123 -e DB_PATH=/tmp/t.db listapp-test
+```
+
+Railway variables, the volume and the start command do not change. Any start
+command or build command set in the Railway dashboard is overridden by
+`railway.json` and the `Dockerfile`; keep both empty there.
 
 ### Schema migrations
 
