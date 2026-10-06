@@ -407,11 +407,14 @@ This remains part of this `Lifecycle: tracked` plan.
 - New rooms or links without saved data require a connection.
 - Admin tools and sign-in remain online-only.
 - Clearly label saved data as potentially outdated.
+- Automatically save successfully loaded list data on this device; no
+  "Make available offline" button. The owner accepts local storage of list
+  contents. This does not authorize storing passwords or caching admin data.
+  Exact room/share cache boundaries and clearing rules remain to be decided.
 
 **Decisions still to review, one at a time:**
 
-- Automatic saving versus an explicit offline-saving choice; what is saved
-  for rooms and public share links.
+- What is saved for rooms and public share links (automatic saving approved).
 - Privacy on shared devices, logout, revoked access and storage loss. A device
   cannot learn of remote revocation while it is offline.
 - Reconnect/revalidation behavior and when editing becomes available again.
