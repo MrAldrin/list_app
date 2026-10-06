@@ -13,29 +13,27 @@ describe('share helpers', () => {
 		);
 	});
 
-	it('opens the share sheet with the link and the note', async () => {
+	it('opens the share sheet with only the URL for clean iPhone copying', async () => {
 		const share = vi.fn(async () => undefined);
-		expect(await shareNatively('list', 'https://x/share/t', { share })).toBe('shared');
+		expect(await shareNatively('https://x/share/t', { share })).toBe('shared');
 		expect(share).toHaveBeenCalledWith({
-			title: 'ListR',
-			text: 'Anyone with this link can open this list.',
 			url: 'https://x/share/t'
 		});
 	});
 
 	it('falls back to the dialog without a share sheet or when it fails', async () => {
-		expect(await shareNatively('list', 'https://x', {})).toBe('fallback');
+		expect(await shareNatively('https://x', {})).toBe('fallback');
 		const broken = vi.fn(async () => {
 			throw new DOMException('not allowed', 'NotAllowedError');
 		});
-		expect(await shareNatively('list', 'https://x', { share: broken })).toBe('fallback');
+		expect(await shareNatively('https://x', { share: broken })).toBe('fallback');
 	});
 
 	it('does nothing more when the user closes the share sheet', async () => {
 		const cancelled = vi.fn(async () => {
 			throw new DOMException('cancelled', 'AbortError');
 		});
-		expect(await shareNatively('room', 'https://x', { share: cancelled })).toBe('cancelled');
+		expect(await shareNatively('https://x', { share: cancelled })).toBe('cancelled');
 	});
 
 	it('copies with the clipboard API, and reports when it cannot', async () => {

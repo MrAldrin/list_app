@@ -10,7 +10,8 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [bug] Native room/list sharing: send only the URL so iPhone “Copy” does not include explanatory text; keep the access reminder inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
+- [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
+
 - [ ] [feature] (in progress) Svelte frontend rewrite, on the `svelte-frontend` branch only: prototype, migration, then offline. Follow the [Svelte rewrite plan](svelte-frontend-rewrite.md).
 
 ## Later
@@ -64,6 +65,7 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] After the Svelte switch on production: open the app from an old iPhone home-screen icon. At most one extra reload (the old service worker removes itself), then it works like the website. See the [kill switch](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] About a week after the Svelte switch, when a rollback is no longer needed: delete `NICEGUI_STORAGE_SECRET` from Railway variables and from `.env`. See [Railway settings](../docs/deployment.md#railway-settings-to-check).
 - [ ] Confirm on Railway that automatic reload is off by default. See [deployment configuration](../docs/deployment.md#configuration).
+- [ ] [test] On iPhone, use Share Room and Share List → Copy, then paste: only the URL should appear. Check the access reminder appears inside the app after sharing.
 - [ ] Do the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification).
 - [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
 - [ ] Run the [deploy backup script](../docs/deployment.md#backup-before-deploying) with `--backup-only` once. Check that a verified copy lands locally and no `list-deploy-*` file is left on the volume.

@@ -4,7 +4,7 @@
 
 export type ShareKind = 'room' | 'list';
 
-/** The note in the share sheet and the dialog, as in NiceGUI. */
+/** The access reminder shown inside the app, never sent with the URL. */
 export function shareMessage(kind: ShareKind): string {
 	return kind === 'room'
 		? 'The recipient will also need the room password.'
@@ -30,13 +30,13 @@ type ShareNavigator = Partial<Pick<Navigator, 'share'>>;
  * `await`: browsers allow the share sheet only right after a tap.
  */
 export async function shareNatively(
-	kind: ShareKind,
 	url: string,
 	nav: ShareNavigator = navigator
 ): Promise<ShareOutcome> {
 	if (typeof nav.share !== 'function') return 'fallback';
 	try {
-		await nav.share({ title: 'ListR', text: shareMessage(kind), url });
+		// Extra text or a title can become part of iPhone’s copied link.
+		await nav.share({ url });
 		return 'shared';
 	} catch (error) {
 		// The user closed the sheet: that is a choice, not a failure.

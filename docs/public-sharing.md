@@ -21,8 +21,10 @@
   the reset itself still goes through the room endpoint and its checks.
 - Share links are independent of room passwords. Changing a room password revokes
   room authorization, **not public share links**; reset those separately if needed.
-- The room menu has **Share Room**. The
-  API is in [share links](api.md#share-links).
+- The room menu has **Share Room**. Native sharing sends only the URL, so
+  iPhone Copy does not include explanatory text. Access reminders appear in
+  the app after sharing, or in the fallback copy-link dialog.
+  The API is in [share links](api.md#share-links).
 
 ## Implementation
 
