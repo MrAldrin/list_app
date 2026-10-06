@@ -410,13 +410,22 @@ This remains part of this `Lifecycle: tracked` plan.
 - Automatically save successfully loaded list data on this device; no
   "Make available offline" button. The owner accepts local storage of list
   contents. This does not authorize storing passwords or caching admin data.
-  Exact room/share cache boundaries and clearing rules remain to be decided.
+  Exact room/share cache boundaries remain to be decided.
+- Clear the room's saved data on logout. Clear affected saved data when the
+  server confirms revoked access or an invalidated share link. Keep saved data
+  otherwise; network failures alone must not erase it. Clear both the visible
+  in-memory data and the persisted copy, preventing late requests from saving
+  it again after clearing.
+- Remote revocation cannot be detected while offline: saved data can remain
+  readable until the device reconnects and learns access was revoked. The owner
+  accepts this limitation. Browser storage can be cleared by the device;
+  offline copies are a convenience, not backups.
 
 **Decisions still to review, one at a time:**
 
 - What is saved for rooms and public share links (automatic saving approved).
-- Privacy on shared devices, logout, revoked access and storage loss. A device
-  cannot learn of remote revocation while it is offline.
+- Exact offline logout/session handling and independently authorized
+  room/share copies; the data-clearing rules above are approved.
 - Reconnect/revalidation behavior and when editing becomes available again.
 - App updates, acceptance checks and small implementation steps, with an owner
   review of offline viewing before beginning Milestone 6.
