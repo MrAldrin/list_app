@@ -392,6 +392,35 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
 
 ### Milestone 5: offline viewing
 
+**Planning status:** owner approved the viewing scope below. Storage/privacy,
+reconnect behavior and the step-by-step handoff are still under discussion.
+Do not start implementation from the earlier blanket plan approval; a fresh
+agent starts only after the owner approves the completed offline-viewing plan.
+This remains part of this `Lifecycle: tracked` plan.
+
+**Approved scope (2026-10-06):**
+
+- Open and read rooms and lists previously loaded on this device, including
+  after closing/reopening the app while offline.
+- Search and filter saved items locally. No changes to shared data while
+  offline; offline editing belongs to Milestone 6.
+- New rooms or links without saved data require a connection.
+- Admin tools and sign-in remain online-only.
+- Clearly label saved data as potentially outdated.
+
+**Decisions still to review, one at a time:**
+
+- Automatic saving versus an explicit offline-saving choice; what is saved
+  for rooms and public share links.
+- Privacy on shared devices, logout, revoked access and storage loss. A device
+  cannot learn of remote revocation while it is offline.
+- Reconnect/revalidation behavior and when editing becomes available again.
+- App updates, acceptance checks and small implementation steps, with an owner
+  review of offline viewing before beginning Milestone 6.
+- Confirm the jj starting point and bookmark instructions for the fresh agent:
+  the production switch and subsequent fixes have moved `main`; the earlier
+  branch instructions must not make the agent build on a stale baseline.
+
 - **5.0** HTTPS for phone testing through background Tailscale Serve. See the
   [local network guide](../docs/local-network-testing.md#https-on-the-phone).
   The script still prints direct HTTP addresses; use `tailscale serve status`
