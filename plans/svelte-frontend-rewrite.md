@@ -912,16 +912,32 @@ Milestone 5: offline viewing
   Reviewed storage component incorporated as a separate change; parent reran
   the frontend gate and worker typecheck on the combined shell/storage source.
   Adapter remains unexposed pending 5.3/5.4. [Evidence](../docs/background/offline-viewing-validation.md).
-- [ ] 5.3 Read-only views/routing/reconnect, verified with 5.4 guards.
-  Data-layer component accepted after unit checks, fresh review and bounded
-  repairs; hydration remains disabled by default. Page integration and browser
-  verification follow. This is not complete 5.3 acceptance.
-- [ ] 5.4 Privacy, logout and revocation lifecycle, locally verified.
-  Two bounded data repair rounds completed. Owner delegated the safe fallback
-  choices (165–166); real-browser privacy/coordination verification still remains.
-  [Component evidence and limits](../docs/background/offline-viewing-validation.md).
-- [ ] 5.5 Acceptance matrix, full final checks, current docs and owner checklist.
-- [ ] **Gate V: owner offline-viewing review** (no deployment approval implied).
+- [x] 5.3 Read-only views, routing and reconnect: implemented and verified by
+  local tests (not on a real device). Room, room list, private list (current and
+  legacy URL) and share pages show saved data with a notice and disabled
+  controls; the data layer also blocks writes. Typing in Add filters the list
+  only in read-only views. Offline `lastRoom` routing fallback. Reconnect and
+  resume (`visibilitychange`, persisted `pageshow`, one at a time) revalidate
+  before editing. Error wording: "Connect to load..." only for network failures
+  with no snapshot. Worker fix: `/admin` and `/app` navigations are
+  network-only (5.1 had served them from the cached shell). Evidence:
+  [validation record](../docs/background/offline-viewing-validation.md).
+- [x] 5.4 Privacy, logout and revocation lifecycle: implemented and verified by
+  local tests. Logout stores the sign-out marker before the password prompt,
+  stops the live feed first, and falls back to `local_clear_unconfirmed` after a
+  5 s local timeout. Other-device edits, deletes, password-reset revocation and
+  invalid share links behave correctly. Real-device privacy checks are in
+  [Gate V](offline-viewing-gate-v.md).
+- [x] 5.5 Acceptance matrix, final local checks and docs: browser suite 216
+  passed (`-n 4`, three engines), Vitest 365, Python 1205, lint/format/check/
+  build/worker `tsc` clean. Current behavior is in
+  [offline viewing](../docs/offline-viewing.md). Not covered locally: a
+  mid-DELETE reload test, a compatibility-mismatch UI, old lazy chunks for
+  pre-worker tabs after a deploy, and any real iPhone.
+- [ ] Open before first production rollout (backlog): compatibility-mismatch UI
+  (blocks writes, offers a safe reload; needs a decision on where the version
+  comes from) and old lazy chunks for uncontrolled or pre-worker tabs.
+- [ ] **Gate V: owner offline-viewing review** (no deployment approval implied). Owner guide and iPhone checklist: [offline-viewing-gate-v.md](offline-viewing-gate-v.md). No iPhone verification yet.
 
 Milestone 6: offline editing
 - [ ] 6.1 Conflict rules design

@@ -1,7 +1,6 @@
 # Offline viewing: local implementation evidence
 
-Current behavior will be documented in the offline viewing guide when integration
-is accepted. The implementation contract and remaining work are in
+Current behavior is in [offline viewing](../offline-viewing.md). The implementation contract and remaining work are in
 [Milestone 5](../../plans/svelte-frontend-rewrite.md#milestone-5-offline-viewing).
 This record is local evidence, not production or iPhone verification.
 
@@ -95,6 +94,46 @@ unavailable snapshot storage. A local-only outcome must never claim server-cooki
 revocation or confirmed persistent clearing. HTTPS/localhost coordination still
 needs browser-runtime verification.
 
+## Final local verification (UI, lifecycle, reconnect)
+
+The interrupted UI checkpoint was completed in change `wvsyzxsw`. The earlier
+Firefox "error loading dynamically imported module" teardown errors and the
+unused-variable Ruff failures are resolved.
+
+Final results (local only):
+
+- Browser suite: 216 passed (`-n 4`; Chromium, Firefox, WebKit).
+- Vitest 365 passed; Python 1205 passed.
+- Ruff, frontend lint, svelte-check, build and worker `tsc` clean.
+
+New browser tests: `test_svelte_offline.py` and
+`test_svelte_offline_reconnect.py` (reconnect gating, other-device edits and
+deletes, password-reset revocation, invalid share link, 5xx and network
+failures keep the snapshot, resume), plus a logout-before-server-answers test
+in `test_svelte_rooms.py`.
+
+Root causes found:
+
+- **Firefox teardown errors:** the test closed the page while the app was still
+  starting, cancelling a lazy chunk import. Fixed in the tests (wait for idle),
+  not by hiding the error. Helper: `wait_for_api_idle` in `conftest.py`.
+- **Logout marker race:** the sign-out marker was stored after the password
+  prompt appeared, so a quick reload could still show saved data. The marker is
+  now stored first and the live feed stops at logout start.
+- **Admin served from the shell:** 5.1 let the worker answer `/admin` and
+  `/app` navigations from the cached shell, hiding admin and redirect pages.
+  They are now network-only.
+- **WebKit ignores `page.route` for worker-controlled pages:** tests that fake
+  server answers must fake them differently (or before the worker controls the
+  page).
+- **WebKit cancelled-request page errors:** rare (about 1 in 12) teardown
+  flake from cancelled in-flight requests in the rename-after-password-change
+  test in `test_svelte_live.py`. Open; tracked in the backlog.
+
+Not covered: a reload in the middle of a room DELETE (the marker is stored
+before the DELETE by design), a compatibility-mismatch UI (not built), and any
+real iPhone.
+
 ## Deployment prerequisite
 
 Pre-worker tabs and uncontrolled first-install tabs cannot be retroactively
@@ -106,6 +145,6 @@ with an installed worker do not prove first-rollout safety.
 
 ## Remaining verification
 
-Offline page integration, the integrated privacy/coordination browser gate,
-the full final browser suite and Gate V checklist remain unfinished. Real iPhone Safari/home-screen behavior, OS/browser
-versions, and production upgrade behavior have not been verified.
+Real iPhone Safari and home-screen behavior, OS and browser versions, and
+production upgrade behavior have not been verified. See the
+[Gate V guide](../../plans/offline-viewing-gate-v.md).

@@ -22,8 +22,9 @@ learning, targeting up to four simultaneous users rather than large-scale use.
 - **Hosting:** Railway with persistent volume storage, built from the root
   `Dockerfile`. Deployment configuration, process limits, and recovery
   procedures belong in the [deployment guide](docs/deployment.md).
-- **Offline:** not supported yet. The frontend is designed so offline viewing
-  and then editing can be added in stages (see the
+- **Offline:** read-only viewing of saved data is built and awaiting owner
+  review; editing offline is not supported. Editing can be added in stages (see
+  [offline viewing](docs/offline-viewing.md) and the
   [migration plan](plans/offline-frontend-migration.md)). Discuss other stack
   changes before implementation.
 
@@ -106,8 +107,10 @@ Business rules live in Python. The frontend never copies them.
 - Installation never grants access. Sign-in carries over only where the browser
   copies cookies into the installed app. See
   [home-screen installation](docs/home-screen-installation.md).
-- Offline use is not supported yet. An earlier read-only experiment was rolled
-  back (see [findings](docs/background/offline-findings.md)).
+- Offline viewing is read-only: a service worker caches the app shell and the
+  browser stores the last server snapshot. Editing offline is not supported. See
+  [offline viewing](docs/offline-viewing.md); an earlier experiment was rolled
+  back ([findings](docs/background/offline-findings.md)).
 - Old phone installs still hold the earlier app's service worker. `/sw.js`
   answers with a script that removes that worker and its caches (a kill
   switch). It must never return 404 or the app page. See
