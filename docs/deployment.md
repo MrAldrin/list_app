@@ -24,6 +24,7 @@ push `main` once the window opens.
 | `DB_BACKUP_PATH` | Pre-migration copy. Default: next to `DB_PATH`, e.g. `/data/list-pre-migration.db`. |
 | `PORT` | Listening port, default `8080`. `--port` overrides it. |
 | `APP_RELOAD` | Restart on code changes. Off unless set to `true`. Use only locally. |
+| `FORWARDED_ALLOW_IPS` | Proxies whose forwarded headers are trusted. Production: `*`, so the app sees Railway's HTTPS and sets the `__Host-` cookies. The app is reachable only through Railway's proxy. |
 | `REQUIRE_FRONTEND_BUILD` | Set to `true` by the Dockerfile. Startup fails if `frontend/build/` is missing. |
 
 - The app refuses to start with a missing or blank `APP_PASSWORD`. There is no
@@ -86,8 +87,9 @@ Railway must not override the repository. In the service settings:
   `railway.json` and no `Dockerfile`, so it builds with the dashboard setting.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
-- `APP_PASSWORD` is set. Keep `NICEGUI_STORAGE_SECRET` until a rollback is no
-  longer needed: the new code ignores it, but the old code needs it to start.
+- `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`. Keep
+  `NICEGUI_STORAGE_SECRET` until a rollback is no longer needed: the new code
+  ignores it, but the old code needs it to start.
 
 ### Schema migrations
 
