@@ -438,6 +438,22 @@ This remains part of this `Lifecycle: tracked` plan.
   needed by open pages. Keep the last complete version usable offline if an
   update download fails. An iPhone app resume is not necessarily a new page
   load; background work is best-effort, not guaranteed while the app is closed.
+- Keep backend/API updates compatible with already-open frontend versions
+  where practical. A database migration is not itself a reason to erase
+  browser data; the API boundary and local storage schema determine
+  compatibility.
+- Version saved data. Upgrade compatible caches safely; an incompatible or
+  corrupt read-only snapshot may be discarded and downloaded again online.
+  If offline, show "Connect to refresh saved data" rather than crash or show
+  invalid data. Do not treat ordinary network failures as incompatibility.
+- If an open frontend is known to be incompatible with the backend, stop new
+  writes and request a reload instead of crashing. Do not silently discard
+  unsaved edits or unanswered in-flight operations. Before reload, settle or
+  explicitly account for pending operations; do not clear the current queue
+  just to install an update. Milestone 6 must preserve persisted pending edits
+  until saved or explicitly discarded by the user. The exact compatibility
+  detection and safe reload mechanism are implementation design work, not
+  permission to add an elaborate recovery system.
 
 **Decisions still to review, one at a time:**
 
