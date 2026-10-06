@@ -80,12 +80,14 @@ command or build command set in the Railway dashboard is overridden by
 
 Railway must not override the repository. In the service settings:
 
-- Builder is the Dockerfile (`railway.json` sets it). Build command and start
-  command are empty. A Railpack or Nixpacks setting would skip the frontend
-  build.
+- Leave the builder setting as it is: `railway.json` overrides it. After the
+  deploy, check that the build log shows the Dockerfile steps (such as
+  `npm ci`). A rollback to a commit from before the switch has no
+  `railway.json` and no `Dockerfile`, so it builds with the dashboard setting.
+- Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
-- `APP_PASSWORD` is set. `NICEGUI_STORAGE_SECRET` is no longer used; if it is
-  still set, it can be deleted.
+- `APP_PASSWORD` is set. Keep `NICEGUI_STORAGE_SECRET` until a rollback is no
+  longer needed: the new code ignores it, but the old code needs it to start.
 
 ### Schema migrations
 
@@ -281,7 +283,9 @@ steps, in this order:
 1. Restore the pre-migration copy (`/data/list-pre-migration.db`, or the backup
    from the [deploy script](#backup-before-deploying)) to `DB_PATH`, as in the
    steps above. Changes made since the deploy are lost.
-2. Redeploy the previous commit (the revision you noted before deploying).
+2. Redeploy the previous commit (the revision you noted before deploying). It
+   needs `NICEGUI_STORAGE_SECRET` and builds with the dashboard builder setting
+   (see [Railway settings](#railway-settings-to-check)).
 
 Restoring alone leaves the new code on an old database: it would migrate again.
 Redeploying alone fails at startup on the newer database.
