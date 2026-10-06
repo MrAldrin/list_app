@@ -39,7 +39,7 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [infra] Add CI for format, lint and tests. First replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups and secrets out of git.
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
-- [feature] Individual accounts/invitations, only if per-person permissions or revocation are needed.
+- [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
 - [feature] Svelte list page: a "5 checked items hidden" line at the bottom when hide-done hides items. See decision 89 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [refactor] Split `src/main.py` into route/auth/UI modules and move to a proper Python package.
 - [refactor] Replace the global SQLite connection with a connection/context-manager layer.

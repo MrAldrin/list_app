@@ -365,6 +365,15 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
   the full build locally.
 - **4.2** Move Svelte from `/app/` to `/`. Keep old URLs working
   (`/room/{slug}`, `/list/{slug}`, `/share/{token}`, `/admin`).
+- **4.0** Owner decisions after Milestone 3 (decisions 144–146), before 4.3:
+  - Admin sign-in with its own cookie, like the room cookie: `__Host-`,
+    `Secure` on HTTPS, HTTP-only. A changed `APP_PASSWORD` ends all admin
+    sessions. No rate limiting (decision 144).
+  - Toasts work while a dialog is open: tapping a toast's × must not close the
+    dialog (decision 145).
+  - The share page shows "back to room" and "Reset share link" when this
+    browser has access to the list's room, as NiceGUI. Without room access
+    the page reveals nothing about the room (decision 146).
 - **4.3** Remove NiceGUI pages, the NiceGUI dependency and the old service
   worker. Keep the API and business rules.
 - **4.4** Update `ARCHITECTURE.md`, `README.md`, `docs/deployment.md` and the
@@ -388,6 +397,9 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
   reconnect, deploy update.
 
 ### Milestone 6: offline editing
+
+- Per-list change tracking for share links is decided and gets built in
+  Milestone 5 or 6; 6.1 only designs how (decision 147).
 
 - **6.1** Design note in `docs/`: conflict rules for edits, deletes, duplicate
   names and multiple devices. Pick the simplest safe rules; log them. Also
@@ -549,6 +561,11 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 141 | Toast layout check (`browser_tests/test_svelte_toasts.py`): each toast at most 48 px high and inside the screen, the toast area no taller than its toasts, with a long message, three stacked toasts, an open dialog and an 844×390 screen. Over a dialog it compares one screenshot pixel with the toast color. **Worth knowing:** a modal `<dialog>` makes the rest of the page inert, also the toast popover above it, so a toast's buttons cannot be pressed while a dialog is open: a tap on a warning toast's × lands outside the dialog and closes it (typed text is lost); the toast stays. Checked by hand in all three engines. Not changed: no "Undo" toast shows over a dialog (the item dialog closes first), and a warning goes by itself after 4 s; for the owner to decide | A hit test (`elementFromPoint`) skips inert elements, so it cannot tell above from below | Move the toasts into each open dialog | Low |
 | 142 | Svelte stale-action tests hold back the page's live stream (a route that never answers) instead of delaying single updates, and prove the action was sent by its `…/ops` answer (`rejected`, or 401). The deleted-list matrix keeps NiceGUI's 6 actions with the role alternated per engine | The Svelte page learns about changes only through the stream; the op answer is the server's own verdict | Delay the SSE body; check DB only | Low |
 | 143 | Not ported: NiceGUI's service worker checks in the restart test (Svelte has none until 5.1; 5.5 tests it). The Svelte restart test checks that an open page reconnects without a reload (NiceGUI reloads), with a 30 s wait for the stream's retries. The NiceGUI tests stay unchanged until 4.3 | Different internals, same user-visible rules | Port the service worker checks with 5.1 | Low |
+| 144 | Owner (2026-10-06): admin sign-in gets its own cookie like the room cookie (`__Host-`, `Secure` on HTTPS, HTTP-only); a changed `APP_PASSWORD` ends all admin sessions. Built in Milestone 4 (step 4.0), before 4.3 removes NiceGUI's session storage. Replaces 117 from then on | NiceGUI's session goes away in 4.3, so admin sign-in is rebuilt anyway; the room cookie already shows the pattern | Copy NiceGUI's session as is; also rate limiting (skipped; user profiles stay in the backlog Ideas) | Low |
+| 145 | Owner (2026-10-06): fix the toast issue from 141 in Milestone 4 (step 4.0): tapping a toast's × while a dialog is open must not close the dialog | Losing typed text is a bug users remember; small fix | Backlog; ignore | Low |
+| 146 | Owner (2026-10-06): the share page shows "back to room" and "Reset share link" when this browser has access to the list's room, as NiceGUI. Without room access it reveals nothing about the room (test). Built in Milestone 4 (step 4.0). Replaces 113 | A partner who sends a share link to a room member should not strand them on the share page | Keep 113 | Low |
+| 147 | Owner (2026-10-06): per-list change tracking for share links (fixes the timing signal in 108 and stops refreshes for other lists' changes) is decided and gets built in Milestone 5 or 6; 6.1 designs how, not whether | Fewer refreshes; a link visitor learns nothing about other lists | Keep 108 | Medium (migration) |
+| 148 | Owner check (2026-10-06): the newest local production backup (2026-10-04; 11 rooms, 22 lists, 314 items), opened read-only, has no list or item names that differ only in case, and every item name is lowercase. Closes the open question in 136 | Read-only check on a copy | Download a fresh Railway copy | None |
 
 ## Progress
 
@@ -595,6 +612,7 @@ Milestone 3: rest of the app
 - [x] 3.7 Port remaining browser tests (incl. toast layout check) (`browser_tests/test_svelte_{toasts,deleted_lists,restart,hide_done}.py`, new tests in `test_svelte_share.py` and `test_svelte_live.py`; [port map](../docs/background/browser-test-port-map.md): 8 NiceGUI tests ported, 6 already covered, the service worker checks not applicable; no Svelte bug found; decisions 141–143)
 
 Milestone 4: switch
+- [ ] 4.0 Owner decisions after Milestone 3 (admin cookie, toast over dialog, share page room links)
 - [ ] 4.1 Production build
 - [ ] 4.2 Svelte at `/`, old URLs kept
 - [ ] 4.3 Remove NiceGUI
