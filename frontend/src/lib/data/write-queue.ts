@@ -29,7 +29,8 @@ export interface QueueHost {
 	 * have applied it (no answer, 5xx), false when it surely did not (401).
 	 */
 	opUnanswered(op: SentOp, maybeApplied: boolean): void;
-	authRequired(): void;
+	/** `stale` means this 401 belongs to an older authorization session; retry it. */
+	authRequired(op: SentOp): 'current' | 'stale' | 'blocked' | void;
 }
 
 export interface OpSender {
@@ -125,6 +126,12 @@ export class WriteQueue {
 		return promise;
 	}
 
+	/** Stops future sends while retaining pending ops and their original op_ids. */
+	pause(): void {
+		this.#paused = true;
+		this.#wake?.();
+	}
+
 	/** Sends the queued ops again, for example after signing in. */
 	resume(): void {
 		this.#paused = false;
@@ -179,7 +186,7 @@ export class WriteQueue {
 			if (error instanceof ApiError && error.status === 401) {
 				this.#paused = true;
 				this.#host.opUnanswered(op, false);
-				this.#host.authRequired();
+				if (this.#host.authRequired(op) === 'stale') this.#paused = false;
 				return;
 			}
 			this.#finish(op);

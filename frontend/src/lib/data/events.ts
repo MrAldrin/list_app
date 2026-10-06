@@ -28,7 +28,7 @@ export interface LiveHost {
 	readonly seq: number;
 	/** True while the last read failed: the next `seq` event reads again even if equal. */
 	readonly stale?: boolean;
-	refresh(): Promise<void>;
+	refresh(): Promise<void | boolean>;
 	authRequired(): void;
 	/** Hears each change of the stream's state, for a connection indicator. */
 	liveChanged?(state: LiveState): void;
@@ -38,18 +38,21 @@ type VisibilityTarget = Pick<
 	Document,
 	'visibilityState' | 'addEventListener' | 'removeEventListener'
 >;
+type ConnectivityTarget = Pick<Window, 'addEventListener' | 'removeEventListener'>;
 
 export interface LiveUpdatesOptions {
 	url: string;
 	host: LiveHost;
 	/** Asks the server whether we are still signed in (`GET …/session`). */
 	checkSession: () => Promise<SessionState>;
-	/** Called when the connection is back, for example to retry queued writes now. */
-	onReconnect?: () => void;
+	/** Revalidates access and refreshes before allowing queued retries. */
+	onReconnect?: () => Promise<boolean> | boolean;
 	createEventSource?: EventSourceFactory;
 	reconnectDelays?: readonly number[];
 	/** Where to listen for the page becoming visible; null to skip. */
 	visibility?: VisibilityTarget | null;
+	/** Revalidate on the browser's online signal; the signal itself grants no access. */
+	connectivity?: ConnectivityTarget | null;
 }
 
 export const RECONNECT_DELAYS = [1_000, 2_000, 5_000, 10_000, 30_000];
@@ -66,6 +69,7 @@ export class LiveUpdates {
 	readonly #create: EventSourceFactory;
 	readonly #delays: readonly number[];
 	readonly #visibility: VisibilityTarget | null;
+	readonly #connectivity: ConnectivityTarget | null;
 
 	#source: EventSourceLike | null = null;
 	#running = false;
@@ -85,6 +89,12 @@ export class LiveUpdates {
 				: typeof document === 'undefined'
 					? null
 					: document;
+		this.#connectivity =
+			options.connectivity !== undefined
+				? options.connectivity
+				: typeof window === 'undefined'
+					? null
+					: window;
 	}
 
 	get running(): boolean {
@@ -103,12 +113,16 @@ export class LiveUpdates {
 		this.#hiddenAt = null;
 		this.#setState('connecting');
 		this.#visibility?.addEventListener('visibilitychange', this.#onVisibilityChange);
+		this.#connectivity?.addEventListener('online', this.#onOnline);
+		this.#connectivity?.addEventListener('offline', this.#onOffline);
 		this.#connect();
 	}
 
 	stop(): void {
 		this.#running = false;
 		this.#visibility?.removeEventListener('visibilitychange', this.#onVisibilityChange);
+		this.#connectivity?.removeEventListener('online', this.#onOnline);
+		this.#connectivity?.removeEventListener('offline', this.#onOffline);
 		this.#clearTimer();
 		this.#source?.close();
 		this.#source = null;
@@ -177,9 +191,26 @@ export class LiveUpdates {
 	}
 
 	#reconnected(): void {
-		void this.#options.host.refresh();
-		this.#options.onReconnect?.();
+		if (!this.#options.onReconnect) {
+			void this.#options.host.refresh();
+			return;
+		}
+		const validated = this.#options.onReconnect();
+		if (validated === undefined) void this.#options.host.refresh();
 	}
+
+	#onOffline = () => {
+		if (this.#running) this.#setState('reconnecting');
+	};
+
+	#onOnline = () => {
+		if (!this.#running) return;
+		if (!this.#source || this.#source.readyState === CLOSED) {
+			this.#setState('reconnecting');
+			this.#connect();
+		}
+		this.#reconnected();
+	};
 
 	// Phones pause hidden pages and may drop the stream without telling us.
 	#onVisibilityChange = () => {

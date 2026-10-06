@@ -56,8 +56,11 @@ async function opened() {
 	const server = fakeShareApi();
 	const share = openShare(token, {
 		shareApi: server.api,
+		snapshotStore: null,
+		sessionLocks: null,
 		createEventSource: (url) => new FakeEventSource(url),
-		visibility: null
+		visibility: null,
+		online: null
 	});
 	await settle();
 	return { token, share, store: share.store, ...server };
@@ -208,8 +211,11 @@ describe('openShare', () => {
 		server.feeds.splice(0, 1, UNAVAILABLE);
 		const share = openShare(`${tokenCount}`.padStart(43, 'u'), {
 			shareApi: server.api,
+			snapshotStore: null,
+			sessionLocks: null,
 			createEventSource: (url) => new FakeEventSource(url),
-			visibility: null
+			visibility: null,
+			online: null
 		});
 		await settle();
 		expect(share.store.status).toBe('auth_required');

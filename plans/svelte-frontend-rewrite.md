@@ -836,6 +836,8 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 162 | Step 4.4, docs: top-level docs describe only the Svelte + FastAPI app. `docs/background/` files that still describe NiceGUI got a one-line history note. `docs/deployment.md` gets a Railway settings list and the two-step rollback (restore the pre-migration copy, then redeploy the old commit) for the first deploy's migrations 2 to 4. The backlog's legacy localStorage cleanup item now asks whether the Svelte start page should do it, because the old code is gone | Docs must not describe code that no longer exists; the cleanup question is real, the old code ran only on NiceGUI visits | Delete the backlog item | Low |
 | 163 | Owner, 2026-10-06 (after Gate B summary): drop the legacy localStorage room-password cleanup item. The Svelte app gets no cleanup | Few users; every browser that visited since 2026-09-18 is clean; Svelte escapes text, so XSS that could read old keys is unlikely | One-time cleanup on the Svelte start page | Low |
 | 164 | Milestone 5.1: worker-controlled navigation uses its complete cached shell, while a downloaded update waits for old controlled tabs to close. Registering on a later load checks for an update; no forced reload or claim. Pre-worker/uncontrolled first-install tabs remain a separate first-rollout deployment prerequisite | Network-first navigation can pair new HTML with an old worker and leave new lazy chunks unavailable offline; complete-version loading implements the approved non-disruptive updates | Network-first shell with a more complex per-client version protocol; retain prior builds for initial rollout (not authorized here) | Low |
+| 165 | Owner delegates the fallback choice: block a new sign-in with a recoverable explanation when pending logout metadata cannot be read. Already-authorized online use continues without snapshot persistence | Unknown earlier logout may interfere with a newly issued cookie; cache failure must not be mistaken for successful cleanup | Allow sign-in despite unknown pending logout, or introduce a second durable coordination system | Low |
+| 166 | Use HTTPS for phone testing and supported same-origin Web Locks for cookie transitions. Where locks are unavailable (notably insecure LAN HTTP), logout may be local-only and safe re-sign-in blocked; report the exact outcome rather than claim server logout. Owner delegates and accepts this safe MVP restriction; localhost remains supported | Uncoordinated delayed logout responses can clear a newer sign-in cookie across tabs | Uncoordinated DELETE (unsafe); a more complex persistent lease/recovery protocol | Medium |
 
 ## Progress
 
@@ -911,7 +913,13 @@ Milestone 5: offline viewing
   the frontend gate and worker typecheck on the combined shell/storage source.
   Adapter remains unexposed pending 5.3/5.4. [Evidence](../docs/background/offline-viewing-validation.md).
 - [ ] 5.3 Read-only views/routing/reconnect, verified with 5.4 guards.
+  Data-layer component accepted after unit checks, fresh review and bounded
+  repairs; hydration remains disabled by default. Page integration and browser
+  verification follow. This is not complete 5.3 acceptance.
 - [ ] 5.4 Privacy, logout and revocation lifecycle, locally verified.
+  Two bounded data repair rounds completed. Owner delegated the safe fallback
+  choices (165–166); real-browser privacy/coordination verification still remains.
+  [Component evidence and limits](../docs/background/offline-viewing-validation.md).
 - [ ] 5.5 Acceptance matrix, full final checks, current docs and owner checklist.
 - [ ] **Gate V: owner offline-viewing review** (no deployment approval implied).
 

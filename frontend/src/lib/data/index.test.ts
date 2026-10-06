@@ -32,6 +32,7 @@ function fakeApi() {
 			return answer.promise;
 		}),
 		login: vi.fn(async () => ROOM),
+		logout: vi.fn(async () => undefined),
 		whoAmI: vi.fn(async () => ROOM),
 		changePassword: vi.fn(async () => ROOM),
 		deleteRoom: vi.fn(async (): Promise<void> => undefined),
@@ -46,8 +47,11 @@ async function opened() {
 	const server = fakeApi();
 	const room = new RoomHandle(ROOM.slug, {
 		api: server.api,
+		snapshotStore: null,
+		sessionLocks: null,
 		createEventSource: (url) => new FakeEventSource(url),
-		visibility: null
+		visibility: null,
+		online: null
 	});
 	room.retain();
 	await settle();
@@ -211,7 +215,8 @@ describe('RoomHandle', () => {
 		ops[0].answer.reject(new ApiError(401, 'not_authenticated', 'Sign in to this room.'));
 		await settle();
 		expect(store.status).toBe('auth_required');
-		expect(store.list(list.uid)?.tags).toEqual(['Coop']);
+		expect(store.lists).toEqual([]);
+		expect(room.queuedOps).toHaveLength(1);
 
 		expect(await room.login('secret')).toEqual({ ok: true, result: ROOM });
 		expect(api.login).toHaveBeenCalledWith(ROOM.slug, 'secret');
@@ -234,11 +239,17 @@ describe('RoomHandle', () => {
 		expect(store.item(bread.uid)).toEqual(bread);
 	});
 
-	it('forgets data and queued writes on sign-out', async () => {
+	it('clears the view and pauses pending writes on local sign-out', async () => {
 		const { room, store } = await opened();
 		const pending = room.setDone(milk, true);
+		let completed = false;
+		void pending.then(() => (completed = true));
+		await settle();
+		const original = room.queuedOps[0];
 		room.signedOut();
-		expect(await pending).toMatchObject({ ok: false, code: 'not_authenticated' });
+		await settle();
+		expect(completed).toBe(false);
+		expect(room.queuedOps).toEqual([original]);
 		expect(store.lists).toEqual([]);
 		expect(store.status).toBe('auth_required');
 		expect(FakeEventSource.last.closed).toBe(true);
@@ -294,12 +305,12 @@ describe('room management', () => {
 		// The server revokes the old token before this browser has the new cookie.
 		stream.revoked();
 		await settle();
-		expect(api.whoAmI).not.toHaveBeenCalled();
+		expect(api.whoAmI).toHaveBeenCalledTimes(1); // initial access validation only
 
 		answer.resolve(ROOM);
 		expect(await result).toEqual({ ok: true, result: ROOM });
 		await settle();
-		expect(api.whoAmI).toHaveBeenCalledTimes(1);
+		expect(api.whoAmI).toHaveBeenCalledTimes(3);
 		expect(store.status).toBe('ready');
 	});
 
@@ -317,12 +328,20 @@ describe('room management', () => {
 		expect(store.lists).toEqual([list]);
 	});
 
-	it('deletes the room and forgets its data and queued writes', async () => {
-		const { room, store, api } = await opened();
+	it('settles queued actions only after confirmed room deletion', async () => {
+		const { room, store, api, ops } = await opened();
 		const pending = room.setDone(milk, true);
+		await settle();
+		api.deleteRoom.mockRejectedValueOnce(new ApiError(403, 'wrong_password', 'Incorrect password'));
+		expect((await room.deleteRoom('bad')).ok).toBe(false);
+		expect(room.queuedOps).toHaveLength(1);
 		expect(await room.deleteRoom('secret')).toEqual({ ok: true, result: {} });
 		expect(api.deleteRoom).toHaveBeenCalledWith(ROOM.slug, 'secret');
-		expect(await pending).toMatchObject({ ok: false });
+		expect(await pending).toMatchObject({ ok: false, code: 'session_changed' });
+		expect(room.queuedOps).toEqual([]);
+		ops[0].answer.resolve(applied(ops[0].op, 6));
+		await settle();
+		expect(store.notice).toBeNull();
 		expect(store.lists).toEqual([]);
 		// No password prompt flashes while the page leaves.
 		expect(store.status).toBe('loading');
@@ -346,8 +365,11 @@ describe('room management', () => {
 		const { api } = fakeApi();
 		const options = {
 			api,
+			snapshotStore: null,
+			sessionLocks: null,
 			createEventSource: (url: string) => new FakeEventSource(url),
-			visibility: null
+			visibility: null,
+			online: null
 		};
 		const first = openRoom('deleted-room', options);
 		await settle();
@@ -392,11 +414,15 @@ describe('openRoom / closeRoom', () => {
 		const { api } = fakeApi();
 		const options = {
 			api,
+			snapshotStore: null,
+			sessionLocks: null,
 			createEventSource: (url: string) => new FakeEventSource(url),
-			visibility: null
+			visibility: null,
+			online: null
 		};
 		const first = openRoom('shared-room', options);
 		const second = openRoom('shared-room', options);
+		await settle();
 		expect(second).toBe(first);
 		expect(FakeEventSource.instances).toHaveLength(1);
 
@@ -408,6 +434,7 @@ describe('openRoom / closeRoom', () => {
 		// Opened again: the cached data stays and live updates restart.
 		await settle();
 		expect(openRoom('shared-room')).toBe(first);
+		await settle();
 		expect(FakeEventSource.instances).toHaveLength(2);
 		closeRoom(first);
 	});

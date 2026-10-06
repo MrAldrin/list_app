@@ -1,6 +1,7 @@
 // The reactive data of one room: server state from the changes feed, with
 // pending local ops projected on top (see overlay.ts).
 
+import { SvelteMap } from 'svelte/reactivity';
 import { ApiError } from './types';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
 import { isProjected, nowIso, project, type PendingOp, type RoomData } from './overlay';
@@ -9,6 +10,7 @@ import { mergeFeed } from './feed';
 import { filterVisibleItems } from './visibility';
 import type { QueueHost } from './write-queue';
 import type { LiveHost, LiveState } from './events';
+import type { SavedSnapshot, SnapshotData } from './snapshot-store';
 
 export type RoomStatus = 'loading' | 'ready' | 'auth_required' | 'error';
 
@@ -23,6 +25,14 @@ export interface FeedSource {
 	changes(slug: string, since: number): Promise<Feed>;
 }
 
+export interface RoomStoreLifecycle {
+	beforeApply?: () => Promise<boolean>;
+	feedApplied?: (data: SnapshotData) => Promise<void>;
+	unauthorized?: () => void;
+	feedFailed?: () => void;
+	connectionLost?: () => void;
+}
+
 const EMPTY: RoomData = { lists: new Map(), items: new Map() };
 const NO_ITEMS: readonly Item[] = Object.freeze([]);
 
@@ -35,19 +45,24 @@ const NO_ITEMS: readonly Item[] = Object.freeze([]);
  * opened inside a page's effect but outlive the page (see `openRoom`), so the
  * store is created in its own effect root, which never ends.
  */
-export function createRoomStore(slug: string, source: FeedSource): RoomStore {
+export function createRoomStore(
+	slug: string,
+	source: FeedSource,
+	lifecycle?: RoomStoreLifecycle
+): RoomStore {
 	let store: RoomStore | undefined;
 	$effect.root(() => {
-		store = new RoomStore(slug, source);
+		store = new RoomStore(slug, source, lifecycle);
 	});
 	// Code compiled for the server (also unit tests in Node) has no effects,
 	// so `$effect.root` does not call us there: create the store directly.
-	return store ?? new RoomStore(slug, source);
+	return store ?? new RoomStore(slug, source, lifecycle);
 }
 
 export class RoomStore implements QueueHost, LiveHost {
 	readonly slug: string;
 	readonly #source: FeedSource;
+	readonly #lifecycle: RoomStoreLifecycle;
 
 	room = $state.raw<Room | null>(null);
 	/** The room `seq` of the last applied feed; sent as `since` next time. */
@@ -62,6 +77,10 @@ export class RoomStore implements QueueHost, LiveHost {
 	queued = $state(0);
 	/** True while a write got no answer and is being tried again. */
 	retrying = $state(false);
+	/** When available, the refresh time of the read-only saved view. */
+	savedAt = $state<string | null>(null);
+	/** Storage failures are informational; online data use continues. */
+	snapshotWarning = $state<string | null>(null);
 
 	#server = $state.raw<RoomData>(EMPTY);
 	#pending = $state.raw<readonly PendingOp[]>([]);
@@ -72,16 +91,71 @@ export class RoomStore implements QueueHost, LiveHost {
 	#itemsByList = $derived(groupItemsByList(this.#view.items));
 
 	#noticeId = 0;
-	#inflight: Promise<void> | null = null;
-	#queued: Promise<void> | null = null;
+	#inflight: Promise<boolean> | null = null;
+	#queued: Promise<boolean> | null = null;
+	#clearVersion = 0;
+	#feedVersion = 0;
+	#cleared = false;
+	#writeAuthorized = $state(false);
+	#authorizationVersion = 0;
+	#sentAuthorization = new SvelteMap<string, number>();
+	#sentClearVersion = new SvelteMap<string, number>();
 	/** The op whose answer is open. While set, no feed is applied. */
 	#sending: string | null = null;
 	/** A refresh that waits for that answer. */
-	#held: { promise: Promise<void>; resolve: () => void } | null = null;
+	#held: { promise: Promise<boolean>; resolve: (refreshed: boolean) => void } | null = null;
 
-	constructor(slug: string, source: FeedSource) {
+	constructor(slug: string, source: FeedSource, lifecycle: RoomStoreLifecycle = {}) {
 		this.slug = slug;
 		this.#source = source;
+		this.#lifecycle = lifecycle;
+	}
+
+	/** Cached identity and data never authorize writes. */
+	get canWrite(): boolean {
+		return this.#writeAuthorized && this.status === 'ready' && this.error === null;
+	}
+
+	get readOnly(): boolean {
+		return !this.canWrite;
+	}
+
+	setWriteAuthorized(authorized: boolean): void {
+		if (this.#writeAuthorized !== authorized) this.#authorizationVersion += 1;
+		this.#writeAuthorized = authorized;
+	}
+
+	/** Applies a validated saved view for display only; it never restores access. */
+	hydrate(snapshot: SavedSnapshot): void {
+		this.#clearVersion += 1;
+		this.#cleared = false;
+		this.#server = {
+			lists: new SvelteMap(snapshot.lists.map((list) => [list.uid, list])),
+			items: new SvelteMap(snapshot.items.map((item) => [item.uid, item]))
+		};
+		this.room = snapshot.room;
+		this.seq = snapshot.seq;
+		this.savedAt = snapshot.savedAt;
+		this.error = null;
+		this.status = 'ready';
+		this.setWriteAuthorized(false);
+	}
+
+	/** A room-only endpoint lost membership; the independently valid share view stays. */
+	dropMemberRoom(): void {
+		this.#feedVersion += 1;
+		this.room = null;
+		this.setWriteAuthorized(false);
+	}
+
+	setSnapshotWarning(message: string | null): void {
+		this.snapshotWarning = message;
+	}
+
+	reportLoadFailure(message: string): void {
+		this.setWriteAuthorized(false);
+		this.error = message;
+		if (this.status === 'loading') this.status = 'error';
 	}
 
 	/** True while the last read failed, so the data may be out of date. */
@@ -131,6 +205,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		const restored = feed.full && feed.seq < this.seq;
 
 		this.#server = mergeFeed(this.#server, feed);
+		this.#cleared = false;
 		this.room = feed.room;
 		this.seq = feed.seq;
 		// An applied op is in the data once we reached its seq. After a database
@@ -149,7 +224,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	 * already contain that write while its projection is still shown, which
 	 * would count it twice (or make a toggled tag flicker).
 	 */
-	refresh(): Promise<void> {
+	refresh(): Promise<boolean> {
 		if (this.#sending !== null) return this.#hold();
 		if (!this.#inflight) {
 			this.#inflight = this.#load().finally(() => {
@@ -177,24 +252,45 @@ export class RoomStore implements QueueHost, LiveHost {
 		await this.refresh();
 	}
 
-	async #load(): Promise<void> {
+	async #load(): Promise<boolean> {
+		const clearVersion = this.#clearVersion;
+		const feedVersion = this.#feedVersion;
 		try {
 			const feed = await this.#source.changes(this.slug, this.seq);
+			if (clearVersion !== this.#clearVersion || feedVersion !== this.#feedVersion) return false;
 			if (this.#sending !== null) {
 				// A write went out meanwhile: read again after its answer.
 				void this.#hold();
-				return;
+				return false;
 			}
-			this.applyFeed(feed);
+			if (this.#lifecycle.beforeApply && !(await this.#lifecycle.beforeApply())) {
+				if (clearVersion === this.#clearVersion) this.clear('auth_required');
+				return false;
+			}
+			if (clearVersion !== this.#clearVersion || feedVersion !== this.#feedVersion) return false;
+			if (!this.applyFeed(feed)) return false;
 			this.error = null;
 			this.status = 'ready';
+			if (this.#lifecycle.feedApplied) {
+				await this.#lifecycle.feedApplied({
+					seq: this.seq,
+					room: this.room,
+					lists: [...this.#server.lists.values()],
+					items: [...this.#server.items.values()]
+				});
+			}
+			return clearVersion === this.#clearVersion && feedVersion === this.#feedVersion;
 		} catch (error) {
+			if (clearVersion !== this.#clearVersion || feedVersion !== this.#feedVersion) return false;
 			if (error instanceof ApiError && error.status === 401) {
 				this.authRequired();
-				return;
+				return false;
 			}
 			this.error = error instanceof Error ? error.message : String(error);
+			this.setWriteAuthorized(false);
+			this.#lifecycle.feedFailed?.();
 			if (this.status === 'loading') this.status = 'error';
+			return false;
 		}
 	}
 
@@ -210,23 +306,29 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	/** Forgets all room data, for example after signing out. */
 	clear(status: RoomStatus = 'auth_required'): void {
+		this.#clearVersion += 1;
+		this.#cleared = true;
+		this.setWriteAuthorized(false);
 		this.#server = EMPTY;
 		this.#pending = [];
 		this.room = null;
 		this.seq = 0;
+		this.savedAt = null;
 		this.error = null;
+		this.notice = null;
 		this.status = status;
 		this.queued = 0;
 		this.retrying = false;
 		this.#sending = null;
-		this.#held?.resolve();
+		this.#sentClearVersion.clear();
+		this.#held?.resolve(false);
 		this.#held = null;
 	}
 
-	#hold(): Promise<void> {
+	#hold(): Promise<boolean> {
 		if (!this.#held) {
-			let resolve!: () => void;
-			const promise = new Promise<void>((done) => {
+			let resolve!: (refreshed: boolean) => void;
+			const promise = new Promise<boolean>((done) => {
 				resolve = done;
 			});
 			this.#held = { promise, resolve };
@@ -239,14 +341,24 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#sending = null;
 		const held = this.#held;
 		this.#held = null;
-		if (!held && !refresh) return;
+		if ((!held && !refresh) || this.#cleared) {
+			held?.resolve(false);
+			return;
+		}
 		const done = this.refresh();
-		if (held) void done.then(held.resolve);
+		if (held) void done.then((refreshed) => held.resolve(refreshed));
 	}
 
 	// QueueHost: the write queue reports what happens to each op.
 
+	/** Recount retained queue entries after a clear, without projecting them again. */
+	syncQueued(count: number): void {
+		this.queued = count;
+		this.retrying = false;
+	}
+
 	opQueued(op: SentOp): void {
+		this.#sentClearVersion.set(op.op_id, this.#clearVersion);
 		this.queued += 1;
 		if (!isProjected(op)) return;
 		this.#pending = [...this.#pending, { op, at: nowIso(), appliedSeq: null }];
@@ -254,10 +366,15 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	opSending(op: SentOp): void {
 		this.#sending = op.op_id;
+		this.#sentAuthorization.set(op.op_id, this.#authorizationVersion);
+		this.#sentClearVersion.set(op.op_id, this.#clearVersion);
 	}
 
 	opSettled(op: SentOp, response: OpResponse): void {
+		if (!this.#currentOp(op)) return;
+		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
+		this.#sentAuthorization.delete(op.op_id);
 		if (response.status === 'rejected') {
 			this.#drop(op.op_id);
 			this.notify(response.code, response.message);
@@ -273,7 +390,10 @@ export class RoomStore implements QueueHost, LiveHost {
 	}
 
 	opFailed(op: SentOp, error: unknown): void {
+		if (!this.#currentOp(op)) return;
+		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
+		this.#sentAuthorization.delete(op.op_id);
 		this.#drop(op.op_id);
 		if (error instanceof ApiError) this.notify(error.code, error.message);
 		else this.notify('unknown', 'The change could not be saved.');
@@ -281,6 +401,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	}
 
 	opUnanswered(op: SentOp, maybeApplied: boolean): void {
+		if (!this.#currentOp(op)) return;
 		// 401 (`maybeApplied` false): it waits for sign-in, not for the server.
 		this.retrying = maybeApplied;
 		// Live updates go on while the op is retried; a feed may then contain it.
@@ -288,12 +409,29 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#answered(false);
 	}
 
-	authRequired(): void {
+	authRequired(op?: SentOp): 'current' | 'stale' | 'blocked' | void {
+		if (op && !this.#currentOp(op)) return this.canWrite ? 'stale' : 'blocked';
+		const sentGeneration = op ? this.#sentAuthorization.get(op.op_id) : undefined;
+		if (op) this.#sentAuthorization.delete(op.op_id);
+		if (sentGeneration !== undefined && sentGeneration !== this.#authorizationVersion) {
+			return this.canWrite ? 'stale' : 'blocked';
+		}
+		this.setWriteAuthorized(false);
 		this.status = 'auth_required';
+		this.#lifecycle.unauthorized?.();
+		return 'current';
 	}
 
 	liveChanged(state: LiveState): void {
 		this.live = state;
+		if (state === 'reconnecting') {
+			this.setWriteAuthorized(false);
+			this.#lifecycle.connectionLost?.();
+		}
+	}
+
+	#currentOp(op: SentOp): boolean {
+		return this.#sentClearVersion.get(op.op_id) === this.#clearVersion;
 	}
 
 	#done(): void {

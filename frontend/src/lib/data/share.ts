@@ -32,10 +32,15 @@ export class ShareApi implements RoomApi {
 	readonly #roomSlugs = new Map<string, string>();
 
 	async changes(token: string, since: number): Promise<Feed> {
-		const feed = await this.#api.shareChanges(token, since);
-		if (feed.room) this.#roomSlugs.set(token, feed.room.slug);
-		else this.#roomSlugs.delete(token);
-		return feed;
+		try {
+			const feed = await this.#api.shareChanges(token, since);
+			if (feed.room) this.#roomSlugs.set(token, feed.room.slug);
+			else this.#roomSlugs.delete(token);
+			return feed;
+		} catch (error) {
+			if (error instanceof ApiError && error.status === 401) this.#roomSlugs.delete(token);
+			throw error;
+		}
 	}
 
 	sendOp(token: string, op: SentOp): Promise<OpResponse> {
@@ -51,13 +56,18 @@ export class ShareApi implements RoomApi {
 	 * `revoked`). A reset link answers 401, which the handle treats like a
 	 * sign-out: the page then says the link no longer works.
 	 */
-	whoAmI(token: string): Promise<Room> {
-		return this.#api.shareChanges(token, 0).then(() => NO_ROOM);
+	async whoAmI(token: string): Promise<Room> {
+		await this.changes(token, 0);
+		return NO_ROOM;
 	}
 
 	/** The holder shares the link they have; no server call. */
 	shareLink(token: string): Promise<ShareLink> {
 		return Promise.resolve({ token });
+	}
+
+	logout(): Promise<void> {
+		return notForShareLinks();
 	}
 
 	login(): Promise<Room> {
@@ -77,6 +87,10 @@ export class ShareApi implements RoomApi {
 	 * them (decision 146), and the reset goes through the room's own endpoint,
 	 * which checks the room cookie again.
 	 */
+	forgetMemberRoom(token: string): void {
+		this.#roomSlugs.delete(token);
+	}
+
 	resetShareLink(token: string, listUid: string): Promise<ShareLink> {
 		const slug = this.#roomSlugs.get(token);
 		return slug ? this.#api.resetShareLink(slug, listUid) : notForShareLinks();

@@ -64,6 +64,37 @@ acknowledgment until explicit sign-in. Failed durable marker writes must still
 clear visible data and be reported honestly. Cross-tab pending logout/sign-in
 serialization remains an integration obligation.
 
+## 5.3/5.4 accepted data component (not the complete milestone)
+
+The parent accepted data component `onyomkmt` / `2d289575` after reviewing the
+bounded repairs and their regression evidence.
+It changes only the frontend data layer and its tests. Hydration is opt-in and
+**disabled by default**; no offline page integration has been enabled.
+
+The first candidate passed 326 unit tests but fresh privacy/regression reviewers
+blocked it on late-response item-name disclosure, false completed-logout results,
+a room-cookie failure clearing an independent share, and unsettled deleted-room
+actions. A Sol repair fixed those and a stale-clear-hint race. Follow-up review
+found a new share-operation deadlock from coupled feed/op generations, plus
+logout message and resumed-queue status inaccuracies. A second bounded repair
+separated feed invalidation from operation clearing, distinguished logout outcomes,
+resynchronized retained queue counts, and tested reactive write-permission state.
+
+Worker-reported round-two gate: focused 99 and 60-test subsets, full 341 Vitest
+tests, frontend format/lint/check/build and separate worker TypeScript all green.
+The parent inspected the round-two production diff and unchanged file boundary.
+This is unit evidence, not integrated browser or device acceptance.
+
+The owner delegated the fallback decision after clarification. The supervisor
+chose fail-closed explicit sign-in when pending logout metadata cannot be read,
+and honestly reported local-only logout where insecure LAN HTTP has no Web Locks.
+HTTPS phone testing is recommended; localhost remains supported. These are
+accepted MVP restrictions, not claims of complete logout or a permanent storage
+guarantee. Already-authorized online use tolerates
+unavailable snapshot storage. A local-only outcome must never claim server-cookie
+revocation or confirmed persistent clearing. HTTPS/localhost coordination still
+needs browser-runtime verification.
+
 ## Deployment prerequisite
 
 Pre-worker tabs and uncontrolled first-install tabs cannot be retroactively
@@ -75,6 +106,6 @@ with an installed worker do not prove first-rollout safety.
 
 ## Remaining verification
 
-Data/UI/privacy integration, the final browser acceptance suite and Gate V
-checklist remain unfinished. Real iPhone Safari/home-screen behavior, OS/browser
+Offline page integration, the integrated privacy/coordination browser gate,
+the full final browser suite and Gate V checklist remain unfinished. Real iPhone Safari/home-screen behavior, OS/browser
 versions, and production upgrade behavior have not been verified.

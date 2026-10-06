@@ -14,6 +14,7 @@ function fakeApi(): RoomApi {
 		changes: vi.fn(async () => makeFeed({ seq: 0, full: true })),
 		sendOp: vi.fn(),
 		login: vi.fn(async () => ROOM),
+		logout: vi.fn(async () => undefined),
 		whoAmI: vi.fn(async () => ROOM),
 		changePassword: vi.fn(async () => ROOM),
 		deleteRoom: vi.fn(async () => undefined),
@@ -24,6 +25,40 @@ function fakeApi(): RoomApi {
 }
 
 describe('room store lifetime', () => {
+	it('reactively updates canWrite and readOnly when only authorization changes', () => {
+		const room = new RoomHandle(ROOM.slug, {
+			api: fakeApi(),
+			snapshotStore: null,
+			sessionLocks: null,
+			createEventSource: (url) => new FakeEventSource(url),
+			visibility: null,
+			online: null
+		});
+		room.store.applyFeed(makeFeed({ seq: 1, full: true }));
+		room.store.status = 'ready';
+		expect(room.store.status).toBe('ready');
+		expect(room.store.error).toBeNull();
+		const seen: { canWrite: boolean; readOnly: boolean }[] = [];
+		const stop = $effect.root(() => {
+			$effect(() => {
+				seen.push({ canWrite: room.store.canWrite, readOnly: room.store.readOnly });
+			});
+		});
+		flushSync();
+		expect(seen).toEqual([{ canWrite: false, readOnly: true }]);
+
+		room.store.setWriteAuthorized(true);
+		flushSync();
+		expect(seen.at(-1)).toEqual({ canWrite: true, readOnly: false });
+
+		room.store.liveChanged('reconnecting');
+		flushSync();
+		expect(room.store.status).toBe('ready');
+		expect(room.store.error).toBeNull();
+		expect(seen.at(-1)).toEqual({ canWrite: false, readOnly: true });
+		stop();
+	});
+
 	it('keeps derived data live after the effect that created it ends', () => {
 		let room!: RoomHandle;
 		const seen: string[][] = [];

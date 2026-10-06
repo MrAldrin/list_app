@@ -71,7 +71,7 @@ export function deferred<T>(): Deferred<T> {
 }
 
 /** Lets pending promise callbacks run. */
-export async function settle(rounds = 10): Promise<void> {
+export async function settle(rounds = 40): Promise<void> {
 	for (let round = 0; round < rounds; round += 1) await Promise.resolve();
 }
 
