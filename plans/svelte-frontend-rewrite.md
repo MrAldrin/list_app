@@ -906,7 +906,10 @@ Milestone 5: offline viewing
   Parent reviewed recovered candidate `wrzvvvxv` / `866d8bd6`; all three browser
   engines pass the shell/update/takeover gate. [Local evidence and rollout limit](../docs/background/offline-viewing-validation.md).
   This is not iPhone or production verification.
-- [ ] 5.2 Versioned snapshot adapter, implemented and locally verified.
+- [x] 5.2 Versioned snapshot adapter, implemented and locally verified.
+  Reviewed storage component incorporated as a separate change; parent reran
+  the frontend gate and worker typecheck on the combined shell/storage source.
+  Adapter remains unexposed pending 5.3/5.4. [Evidence](../docs/background/offline-viewing-validation.md).
 - [ ] 5.3 Read-only views/routing/reconnect, verified with 5.4 guards.
 - [ ] 5.4 Privacy, logout and revocation lifecycle, locally verified.
 - [ ] 5.5 Acceptance matrix, full final checks, current docs and owner checklist.

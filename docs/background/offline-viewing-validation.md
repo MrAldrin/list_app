@@ -53,6 +53,9 @@ Parent ran the entire cheap frontend chain in the isolated workspace:
 `npm run format && npm run lint && npm run check && npm run test && npm run build`.
 All passed: 310 Vitest tests, no Svelte errors/warnings and successful build.
 This is storage-only evidence, not offline UI or real-browser privacy acceptance.
+The parent incorporated exactly the four reviewed storage files as change
+`wnyuwrpo` and reran `npm ci`, worker TypeScript and the full frontend chain on
+combined source: 314 Vitest tests, no Svelte errors/warnings, lint and build green.
 
 Integration must capture generation before fetching, save only committed server
 state and never retry a stale payload with a fresh token. Share snapshots strip
