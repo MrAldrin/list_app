@@ -1,6 +1,7 @@
 # Deployment and recovery
 
-ListR runs as one NiceGUI process with one SQLite database. Production runs on
+ListR runs as one Python process (FastAPI on uvicorn, serving the Svelte frontend
+and the JSON API) with one SQLite database. Production runs on
 Railway with a persistent volume (storage that survives deployments).
 
 Railway deploys automatically when GitHub `main` changes. Moving the local
@@ -23,6 +24,7 @@ push `main` once the window opens.
 | `DB_BACKUP_PATH` | Pre-migration copy. Default: next to `DB_PATH`, e.g. `/data/list-pre-migration.db`. |
 | `PORT` | Listening port, default `8080`. `--port` overrides it. |
 | `APP_RELOAD` | Restart on code changes. Off unless set to `true`. Use only locally. |
+| `REQUIRE_FRONTEND_BUILD` | Set to `true` by the Dockerfile. Startup fails if `frontend/build/` is missing. |
 
 - The app refuses to start with a missing or blank `APP_PASSWORD`. There is no
   password-free mode. Generate the value with the command in the README.
@@ -35,14 +37,17 @@ push `main` once the window opens.
 
 ## Build and startup
 
-Use Python 3.13 or newer:
+Use Python 3.13 or newer. Build the frontend first (`npm ci && npm run build`
+in `frontend/`), then:
 
 ```bash
 uv sync --locked
 uv run python src/main.py
 ```
 
-The app listens on `0.0.0.0` and Railway's `PORT`.
+The app listens on `0.0.0.0` and Railway's `PORT`. There is no session secret
+to set. Room tokens are random and stored hashed; the admin cookie is signed
+with a key made from `APP_PASSWORD`.
 
 ### Production image
 
@@ -71,6 +76,17 @@ Railway variables, the volume and the start command do not change. Any start
 command or build command set in the Railway dashboard is overridden by
 `railway.json` and the `Dockerfile`; keep both empty there.
 
+### Railway settings to check
+
+Railway must not override the repository. In the service settings:
+
+- Builder is the Dockerfile (`railway.json` sets it). Build command and start
+  command are empty. A Railpack or Nixpacks setting would skip the frontend
+  build.
+- The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
+- `APP_PASSWORD` is set. `NICEGUI_STORAGE_SECRET` is no longer used; if it is
+  still set, it can be deleted.
+
 ### Schema migrations
 
 Startup applies schema changes as numbered migrations (`src/migrations.py`).
@@ -85,6 +101,9 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
 - The log shows `Database migrated from version X to Y` when anything ran.
 - The app refuses a database newer than its code. Restore a matching backup
   instead of rolling back code alone.
+- The first deploy of the Svelte version moves a production database from
+  version 2 to 4 (offline-ready ids and change tracking). It takes the
+  pre-migration copy first. See the rollback below.
 - Add changes as a new migration at the end of the list in
   `src/database_setup.py`. Never edit a deployed one.
 - Rebuild a table in SQLite's documented order: create the new table, copy,
@@ -119,7 +138,9 @@ production cookie behavior. See the
 Before deploying:
 
 - [ ] Inside the [deploy window](#deploy-window) (20:00–08:00).
-- [ ] Both secrets set, `DB_PATH` absolute, volume mounted, one instance.
+- [ ] `APP_PASSWORD` set, `DB_PATH` absolute, volume mounted, one instance.
+- [ ] Railway build and start command fields are empty (the `Dockerfile` and
+  `railway.json` decide). See [Railway settings](#railway-settings-to-check).
 - [ ] Note the currently deployed revision.
 - [ ] For schema changes: take a backup with
   [`--backup-only`](#backup-before-deploying) and start the new version against
@@ -134,6 +155,7 @@ After deploying:
 - [ ] Existing rooms, lists and items are still there.
 - [ ] Admin login, room login, and add/edit/toggle/delete work (use disposable
   data). Live updates work across two browsers. Public share links work.
+  Old addresses (`/room/…`, `/list/…`, `/share/…`, `/app/…`) open the new app.
 - [ ] After a restart, a disposable item is still saved, remembered room access
   still works, and a room password reset logs out the old session.
 - [ ] Real-device cookie and home-screen checks from the
@@ -250,6 +272,19 @@ structure, not that your data is complete; also compare a few rooms and lists.
 **Rolling back code does not undo a schema change.** Older code may not
 understand the newer database. Restore a matching backup instead of starting
 incompatible code against your only copy.
+
+### Rolling back the Svelte deploy (database version 2 to 4)
+
+The old NiceGUI code refuses the version 4 database, so a rollback is two
+steps, in this order:
+
+1. Restore the pre-migration copy (`/data/list-pre-migration.db`, or the backup
+   from the [deploy script](#backup-before-deploying)) to `DB_PATH`, as in the
+   steps above. Changes made since the deploy are lost.
+2. Redeploy the previous commit (the revision you noted before deploying).
+
+Restoring alone leaves the new code on an old database: it would migrate again.
+Redeploying alone fails at startup on the newer database.
 
 This procedure has not yet been rehearsed on a hosted copy; that drill is
 tracked in the [backlog](../plans/backlog.md#later).

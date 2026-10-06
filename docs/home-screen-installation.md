@@ -40,12 +40,12 @@ The Svelte app is served at `/`. The same rules apply:
   the page changes inside the app.
 - Icons made while the app ran under `/app/` (phone testing) still open: the
   server redirects `/app/...` to the same address at `/`.
-- Both are made from NiceGUI's `manifest.json` (`src/install_manifest.py`), so
-  `id` and `scope` stay `/`: one app identity with NiceGUI installs.
+- Both are made from `src/static/manifest.json` (`src/install_manifest.py`), so
+  `id` and `scope` stay `/`: one app identity, the same as the earlier app's installs.
 - The room manifest does not check that the room exists, because the Svelte
   app never tells. A deleted room's icon shows the password prompt, and
   signing in says "Wrong room or password."
-- Icons are NiceGUI's files under `/static/icons/`.
+- Icons are the files under `/static/icons/`.
 - No service worker yet. `/sw.js` only removes the old app's worker ([decision 159](../plans/svelte-frontend-rewrite.md)).
 
 ## Remembered access
@@ -71,7 +71,7 @@ The Svelte app is served at `/`. The same rules apply:
   site.
 - The proxy must pass on the original `https` scheme and host, or cookie writes
   are rejected (see [deployment](deployment.md#https-and-proxy)).
-- Never enable credentialed cross-origin CORS or wildcard Socket.IO origins.
+- Never enable credentialed cross-origin CORS.
 
 Design reasoning, implementation details and past test results are in
 [background](background/home-screen-installation.md).

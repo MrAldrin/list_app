@@ -23,14 +23,14 @@ SAME_ORIGIN = {"Origin": HTTPS}
 
 
 def build_test_app() -> FastAPI:
-    """A small app with stand-in NiceGUI handlers and probe API routes."""
+    """A small app with stand-in app handlers and probe API routes."""
     app = FastAPI()
 
     async def page_404(request: Request, exc: Exception) -> Response:
-        return HTMLResponse("nicegui 404 page", status_code=404)
+        return HTMLResponse("app 404 page", status_code=404)
 
     async def page_500(request: Request, exc: Exception) -> Response:
-        return HTMLResponse("nicegui 500 page", status_code=500)
+        return HTMLResponse("app 500 page", status_code=500)
 
     app.add_exception_handler(404, page_404)
     app.add_exception_handler(Exception, page_500)
@@ -146,11 +146,11 @@ def test_success_responses_are_no_store(client):
 def test_other_paths_keep_their_own_error_pages(client):
     response = client.get("/somewhere-else")
     assert response.status_code == 404
-    assert response.text == "nicegui 404 page"
+    assert response.text == "app 404 page"
     assert "cache-control" not in response.headers
     response = client.get("/page/boom")
     assert response.status_code == 500
-    assert response.text == "nicegui 500 page"
+    assert response.text == "app 500 page"
 
 
 def test_unhandled_api_error_is_json_without_details(client):

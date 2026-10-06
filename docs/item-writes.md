@@ -34,7 +34,7 @@ copy of each rule.
 | Rename list | Identity, room ownership and name uniqueness checked in the same transaction. A lost race returns the normal duplicate-name warning. | `tests/test_list_renames.py` |
 | Delete + undo | Undo restores name, done state, tags, description and quantity as a new item. If the name was re-added meanwhile, undo warns and changes nothing. | `tests/test_item_undo.py` |
 | Delete list / room | All deletes roll back if any step fails. | `tests/test_database_crud.py` |
-| Admin password reset | The NiceGUI dialog remembers room ID and slug; the API finds the room by slug in the write transaction. If the room was deleted or replaced, nothing changes and the UI says so. | `tests/test_admin_rooms.py`, `tests/test_database_crud.py`, `tests/test_api_admin.py` |
+| Admin password reset | The API finds the room by slug in the write transaction. If the room was deleted or replaced, nothing changes and the UI says so. | `tests/test_database_crud.py`, `tests/test_api_admin.py` |
 
 If the app starts with duplicate item names already in the database, it stops
 with a clear migration error instead of deleting any. Fix the duplicates and

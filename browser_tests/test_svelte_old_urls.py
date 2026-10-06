@@ -1,6 +1,6 @@
 """Old addresses keep working after Svelte moved from /app/ to /.
 
-NiceGUI's page shapes (`/room/{slug}`, `/list/{slug}`, `/share/{token}`,
+The earlier app's page shapes (`/room/{slug}`, `/list/{slug}`, `/share/{token}`,
 `/create-room/{token}`, `/admin`, `/admin/login`) and the `/app/...` addresses
 of the phone-testing time all open the Svelte app.
 """

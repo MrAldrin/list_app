@@ -278,7 +278,7 @@ def test_bad_visibility_is_422_and_not_stored(room, fields):
     assert op(client, slug, body | {"mode": "all"})["status"] == "applied"
 
 
-def test_nicegui_visibility_still_replaces_all_fields():
+def test_direct_visibility_still_replaces_all_fields():
     list_id, _ = default_list()
     crud.update_list_visibility_settings(
         list_id, mode="recent", age_days=2, recent_count=3

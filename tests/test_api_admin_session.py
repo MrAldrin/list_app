@@ -120,7 +120,7 @@ def test_no_admin_endpoint_works_without_the_cookie(admin_app):
 
 def test_a_session_cookie_of_another_name_is_not_admin(admin_app):
     client = browser(admin_app)
-    # NiceGUI's session cookie, and a room cookie, never make an admin.
+    # An old session cookie, and a room cookie, never make an admin.
     client.cookies.set("session", "authenticated", domain="testserver.local")
     client.cookies.set("__Host-listapp-room-x", "1", domain="testserver.local")
     assert_error(client.get("/api/v1/admin/rooms"), 401, "admin_required")

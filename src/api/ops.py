@@ -76,7 +76,7 @@ Uuid = Annotated[StrictStr, AfterValidator(_canonical_uuid)]
 
 # Bounds quantities and deltas far from SQLite's 64-bit integer limit.
 MAX_QUANTITY = 1_000_000
-# Below 1 is saved as 1, as in NiceGUI's edit dialog.
+# Below 1 is saved as 1.
 Quantity = Annotated[StrictInt, Field(ge=-MAX_QUANTITY, le=MAX_QUANTITY)]
 BaseSeq = Annotated[StrictInt, Field(ge=0)]
 
@@ -247,7 +247,7 @@ class OpRejected(Exception):
         self.message = message
 
 
-# Messages as NiceGUI shows them.
+# Messages shown to the user.
 LIST_UNAVAILABLE = "The list is no longer available."
 ITEM_NOT_FOUND = "The item is no longer available."
 EMPTY_NAME = "Name cannot be empty"
@@ -307,7 +307,7 @@ def _new_uid(uid: str | None) -> str | None:
 
 
 def room_rename(scope: OpScope, op: RoomRename) -> dict[str, Any]:
-    # Room names need not be unique, as in NiceGUI.
+    # Room names need not be unique.
     rename_room_locked(scope.room_id, _display_name(op.name))
     return {}
 
@@ -335,7 +335,7 @@ def list_delete(scope: OpScope, op: ListDelete) -> dict[str, Any]:
 
 def list_tag_add(scope: OpScope, op: ListTagAdd) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
-    # Trimmed and nonempty, like a list name (NiceGUI's tag input).
+    # Trimmed and nonempty, like a list name.
     change_list_tag_locked(list_id, _display_name(op.tag), add=True)
     return {}
 
@@ -445,7 +445,7 @@ HANDLERS: dict[str, Callable[[OpScope, Any], dict[str, Any]]] = {
 }
 
 
-# What a share link may do: everything inside its list (as on NiceGUI's
+# What a share link may do: everything inside its list (as on the
 # public page), nothing to the room or to the list itself.
 SHARE_OP_TYPES = frozenset(
     {

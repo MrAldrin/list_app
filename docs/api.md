@@ -1,10 +1,9 @@
 # JSON API (Svelte frontend)
 
-The contract between the Python server and the Svelte app. It covers the
-prototype (Milestones 1–2 of the [rewrite plan](../plans/svelte-frontend-rewrite.md)),
-room management, share links, admin and creation invitations.
+The contract between the Python server and the Svelte app. It covers items and lists, room
+management, share links, admin and creation invitations.
 
-The business rules are the same as in NiceGUI: see
+The business rules live in Python and are shared with every write path: see
 [item writes](item-writes.md) and [checked-item visibility](checked-item-visibility.md).
 
 ## Basics
@@ -61,7 +60,7 @@ Every `POST` and `DELETE` must:
   has no body).
 
 `GET` requests change no data and need only the cookie. One exception is
-housekeeping: listing invitations deletes old inactive ones, as in NiceGUI.
+housekeeping: listing invitations deletes old inactive ones.
 `DELETE /api/v1/rooms/{slug}` has a JSON body.
 
 ## Room session
@@ -78,17 +77,16 @@ stores the password, and JavaScript never sees the token.
 
 Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
 
-- **HTTPS:** the same cookies NiceGUI uses, `__Host-listapp-room-<sha256(slug)>`
-  and `__Host-listapp-last-room`, with `Secure`. Signing in on one UI signs in
-  the other.
+- **HTTPS:** `__Host-listapp-room-<sha256(slug)>`
+  and `__Host-listapp-last-room`, with `Secure`. Phones that signed in before
+  the Svelte switch keep working: the cookies have the same names.
 - **Plain HTTP** (local network tests): `listapp-room-<sha256(slug)>` and
   `listapp-last-room`, without `Secure`. Browsers refuse `__Host-` cookies
   without `Secure`. No localStorage fallback.
 
 `GET …/session` with a revoked token returns 401 and clears the cookie. A
 password change revokes all tokens of the room. If `DELETE …/session` cannot
-revoke the token (503), it keeps the cookie so the client can retry. Signing
-out on HTTPS also signs NiceGUI out in that browser (same cookie). `last-room` is routing only: it
+revoke the token (503), it keeps the cookie so the client can retry. `last-room` is routing only: it
 names the last room this browser signed in to, not whether access still works.
 
 ## Room management
@@ -139,7 +137,7 @@ Share holders:
   `since` is checked (as for rooms) but not used. `seq` is the room's `seq`,
   the same number op answers and the stream send.
 - Ops: the list ops `list.tag_add`, `list.tag_remove`, `list.visibility` and
-  every item op, as on NiceGUI's public page. Other types (`room.rename`,
+  every item op. Other types (`room.rename`,
   `list.create`, `list.rename`, `list.delete`) are 422. A `list_uid` other
   than the shared list's is rejected as `list_unavailable`. Ops are stored per
   room, as for room ops, so retries are safe.
@@ -169,8 +167,7 @@ HTTP-only and `SameSite=Lax`, and last 14 days. The value is a signed token
 (`v1.<expiry>.<nonce>.<signature>`); the signature uses a key made from the
 current `APP_PASSWORD`, so **changing `APP_PASSWORD` ends every admin
 session**. Nothing is stored on the server, so signing out clears the cookie
-in this browser only. The cookie is separate from NiceGUI's `/admin` sign-in
-(which goes away with NiceGUI). Admin sign-in never gives room access: the
+in this browser only. Admin sign-in never gives room access: the
 room endpoints ignore it, and admin endpoints never set a room cookie.
 
 | Request | Body | Success |
@@ -238,7 +235,7 @@ Anyone with the link (no sign-in):
   for every reason. The invitation is checked again in the write transaction.
 - The name is trimmed and must have 1–100 characters. The password must not
   be blank, at most 72 bytes, and is saved as typed. Both give 422 with
-  NiceGUI's message. Passwords are at most 1,024 characters in the body.
+  the usual message. Passwords are at most 1,024 characters in the body.
 - No cookie is set: the creator signs in to the new room with its password.
 
 ## Data shapes
@@ -270,7 +267,7 @@ Anyone with the link (no sign-in):
 - The client sorts items itself (open first, then by name). It computes hidden
   items with the rules in [checked-item visibility](checked-item-visibility.md).
   In `recent` mode, items without `completed_at` rank last in no fixed order;
-  NiceGUI uses creation order, which the API does not expose.
+  the API does not expose creation order.
 
 ## Reading: the changes feed
 
@@ -295,7 +292,7 @@ Each room has a counter `seq`; every write in the room increases it.
   older than the deletion records it keeps. Deletion records are not pruned
   yet, so for now only the first case happens.
 - `since` is required: a whole number from 0 up; anything else gives 422.
-- Stored values are read the way NiceGUI reads them: a missing quantity is 1,
+- Stored values are read leniently: a missing quantity is 1,
   a missing description is `""`, unreadable tags are `[]`, and an unreadable
   `completed_at` is `null`.
 - Otherwise (`full: false`) the client upserts `lists` and `items` by `uid` and
@@ -337,8 +334,7 @@ Responses (HTTP 200), one applied and one rejected:
   do not count. Results older than 30 days are removed when the server starts.
 - HTTP errors (401, 403, 422, 503, …) are **not** stored. Fix the cause and
   retry with the same `op_id`.
-- The client reads the changes feed to get the new data. Open NiceGUI pages
-  refresh after each applied op.
+- The client reads the changes feed to get the new data.
 
 ### Operation types
 
@@ -372,7 +368,7 @@ yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
 
 ### Rejection codes
 
-| `code` | Operations | Message (as in NiceGUI) |
+| `code` | Operations | Message |
 |---|---|---|
 | `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
 | `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
@@ -400,8 +396,7 @@ event: revoked
 data: {}
 ```
 
-- `seq` is sent once on connect and after each write in the room, from either
-  UI. It is sent only when the room `seq` changed, so the same value never
+- `seq` is sent once on connect and after each write in the room. It is sent only when the room `seq` changed, so the same value never
   comes twice in a row.
 - A keep-alive comment is sent about every 15 seconds.
 - Access and `seq` are checked again on every message, keep-alives included.
@@ -411,6 +406,6 @@ data: {}
 - Headers: `Content-Type: text/event-stream`, `Cache-Control: no-store`,
   `X-Accel-Buffering: no` (no proxy buffering).
 - The server closes the stream when it shuts down or restarts (after at most
-  `SHUTDOWN_TIMEOUT_SECONDS` in `src/main.py`), and when the database is
+  `SHUTDOWN_TIMEOUT_SECONDS` in `src/server.py`), and when the database is
   unavailable.
 - On a dropped connection the client reconnects and reads the changes feed.

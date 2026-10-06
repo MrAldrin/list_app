@@ -37,7 +37,7 @@ from database_crud import (
 from live_updates import wake_streams
 from room_cookies import HOST_PREFIX
 
-# Message as NiceGUI's admin login shows it.
+# Message shown at admin sign-in.
 WRONG_ADMIN_PASSWORD = "Wrong password"
 
 # As the room cookie: `__Host-` (Secure, Path=/, no Domain) on HTTPS; the plain
@@ -147,7 +147,7 @@ def _room(details: dict[str, Any]) -> dict[str, str]:
 
 @admin_only.get("/rooms")
 async def rooms() -> dict[str, Any]:
-    """Every room, by name ignoring case (NiceGUI's overview order)."""
+    """Every room, by name ignoring case (the overview order)."""
     found = await run_in_threadpool(get_rooms)
     return {"rooms": [_room(room) for room in found]}
 
@@ -164,7 +164,7 @@ async def new_room(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any
     try:
         details = await run_in_threadpool(create)
     except ValueError as error:
-        # NiceGUI's texts: "Room name cannot be empty", "Password cannot be empty".
+        # Texts: "Room name cannot be empty", "Password cannot be empty".
         raise ApiError(422, "invalid_request", str(error)) from None
     if details is None:  # Deleted again before we read it back.
         raise ApiError(404, "room_unavailable")

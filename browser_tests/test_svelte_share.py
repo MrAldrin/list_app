@@ -93,7 +93,7 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     add_item(member, "eggs")
     expect(item_names(visitor)).to_have_text(["bread", "eggs", "milk"])
 
-    # Tags too, as on NiceGUI's public page.
+    # Tags too, as on the public page.
     visitor.get_by_role("button", name="Options").click()
     visitor.get_by_label("Add Tag").fill("produce")
     visitor.get_by_label("Add Tag").press("Enter")
@@ -312,7 +312,7 @@ def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_se
 def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     svelte_server, open_session
 ):
-    """Decision 146: as in NiceGUI, a browser with room access sees both."""
+    """Decision 146: a browser with room access sees both."""
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)

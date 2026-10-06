@@ -69,7 +69,7 @@ def test_issue_create_room_and_revoke(svelte_server, open_session):
     expect(visitor.get_by_text("Passwords do not match")).to_be_visible()
     assert server.query("SELECT COUNT(*) FROM rooms") == [(1,)]
 
-    # A blank name shows NiceGUI's message.
+    # A blank name shows the message.
     fill_form(visitor, "  ", "beach-pw")
     visitor.get_by_role("button", name="Create room").click()
     expect(

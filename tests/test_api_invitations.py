@@ -1,7 +1,7 @@
 """Creation invitations in the JSON API: admins issue, list and revoke them;
 anyone with a link can create a room (docs/api.md, "Creation invitations").
 
-The rules are NiceGUI's (`src/room_invitations.py`, docs/room-invitations.md).
+The rules are in `src/room_invitations.py`, docs/room-invitations.md.
 Times are moved by editing the stored rows, not by patching `time.time`, which
 would also change the signed session cookie of the admin test app.
 """
@@ -336,7 +336,7 @@ def test_create_room_from_a_link_without_signing_in():
     assert db.execute(
         "SELECT name FROM rooms WHERE slug = ?", (room["slug"],)
     ).fetchone() == ("Beach  House",)
-    # As NiceGUI: the creator signs in with the new password next.
+    # The creator signs in with the new password next.
     assert not client.cookies
     assert_error(
         client.get(f"/api/v1/rooms/{room['slug']}/session"), 401, "not_authenticated"
@@ -378,7 +378,7 @@ def test_admin_sign_in_is_not_needed_and_gives_no_room_access(admin_app):
         ("Room", "\N{LATIN SMALL LETTER E WITH ACUTE}" * 37),
     ],
 )
-def test_bad_names_and_passwords_are_422_with_nicegui_messages(name, password):
+def test_bad_names_and_passwords_are_422_with_clear_messages(name, password):
     _, token = invitations.create_invitation()
     client = client_for()
 

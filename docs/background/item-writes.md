@@ -1,5 +1,7 @@
 # Item writes: implementation notes and test scope
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Supporting detail for [item writes and stale pages](../item-writes.md). That
 page is the source for current behavior. The audit that produced these fixes is
 the [write atomicity audit](../../plans/write-atomicity-audit.md).

@@ -72,7 +72,7 @@ def list_uid_of(list_id: int) -> str:
 
 
 def add_item(list_id: int, name: str, *, done: bool = False) -> str:
-    """Add an item the NiceGUI way; return its uid."""
+    """Add an item through the database functions; return its uid."""
     crud.add_item_with_state(name, list_id, done, [])
     return db.execute(
         "SELECT uid FROM items WHERE list_id = ? AND name = ?", (list_id, name)

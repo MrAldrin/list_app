@@ -1,5 +1,7 @@
 # Real-browser tests: scenarios and measurements
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Supporting detail for [real-browser tests](../browser-testing.md). That page
 is the source for how to run the suite and what it covers today.
 

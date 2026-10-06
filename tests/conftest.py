@@ -44,8 +44,8 @@ def clean_db(home_password_hash):
 
 
 # Admin API tests (tests/api_helpers.py, "Admin"): the API router alone, with no
-# NiceGUI session middleware. Admin sign-in has its own cookie and must not
-# depend on NiceGUI (decision 144).
+# A session middleware. Admin sign-in has its own cookie and must not
+# depend on it (decision 144).
 @pytest.fixture(scope="module")
 def admin_app() -> FastAPI:
     test_app = FastAPI()

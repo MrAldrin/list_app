@@ -4,21 +4,24 @@ A mobile-first web app for small groups to share shopping and other lists.
 Organize lists in password-protected rooms, add items, adjust quantities, use
 tags, and see other users' changes in real time.
 
-Built with Python, NiceGUI, and SQLite; hosted on Railway.
+Built with a Svelte frontend, a Python FastAPI server, and SQLite; hosted on
+Railway. See the [architecture](ARCHITECTURE.md).
 **Anyone with a public list link can view and edit that list.** Room passwords
 protect room controls, not public list links.
 
-Use the moon button at the top right to switch between light and dark mode.
-The choice is saved in that device's browser, not shared with other devices.
+Switch between light and dark mode with the moon button, or from the ⋮ menu
+on a list page. The choice is saved in that device's browser, not shared with other devices.
 
 ## Local setup
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and use
-Python 3.13 or newer. From the repository root:
+Python 3.13 or newer. For the frontend, use Node 24 via
+[fnm](https://github.com/Schniz/fnm) and npm. From the repository root:
 
 ```bash
 uv sync
 cp .env.example .env
+(cd frontend && fnm use && npm ci)
 ```
 
 If you already have a `.env`, keep it instead of running the copy command.
@@ -45,6 +48,8 @@ A jj workspace gets its own copy of tracked files only. Ignored files such as
   ```
 
 - `.venv`: `uv` creates it on the first `uv run`.
+- `frontend/node_modules`: run `npm ci` in `frontend/`. `frontend/build/` is
+  also not copied; build it again (see below).
 - `list.db`: the app creates an empty database on first start. Each workspace
   keeps its own test data; do not symlink the main workspace's database.
 
@@ -53,13 +58,17 @@ To test on a phone before deploying, see
 
 ## Start the app
 
+Build the frontend once, then start the server:
+
 ```bash
+(cd frontend && npm run build)
 uv run python src/main.py
 ```
 
 Open <http://localhost:8080/admin> and sign in with `APP_PASSWORD` to find the
 default room or create room invitations. Room access requires its own password;
-admin login does not bypass it.
+admin login does not bypass it. Without a frontend build the server still
+starts and logs a warning, but it does not serve the app.
 
 The default database is `list.db` in the repository root, regardless of the
 startup directory. Optional `DB_PATH` overrides it. The port defaults to `8080`;
@@ -72,20 +81,15 @@ for configuration and production behavior.
 The server listens on all network interfaces. Use it only on a trusted network
 during development.
 
-## Running the Svelte frontend
+## Develop the frontend
 
-The new Svelte frontend is being built next to NiceGUI (see the
-[rewrite plan](plans/svelte-frontend-rewrite.md)). It needs Node 24 via
-[fnm](https://github.com/Schniz/fnm) and npm. Run `npm` from `frontend/`.
-
-- **Develop:** start Python as above (port 8080), then run `npm run dev` in
-  `frontend/` and open <http://localhost:5173/>. The dev server forwards
-  `/api` to Python.
-- **Built app:** run `npm run build` in `frontend/`, restart Python, and open
-  <http://localhost:8080/>. With a build, Python serves the Svelte app at `/`
-  and it answers every old page address; NiceGUI's pages are not reachable.
-
+Run two servers: Python as above (port 8080), and `npm run dev` in `frontend/`
+(port 5173). Open <http://localhost:5173/>; Vite forwards `/api` to Python.
 Setup and checks: [frontend guide](frontend/README.md).
+
+To try the built app on a phone with a test database, run
+`uv run python scripts/serve_svelte_local.py`
+([phone testing](docs/local-network-testing.md)).
 
 ## Tests and code checks
 
@@ -139,7 +143,7 @@ question before treating it as intended behavior. Do not run an autonomous
 - [Hiding checked-off items](docs/checked-item-visibility.md)
 - [Home-screen installation and device checks](docs/home-screen-installation.md)
 - [Item writes and stale pages](docs/item-writes.md)
-- [JSON API for the Svelte frontend](docs/api.md)
+- [JSON API](docs/api.md)
 - Testing: [real browsers](docs/browser-testing.md), [Android emulator](docs/android-emulator-testing.md), [phone over the network](docs/local-network-testing.md)
 - [Remaining work](plans/backlog.md)
 

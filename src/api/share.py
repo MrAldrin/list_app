@@ -121,7 +121,7 @@ def reset_share_link(
     """Reset the share link: the old token stops working for everyone at once.
 
     Room access and the list's room are checked in the same write transaction
-    as the reset, as in NiceGUI. Not an op: the answer holds the new token,
+    as the reset. Not an op: the answer holds the new token,
     which must not be stored for replays, and a second reset does no harm.
     """
     parse_body(ResetBody, body)

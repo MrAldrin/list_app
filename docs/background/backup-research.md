@@ -1,5 +1,7 @@
 # Backup research: options, Railway CLI and evidence
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Research behind the [backup plan](../../plans/backup-options.md), which holds the decisions and remaining steps. Backup and restore commands are in the [deployment guide](../deployment.md#sqlite-consistent-backups). Research reviewed 2026-09-24/25.
 
 ## What we have today

@@ -92,22 +92,22 @@ Most decisions should not wait for a gate.
 
 ## Architecture during the migration
 
-Both frontends run side by side on the same Python server and the same database
-until the switch. NiceGUI stays the live app the whole time.
+**The switch is done (Milestone 4, steps 4.2-4.3):** one plain FastAPI process
+(uvicorn) serves the built Svelte files at `/`, the JSON API at `/api/v1`, and
+the old install routes. NiceGUI is gone. The current picture is in
+[ARCHITECTURE.md](../ARCHITECTURE.md). Until then both frontends ran side by
+side; the rules below still hold.
 
 ```
-browser ── /            NiceGUI pages (unchanged)
-        ── /app/…       built Svelte files (static)
+browser ── /            built Svelte files (static, SPA fallback)
         ── /api/v1/…    JSON API + live-update stream
                          │
-                    Python (NiceGUI's FastAPI app) ── SQLite
+                    Python (FastAPI on uvicorn) ── SQLite
 ```
 
-- **One process.** NiceGUI's `app` is a FastAPI app. Add the API with
-  `app.include_router(...)` in a new `src/api/` package. No second server.
+- **One process.** The API is a router in `src/api/`. No second server.
 - **Svelte is static files.** SvelteKit with `adapter-static` in SPA mode, built
-  to `frontend/build/`, served by Python under `/app/` (`paths.base = '/app'`).
-  At the switch it moves to `/`.
+  to `frontend/build/` and served by Python at `/`.
 - **Local development:** run Python on 8080 and `npm run dev` on 5173. Vite
   proxies `/api` to 8080, so the browser sees one origin and cookies work.
 - **Reuse the business rules.** API endpoints call `item_service.py` and
@@ -117,8 +117,6 @@ browser ── /            NiceGUI pages (unchanged)
   `npm`/`npx` from `frontend/`. Write Svelte 5 code only (runes: `$state`,
   `$derived`, `$props`, `$effect`); no Svelte 4 patterns such as `export let`
   or `$:`.
-- **Both UIs stay in sync.** API writes trigger NiceGUI's `broadcast_updates()`,
-  and NiceGUI writes notify the API's live stream.
 
 ## Offline-ready design (applies from Milestone 0)
 
@@ -590,6 +588,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 159 | Step 4.3, the old service worker: `/sw.js` (before the SPA catch-all, in `src/pwa_routes.py`) serves a self-removing script: `Content-Type: application/javascript`, `Cache-Control: no-store`; on install `skipWaiting`; on activate it deletes every cache, unregisters, then reloads open window clients (`client.navigate(client.url)`); no fetch handler. `src/static/sw.js` and the page code that registered it are gone. Tests: `tests/test_pwa_routes.py` (content, headers, order, no fetch handler) and `browser_tests/test_old_service_worker.py` (a stand-in server plays the old app and registers the OLD worker, the real server then starts on the same address, the old worker updates and the registration, its cache and the controller are gone; Chromium, Firefox, WebKit; fails if `unregister()` is removed). Keep the route until at least 2027-04-06 (six months): a phone that does not open the app for months still holds the old worker, and if `/sw.js` 404s or returns HTML the old worker stays active (decision 125's cookie-less page loads in WebKit). Step 5.1 must use a different worker URL (SvelteKit's default is `/service-worker.js`) or replace this route carefully, never leave `/sw.js` without a script. Backlog (Later) | A 404 or the app page at `/sw.js` would leave the old worker (network-first for page loads, cache fallback) active on installed phones; a killer that removes itself is the standard safe answer | Delete the route and rely on 404 (old workers stay forever); unregister only from the page (needs the page code to load first) | Low |
 | 160 | Step 4.3, plain FastAPI server: `src/server.py` builds the app (`create_app()`: lifespan prunes processed ops, `register_api`, `register_pwa_routes`, `/static`, Svelte last), `src/main.py` is the entry point and runs `uvicorn.run` (host `0.0.0.0`, port from `--port`, `$PORT` or 8080, `timeout_graceful_shutdown=1` as decision 99, `log_level="warning"` as NiceGUI had, so request logs do not hold share links; reload by import string `main:app` with `reload_dirs=src/` when `APP_RELOAD=true`). `python src/main.py` still works, so the `Dockerfile` is unchanged. Migrations still run when `database_setup` is imported. `FORWARDED_ALLOW_IPS` handling is uvicorn's default, as before. Dependencies: `nicegui` removed; `fastapi` and `uvicorn[standard]` explicit (reload needs `watchfiles`). `NICEGUI_STORAGE_SECRET` is no longer read or needed (owner may delete it from `.env` and Railway; harmless if left). FastAPI's `/docs`, `/redoc` and `/openapi.json` are off. Removed with the pages: the `/_room-access/{slug}` cookie endpoint (only NiceGUI's page script called it; the API sets the room cookies itself), `same_origin_socket`, `RoomAccess` (`src/room_access.py`), `broadcast_updates`, the NiceGUI live-refresh listener, `src/ui/`, the `replaces=` mechanism and `_nicegui*`/`_room-access` prefixes. `live_updates.py` stays for the API's SSE (API writes still call `notify_room_changed`). The old `/room-manifest/{slug}.json` no longer checks the database: it answers like the `.webmanifest` one (a manifest must not tell whether a room exists). Page shells keep decision 157: `no-store` at `/`, `/room/`, `/list/`, `/create-room/` now set by the page route itself instead of a middleware; other page addresses `no-cache` | One plain app is simpler to run and test than NiceGUI's `ui.run`; an endpoint nobody calls is attack surface | Keep `/_room-access` and `RoomAccess` for later; `uvicorn` without `[standard]` (no reload) | Low |
 | 161 | Step 4.3, tests: the NiceGUI-only Python tests (13 files, 92 tests) and browser tests (4 files, 63 runs, and 4 single tests, 12 runs; all but one were skipped since 4.2) were deleted; rules only the NiceGUI pages checked were ported (`tests/test_room_token_validation.py`, `tests/test_item_undo.py`, `tests/test_list_identity.py`); `browser_tests/conftest.py` starts the server with plain `uvicorn.run`, the unused `sessions` fixture, `nicegui_sign_in` and the service-worker block for WebKit (decision 125) are gone. List and reasons: [NiceGUI test retirement](../docs/background/nicegui-test-retirement.md) | The plan retires NiceGUI-only tests; no rule is lost | Keep skipped tests | Low |
+| 162 | Step 4.4, docs: top-level docs describe only the Svelte + FastAPI app. `docs/background/` files that still describe NiceGUI got a one-line history note. `docs/deployment.md` gets a Railway settings list and the two-step rollback (restore the pre-migration copy, then redeploy the old commit) for the first deploy's migrations 2 to 4. The backlog's legacy localStorage cleanup item now asks whether the Svelte start page should do it, because the old code is gone | Docs must not describe code that no longer exists; the cleanup question is real, the old code ran only on NiceGUI visits | Delete the backlog item | Low |
 
 ## Progress
 
@@ -640,7 +639,7 @@ Milestone 4: switch
 - [x] 4.1 Production build (`Dockerfile`, `railway.json`, `.dockerignore`, `Procfile` removed, `REQUIRE_FRONTEND_BUILD` check in `src/svelte_frontend.py` with tests in `tests/test_svelte_frontend_routes.py`; [production image](../docs/deployment.md#production-image); built and run locally with podman; decision 154; owner check of the Railway service is in the backlog Manual checks)
 - [x] 4.2 Svelte at `/`, old URLs kept (`frontend/vite.config.ts` without `paths.base`; `src/svelte_frontend.py` serves the root, redirects `/app/...` and `/admin/login`, `main.py` registers it last and drops NiceGUI's page routes; `browser_tests/test_svelte_old_urls.py`, `tests/test_svelte_frontend_routes.py`; docs and `scripts/serve_svelte_local.py` updated; NiceGUI browser tests skipped for 4.3/4.4; decisions 155–158)
 - [x] 4.3 Remove NiceGUI (`src/main.py` slim entry, `src/server.py` app factory with lifespan, `src/pwa_routes.py` old install routes and the `/sw.js` kill switch, `src/svelte_frontend.py` without `replaces=`; `pyproject.toml` has `fastapi` and `uvicorn[standard]`, no `nicegui`; `src/ui/`, `src/room_access.py`, `src/static/sw.js` deleted; `NICEGUI_STORAGE_SECRET` removed from code, `.env.example`, `scripts/serve_svelte_local.py`, test conftest, README and `docs/deployment.md`; tests: [retirement list](../docs/background/nicegui-test-retirement.md), `tests/test_pwa_routes.py`, `tests/test_room_token_validation.py`, `browser_tests/test_old_service_worker.py`; decisions 159-161)
-- [ ] 4.4 Docs update
+- [x] 4.4 Docs update (`ARCHITECTURE.md` new stack, SSE, cookies, kill switch; `README.md`, `docs/deployment.md` with Railway settings and the 2 to 4 rollback; `docs/api.md`, `docs/home-screen-installation.md` and other docs lose NiceGUI statements; history notes on `docs/background/` files; backlog items fixed; code comments updated. Test retirement was done in 4.3 and confirmed: no NiceGUI-only tests remain. Decision 162)
 - [ ] 4.5 Deploy rehearsal
 - [ ] **Gate B: owner approves production switch**
 

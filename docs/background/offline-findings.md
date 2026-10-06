@@ -1,5 +1,7 @@
 # Offline experiment: findings and disposition
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 ## Outcome and evidence limits
 
 The owner reports that repeated real-use attempts did not deliver acceptable

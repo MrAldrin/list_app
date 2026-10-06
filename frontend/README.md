@@ -2,8 +2,9 @@
 
 The new browser-side frontend (SvelteKit in SPA mode, Svelte 5). It is built
 step by step following the [rewrite plan](../plans/svelte-frontend-rewrite.md)
-and talks to Python through the [JSON API](../docs/api.md). NiceGUI stays the
-live app until the switch.
+and talks to Python through the [JSON API](../docs/api.md). It is the live app:
+Python serves the built files at `/`. The stack is in
+[ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Setup
 
@@ -12,7 +13,7 @@ pnpm). Do not install packages globally. Run every command from this folder.
 
 ```sh
 fnm use        # picks Node 24 from .node-version
-npm install
+npm ci
 ```
 
 ## Develop
@@ -20,6 +21,7 @@ npm install
 Run two servers:
 
 1. Python, from the repository root: `uv run python src/main.py` (port 8080).
+   Do not use your real `list.db`; set `DB_PATH` to a test file.
 2. Svelte, from here: `npm run dev` (port 5173).
 
 Open <http://localhost:5173/>. Vite reloads the page when you save a file.

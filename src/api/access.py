@@ -26,7 +26,7 @@ from room_cookies import (
     token_cookie_name,
 )
 
-# Same limit as NiceGUI's cookie endpoint; issued tokens are 43 characters.
+# Longest token accepted; issued tokens are 43 characters.
 MAX_TOKEN_LENGTH = 256
 
 

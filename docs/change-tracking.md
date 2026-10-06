@@ -3,7 +3,7 @@
 The database keeps track of every change to room data, so the
 [changes feed](api.md#reading-the-changes-feed) can send only what changed.
 SQLite triggers do the work (migration 4 in `src/database_setup.py`). They run
-inside the writer's transaction, so every write path (NiceGUI, the API, share
+inside the writer's transaction, so every write path (the API, share
 links, admin) is covered, and a rolled-back write leaves no trace.
 
 ## What is stored

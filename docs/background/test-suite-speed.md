@@ -1,5 +1,7 @@
 # Test-suite speed: measurements and completed work
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Evidence behind the [test-suite speed plan](../../plans/test-suite-speed.md), which holds the remaining work. Current commands are in [real-browser tests](../browser-testing.md) and the README. All numbers are from one local machine.
 
 ## Measured baseline

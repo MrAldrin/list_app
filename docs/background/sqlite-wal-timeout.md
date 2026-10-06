@@ -1,5 +1,7 @@
 # SQLite WAL mode and lock-wait timeout: findings
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Investigation for the backlog item "[data] Evaluate WAL mode and explicitly set
 and document SQLite's lock-wait timeout" (`plans/backlog.md`). Measured locally
 on 2026-09-30 with Python 3.13 and SQLite 3.50.4 on disposable databases.

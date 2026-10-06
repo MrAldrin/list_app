@@ -1,13 +1,13 @@
 """Creation invitations: admins issue and revoke them; anyone with a link can
-create a new room. Ported from NiceGUI's /admin and /create-room/{token}.
+create a new room.
 
 The rules live in `src/room_invitations.py` (docs/room-invitations.md). An
 invitation never gives access to any room, also not to the room it creates:
-the creator signs in with the new password, as in NiceGUI.
+the creator signs in with the new password.
 
 - Admin: `/api/v1/admin/invitations` (needs admin sign-in, like `api.admin`).
-- Public: `/api/v1/invitations/{token}`, the token in the path like NiceGUI's
-  page URL. Only its sha256 is stored.
+- Public: `/api/v1/invitations/{token}`, the token in the path like the
+  page URL `/create-room/{token}`. Only its sha256 is stored.
 """
 
 from datetime import UTC, datetime
@@ -73,7 +73,7 @@ def _invitation(row: dict[str, Any]) -> dict[str, Any]:
 
 @admin_router.get("")
 async def invitations() -> dict[str, Any]:
-    """Every kept invitation, newest first. As NiceGUI's admin page, reading
+    """Every kept invitation, newest first. Reading
     the list deletes records that are inactive for seven days."""
     rows = await run_in_threadpool(get_invitations)
     return {"invitations": [_invitation(row) for row in rows]}
@@ -103,7 +103,7 @@ async def revoke(
     body: dict[str, Any] = Depends(json_object),
 ) -> dict[str, Any]:
     """Stops further room creation with this invitation. Rooms made with it
-    stay. An unknown or already revoked invitation changes nothing (NiceGUI)."""
+    stay. An unknown or already revoked invitation changes nothing."""
     parse_body(EmptyBody, body)
     await run_in_threadpool(revoke_invitation, invitation_id)
     return {}

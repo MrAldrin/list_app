@@ -1,5 +1,7 @@
 # Write atomicity audit: findings
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Per-candidate findings and test evidence for the [write atomicity audit](../../plans/write-atomicity-audit.md), which holds the method and remaining work. Current behavior is in [item writes](../item-writes.md).
 
 ## Findings

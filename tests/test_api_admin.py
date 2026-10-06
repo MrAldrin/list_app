@@ -1,6 +1,6 @@
 """Admin in the JSON API: sign-in, room overview, create room, password reset.
 
-The rules are NiceGUI's /admin (docs/api.md, "Admin"). The admin session
+The rules are in docs/api.md ("Admin"). The admin session
 cookie is tested in `test_api_admin_session.py`.
 """
 
@@ -253,7 +253,7 @@ def test_rooms_database_error_is_503(admin_app):
 # Create a room
 
 
-def test_create_room_as_nicegui_and_no_room_access(admin_app):
+def test_create_room_as_admin_and_no_room_access(admin_app):
     client = admin(admin_app)
 
     response = create(client, "  Beach  House ", "beach-pw")
@@ -291,8 +291,8 @@ def test_create_room_refuses_bad_values(admin_app, name, password, message):
     assert db.execute("SELECT COUNT(*) FROM rooms").fetchone()[0] == 1
 
 
-def test_create_room_keeps_nicegui_password_rules(admin_app):
-    # NiceGUI only refuses an empty password; spaces are a password.
+def test_create_room_keeps_password_rules(admin_app):
+    # Only an empty password is refused; spaces are a password.
     client = admin(admin_app)
     slug = create(client, "Cabin", "   ").json()["room"]["slug"]
     assert client_for(slug, "   ")
@@ -337,7 +337,7 @@ def test_reset_password_revokes_every_token_and_wakes_streams(admin_app):
     assert db.execute(
         "SELECT COUNT(*) FROM room_access_tokens WHERE room_id = ?", (room_id,)
     ).fetchone() == (0,)
-    # Saved as typed, as NiceGUI.
+    # Saved as typed, as typed before.
     assert crud.verify_room(slug, "  reset pw ") == room_id
     assert crud.verify_room(slug, "pw") is None
     assert crud.verify_room(slug, "reset pw") is None

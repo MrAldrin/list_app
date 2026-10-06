@@ -20,8 +20,7 @@ Revoked and expired invitations remain visible for seven days after they first b
 in the separate `room_invitations` table. Public creation at
 `/create-room/{token}` rechecks expiry and revocation inside the room-creation
 transaction, so an earlier valid page load is not enough to authorize creation.
-`src/ui/room_invitations.py` rechecks admin authentication in invitation-management
-callbacks. Creators choose a room password and then use the normal room sign-in
+The invitation API endpoints recheck admin authentication on every call (`src/api/invitations.py`). Creators choose a room password and then use the normal room sign-in
 flow; invitations do not introduce individual accounts. No rate limiting or
 CAPTCHA is implemented for this feature.
 

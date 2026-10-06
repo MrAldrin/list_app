@@ -20,12 +20,12 @@ Agreed as worth doing; no date.
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
 - [ ] [data] Strengthen field constraints: nullable names, completion state and slugs; quantities below one; length limits; valid tags JSON. Inspect existing data first.
-- [ ] [data] Hide-done numbers: require at least 1 for "After X days" and "Keep last X" (0 acts like "All"). Change the Svelte field, the API check, NiceGUI if still live, and saved zeros together. See the [Svelte rewrite plan](svelte-frontend-rewrite.md#gate-a-checklist).
-- [ ] [security] After 2027-09-18, remove the temporary legacy room-password localStorage cleanup. Keep token authentication and revocation. See the dated TODO in [`src/main.py`](../src/main.py).
+- [ ] [data] Hide-done numbers: require at least 1 for "After X days" and "Keep last X" (0 acts like "All"). Change the Svelte field, the API check and saved zeros together. See the [Svelte rewrite plan](svelte-frontend-rewrite.md#gate-a-checklist).
+- [ ] [security] Old room passwords may still sit in some browsers' localStorage (the NiceGUI app deleted them on each visit since 2026-09-18, then was removed in step 4.3, together with the dated cleanup code). The Svelte app does not clean them. Decide whether the Svelte start page should delete those old keys once, or drop this item. The key names are in the old `src/main.py` (`_cleanup_legacy_room_password_keys`), visible in jj history.
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [security] Room sign-in answers faster for an unknown room than for a wrong password, because bcrypt is skipped. This reveals which rooms exist. Check a dummy hash for unknown rooms. See `authenticate_room_and_issue_token` in [`src/database_crud.py`](../src/database_crud.py).
-- [ ] [bug] The item tag filter keeps filtering by a tag after it is deleted elsewhere, while the tag button is gone. Clear the filter when its tag disappears. See the tag filter in [`src/main.py`](../src/main.py).
+- [ ] [bug] The item tag filter keeps filtering by a tag after it is deleted elsewhere, while the tag button is gone. This was the NiceGUI behavior. The Svelte list page already clears the filter in `activeFilter` ([`tags.ts`](../frontend/src/lib/list/tags.ts)); verify it in a browser test, then remove this item.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] Admin can delete a room from the admin room list, without entering the room: a clear warning, type the room name to confirm, and tests that nothing else is deleted. Today the admin must reset the password, enter the room and delete it there (as in NiceGUI).
 
@@ -44,7 +44,7 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
 - [feature] Svelte list page: a "5 checked items hidden" line at the bottom when hide-done hides items. See decision 89 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [feature] Bottom toolbar on the list page for thumb reach (for example back, list options, ⋮ menu). The add field stays where it is. Sketch a few layouts and test on the iPhone (Safari's bar, keyboard, home swipe area). After the Svelte switch.
-- [refactor] Split `src/main.py` into route/auth/UI modules and move to a proper Python package.
+- [refactor] Move `src/` into a proper Python package. (Splitting `src/main.py` is done: since step 4.3 it is only the entry point, and `src/server.py` and `src/api/` hold the rest.)
 - [refactor] Replace the global SQLite connection with a connection/context-manager layer.
 - [data] Add timestamps and change versions for debugging, conflict detection or audit history.
 - [data] Normalize JSON tags into tables if querying or integrity needs it.

@@ -2,7 +2,7 @@
 
 Lifecycle: tracked
 
-Goal: prevent stale decisions and partial writes in the existing single-instance NiceGUI + SQLite app. This is a **plan**, not evidence of defects or completed fixes. Keep each fix small and independently testable; do not change the architecture or add a database framework. Refer to [current item-write behavior](../docs/item-writes.md) and [architecture](../ARCHITECTURE.md).
+Goal: prevent stale decisions and partial writes in the existing single-instance Python + SQLite app (the NiceGUI pages it first covered are gone; the API paths remain). This is a **plan**, not evidence of defects or completed fixes. Keep each fix small and independently testable; do not change the architecture or add a database framework. Refer to [current item-write behavior](../docs/item-writes.md) and [architecture](../ARCHITECTURE.md).
 
 ## Ground rules for every follow-up agent
 

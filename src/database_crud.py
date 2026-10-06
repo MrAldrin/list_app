@@ -1172,7 +1172,7 @@ def get_item_changes_locked(
     items = []
     for row in rows:
         done = bool(row[3])
-        # Same defaults as get_list_data(), which NiceGUI renders.
+        # Same defaults as get_list_data().
         items.append(
             {
                 "uid": row[0],
@@ -1487,7 +1487,7 @@ MAX_PASSWORD_BYTES = 72
 
 
 def check_new_room_password(new_plain_password: str) -> None:
-    """The rules for a new room password, as NiceGUI's change dialog has them.
+    """The rules for a new room password, as the change dialog has them.
 
     Blank (only spaces) is refused; the password is saved as typed. Raises
     ValueError with a message for the user.

@@ -14,7 +14,7 @@ import time
 
 from config import require_app_password
 
-# How long an admin session lasts (as NiceGUI's session cookie: 14 days).
+# How long an admin session lasts (14 days, as the earlier admin session).
 ADMIN_SESSION_SECONDS = 60 * 60 * 24 * 14
 MAX_ADMIN_TOKEN_LENGTH = 256
 _TOKEN_VERSION = "v1"

@@ -1,5 +1,7 @@
 # Home-screen installation: design and implementation notes
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Supporting detail for [home-screen installation](../home-screen-installation.md).
 That page is the source for current behavior.
 

@@ -63,7 +63,7 @@ def get_invitations() -> list[dict]:
 def invitation_status(invitation: dict) -> str:
     """`revoked`, `active` or `expired`, for an admin listing row.
 
-    Revocation wins over expiry, as on NiceGUI's admin page.
+    Revocation wins over expiry.
     """
     if invitation["revoked_at"] is not None:
         return "revoked"

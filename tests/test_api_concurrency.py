@@ -272,7 +272,7 @@ def test_a_renamed_list_keeps_its_uid(room):
     assert_consistent(room_id, slug, a, b)
 
 
-def test_a_list_renamed_in_nicegui_keeps_its_uid(room):
+def test_a_list_renamed_directly_keeps_its_uid(room):
     room_id, slug, a, b = room
     list_id, list_uid = groceries()
     old_slug = b.lists[list_uid]["slug"]
@@ -378,13 +378,13 @@ def test_undo_after_the_other_client_re_added_the_name(room):
     assert_consistent(room_id, slug, a, b)
 
 
-def test_nicegui_and_api_writes_interleaved(room):
+def test_direct_and_api_writes_interleaved(room):
     room_id, slug, a, b = room
     list_id, list_uid = groceries()
     list_slug = a.lists[list_uid]["slug"]
     seqs = [seq_of(room_id)]
 
-    def nicegui(write) -> None:
+    def direct(write) -> None:
         write()
         seqs.append(seq_of(room_id))
         assert_consistent(room_id, slug, a, b)
@@ -396,29 +396,29 @@ def test_nicegui_and_api_writes_interleaved(room):
         assert response["seq"] == seq_of(room_id)
         assert_consistent(room_id, slug, a, b)
 
-    nicegui(lambda: add_or_restore_item(list_id, "milk", expected_slug=list_slug))
+    direct(lambda: add_or_restore_item(list_id, "milk", expected_slug=list_slug))
     milk_uid = a.item_named("milk")["uid"]
     milk_id = db.execute("SELECT id FROM items WHERE uid = ?", (milk_uid,)).fetchone()[
         0
     ]
     milk = {"list_uid": list_uid, "item_uid": milk_uid}
     api(a, {"type": "item.quantity_delta", "delta": 2, **milk})
-    nicegui(lambda: change_item_quantity(list_id, milk_id, 1, expected_slug=list_slug))
+    direct(lambda: change_item_quantity(list_id, milk_id, 1, expected_slug=list_slug))
     api(b, {"type": "item.set_done", "done": True, **milk})
-    nicegui(lambda: toggle_item_done(list_id, milk_id, False, expected_slug=list_slug))
+    direct(lambda: toggle_item_done(list_id, milk_id, False, expected_slug=list_slug))
     api(a, {"type": "item.add", "list_uid": list_uid, "name": "bread"})
-    nicegui(lambda: crud.add_list_tag(list_id, "Lidl", expected_slug=list_slug))
+    direct(lambda: crud.add_list_tag(list_id, "Lidl", expected_slug=list_slug))
     api(b, {"type": "item.toggle_tag", "tag": "Lidl", **milk})
-    nicegui(
+    direct(
         lambda: rename_list_with_checks(
             list_id, room_id, "Shop", expected_slug=list_slug
         )
     )
     list_slug = crud.get_list_details(list_id)["slug"]
-    nicegui(lambda: delete_item_from_list(list_id, milk_id, expected_slug=list_slug))
+    direct(lambda: delete_item_from_list(list_id, milk_id, expected_slug=list_slug))
     api(a, {"type": "item.add", "list_uid": list_uid, "name": "milk"})
     share = crud.get_list_details(list_id)["share_token"]
-    nicegui(lambda: crud.add_item("tea", list_id, expected_slug=f"share:{share}"))
+    direct(lambda: crud.add_item("tea", list_id, expected_slug=f"share:{share}"))
 
     assert seqs == sorted(set(seqs)), "seq must grow with every write"
     assert a.item_named("milk")["uid"] != milk_uid
@@ -427,7 +427,7 @@ def test_nicegui_and_api_writes_interleaved(room):
 
 
 def test_parallel_requests_keep_seq_and_feed_consistent(room):
-    """Two clients and a NiceGUI page write at once: no deadlock, no lost seq."""
+    """Two clients and direct database writes at once: no deadlock, no lost seq."""
     room_id, slug, a, b = room
     list_id, list_uid = groceries()
     list_slug = a.lists[list_uid]["slug"]
@@ -465,7 +465,7 @@ def test_parallel_requests_keep_seq_and_feed_consistent(room):
 
         return job
 
-    def nicegui_job() -> int:
+    def direct_job() -> int:
         for number in range(rounds):
             change_item_quantity(list_id, shared_id, 1, expected_slug=list_slug)
             status, _ = add_or_restore_item(
@@ -474,8 +474,8 @@ def test_parallel_requests_keep_seq_and_feed_consistent(room):
             assert status == STATUS_ADDED
         return 2 * rounds
 
-    from_a, from_b, nicegui_writes = run_in_parallel(
-        client_job(a, "a"), client_job(b, "b"), nicegui_job
+    from_a, from_b, direct_writes = run_in_parallel(
+        client_job(a, "a"), client_job(b, "b"), direct_job
     )
 
     api_responses = from_a + from_b
@@ -487,7 +487,7 @@ def test_parallel_requests_keep_seq_and_feed_consistent(room):
         own = [response["seq"] for response in responses]
         assert own == sorted(own)
     # Every write bumped exactly once.
-    assert seq_of(room_id) == start_seq + len(api_responses) + nicegui_writes
+    assert seq_of(room_id) == start_seq + len(api_responses) + direct_writes
     assert item_row(shared_uid)["quantity"] == 1 + 3 * rounds
     assert len(snapshot(a.client, slug)[1]) == 1 + 3 * rounds
     assert_consistent(room_id, slug, a, b)

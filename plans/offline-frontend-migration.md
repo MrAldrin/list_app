@@ -7,7 +7,7 @@ Lifecycle: tracked
 This file holds the direction and the reasons. The step-by-step work, milestones
 and owner gates are in the [Svelte rewrite plan](svelte-frontend-rewrite.md).
 See [experiment findings](../docs/background/offline-findings.md) for the rollback report,
-evidence and limitations. The current shipped architecture remains NiceGUI.
+evidence and limitations. The shipped architecture is the Svelte frontend with a Python JSON API (the NiceGUI app was removed in Milestone 4).
 
 ## Target
 

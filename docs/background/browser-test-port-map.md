@@ -1,5 +1,7 @@
 # Browser test port map: NiceGUI to Svelte
 
+> Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
+
 Supporting detail for [real-browser tests](../browser-testing.md) and step 3.7
 of the [Svelte rewrite plan](../../plans/svelte-frontend-rewrite.md). Each
 NiceGUI browser test is mapped to its Svelte version. Step 4.3 deleted the

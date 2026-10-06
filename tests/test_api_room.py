@@ -1,6 +1,6 @@
 """Room management in the JSON API: rename (op), change password, delete room.
 
-The rules are NiceGUI's (docs/api.md, "Room management").
+The rules are in docs/api.md ("Room management").
 """
 
 from http.cookies import SimpleCookie
@@ -123,7 +123,7 @@ def test_rename_room_replays_by_op_id():
     assert_error(send(client, slug, {**body, "name": "Other"}), 409, "op_id_reused")
 
 
-def test_rename_room_tells_nicegui_and_streams():
+def test_rename_room_tells_streams():
     room_id, slug = home()
     client = client_for(slug)
     with patch("api.ops.notify_room_changed") as notify:

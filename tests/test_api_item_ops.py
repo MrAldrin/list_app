@@ -706,10 +706,10 @@ def test_item_ops_need_room_access(room):
     assert processed_ops_count() == 0
 
 
-# NiceGUI keeps its silent no-op on stale items, through the same helpers.
+# The database helpers keep their silent no-op on stale items, through the same helpers.
 
 
-def test_nicegui_helpers_stay_silent_on_a_stale_item():
+def test_database_helpers_stay_silent_on_a_stale_item():
     list_id, _ = default_list()
     item_uid = add_item(list_id, "milk")
     item_id = _item_id(item_uid)

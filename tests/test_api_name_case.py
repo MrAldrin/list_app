@@ -1,7 +1,7 @@
 """Names stay unique ignoring case through the API, also beyond A-Z.
 
 SQLite's NOCASE folds only A-Z, so these use Norwegian letters. The rules are
-NiceGUI's (ARCHITECTURE.md, "Major UX decisions"; tests/test_list_names.py):
+the app's (ARCHITECTURE.md, "Major UX decisions"; tests/test_list_names.py):
 list names compare with `casefold`, item names are stored in lowercase. Tags
 stay case-sensitive (decision 57).
 """

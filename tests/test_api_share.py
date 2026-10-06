@@ -1,6 +1,6 @@
 """Public share links in the JSON API (docs/api.md, "Share links").
 
-The rules are NiceGUI's (docs/public-sharing.md): a share token opens one list
+The rules are in docs/public-sharing.md: a share token opens one list
 for viewing and editing, never the room. Only room members read and reset the
 link, and a reset blocks the old token at once, also for queued edits.
 """
@@ -236,7 +236,7 @@ def test_share_holder_edits_items_tags_and_hide_done(shared, notified):
     details = crud.get_list_details(shared["list_id"])
     assert details["list_tags"] == ["Lidl"]
     assert details["hide_done_mode"] == "all"
-    # Every applied op tells the room's listeners (NiceGUI pages, streams).
+    # Every applied op tells the room's listeners (streams).
     assert notified == [shared["room_id"]] * 7
     feed = share_changes(client, token).json()
     assert feed["seq"] == added["seq"] + 6
@@ -330,7 +330,7 @@ def test_share_ops_reach_no_other_list(shared, notified):
     ],
 )
 def test_share_link_cannot_change_the_room_or_the_list_itself(shared, body):
-    # As on NiceGUI's public page: no list rename, no list delete, no room.
+    # On the public page: no list rename, no list delete, no room.
     if body["type"].startswith("list.") and body["type"] != "list.create":
         body = {**body, "list_uid": shared["list_uid"]}
     before_ops = processed_ops_count()
@@ -588,7 +588,7 @@ def test_password_change_keeps_share_links(shared):
     assert share_changes(public_client(), shared["token"]).status_code == 200
 
 
-def test_nicegui_reset_blocks_the_api_and_api_reset_blocks_nicegui(shared):
+def test_database_reset_blocks_the_api_and_api_reset_blocks_the_database(shared):
     _, room_token = crud.authenticate_room_and_issue_token(shared["slug"], "pw")
     list_slug = crud.get_list_details(shared["list_id"])["slug"]
     new = crud.rotate_list_share_token(

@@ -3,8 +3,7 @@
 These are not ops (`POST …/ops`): ops store their request hash and result
 for retries, and a password must never be stored, not even hashed that way.
 They are online-only actions. Each one needs room access (the cookie) and the
-current password, checked in the same write transaction, as in NiceGUI.
-Rename is an op (`room.rename` in `api/ops.py`).
+current password, checked in the same write transaction.Rename is an op (`room.rename` in `api/ops.py`).
 """
 
 from typing import Any
@@ -27,7 +26,7 @@ from live_updates import wake_streams
 
 router = APIRouter()
 
-# Messages as NiceGUI shows them.
+# Messages shown to the user.
 WRONG_CURRENT_PASSWORD = "Incorrect current password"
 WRONG_PASSWORD = "Incorrect password"
 
