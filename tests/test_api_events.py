@@ -209,7 +209,7 @@ def test_an_api_write_sends_the_new_seq(room):
     run(test)
 
 
-def test_a_nicegui_write_sends_the_new_seq(room, monkeypatch):
+def test_a_write_outside_the_ops_endpoint_sends_the_new_seq(room):
     room_id, slug = room
     list_id, _ = default_list()
 
@@ -217,10 +217,9 @@ def test_a_nicegui_write_sends_the_new_seq(room, monkeypatch):
         stream = SseConnection(slug, token_for(slug))
         await stream.open()
         await stream.next_event()
-        # What a NiceGUI page does: write, then broadcast_updates() on its loop.
-        monkeypatch.setattr(main.core, "loop", asyncio.get_running_loop())
+        # A write that does not go through the ops endpoint, then the wake.
         crud.add_item_with_state("milk", list_id, False, [])
-        main.broadcast_updates()
+        live_updates.wake_streams(room_id)
         assert await stream.next_event() == ("seq", f'{{"seq": {room_seq(room_id)}}}')
         await stream.assert_quiet()
         await stream.close()
@@ -228,7 +227,7 @@ def test_a_nicegui_write_sends_the_new_seq(room, monkeypatch):
     run(test)
 
 
-def test_writes_in_another_room_send_nothing(room, monkeypatch):
+def test_writes_in_another_room_send_nothing(room):
     _, slug = room
     other_id, other_slug = crud.create_room("Other", "pw")
     other_client = client_for(other_slug)
@@ -239,10 +238,9 @@ def test_writes_in_another_room_send_nothing(room, monkeypatch):
         await stream.next_event()
         await api_write(other_client, other_slug, {"type": "list.create", "name": "B"})
         await stream.assert_quiet()
-        # A NiceGUI write wakes every stream; this one sees no change.
-        monkeypatch.setattr(main.core, "loop", asyncio.get_running_loop())
+        # A wake for every stream; this one sees no change in its room.
         crud.create_list("C", other_id)
-        main.broadcast_updates()
+        live_updates.wake_streams()
         await stream.assert_quiet()
         await stream.close()
 
@@ -340,42 +338,23 @@ def test_client_disconnect_stops_the_stream(room):
     run(test)
 
 
-def test_each_side_is_told_once_without_a_loop(room, monkeypatch):
-    """API write: one page refresh, one stream wake. NiceGUI write: the same."""
-    _, slug = room
+def test_an_api_write_wakes_the_streams_and_tells_the_listeners_once(room, monkeypatch):
+    room_id, slug = room
     client = client_for(slug)
-    refreshes: list[str] = []
     wakes: list[int | None] = []
     listener_calls: list[int] = []
-
-    class InlineLoop:
-        def is_closed(self) -> bool:
-            return False
-
-        def call_soon_threadsafe(self, callback) -> None:
-            callback()
-
     real_wake = live_updates.wake_streams
 
     def counting_wake(room_id: int | None = None) -> None:
         wakes.append(room_id)
         real_wake(room_id)
 
-    def counting_listener(room_id: int) -> None:
-        listener_calls.append(room_id)
-        main._refresh_nicegui_pages(room_id)
-
-    monkeypatch.setattr(main.core, "loop", InlineLoop())
-    monkeypatch.setattr(main, "refresh_open_pages", lambda *a: refreshes.append("x"))
-    monkeypatch.setattr(main, "wake_streams", counting_wake)
     monkeypatch.setattr(live_updates, "wake_streams", counting_wake)
-    monkeypatch.setattr(live_updates, "_listeners", [counting_listener])
+    monkeypatch.setattr(live_updates, "_listeners", [listener_calls.append])
 
     api_op(client, slug, {"op_id": new_id(), "type": "list.create", "name": "A"})
-    assert (len(refreshes), len(wakes), len(listener_calls)) == (1, 1, 1)
-
-    main.broadcast_updates()
-    assert (len(refreshes), len(wakes), len(listener_calls)) == (2, 2, 1)
+    assert wakes == [room_id]
+    assert listener_calls == [room_id]
 
 
 def test_streams_of_both_clients_see_each_others_writes(room):

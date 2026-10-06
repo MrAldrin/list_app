@@ -1,13 +1,12 @@
 """Stopping the real server is quick, also with an open live update stream.
 
 Uvicorn waits for open responses before it stops, and the events stream never
-ends by itself. `main.py` passes `timeout_graceful_shutdown` to `ui.run()`, so
-uvicorn cancels the stream after a short wait. This test starts `src/main.py`
+ends by itself. `main.py` passes `timeout_graceful_shutdown` to `uvicorn.run()`,
+so uvicorn cancels the stream after a short wait. This test starts `src/main.py`
 like `uv run src/main.py` does, with a test database.
 """
 
 import os
-import secrets
 import signal
 import socket
 import sqlite3
@@ -18,10 +17,10 @@ from collections.abc import Iterator
 from contextlib import closing
 from pathlib import Path
 
-import httpx
+import httpx2 as httpx
 import pytest
 
-import main
+from server import SHUTDOWN_TIMEOUT_SECONDS
 
 ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "shutdown-test-password"
@@ -39,21 +38,12 @@ def server(tmp_path: Path) -> Iterator[tuple[subprocess.Popen, str, Path]]:
     port = free_port()
     database = tmp_path / "shutdown-test.db"
     env = {
-        **{
-            key: value
-            for key, value in os.environ.items()
-            if not key.startswith("NICEGUI_")
-        },
+        **os.environ,
         "DB_PATH": str(database),
         "APP_PASSWORD": PASSWORD,
-        "NICEGUI_STORAGE_SECRET": secrets.token_urlsafe(32),
-        "NICEGUI_STORAGE_PATH": str(tmp_path / "nicegui"),
         "APP_RELOAD": "false",
         "PYTHON_DOTENV_DISABLED": "1",
-        # NiceGUI opens a browser by default; `true` does nothing.
-        "BROWSER": "true",
     }
-    env.pop("PYTEST_CURRENT_TEST", None)
     log_path = tmp_path / "server.log"
     with log_path.open("w") as log:
         process = subprocess.Popen(
@@ -109,7 +99,7 @@ def test_stopping_the_server_with_an_open_stream_is_quick(server):
             started = time.monotonic()
             process.send_signal(signal.SIGTERM)
             # Without the timeout, uvicorn waits for the stream forever.
-            process.wait(timeout=main.SHUTDOWN_TIMEOUT_SECONDS + 5)
+            process.wait(timeout=SHUTDOWN_TIMEOUT_SECONDS + 5)
             elapsed = time.monotonic() - started
 
-    assert elapsed < main.SHUTDOWN_TIMEOUT_SECONDS + 3
+    assert elapsed < SHUTDOWN_TIMEOUT_SECONDS + 3

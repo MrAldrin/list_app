@@ -7,7 +7,6 @@ from itertools import pairwise
 
 from playwright.sync_api import expect
 from svelte_app import (
-    ADMIN_PHONE,
     PHONE,
     admin_sign_in,
     app_url,
@@ -35,7 +34,7 @@ def test_log_out_is_the_last_entry_of_the_room_menu(svelte_server, open_session)
 
 def test_back_to_admin_follows_the_admin_sign_in(svelte_server, open_session):
     server = svelte_server
-    owner = open_session("admin", **ADMIN_PHONE)
+    owner = open_session("admin", **PHONE)
     other = open_session("other", **PHONE)
 
     # A room member who is not admin never sees the link.

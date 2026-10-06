@@ -5,7 +5,6 @@ import pytest
 import database_crud as crud
 import item_service as service
 from database_setup import db
-from main import _restore_pending_undo
 
 
 @pytest.fixture
@@ -178,23 +177,17 @@ def test_room_token_actions_reject_reused_list_id(replacement, room_id, operatio
 def test_undo_cannot_restore_into_replacement_list(replacement, kind):
     list_id, old_slug, _, _ = replacement
     before = snapshot(list_id)
-    payload = (
-        {
-            "name": "stale",
-            "done": False,
-            "active_tags": [],
-            "description": "",
-            "quantity": 1,
-        }
-        if kind == "item"
-        else {"tag": "stale"}
-    )
-    pending = {
-        "kind": kind,
-        "payload": payload,
-        "token": "undo-token",
-        "message": "undo",
-    }
     with pytest.raises(crud.ListUnavailable):
-        _restore_pending_undo(list_id, pending, list_slug=old_slug)
+        if kind == "item":
+            crud.restore_deleted_item(
+                list_id,
+                name="stale",
+                done=False,
+                active_tags=[],
+                description="",
+                quantity=1,
+                expected_slug=old_slug,
+            )
+        else:
+            crud.add_list_tag(list_id, "stale", expected_slug=old_slug)
     assert snapshot(list_id) == before

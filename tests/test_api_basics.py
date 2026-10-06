@@ -340,28 +340,22 @@ def test_real_app_serves_json_404_under_api():
     assert_error(client.get("/api/v1/does-not-exist"), 404, "not_found")
 
 
-def test_real_app_nicegui_routes_are_unaffected():
-    client = TestClient(main.app, base_url=HTTPS)
-    # A non-page NiceGUI endpoint keeps FastAPI's default error body.
-    response = client.get("/room-manifest/no-such-room.json")
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Room not found"}
-    assert "cache-control" not in response.headers
-    response = client.get("/sw.js")
-    assert response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
-    # NiceGUI's cookie endpoint still answers with its own bare responses.
-    response = client.post("/_room-access/x", json={"token": "t"})
-    assert response.status_code == 403
-    assert response.content == b""
-
-
-def test_real_app_keeps_nicegui_page_error_handlers():
-    from nicegui import nicegui as nicegui_module
-
-    handler_404 = main.app.exception_handlers[404]
-    handler_500 = main.app.exception_handlers[Exception]
-    closures_404 = [cell.cell_contents for cell in handler_404.__closure__ or ()]
-    closures_500 = [cell.cell_contents for cell in handler_500.__closure__ or ()]
-    assert nicegui_module._exception_handler_404 in closures_404
-    assert nicegui_module._exception_handler_500 in closures_500
+def test_real_app_keeps_html_errors_off_the_api_and_json_errors_on_it():
+    # Every kind of error has a handler that answers JSON under /api and leaves
+    # other addresses to FastAPI's defaults.
+    assert 404 in main.app.exception_handlers
     assert StarletteHTTPException in main.app.exception_handlers
+    assert Exception in main.app.exception_handlers
+    client = TestClient(main.app, base_url=HTTPS)
+    response = client.get("/api/v1/last-room/extra")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_real_app_has_no_docs_or_openapi_pages():
+    client = TestClient(main.app, base_url=HTTPS)
+    for path in ("/docs", "/redoc", "/openapi.json"):
+        response = client.get(path)
+        assert "swagger" not in response.text.lower()
+        assert '"openapi"' not in response.text

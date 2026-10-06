@@ -2,8 +2,8 @@
 
 Supporting detail for [real-browser tests](../browser-testing.md) and step 3.7
 of the [Svelte rewrite plan](../../plans/svelte-frontend-rewrite.md). Each
-NiceGUI browser test is mapped to its Svelte version. The NiceGUI tests stay
-until step 4.3.
+NiceGUI browser test is mapped to its Svelte version. Step 4.3 deleted the
+NiceGUI tests ([retirement list](nicegui-test-retirement.md)).
 
 Status:
 

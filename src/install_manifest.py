@@ -1,4 +1,4 @@
-"""Home-screen install manifests, shared by NiceGUI and the Svelte app.
+"""Home-screen install manifests (served by src/pwa_routes.py).
 
 A manifest tells the browser how to install the app: its name, icons and the
 address the icon opens (`start_url`). Every manifest is a copy of

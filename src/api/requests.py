@@ -28,8 +28,7 @@ def _is_json(request: Request) -> bool:
 async def check_write_request(request: Request) -> None:
     """Router-wide dependency: writes must be same-origin and send JSON.
 
-    Same-origin uses the check NiceGUI's cookie endpoint uses (exact Origin,
-    Sec-Fetch-Site). CORS is never enabled. A DELETE without a body is fine.
+    Same-origin means an exact Origin match and, when sent, Sec-Fetch-Site. CORS is never enabled. A DELETE without a body is fine.
     """
     if request.method not in WRITE_METHODS:
         return

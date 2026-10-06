@@ -6,7 +6,7 @@ never opens a room by itself.
 import re
 
 from playwright.sync_api import expect
-from svelte_app import ADMIN_PHONE, PHONE, admin_sign_in, app_url
+from svelte_app import PHONE, admin_sign_in, app_url
 
 INVALID = "This invitation is invalid or no longer active."
 
@@ -36,7 +36,7 @@ def fill_form(page, name: str, password: str, confirmation: str | None = None):
 
 def test_issue_create_room_and_revoke(svelte_server, open_session):
     server = svelte_server
-    owner = open_session("admin", **ADMIN_PHONE)
+    owner = open_session("admin", **PHONE)
     visitor = open_session("visitor", **PHONE)
     late = open_session("late", **PHONE)
 
@@ -132,16 +132,3 @@ def test_unknown_link_and_no_admin_controls_without_sign_in(
     page.goto(app_url(server, "admin"))
     expect(page.get_by_label("Admin Password")).to_be_visible()
     expect(page.get_by_text("Room invitations")).to_have_count(0)
-
-
-def test_a_svelte_invitation_works_in_nicegui(svelte_server, open_session):
-    """Both UIs share the invitations: NiceGUI's page accepts a Svelte link."""
-    server = svelte_server
-    owner = open_session("admin", **ADMIN_PHONE)
-    link = issue_invitation(owner, server)
-    token = link.rsplit("/", 1)[1]
-
-    visitor = open_session("visitor", **PHONE)
-    visitor.goto(f"{server.url}/create-room/{token}")
-    expect(visitor.get_by_text("Create your room")).to_be_visible()
-    expect(visitor.get_by_label("Room name")).to_be_visible()

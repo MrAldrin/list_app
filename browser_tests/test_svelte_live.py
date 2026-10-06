@@ -1,8 +1,7 @@
-"""Svelte live updates: two phones, NiceGUI side by side, deletes and revoked access."""
+"""Svelte live updates: two phones, deletes and revoked access."""
 
 import re
 
-import pytest
 from playwright.sync_api import expect
 from svelte_app import (
     DESKTOP,
@@ -10,7 +9,6 @@ from svelte_app import (
     add_item,
     create_list,
     item_names,
-    nicegui_sign_in,
     room_app_url,
     sign_in,
 )
@@ -46,35 +44,6 @@ def test_two_phones_see_each_others_changes(svelte_server, open_session):
     expect(phone_a.get_by_role("heading", name="Food")).to_be_visible()
 
 
-@pytest.mark.skip(
-    reason="Retired in 4.3/4.4: tests live sync between the NiceGUI page and Svelte; step 4.2 moved Svelte to / and NiceGUI's pages are no longer reachable"
-)
-def test_nicegui_and_svelte_see_each_others_changes(svelte_server, open_session):
-    server = svelte_server
-    phone = open_session("phone", **PHONE)
-    desktop = open_session("nicegui", **DESKTOP)
-    sign_in(phone, server)
-    create_list(phone, "Groceries")
-    add_item(phone, "milk")
-    list_slug = phone.url.rsplit("/", 1)[1]
-
-    # NiceGUI needs its own sign-in: on plain HTTP it keeps access elsewhere.
-    nicegui_sign_in(desktop, server)
-    desktop.goto(f"{server.url}/list/{list_slug}")
-    expect(desktop.get_by_text("milk", exact=True)).to_be_visible()
-
-    # NiceGUI -> Svelte.
-    desktop.get_by_label("Add or Search", exact=True).fill("eggs")
-    desktop.get_by_label("Add or Search", exact=True).press("Enter")
-    expect(item_names(phone)).to_have_text(["eggs", "milk"])
-
-    # Svelte -> NiceGUI.
-    phone.get_by_role("checkbox", name="milk").check()
-    expect(desktop.get_by_text("milk", exact=True)).to_have_class(
-        re.compile("line-through")
-    )
-
-
 def test_list_deleted_while_open(svelte_server, open_session):
     server = svelte_server
     viewer = open_session("viewer", **PHONE)
@@ -96,7 +65,7 @@ def test_password_change_revokes_open_pages(svelte_server, open_session):
     server = svelte_server
     room_page = open_session("room-page", **PHONE)
     list_page = open_session("list-page", **PHONE)
-    desktop = open_session("nicegui", **DESKTOP)
+    desktop = open_session("desktop", **DESKTOP)
     sign_in(room_page, server)
     create_list(room_page, "Groceries")
     room_page.go_back()
@@ -104,10 +73,10 @@ def test_password_change_revokes_open_pages(svelte_server, open_session):
     list_page.get_by_role("link", name="Groceries").click()
     expect(list_page.get_by_role("heading", name="Groceries")).to_be_visible()
 
-    # Change the password in NiceGUI: both open Svelte pages lose access live.
-    nicegui_sign_in(desktop, server)
+    # Change the password on another device: both open pages lose access live.
+    sign_in(desktop, server)
     desktop.get_by_role("button", name="Room menu").click()
-    desktop.get_by_text("Change Password").click()
+    desktop.get_by_role("button", name="Change Password").click()
     desktop.get_by_label("Current Password").fill(server.password)
     desktop.get_by_label("New Password").fill("new-room-password")
     desktop.get_by_role("button", name="Change").click()

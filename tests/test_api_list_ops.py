@@ -1,8 +1,6 @@
 """List write ops and the op_id helper (docs/api.md, "Writing: operations")."""
 
-import asyncio
 import sqlite3
-import threading
 import uuid
 from typing import Any
 
@@ -13,6 +11,7 @@ import api.ops
 import database_crud as crud
 import live_updates
 import main
+import server
 from database_setup import db
 
 HTTPS = "https://testserver"
@@ -566,61 +565,6 @@ def test_revoked_access_cannot_write(room):
     assert crud.find_list_by_name("Shop", room_id) is None
 
 
-# Live updates for NiceGUI
-
-
-def test_nicegui_listener_is_registered():
-    assert main._refresh_nicegui_pages in live_updates._listeners
-
-
-def test_nicegui_refresh_runs_on_the_event_loop(monkeypatch):
-    loop = asyncio.new_event_loop()
-    thread = threading.Thread(target=loop.run_forever, daemon=True)
-    thread.start()
-    refreshed = threading.Event()
-    refresh_threads: list[threading.Thread] = []
-
-    def fake_broadcast() -> None:
-        refresh_threads.append(threading.current_thread())
-        refreshed.set()
-
-    monkeypatch.setattr(main, "refresh_open_pages", fake_broadcast)
-    monkeypatch.setattr(main.core, "loop", loop)
-    try:
-        main._refresh_nicegui_pages(1)  # from this (non-loop) thread
-        assert refreshed.wait(5)
-        assert refresh_threads == [thread]
-    finally:
-        loop.call_soon_threadsafe(loop.stop)
-        thread.join(5)
-        loop.close()
-
-
-def test_nicegui_refresh_without_a_running_app_does_nothing(monkeypatch):
-    monkeypatch.setattr(main.core, "loop", None)
-    monkeypatch.setattr(
-        main, "refresh_open_pages", lambda: pytest.fail("must not refresh")
-    )
-    main._refresh_nicegui_pages(1)
-
-
-def test_api_write_refreshes_nicegui_pages(room, monkeypatch):
-    _, slug, client = room
-    scheduled = []
-
-    class FakeLoop:
-        def is_closed(self) -> bool:
-            return False
-
-        def call_soon_threadsafe(self, callback) -> None:
-            scheduled.append(callback)
-
-    monkeypatch.setattr(main.core, "loop", FakeLoop())
-    op(client, slug, {"op_id": new_id(), "type": "list.create", "name": "Shop"})
-    # Only the refresh: the API write already woke the live streams.
-    assert scheduled == [main.refresh_open_pages]
-
-
 def test_a_failing_listener_does_not_fail_the_write(room, monkeypatch):
     room_id, slug, client = room
 
@@ -660,14 +604,18 @@ def test_prune_processed_ops_drops_entries_older_than_30_days():
     assert old not in kept
 
 
-def test_prune_runs_at_startup():
-    assert main._prune_processed_ops in main.app._startup_handlers
+def test_prune_runs_at_startup(monkeypatch):
+    calls = []
+    monkeypatch.setattr(server, "prune_processed_ops", lambda: calls.append(1))
+    with TestClient(main.app):
+        assert calls == [1]
 
 
 def test_startup_prune_survives_a_database_error(monkeypatch, caplog):
     def locked(*args: object) -> int:
         raise sqlite3.OperationalError("database is locked")
 
-    monkeypatch.setattr(main, "prune_processed_ops", locked)
-    main._prune_processed_ops()
+    monkeypatch.setattr(server, "prune_processed_ops", locked)
+    with TestClient(main.app):
+        pass
     assert "Could not prune processed_ops" in caplog.text

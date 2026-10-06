@@ -46,7 +46,7 @@ The Svelte app is served at `/`. The same rules apply:
   app never tells. A deleted room's icon shows the password prompt, and
   signing in says "Wrong room or password."
 - Icons are NiceGUI's files under `/static/icons/`.
-- No service worker yet.
+- No service worker yet. `/sw.js` only removes the old app's worker ([decision 159](../plans/svelte-frontend-rewrite.md)).
 
 ## Remembered access
 

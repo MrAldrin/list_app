@@ -4,9 +4,8 @@ create a room and reset a room password. Admin never opens a room by itself.
 
 import re
 
-import pytest
 from playwright.sync_api import expect
-from svelte_app import ADMIN_PHONE, PHONE, admin_sign_in, app_url, sign_in
+from svelte_app import PHONE, admin_sign_in, app_url, sign_in
 
 RESET_PASSWORD = "an-admin-reset-password"
 
@@ -14,7 +13,7 @@ RESET_PASSWORD = "an-admin-reset-password"
 def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug
-    owner = open_session("admin", **ADMIN_PHONE)
+    owner = open_session("admin", **PHONE)
     member = open_session("member", **PHONE)
     sign_in(member, server)
 
@@ -98,23 +97,3 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     expect(owner.get_by_label("Admin Password")).to_be_visible()
     owner.reload()
     expect(owner.get_by_label("Admin Password")).to_be_visible()
-
-
-@pytest.mark.skip(
-    reason="Retired in 4.3/4.4: tests the NiceGUI admin page; step 4.2 moved Svelte to / and NiceGUI's pages are no longer reachable"
-)
-def test_nicegui_admin_sign_in_does_not_carry_over_and_never_opens_a_room(
-    svelte_server, open_session
-):
-    server = svelte_server
-    page = open_session("admin", **ADMIN_PHONE)
-    page.goto(f"{server.url}/admin/login")
-    page.get_by_label("Admin Password").fill(server.password)
-    page.get_by_role("button", name="Log in").click()
-    expect(page).to_have_url(re.compile(r"/admin$"))
-
-    page.goto(app_url(server, "admin"))
-    expect(page.get_by_label("Admin Password")).to_be_visible()
-    page.goto(app_url(server, f"room/{server.room_slug}?admin=true"))
-    expect(page.get_by_label("Room Password")).to_be_visible()
-    expect(page.get_by_role("link", name="Back to admin")).to_have_count(0)

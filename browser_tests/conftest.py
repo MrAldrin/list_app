@@ -2,7 +2,6 @@
 
 import fcntl
 import os
-import secrets
 import shutil
 import socket
 import sqlite3
@@ -36,21 +35,13 @@ class TestServer:
             self.port = sock.getsockname()[1]
         self.url = f"http://127.0.0.1:{self.port}"
         self.env = {
-            **{
-                key: value
-                for key, value in os.environ.items()
-                if not key.startswith("NICEGUI_")
-            },
+            **os.environ,
             "DB_PATH": str(self.database),
             "APP_PASSWORD": PASSWORD,
-            "NICEGUI_STORAGE_SECRET": secrets.token_urlsafe(32),
-            "NICEGUI_STORAGE_PATH": str(directory / "nicegui"),
             "APP_RELOAD": "false",
             "PYTHON_DOTENV_DISABLED": "1",
             "PYTHONPATH": str(ROOT / "src"),
         }
-        # The child is a normal server, not NiceGUI's in-process pytest harness.
-        self.env.pop("PYTEST_CURRENT_TEST", None)
 
     def start(self):
         self.log_file = self.log_path.open("a")
@@ -59,10 +50,8 @@ class TestServer:
                 sys.executable,
                 "-u",
                 "-c",
-                "import os; import main; "
-                "main.ui.run(host='127.0.0.1', port=" + str(self.port) + ", "
-                "reload=False, show=False, "
-                "storage_secret=os.environ['NICEGUI_STORAGE_SECRET'], "
+                "import uvicorn; import main; "
+                "uvicorn.run(main.app, host='127.0.0.1', port=" + str(self.port) + ", "
                 "timeout_graceful_shutdown=main.SHUTDOWN_TIMEOUT_SECONDS)",
             ],
             cwd=self.directory,
@@ -184,19 +173,6 @@ class BrowserSessions:
             raise ExceptionGroup(
                 "Browser diagnostics and cleanup failed", cleanup_errors
             )
-
-
-@pytest.fixture
-def sessions(browser, tmp_path):
-    """Separate cookie jars, localStorage, and NiceGUI sessions (not just tabs)."""
-    browser_sessions = BrowserSessions(browser, tmp_path)
-    try:
-        yield tuple(
-            browser_sessions.new_page(role, viewport={"width": 1280, "height": 900})
-            for role in ("member", "visitor")
-        )
-    finally:
-        browser_sessions.close()
 
 
 # Svelte frontend ------------------------------------------------------------

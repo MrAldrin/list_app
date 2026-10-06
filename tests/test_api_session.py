@@ -326,34 +326,3 @@ def test_https_ignores_plain_cookies():
     client = browser()
     client.cookies.set(plain_token_cookie_name(slug), token)
     assert_error(client.get(f"/api/v1/rooms/{slug}/session"), 401, "not_authenticated")
-
-
-def test_nicegui_cookie_works_for_the_api_on_https():
-    _, slug = room()
-    token = authenticate_room_and_issue_token(slug, "pw")[1]
-    client = TestClient(main.app, base_url=HTTPS)
-    # NiceGUI's own cookie endpoint stores the token after a password sign-in.
-    response = client.post(
-        f"/_room-access/{slug}",
-        json={"token": token},
-        headers={"Origin": HTTPS, "X-Listapp-Request": "1"},
-    )
-    assert response.status_code == 204
-    response = client.get(f"/api/v1/rooms/{slug}/session")
-    assert response.status_code == 200
-    assert response.json()["room"]["slug"] == slug
-    assert client.get("/api/v1/last-room").json() == {"slug": slug}
-
-
-def test_api_sign_in_cookie_is_the_one_nicegui_reads():
-    _, slug = room()
-    client = browser()
-    sign_in(client, slug)
-    token = client.cookies.get(token_cookie_name(slug))
-    # NiceGUI's cookie check confirms the cookie it would read holds this token.
-    response = client.post(
-        f"/_room-access/{slug}",
-        json={"token": token, "check": True},
-        headers={"X-Listapp-Request": "1"},
-    )
-    assert response.status_code == 204

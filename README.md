@@ -22,8 +22,8 @@ cp .env.example .env
 ```
 
 If you already have a `.env`, keep it instead of running the copy command.
-Edit `.env` and replace both required placeholders. Generate a separate random
-value for each with:
+Edit `.env` and replace the required placeholder. Generate a random value
+with:
 
 ```bash
 uv run python -c 'import secrets; print(secrets.token_urlsafe(32))'
@@ -31,8 +31,6 @@ uv run python -c 'import secrets; print(secrets.token_urlsafe(32))'
 
 - `APP_PASSWORD`: admin password and initial password for the default `Home` room.
   Changing it later does not change existing room passwords.
-- `NICEGUI_STORAGE_SECRET`: private key for NiceGUI session storage; keep it stable
-  across restarts. It is not a room password.
 - `.env` is ignored by version control. Never commit passwords, keys, or databases.
 
 ### New jj workspace

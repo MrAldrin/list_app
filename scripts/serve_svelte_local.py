@@ -85,11 +85,10 @@ def tailscale_serve_status() -> dict:
 
 
 def server_env(database: Path, base: dict[str, str]) -> dict[str, str]:
-    """The app's environment: test database and storage, no auto-reload."""
+    """The app's environment: test database, no auto-reload."""
     return {
         **base,
         "DB_PATH": str(database),
-        "NICEGUI_STORAGE_PATH": str(database.parent / "nicegui"),
         "APP_RELOAD": "false",
     }
 

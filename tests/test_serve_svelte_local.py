@@ -32,7 +32,7 @@ def test_server_env_uses_test_database_without_reload(tmp_path: Path):
         database, {"APP_RELOAD": "true", "DB_PATH": "list.db", "KEEP": "1"}
     )
     assert env["DB_PATH"] == str(database)
-    assert env["NICEGUI_STORAGE_PATH"] == str(tmp_path / "nicegui")
+    assert not any(name.startswith("NICEGUI") for name in env)
     assert env["APP_RELOAD"] == "false"
     assert env["KEEP"] == "1"
 

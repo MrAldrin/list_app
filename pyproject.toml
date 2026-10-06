@@ -6,8 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "bcrypt>=5.0.0",
-    "nicegui>=3.10.0",
+    "fastapi>=0.115.0",
     "python-dotenv>=1.2.2",
+    "uvicorn[standard]>=0.30.0",
 ]
 
 [dependency-groups]
@@ -42,10 +43,6 @@ select = [
     "RUF",
     "BLE",
 ]
-
-[tool.ruff.lint.per-file-ignores]
-# main intentionally performs startup setup before importing application modules.
-"src/main.py" = ["E402"]
 
 [tool.ruff.format]
 preview = false

@@ -1,13 +1,8 @@
-import asyncio
 import sqlite3
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
 
 import pytest
-from nicegui import Client, ui
-from nicegui.page import page
 
-import main
 from database_crud import (
     ListUnavailable,
     add_item,
@@ -157,110 +152,3 @@ def test_legacy_migration_backfills_without_changing_data_and_survives_restart(
     )
     assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
     conn.close()
-
-
-@pytest.mark.parametrize("revoke_room", [False, True])
-def test_reset_dialog_rechecks_authorization(shared, monkeypatch, revoke_room):
-    monkeypatch.setattr(main, "app", SimpleNamespace(storage=SimpleNamespace(user={})))
-    monkeypatch.setattr(main, "_cleanup_legacy_room_password_keys", AsyncMock())
-    monkeypatch.setattr(
-        main, "_get_browser_storage", AsyncMock(return_value=(True, shared.room_token))
-    )
-    monkeypatch.setattr(main.ui.navigate, "to", Mock())
-    monkeypatch.setattr(main, "broadcast_updates", Mock())
-    monkeypatch.setattr(main.ui, "notify", Mock())
-
-    async def render():
-        with Client(page("/")) as client:
-            await main.list_page(shared.slug)
-            button = next(
-                e
-                for e in client.elements.values()
-                if isinstance(e, ui.menu_item)
-                and any(
-                    isinstance(child, ui.item_section)
-                    and child.text == "Reset share link"
-                    for child in e.default_slot.children
-                )
-            )
-            next(iter(button._event_listeners.values())).handler(None)
-            assert get_list_details(shared.id)["share_token"] == shared.token
-            if revoke_room:
-                update_room_password(shared.room_id, "new-password")
-            buttons = [
-                e
-                for e in client.elements.values()
-                if isinstance(e, ui.button) and e.text == "Reset share link"
-            ]
-            next(iter(buttons[-1]._event_listeners.values())).handler(None)
-            assert (get_list_details(shared.id)["share_token"] != shared.token) == (
-                not revoke_room
-            )
-            if revoke_room:
-                main.ui.navigate.to.assert_not_called()
-            else:
-                main.ui.navigate.to.assert_called_once_with(f"/list/{shared.slug}")
-
-    asyncio.run(render())
-
-
-@pytest.mark.parametrize(
-    "public,authorized", [(False, False), (False, True), (True, False), (True, True)]
-)
-def test_route_access_and_reset_visibility(shared, monkeypatch, public, authorized):
-    monkeypatch.setattr(main, "app", SimpleNamespace(storage=SimpleNamespace(user={})))
-    monkeypatch.setattr(main, "_cleanup_legacy_room_password_keys", AsyncMock())
-    monkeypatch.setattr(
-        main,
-        "_get_browser_storage",
-        AsyncMock(return_value=(True, shared.room_token if authorized else None)),
-    )
-    monkeypatch.setattr(main.ui.navigate, "to", Mock())
-
-    async def render():
-        with Client(page("/")) as client:
-            if public:
-                await main.shared_list_page(shared.token)
-            else:
-                await main.list_page(shared.slug)
-            labels = [
-                e.text for e in client.elements.values() if isinstance(e, ui.label)
-            ]
-            buttons = [
-                e.text for e in client.elements.values() if isinstance(e, ui.button)
-            ]
-            menu_items = [
-                child.text
-                for e in client.elements.values()
-                if isinstance(e, ui.menu_item)
-                for child in e.default_slot.children
-                if isinstance(child, ui.item_section)
-            ]
-            assert ("Secret groceries" in labels) == (public or authorized)
-            assert ("Reset share link" in menu_items) == authorized
-            assert ("Share List" in menu_items) == (public or authorized)
-            if not public and not authorized:
-                assert "Share" not in buttons
-                main.ui.navigate.to.assert_not_called()
-            if public:
-                field = next(
-                    e
-                    for e in client.elements.values()
-                    if isinstance(e, ui.input) and e.label == "Add or Search"
-                )
-                field.value = "Blocked after reset"
-                rotate_list_share_token(
-                    shared.room_slug,
-                    shared.room_token,
-                    shared.id,
-                    expected_slug=shared.slug,
-                )
-                button = next(
-                    e
-                    for e in client.elements.values()
-                    if isinstance(e, ui.button) and e.text == "Add"
-                )
-                next(iter(button._event_listeners.values())).handler(None)
-                assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 0
-
-    asyncio.run(render())

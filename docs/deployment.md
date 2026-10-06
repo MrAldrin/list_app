@@ -19,15 +19,13 @@ push `main` once the window opens.
 | Variable | Purpose |
 | --- | --- |
 | `APP_PASSWORD` | Required admin password for `/admin`. Also sets the password of the default `Home` room when it is first created. |
-| `NICEGUI_STORAGE_SECRET` | Required key for signing NiceGUI sessions. Keep it stable; changing it can log people out. |
 | `DB_PATH` | Database file. Production: `/data/list.db`. Default: `list.db` in the repository root. |
 | `DB_BACKUP_PATH` | Pre-migration copy. Default: next to `DB_PATH`, e.g. `/data/list-pre-migration.db`. |
 | `PORT` | Listening port, default `8080`. `--port` overrides it. |
 | `APP_RELOAD` | Restart on code changes. Off unless set to `true`. Use only locally. |
 
-- The app refuses to start with a missing or blank `APP_PASSWORD`, or a missing
-  `NICEGUI_STORAGE_SECRET` (a blank secret is not checked). There is no
-  password-free mode. Generate secrets with the command in the README.
+- The app refuses to start with a missing or blank `APP_PASSWORD`. There is no
+  password-free mode. Generate the value with the command in the README.
 - Changing `APP_PASSWORD` does not change room passwords. Reset those from the
   room controls; a reset logs out everyone using that room.
 - Railway uses its service variables, not the local `.env`. Locally, `.env` is
@@ -66,7 +64,7 @@ test the image locally (needs podman or docker):
 ```bash
 podman build -t listapp-test .
 podman run --rm -p 8080:8080 -e APP_PASSWORD=test-password-123 \
-  -e NICEGUI_STORAGE_SECRET=test-secret-123 -e DB_PATH=/tmp/t.db listapp-test
+  -e DB_PATH=/tmp/t.db listapp-test
 ```
 
 Railway variables, the volume and the start command do not change. Any start
@@ -106,11 +104,10 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
 
 ## HTTPS and proxy
 
-Use Railway's HTTPS endpoint. The proxy must allow WebSocket upgrades (for live
-updates) and pass on the public host and the original `https` scheme. If the app
-sees HTTPS requests as HTTP, or the wrong host, remembered room access and live
-updates break, because cookie writes and Socket.IO check the origin. Only trust
-forwarded headers from the real proxy.
+Use Railway's HTTPS endpoint. The proxy must pass on the public host and the
+original `https` scheme. If the app sees HTTPS requests as HTTP, or the wrong
+host, remembered room access breaks, because API writes check the origin. Only
+trust forwarded headers from the real proxy.
 
 On HTTPS, remembered-room cookies are Secure, HttpOnly and SameSite=Lax. Local
 HTTP uses a localStorage fallback instead, so local testing does not prove

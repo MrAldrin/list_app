@@ -1,18 +1,13 @@
-"""Tell open pages that room data changed.
+"""Tell open live streams that room data changed.
 
-Two kinds of pages listen:
-
-- NiceGUI pages: main.py registers a listener that refreshes them.
-- The API's live stream (`api/events.py`): each open stream holds a
-  subscription and wakes up when its room may have changed.
-
-Who calls what, so each side is told exactly once per write:
+The API's live stream (`api/events.py`): each open stream holds a subscription
+and wakes up when its room may have changed.
 
 - API writes call `notify_room_changed(room_id)` after commit. It wakes the
-  room's streams and calls the listeners (the NiceGUI refresh).
-- NiceGUI writes call main.py's `broadcast_updates()`. It refreshes NiceGUI
-  pages itself and calls `wake_streams()`, never `notify_room_changed()`, so
-  the NiceGUI listener is not called again.
+  room's streams and calls the registered listeners (none in production;
+  tests use them to see that a write was announced).
+- Writes that change a room's state outside the ops endpoint (password
+  changes) call `wake_streams(room_id)` directly.
 
 This module imports nothing from the app, so any module can use it without a
 circular import. Wakes may come from any thread.
@@ -99,8 +94,7 @@ def subscribe(room_id: int) -> Iterator[Subscription]:
 def wake_streams(room_id: int | None = None) -> None:
     """Wake the streams of one room, or of every room when `room_id` is None.
 
-    NiceGUI writes do not know the room, so they wake every stream; each
-    stream checks its own room's seq.
+    Without a room, every stream wakes; each stream checks its own room's seq.
     """
     with _subscriptions_lock:
         targets = [

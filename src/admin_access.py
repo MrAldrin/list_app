@@ -1,8 +1,7 @@
-"""Admin sign-in rules, shared by NiceGUI's /admin and the JSON API.
+"""Admin sign-in rules for the JSON API.
 
-The admin password is `APP_PASSWORD`. NiceGUI's /admin keeps its own flag in
-NiceGUI's user storage until step 4.3 removes it. The JSON API has its own
-admin session cookie (decision 144): a signed token that carries an expiry and
+The admin password is `APP_PASSWORD`. The API has its own admin session
+cookie (decision 144): a signed token that carries an expiry and
 is signed with a key made from the current `APP_PASSWORD`. Changing the
 password therefore ends every admin session, and no admin state is stored on
 the server. Admin sign-in never grants room access.

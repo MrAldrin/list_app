@@ -1,7 +1,8 @@
-"""Svelte light and dark mode: NiceGUI's "Toggle dark mode" button.
+"""Svelte light and dark mode.
 
-Without a saved choice the page follows the phone or computer. The button
-saves the choice in this browser under NiceGUI's key, so both UIs share it.
+Without a saved choice the page follows the phone or computer. The toggle
+saves the choice in this browser (`listapp_theme`, the key the old pages
+used, so a saved choice survives the switch).
 """
 
 import pytest
@@ -92,27 +93,6 @@ def test_system_changes_apply_while_nothing_is_saved(svelte_server, open_session
     page.emulate_media(color_scheme="dark")
     expect_theme(page, "dark")
     assert saved(page) is None
-
-
-@pytest.mark.skip(
-    reason="Retired in 4.3/4.4: tests the dark mode choice shared with the NiceGUI page; step 4.2 moved Svelte to / and NiceGUI's pages are no longer reachable"
-)
-def test_choice_is_shared_with_nicegui(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE, color_scheme="light")
-    page.goto(app_url(server))
-    toggle(page).click()
-    expect_theme(page, "dark")
-
-    # NiceGUI's pages read the same key on the same site.
-    page.goto(server.url)
-    expect(page.locator("body.body--dark")).to_be_visible()
-
-    # And the other way round.
-    page.get_by_role("button", name="Toggle dark mode").click()
-    expect(page.locator("body.body--light")).to_be_visible()
-    page.goto(app_url(server))
-    expect_theme(page, "light")
 
 
 def test_other_browsers_keep_their_own_choice(svelte_server, open_session):

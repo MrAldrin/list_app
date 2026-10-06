@@ -12,7 +12,6 @@ android_tests/
 browser_tests/
 tests/
 plans/
-.nicegui
 .pytest_cache
 .ruff_cache
 **/__pycache__

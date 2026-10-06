@@ -1,29 +1,25 @@
-"""Home-screen install manifests for the Svelte app at the root.
+"""Home-screen install manifests of the pages at the root.
 
-Same rules as NiceGUI's (tests/test_room_installation.py): one app identity,
-only the launch address changes, and no secrets in the manifest.
+One app identity, only the launch address changes, and no secrets in the
+manifest. The old `.json` addresses are tested in tests/test_pwa_routes.py.
 """
 
 import json
-from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 from install_manifest import BASE_MANIFEST_PATH
-from svelte_frontend import register_svelte_frontend
+from pwa_routes import register_pwa_routes
 
 BASE_MANIFEST = json.loads(BASE_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
 @pytest.fixture
-def client(tmp_path: Path) -> TestClient:
-    build = tmp_path / "build"
-    build.mkdir()
-    (build / "index.html").write_text("<!doctype html><html></html>")
+def client() -> TestClient:
     app = FastAPI()
-    assert register_svelte_frontend(app, build)
+    register_pwa_routes(app)
     return TestClient(app)
 
 
@@ -66,30 +62,3 @@ def test_room_manifest_encodes_an_untrusted_slug(client):
     response = client.get("/room-manifest/room%22%3F%3E%3C%26%20%23.webmanifest")
     assert_manifest_headers(response)
     assert response.json()["start_url"] == "/room/room%22%3F%3E%3C%26%20%23"
-
-
-def test_manifest_icons_are_served_by_the_main_app():
-    import main
-
-    app_client = TestClient(main.app)
-    for icon in BASE_MANIFEST["icons"]:
-        response = app_client.get(icon["src"])
-        assert response.status_code == 200
-        assert response.headers["content-type"] == "image/png"
-    for path in (
-        "/static/icons/apple-touch-icon.png",
-        "/static/icons/favicon-32.png",
-        "/static/icons/favicon-16.png",
-    ):
-        assert app_client.get(path).status_code == 200
-
-
-def test_svelte_manifests_leave_nicegui_manifests_unchanged(client):
-    import main
-
-    app_client = TestClient(main.app)
-    nicegui = app_client.get("/manifest.json").json()
-    assert nicegui == BASE_MANIFEST
-    assert nicegui["start_url"] == "/"
-    client.get("/room-manifest/home.webmanifest")
-    assert app_client.get("/manifest.json").json() == BASE_MANIFEST

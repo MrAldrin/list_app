@@ -127,7 +127,6 @@ def reset_share_link(
     parse_body(ResetBody, body)
     with room_access(request, slug, write=True) as room:
         token = rotate_share_token_locked(_room_list_id(room.room_id, list_uid))
-    # Open share streams find the old token gone and send `revoked`; open
-    # NiceGUI pages refresh (as after NiceGUI's own reset).
+    # Open share streams find the old token gone and send `revoked`.
     notify_room_changed(room.room_id)
     return {"token": token}

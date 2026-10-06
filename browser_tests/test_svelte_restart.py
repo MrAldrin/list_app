@@ -1,9 +1,7 @@
 """Svelte: room access, share links and open pages survive a server restart.
 
-The Svelte versions of the restart parts of `test_public_sharing.py`. The
-server restarts with the same database and secrets; the browsers keep their
-cookies. NiceGUI reloads an open page after a restart; the Svelte page
-reconnects its live stream without a reload.
+The server restarts with the same database; the browsers keep their cookies.
+An open page reconnects its live stream without a reload.
 """
 
 from playwright.sync_api import expect

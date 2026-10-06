@@ -1,8 +1,8 @@
 """The JSON error format of the API, and error handlers scoped to /api paths.
 
-Every API error looks like {"error": {"code": ..., "message": ...}}. NiceGUI
-installs its own handlers (HTML error pages); ours wrap them and only answer
-for /api paths, so NiceGUI pages behave as before.
+Every API error looks like {"error": {"code": ..., "message": ...}}. The
+handlers wrap any handler already installed and only answer for /api paths, so
+other addresses keep their own error answers.
 """
 
 import inspect
@@ -91,7 +91,7 @@ async def _api_error_handler(request: Request, exc: Exception) -> Response:
 
 
 def install_error_handlers(app: FastAPI) -> None:
-    """Answer API errors with JSON; leave every other path to NiceGUI/FastAPI."""
+    """Answer API errors with JSON; leave every other path to the app's handlers."""
     app.add_exception_handler(ApiError, _api_error_handler)
 
     def wrap_http(previous: Handler | None) -> Handler:
@@ -111,7 +111,7 @@ def install_error_handlers(app: FastAPI) -> None:
         return handler
 
     # Starlette looks up HTTP errors by status code first, then by class.
-    # NiceGUI registers a 404 handler; FastAPI one for HTTPException.
+    # Another handler may exist for 404 or for HTTPException; keep it.
     app.exception_handlers[404] = wrap_http(app.exception_handlers.get(404))
     app.exception_handlers[StarletteHTTPException] = wrap_http(
         app.exception_handlers.get(StarletteHTTPException)

@@ -1,9 +1,8 @@
 """Admin endpoints: sign in with APP_PASSWORD, the room overview, creating a
-room and resetting a room password. Ported from NiceGUI's /admin.
+room and resetting a room password.
 
 Admin sign-in has its own cookie (decision 144): a signed token made with the
-current `APP_PASSWORD` (see `src/admin_access.py`). It does not use NiceGUI's
-session, and NiceGUI's /admin does not share it. Admin never grants room
+current `APP_PASSWORD` (see `src/admin_access.py`). Admin never grants room
 access: these endpoints send only room names and slugs, and never set a room
 cookie. Room endpoints ignore admin sign-in.
 

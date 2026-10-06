@@ -5,7 +5,6 @@ Contrast is checked from app.css by `frontend/src/app-colors.test.ts`.
 
 from playwright.sync_api import Page, expect
 from svelte_app import (
-    ADMIN_PHONE,
     PHONE,
     add_item,
     admin_sign_in,
@@ -68,7 +67,7 @@ def test_every_control_has_a_name(svelte_server, open_session):
 
 
 def test_admin_controls_have_names(svelte_server, open_session):
-    page = open_session("admin", **ADMIN_PHONE)
+    page = open_session("admin", **PHONE)
     page.goto(app_url(svelte_server, "admin"))
     expect(page.get_by_label("Admin Password")).to_be_visible()
     expect_all_named(page)

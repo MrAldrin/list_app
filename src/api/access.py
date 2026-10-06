@@ -1,7 +1,6 @@
 """Room access for API endpoints: room cookies and the access transaction.
 
-On HTTPS the API uses NiceGUI's `__Host-` cookies, so signing in on one UI
-signs in the other. On plain HTTP (local network tests) browsers refuse
+On HTTPS the API uses `__Host-` cookies. On plain HTTP (local network tests) browsers refuse
 `__Host-` cookies, so the API uses the same names without the prefix and
 without `Secure`. Each scheme reads only its own names.
 """
@@ -35,7 +34,7 @@ def is_https(request: Request) -> bool:
     """The scheme as the ASGI server reports it.
 
     Behind a proxy (Railway), the server rewrites the scheme from trusted
-    forwarded headers. NiceGUI's cookie code decides HTTPS the same way.
+    forwarded headers.
     """
     return request.url.scheme == "https"
 
