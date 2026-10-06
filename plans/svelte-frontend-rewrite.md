@@ -374,6 +374,17 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
   - The share page shows "back to room" and "Reset share link" when this
     browser has access to the list's room, as NiceGUI. Without room access
     the page reveals nothing about the room (decision 146).
+  - Owner phone test fixes (decision 149):
+    - "Log out" moves into the room's ⋮ menu, as the last item.
+    - "Back to admin" shows on the room page whenever this browser is signed
+      in as admin, not only with `?admin=true` (it got lost after opening a
+      list and going back).
+    - The admin key button gets the text "Reset password". The dialog title
+      says it is an admin reset of the room password and explains what
+      happens (check what really happens to signed-in members first).
+    - List page top bar: the list name sits in the bar between the back arrow
+      and the menus, cut off with "…" when long. Dark mode moves into the ⋮
+      menu. The list options button stays outside, close to ⋮.
 - **4.3** Remove NiceGUI pages, the NiceGUI dependency and the old service
   worker. Keep the API and business rules.
 - **4.4** Update `ARCHITECTURE.md`, `README.md`, `docs/deployment.md` and the
@@ -566,6 +577,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 146 | Owner (2026-10-06): the share page shows "back to room" and "Reset share link" when this browser has access to the list's room, as NiceGUI. Without room access it reveals nothing about the room (test). Built in Milestone 4 (step 4.0). Replaces 113 | A partner who sends a share link to a room member should not strand them on the share page | Keep 113 | Low |
 | 147 | Owner (2026-10-06): per-list change tracking for share links (fixes the timing signal in 108 and stops refreshes for other lists' changes) is decided and gets built in Milestone 5 or 6; 6.1 designs how, not whether | Fewer refreshes; a link visitor learns nothing about other lists | Keep 108 | Medium (migration) |
 | 148 | Owner check (2026-10-06): the newest local production backup (2026-10-04; 11 rooms, 22 lists, 314 items), opened read-only, has no list or item names that differ only in case, and every item name is lowercase. Closes the open question in 136 | Read-only check on a copy | Download a fresh Railway copy | None |
+| 149 | Owner phone test (2026-10-06), built in step 4.0: "Log out" into the room ⋮ menu; "Back to admin" follows the admin sign-in, not `?admin=true`; the admin key button and dialog say clearly that they reset the room password; list name in the top bar between the back arrow and the menus, dark mode into the ⋮ menu, list options stay outside. Not new features, only layout and text. Admin delete room and a bottom toolbar go to the backlog | Small, visible fixes; best before users see the new app | Backlog after the switch | Low |
 
 ## Progress
 
@@ -612,7 +624,7 @@ Milestone 3: rest of the app
 - [x] 3.7 Port remaining browser tests (incl. toast layout check) (`browser_tests/test_svelte_{toasts,deleted_lists,restart,hide_done}.py`, new tests in `test_svelte_share.py` and `test_svelte_live.py`; [port map](../docs/background/browser-test-port-map.md): 8 NiceGUI tests ported, 6 already covered, the service worker checks not applicable; no Svelte bug found; decisions 141–143)
 
 Milestone 4: switch
-- [ ] 4.0 Owner decisions after Milestone 3 (admin cookie, toast over dialog, share page room links)
+- [ ] 4.0 Owner decisions after Milestone 3 (admin cookie, toast over dialog, share page room links, phone test fixes)
 - [ ] 4.1 Production build
 - [ ] 4.2 Svelte at `/`, old URLs kept
 - [ ] 4.3 Remove NiceGUI

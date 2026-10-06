@@ -26,6 +26,7 @@ Agreed as worth doing; no date.
 - [ ] [security] Room sign-in answers faster for an unknown room than for a wrong password, because bcrypt is skipped. This reveals which rooms exist. Check a dummy hash for unknown rooms. See `authenticate_room_and_issue_token` in [`src/database_crud.py`](../src/database_crud.py).
 - [ ] [bug] The item tag filter keeps filtering by a tag after it is deleted elsewhere, while the tag button is gone. Clear the filter when its tag disappears. See the tag filter in [`src/main.py`](../src/main.py).
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
+- [ ] [feature] Admin can delete a room from the admin room list, without entering the room: a clear warning, type the room name to confirm, and tests that nothing else is deleted. Today the admin must reset the password, enter the room and delete it there (as in NiceGUI).
 
 ## Ideas
 
@@ -41,6 +42,7 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
 - [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
 - [feature] Svelte list page: a "5 checked items hidden" line at the bottom when hide-done hides items. See decision 89 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
+- [feature] Bottom toolbar on the list page for thumb reach (for example back, list options, ⋮ menu). The add field stays where it is. Sketch a few layouts and test on the iPhone (Safari's bar, keyboard, home swipe area). After the Svelte switch.
 - [refactor] Split `src/main.py` into route/auth/UI modules and move to a proper Python package.
 - [refactor] Replace the global SQLite connection with a connection/context-manager layer.
 - [data] Add timestamps and change versions for debugging, conflict detection or audit history.
