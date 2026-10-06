@@ -8,7 +8,7 @@
   - a handoff document says the user approved starting it; or
   - you are a subagent, and the agent that briefed you passes on the user's approval.
 - Modular Implementation: Split large tasks into small, testable chunks.
-- GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist). Pushes to `main` are only allowed inside the [deploy window](docs/deployment.md#deploy-window).
+- GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist).
 
 - When working in a new jj workspace, remind me of the [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
 
@@ -62,7 +62,7 @@ Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 - Before starting work, inspect `jj status`, `jj bookmark list`, and the graph. Preserve existing workspace edits. If `integration` is missing or conflicted, ask rather than choosing another baseline silently.
 - Move `integration` only with explicit user approval to accept completed work. Point it at the completed change, not an empty working-copy child. Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
 - Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent’s active work merely to tidy the graph.
-- Updating `integration` does not authorize moving `main` or `main-staging`, pushing, or deploying. Existing deployment approval and deploy-window rules still apply.
+- Updating `integration` does not authorize moving `main` or `main-staging`, pushing, or deploying. Existing deployment approval rules still apply.
 
 ## Tools:
 - Packages: Use uv (use the dev group if only for development).

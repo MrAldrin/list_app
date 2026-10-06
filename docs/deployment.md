@@ -9,11 +9,11 @@ Railway deploys automatically when GitHub `main` changes. Moving the local
 production deployment and follow the [checklist](#deployment-checklist). For
 local setup, see the [README](../README.md).
 
-## Deploy window
+## Railway plan
 
-Railway's Free plan only allows deploys between 20:00 and 08:00 (Europe/Oslo).
-Outside that window, stage approved changes on the `main-staging` bookmark and
-push `main` once the window opens.
+Production runs on Railway's Hobby plan, so deploys are allowed at any time.
+The workspace has a $10 compute usage limit: Railway stops the app if usage
+reaches it. Raise the limit in the workspace's Usage page if that happens.
 
 ## Configuration
 
@@ -141,7 +141,6 @@ production cookie behavior. See the
 
 Before deploying:
 
-- [ ] Inside the [deploy window](#deploy-window) (20:00–08:00).
 - [ ] `APP_PASSWORD` set, `DB_PATH` absolute, volume mounted, one instance.
 - [ ] Railway build and start command fields are empty (the `Dockerfile` and
   `railway.json` decide). See [Railway settings](#railway-settings-to-check).
@@ -182,8 +181,7 @@ uv run python scripts/deploy_backup.py --rev <revision>   # backup, then push
 uv run python scripts/deploy_backup.py --backup-only      # backup, never push
 ```
 
-1. Pushing only works inside the deploy window, and only if `main` is an
-   ancestor of the revision.
+1. Pushing only works if `main` is an ancestor of the revision.
 2. It wakes the app with a web request. A sleeping Railway app does not
    answer `railway ssh`.
 3. Over `railway ssh`, it makes a backup-API copy in the container's temp

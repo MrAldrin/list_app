@@ -65,7 +65,7 @@ going. There are only three.
 | Gate | When | Owner does |
 |---|---|---|
 | **A: prototype review** | After Milestone 2 | Tests on this laptop and the iPhone (local network). Reviews the [decisions log](#decisions-log). Decides: continue the migration, adjust, or stop. |
-| **B: production switch** | After Milestone 4 | Approves the push to `main` (a production deploy), inside the deploy window, using the deployment checklist. |
+| **B: production switch** | After Milestone 4 | Approves the push to `main` (a production deploy), using the deployment checklist. |
 | **C: offline review** | After Milestone 6 | Tests offline viewing and editing on the iPhone, including two devices. Accepts or asks for changes. |
 
 ## Hard stops

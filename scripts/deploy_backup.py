@@ -24,13 +24,11 @@ from collections.abc import Callable
 from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 BACKUP_DIR = Path.home() / ".local/share/list_app/backups"
 VOLUME_MOUNT = "/data"
 SOURCE_DB = f"{VOLUME_MOUNT}/list.db"
 KEEP_BACKUPS = 2
-DEPLOY_TIMEZONE = ZoneInfo("Europe/Oslo")
 # A sleeping Railway app starts on the first web request.
 APP_URL = "https://listapp-production-d627.up.railway.app/"
 RESULT_PREFIX = "BACKUP_RESULT "
@@ -79,11 +77,6 @@ def run_command(command: list[str]) -> str:
             f"{result.stdout}{result.stderr}".rstrip()
         )
     return result.stdout
-
-
-def in_deploy_window(now: datetime) -> bool:
-    hour = now.astimezone(DEPLOY_TIMEZONE).hour
-    return hour >= 20 or hour < 8
 
 
 def backup_name(now: datetime, token: str) -> str:
@@ -263,8 +256,6 @@ def main(
 
     try:
         if args.rev:
-            if not in_deploy_window(now()):
-                raise DeployError("Outside the deploy window (20:00-08:00 Oslo)")
             check_push_ready(run, args.rev)
 
         take_backup(run, now(), backup_dir)
@@ -272,8 +263,6 @@ def main(
         if args.backup_only:
             return 0
 
-        if not in_deploy_window(now()):
-            raise DeployError("The deploy window closed during the backup")
         print(f"\nThese changes will go live (main..{args.rev}):")
         print(check_push_ready(run, args.rev))
         if ask(f"Move main to {args.rev} and push? [y/N] ").strip().lower() != "y":

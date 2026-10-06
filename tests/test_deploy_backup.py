@@ -12,8 +12,7 @@ import deploy_backup
 import pytest
 from deploy_backup import DeployError
 
-IN_WINDOW = datetime(2026, 9, 29, 19, 0, tzinfo=UTC)  # 21:00 in Oslo
-OUT_OF_WINDOW = datetime(2026, 9, 29, 12, 0, tzinfo=UTC)  # 14:00 in Oslo
+NOW = datetime(2026, 9, 29, 12, 0, tzinfo=UTC)  # 14:00 in Oslo: no deploy window
 VOLUME_LIST = json.dumps(
     {
         "environment": "production",
@@ -79,7 +78,7 @@ class FakeRailwayAndJj:
         return names
 
 
-def run_main(tmp_path, fake, argv, answers=(), now=IN_WINDOW):
+def run_main(tmp_path, fake, argv, answers=(), now=NOW):
     replies = iter(answers)
     return deploy_backup.main(
         argv,
@@ -88,15 +87,6 @@ def run_main(tmp_path, fake, argv, answers=(), now=IN_WINDOW):
         ask=lambda prompt: next(replies),
         backup_dir=tmp_path / "backups",
     )
-
-
-@pytest.mark.parametrize(
-    ("utc_hour", "expected"),
-    [(17, False), (18, True), (5, True), (6, False)],  # Oslo is UTC+2 in September
-)
-def test_deploy_window_is_20_to_08_oslo_time(utc_hour, expected):
-    now = datetime(2026, 9, 29, utc_hour, 0, tzinfo=UTC)
-    assert deploy_backup.in_deploy_window(now) is expected
 
 
 def test_find_production_volume_returns_data_volume():
@@ -227,7 +217,7 @@ def test_older_backups_keeps_two_newest_and_ignores_other_files(tmp_path):
 def test_backup_only_wakes_app_then_saves_verified_copy(tmp_path):
     fake = FakeRailwayAndJj(tmp_path)
 
-    assert run_main(tmp_path, fake, ["--backup-only"], now=OUT_OF_WINDOW) == 0
+    assert run_main(tmp_path, fake, ["--backup-only"]) == 0
 
     assert fake.names() == ["volumes", "wake", "remote-backup"]
     assert fake.calls[1][-1] == deploy_backup.APP_URL
@@ -296,14 +286,6 @@ def test_sleeping_app_stops_with_clear_message(tmp_path, capsys):
     assert fake.names()[-1] == "remote-backup"
     assert "did not reach the app's container" in capsys.readouterr().err
     assert list((tmp_path / "backups").iterdir()) == []
-
-
-def test_outside_window_push_runs_nothing(tmp_path):
-    fake = FakeRailwayAndJj(tmp_path)
-
-    assert run_main(tmp_path, fake, ["--rev", "feature"], now=OUT_OF_WINDOW) == 1
-
-    assert fake.calls == []
 
 
 def test_nothing_to_ship_stops_before_backup(tmp_path):
