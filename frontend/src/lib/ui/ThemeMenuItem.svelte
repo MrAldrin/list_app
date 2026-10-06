@@ -1,5 +1,5 @@
 <!--
-	The dark mode switch as an entry of a ⋮ menu (the list menu). It does what
+	The dark mode switch as an entry of a ⋮ menu (room and list menus). It does what
 	`ThemeToggle` does and counts as a top-bar toggle, so the layout does not
 	add its own button above the page. The menu closes after a tap.
 -->

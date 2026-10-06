@@ -49,14 +49,23 @@ def test_theme_follows_the_system_until_toggled(svelte_server, open_session):
     expect_theme(page, "light")
     assert saved(page) == "light"
 
-    # The room and list pages show the button in their top bar, once.
+    # Room dark mode lives in its menu, with no extra header/corner button.
     sign_in(page, server)
-    expect(
-        page.locator("header").get_by_role("button", name="Toggle dark mode")
-    ).to_be_visible()
-    expect(toggle(page)).to_have_count(1)
+    expect(toggle(page)).to_have_count(0)
+    expect(list_menu_switch(page)).to_have_count(0)
     expect_theme(page, "light")
-    expect(toggle(page)).to_have_attribute("aria-pressed", "false")
+    page.get_by_role("button", name="Room menu").click()
+    expect(list_menu_switch(page)).to_have_attribute("aria-pressed", "false")
+    list_menu_switch(page).click()
+    expect_theme(page, "dark")
+    assert saved(page) == "dark"
+    expect(list_menu_switch(page)).to_have_count(0)
+    page.get_by_role("button", name="Room menu").click()
+    expect(list_menu_switch(page)).to_have_attribute("aria-pressed", "true")
+    list_menu_switch(page).click()
+    expect_theme(page, "light")
+    assert saved(page) == "light"
+    expect(list_menu_switch(page)).to_have_count(0)
     page.reload()
     expect(page.get_by_role("button", name="Add New List")).to_be_visible()
     expect_theme(page, "light")

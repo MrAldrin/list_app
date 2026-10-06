@@ -1,13 +1,12 @@
 <!--
 	The top bar of the room page: app name, room name, the room
-	menu (with "Log out") and dark mode. A browser signed in as admin gets a
+	menu (with "Log out" and dark mode). A browser signed in as admin gets a
 	back link to the admin page instead of the app name.
 -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
-	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import RoomMenu from './RoomMenu.svelte';
 
 	let {
@@ -27,7 +26,6 @@
 	{/if}
 	<h1>{room.store.room?.name ?? ''}</h1>
 	<RoomMenu {room} {backToAdmin} {onLogout} />
-	<ThemeToggle />
 </header>
 
 <style>

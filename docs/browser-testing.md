@@ -63,8 +63,9 @@ Traces hold test data only. Never point this harness at production.
   tab really sends its action, then check the database.
 - **Checked-item visibility:** all modes, from private and public views, with
   live updates. Day boundaries are covered by unit tests.
-- **Theme:** the theme is remembered per browser, not per room, and is applied
-  before the page scripts load (no flash).
+- **Theme:** dark mode is available in both room and list menus. The theme
+  is remembered per browser, not per room, and is applied before the page
+  scripts load (no flash).
 - **Svelte app (`test_svelte_*.py`):** on a phone-sized screen: start page,
   login and remembered room; list create, rename and delete; items, quantity,
   edit, delete and undo; tags, filter and hide-done; live updates between two

@@ -9,6 +9,7 @@
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import InstallHelpDialog from '#lib/install/InstallHelpDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
+	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
 	import { absoluteUrl, shareMessage, shareNatively } from '#lib/ui/share.ts';
@@ -59,6 +60,7 @@
 	{#snippet children(close)}
 		<button type="button" onclick={() => share(close)}>Share Room</button>
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
+		<ThemeMenuItem {close} />
 		<hr />
 		<button type="button" onclick={() => choose(close, 'rename')}>Rename Room</button>
 		<button type="button" onclick={() => choose(close, 'password')}>Change Password</button>
