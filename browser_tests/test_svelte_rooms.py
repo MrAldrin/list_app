@@ -1,7 +1,10 @@
 """Svelte start page, room login and the room page's lists, on a phone screen."""
 
+import re
+
+from conftest import wait_for_api_idle
 from playwright.sync_api import expect
-from svelte_app import PHONE, app_url, create_list, list_links, room_app_url
+from svelte_app import PHONE, app_url, create_list, list_links, room_app_url, sign_in
 
 
 def test_start_page_login_and_remembered_room(svelte_server, open_session):
@@ -35,7 +38,12 @@ def test_start_page_login_and_remembered_room(svelte_server, open_session):
 
     # Log out: the password prompt comes back, also after a reload.
     page.get_by_role("button", name="Room menu").click()
-    page.get_by_role("button", name="Log out").click()
+    # Reload only after the server sign-out answered; a reload mid-request makes
+    # WebKit report the cancelled DELETE as a page error.
+    with page.expect_response(
+        lambda r: r.request.method == "DELETE" and r.url.endswith("/session")
+    ):
+        page.get_by_role("button", name="Log out").click()
     expect(page.get_by_label("Room Password")).to_be_visible()
     page.reload()
     expect(page.get_by_label("Room Password")).to_be_visible()
@@ -86,3 +94,51 @@ def test_room_page_creates_renames_and_deletes_lists(svelte_server, open_session
     expect(list_links(page)).to_have_text(["Groceries"])
 
     assert server.query("SELECT name FROM lists ORDER BY name") == [("Groceries",)]
+
+
+def test_logout_shows_the_prompt_before_the_server_answers_and_retries(
+    svelte_server, open_session
+):
+    server = svelte_server
+    slug = server.room_slug
+    # Playwright's WebKit ignores page.route for a page the worker controls.
+    page = open_session("phone", service_workers="block", **PHONE)
+    held = []
+    page.route(
+        re.compile(r"/api/v1/rooms/[^/]+/session$"),
+        lambda route: (
+            held.append(route)
+            if route.request.method == "DELETE" and not held
+            else route.continue_()
+        ),
+    )
+    sign_in(page, server)
+    wait_for_api_idle(page)
+
+    # The DELETE is held: the prompt shows only because the local sign-out
+    # marker is already stored, not because the server answered.
+    page.get_by_role("button", name="Room menu").click()
+    page.get_by_role("button", name="Log out").click()
+    expect(page.get_by_label("Room Password")).to_be_visible()
+    for _ in range(200):  # the DELETE goes out right after the marker
+        if held:
+            break
+        page.wait_for_timeout(25)
+    assert len(held) == 1
+    assert page.request.get(f"{server.url}/api/v1/rooms/{slug}/session").ok
+
+    # The server fails the DELETE. This tab does not retry by itself, so the
+    # cookie still works; the pending sign-out is retried when the room opens.
+    # (Reloading while the DELETE is held would make WebKit report the
+    # cancelled request as a page error.)
+    held[0].fulfill(status=503)
+    wait_for_api_idle(page)
+    expect(page.get_by_label("Room Password")).to_be_visible()
+    assert page.request.get(f"{server.url}/api/v1/rooms/{slug}/session").ok
+    with page.expect_response(
+        lambda r: r.request.method == "DELETE" and r.url.endswith("/session")
+    ):
+        page.reload()
+    expect(page.get_by_label("Room Password")).to_be_visible()
+    wait_for_api_idle(page)
+    assert page.request.get(f"{server.url}/api/v1/rooms/{slug}/session").status == 401

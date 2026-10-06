@@ -6,7 +6,7 @@ import {
 	type LiveState,
 	type SessionState
 } from './events';
-import { FakeEventSource, FakeVisibility, settle } from './test-helpers';
+import { deferred, FakeEventSource, FakeVisibility, settle } from './test-helpers';
 
 function setup(session: SessionState = 'signed_in') {
 	const states: LiveState[] = [];
@@ -20,6 +20,7 @@ function setup(session: SessionState = 'signed_in') {
 	const checkSession = vi.fn(async () => session);
 	const onReconnect = vi.fn();
 	const visibility = new FakeVisibility();
+	const connectivity = new EventTarget();
 	const live = new LiveUpdates({
 		url: '/api/v1/rooms/home/events',
 		host,
@@ -27,9 +28,10 @@ function setup(session: SessionState = 'signed_in') {
 		onReconnect,
 		createEventSource: (url) => new FakeEventSource(url),
 		reconnectDelays: [1000, 5000],
-		visibility: visibility as unknown as Document
+		visibility: visibility as unknown as Document,
+		connectivity: connectivity as unknown as Window
 	});
-	return { host, checkSession, onReconnect, visibility, live, states };
+	return { host, checkSession, onReconnect, visibility, connectivity, live, states };
 }
 
 describe('LiveUpdates', () => {
@@ -117,6 +119,48 @@ describe('LiveUpdates', () => {
 		expect(host.authRequired).not.toHaveBeenCalled();
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(FakeEventSource.instances).toHaveLength(2);
+	});
+
+	it('revalidates and reopens the stream when restored from the back/forward cache', () => {
+		const { host, onReconnect, connectivity, live } = setup();
+		const pageshow = (persisted: boolean) =>
+			connectivity.dispatchEvent(Object.assign(new Event('pageshow'), { persisted }));
+		live.start();
+		FakeEventSource.last.open();
+
+		// An ordinary page load is not a resume.
+		pageshow(false);
+		expect(onReconnect).not.toHaveBeenCalled();
+
+		pageshow(true);
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+		expect(host.refresh).toHaveBeenCalledTimes(1);
+		expect(FakeEventSource.instances).toHaveLength(2);
+
+		live.stop();
+		pageshow(true);
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+	});
+
+	it('runs one revalidation at a time and once more for requests that arrive meanwhile', async () => {
+		const first = deferred<boolean>();
+		const { onReconnect, connectivity, visibility, live } = setup();
+		onReconnect.mockReturnValueOnce(first.promise).mockResolvedValue(true);
+		live.start();
+		FakeEventSource.last.open();
+
+		connectivity.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+		visibility.set('hidden');
+		visibility.set('visible');
+		connectivity.dispatchEvent(new Event('online'));
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+
+		first.resolve(true);
+		await settle();
+		// Several requests during the run coalesce into one more run.
+		expect(onReconnect).toHaveBeenCalledTimes(2);
+		await settle();
+		expect(onReconnect).toHaveBeenCalledTimes(2);
 	});
 
 	it('catches up when the page becomes visible again', () => {

@@ -78,6 +78,8 @@ export class LiveUpdates {
 	#timer: ReturnType<typeof setTimeout> | null = null;
 	#state: LiveState = 'stopped';
 	#hiddenAt: number | null = null;
+	#revalidating = false;
+	#revalidateAgain = false;
 
 	constructor(options: LiveUpdatesOptions) {
 		this.#options = options;
@@ -115,6 +117,7 @@ export class LiveUpdates {
 		this.#visibility?.addEventListener('visibilitychange', this.#onVisibilityChange);
 		this.#connectivity?.addEventListener('online', this.#onOnline);
 		this.#connectivity?.addEventListener('offline', this.#onOffline);
+		this.#connectivity?.addEventListener('pageshow', this.#onPageShow);
 		this.#connect();
 	}
 
@@ -123,6 +126,8 @@ export class LiveUpdates {
 		this.#visibility?.removeEventListener('visibilitychange', this.#onVisibilityChange);
 		this.#connectivity?.removeEventListener('online', this.#onOnline);
 		this.#connectivity?.removeEventListener('offline', this.#onOffline);
+		this.#connectivity?.removeEventListener('pageshow', this.#onPageShow);
+		this.#revalidateAgain = false;
 		this.#clearTimer();
 		this.#source?.close();
 		this.#source = null;
@@ -190,13 +195,36 @@ export class LiveUpdates {
 		}, delay);
 	}
 
+	/**
+	 * Checks access and reloads. One check runs at a time: a request that
+	 * arrives meanwhile (several triggers fire together) runs once more after
+	 * it, so a change of state is never lost.
+	 */
 	#reconnected(): void {
 		if (!this.#options.onReconnect) {
 			void this.#options.host.refresh();
 			return;
 		}
+		if (this.#revalidating) {
+			this.#revalidateAgain = true;
+			return;
+		}
 		const validated = this.#options.onReconnect();
-		if (validated === undefined) void this.#options.host.refresh();
+		if (validated === undefined) {
+			void this.#options.host.refresh();
+			return;
+		}
+		if (typeof validated === 'boolean') return;
+		this.#revalidating = true;
+		void validated
+			.catch(() => false)
+			.finally(() => {
+				this.#revalidating = false;
+				if (this.#revalidateAgain) {
+					this.#revalidateAgain = false;
+					if (this.#running) this.#reconnected();
+				}
+			});
 	}
 
 	#onOffline = () => {
@@ -221,12 +249,24 @@ export class LiveUpdates {
 		}
 		const hiddenFor = this.#hiddenAt === null ? 0 : Date.now() - this.#hiddenAt;
 		this.#hiddenAt = null;
-		if (!this.#source || this.#source.readyState === CLOSED || hiddenFor >= STALE_AFTER_HIDDEN) {
+		this.#resume(hiddenFor >= STALE_AFTER_HIDDEN);
+	};
+
+	// A page restored from the back/forward cache never ran while frozen: its
+	// stream may be dead and its data old, so treat it like a long background.
+	#onPageShow = (event: Event) => {
+		if (!this.#running || !(event as PageTransitionEvent).persisted) return;
+		this.#hiddenAt = null;
+		this.#resume(true);
+	};
+
+	#resume(stale: boolean): void {
+		if (!this.#source || this.#source.readyState === CLOSED || stale) {
 			this.#attempt = 0;
 			this.#connect();
 		}
 		this.#reconnected();
-	};
+	}
 
 	#clearTimer(): void {
 		if (this.#timer !== null) clearTimeout(this.#timer);

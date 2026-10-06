@@ -7,6 +7,8 @@ export type ToastKind = 'info' | 'success' | 'warning' | 'danger';
 /** A button in a toast, such as "Undo". Pressing it also closes the toast. */
 export interface ToastAction {
 	label: string;
+	/** Optional reactive guard for actions that are only valid while authorized. */
+	disabled?: () => boolean;
 	run: () => void;
 }
 
@@ -59,6 +61,7 @@ export class Toasts {
 	/** Closes the toast and runs its action. */
 	act(id: number): void {
 		const action = this.items.find((toast) => toast.id === id)?.action;
+		if (action?.disabled?.()) return;
 		this.dismiss(id);
 		action?.run();
 	}

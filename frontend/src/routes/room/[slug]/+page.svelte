@@ -11,6 +11,7 @@
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
 	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
+	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
@@ -25,7 +26,7 @@
 	// effect runs before the effect runs again, and when the page is left.
 	$effect(() => {
 		void generation; // Read it, so a new value re-runs this effect.
-		const handle = openRoom(slug);
+		const handle = openRoom(slug, { hydrateSavedView: true });
 		room = handle;
 		return () => closeRoom(handle);
 	});
@@ -71,16 +72,21 @@
 	{#if !room || room.store.status === 'loading'}
 		<p class="muted">Loading…</p>
 	{:else if room.store.status === 'auth_required'}
+		<SavedViewNotice {room} />
 		<RoomLogin onLogin={(password) => room!.login(password)} />
 	{:else if room.store.status === 'error'}
+		<SavedViewNotice {room} />
 		<!-- The first load failed (server down or busy). It also retries by
 		     itself when the live stream gets through again. -->
 		<LoadError
-			title="Could not load this room."
+			title={!room.store.savedAt && room.store.unreachable
+				? 'Connect to load this room.'
+				: 'Could not load this room.'}
 			detail={room.store.error}
 			onRetry={() => room!.store.refresh()}
 		/>
 	{:else}
+		<SavedViewNotice {room} />
 		<RoomHeader {room} backToAdmin={isAdmin} onLogout={signOut} />
 		{#if room.store.error}
 			<!-- The lists below may be out of date; they stay usable. -->

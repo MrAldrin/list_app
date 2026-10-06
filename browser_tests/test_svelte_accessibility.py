@@ -3,6 +3,7 @@
 Contrast is checked from app.css by `frontend/src/app-colors.test.ts`.
 """
 
+from conftest import wait_for_api_idle
 from playwright.sync_api import Page, expect
 from svelte_app import (
     PHONE,
@@ -84,6 +85,10 @@ def test_focus_returns_to_the_opener_after_a_dialog(svelte_server, open_session)
 
     # Saved: the page closes the dialog; the focus goes back to its button.
     rename = page.get_by_role("button", name="Rename Focus")
+    # Edits stay disabled while the page revalidates access and the feed. A page
+    # restored from the back/forward cache does this again, so let it finish.
+    wait_for_api_idle(page)
+    expect(rename).to_be_enabled()
     rename.focus()
     page.keyboard.press("Enter")
     field = page.get_by_label("List Name")

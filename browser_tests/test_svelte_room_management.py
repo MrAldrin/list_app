@@ -5,6 +5,7 @@ Two phones are signed in to the same room; the second one sees each change.
 
 import re
 
+from conftest import wait_for_api_idle
 from playwright.sync_api import expect
 from svelte_app import PHONE, app_url, create_list, sign_in
 
@@ -52,6 +53,7 @@ def test_rename_change_password_and_delete_room(svelte_server, open_session):
     # This phone stays signed in; the other one must sign in again.
     expect(other.get_by_label("Room Password")).to_be_visible()
     create_list(owner, "Groceries")
+    wait_for_api_idle(owner)
     owner.goto(room_url)
     expect(owner.get_by_role("link", name="Groceries")).to_be_visible()
     other.get_by_label("Room Password").fill(server.password)

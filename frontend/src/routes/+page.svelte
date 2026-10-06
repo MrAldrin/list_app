@@ -78,7 +78,7 @@
 		<!-- A <form> makes Enter in the field submit, with no extra code. -->
 		<form class="card" onsubmit={submit} novalidate>
 			<h1>Open your room link to continue</h1>
-			<p class="muted">Paste your room link or room code if needed.</p>
+			<p class="muted">Connect to load a saved room, or paste your room link or code.</p>
 			{#if warning}
 				<div class="warning-row">
 					<p class="warning" role="status">{warning}</p>

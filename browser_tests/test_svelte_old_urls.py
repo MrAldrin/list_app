@@ -7,6 +7,7 @@ of the phone-testing time all open the Svelte app.
 
 import re
 
+from conftest import wait_for_api_idle
 from playwright.sync_api import expect
 from svelte_app import PHONE, create_list, sign_in
 from test_svelte_invitations import issue_invitation
@@ -24,13 +25,16 @@ def test_room_and_old_list_address(svelte_server, open_session):
     list_slug = create_list(page, "Groceries").rsplit("/", 1)[1]
 
     # NiceGUI's list address has no room: it opens the list in the last room.
+    wait_for_api_idle(page)
     page.goto(f"{server.url}/list/{list_slug}")
     expect(page).to_have_url(f"{server.url}/room/{slug}/list/{list_slug}")
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
 
     # The bare address goes to the last room.
+    wait_for_api_idle(page)
     page.goto(f"{server.url}/")
     expect(page).to_have_url(f"{server.url}/room/{slug}")
+    expect(page.get_by_role("heading", name="Home")).to_be_visible()
 
 
 def test_old_share_address(svelte_server, open_session):

@@ -9,9 +9,15 @@
 
 	let {
 		room,
+		disabled = false,
 		onDeleted,
 		onClose
-	}: { room: RoomHandle; onDeleted: () => void; onClose: () => void } = $props();
+	}: {
+		room: RoomHandle;
+		disabled?: boolean;
+		onDeleted: () => void;
+		onClose: () => void;
+	} = $props();
 
 	const id = $props.id();
 	let password = $state('');
@@ -19,7 +25,7 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (busy) return;
+		if (busy || disabled) return;
 		busy = true;
 		const result = await room.deleteRoom(password);
 		busy = false;
@@ -46,7 +52,7 @@
 		/>
 		<div class="actions">
 			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="danger" type="submit" disabled={busy}>Delete</button>
+			<button class="danger" type="submit" disabled={busy || disabled}>Delete</button>
 		</div>
 	</form>
 </Dialog>

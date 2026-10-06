@@ -144,7 +144,7 @@ def test_the_old_service_worker_is_removed_before_the_new_shell_is_saved(
 
         server.stop()
         page.goto(server.url + "/room/legacy-worker-offline")
-        expect(page.get_by_text("Could not load this room.")).to_be_visible()
+        expect(page.get_by_text("Connect to load this room.")).to_be_visible()
         assert "/sw.js" not in registration_scripts(page)
     finally:
         server.stop()

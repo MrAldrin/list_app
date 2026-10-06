@@ -12,15 +12,19 @@
 
 	let {
 		items,
+		canWrite,
+		text = $bindable(''),
 		onAdd
 	}: {
 		/** All items of the list, hidden ones included. */
 		items: readonly Item[];
+		/** Whether shared-data writes are authorized. */
+		canWrite: boolean;
+		/** The field text also drives local search. */
+		text?: string;
 		/** Adds the (normalized) name; true when the field should be cleared. */
 		onAdd: (name: string) => Promise<boolean>;
 	} = $props();
-
-	let text = $state('');
 	let input = $state<HTMLInputElement>();
 	const suggestions = $derived(itemSuggestions(items, text));
 	/** The suggestion highlighted with the arrow keys; -1 for none. */
@@ -62,6 +66,10 @@
 	async function add(raw: string) {
 		const name = normalizeItemName(raw);
 		if (!name) return;
+		if (!canWrite) {
+			text = name;
+			return;
+		}
 		const sent = text;
 		active = -1;
 		input?.focus();
@@ -102,7 +110,13 @@
 			autocapitalize="none"
 			enterkeyhint="enter"
 		/>
-		<button class="primary" type="submit" onpointerdown={keepFocus} onmousedown={keepFocus}>
+		<button
+			class="primary"
+			type="submit"
+			disabled={!canWrite}
+			onpointerdown={keepFocus}
+			onmousedown={keepFocus}
+		>
 			Add
 		</button>
 	</form>

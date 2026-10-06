@@ -199,7 +199,7 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
 
     svelte_server.stop()
     page.goto(svelte_server.url + "/room/offline-shell-check")
-    expect(page.get_by_text("Could not load this room.")).to_be_visible()
+    expect(page.get_by_text("Connect to load this room.")).to_be_visible()
     assert page.evaluate(
         """async () => {
             try {
@@ -241,7 +241,7 @@ def test_waiting_update_keeps_old_tab_assets_until_safe_reopen(
 
     server.stop()
     page.goto(server.url + "/room/old-tab-lazy-route")
-    expect(page.get_by_text("Could not load this room.")).to_be_visible()
+    expect(page.get_by_text("Connect to load this room.")).to_be_visible()
     assert cache_a in _cache_names(page)
 
     context = page.context
@@ -270,7 +270,7 @@ def test_waiting_update_keeps_old_tab_assets_until_safe_reopen(
     assert "test-update-B" in page.content()
     server.stop()
     page.goto(server.url + "/room/reopened-offline")
-    expect(page.get_by_text("Could not load this room.")).to_be_visible()
+    expect(page.get_by_text("Connect to load this room.")).to_be_visible()
     assert "test-update-B" in page.content()
     assert page.evaluate(
         "async (url) => (await fetch(url)).headers.get('content-type')?.includes('javascript')",
@@ -336,7 +336,7 @@ def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     assert _cache_names(new_page) == [cache_b]
     server.stop()
     new_page.goto(server.url + "/room/reopened-offline")
-    expect(new_page.get_by_text("Could not load this room.")).to_be_visible()
+    expect(new_page.get_by_text("Connect to load this room.")).to_be_visible()
     assert _cache_names(new_page) == [cache_b]
 
 
@@ -376,5 +376,5 @@ def test_interrupted_update_keeps_last_complete_version_usable(
     assert _cache_names(page) == [cache_a]
     server.stop()
     page.goto(server.url + "/room/last-complete-version")
-    expect(page.get_by_text("Could not load this room.")).to_be_visible()
+    expect(page.get_by_text("Connect to load this room.")).to_be_visible()
     assert _cache_names(page) == [cache_a]

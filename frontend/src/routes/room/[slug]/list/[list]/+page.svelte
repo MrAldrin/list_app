@@ -13,6 +13,7 @@
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
 	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
+	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 
 	const roomSlug = $derived(page.params.slug ?? '');
@@ -23,7 +24,7 @@
 
 	// Open the room while this page is shown (see the room page).
 	$effect(() => {
-		const handle = openRoom(roomSlug);
+		const handle = openRoom(roomSlug, { hydrateSavedView: true });
 		room = handle;
 		return () => closeRoom(handle);
 	});
@@ -48,10 +49,14 @@
 	{#if !room || room.store.status === 'loading'}
 		<p class="muted">Loading…</p>
 	{:else if room.store.status === 'auth_required'}
+		<SavedViewNotice {room} />
 		<RoomLogin onLogin={(password) => room!.login(password)} />
 	{:else if room.store.status === 'error'}
+		<SavedViewNotice {room} />
 		<LoadError
-			title="Could not load this list."
+			title={!room.store.savedAt && room.store.unreachable
+				? 'Connect to load this list.'
+				: 'Could not load this list.'}
 			detail={room.store.error}
 			onRetry={() => room!.store.refresh()}
 		/>
@@ -61,6 +66,7 @@
 			<a class="back" href={roomHref}>Back to room</a>
 		</div>
 	{:else}
+		<SavedViewNotice {room} />
 		<ListView {room} {list} {roomHref} canReset />
 	{/if}
 	{#if room && room.store.status !== 'auth_required'}

@@ -52,7 +52,12 @@
 			<div class="toast {toast.kind}">
 				<span>{toast.message}</span>
 				{#if toast.action}
-					<button class="action" type="button" onclick={() => toasts.act(toast.id)}>
+					<button
+						class="action"
+						type="button"
+						disabled={toast.action.disabled?.() ?? false}
+						onclick={() => toasts.act(toast.id)}
+					>
 						{toast.action.label}
 					</button>
 				{/if}

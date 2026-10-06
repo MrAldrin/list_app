@@ -7,7 +7,8 @@
 		detail,
 		confirmLabel,
 		onConfirm,
-		onClose
+		onClose,
+		confirmDisabled = false
 	}: {
 		question: string;
 		/** A line under the question, such as what happens next. */
@@ -15,11 +16,13 @@
 		confirmLabel: string;
 		onConfirm: () => Promise<void>;
 		onClose: () => void;
+		confirmDisabled?: boolean;
 	} = $props();
 
 	let busy = $state(false);
 
 	async function confirm() {
+		if (busy || confirmDisabled) return;
 		busy = true;
 		try {
 			await onConfirm();
@@ -35,7 +38,9 @@
 	{/if}
 	<div class="actions">
 		<button type="button" onclick={onClose}>Cancel</button>
-		<button class="danger" type="button" disabled={busy} onclick={confirm}>{confirmLabel}</button>
+		<button class="danger" type="button" disabled={busy || confirmDisabled} onclick={confirm}
+			>{confirmLabel}</button
+		>
 	</div>
 </Dialog>
 

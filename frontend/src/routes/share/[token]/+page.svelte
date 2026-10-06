@@ -15,6 +15,7 @@
 	import ListView from '#lib/list/ListView.svelte';
 	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
+	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 
 	const token = $derived(page.params.token ?? '');
@@ -23,7 +24,7 @@
 
 	// Open the link while this page is shown (like a room on the room page).
 	$effect(() => {
-		const handle = openShare(token);
+		const handle = openShare(token, { hydrateSavedView: true });
 		share = handle;
 		return () => closeShare(handle);
 	});
@@ -45,7 +46,9 @@
 		memberRoomSlug = share?.store.room?.slug ?? null;
 	});
 	const roomHref = $derived(
-		memberRoomSlug ? resolve('/room/[slug]', { slug: memberRoomSlug }) : null
+		memberRoomSlug && share && !share.store.readOnly
+			? resolve('/room/[slug]', { slug: memberRoomSlug })
+			: null
 	);
 
 	// The old link is gone after a reset: follow the new one.
@@ -62,12 +65,16 @@
 	{#if !share || share.store.status === 'loading'}
 		<p class="muted">Loading…</p>
 	{:else if share.store.status === 'error'}
+		<SavedViewNotice room={share} />
 		<LoadError
-			title="Could not load this list."
+			title={!share.store.savedAt && share.store.unreachable
+				? 'Connect to load this shared list.'
+				: 'Could not load this list.'}
 			detail={share.store.error}
 			onRetry={() => share!.store.refresh()}
 		/>
 	{:else if !list}
+		<SavedViewNotice room={share} />
 		<div class="card problem" role="status">
 			<p>{shownToken === token ? SHARE_RESET_MESSAGE : SHARE_UNAVAILABLE_MESSAGE}</p>
 			{#if roomHref && shownToken === token}
@@ -75,6 +82,7 @@
 			{/if}
 		</div>
 	{:else}
+		<SavedViewNotice room={share} />
 		<ListView room={share} {list} {roomHref} canReset={roomHref !== null} onReset={followReset} />
 	{/if}
 	{#if share && share.store.status !== 'auth_required'}

@@ -102,6 +102,7 @@
 		question="Reset share link?"
 		detail="Everyone using the old link will lose access. Room access stays unchanged."
 		confirmLabel="Reset share link"
+		confirmDisabled={room.store.readOnly}
 		onConfirm={reset}
 		onClose={() => (dialog = null)}
 	/>

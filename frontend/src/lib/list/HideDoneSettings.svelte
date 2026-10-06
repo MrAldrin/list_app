@@ -17,8 +17,13 @@
 
 	let {
 		settings,
+		disabled = false,
 		onChange
-	}: { settings: HideDone; onChange: (changes: Partial<HideDone>) => void } = $props();
+	}: {
+		settings: HideDone;
+		disabled?: boolean;
+		onChange: (changes: Partial<HideDone>) => void;
+	} = $props();
 
 	const enabled = $derived(settings.mode !== 'off');
 	const nameId = $props.id();
@@ -45,6 +50,7 @@
 	<input
 		type="checkbox"
 		role="switch"
+		{disabled}
 		checked={enabled}
 		onchange={(event) => change({ field: 'enabled', value: event.currentTarget.checked })}
 	/>
@@ -63,6 +69,7 @@
 						name="hide-mode-{nameId}"
 						value={option.mode}
 						checked={settings.mode === option.mode}
+						{disabled}
 						onchange={() => change({ field: 'mode', value: option.mode })}
 					/>
 					{option.label}
@@ -84,6 +91,7 @@
 				max="100000"
 				step="1"
 				value={settings[field]}
+				{disabled}
 				onchange={(event) => commitCount(field, event.currentTarget)}
 				onkeydown={(event) => {
 					if (event.key === 'Enter') event.currentTarget.blur();

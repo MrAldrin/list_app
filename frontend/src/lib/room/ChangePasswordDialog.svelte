@@ -9,7 +9,11 @@
 	import Dialog from '#lib/ui/Dialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
-	let { room, onClose }: { room: RoomHandle; onClose: () => void } = $props();
+	let {
+		room,
+		disabled = false,
+		onClose
+	}: { room: RoomHandle; disabled?: boolean; onClose: () => void } = $props();
 
 	const id = $props.id();
 	let current = $state('');
@@ -18,7 +22,7 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (busy) return;
+		if (busy || disabled) return;
 		busy = true;
 		const result = await room.changePassword(current, next);
 		busy = false;
@@ -42,7 +46,7 @@
 		<input id="{id}-new" type="password" bind:value={next} autocomplete="new-password" />
 		<div class="actions">
 			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy}>Change</button>
+			<button class="primary" type="submit" disabled={busy || disabled}>Change</button>
 		</div>
 	</form>
 </Dialog>

@@ -62,9 +62,18 @@
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
 		<ThemeMenuItem {close} />
 		<hr />
-		<button type="button" onclick={() => choose(close, 'rename')}>Rename Room</button>
-		<button type="button" onclick={() => choose(close, 'password')}>Change Password</button>
-		<button type="button" class="danger-text" onclick={() => choose(close, 'delete')}>
+		<button type="button" disabled={room.store.readOnly} onclick={() => choose(close, 'rename')}>
+			Rename Room
+		</button>
+		<button type="button" disabled={room.store.readOnly} onclick={() => choose(close, 'password')}>
+			Change Password
+		</button>
+		<button
+			type="button"
+			class="danger-text"
+			disabled={room.store.readOnly}
+			onclick={() => choose(close, 'delete')}
+		>
 			Delete Room
 		</button>
 		<hr />
@@ -87,11 +96,17 @@
 		title="Rename Room"
 		label="New name"
 		initial={room.store.room?.name ?? ''}
+		saveDisabled={room.store.readOnly}
 		onSave={rename}
 		onClose={() => (dialog = null)}
 	/>
 {:else if dialog === 'password'}
-	<ChangePasswordDialog {room} onClose={() => (dialog = null)} />
+	<ChangePasswordDialog {room} disabled={room.store.readOnly} onClose={() => (dialog = null)} />
 {:else if dialog === 'delete'}
-	<DeleteRoomDialog {room} onDeleted={deleted} onClose={() => (dialog = null)} />
+	<DeleteRoomDialog
+		{room}
+		disabled={room.store.readOnly}
+		onDeleted={deleted}
+		onClose={() => (dialog = null)}
+	/>
 {/if}

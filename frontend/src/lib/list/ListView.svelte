@@ -35,7 +35,9 @@
 		onReset?: (token: string) => void;
 	} = $props();
 
+	const canWrite = $derived(room.store.canWrite);
 	let optionsOpen = $state(false);
+	let searchText = $state('');
 	// "Show quantities": personal, saved per list in this browser.
 	// A writable `$derived`: read again when the list changes, set by the switch.
 	const listUid = $derived(list.uid);
@@ -49,6 +51,21 @@
 	/** The tag chip the items are filtered by (page state, as in NiceGUI). */
 	let chosenTag = $state<string | null>(null);
 	const filterTag = $derived(activeFilter(chosenTag, list.tags));
+	const visibleItems = $derived.by(() => {
+		// Typing filters the list only for a saved or unconfirmed view; online it
+		// only suggests (also while access is briefly being revalidated).
+		const query = room.store.unconfirmedView ? searchText.trim().toLowerCase() : '';
+		const items = query
+			? room.store
+					.itemsOf(list.uid)
+					.filter((item) =>
+						[item.name, item.description, ...item.tags].some((value) =>
+							value.toLowerCase().includes(query)
+						)
+					)
+			: room.store.visibleItemsOf(list.uid, now);
+		return filterByTag(items, filterTag);
+	});
 
 	// "Hide after N days" depends on the clock, so the visible items are
 	// worked out again every minute (NiceGUI does the same).
@@ -95,7 +112,11 @@
 		const deleted = handle.removeListTag(target, tag);
 		const toastId = toasts.show(`Deleted tag ${tag}`, 'danger', {
 			duration: UNDO_DURATION,
-			action: { label: 'Undo', run: () => void undoDeleteTag(handle, target, tag) }
+			action: {
+				label: 'Undo',
+				disabled: () => !handle.store.canWrite,
+				run: () => void undoDeleteTag(handle, target, tag)
+			}
 		});
 		void deleted.then((result) => {
 			if (!result.ok) toasts.dismiss(toastId);
@@ -130,7 +151,11 @@
 		const deleted = handle.deleteItem(item);
 		const toastId = toasts.show(`Deleted ${item.name}`, 'danger', {
 			duration: UNDO_DURATION,
-			action: { label: 'Undo', run: () => void undoDelete(handle, item) }
+			action: {
+				label: 'Undo',
+				disabled: () => !handle.store.canWrite,
+				run: () => void undoDelete(handle, item)
+			}
 		});
 		void deleted.then((result) => {
 			if (!result.ok) toasts.dismiss(toastId);
@@ -152,7 +177,7 @@
 	onToggleOptions={() => (optionsOpen = !optionsOpen)}
 >
 	{#snippet menu()}
-		<ListMenu {room} {list} {canReset} {onReset} />
+		<ListMenu {room} {list} canReset={canReset && canWrite} {onReset} />
 	{/snippet}
 </ListHeader>
 {#if room.store.error}
@@ -167,6 +192,7 @@
 	<ListOptions
 		bind:showQuantities={() => showQuantities, setShowQuantities}
 		hideDone={list.hide_done}
+		{canWrite}
 		onHideDone={(changes) => setHideDone(list, changes)}
 	/>
 {/if}
@@ -174,18 +200,25 @@
 	tags={list.tags}
 	filter={filterTag}
 	editing={optionsOpen}
+	{canWrite}
 	onFilter={(tag) => (chosenTag = tag)}
 	onAdd={(tag) => addTag(list, tag)}
 	onDelete={(tag) => deleteTag(list, tag)}
 />
-<AddItem items={room.store.itemsOf(list.uid)} onAdd={(name) => addItem(list, name)} />
+<AddItem
+	items={room.store.itemsOf(list.uid)}
+	{canWrite}
+	bind:text={searchText}
+	onAdd={(name) => addItem(list, name)}
+/>
 <ul class="items">
 	<!-- Hide checked items first (on the whole list), then filter by tag. -->
-	{#each filterByTag(room.store.visibleItemsOf(list.uid, now), filterTag) as item (item.uid)}
+	{#each visibleItems as item (item.uid)}
 		<ItemRow
 			{item}
 			showQuantity={showQuantities}
 			showDelete={optionsOpen}
+			{canWrite}
 			listTags={list.tags}
 			onToggle={(done) => toggle(item, done)}
 			onQuantity={(delta) => changeQuantity(item, delta)}
@@ -199,6 +232,7 @@
 	{@const item = editing}
 	<ItemDialog
 		{item}
+		{canWrite}
 		onSave={(changes) => saveItem(item, changes)}
 		onDelete={() => deleteItem(item)}
 		onClose={() => (editing = null)}

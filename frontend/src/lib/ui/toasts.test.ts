@@ -55,6 +55,24 @@ describe('Toasts', () => {
 		expect(toasts.items).toEqual([]);
 	});
 
+	it('does not run or dismiss an action while its reactive guard disables it', () => {
+		const toasts = new Toasts();
+		const run = vi.fn();
+		let disabled = true;
+		const id = toasts.show('Deleted milk', 'danger', {
+			action: { label: 'Undo', disabled: () => disabled, run }
+		});
+
+		toasts.act(id);
+		expect(run).not.toHaveBeenCalled();
+		expect(toasts.items).toHaveLength(1);
+
+		disabled = false;
+		toasts.act(id);
+		expect(run).toHaveBeenCalledOnce();
+		expect(toasts.items).toEqual([]);
+	});
+
 	it('can stay for its own duration', () => {
 		const toasts = new Toasts(1_000);
 		toasts.show('Deleted milk', 'danger', { duration: 5_000 });

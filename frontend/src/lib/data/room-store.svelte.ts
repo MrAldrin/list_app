@@ -2,7 +2,7 @@
 // pending local ops projected on top (see overlay.ts).
 
 import { SvelteMap } from 'svelte/reactivity';
-import { ApiError } from './types';
+import { ApiError, NetworkError } from './types';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
 import { isProjected, nowIso, project, type PendingOp, type RoomData } from './overlay';
 import { groupItemsByList, sortLists } from './order';
@@ -27,6 +27,8 @@ export interface FeedSource {
 
 export interface RoomStoreLifecycle {
 	beforeApply?: () => Promise<boolean>;
+	/** True while the owner is about to clear the view itself (logout storing its marker). */
+	deferClear?: () => boolean;
 	feedApplied?: (data: SnapshotData) => Promise<void>;
 	unauthorized?: () => void;
 	feedFailed?: () => void;
@@ -70,6 +72,8 @@ export class RoomStore implements QueueHost, LiveHost {
 	status = $state<RoomStatus>('loading');
 	/** The last refresh error, if the data may be out of date. */
 	error = $state<string | null>(null);
+	/** True when the last error was "no connection" (not a server error answer). */
+	unreachable = $state(false);
 	notice = $state.raw<Notice | null>(null);
 	/** The live-updates stream (see `LiveState`). */
 	live = $state<LiveState>('stopped');
@@ -97,6 +101,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	#feedVersion = 0;
 	#cleared = false;
 	#writeAuthorized = $state(false);
+	#savedView = $state(false);
 	#authorizationVersion = 0;
 	#sentAuthorization = new SvelteMap<string, number>();
 	#sentClearVersion = new SvelteMap<string, number>();
@@ -120,6 +125,16 @@ export class RoomStore implements QueueHost, LiveHost {
 		return !this.canWrite;
 	}
 
+	/**
+	 * Showing data that this page has not confirmed with the server: a saved
+	 * view not yet refreshed, the last data after a failed load, or a lost
+	 * live connection. Unlike
+	 * `readOnly`, it is not true during an ordinary online revalidation.
+	 */
+	get unconfirmedView(): boolean {
+		return this.#savedView || this.error !== null || this.live === 'reconnecting';
+	}
+
 	setWriteAuthorized(authorized: boolean): void {
 		if (this.#writeAuthorized !== authorized) this.#authorizationVersion += 1;
 		this.#writeAuthorized = authorized;
@@ -138,6 +153,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.savedAt = snapshot.savedAt;
 		this.error = null;
 		this.status = 'ready';
+		this.#savedView = true;
 		this.setWriteAuthorized(false);
 	}
 
@@ -152,9 +168,10 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.snapshotWarning = message;
 	}
 
-	reportLoadFailure(message: string): void {
+	reportLoadFailure(error: unknown): void {
 		this.setWriteAuthorized(false);
-		this.error = message;
+		this.error = error instanceof Error ? error.message : String(error);
+		this.unreachable = error instanceof NetworkError;
 		if (this.status === 'loading') this.status = 'error';
 	}
 
@@ -264,13 +281,16 @@ export class RoomStore implements QueueHost, LiveHost {
 				return false;
 			}
 			if (this.#lifecycle.beforeApply && !(await this.#lifecycle.beforeApply())) {
-				if (clearVersion === this.#clearVersion) this.clear('auth_required');
+				if (clearVersion === this.#clearVersion && !this.#lifecycle.deferClear?.()) {
+					this.clear('auth_required');
+				}
 				return false;
 			}
 			if (clearVersion !== this.#clearVersion || feedVersion !== this.#feedVersion) return false;
 			if (!this.applyFeed(feed)) return false;
 			this.error = null;
 			this.status = 'ready';
+			this.#savedView = false;
 			if (this.#lifecycle.feedApplied) {
 				await this.#lifecycle.feedApplied({
 					seq: this.seq,
@@ -287,6 +307,7 @@ export class RoomStore implements QueueHost, LiveHost {
 				return false;
 			}
 			this.error = error instanceof Error ? error.message : String(error);
+			this.unreachable = error instanceof NetworkError;
 			this.setWriteAuthorized(false);
 			this.#lifecycle.feedFailed?.();
 			if (this.status === 'loading') this.status = 'error';
@@ -314,6 +335,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.room = null;
 		this.seq = 0;
 		this.savedAt = null;
+		this.#savedView = false;
 		this.error = null;
 		this.notice = null;
 		this.status = status;

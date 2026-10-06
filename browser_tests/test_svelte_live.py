@@ -96,7 +96,10 @@ def test_rename_saved_after_a_password_change_changes_nothing(
     svelte_server, open_session
 ):
     server = svelte_server
-    stale = open_session("stale", **PHONE)
+    # Playwright's WebKit ignores page.route for requests from a page that the
+    # app's service worker controls, so the stream would connect. The worker
+    # does not answer API requests; blocking it only makes the route work.
+    stale = open_session("stale", service_workers="block", **PHONE)
     other = open_session("other", **PHONE)
     # The live stream never connects, so the page misses the password change.
     stale.route("**/api/v1/rooms/*/events", lambda route: None)

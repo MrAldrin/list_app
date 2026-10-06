@@ -1,6 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it, vi } from 'vitest';
 import {
+	LOCAL_SIGNOUT_TIMEOUT_MS,
 	RoomHandle,
 	login as standaloneLogin,
 	logout as standaloneLogout,
@@ -312,6 +313,146 @@ describe('saved room data integration', () => {
 });
 
 describe('clear and session boundaries', () => {
+	it('keeps the room visible until the sign-out marker is stored, with writes already blocked', async () => {
+		const storage = snapshots();
+		const api = fakeApi();
+		const marker = deferred<{ ok: true; value: undefined }>();
+		storage.localSignOut = vi.fn(() => marker.promise) as unknown as SnapshotStore['localSignOut'];
+		const room = handle(api, storage);
+		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+
+		const logout = room.logout();
+		await vi.waitFor(() => expect(storage.localSignOut).toHaveBeenCalledTimes(1));
+		expect(room.store.status).toBe('ready');
+		expect(room.store.canWrite).toBe(false);
+
+		marker.resolve({ ok: true, value: undefined });
+		await logout;
+		expect(room.store.status).toBe('auth_required');
+	});
+
+	it('keeps the room visible when a refresh finishes while the marker is being stored', async () => {
+		const storage = snapshots();
+		const second = deferred<Feed>();
+		let calls = 0;
+		const api = fakeApi(() => (++calls === 1 ? Promise.resolve(feed) : second.promise));
+		const marker = deferred<{ ok: true; value: undefined }>();
+		storage.localSignOut = vi.fn(() => marker.promise) as unknown as SnapshotStore['localSignOut'];
+		const room = handle(api, storage);
+		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+
+		const refreshing = room.store.refresh();
+		await vi.waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
+		const logout = room.logout();
+		await vi.waitFor(() => expect(storage.localSignOut).toHaveBeenCalledTimes(1));
+		second.resolve(feed);
+		await refreshing;
+		await settle();
+		expect(room.store.status).toBe('ready');
+
+		marker.resolve({ ok: true, value: undefined });
+		await logout;
+		expect(room.store.status).toBe('auth_required');
+		room.release();
+		storage.close();
+	});
+
+	it('clears the view and reports unconfirmed when the marker never arrives', async () => {
+		vi.useFakeTimers();
+		try {
+			const storage = snapshots();
+			const api = fakeApi();
+			const marker = deferred<{ ok: true; value: undefined }>();
+			storage.localSignOut = vi.fn(
+				() => marker.promise
+			) as unknown as SnapshotStore['localSignOut'];
+			const room = handle(api, storage);
+			await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+
+			const logout = room.logout();
+			await vi.advanceTimersByTimeAsync(LOCAL_SIGNOUT_TIMEOUT_MS - 1);
+			expect(room.store.status).toBe('ready');
+			await vi.advanceTimersByTimeAsync(1);
+			expect(await logout).toMatchObject({ ok: false, code: 'local_clear_unconfirmed' });
+			expect(room.store.status).toBe('auth_required');
+			expect(api.logout).not.toHaveBeenCalled();
+
+			// A late answer, good or bad, changes nothing.
+			marker.resolve({ ok: true, value: undefined });
+			await vi.advanceTimersByTimeAsync(10);
+			expect(room.store.status).toBe('auth_required');
+			expect(api.logout).not.toHaveBeenCalled();
+			room.release();
+			storage.close();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('does not start a second server sign-out from its own late clear hint', async () => {
+		const storage = snapshots();
+		const api = fakeApi();
+		const answer = deferred<undefined>();
+		api.logout.mockImplementation(() => answer.promise);
+		let hint: ((hint: { identity: unknown; generation: number }) => void) | undefined;
+		const onClear = storage.onClear.bind(storage);
+		storage.onClear = ((listener: never) => {
+			hint = listener;
+			return onClear(listener);
+		}) as unknown as SnapshotStore['onClear'];
+		const originalSignOut = storage.localSignOut.bind(storage);
+		storage.localSignOut = (async (identity: Parameters<SnapshotStore['localSignOut']>[0]) => {
+			const result = await originalSignOut(identity);
+			// The clear hint reaches this tab only after the call has returned.
+			setTimeout(() => hint?.({ identity, generation: 1 }), 0);
+			return result;
+		}) as SnapshotStore['localSignOut'];
+		// The first lock request (logout's own) is slow, so the hint's retry
+		// would win the lock if it were allowed to start.
+		const inner = serialLocks();
+		let armed = false;
+		const locks = {
+			request: async (name: string, options: LockOptions, callback: () => Promise<unknown>) => {
+				if (armed) {
+					armed = false;
+					await new Promise((resolve) => setTimeout(resolve, 30));
+				}
+				return (inner as never as { request: SessionLockManager['request'] }).request(
+					name,
+					options,
+					callback
+				);
+			}
+		} as unknown as SessionLockManager;
+		const room = handle(api, storage, { sessionLocks: locks });
+		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+
+		armed = true;
+		const logout = room.logout();
+		await vi.waitFor(() => expect(api.logout).toHaveBeenCalledTimes(1));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		answer.resolve(undefined);
+		expect(await logout).toEqual({ ok: true, result: {} });
+		expect(api.logout).toHaveBeenCalledTimes(1);
+		room.release();
+		storage.close();
+	});
+
+	it.each([new NetworkError(), new ApiError(503, 'unavailable', 'down')])(
+		'reports a failed server sign-out as pending, with the contract code',
+		async (error) => {
+			const storage = snapshots();
+			const api = fakeApi();
+			api.logout.mockRejectedValue(error);
+			const room = handle(api, storage);
+			await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+			expect(await room.logout()).toMatchObject({ ok: false, code: 'server_logout_pending' });
+			expect(room.store.status).toBe('auth_required');
+			room.release();
+			storage.close();
+		}
+	);
+
 	it.each(['rejected', 'failed', 'unanswered'] as const)(
 		'keeps a late %s answer out of the cleared view and notices',
 		async (outcome) => {

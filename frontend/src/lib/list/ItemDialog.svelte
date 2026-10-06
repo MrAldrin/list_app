@@ -13,11 +13,14 @@
 
 	let {
 		item,
+		canWrite,
 		onSave,
 		onDelete,
 		onClose
 	}: {
 		item: Item;
+		/** Whether shared-data writes are authorized. */
+		canWrite: boolean;
 		/** Saves the fields. The parent closes the dialog if it worked. */
 		onSave: (changes: { name: string; description: string; quantity: number }) => Promise<void>;
 		onDelete: () => void;
@@ -35,7 +38,7 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (busy) return;
+		if (busy || !canWrite) return;
 		busy = true;
 		try {
 			await onSave({ name, description, quantity });
@@ -57,7 +60,7 @@
 				<button
 					type="button"
 					aria-label="Less"
-					disabled={quantity <= 1}
+					disabled={!canWrite || quantity <= 1}
 					onclick={() => (quantity = stepQuantity(quantity, -1))}
 				>
 					<Icon name="remove" />
@@ -66,6 +69,7 @@
 				<button
 					type="button"
 					aria-label="More"
+					disabled={!canWrite}
 					onclick={() => (quantity = stepQuantity(quantity, 1))}
 				>
 					<Icon name="add" />
@@ -73,12 +77,18 @@
 			</div>
 		</div>
 		<div class="actions">
-			<button class="delete" type="button" aria-label="Delete Item" onclick={onDelete}>
+			<button
+				class="delete"
+				type="button"
+				aria-label="Delete Item"
+				disabled={!canWrite}
+				onclick={onDelete}
+			>
 				<Icon name="delete" />
 			</button>
 			<span class="spacer"></span>
 			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy}>Save</button>
+			<button class="primary" type="submit" disabled={busy || !canWrite}>Save</button>
 		</div>
 	</form>
 </Dialog>

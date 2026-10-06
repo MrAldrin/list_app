@@ -37,7 +37,7 @@ import {
 	type SnapshotIdentity,
 	type SnapshotStore
 } from './snapshot-store';
-import { ApiError } from './types';
+import { ApiError, NetworkError } from './types';
 import type {
 	HideDone,
 	Item,
@@ -133,6 +133,24 @@ const PENDING_OPERATION_NOTICE =
 	'A change may still be saving. Sign in again to check its status before retrying it.';
 
 /** One room or one share link: committed data, queue, and live updates. */
+/** How long logout waits for the sign-out marker before it clears the view anyway. */
+export const LOCAL_SIGNOUT_TIMEOUT_MS = 5_000;
+const TIMED_OUT = Symbol('timed out');
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+		timer = setTimeout(() => resolve(TIMED_OUT), ms);
+	});
+	// A rejection after the timeout must not become an unhandled rejection.
+	promise.catch(() => undefined);
+	try {
+		return await Promise.race([promise, timeout]);
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
 export class RoomHandle {
 	readonly slug: string;
 	readonly store: RoomStore;
@@ -157,6 +175,7 @@ export class RoomHandle {
 	#signoutBlocked = false;
 	#volatileAuthorized = false;
 	#localSignoutInProgress = false;
+	#loggingOut = false;
 	#transitionError: string | null = null;
 	#revalidationAttempt = 0;
 	#revalidationTimer: ReturnType<typeof setTimeout> | null = null;
@@ -175,6 +194,7 @@ export class RoomHandle {
 		this.#hydrateSavedView = options.hydrateSavedView ?? false;
 		this.store = createRoomStore(slug, this.#api, {
 			beforeApply: () => this.#identityStillCurrent(),
+			deferClear: () => this.#localSignoutInProgress,
 			feedApplied: (data) => this.#saveSnapshot(data),
 			unauthorized: () => this.#confirmedInvalid(),
 			feedFailed: () => {
@@ -221,7 +241,7 @@ export class RoomHandle {
 		if (this.#users === 1) {
 			void this.#initialize()
 				.catch((error) => {
-					this.store.reportLoadFailure(error instanceof Error ? error.message : String(error));
+					this.store.reportLoadFailure(error);
 					this.#scheduleRevalidation();
 				})
 				.finally(() => {
@@ -497,23 +517,46 @@ export class RoomHandle {
 			// marker is rechecked before and after the request; pending logout fails closed.
 			return await transition();
 		} catch (error) {
-			this.store.reportLoadFailure(error instanceof Error ? error.message : String(error));
+			this.store.reportLoadFailure(error);
 			return failed(error);
 		}
 	}
 
 	/** Starts local sign-out immediately, then attempts only the server logout. */
 	async logout(client: Pick<Api, 'logout'> = this.#api): Promise<ActionResult> {
+		// Our own clear hint must not start a second server sign-out that races
+		// this one for the session lock and its answer.
+		this.#loggingOut = true;
+		try {
+			return await this.#logout(client);
+		} finally {
+			this.#loggingOut = false;
+		}
+	}
+
+	async #logout(client: Pick<Api, 'logout'>): Promise<ActionResult> {
 		const hadPending = this.#queue.pending.length > 0;
-		this.#blockAndClear('auth_required', false);
-		if (hadPending) this.store.notify('logout_pending', PENDING_OPERATION_NOTICE);
+		// Stop writes now, but keep showing the room until the sign-out marker is
+		// stored. Showing the password prompt first would let a quick reload find
+		// no marker and a cookie that still works.
+		this.#clearRevalidationTimer();
+		this.#signoutBlocked = true;
+		this.store.setWriteAuthorized(false);
+		this.#queue.pause();
+		// A live event or reconnect must not reload (and so clear) the room
+		// while the marker is still being stored.
+		this.#live.stop();
 		let marked = false;
 		if (this.#snapshotStore && this.#identity.kind === 'room') {
 			this.#localSignoutInProgress = true;
 			try {
-				const result = await this.#snapshotStore.localSignOut(this.#roomIdentity());
-				marked = result.ok;
-				if (result.ok) this.#snapshotGeneration = null;
+				const result = await withTimeout(
+					this.#snapshotStore.localSignOut(this.#roomIdentity()),
+					LOCAL_SIGNOUT_TIMEOUT_MS
+				);
+				// A timeout is reported as unconfirmed; a late answer changes nothing.
+				marked = result !== TIMED_OUT && result.ok;
+				if (marked) this.#snapshotGeneration = null;
 				else this.#warnSnapshot();
 			} catch {
 				this.#warnSnapshot();
@@ -521,6 +564,8 @@ export class RoomHandle {
 				this.#localSignoutInProgress = false;
 			}
 		}
+		this.#blockAndClear('auth_required', false);
+		if (hadPending) this.store.notify('logout_pending', PENDING_OPERATION_NOTICE);
 		if (!marked) {
 			this.store.setSnapshotWarning(LOGOUT_LOCAL_CLEAR_UNCONFIRMED);
 			return {
@@ -557,10 +602,12 @@ export class RoomHandle {
 			const message = serverSignedOut ? LOGOUT_MARKER_UNACKNOWLEDGED : LOGOUT_SERVER_PENDING;
 			this.store.setSnapshotWarning(message);
 			return { ok: false, code, message };
-		} catch (error) {
+		} catch {
+			// The room is already cleared here; a failed DELETE stays pending and
+			// is retried when the room opens again.
 			return serverSignedOut
 				? { ok: false, code: 'logout_marker_unacknowledged', message: LOGOUT_MARKER_UNACKNOWLEDGED }
-				: failed(error);
+				: { ok: false, code: 'server_logout_pending', message: LOGOUT_SERVER_PENDING };
 		}
 	}
 
@@ -702,7 +749,7 @@ export class RoomHandle {
 			return await validate();
 		} catch (error) {
 			this.#sessionValidated = false;
-			this.store.reportLoadFailure(error instanceof Error ? error.message : String(error));
+			this.store.reportLoadFailure(error);
 			this.#scheduleRevalidation();
 			return false;
 		}
@@ -718,7 +765,7 @@ export class RoomHandle {
 				this.#handleUnauthorizedError(error);
 				this.#sessionValidated = false;
 				if (!(error instanceof ApiError && error.status === 401)) {
-					this.store.reportLoadFailure(error instanceof Error ? error.message : String(error));
+					this.store.reportLoadFailure(error);
 					this.#scheduleRevalidation();
 				}
 				return false;
@@ -828,7 +875,7 @@ export class RoomHandle {
 			return;
 		}
 		this.#blockAndClear('auth_required', false);
-		if (!this.#localSignoutInProgress) void this.#handleClearHint();
+		if (!this.#localSignoutInProgress && !this.#loggingOut) void this.#handleClearHint();
 	}
 
 	async #handleClearHint(): Promise<void> {
@@ -1186,10 +1233,10 @@ export async function logout(slug: string, client: Api = defaultApi): Promise<Ac
 		return serverSignedOut
 			? { ok: false, code: 'logout_marker_unacknowledged', message: LOGOUT_MARKER_UNACKNOWLEDGED }
 			: { ok: false, code: 'server_logout_pending', message: LOGOUT_SERVER_PENDING };
-	} catch (error) {
+	} catch {
 		return serverSignedOut
 			? { ok: false, code: 'logout_marker_unacknowledged', message: LOGOUT_MARKER_UNACKNOWLEDGED }
-			: failed(error);
+			: { ok: false, code: 'server_logout_pending', message: LOGOUT_SERVER_PENDING };
 	}
 }
 
@@ -1203,8 +1250,21 @@ export async function whoAmI(slug: string, client: Api = defaultApi): Promise<Ro
 	}
 }
 
-/** The server's last-room hint is routing only, never authorization. */
-/** The last-room hint is for routing only; it never authorizes access. */
-export function lastRoom(client: Api = defaultApi): Promise<string | null> {
-	return client.lastRoom();
+/** The server's last-room hint is routing only; it never authorizes access. */
+export async function lastRoom(
+	client: Pick<Api, 'lastRoom'> = defaultApi,
+	snapshots: Pick<SnapshotStore, 'lastRoom'> = browserSnapshots()
+): Promise<string | null> {
+	try {
+		return await client.lastRoom();
+	} catch (error) {
+		const temporary =
+			error instanceof NetworkError ||
+			(error instanceof ApiError &&
+				([502, 503, 504].includes(error.status) || error.code === 'unavailable'));
+		if (!temporary) throw error;
+		const saved = await snapshots.lastRoom();
+		if (!saved.ok) throw error;
+		return saved.value;
+	}
 }

@@ -11,7 +11,8 @@
 		label,
 		initial = '',
 		onSave,
-		onClose
+		onClose,
+		saveDisabled = false
 	}: {
 		title: string;
 		label: string;
@@ -19,6 +20,7 @@
 		/** Saves the name. The parent closes the dialog if it worked. */
 		onSave: (name: string) => Promise<void>;
 		onClose: () => void;
+		saveDisabled?: boolean;
 	} = $props();
 
 	const inputId = $props.id();
@@ -29,7 +31,7 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (busy) return;
+		if (busy || saveDisabled) return;
 		busy = true;
 		try {
 			await onSave(name);
@@ -45,7 +47,7 @@
 		<input id={inputId} bind:value={name} autocomplete="off" enterkeyhint="done" />
 		<div class="actions">
 			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy}>Save</button>
+			<button class="primary" type="submit" disabled={busy || saveDisabled}>Save</button>
 		</div>
 	</form>
 </Dialog>

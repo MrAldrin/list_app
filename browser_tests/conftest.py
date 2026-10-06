@@ -123,6 +123,56 @@ def browser(request):
         browser.close()
 
 
+API_PREFIX = "/api/v1/"
+API_QUIET_SECONDS = 0.3
+
+
+def track_api_requests(page: Page) -> None:
+    """Remember which API requests of the page have not answered yet.
+
+    A live stream counts as answered when its response starts.
+    """
+    pending: set = set()
+    page.api_pending = pending
+    page.api_last_activity = time.monotonic()
+
+    def touch():
+        page.api_last_activity = time.monotonic()
+
+    def started(request):
+        if API_PREFIX in request.url:
+            pending.add(request)
+            touch()
+
+    def ended(request):
+        if request in pending:
+            pending.discard(request)
+            touch()
+
+    page.on("request", started)
+    page.on("response", lambda response: ended(response.request))
+    page.on("requestfinished", ended)
+    page.on("requestfailed", ended)
+
+
+def wait_for_api_idle(page: Page, timeout_ms: int = 5_000) -> None:
+    """Wait until the page has sent no API request for a short while.
+
+    The room reloads and reopens its live stream after route changes. WebKit
+    reports requests that a navigation or a closing page cancels as page
+    errors, so tests wait before they leave a page.
+    """
+    if not hasattr(page, "api_pending"):
+        return
+    waited = 0
+    while waited < timeout_ms and not page.is_closed():
+        quiet = time.monotonic() - page.api_last_activity >= API_QUIET_SECONDS
+        if quiet and not page.api_pending:
+            return
+        page.wait_for_timeout(25)
+        waited += 25
+
+
 class BrowserSessions:
     """Separate browser contexts with traces, screenshots and error checks."""
 
@@ -142,7 +192,9 @@ class BrowserSessions:
         )
         context.on("weberror", lambda error: self.errors.append(str(error.error)))
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
-        return context.new_page()
+        page = context.new_page()
+        track_api_requests(page)
+        return page
 
     def close(self):
         cleanup_errors = []
@@ -151,6 +203,7 @@ class BrowserSessions:
                 for index, page in enumerate(context.pages):
                     if not page.is_closed():
                         try:
+                            wait_for_api_idle(page)
                             page.screenshot(
                                 path=str(self.directory / f"{role}-{index}.png")
                             )

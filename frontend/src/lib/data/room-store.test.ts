@@ -10,6 +10,7 @@ import {
 	settle,
 	type Deferred
 } from './test-helpers';
+import { SNAPSHOT_SCHEMA_VERSION, type SavedSnapshot } from './snapshot-store';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Op, SentOp } from './types';
 
@@ -125,6 +126,20 @@ describe('RoomStore.applyFeed', () => {
 });
 
 describe('RoomStore.refresh', () => {
+	it('marks only a missing connection as unreachable', async () => {
+		const down = storeWith(vi.fn().mockRejectedValue(new NetworkError()));
+		await down.refresh();
+		expect(down.unreachable).toBe(true);
+
+		const busy = storeWith(vi.fn().mockRejectedValue(new ApiError(500, 'unavailable', 'Busy.')));
+		await busy.refresh();
+		expect(busy.status).toBe('error');
+		expect(busy.unreachable).toBe(false);
+
+		busy.reportLoadFailure(new NetworkError());
+		expect(busy.unreachable).toBe(true);
+	});
+
 	it('loads with since=seq and becomes ready', async () => {
 		const changes = vi.fn(async () => makeFeed({ seq: 3, full: true }));
 		const store = storeWith(changes);
@@ -578,5 +593,58 @@ describe('connection state for the indicator', () => {
 		await store.refresh();
 		expect(store.status).toBe('error');
 		expect(store.stale).toBe(true);
+	});
+});
+
+describe('RoomStore.unconfirmedView', () => {
+	const saved: SavedSnapshot = {
+		schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+		identity: { kind: 'room', slug: ROOM.slug },
+		room: ROOM,
+		seq: 3,
+		lists: [makeList()],
+		items: [],
+		savedAt: '2026-10-06T10:00:00.000Z'
+	};
+
+	it('is true for a saved view until a feed is applied, not during later write blocks', async () => {
+		const feed = makeFeed({ seq: 4, full: true, lists: [makeList()] });
+		const store = storeWith(async () => feed);
+		store.hydrate(saved);
+		expect(store.unconfirmedView).toBe(true);
+
+		expect(await store.refresh()).toBe(true);
+		expect(store.unconfirmedView).toBe(false);
+
+		// Revalidation switches writes off, but the data is confirmed.
+		store.setWriteAuthorized(false);
+		expect(store.readOnly).toBe(true);
+		expect(store.unconfirmedView).toBe(false);
+	});
+
+	it('is true after a failed load and false again after the next feed', async () => {
+		let fail = true;
+		const store = storeWith(async () => {
+			if (fail) throw new NetworkError();
+			return makeFeed({ seq: 4, full: true, lists: [makeList()] });
+		});
+		store.applyFeed(makeFeed({ seq: 2, full: true, lists: [makeList()] }));
+		expect(store.unconfirmedView).toBe(false);
+
+		await store.refresh();
+		expect(store.unconfirmedView).toBe(true);
+		fail = false;
+		await store.refresh();
+		expect(store.unconfirmedView).toBe(false);
+	});
+
+	it('is true while the live connection is lost', () => {
+		const store = storeWith();
+		store.applyFeed(makeFeed({ seq: 2, full: true, lists: [makeList()] }));
+		expect(store.unconfirmedView).toBe(false);
+		store.liveChanged('reconnecting');
+		expect(store.unconfirmedView).toBe(true);
+		store.liveChanged('open');
+		expect(store.unconfirmedView).toBe(false);
 	});
 });

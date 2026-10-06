@@ -8,7 +8,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { lastRoom } from '#lib/data/index.ts';
+	import { lastRoom, NetworkError } from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
 
 	let message = $state('');
@@ -21,10 +21,14 @@
 				return goto(resolve('/room/[slug]/list/[list]', { slug, list }), { replaceState: true });
 			}
 			failed = false;
-			message = 'Open your room link to continue.';
-		} catch {
+			message = 'Connect to open this saved list, or open your room link.';
+		} catch (error) {
 			failed = true;
-			message = 'Could not check your last room. Open your room link to continue.';
+			// Only "no connection" gets the connect wording; a server error says so.
+			message =
+				error instanceof NetworkError
+					? 'Connect to open this saved list, or retry when the server is available.'
+					: 'Could not open this list. Please try again.';
 		}
 	}
 

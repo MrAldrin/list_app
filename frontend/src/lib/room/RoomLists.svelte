@@ -48,7 +48,12 @@
 	}
 </script>
 
-<button class="outline add" type="button" onclick={() => (creating = true)}>
+<button
+	class="outline add"
+	type="button"
+	disabled={room.store.readOnly}
+	onclick={() => (creating = true)}
+>
 	<Icon name="add" />
 	Add New List
 </button>
@@ -67,6 +72,7 @@
 					class="icon"
 					type="button"
 					aria-label="Rename {list.name}"
+					disabled={room.store.readOnly}
 					onclick={() => (renaming = list)}
 				>
 					<Icon name="edit" />
@@ -75,6 +81,7 @@
 					class="icon delete"
 					type="button"
 					aria-label="Delete {list.name}"
+					disabled={room.store.readOnly}
 					onclick={() => (deleting = list)}
 				>
 					<Icon name="delete" />
@@ -88,6 +95,7 @@
 	<NameDialog
 		title="New List"
 		label="List name"
+		saveDisabled={room.store.readOnly}
 		onSave={createList}
 		onClose={() => (creating = false)}
 	/>
@@ -99,6 +107,7 @@
 		title="Edit '{list.name}'"
 		label="List Name"
 		initial={list.name}
+		saveDisabled={room.store.readOnly}
 		onSave={(name) => renameList(list, name)}
 		onClose={() => (renaming = null)}
 	/>
@@ -109,6 +118,7 @@
 	<ConfirmDialog
 		question="Delete '{list.name}' and its {room.store.itemsOf(list.uid).length} items?"
 		confirmLabel="Delete"
+		confirmDisabled={room.store.readOnly}
 		onConfirm={() => deleteList(list)}
 		onClose={() => (deleting = null)}
 	/>
