@@ -14,35 +14,47 @@ Status: approved by the owner on 2026-10-03 as the working plan. Reviewed on
 
 1. Read this whole file, then [`AGENTS.md`](../AGENTS.md) and
    [`ARCHITECTURE.md`](../ARCHITECTURE.md).
-2. Find the first unchecked step in [Progress](#progress). Do that step only,
-   unless the owner asks for more.
-3. Work on the `svelte-frontend` branch (see [Branches](#branches)).
+2. Find the first unchecked step in [Progress](#progress). For Milestone 5,
+   get the fresh-session approval first, then continue the approved steps to
+   Gate V. Outside that milestone, do one step unless the owner asks for more.
+3. Follow [Branches](#branches); Milestone 5 continues the current planning
+   line, not the stale `svelte-frontend` bookmark.
 4. Run all [checks](#checks-for-every-step) before you call a step done.
 5. Tick the step in [Progress](#progress) and add a short note if useful.
 6. If you hit a decision, follow [Decisions without the owner](#decisions-without-the-owner).
 7. Stop only at a [gate](#gates) or a [hard stop](#hard-stops).
 
-The owner does **not** review between steps. Tests are the review. Make every
-step leave the app working, with all checks green.
+Once the fresh-session implementation approval is given, the owner does
+**not** review between steps. Tests and supervisor review are the review.
+Continue through Milestone 5's steps, then stop at its owner-review gate.
+Make every accepted step leave the app working, with its required checks green.
 
 ## Branches
 
-```
-main ─ … ─ tooling ─┬─ svelte-frontend   (this plan; AI implementation)
-                     └─ svelte-learning   (owner's practice code; never merge)
-```
+The online rewrite has shipped. The `svelte-frontend` bookmark still points
+at the earlier production switch; it is not the offline starting point.
 
-- Build every step on top of the `svelte-frontend` bookmark. Move that bookmark
-  to your newest change at the end of the session.
+- For Milestone 5, continue the existing documentation/planning line above
+  deployed `main`, containing the approved offline decisions. Inspect
+  `jj status`, bookmarks, graph and diff first; preserve edits. Do not create
+  independent work from the currently older `integration` or check out the
+  stale `svelte-frontend` bookmark and lose the subsequent fixes/plan.
+- This is continuation of an existing line, not permission to move bookmarks.
+  Do not move `integration`, `main-staging`, `svelte-frontend` or `main` without
+  explicit approval. If the graph has changed, ask rather than guessing.
 - Never build on, merge or rebase onto `svelte-learning` or
   `backup-offline-read-only`.
-- One jj change per step, described as `<area> - svelte <topic>: <what>`, for
-  example `api - svelte items: add item write endpoints`.
-- Rebase onto `main` when `main` has moved, at the start of a session. Resolve
-  conflicts carefully; `plans/backlog.md` and migrations are the likely spots.
-- Nothing from this plan goes to `main` before [Gate B](#gates).
-- The `field-constraints` branch also changes the schema. If it lands on `main`
-  first, renumber this plan's migrations after rebasing.
+- One reviewable jj change per logical step (behavior and tests together).
+  For Milestone 5 use the stable task prefix `offline - viewing`, for example
+  `offline - viewing: cache complete app versions`. Leave an empty working
+  child when done; do not manufacture a summary merge.
+- Rebase only with explicit approval and coordination with agents using the
+  affected line. Never rewrite another agent's active work to tidy the graph.
+- The original production switch (Gate B) is complete. Offline work still
+  needs separate approval before moving/pushing `main`; no automated deploy.
+- The `field-constraints` line also concerns the schema. The deployed schema is
+  version 5 after the positive-counter fix. Any new migration must follow the
+  current migration list; never renumber an already-deployed migration.
 
 ## Goal and scope
 
@@ -60,12 +72,13 @@ including editing. We get there in milestones. Offline is **built** last, but
 ## Gates
 
 A gate is a planned stop where the owner reviews. Between gates, agents keep
-going. There are only three.
+going. The viewing milestone has its own gate before offline editing.
 
 | Gate | When | Owner does |
 |---|---|---|
 | **A: prototype review** | After Milestone 2 | Tests on this laptop and the iPhone (local network). Reviews the [decisions log](#decisions-log). Decides: continue the migration, adjust, or stop. |
 | **B: production switch** | After Milestone 4 | Approves the push to `main` (a production deploy), using the deployment checklist. |
+| **V: offline viewing review** | After Milestone 5 | Tests cold launch, read-only viewing and reconnect on the iPhone. Accepts or asks for changes. Stops work before Milestone 6; deployment needs separate approval. |
 | **C: offline review** | After Milestone 6 | Tests offline viewing and editing on the iPhone, including two devices. Accepts or asks for changes. |
 
 ## Hard stops
@@ -186,6 +199,10 @@ npm run format && npm run lint && npm run check && npm run test && npm run build
 
 From Milestone 2 on, also run the Svelte browser tests:
 `uv run pytest browser_tests -q -k svelte`.
+For Milestone 5, the owner approved batching the long browser suite: use the
+[validation cadence](#milestone-5-validation-cadence) below instead of rerunning
+all browser tests after every tiny edit. Python completion checks above and in
+`AGENTS.md` remain mandatory; this exception is for browser-test cadence.
 
 - **Python API tests** go in `tests/test_api_*.py`.
 - **Frontend unit tests** use Vitest, next to the code (`*.test.ts`), mainly
@@ -392,11 +409,12 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
 
 ### Milestone 5: offline viewing
 
-**Planning status:** owner approved the viewing scope below. Storage/privacy,
-reconnect behavior and the step-by-step handoff are still under discussion.
-Do not start implementation from the earlier blanket plan approval; a fresh
-agent starts only after the owner approves the completed offline-viewing plan.
-This remains part of this `Lifecycle: tracked` plan.
+**Planning status:** behavior decisions are approved and the execution/test
+plan is ready. No offline feature has been implemented. The fresh agent first
+summarizes this task and asks for implementation approval; afterward it may
+supervise subagents through all steps without asking between routine steps.
+Stop at Gate V, a hard stop, or an unresolved material decision. This remains
+part of this `Lifecycle: tracked` plan.
 
 **Approved scope (2026-10-06):**
 
@@ -441,7 +459,9 @@ This remains part of this `Lifecycle: tracked` plan.
 - Keep backend/API updates compatible with already-open frontend versions
   where practical. A database migration is not itself a reason to erase
   browser data; the API boundary and local storage schema determine
-  compatibility.
+  compatibility. Do not infer incompatibility from an ordinary validation
+  error or server failure. Prefer additive API changes; introduce an explicit
+  compatibility signal only if the implementation actually needs one.
 - Version saved data. Upgrade compatible caches safely; an incompatible or
   corrupt read-only snapshot may be discarded and downloaded again online.
   If offline, show "Connect to refresh saved data" rather than crash or show
@@ -455,28 +475,180 @@ This remains part of this `Lifecycle: tracked` plan.
   detection and safe reload mechanism are implementation design work, not
   permission to add an elaborate recovery system.
 
-**Decisions still to review, one at a time:**
+#### Implementation defaults and boundaries
 
-- Exact offline logout/session handling and independently authorized
-  room/share copies; the data-clearing rules above are approved.
-- Acceptance checks and small implementation steps, with an owner review of
-  offline viewing before beginning Milestone 6 (app-update behavior approved).
-- Confirm the jj starting point and bookmark instructions for the fresh agent:
-  the production switch and subsequent fixes have moved `main`; the earlier
-  branch instructions must not make the agent build on a stale baseline.
+These are the supervisor's technical defaults, not extra product scope:
+
+- Keep the service worker responsible only for the app shell/assets. Do not
+  cache API answers, session endpoints, live streams, passwords or admin data
+  with Cache Storage. Save validated list snapshots in IndexedDB through the
+  existing data layer, with explicit room/share identities and a schema version.
+- Save committed server state and its sequence together in one transaction,
+  not optimistic overlays, unanswered writes or authentication claims. A room
+  feed already loads all its lists/items; these count as successfully loaded
+  data. Share snapshots contain only their list and no room privileges.
+- Persist last-room routing metadata only after successful loading. It is not
+  authorization. Offline `/` can open the last saved room; direct room/list/share
+  URLs must also work. Do not add a multi-room chooser in this milestone.
+- A lost/corrupt/unavailable cache must not break online use. Discard only the
+  affected read-only snapshot, explain when offline viewing is unavailable,
+  and recover on the next successful authorized load. Handle quota failures
+  and version upgrades without a crash; do not promise permanent storage.
+- Local logout clears that room's visible/persisted data immediately, even
+  offline. A persisted local sign-out marker blocks automatic reopening or
+  re-saving through a still-valid HTTP-only cookie until server logout succeeds
+  or the user explicitly signs in online. Do not claim offline logout revokes
+  the server cookie. Retry only the pending server logout, not new offline edits.
+- A room logout/revocation does not revoke independently held public links.
+  Keep share-only snapshots separate and strip room metadata/privileges; clear
+  a share snapshot when that link is confirmed invalid. Coordinate clearing
+  across tabs and reject late fetch/save results after logout or revocation.
+- Gate shared-data writes centrally as well as in the UI. No offline creates,
+  checking, quantity changes, edits, deletion/undo, tag changes, hide-done saves,
+  room management or share-link reset. Local search/filter/theme are allowed.
+  Preserve existing uncertain online operations and retry-safe `op_id`s; do not
+  persist an offline write queue or invent conflict rules in Milestone 5.
+- Use `/service-worker.js` (or another distinct new URL); keep `/sw.js` and its
+  legacy removal behavior until at least 2027-04-06. Test takeover from the old
+  worker: its broad cache deletion and forced navigation must not race the new
+  cache into an unusable state. The new worker must be JavaScript, never the SPA
+  HTML fallback. Partial installs cannot replace the last complete app version.
+- Handle old/new tabs and lazy route assets across deploys. Do not blindly
+  `skipWaiting`, claim clients, delete old caches, or reload every tab. Prefer
+  the smallest tested lifecycle that preserves complete versions and applies
+  the update at a safe subsequent navigation/load. A necessary compatibility
+  refresh must first account for in-flight operations.
+- Per-list share change tracking remains agreed work (decision 147), but its
+  design/implementation moves to Milestone 6. Do not turn read-only viewing
+  into an unrelated API/schema redesign. Ask if safe viewing requires it earlier.
 
 - **5.0** HTTPS for phone testing through background Tailscale Serve. See the
   [local network guide](../docs/local-network-testing.md#https-on-the-phone).
   The script still prints direct HTTP addresses; use `tailscale serve status`
   to find the HTTPS address. Updating script output is not an offline blocker.
-- **5.1** Service worker (SvelteKit's built-in support) caches the app files.
-- **5.2** The data layer stores lists and items in IndexedDB, with a schema
-  version for upgrades.
-- **5.3** Offline and stale indicators in the UI.
-- **5.4** Privacy rules: clear saved data on logout and on revoked access;
-  decide what happens on shared devices.
-- **5.5** Browser tests with Playwright's offline mode: cold start offline,
-  reconnect, deploy update.
+- **5.1 App shell:** use SvelteKit service-worker support to save a complete
+  version of the shell, CSS, scripts and lazy-route assets. Add server routing
+  only if needed. Prove offline shell launch, failed installs and legacy-worker
+  takeover before accepting this step. No API/data caching here.
+- **5.2 Snapshot storage:** add a small versioned IndexedDB adapter with an
+  injectable test boundary; atomic server snapshots, namespaced room/share
+  identities, clear/read/save and stale-response invalidation. Unit-test
+  round trips, deletion, schema mismatch, quota errors and races. Define the
+  hydration/persistence contract before UI integration; do not expose snapshots
+  to users until read-only and clearing guards are ready.
+- **5.3 Offline integration:** hydrate room/share handles and offline routes,
+  including `/`, deep links and previously loaded lists. Clearly show a saved,
+  potentially outdated view and optionally last successful refresh time.
+  Central write gates, disabled mutation controls, local search/filter, unknown
+  room/link states and automatic revalidation/refresh must work together.
+  Accept storage and integration as a wave only with the 5.4 guards below.
+- **5.4 Privacy/lifecycle:** complete logout markers, cross-tab clearing,
+  confirmed revocation, invalid links, room/list deletion, storage loss and
+  save-after-clear protection. Settle/account for existing in-flight writes;
+  use no persisted edit queue. Test reconnect and foreground resume without
+  granting editing before an authorized successful refresh.
+- **5.5 Acceptance/review:** complete deployment-update and offline browser
+  scenarios, run final gates, update current docs to describe implemented
+  behavior and prepare the iPhone checklist. Capture evidence separately in
+  `docs/background/`, tick only verified work, then stop at Gate V. No deploy
+  or Milestone 6 implementation from this approval.
+
+#### Milestone 5 subagent execution
+
+The next main agent is the supervisor. The owner authorizes delegation after
+fresh-session implementation approval, preferably parallel where independent
+and sequential where dependent.
+
+- Follow the global model policy: start children on GPT-6 Luna at xhigh;
+  escalate substantive failures to GPT-6 Sol at medium. Discover available
+  agents/models with `subagent` and use exact provider/id strings. Do not
+  silently replace unavailable requested models or change execution protocols.
+- Start with a small parallel read-only recon wave: (A) worker/cache/update
+  lifecycle and server routes; (B) data-layer hydration, authorization and
+  write-queue races. Each returns file-level findings and a bounded contract.
+  The supervisor reconciles contracts before writers start.
+- This milestone is multi-seam. Assign app-shell and snapshot-storage owners
+  distinct files/contracts; after those handoffs, use an integration owner for
+  data-layer/UI/privacy wiring. Parallel writers need isolated jj workspaces
+  and explicit non-overlapping ownership; otherwise run them sequentially.
+  Use jj-aware lane setup, not unmanaged Git worktrees that bypass the jj graph.
+- Record a lane board: owner, cwd/workspace, revision, claimed files/contract,
+  dependencies, next test gate, report and state. One writer per workspace.
+  Children do not move bookmarks, push, deploy, alter production, delete tests
+  or spawn more children. Supervisor alone accepts and incorporates results.
+- Give each child a cold-start brief: objective, exact repo/ref, edit boundary,
+  approved behavior, tests, expected diff/report and stop conditions. Require
+  durable handoffs with changed files, actual test commands/results and risks.
+  Never commission the entire milestone to a smaller worker as one task.
+- Delegate long tests to one validation owner against a stable integrated
+  revision; do not run formatting/builds in a shared checkout while another
+  writer edits it. Independent read-only review can run in parallel. Keep logs
+  and scratch reports in managed artifacts, not committed source directories.
+- Review integrated security/lifecycle behavior with a fresh-context reviewer.
+  Resolve material findings, rerun affected tests, and continue. Cap repeated
+  repair cycles at three per seam before escalating/reporting the blocker.
+- Maintain progress/evidence after each accepted wave, not just at session end.
+  If context/time runs low, stop writers safely and checkpoint exact revisions,
+  validation, active runs and next action. Long-running does not mean unbounded
+  scope, repeated optional polish or unattended production deployment.
+
+#### Milestone 5 validation cadence
+
+The owner allows batching slow browser tests; never skip a failure or weaken a
+check. Full Python checks remain required before declaring a Python task done.
+
+- Each edit/worker handoff: relevant unit tests and narrow browser regressions
+  for changed behavior; supervisor inspects the diff. Before accepting a step,
+  run frontend format/lint/type checks, all Vitest tests and a production build
+  when frontend files changed. These cheap checks should not be deferred.
+- 5.1 gate: relevant worker-serving Python tests plus built-app worker/offline
+  shell tests in Chromium, Firefox and WebKit, including old `/sw.js` takeover.
+- 5.2 gate: snapshot unit tests; no full browser rerun for an unexposed adapter.
+- 5.3/5.4 integrated gate: offline cold load and reconnect/write-blocking,
+  logout/revocation and deletion tests in all three engines; targeted existing
+  online room/item/share/live tests. Do not declare 5.3 user-ready without 5.4.
+- Final 5.5 gate: `uv run pytest browser_tests -q -n 4` once on the integrated
+  candidate, plus all applicable Python and frontend completion checks. Since
+  this suite includes legacy-worker checks, use the full suite, not just
+  `-k svelte`. Rerun affected tests after fixes; rerun the full browser suite
+  again if the last green candidate changed in core routing/auth/worker/data
+  behavior. Documentation-only edits do not invalidate test evidence.
+- Do not repeat a slow suite merely because a new atomic change was described
+  with no relevant code change. Record revision and commands for every gate;
+  progress must distinguish implemented, locally verified and device-verified.
+
+#### Milestone 5 acceptance matrix
+
+Add tests with each behavior, not only at the final step:
+
+- Online load/save, then offline cold start/reload at `/`, room, private-list
+  (both current and legacy URL shape) and share URLs; navigate saved lists.
+  An app-shell-only/no-data device gives a clear connect message, not a spinner.
+- Search/tag filtering and current hide-done display work on saved items.
+  Each mutation category is blocked in UI and data layer; no new mutation
+  request, queue entry or optimistic overlay is created while read-only.
+- Reconnect/foreground resume revalidate then refresh before editing; other
+  device edits, deletions and password-reset revocation appear correctly.
+  401/confirmed invalid-link results clear; network failures/5xx keep snapshots.
+- Room/share caches cannot cross-authorize; offline member metadata does not
+  grant a share view room privileges. Logout/revocation clears across tabs,
+  late responses cannot repopulate it, and offline logout markers survive reload.
+- Quota/IndexedDB denial, cleared storage, corruption and version mismatch do
+  not crash online use; offline cache misses explain how to recover.
+- Existing online in-flight operations at disconnect/update remain accounted
+  for and use the same `op_id` on retry. Cache snapshots contain server state,
+  not pending projections. An update cannot silently clear an unsaved draft.
+- Deploy A to B with an old tab and lazy navigation; complete update installs,
+  incomplete downloads, reopening offline and legacy-worker takeover preserve
+  a usable complete app. Compatibility mismatch blocks writes and offers a
+  safe reload; never fake an API success from cache.
+- Real iPhone (owner gate): load a room and share list online over HTTPS; close
+  and reopen from Safari and a home-screen icon in airplane mode; navigate,
+  search/filter, confirm edits are unavailable; reconnect without reload and
+  verify another device's change; test logout and a revoked link; deploy-update
+  behavior when practical. Record iOS/browser version. Local WebKit is not proof
+  of real iPhone behavior.
+
 
 ### Milestone 6: offline editing
 
@@ -715,7 +887,10 @@ Milestone 4: switch
 - [x] 4.3 Remove NiceGUI (`src/main.py` slim entry, `src/server.py` app factory with lifespan, `src/pwa_routes.py` old install routes and the `/sw.js` kill switch, `src/svelte_frontend.py` without `replaces=`; `pyproject.toml` has `fastapi` and `uvicorn[standard]`, no `nicegui`; `src/ui/`, `src/room_access.py`, `src/static/sw.js` deleted; `NICEGUI_STORAGE_SECRET` removed from code, `.env.example`, `scripts/serve_svelte_local.py`, test conftest, README and `docs/deployment.md`; tests: [retirement list](../docs/background/nicegui-test-retirement.md), `tests/test_pwa_routes.py`, `tests/test_room_token_validation.py`, `browser_tests/test_old_service_worker.py`; decisions 159-161)
 - [x] 4.4 Docs update (`ARCHITECTURE.md` new stack, SSE, cookies, kill switch; `README.md`, `docs/deployment.md` with Railway settings and the 2 to 4 rollback; `docs/api.md`, `docs/home-screen-installation.md` and other docs lose NiceGUI statements; history notes on `docs/background/` files; backlog items fixed; code comments updated. Test retirement was done in 4.3 and confirmed: no NiceGUI-only tests remain. Decision 162)
 - [x] 4.5 Deploy rehearsal (podman image on a copy of the 2026-10-04 backup, 11 rooms, 22 lists, 314 items: migration 2 to 4 ok with ids and uids intact, pages, old URLs, kill switch, API writes, op retry, share, stream, restart, real Chromium run all pass; an old `main` room cookie still grants access in the new code; `main` code refuses the migrated database and starts on the pre-migration copy; all checks green (pytest 1188, vitest 294, browser 165); details in [the rehearsal note](../docs/background/deploy-rehearsal-2026-10-06.md); open risk: `FORWARDED_ALLOW_IPS` on Railway, see the backlog check)
-- [ ] **Gate B: owner approves production switch**
+- [x] **Gate B: owner approves production switch** (online Svelte app is live;
+  subsequent fixes deployed at `b7c411bc`; [deployment evidence](../docs/background/fixes-deployment-2026-10-06.md).
+  Owner reports the app looks correct; specific pending device/production checks
+  remain in the backlog, not implied complete.)
 
 Milestone 5: offline viewing
 - [x] 5.0 HTTPS for phone testing: owner enabled background Tailscale Serve
@@ -723,11 +898,14 @@ Milestone 5: offline viewing
   sign-in survived a refresh. HTTP port 8080 access remains allowed by choice.
   Script output is unchanged; the guide explains how to find the HTTPS URL.
   This verifies phone access and refresh persistence, not offline support.
-- [ ] 5.1 Service worker
-- [ ] 5.2 IndexedDB storage
-- [ ] 5.3 Offline indicators
-- [ ] 5.4 Privacy rules
-- [ ] 5.5 Offline browser tests
+- [x] Offline-viewing behavior decisions and execution/test plan prepared.
+- [ ] Fresh-session owner approval to begin Milestone 5 implementation.
+- [ ] 5.1 App-shell worker and legacy takeover, implemented and locally verified.
+- [ ] 5.2 Versioned snapshot adapter, implemented and locally verified.
+- [ ] 5.3 Read-only views/routing/reconnect, verified with 5.4 guards.
+- [ ] 5.4 Privacy, logout and revocation lifecycle, locally verified.
+- [ ] 5.5 Acceptance matrix, full final checks, current docs and owner checklist.
+- [ ] **Gate V: owner offline-viewing review** (no deployment approval implied).
 
 Milestone 6: offline editing
 - [ ] 6.1 Conflict rules design

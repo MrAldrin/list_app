@@ -34,13 +34,13 @@ that talk to the Python API.
 
 ## Where the work lives
 
-- Develop on the `svelte-frontend` bookmark, branched from `main`. Rebase it
-  onto `main` regularly to keep conflicts small. Do not build on
-  `backup-offline-read-only` (reference only) or `svelte-learning` (practice).
+- The online app is deployed. For offline continuation, follow the current
+  [branch instructions](svelte-frontend-rewrite.md#branches), not the earlier
+  `svelte-frontend` starting point. Bookmark moves and rebases need approval.
 - Put the Svelte project in `frontend/`; Python stays in `src/`.
-- The API and the Svelte frontend stay on the branch until the production switch
-  (Gate B in the rewrite plan). Pushing `main` deploys; follow the deployment
-  checklist.
+- Offline work stays off production until separately approved. Pushing `main`
+  deploys; follow the deployment checklist. Do not build on the historical
+  offline experiment or the owner's learning line.
 
 ## Learning approach
 
