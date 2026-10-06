@@ -10,8 +10,9 @@ Old addresses keep working: the old page shapes (/room/{slug},
 too, /admin/login goes to /admin, and /app/... (where the app ran during phone
 testing) goes to the same address at the root.
 
-The home-screen install manifests and the old install addresses are in
-src/pwa_routes.py.
+The SvelteKit service worker is served from the generated build at
+/service-worker.js. A missing worker file is a 404, never the SPA page. The old
+home-screen install manifests and /sw.js kill switch are in src/pwa_routes.py.
 """
 
 import logging
@@ -136,8 +137,8 @@ def register_svelte_frontend(app: FastAPI, build_dir: Path = DEFAULT_BUILD_DIR) 
                 else REVALIDATE_CACHE
             )
             return _file_response(file, cache)
-        if path.startswith("_app/"):
-            # A missing build file is a real 404, not a page; serving HTML as
+        if path == "service-worker.js" or path.startswith("_app/"):
+            # Missing build files are real 404s, not pages; serving HTML as
             # JavaScript would only hide the error.
             return Response(status_code=404)
         no_store = path == "" or path.startswith(NO_STORE_PREFIXES)

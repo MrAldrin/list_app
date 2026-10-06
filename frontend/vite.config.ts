@@ -14,7 +14,9 @@ export default defineConfig({
 			// SPA mode: build plain static files into `build/`. Every URL the
 			// server does not know falls back to `index.html`, and the router in
 			// the browser picks the page.
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+			// The layout registers the worker after the legacy /sw.js cleanup gate.
+			serviceWorker: { register: false }
 			// Python serves the built app at the root (`/`), so no `paths.base`.
 		})
 	],

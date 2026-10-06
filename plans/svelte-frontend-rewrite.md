@@ -409,12 +409,12 @@ Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
 
 ### Milestone 5: offline viewing
 
-**Planning status:** behavior decisions are approved and the execution/test
-plan is ready. No offline feature has been implemented. The fresh agent first
-summarizes this task and asks for implementation approval; afterward it may
-supervise subagents through all steps without asking between routine steps.
-Stop at Gate V, a hard stop, or an unresolved material decision. This remains
-part of this `Lifecycle: tracked` plan.
+**Implementation status:** the owner approved this session to supervise all
+Milestone 5 steps through local verification and Gate V preparation. Continue
+with bounded subagents without asking between routine steps. Progress below
+records implementation and verification separately; approval is not evidence
+that offline viewing already works. Stop at Gate V, a hard stop, or an unresolved
+material decision. This remains part of this `Lifecycle: tracked` plan.
 
 **Approved scope (2026-10-06):**
 
@@ -835,6 +835,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 161 | Step 4.3, tests: the NiceGUI-only Python tests (13 files, 92 tests) and browser tests (4 files, 63 runs, and 4 single tests, 12 runs; all but one were skipped since 4.2) were deleted; rules only the NiceGUI pages checked were ported (`tests/test_room_token_validation.py`, `tests/test_item_undo.py`, `tests/test_list_identity.py`); `browser_tests/conftest.py` starts the server with plain `uvicorn.run`, the unused `sessions` fixture, `nicegui_sign_in` and the service-worker block for WebKit (decision 125) are gone. List and reasons: [NiceGUI test retirement](../docs/background/nicegui-test-retirement.md) | The plan retires NiceGUI-only tests; no rule is lost | Keep skipped tests | Low |
 | 162 | Step 4.4, docs: top-level docs describe only the Svelte + FastAPI app. `docs/background/` files that still describe NiceGUI got a one-line history note. `docs/deployment.md` gets a Railway settings list and the two-step rollback (restore the pre-migration copy, then redeploy the old commit) for the first deploy's migrations 2 to 4. The backlog's legacy localStorage cleanup item now asks whether the Svelte start page should do it, because the old code is gone | Docs must not describe code that no longer exists; the cleanup question is real, the old code ran only on NiceGUI visits | Delete the backlog item | Low |
 | 163 | Owner, 2026-10-06 (after Gate B summary): drop the legacy localStorage room-password cleanup item. The Svelte app gets no cleanup | Few users; every browser that visited since 2026-09-18 is clean; Svelte escapes text, so XSS that could read old keys is unlikely | One-time cleanup on the Svelte start page | Low |
+| 164 | Milestone 5.1: worker-controlled navigation uses its complete cached shell, while a downloaded update waits for old controlled tabs to close. Registering on a later load checks for an update; no forced reload or claim. Pre-worker/uncontrolled first-install tabs remain a separate first-rollout deployment prerequisite | Network-first navigation can pair new HTML with an old worker and leave new lazy chunks unavailable offline; complete-version loading implements the approved non-disruptive updates | Network-first shell with a more complex per-client version protocol; retain prior builds for initial rollout (not authorized here) | Low |
 
 ## Progress
 
@@ -899,8 +900,12 @@ Milestone 5: offline viewing
   Script output is unchanged; the guide explains how to find the HTTPS URL.
   This verifies phone access and refresh persistence, not offline support.
 - [x] Offline-viewing behavior decisions and execution/test plan prepared.
-- [ ] Fresh-session owner approval to begin Milestone 5 implementation.
-- [ ] 5.1 App-shell worker and legacy takeover, implemented and locally verified.
+- [x] Fresh-session owner approval to begin all Milestone 5 implementation
+  through local verification and the owner checklist; no deployment or Milestone 6.
+- [x] 5.1 App-shell worker and legacy takeover, implemented and locally verified.
+  Parent reviewed recovered candidate `wrzvvvxv` / `866d8bd6`; all three browser
+  engines pass the shell/update/takeover gate. [Local evidence and rollout limit](../docs/background/offline-viewing-validation.md).
+  This is not iPhone or production verification.
 - [ ] 5.2 Versioned snapshot adapter, implemented and locally verified.
 - [ ] 5.3 Read-only views/routing/reconnect, verified with 5.4 guards.
 - [ ] 5.4 Privacy, logout and revocation lifecycle, locally verified.

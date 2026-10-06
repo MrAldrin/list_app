@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { manifestHref } from '#lib/install/manifest.ts';
+	import { registerServiceWorker } from '#lib/service-worker.ts';
 	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { startTheme, theme } from '#lib/ui/theme.svelte.ts';
 	import Toast from '#lib/ui/Toast.svelte';
@@ -19,6 +21,10 @@
 	// Light or dark mode for every page; it follows the system while no
 	// choice is saved. The returned function stops that when the app closes.
 	$effect(() => startTheme());
+
+	onMount(() => {
+		void registerServiceWorker();
+	});
 </script>
 
 <svelte:head>

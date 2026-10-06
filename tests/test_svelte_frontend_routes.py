@@ -163,6 +163,25 @@ def test_missing_build_file_is_404_not_the_page(client):
     assert "svelte shell" not in response.text
 
 
+def test_built_service_worker_is_javascript_and_must_revalidate(client, build_dir):
+    worker = build_dir / "service-worker.js"
+    worker.write_text("self.addEventListener('install', () => {});")
+
+    response = client.get("/service-worker.js")
+    assert response.status_code == 200
+    assert "javascript" in response.headers["content-type"]
+    assert response.headers["cache-control"] == "no-cache"
+    assert "<html" not in response.text.lower()
+
+
+def test_missing_service_worker_is_404_not_the_page(client):
+    response = client.get("/service-worker.js")
+    assert response.status_code == 404
+    assert SECRET not in response.text
+    assert "svelte shell" not in response.text
+    assert "<html" not in response.text.lower()
+
+
 @pytest.mark.parametrize(
     "path",
     [

@@ -12,7 +12,7 @@ In order: the top item is done first.
 
 - [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
 
-- [ ] [feature] (in progress) Svelte offline support: the online app is live; offline viewing is planned next, then offline editing after owner review. Follow the [Milestone 5 plan](svelte-frontend-rewrite.md#milestone-5-offline-viewing) and its branch instructions; implementation has not started.
+- [ ] [feature] (in progress) Svelte offline support: implement read-only offline viewing through Gate V; offline editing follows a separate owner review. Follow the [Milestone 5 plan](svelte-frontend-rewrite.md#milestone-5-offline-viewing) and its branch instructions.
 
 ## Later
 
