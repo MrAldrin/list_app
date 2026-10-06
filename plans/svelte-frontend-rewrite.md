@@ -431,13 +431,20 @@ This remains part of this `Lifecycle: tracked` plan.
   refreshed and authorized, normal online editing becomes available again.
   Confirmed revocation clears affected data and shows the sign-in or
   unavailable-link screen.
+- Download app updates automatically when connected; no update button or
+  forced reload. An already-open page keeps its running version. Adopt the
+  fully downloaded new version on a safe subsequent opening/reload; do not
+  mix old page scripts with incompatible new assets or discard files still
+  needed by open pages. Keep the last complete version usable offline if an
+  update download fails. An iPhone app resume is not necessarily a new page
+  load; background work is best-effort, not guaranteed while the app is closed.
 
 **Decisions still to review, one at a time:**
 
 - Exact offline logout/session handling and independently authorized
   room/share copies; the data-clearing rules above are approved.
-- App updates, acceptance checks and small implementation steps, with an owner
-  review of offline viewing before beginning Milestone 6.
+- Acceptance checks and small implementation steps, with an owner review of
+  offline viewing before beginning Milestone 6 (app-update behavior approved).
 - Confirm the jj starting point and bookmark instructions for the fresh agent:
   the production switch and subsequent fixes have moved `main`; the earlier
   branch instructions must not make the agent build on a stale baseline.
