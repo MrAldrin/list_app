@@ -420,13 +420,19 @@ This remains part of this `Lifecycle: tracked` plan.
   readable until the device reconnects and learns access was revoked. The owner
   accepts this limitation. Browser storage can be cleared by the device;
   offline copies are a convenience, not backups.
+- On reconnect, automatically revalidate access and refresh saved data through
+  the changes feed, without a manual reload. Keep cached views read-only until
+  both succeed; a browser's online signal alone does not enable writes. Retry
+  temporary failures while keeping the saved view labeled as outdated. Once
+  refreshed and authorized, normal online editing becomes available again.
+  Confirmed revocation clears affected data and shows the sign-in or
+  unavailable-link screen.
 
 **Decisions still to review, one at a time:**
 
 - What is saved for rooms and public share links (automatic saving approved).
 - Exact offline logout/session handling and independently authorized
   room/share copies; the data-clearing rules above are approved.
-- Reconnect/revalidation behavior and when editing becomes available again.
 - App updates, acceptance checks and small implementation steps, with an owner
   review of offline viewing before beginning Milestone 6.
 - Confirm the jj starting point and bookmark instructions for the fresh agent:
