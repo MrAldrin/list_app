@@ -410,7 +410,11 @@ This remains part of this `Lifecycle: tracked` plan.
 - Automatically save successfully loaded list data on this device; no
   "Make available offline" button. The owner accepts local storage of list
   contents. This does not authorize storing passwords or caching admin data.
-  Exact room/share cache boundaries remain to be decided.
+  Save signed-in room data and lists successfully opened through public share
+  links. A share-link cache is scoped to that link and list: it must not grant
+  room navigation, management rights or access to other lists. Keep room and
+  share authorization/cache identities separate; never restore room privileges
+  from metadata previously returned to an authorized member's share view.
 - Clear the room's saved data on logout. Clear affected saved data when the
   server confirms revoked access or an invalidated share link. Keep saved data
   otherwise; network failures alone must not erase it. Clear both the visible
@@ -430,7 +434,6 @@ This remains part of this `Lifecycle: tracked` plan.
 
 **Decisions still to review, one at a time:**
 
-- What is saved for rooms and public share links (automatic saving approved).
 - Exact offline logout/session handling and independently authorized
   room/share copies; the data-clearing rules above are approved.
 - App updates, acceptance checks and small implementation steps, with an owner
