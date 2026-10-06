@@ -1,11 +1,18 @@
 <!--
-	Shows the toasts from `toasts.svelte.ts`. It sits once in the root layout.
+	Shows the toasts from `toasts.svelte.ts`. It sits once in the root layout,
+	and once inside the newest open dialog (`Dialog.svelte`): a modal dialog
+	makes everything outside it inert, so toasts outside could not be pressed
+	(and a tap on their × would close the dialog). `dialogId` tells which one
+	this is; only the one that `toasts.showsToasts()` names draws anything.
 	`aria-live` makes screen readers read new messages out loud.
 -->
 <script lang="ts">
 	import Icon from './Icon.svelte';
 	import { toasts } from './toasts.svelte';
 
+	let { dialogId }: { dialogId?: number } = $props();
+
+	const active = $derived(toasts.showsToasts(dialogId));
 	let area = $state<HTMLDivElement>();
 
 	// An open <dialog> sits in the browser's "top layer", above any z-index.
@@ -39,21 +46,23 @@
 	});
 </script>
 
-<div class="toasts" bind:this={area} popover="manual" aria-live="polite">
-	{#each toasts.items as toast (toast.id)}
-		<div class="toast {toast.kind}">
-			<span>{toast.message}</span>
-			{#if toast.action}
-				<button class="action" type="button" onclick={() => toasts.act(toast.id)}>
-					{toast.action.label}
+{#if active}
+	<div class="toasts" bind:this={area} popover="manual" aria-live="polite">
+		{#each toasts.items as toast (toast.id)}
+			<div class="toast {toast.kind}">
+				<span>{toast.message}</span>
+				{#if toast.action}
+					<button class="action" type="button" onclick={() => toasts.act(toast.id)}>
+						{toast.action.label}
+					</button>
+				{/if}
+				<button type="button" aria-label="Dismiss" onclick={() => toasts.dismiss(toast.id)}>
+					<Icon name="close" />
 				</button>
-			{/if}
-			<button type="button" aria-label="Dismiss" onclick={() => toasts.dismiss(toast.id)}>
-				<Icon name="close" />
-			</button>
-		</div>
-	{/each}
-</div>
+			</div>
+		{/each}
+	</div>
+{/if}
 
 <style>
 	.toasts {

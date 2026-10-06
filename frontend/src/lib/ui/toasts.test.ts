@@ -63,4 +63,18 @@ describe('Toasts', () => {
 		vi.advanceTimersByTime(1);
 		expect(toasts.items).toEqual([]);
 	});
+
+	it('lets the newest open dialog show the toasts, then the page again', () => {
+		const toasts = new Toasts();
+		expect(toasts.showsToasts()).toBe(true);
+		const first = toasts.openDialog();
+		const second = toasts.openDialog();
+		expect(toasts.showsToasts()).toBe(false);
+		expect(toasts.showsToasts(first)).toBe(false);
+		expect(toasts.showsToasts(second)).toBe(true);
+		toasts.closeDialog(second);
+		expect(toasts.showsToasts(first)).toBe(true);
+		toasts.closeDialog(first);
+		expect(toasts.showsToasts()).toBe(true);
+	});
 });

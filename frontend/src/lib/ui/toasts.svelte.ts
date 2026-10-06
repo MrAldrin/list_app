@@ -31,8 +31,15 @@ export const MAX_TOASTS = 3;
 export class Toasts {
 	/** The toasts on screen, oldest first. */
 	items = $state.raw<readonly ToastMessage[]>([]);
+	/**
+	 * The open modal dialogs, oldest first. A modal dialog makes the rest of
+	 * the page inert, toasts included, so the newest dialog shows the toasts
+	 * itself (`Dialog.svelte`) and the root area stays empty meanwhile.
+	 */
+	dialogs = $state.raw<readonly number[]>([]);
 	readonly #duration: number;
 	#nextId = 0;
+	#nextDialogId = 0;
 
 	constructor(duration = TOAST_DURATION) {
 		this.#duration = duration;
@@ -54,6 +61,22 @@ export class Toasts {
 		const action = this.items.find((toast) => toast.id === id)?.action;
 		this.dismiss(id);
 		action?.run();
+	}
+
+	/** A modal dialog opened: it shows the toasts until it closes. Returns its id. */
+	openDialog(): number {
+		this.#nextDialogId += 1;
+		this.dialogs = [...this.dialogs, this.#nextDialogId];
+		return this.#nextDialogId;
+	}
+
+	closeDialog(id: number): void {
+		this.dialogs = this.dialogs.filter((dialog) => dialog !== id);
+	}
+
+	/** Whether this dialog (or, with no id, the page itself) shows the toasts. */
+	showsToasts(dialogId?: number): boolean {
+		return this.dialogs.at(-1) === dialogId;
 	}
 
 	dismiss(id: number): void {

@@ -119,3 +119,49 @@ def test_toasts_are_small_and_inside_the_screen(svelte_server, open_session):
     page.set_viewport_size({"width": 844, "height": 390})
     add_item(page, "eggs")
     expect_small_and_on_screen(page)
+
+
+def test_a_toast_can_be_used_while_a_dialog_is_open(svelte_server, open_session):
+    """Pressing a toast's x over a dialog closes the toast, not the dialog.
+
+    A modal dialog makes the rest of the page inert, so the toasts are shown
+    inside the open dialog (decision 145). Before, a tap on the x landed on the
+    backdrop and closed the dialog, which lost the typed text.
+    """
+    page = open_session("phone", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    add_item(page, "milk")
+    add_item(page, "bread")
+    expect(toasts(page)).to_have_count(0, timeout=10_000)
+
+    page.get_by_role("button", name="milk", exact=True).click()
+    dialog = page.get_by_role("dialog")
+    dialog.get_by_label("Item Name").fill("bread")
+    dialog.get_by_role("button", name="Save").click()
+    toast = toasts(page).filter(has_text="'bread' already exists")
+    expect(toast).to_be_visible()
+    # The toast is part of the open dialog, so it is not inert.
+    expect(dialog.locator(".toasts .toast")).to_have_count(1)
+    expect(page.locator(".toasts")).to_have_count(1)
+    toast.get_by_role("button", name="Dismiss").click()
+    expect(toast).to_have_count(0)
+    # The dialog is still open and keeps what was typed.
+    expect(dialog).to_be_visible()
+    expect(dialog.get_by_label("Item Name")).to_have_value("bread")
+
+    # A second toast goes by itself; the dialog stays open meanwhile.
+    dialog.get_by_role("button", name="Save").click()
+    expect(toast).to_be_visible()
+    expect(toast).to_have_count(0, timeout=10_000)
+    expect(dialog).to_be_visible()
+
+    # After the dialog closes, new toasts show in the page again.
+    page.keyboard.press("Escape")
+    expect(dialog).to_be_hidden()
+    add_item(page, "eggs")
+    added = toasts(page).filter(has_text="Added eggs")
+    expect(added).to_be_visible()
+    expect(page.locator(".toasts")).to_have_count(1)
+    added.get_by_role("button", name="Dismiss").click()
+    expect(added).to_have_count(0)

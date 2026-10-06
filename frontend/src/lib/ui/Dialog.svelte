@@ -7,7 +7,9 @@
 	calls `onClose` when the user closes it (Escape or a click outside). The parent then hides it.
 -->
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
+	import Toast from './Toast.svelte';
+	import { toasts } from './toasts.svelte.ts';
 
 	let {
 		title,
@@ -25,6 +27,10 @@
 	// `$props.id()` gives an id that is unique on the page.
 	const titleId = $props.id();
 	let dialog = $state<HTMLDialogElement>();
+	// While this dialog is open it shows the toasts (see `Toast.svelte`). The
+	// id is set once the dialog is open, so the toasts are never shown in a
+	// dialog that is not on screen yet.
+	let toastId = $state<number>();
 
 	$effect(() => {
 		if (!dialog) return;
@@ -34,7 +40,11 @@
 		// `showModal()` (not `show()`) makes the rest of the page inert.
 		box.showModal();
 		if (focusBox) box.focus();
+		// `untrack`: the list is read and written here, which must not rerun this effect.
+		const id = untrack(() => toasts.openDialog());
+		toastId = id;
 		return () => {
+			untrack(() => toasts.closeDialog(id));
 			// Closing with Escape gives the focus back by itself. A dialog the
 			// page removes (after Save, say) would leave it nowhere, so keyboard
 			// and screen reader users would start again at the top.
@@ -71,6 +81,9 @@
 	<h2 id={titleId}>{title}</h2>
 	<!-- The dialog's content, passed in by the parent between the tags. -->
 	{@render children()}
+	{#if toastId !== undefined}
+		<Toast dialogId={toastId} />
+	{/if}
 </dialog>
 
 <style>
