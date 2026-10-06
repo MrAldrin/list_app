@@ -76,7 +76,7 @@ def test_rename_change_password_and_delete_room(svelte_server, open_session):
     owner.get_by_label("Enter Room Password to Confirm").fill(NEW_PASSWORD)
     owner.get_by_role("dialog").get_by_role("button", name="Delete").click()
     expect(owner.get_by_text("Room deleted")).to_be_visible()
-    expect(owner).to_have_url(re.compile(r"/app/$"))
+    expect(owner).to_have_url(re.compile(r"/$"))
     expect(owner.get_by_text("Open your room link to continue")).to_be_visible()
     assert server.query("SELECT COUNT(*) FROM rooms") == [(0,)]
     assert server.query("SELECT COUNT(*) FROM lists") == [(0,)]

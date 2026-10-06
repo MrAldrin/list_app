@@ -1,4 +1,4 @@
-"""Home-screen install manifests for the Svelte app under /app/.
+"""Home-screen install manifests for the Svelte app at the root.
 
 Same rules as NiceGUI's (tests/test_room_installation.py): one app identity,
 only the launch address changes, and no secrets in the manifest.
@@ -35,18 +35,18 @@ def assert_manifest_headers(response) -> None:
 
 
 def test_default_manifest_opens_the_start_page(client):
-    response = client.get("/app/manifest.webmanifest")
+    response = client.get("/manifest.webmanifest")
     assert_manifest_headers(response)
-    assert response.json() == {**BASE_MANIFEST, "start_url": "/app/"}
+    assert response.json() == {**BASE_MANIFEST, "start_url": "/"}
 
 
 def test_room_manifest_opens_the_room_and_keeps_one_identity(client):
     response = client.get(
-        "/app/room-manifest/home-ab12cd.webmanifest?admin=true&token=secret&password=secret"
+        "/room-manifest/home-ab12cd.webmanifest?admin=true&token=secret&password=secret"
     )
     assert_manifest_headers(response)
     manifest = response.json()
-    assert manifest == {**BASE_MANIFEST, "start_url": "/app/room/home-ab12cd"}
+    assert manifest == {**BASE_MANIFEST, "start_url": "/room/home-ab12cd"}
     assert manifest["id"] == "/"
     assert manifest["scope"] == "/"
     assert "secret" not in response.text
@@ -57,15 +57,15 @@ def test_room_manifest_does_not_tell_whether_a_room_exists(client):
     # No database lookup: any slug gets the same shape of answer, so the
     # manifest is never a way to find rooms. An unknown room's icon opens
     # its password prompt, which says "Wrong room or password."
-    response = client.get("/app/room-manifest/no-such-room.webmanifest")
+    response = client.get("/room-manifest/no-such-room.webmanifest")
     assert_manifest_headers(response)
-    assert response.json()["start_url"] == "/app/room/no-such-room"
+    assert response.json()["start_url"] == "/room/no-such-room"
 
 
 def test_room_manifest_encodes_an_untrusted_slug(client):
-    response = client.get("/app/room-manifest/room%22%3F%3E%3C%26%20%23.webmanifest")
+    response = client.get("/room-manifest/room%22%3F%3E%3C%26%20%23.webmanifest")
     assert_manifest_headers(response)
-    assert response.json()["start_url"] == "/app/room/room%22%3F%3E%3C%26%20%23"
+    assert response.json()["start_url"] == "/room/room%22%3F%3E%3C%26%20%23"
 
 
 def test_manifest_icons_are_served_by_the_main_app():
@@ -91,5 +91,5 @@ def test_svelte_manifests_leave_nicegui_manifests_unchanged(client):
     nicegui = app_client.get("/manifest.json").json()
     assert nicegui == BASE_MANIFEST
     assert nicegui["start_url"] == "/"
-    client.get("/app/room-manifest/home.webmanifest")
+    client.get("/room-manifest/home.webmanifest")
     assert app_client.get("/manifest.json").json() == BASE_MANIFEST

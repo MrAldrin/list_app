@@ -20,7 +20,7 @@ def issue_invitation(page, server) -> str:
     expect(dialog).to_be_visible()
     expect(dialog.get_by_text("It is only shown once")).to_be_visible()
     link = dialog.get_by_label("Invitation link").input_value()
-    assert re.fullmatch(rf"{re.escape(server.url)}/app/create-room/[\w-]{{43,}}", link)
+    assert re.fullmatch(rf"{re.escape(server.url)}/create-room/[\w-]{{43,}}", link)
     dialog.get_by_role("button", name="Close").click()
     expect(page.get_by_role("dialog")).to_have_count(0)
     return link
@@ -79,7 +79,7 @@ def test_issue_create_room_and_revoke(svelte_server, open_session):
     # Create the room: the room page asks for its password, never opens it.
     fill_form(visitor, "Beach", "beach-pw")
     visitor.get_by_label("Confirm password").press("Enter")
-    expect(visitor).to_have_url(re.compile(r"/app/room/[\w-]+$"))
+    expect(visitor).to_have_url(re.compile(r"/room/[\w-]+$"))
     expect(visitor.get_by_label("Room Password")).to_be_visible()
     slug = visitor.url.rsplit("/", 1)[1]
     assert server.query("SELECT name FROM rooms WHERE slug = ?", (slug,)) == [

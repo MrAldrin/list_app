@@ -97,8 +97,6 @@ def serve_apple_touch_icon() -> FileResponse:
     )
 
 
-# The Svelte prototype, served at /app/ only when frontend/build/ exists.
-register_svelte_frontend(app)
 ui.add_head_html(
     '<meta name="apple-mobile-web-app-capable" content="yes">', shared=True
 )
@@ -1210,18 +1208,10 @@ async def admin_login() -> None:
 @app.middleware("http")
 async def auth_middleware(request, call_next):
     path = request.url.path
-    if path == "/admin":
-        is_authenticated = app.storage.user.get("authenticated", False)
-        if not is_authenticated:
-            from fastapi.responses import RedirectResponse
-
-            return RedirectResponse("/admin/login")
     response = await call_next(request)
     if path == "/" or path.startswith(("/room/", "/list/", "/create-room/")):
         # These pages can contain UI personalized by ambient credentials.
         response.headers["Cache-Control"] = "no-store"
-    if path.startswith("/create-room/"):
-        response.headers["Referrer-Policy"] = "no-referrer"
     return response
 
 
@@ -2558,6 +2548,29 @@ async def _list_page(slug: str, *, public: bool):
 
         availability_timer = ui.timer(2.0, poll_list_existence)
         age_refresh_timer = ui.timer(60.0, refresh_age_boundary)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def serve_favicon() -> FileResponse:
+    # Added before the Svelte catch-all, which would answer with its page.
+    return FileResponse(FAVICON_PATH, media_type="image/png")
+
+
+# The Svelte app takes over every page address of NiceGUI's pages (the same
+# shapes exist as Svelte routes) and answers everything else that no route
+# above matched. It must be the last registration. The NiceGUI pages above stay
+# in the code until step 4.3 deletes them, but are unreachable once the build
+# exists (without a build they still answer).
+NICEGUI_PAGE_PATHS = (
+    "/",
+    "/admin",
+    "/admin/login",
+    "/create-room/{token}",
+    "/room/{slug}",
+    "/list/{slug}",
+    "/share/{token}",
+)
+register_svelte_frontend(app, replaces=NICEGUI_PAGE_PATHS)
 
 
 if __name__ in {"__main__", "__mp_main__"}:

@@ -12,7 +12,7 @@ import re
 from playwright.sync_api import Page, expect
 from svelte_app import PHONE, add_item, app_url, create_list, item_names, sign_in
 
-SHARE_LINK = re.compile(r"/app/share/[A-Za-z0-9_-]{43}$")
+SHARE_LINK = re.compile(r"/share/[A-Za-z0-9_-]{43}$")
 RESET_MESSAGE = "This list was deleted or this share link was reset."
 UNAVAILABLE_MESSAGE = "This list was deleted or you no longer have access."
 
@@ -77,7 +77,7 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     add_item(member, "milk")
 
     link = share_link(member)
-    assert link.endswith(f"/app/share/{share_token(server)}")
+    assert link.endswith(f"/share/{share_token(server)}")
 
     # The visitor sees and edits the list, both ways live.
     visitor.goto(link)
@@ -330,7 +330,7 @@ def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     expect(member.get_by_role("button", name="Reset share link")).to_be_visible()
     member.keyboard.press("Escape")
     back.click()
-    expect(member).to_have_url(re.compile(rf"/app/room/{server.room_slug}$"))
+    expect(member).to_have_url(re.compile(rf"/room/{server.room_slug}$"))
     expect(member.get_by_role("link", name="Groceries")).to_be_visible()
 
     # Reset from the share page: the old link stops, the page follows the new one.
@@ -338,7 +338,7 @@ def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     expect(item_names(visitor)).to_have_text(["milk"])
     member.goto(link)
     reset_link(member)
-    expect(member).to_have_url(re.compile(r"/app/share/[A-Za-z0-9_-]{43}$"))
+    expect(member).to_have_url(re.compile(r"/share/[A-Za-z0-9_-]{43}$"))
     assert not member.url.endswith(link.rsplit("/", 1)[1])
     assert member.url.endswith(share_token(server))
     expect(item_names(member)).to_have_text(["milk"])

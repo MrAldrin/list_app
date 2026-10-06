@@ -3,6 +3,11 @@
 import pytest
 from playwright.sync_api import expect
 
+pytestmark = pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests NiceGUI pages; step 4.2 moved Svelte to / and "
+    "NiceGUI's pages are no longer reachable (the Svelte versions are in test_svelte_*.py)"
+)
+
 
 def test_theme_is_remembered_per_browser(server, sessions):
     first, second = sessions

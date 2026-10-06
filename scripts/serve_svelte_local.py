@@ -54,7 +54,7 @@ def phone_urls(addresses: list[str], port: int) -> list[str]:
     lines = []
     for address in sorted(addresses, key=lambda a: not is_tailscale(a)):
         label = "Tailscale" if is_tailscale(address) else "Wi-Fi/LAN"
-        lines.append(f"http://{address}:{port}/app/  ({label})")
+        lines.append(f"http://{address}:{port}/  ({label})")
     return lines
 
 
@@ -66,7 +66,7 @@ def serve_https_urls(status: dict, port: int) -> list[str]:
         proxy = (web.get("Handlers") or {}).get("/", {}).get("Proxy")
         if proxy in targets:
             host = host_port.removesuffix(":443")
-            urls.append(f"https://{host}/app/")
+            urls.append(f"https://{host}/")
     return urls
 
 
@@ -145,17 +145,17 @@ def main() -> None:
     for name, code in room_codes(database):
         print(f"  {name}: room code {code}")
     https_urls = serve_https_urls(tailscale_serve_status(), args.port)
-    print("\nOpen on the phone (NiceGUI is the same address without /app/):")
+    print("\nOpen on the phone:")
     if https_urls:
         for url in https_urls:
             print(f"  {url}  (HTTPS, like production)")
     else:
         print("  No Tailscale Serve HTTPS found; see docs/local-network-testing.md.")
         for line in phone_urls(network_addresses(), args.port) or [
-            f"http://<laptop-ip>:{args.port}/app/  (find the IP with `hostname -I`)"
+            f"http://<laptop-ip>:{args.port}/  (find the IP with `hostname -I`)"
         ]:
             print(f"  {line}")
-    print(f"On this laptop: http://localhost:{args.port}/app/")
+    print(f"On this laptop: http://localhost:{args.port}/")
     print("Stop with Ctrl+C.\n", flush=True)
 
     main_py = str(ROOT / "src" / "main.py")

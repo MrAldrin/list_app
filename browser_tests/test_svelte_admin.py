@@ -4,6 +4,7 @@ create a room and reset a room password. Admin never opens a room by itself.
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import ADMIN_PHONE, PHONE, admin_sign_in, app_url, sign_in
 
@@ -20,7 +21,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     # The start page leads to the admin sign-in; a wrong password is refused.
     owner.goto(app_url(server))
     owner.get_by_role("button", name="Admin").click()
-    expect(owner).to_have_url(re.compile(r"/app/admin$"))
+    expect(owner).to_have_url(re.compile(r"/admin$"))
     owner.get_by_label("Admin Password").fill("wrong")
     owner.get_by_role("button", name="Log in").click()
     expect(owner.get_by_role("alert")).to_have_text("Wrong password")
@@ -28,14 +29,15 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     admin_sign_in(owner, server)
     expect(owner.get_by_role("link", name="Home")).to_be_visible()
 
-    # The sign-in has its own cookie: NiceGUI's admin page does not share it.
-    owner.goto(f"{server.url}/admin")
-    expect(owner).to_have_url(re.compile(r"/admin/login$"))
+    # NiceGUI's sign-in address leads to the same page, still signed in.
+    owner.goto(f"{server.url}/admin/login")
+    expect(owner).to_have_url(re.compile(r"/admin$"))
+    expect(owner.get_by_role("link", name="Home")).to_be_visible()
 
     # A room name opens the room page, which still asks for the room password.
     owner.goto(app_url(server, "admin"))
     owner.get_by_role("link", name="Home").click()
-    expect(owner).to_have_url(re.compile(rf"/app/room/{slug}\?admin=true$"))
+    expect(owner).to_have_url(re.compile(rf"/room/{slug}\?admin=true$"))
     expect(owner.get_by_label("Room Password")).to_be_visible()
 
     # Create a room: a blank name is refused, then the room opens.
@@ -49,7 +51,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     owner.get_by_label("Password", exact=True).fill("cabin-pw")
     owner.get_by_label("Password", exact=True).press("Enter")
     expect(owner.get_by_text("Room created")).to_be_visible()
-    expect(owner).to_have_url(re.compile(r"/app/room/cabin-[0-9a-f]{6}\?admin=true$"))
+    expect(owner).to_have_url(re.compile(r"/room/cabin-[0-9a-f]{6}\?admin=true$"))
     assert server.query("SELECT name FROM rooms ORDER BY name") == [
         ("Cabin",),
         ("Home",),
@@ -59,7 +61,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     owner.get_by_label("Room Password").press("Enter")
     expect(owner.get_by_role("button", name="Add New List")).to_be_visible()
     owner.get_by_role("link", name="Back to admin").click()
-    expect(owner).to_have_url(re.compile(r"/app/admin$"))
+    expect(owner).to_have_url(re.compile(r"/admin$"))
     expect(owner.get_by_role("link")).to_have_text(["Cabin", "Home"])
 
     # Reset the Home password: blank is refused; then the member must sign in again.
@@ -98,6 +100,9 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     expect(owner.get_by_label("Admin Password")).to_be_visible()
 
 
+@pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests the NiceGUI admin page; step 4.2 moved Svelte to / and NiceGUI's pages are no longer reachable"
+)
 def test_nicegui_admin_sign_in_does_not_carry_over_and_never_opens_a_room(
     svelte_server, open_session
 ):

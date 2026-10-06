@@ -234,7 +234,7 @@ def _svelte_build_is_current() -> bool:
 def svelte_build(tmp_path_factory):
     """Make sure frontend/build matches frontend/src; build it if needed.
 
-    The test servers serve /app/ only if the build exists when they start.
+    The test servers serve the app only if the build exists when they start.
     """
     # pytest-xdist workers share the parent of their base temp folder.
     shared = tmp_path_factory.getbasetemp()
@@ -266,7 +266,7 @@ def svelte_build(tmp_path_factory):
 
 @pytest.fixture
 def svelte_server(svelte_build, server):
-    """The test server with the Svelte app at /app/."""
+    """The test server with the Svelte app at /."""
     return server
 
 

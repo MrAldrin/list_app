@@ -81,10 +81,11 @@ The new Svelte frontend is being built next to NiceGUI (see the
 [fnm](https://github.com/Schniz/fnm) and npm. Run `npm` from `frontend/`.
 
 - **Develop:** start Python as above (port 8080), then run `npm run dev` in
-  `frontend/` and open <http://localhost:5173/app/>. The dev server forwards
+  `frontend/` and open <http://localhost:5173/>. The dev server forwards
   `/api` to Python.
 - **Built app:** run `npm run build` in `frontend/`, restart Python, and open
-  <http://localhost:8080/app/>.
+  <http://localhost:8080/>. With a build, Python serves the Svelte app at `/`
+  and it answers every old page address; NiceGUI's pages are not reachable.
 
 Setup and checks: [frontend guide](frontend/README.md).
 

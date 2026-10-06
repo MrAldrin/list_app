@@ -1,7 +1,14 @@
 """Shared checked-item visibility settings in real browsers."""
 
+import pytest
 from playwright.sync_api import expect
 from test_public_sharing import add_item, create_list, share_link
+
+pytestmark = pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests NiceGUI pages; step 4.2 moved Svelte to / and "
+    "NiceGUI's pages are no longer reachable (the Svelte versions are in test_svelte_*.py)"
+)
+
 
 expect.set_options(timeout=10_000)
 

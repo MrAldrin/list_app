@@ -6,7 +6,14 @@ import secrets
 import sqlite3
 from contextlib import closing
 
+import pytest
 from playwright.sync_api import expect
+
+pytestmark = pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests NiceGUI pages; step 4.2 moved Svelte to / and "
+    "NiceGUI's pages are no longer reachable (the Svelte versions are in test_svelte_*.py)"
+)
+
 
 expect.set_options(timeout=10_000)
 

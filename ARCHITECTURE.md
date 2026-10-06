@@ -68,7 +68,7 @@ back from a public list.
 - `src/admin_access.py`: The admin password check and sign-in flag, shared by
   NiceGUI's `/admin` and the API.
 - `src/room_invitations.py` and `src/ui/`: Invitation logic and extracted UI helpers.
-- `src/svelte_frontend.py`: Serves the built Svelte prototype under `/app/`.
+- `src/svelte_frontend.py`: Serves the built Svelte app at `/`, with the old page addresses and `/app/...` redirects.
 - `src/install_manifest.py`: Home-screen install manifests for both frontends.
 - `src/api/`: JSON API for the Svelte frontend under `/api/v1`; the contract is
   in [docs/api.md](docs/api.md).

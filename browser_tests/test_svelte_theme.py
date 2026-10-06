@@ -94,6 +94,9 @@ def test_system_changes_apply_while_nothing_is_saved(svelte_server, open_session
     assert saved(page) is None
 
 
+@pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests the dark mode choice shared with the NiceGUI page; step 4.2 moved Svelte to / and NiceGUI's pages are no longer reachable"
+)
 def test_choice_is_shared_with_nicegui(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE, color_scheme="light")

@@ -8,8 +8,8 @@ import serve_svelte_local as script
 
 def test_phone_urls_list_tailscale_first():
     assert script.phone_urls(["192.168.10.5", "100.121.200.49"], 8080) == [
-        "http://100.121.200.49:8080/app/  (Tailscale)",
-        "http://192.168.10.5:8080/app/  (Wi-Fi/LAN)",
+        "http://100.121.200.49:8080/  (Tailscale)",
+        "http://192.168.10.5:8080/  (Wi-Fi/LAN)",
     ]
 
 
@@ -21,7 +21,7 @@ def test_serve_https_urls_match_the_port():
             }
         }
     }
-    assert script.serve_https_urls(status, 8080) == ["https://laptop.tail.ts.net/app/"]
+    assert script.serve_https_urls(status, 8080) == ["https://laptop.tail.ts.net/"]
     assert script.serve_https_urls(status, 8081) == []
     assert script.serve_https_urls({}, 8080) == []
 

@@ -21,8 +21,8 @@
   the reset itself still goes through the room endpoint and its checks.
 - Share links are independent of room passwords. Changing a room password revokes
   room authorization, **not public share links**; reset those separately if needed.
-- The Svelte app (under `/app/` until the switch) has the same list menu and
-  rules. Its links are `/app/share/<token>` with the same token, so both UIs
+- The Svelte app has the same list menu and
+  rules. Its links are `/share/<token>` with the same token, so both UIs
   open the same list. Its room menu has **Share Room**, like NiceGUI's. The
   API is in [share links](api.md#share-links).
 

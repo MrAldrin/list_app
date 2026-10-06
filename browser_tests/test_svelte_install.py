@@ -39,18 +39,18 @@ def test_manifest_follows_the_page(svelte_server, open_session):
 
     # The start page: the icon opens the start page (and so the last room).
     page.goto(app_url(server))
-    expect_manifest(page, "/app/manifest.webmanifest")
+    expect_manifest(page, "/manifest.webmanifest")
     manifest = linked_manifest(page)
-    assert manifest["start_url"] == "/app/"
+    assert manifest["start_url"] == "/"
     assert (manifest["id"], manifest["scope"], manifest["name"]) == ("/", "/", "ListR")
 
     # The password prompt already links the room manifest; `?admin=true` and
     # the room name never go into it.
     page.goto(room_app_url(server) + "?admin=true")
     expect(page.get_by_label("Room Password")).to_be_visible()
-    expect_manifest(page, f"/app/room-manifest/{slug}.webmanifest")
+    expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
     manifest = linked_manifest(page)
-    assert manifest["start_url"] == f"/app/room/{slug}"
+    assert manifest["start_url"] == f"/room/{slug}"
     assert manifest["id"] == "/"
     text = str(manifest)
     assert "admin" not in text
@@ -58,12 +58,12 @@ def test_manifest_follows_the_page(svelte_server, open_session):
 
     # Signed in, then into a list and back, without a page load.
     sign_in(page, server)
-    expect_manifest(page, f"/app/room-manifest/{slug}.webmanifest")
+    expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
     create_list(page, "Groceries")
-    expect_manifest(page, "/app/manifest.webmanifest")
+    expect_manifest(page, "/manifest.webmanifest")
     page.go_back()
-    expect(page).to_have_url(re.compile(rf"/app/room/{slug}$"))
-    expect_manifest(page, f"/app/room-manifest/{slug}.webmanifest")
+    expect(page).to_have_url(re.compile(rf"/room/{slug}$"))
+    expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
 
 
 def test_page_declares_the_home_screen_icon(svelte_server, open_session):

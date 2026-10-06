@@ -7,6 +7,11 @@ from playwright.sync_api import expect
 from test_public_sharing import DelayedUpdates, add_item
 from test_public_sharing import seeded_list as prepare_list
 
+pytestmark = pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests NiceGUI pages; step 4.2 moved Svelte to / and "
+    "NiceGUI's pages are no longer reachable (the Svelte versions are in test_svelte_*.py)"
+)
+
 
 def delete_list(member, server):
     member.goto(server.room_url)

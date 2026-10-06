@@ -18,7 +18,7 @@ ADMIN_PHONE = {**PHONE, "service_workers": "block"}
 
 
 def app_url(server, path: str = "") -> str:
-    return f"{server.url}/app/{path}"
+    return f"{server.url}/{path}"
 
 
 def room_app_url(server) -> str:
@@ -38,7 +38,7 @@ def create_list(page: Page, name: str) -> str:
     page.get_by_role("button", name="Add New List").click()
     page.get_by_label("List name").fill(name)
     page.get_by_label("List name").press("Enter")
-    expect(page).to_have_url(re.compile(r"/app/room/[^/]+/list/[^/]+$"))
+    expect(page).to_have_url(re.compile(r"/room/[^/]+/list/[^/]+$"))
     expect(page.get_by_role("heading", name=name)).to_be_visible()
     return page.url
 

@@ -61,7 +61,7 @@ def test_back_to_admin_follows_the_admin_sign_in(svelte_server, open_session):
     owner.reload()
     expect(back).to_be_visible()
     back.click()
-    expect(owner).to_have_url(re.compile(r"/app/admin$"))
+    expect(owner).to_have_url(re.compile(r"/admin$"))
 
     # After the admin logs out, the link is gone (the room cookie stays).
     owner.get_by_role("button", name="Log out").click()

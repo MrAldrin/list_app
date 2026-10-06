@@ -30,14 +30,16 @@ installed app, so no second sign-in is needed.
 - **Deleted rooms** show "Room not found" and never open another room.
 - **Root `/`** is a public router, not the admin login. Admin stays at `/admin`.
 
-### Svelte app (`/app/`, until the switch)
+### Svelte app
 
-The same rules, with launch addresses under `/app/`:
+The Svelte app is served at `/`. The same rules apply:
 
-- The room page links `/app/room-manifest/{slug}.webmanifest`
-  (`start_url` `/app/room/{slug}`). Every other page links
-  `/app/manifest.webmanifest` (`start_url` `/app/`). The link changes when
+- The room page links `/room-manifest/{slug}.webmanifest`
+  (`start_url` `/room/{slug}`). Every other page links
+  `/manifest.webmanifest` (`start_url` `/`). The link changes when
   the page changes inside the app.
+- Icons made while the app ran under `/app/` (phone testing) still open: the
+  server redirects `/app/...` to the same address at `/`.
 - Both are made from NiceGUI's `manifest.json` (`src/install_manifest.py`), so
   `id` and `scope` stay `/`: one app identity with NiceGUI installs.
 - The room manifest does not check that the room exists, because the Svelte

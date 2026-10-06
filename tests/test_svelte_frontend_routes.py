@@ -2,10 +2,9 @@ from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
-from starlette.routing import Match
 from starlette.testclient import TestClient
 
-from svelte_frontend import register_svelte_frontend
+from svelte_frontend import DEFAULT_BUILD_DIR, register_svelte_frontend
 
 INDEX_HTML = "<!doctype html><html><body>svelte shell</body></html>"
 SECRET = "SECRET-OUTSIDE-BUILD"
@@ -41,48 +40,100 @@ def assert_index(response) -> None:
     assert response.headers["cache-control"] == "no-cache"
 
 
-def test_app_root_returns_the_page(client):
-    assert_index(client.get("/app/"))
+def test_root_returns_the_page(client):
+    assert_index(client.get("/"))
 
 
-def test_app_without_slash_redirects(client):
-    response = client.get("/app", follow_redirects=False)
-    assert response.status_code == 307
-    assert response.headers["location"] == "/app/"
-
-    response = client.get("/app?room=home", follow_redirects=False)
-    assert response.headers["location"] == "/app/?room=home"
+def test_page_says_links_to_other_sites_get_no_referrer(client):
+    # Share and invitation addresses must not leak. Not "no-referrer": that
+    # would also blank the Origin of the app's own API writes.
+    response = client.get("/share/some-token")
+    assert response.headers["referrer-policy"] == "same-origin"
 
 
-@pytest.mark.parametrize("path", ["/app/room/home", "/app/list/groceries/", "/app/x.y"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/room/home-ab12cd",
+        "/room/home-ab12cd?admin=true",
+        "/room/home-ab12cd/list/groceries",
+        "/list/groceries",
+        "/share/Zm9v-token_value",
+        "/admin",
+        "/create-room/Zm9v-token_value",
+    ],
+)
+def test_every_page_address_gets_the_page(client, path):
+    assert_index(client.get(path))
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("/app", "/"),
+        ("/app/", "/"),
+        ("/app?room=home", "/?room=home"),
+        ("/app/room/home-ab12cd", "/room/home-ab12cd"),
+        ("/app/room/home-ab12cd?admin=true", "/room/home-ab12cd?admin=true"),
+        ("/app/room/home-ab12cd/list/x", "/room/home-ab12cd/list/x"),
+        ("/app/share/tok", "/share/tok"),
+        ("/app/create-room/tok", "/create-room/tok"),
+        ("/app/admin", "/admin"),
+        ("/app/manifest.webmanifest", "/manifest.webmanifest"),
+        ("/admin/login", "/admin"),
+        ("/admin/login?x=1", "/admin?x=1"),
+    ],
+)
+def test_old_addresses_redirect_permanently(client, old, new):
+    response = client.get(old, follow_redirects=False)
+    assert response.status_code == 308
+    assert response.headers["location"] == new
+
+
+def test_old_address_redirects_also_for_head(client):
+    response = client.head("/app/room/home", follow_redirects=False)
+    assert response.status_code == 308
+    assert response.headers["location"] == "/room/home"
+
+
+@pytest.mark.parametrize(
+    "path", ["/api/v1/nothing", "/static/nothing.png", "/_nicegui/nothing"]
+)
+def test_server_prefixes_are_never_the_page(client, path):
+    response = client.get(path)
+    assert response.status_code == 404
+    assert "svelte shell" not in response.text
+
+
+@pytest.mark.parametrize("path", ["/room/home", "/list/groceries/", "/x.y"])
 def test_deep_links_fall_back_to_index(client, path):
     assert_index(client.get(path))
 
 
 def test_head_request(client):
-    response = client.head("/app/")
+    response = client.head("/")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
 
 
 def test_hashed_assets_are_cached_long(client):
-    response = client.get("/app/_app/immutable/entry/start.abc123.js")
+    response = client.get("/_app/immutable/entry/start.abc123.js")
     assert response.status_code == 200
     assert response.text == "export {};"
     assert "javascript" in response.headers["content-type"]
     assert response.headers["cache-control"] == "public, max-age=31536000, immutable"
     assert response.headers["x-content-type-options"] == "nosniff"
 
-    response = client.get("/app/_app/immutable/app.abc123.css")
+    response = client.get("/_app/immutable/app.abc123.css")
     assert response.headers["content-type"].startswith("text/css")
 
 
 @pytest.mark.parametrize(
     ("path", "content_type"),
     [
-        ("/app/robots.txt", "text/plain"),
-        ("/app/_app/version.json", "application/json"),
-        ("/app/index.html", "text/html"),
+        ("/robots.txt", "text/plain"),
+        ("/_app/version.json", "application/json"),
+        ("/index.html", "text/html"),
     ],
 )
 def test_other_files_must_revalidate(client, path, content_type):
@@ -93,7 +144,7 @@ def test_other_files_must_revalidate(client, path, content_type):
 
 
 def test_missing_build_file_is_404_not_the_page(client):
-    response = client.get("/app/_app/immutable/entry/missing.js")
+    response = client.get("/_app/immutable/entry/missing.js")
     assert response.status_code == 404
     assert SECRET not in response.text
     assert "svelte shell" not in response.text
@@ -102,12 +153,12 @@ def test_missing_build_file_is_404_not_the_page(client):
 @pytest.mark.parametrize(
     "path",
     [
-        "/app/%2e%2e/secret.txt",
-        "/app/..%2fsecret.txt",
-        "/app/%2e%2e%2fsecret.txt",
-        "/app/_app/%2e%2e/%2e%2e/secret.txt",
-        "/app/..%5csecret.txt",
-        "/app/secret.txt%00",
+        "/%2e%2e/secret.txt",
+        "/..%2fsecret.txt",
+        "/%2e%2e%2fsecret.txt",
+        "/_app/%2e%2e/%2e%2e/secret.txt",
+        "/..%5csecret.txt",
+        "/secret.txt%00",
     ],
 )
 def test_path_traversal_is_rejected(client, path):
@@ -119,7 +170,7 @@ def test_path_traversal_is_rejected(client, path):
 
 def test_absolute_paths_and_symlinks_never_leave_the_build(client, build_dir):
     outside = build_dir.parent / "secret.txt"
-    for path in [f"/app/{outside}", f"/app//{outside}", "/app/link-out.txt"]:
+    for path in [f"/{outside}", f"//{outside}", "/link-out.txt"]:
         response = client.get(path)
         assert SECRET not in response.text
         assert_index(response)
@@ -130,7 +181,7 @@ def test_nothing_is_mounted_when_the_build_is_missing(tmp_path):
     routes_before = list(app.router.routes)
     assert not register_svelte_frontend(app, tmp_path / "no-build")
     assert app.router.routes == routes_before
-    assert TestClient(app).get("/app/").status_code == 404
+    assert TestClient(app).get("/").status_code == 404
 
 
 def test_folder_without_index_is_not_mounted(tmp_path):
@@ -141,46 +192,98 @@ def test_folder_without_index_is_not_mounted(tmp_path):
 # --- Together with the NiceGUI app ---
 
 
-@pytest.fixture
-def nicegui_app(build_dir):
-    """The real NiceGUI app, with the temporary build's routes put first."""
+REAL_INDEX = DEFAULT_BUILD_DIR / "index.html"
+needs_build = pytest.mark.skipif(
+    not REAL_INDEX.is_file(), reason="needs `npm run build` in frontend/"
+)
+
+PAGE_ADDRESSES = [
+    "/",
+    "/room/home-ab12cd",
+    "/room/home-ab12cd?admin=true",
+    "/list/groceries",
+    "/share/some-token",
+    "/admin",
+    "/create-room/some-token",
+]
+
+
+@needs_build
+@pytest.mark.parametrize("path", PAGE_ADDRESSES)
+def test_real_app_answers_every_page_address_with_svelte(path):
     from main import app
 
-    original = list(app.router.routes)
-    register_svelte_frontend(app, build_dir)
-    added = app.router.routes[len(original) :]
-    app.router.routes[:] = [*added, *original]
-    try:
-        yield app
-    finally:
-        app.router.routes[:] = original
+    response = TestClient(app).get(path)
+    assert response.status_code == 200
+    assert response.text == REAL_INDEX.read_text()
 
 
-def first_route(app, path: str):
-    scope = {"type": "http", "path": path, "method": "GET", "root_path": ""}
+@needs_build
+def test_nicegui_pages_are_not_routed_any_more():
+    from nicegui import Client
+
+    from main import app
+
+    pages = set(Client.page_routes)
+    assert pages  # NiceGUI's page functions still exist until step 4.3
     for route in app.router.routes:
-        match, _ = route.matches(scope)
-        if match == Match.FULL:
-            return route
-    return None
+        assert (
+            getattr(getattr(route, "endpoint", None), "__wrapped__", None) not in pages
+        )
 
 
-def test_root_is_still_the_nicegui_page(nicegui_app):
-    route = first_route(nicegui_app, "/")
-    assert route is not None
-    assert (route.path, route.name) == ("/", "index")
-    for path in ["/room/home", "/list/groceries", "/admin", "/static/sw.js"]:
-        assert not first_route(nicegui_app, path).path.startswith("/app")
+@needs_build
+def test_other_server_routes_still_win_over_the_page():
+    from main import app
 
-
-def test_app_is_served_through_the_nicegui_middleware(nicegui_app):
-    client = TestClient(nicegui_app)
-    assert_index(client.get("/app/"))
-    assert_index(client.get("/app/room/home"))
-    response = client.get("/app/_app/immutable/entry/start.abc123.js")
-    assert response.headers["cache-control"] == "public, max-age=31536000, immutable"
-    # The app's own middleware runs for /app/ too, and other routes still work.
+    client = TestClient(app)
     assert client.get("/manifest.json").status_code == 200
+    assert client.get("/manifest.webmanifest").json()["start_url"] == "/"
+    assert client.get("/sw.js").status_code == 200
+    assert client.get("/static/icons/favicon-32.png").status_code == 200
+    favicon = client.get("/favicon.ico")
+    assert favicon.headers["content-type"] == "image/png"
+    assert client.get("/api/v1/nothing").status_code == 404
+    # The application's JSON API answers, not the page.
+    assert (
+        client.get("/api/v1/last-room")
+        .headers["content-type"]
+        .startswith("application/json")
+    )
+
+
+@needs_build
+def test_page_is_served_through_the_middleware():
+    from main import app
+
+    # NiceGUI's old rule still applies at these addresses: never stored.
+    assert TestClient(app).get("/room/home").headers["cache-control"] == "no-store"
+    assert (
+        TestClient(app).get("/_app/version.json").headers["cache-control"] == "no-cache"
+    )
+
+
+def test_replaced_routes_are_removed_only_with_a_build(build_dir, tmp_path):
+    def page() -> str:
+        return "old page"
+
+    def routed_app() -> FastAPI:
+        app = FastAPI()
+        app.get("/room/{slug}")(page)
+        app.get("/keep")(page)
+        return app
+
+    with_build = routed_app()
+    assert register_svelte_frontend(with_build, build_dir, replaces=["/room/{slug}"])
+    client = TestClient(with_build)
+    assert_index(client.get("/room/x"))
+    assert client.get("/keep").text == '"old page"'
+
+    without_build = routed_app()
+    assert not register_svelte_frontend(
+        without_build, tmp_path / "none", replaces=["/room/{slug}"]
+    )
+    assert TestClient(without_build).get("/room/x").text == '"old page"'
 
 
 def test_missing_build_stops_startup_when_required(tmp_path, monkeypatch):

@@ -118,7 +118,7 @@ unknown room. The password is checked in the same transaction.
 
 ## Share links
 
-A share link (`/app/share/{token}`) opens one list for viewing and editing
+A share link (`/share/{token}`) opens one list for viewing and editing
 without the room password. The rules are in [public sharing](public-sharing.md).
 The token is in the path; it is never a cookie, and it never gives room access.
 
@@ -203,7 +203,7 @@ room endpoints ignore it, and admin endpoints never set a room cookie.
 
 ## Creation invitations
 
-An invitation link (`/app/create-room/{token}`) lets anyone create a new room.
+An invitation link (`/create-room/{token}`) lets anyone create a new room.
 The rules are in [room invitations](room-invitations.md). Invitations never
 give access to any room, also not to the room they create.
 

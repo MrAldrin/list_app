@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import (
     DESKTOP,
@@ -45,6 +46,9 @@ def test_two_phones_see_each_others_changes(svelte_server, open_session):
     expect(phone_a.get_by_role("heading", name="Food")).to_be_visible()
 
 
+@pytest.mark.skip(
+    reason="Retired in 4.3/4.4: tests live sync between the NiceGUI page and Svelte; step 4.2 moved Svelte to / and NiceGUI's pages are no longer reachable"
+)
 def test_nicegui_and_svelte_see_each_others_changes(svelte_server, open_session):
     server = svelte_server
     phone = open_session("phone", **PHONE)
