@@ -10,6 +10,7 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
+- [ ] [bug] Native room/list sharing: send only the URL so iPhone “Copy” does not include explanatory text; keep the access reminder inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
 - [ ] [feature] (in progress) Svelte frontend rewrite, on the `svelte-frontend` branch only: prototype, migration, then offline. Follow the [Svelte rewrite plan](svelte-frontend-rewrite.md).
 
 ## Later
