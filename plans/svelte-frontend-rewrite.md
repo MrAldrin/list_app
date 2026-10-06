@@ -578,6 +578,7 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 147 | Owner (2026-10-06): per-list change tracking for share links (fixes the timing signal in 108 and stops refreshes for other lists' changes) is decided and gets built in Milestone 5 or 6; 6.1 designs how, not whether | Fewer refreshes; a link visitor learns nothing about other lists | Keep 108 | Medium (migration) |
 | 148 | Owner check (2026-10-06): the newest local production backup (2026-10-04; 11 rooms, 22 lists, 314 items), opened read-only, has no list or item names that differ only in case, and every item name is lowercase. Closes the open question in 136 | Read-only check on a copy | Download a fresh Railway copy | None |
 | 149 | Owner phone test (2026-10-06), built in step 4.0: "Log out" into the room ⋮ menu; "Back to admin" follows the admin sign-in, not `?admin=true`; the admin key button and dialog say clearly that they reset the room password; list name in the top bar between the back arrow and the menus, dark mode into the ⋮ menu, list options stay outside. Not new features, only layout and text. Admin delete room and a bottom toolbar go to the backlog | Small, visible fixes; best before users see the new app | Backlog after the switch | Low |
+| 150 | Step 4.0, admin cookie (implements 144): cookie `__Host-listapp-admin` on HTTPS, `listapp-admin` on plain HTTP (as the room cookie), HTTP-only, `SameSite=Lax`, Path `/`, 14 days (NiceGUI's old length). Value is a stateless token `v1.<expiry>.<nonce>.<hmac-sha256>`, key = current `APP_PASSWORD` with a domain-separation prefix, compared in constant time; a changed password ends all sessions. Sign-out only clears the cookie in this browser (a copied cookie would stay valid until it expires or the password changes). `GET /api/v1/admin/session` stays the "signed in as admin" status endpoint (no contract change, no frontend change). The Svelte admin no longer touches NiceGUI storage; NiceGUI's `/admin` keeps its own sign-in, so the two no longer share it (browser tests updated). Replaces 117 | Stateless means no new table or migration, and the password key gives the required reset. An expiry in the token bounds a stolen cookie | A server-side session table (allows real sign-out of every browser; needs a migration); a fixed HMAC of the password (never expires, same value for everyone) | Low |
 
 ## Progress
 
@@ -625,6 +626,7 @@ Milestone 3: rest of the app
 
 Milestone 4: switch
 - [ ] 4.0 Owner decisions after Milestone 3 (admin cookie, toast over dialog, share page room links, phone test fixes)
+  - [x] Admin sign-in with its own cookie (`src/admin_access.py`, `src/api/admin.py`, [`tests/test_api_admin_session.py`](../tests/test_api_admin_session.py), `docs/api.md`; decision 150)
 - [ ] 4.1 Production build
 - [ ] 4.2 Svelte at `/`, old URLs kept
 - [ ] 4.3 Remove NiceGUI

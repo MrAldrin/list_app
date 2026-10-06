@@ -84,7 +84,7 @@ def test_issue_returns_the_token_once_and_stores_only_its_hash(admin_app):
     assert listing(client) == [invitation]
     assert token not in client.get("/api/v1/admin/invitations").text
     # No room cookie, no room.
-    assert set(client.cookies.keys()) == {"session"}
+    assert set(client.cookies.keys()) == {"__Host-listapp-admin"}
     assert room_count() == 1
 
 
@@ -364,7 +364,7 @@ def test_admin_sign_in_is_not_needed_and_gives_no_room_access(admin_app):
     client = admin(admin_app)
     token = issue(client).json()["token"]
     slug = create_room(client, token).json()["room"]["slug"]
-    assert set(client.cookies.keys()) == {"session"}
+    assert set(client.cookies.keys()) == {"__Host-listapp-admin"}
     assert_error(client.get(f"/api/v1/rooms/{slug}/session"), 401, "not_authenticated")
 
 

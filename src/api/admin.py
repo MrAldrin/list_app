@@ -1,25 +1,30 @@
 """Admin endpoints: sign in with APP_PASSWORD, the room overview, creating a
 room and resetting a room password. Ported from NiceGUI's /admin.
 
-Admin sign-in is NiceGUI's own flag in `app.storage.user` (see
-`src/admin_access.py`), so it is shared with NiceGUI's /admin in the same
-browser. Admin never grants room access: these endpoints send only room names
-and slugs, and never set a room cookie. Room endpoints ignore admin sign-in.
+Admin sign-in has its own cookie (decision 144): a signed token made with the
+current `APP_PASSWORD` (see `src/admin_access.py`). It does not use NiceGUI's
+session, and NiceGUI's /admin does not share it. Admin never grants room
+access: these endpoints send only room names and slugs, and never set a room
+cookie. Room endpoints ignore admin sign-in.
 
-The endpoints are `async`: NiceGUI's user storage must be changed on its
-event loop. Database work (bcrypt) runs in a worker thread.
+Database work (bcrypt) runs in a worker thread.
 """
 
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends
-from fastapi.responses import Response
-from nicegui import app
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from starlette.concurrency import run_in_threadpool
 
-from admin_access import ADMIN_STORAGE_KEY, admin_password_matches
-from api.errors import ApiError
+from admin_access import (
+    ADMIN_SESSION_SECONDS,
+    admin_password_matches,
+    admin_token_valid,
+    issue_admin_token,
+)
+from api.access import is_https
+from api.errors import ApiError, error_response
 from api.requests import json_object, parse_body
 from api.session import MAX_PASSWORD_LENGTH
 from database_crud import (
@@ -31,18 +36,52 @@ from database_crud import (
     reset_room_password_by_slug,
 )
 from live_updates import wake_streams
+from room_cookies import HOST_PREFIX
 
 # Message as NiceGUI's admin login shows it.
 WRONG_ADMIN_PASSWORD = "Wrong password"
 
+# As the room cookie: `__Host-` (Secure, Path=/, no Domain) on HTTPS; the plain
+# name on plain HTTP, for local network testing.
+PLAIN_ADMIN_COOKIE = "listapp-admin"
+ADMIN_COOKIE = HOST_PREFIX + PLAIN_ADMIN_COOKIE
 
-def admin_signed_in() -> bool:
-    return bool(app.storage.user.get(ADMIN_STORAGE_KEY, False))
+
+def admin_cookie_name(request: Request) -> str:
+    return ADMIN_COOKIE if is_https(request) else PLAIN_ADMIN_COOKIE
 
 
-async def require_admin() -> None:
+def admin_signed_in(request: Request) -> bool:
+    """True when this request carries a valid admin cookie."""
+    return admin_token_valid(request.cookies.get(admin_cookie_name(request)))
+
+
+def _set_admin_cookie(response: Response, request: Request, token: str) -> None:
+    response.set_cookie(
+        admin_cookie_name(request),
+        token,
+        max_age=ADMIN_SESSION_SECONDS,
+        path="/",
+        secure=is_https(request),
+        httponly=True,
+        samesite="lax",
+    )
+
+
+def _clear_admin_cookie(response: Response, request: Request) -> None:
+    # Deleting needs the same Path and Secure flag the cookie was set with.
+    response.delete_cookie(
+        admin_cookie_name(request),
+        path="/",
+        secure=is_https(request),
+        httponly=True,
+        samesite="lax",
+    )
+
+
+async def require_admin(request: Request) -> None:
     """Dependency: 401 `admin_required` unless this browser is signed in as admin."""
-    if not admin_signed_in():
+    if not admin_signed_in(request):
         raise ApiError(401, "admin_required")
 
 
@@ -72,25 +111,35 @@ class ResetPasswordBody(BaseModel):
 
 
 @router.post("/session")
-async def sign_in(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any]:
+async def sign_in(
+    request: Request, body: dict[str, Any] = Depends(json_object)
+) -> Response:
     password = parse_body(AdminSignInBody, body).password
     if not admin_password_matches(password):
-        # As NiceGUI: a wrong password does not sign out an admin session.
+        # A wrong password does not sign out an admin session.
         raise ApiError(401, "invalid_password", WRONG_ADMIN_PASSWORD)
-    app.storage.user[ADMIN_STORAGE_KEY] = True
-    return {}
+    response = JSONResponse({})
+    _set_admin_cookie(response, request, issue_admin_token())
+    return response
 
 
 @router.get("/session")
-async def who_am_i() -> dict[str, Any]:
-    await require_admin()
-    return {}
+async def who_am_i(request: Request) -> Response:
+    """Whether this browser is signed in as admin: 200 `{}` or 401."""
+    if admin_signed_in(request):
+        return JSONResponse({})
+    response = error_response(401, "admin_required")
+    if admin_cookie_name(request) in request.cookies:
+        # An expired, forged or old-password cookie is useless; drop it.
+        _clear_admin_cookie(response, request)
+    return response
 
 
 @router.delete("/session")
-async def sign_out() -> Response:
-    app.storage.user[ADMIN_STORAGE_KEY] = False
-    return Response(status_code=204)
+async def sign_out(request: Request) -> Response:
+    response = Response(status_code=204)
+    _clear_admin_cookie(response, request)
+    return response
 
 
 def _room(details: dict[str, Any]) -> dict[str, str]:

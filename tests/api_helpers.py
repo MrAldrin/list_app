@@ -103,10 +103,8 @@ def row_counts() -> tuple[int, int, int]:
     )
 
 
-# Admin. Admin sign-in lives in NiceGUI's `app.storage.user`, which needs
-# NiceGUI's session middleware. Tests never call `ui.run()`, which adds it in
-# production, so admin tests serve the same API router from a small app with
-# that middleware. The `admin_app` fixture is in `conftest.py`.
+# Admin. Admin sign-in has its own cookie (see `src/admin_access.py`), so admin
+# tests serve the API router alone. The `admin_app` fixture is in `conftest.py`.
 
 APP_PASSWORD = "test-only-app-password"  # tests/conftest.py
 

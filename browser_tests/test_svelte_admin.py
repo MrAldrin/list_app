@@ -28,10 +28,9 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     admin_sign_in(owner, server)
     expect(owner.get_by_role("link", name="Home")).to_be_visible()
 
-    # The sign-in is NiceGUI's: its admin page opens in the same browser.
+    # The sign-in has its own cookie: NiceGUI's admin page does not share it.
     owner.goto(f"{server.url}/admin")
-    expect(owner).to_have_url(re.compile(r"/admin$"))
-    expect(owner.get_by_text("Refresh rooms")).to_be_visible()
+    expect(owner).to_have_url(re.compile(r"/admin/login$"))
 
     # A room name opens the room page, which still asks for the room password.
     owner.goto(app_url(server, "admin"))
@@ -86,17 +85,15 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     owner.goto(app_url(server, f"room/{slug}"))
     expect(owner.get_by_label("Room Password")).to_be_visible()
 
-    # Log out: the sign-in prompt comes back, here and in NiceGUI.
+    # Log out: the sign-in prompt comes back, also after a reload.
     owner.goto(app_url(server, "admin"))
     owner.get_by_role("button", name="Log out").click()
     expect(owner.get_by_label("Admin Password")).to_be_visible()
     owner.reload()
     expect(owner.get_by_label("Admin Password")).to_be_visible()
-    owner.goto(f"{server.url}/admin")
-    expect(owner).to_have_url(re.compile(r"/admin/login$"))
 
 
-def test_nicegui_admin_sign_in_carries_over_and_never_opens_a_room(
+def test_nicegui_admin_sign_in_does_not_carry_over_and_never_opens_a_room(
     svelte_server, open_session
 ):
     server = svelte_server
@@ -107,7 +104,7 @@ def test_nicegui_admin_sign_in_carries_over_and_never_opens_a_room(
     expect(page).to_have_url(re.compile(r"/admin$"))
 
     page.goto(app_url(server, "admin"))
-    expect(page.get_by_role("link", name="Home")).to_be_visible()
+    expect(page.get_by_label("Admin Password")).to_be_visible()
     page.goto(app_url(server, f"room/{server.room_slug}?admin=true"))
     expect(page.get_by_label("Room Password")).to_be_visible()
     expect(page.get_by_role("link", name="Back to admin")).to_have_count(0)

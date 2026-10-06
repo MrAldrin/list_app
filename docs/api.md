@@ -158,24 +158,32 @@ Room members (need the room cookie; 401 `not_authenticated` without it):
 
 ## Admin
 
-The admin password is `APP_PASSWORD`. Admin sign-in is the flag NiceGUI's
-`/admin` uses in its per-browser user storage (found through NiceGUI's signed
-`session` cookie). So signing in or out on one UI does the same on the other,
-in the same browser. Admin sign-in never gives room access: the room
-endpoints ignore it, and admin endpoints never set a room cookie.
+The admin password is `APP_PASSWORD`. Admin sign-in has its own cookie, like
+the room cookie: `__Host-listapp-admin` on HTTPS (`Secure`, Path `/`, no
+Domain), `listapp-admin` on plain HTTP (local network testing). Both are
+HTTP-only and `SameSite=Lax`, and last 14 days. The value is a signed token
+(`v1.<expiry>.<nonce>.<signature>`); the signature uses a key made from the
+current `APP_PASSWORD`, so **changing `APP_PASSWORD` ends every admin
+session**. Nothing is stored on the server, so signing out clears the cookie
+in this browser only. The cookie is separate from NiceGUI's `/admin` sign-in
+(which goes away with NiceGUI). Admin sign-in never gives room access: the
+room endpoints ignore it, and admin endpoints never set a room cookie.
 
 | Request | Body | Success |
 |---|---|---|
-| `POST /api/v1/admin/session` | `{"password"}` | 200 `{}` |
-| `GET /api/v1/admin/session` | – | 200 `{}`; 401 `admin_required` when not signed in |
-| `DELETE /api/v1/admin/session` | – | 204, also when not signed in |
+| `POST /api/v1/admin/session` | `{"password"}` | 200 `{}` and the admin cookie |
+| `GET /api/v1/admin/session` | – | 200 `{}` when this browser is signed in as admin; 401 `admin_required` otherwise (and a useless cookie is cleared) |
+| `DELETE /api/v1/admin/session` | – | 204 and the cookie is cleared, also when not signed in |
 | `GET /api/v1/admin/rooms` | – | 200 `{"rooms": [{"slug", "name"}]}` |
 | `POST /api/v1/admin/rooms` | `{"name", "password"}` | 200 `{"room": {"slug", "name"}}` |
 | `POST /api/v1/admin/rooms/{slug}/password` | `{"new_password"}` | 200 `{}` |
 
 - **Sign-in:** a wrong password is 401 `invalid_password` ("Wrong password").
   It does not sign out an admin who is signed in. The check is exact and in
-  constant time.
+  constant time, as is the cookie signature check.
+- **Status:** `GET /api/v1/admin/session` is how the app learns that this
+  browser is signed in as admin (for "Back to admin" on the room page).
+- Writes need the same-origin check, sign-in and sign-out included.
 - Every other admin endpoint is 401 `admin_required` without admin sign-in,
   checked before the body or the room.
 - **Rooms:** every room, by name ignoring case.

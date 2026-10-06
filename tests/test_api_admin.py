@@ -1,13 +1,9 @@
 """Admin in the JSON API: sign-in, room overview, create room, password reset.
 
-The rules are NiceGUI's /admin (docs/api.md, "Admin"). Admin sign-in lives in
-NiceGUI's `app.storage.user`, which needs NiceGUI's session middleware. Tests
-never call `ui.run()`, which adds it in production, so these tests serve the
-same API router from a small app with that middleware.
+The rules are NiceGUI's /admin (docs/api.md, "Admin"). The admin session
+cookie is tested in `test_api_admin_session.py`.
 """
 
-import base64
-import json
 from unittest.mock import patch
 
 import pytest
@@ -21,19 +17,11 @@ from api_helpers import (
     home,
     sign_in,
 )
-from nicegui import core
 from starlette.testclient import TestClient
 
 import database_crud as crud
-from admin_access import ADMIN_STORAGE_KEY, admin_password_matches
+from admin_access import admin_password_matches
 from database_setup import db
-
-
-def nicegui_user_storage(client: TestClient) -> dict:
-    """The NiceGUI user storage of this browser's session cookie."""
-    payload = client.cookies["session"].split(".")[0]
-    session_id = json.loads(base64.b64decode(payload + "=="))["id"]
-    return core.app.storage._users[session_id]
 
 
 def password_hash(room_id: int) -> str:
@@ -66,7 +54,7 @@ def test_admin_password_matches_only_app_password():
 # Sign-in
 
 
-def test_sign_in_sets_nicegui_admin_flag_and_who_am_i(admin_app):
+def test_sign_in_sets_the_admin_cookie_and_who_am_i(admin_app):
     client = browser(admin_app)
     assert_error(client.get("/api/v1/admin/session"), 401, "admin_required")
 
@@ -75,11 +63,9 @@ def test_sign_in_sets_nicegui_admin_flag_and_who_am_i(admin_app):
     assert response.status_code == 200
     assert response.json() == {}
     assert response.headers["cache-control"] == "no-store"
-    # The same flag NiceGUI's /admin reads, so both UIs share the sign-in.
-    assert nicegui_user_storage(client)[ADMIN_STORAGE_KEY] is True
     assert client.get("/api/v1/admin/session").status_code == 200
-    # Only NiceGUI's session cookie: no room cookie, no token in the body.
-    assert set(client.cookies.keys()) == {"session"}
+    # Only the admin cookie: no room cookie, no token in the body.
+    assert set(client.cookies.keys()) == {"__Host-listapp-admin"}
 
 
 def test_wrong_password_is_refused_and_signs_nobody_in(admin_app):
@@ -168,19 +154,11 @@ def test_sign_out_ends_the_admin_session(admin_app):
     response = client.delete("/api/v1/admin/session")
 
     assert response.status_code == 204
-    assert nicegui_user_storage(client)[ADMIN_STORAGE_KEY] is False
     assert_error(client.get("/api/v1/admin/session"), 401, "admin_required")
     assert_error(client.get("/api/v1/admin/rooms"), 401, "admin_required")
     # Another browser stays signed in; signing out twice is fine.
     assert other.get("/api/v1/admin/session").status_code == 200
     assert client.delete("/api/v1/admin/session").status_code == 204
-
-
-def test_a_nicegui_sign_out_ends_the_api_session(admin_app):
-    client = admin(admin_app)
-    # NiceGUI's logout: app.storage.user.update({"authenticated": False}).
-    nicegui_user_storage(client).update({ADMIN_STORAGE_KEY: False})
-    assert_error(client.get("/api/v1/admin/rooms"), 401, "admin_required")
 
 
 def test_admin_session_is_per_browser(admin_app):
@@ -287,7 +265,7 @@ def test_create_room_as_nicegui_and_no_room_access(admin_app):
         "SELECT name FROM rooms WHERE slug = ?", (room["slug"],)
     ).fetchone()
     assert row == ("Beach  House",)
-    assert set(client.cookies.keys()) == {"session"}
+    assert set(client.cookies.keys()) == {"__Host-listapp-admin"}
     assert_error(
         client.get(f"/api/v1/rooms/{room['slug']}/session"), 401, "not_authenticated"
     )

@@ -1,6 +1,5 @@
 import os
 import uuid
-from unittest.mock import patch
 
 import bcrypt
 import pytest
@@ -11,8 +10,6 @@ os.environ["DB_PATH"] = ":memory:"
 os.environ["APP_PASSWORD"] = "test-only-app-password"
 
 from fastapi import FastAPI
-from nicegui.storage import RequestTrackingMiddleware, Storage
-from starlette.middleware.sessions import SessionMiddleware
 
 from api import register_api
 from database_setup import db
@@ -46,14 +43,11 @@ def clean_db(home_password_hash):
     yield
 
 
-# Admin API tests (tests/api_helpers.py, "Admin"): the API router in a small
-# app with NiceGUI's session middleware, which `ui.run()` adds in production.
+# Admin API tests (tests/api_helpers.py, "Admin"): the API router alone, with no
+# NiceGUI session middleware. Admin sign-in has its own cookie and must not
+# depend on NiceGUI (decision 144).
 @pytest.fixture(scope="module")
-def admin_app(tmp_path_factory) -> FastAPI:
+def admin_app() -> FastAPI:
     test_app = FastAPI()
     register_api(test_app)
-    # The order ui.run() adds them in: session cookie outside, tracking inside.
-    test_app.add_middleware(RequestTrackingMiddleware)
-    test_app.add_middleware(SessionMiddleware, secret_key="test-only-secret")
-    with patch.object(Storage, "path", tmp_path_factory.mktemp("nicegui")):
-        yield test_app
+    return test_app
