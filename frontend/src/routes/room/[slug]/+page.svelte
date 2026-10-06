@@ -1,5 +1,5 @@
 <!--
-	The room page (/app/room/{slug}). The folder name `[slug]` makes the slug a
+	The room page (/room/{slug}). The folder name `[slug]` makes the slug a
 	route parameter. The page asks for the password when the browser has no
 	access, and shows the room's lists once the data layer has loaded them.
 -->

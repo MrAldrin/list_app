@@ -1,5 +1,5 @@
 <!--
-	An invitation link (/app/create-room/{token}; NiceGUI: /create-room/{token}).
+	An invitation link (/create-room/{token}, the same as NiceGUI's).
 	Anyone with it can create a room while it is active (docs/room-invitations.md).
 	A link that cannot create a room shows NiceGUI's message and no form.
 -->

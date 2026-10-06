@@ -12,7 +12,7 @@ import type {
 	ShareLink
 } from './types';
 
-/** The API sits at the origin root, not under the app's `/app` base path. */
+/** The API sits at the origin root. */
 export const API_BASE = '/api/v1';
 
 const ADMIN = `${API_BASE}/admin`;
@@ -201,7 +201,7 @@ export class Api {
 		}).then((data) => data.room);
 	}
 
-	// Share links (room members): the token for `/app/share/{token}`.
+	// Share links (room members): the token for `/share/{token}`.
 
 	shareLink(slug: string, listUid: string): Promise<ShareLink> {
 		return this.request<ShareLink>('GET', shareLinkPath(slug, listUid));

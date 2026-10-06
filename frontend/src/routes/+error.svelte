@@ -1,6 +1,6 @@
 <!--
 	Shown for an address the app does not know (404), and for unexpected errors
-	while opening a page. SvelteKit picks this file for any error under /app/.
+	while opening a page. SvelteKit picks this file for any error in the app.
 -->
 <script lang="ts">
 	import { resolve } from '$app/paths';

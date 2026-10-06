@@ -1,5 +1,5 @@
 <!--
-	The admin page (/app/admin; NiceGUI: /admin and /admin/login). Without
+	The admin page (/admin; NiceGUI also had /admin/login, which the server sends here). Without
 	admin sign-in it asks for the app password; then it shows every room and
 	the creation invitations.
 	Admin sign-in is shared with NiceGUI's admin page in this browser, and it

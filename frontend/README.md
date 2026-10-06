@@ -22,7 +22,7 @@ Run two servers:
 1. Python, from the repository root: `uv run python src/main.py` (port 8080).
 2. Svelte, from here: `npm run dev` (port 5173).
 
-Open <http://localhost:5173/app/>. Vite reloads the page when you save a file.
+Open <http://localhost:5173/>. Vite reloads the page when you save a file.
 It forwards `/api/…` requests to Python on 8080, so the browser sees one origin
 and the room cookies work. The install manifests and icons come from Python
 too.
@@ -35,7 +35,7 @@ npm run build
 
 This writes static files to `build/` (ignored by version control). Restart the
 Python server once after the first build; it then serves the app at
-<http://localhost:8080/app/>. Later builds need no restart.
+<http://localhost:8080/>. Later builds need no restart.
 
 ## Checks
 

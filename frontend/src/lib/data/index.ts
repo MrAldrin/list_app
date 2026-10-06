@@ -164,7 +164,7 @@ export class RoomHandle {
 
 	// Share links
 
-	/** The list's share token, for `/app/share/{token}`. Not cached: a reset elsewhere changes it. */
+	/** The list's share token, for `/share/{token}`. Not cached: a reset elsewhere changes it. */
 	shareLink(list: ListRef): Promise<ActionResult<ShareLink>> {
 		return this.#call(() => this.#api.shareLink(this.slug, list.uid));
 	}

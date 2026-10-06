@@ -8,18 +8,18 @@ describe('share helpers', () => {
 	});
 
 	it('builds the full address from the path only', () => {
-		expect(absoluteUrl('/app/share/abc', 'https://lists.example')).toBe(
-			'https://lists.example/app/share/abc'
+		expect(absoluteUrl('/share/abc', 'https://lists.example')).toBe(
+			'https://lists.example/share/abc'
 		);
 	});
 
 	it('opens the share sheet with the link and the note', async () => {
 		const share = vi.fn(async () => undefined);
-		expect(await shareNatively('list', 'https://x/app/share/t', { share })).toBe('shared');
+		expect(await shareNatively('list', 'https://x/share/t', { share })).toBe('shared');
 		expect(share).toHaveBeenCalledWith({
 			title: 'ListR',
 			text: 'Anyone with this link can open this list.',
-			url: 'https://x/app/share/t'
+			url: 'https://x/share/t'
 		});
 	});
 

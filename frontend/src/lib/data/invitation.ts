@@ -1,4 +1,4 @@
-// A creation invitation link (/app/create-room/{token}): anyone with it can
+// A creation invitation link (/create-room/{token}): anyone with it can
 // create a new room (docs/api.md, "Creation invitations"). It never gives
 // access to a room; the creator signs in with the new password afterwards.
 //

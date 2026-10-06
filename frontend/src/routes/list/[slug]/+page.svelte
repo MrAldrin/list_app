@@ -1,6 +1,6 @@
 <!--
-	/app/list/{slug}: the old NiceGUI link shape, without the room. The list page
-	needs the room (/app/room/{room}/list/{slug}), so this page sends the
+	/list/{slug}: the old NiceGUI link shape, without the room. The list page
+	needs the room (/room/{room}/list/{slug}), so this page sends the
 	browser there with the last room it signed in to. If the list is in another
 	room, the list page says it is not available.
 -->

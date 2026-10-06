@@ -1,5 +1,5 @@
 // Reads a room slug from what the user pasted on the start page: a full room
-// link (`https://…/room/home-ab12cd`, also `/app/room/…`) or just the code.
+// link (`https://…/room/home-ab12cd`, also the old `/app/room/…`) or just the code.
 // Same rule as NiceGUI's start page: the last part of the link's path.
 
 /** The room slug, or null when the text has none. */

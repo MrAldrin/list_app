@@ -14,10 +14,8 @@ export default defineConfig({
 			// SPA mode: build plain static files into `build/`. Every URL the
 			// server does not know falls back to `index.html`, and the router in
 			// the browser picks the page.
-			adapter: adapter({ fallback: 'index.html' }),
-
-			// Python serves the built app under /app/ until the switch.
-			paths: { base: '/app' }
+			adapter: adapter({ fallback: 'index.html' })
+			// Python serves the built app at the root (`/`), so no `paths.base`.
 		})
 	],
 	server: {
@@ -28,7 +26,7 @@ export default defineConfig({
 			// Responses are streamed as they arrive, so Server-Sent Events work too.
 			'/api': { target: 'http://localhost:8080' },
 			// Home-screen install: Python makes the manifests and serves the icons.
-			'^/app/(manifest\\.webmanifest|room-manifest/)': { target: 'http://localhost:8080' },
+			'^/(manifest\\.webmanifest|room-manifest/)': { target: 'http://localhost:8080' },
 			'/static/icons/': { target: 'http://localhost:8080' }
 		}
 	},

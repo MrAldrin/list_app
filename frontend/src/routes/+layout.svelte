@@ -12,7 +12,7 @@
 
 	// One manifest link for the whole app, changed when the page changes: the
 	// room page's icon opens that room, any other page's the start page.
-	// `resolve('/')` is the app's base path with a slash: `/app/` until the switch.
+	// `resolve('/')` is the app's base path with a slash: `/`.
 	const base = resolve('/').replace(/\/$/, '');
 	const manifest = $derived(manifestHref(page.route.id, page.params, base));
 

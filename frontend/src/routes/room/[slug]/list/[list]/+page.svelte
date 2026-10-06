@@ -1,5 +1,5 @@
 <!--
-	The list page (/app/room/{room}/list/{list}). The room is in the URL because
+	The list page (/room/{room}/list/{list}). The room is in the URL because
 	the data layer loads a whole room at once (the changes feed is per room).
 	The page asks for the room password when needed, like the room page, and
 	shows a clear message when the list is gone or not in this room.

@@ -16,7 +16,7 @@ describe('invitation texts', () => {
 
 	it('builds the full link from the path alone', () => {
 		expect(invitationUrl('a-b_c', 'https://lists.example')).toBe(
-			'https://lists.example/app/create-room/a-b_c'
+			'https://lists.example/create-room/a-b_c'
 		);
 	});
 });

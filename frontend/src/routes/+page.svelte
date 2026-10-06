@@ -1,5 +1,5 @@
 <!--
-	The start page (/app/). Like NiceGUI's `/`, it is a router: if this browser
+	The start page (/). Like NiceGUI's `/`, it is a router: if this browser
 	signed in to a room before, it goes straight to that room. Otherwise it
 	asks for the room link or code, and offers the admin page.
 -->
@@ -16,7 +16,7 @@
 	let error = $state('');
 
 	function openRoomPage(slug: string, replace = false) {
-		// `resolve` adds the app's base path (/app) to the route.
+		// `resolve` adds the app's base path (none: the app is at /) to the route.
 		// `replaceState` keeps the start page out of the back-button history.
 		return goto(resolve('/room/[slug]', { slug }), { replaceState: replace });
 	}

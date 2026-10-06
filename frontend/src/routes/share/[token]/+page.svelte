@@ -1,5 +1,5 @@
 <!--
-	A share link (/app/share/{token}): one list, to view and edit without the
+	A share link (/share/{token}): one list, to view and edit without the
 	room password (docs/public-sharing.md). The link never opens the room. Only
 	a browser that already has access to the list's room (the server says so in
 	the feed's `room`) gets the back arrow and "Reset share link"; everyone
