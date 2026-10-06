@@ -120,3 +120,31 @@ def test_rename_saved_after_a_password_change_changes_nothing(
     assert answer.value.status == 401
     expect(stale.get_by_label("Room Password")).to_be_visible()
     assert server.query("SELECT name FROM lists") == [("Groceries",)]
+
+
+def test_tag_deleted_elsewhere_stops_filtering(svelte_server, open_session):
+    server = svelte_server
+    phone_a = open_session("phone-a", **PHONE)
+    phone_b = open_session("phone-b", **PHONE)
+    sign_in(phone_a, server)
+    sign_in(phone_b, server)
+    list_url = create_list(phone_a, "Groceries")
+    for name in ("milk", "bread"):
+        add_item(phone_a, name)
+    phone_a.get_by_role("button", name="Options").click()
+    phone_a.get_by_label("Add Tag").fill("Lidl")
+    phone_a.get_by_label("Add Tag").press("Enter")
+    phone_a.get_by_role("button", name="Lidl tag for milk").click()
+    phone_a.get_by_role("button", name="Done").click()
+
+    # Phone A filters by the tag.
+    chips = phone_a.get_by_role("list", name="Tags")
+    chips.get_by_role("button", name="Lidl", exact=True).click()
+    expect(item_names(phone_a)).to_have_text(["milk"])
+
+    # Phone B deletes the tag: phone A shows every item again.
+    phone_b.goto(list_url)
+    phone_b.get_by_role("button", name="Options").click()
+    phone_b.get_by_role("button", name="Delete tag Lidl").click()
+    expect(chips.get_by_role("button", name="Lidl", exact=True)).to_have_count(0)
+    expect(item_names(phone_a)).to_have_text(["bread", "milk"])
