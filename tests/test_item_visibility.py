@@ -38,17 +38,13 @@ def test_visibility_modes_keep_unchecked_and_legacy_checked_items_as_specified()
         1,
         2,
     ]
-    assert [row["id"] for row in filter_visible_items(items, "age", 0, now=now)] == [
-        1,
-    ]
     assert items[1]["completed_at"] is None
 
 
-def test_age_zero_hides_checked_items_even_with_future_timestamps():
-    now = datetime(2025, 1, 8, 12, tzinfo=UTC)
-    items = [_item(1, False), _item(2, True, "2030-01-01T00:00:00Z")]
-
-    assert [row["id"] for row in filter_visible_items(items, "age", 0, now=now)] == [1]
+@pytest.mark.parametrize("mode, age, recent", [("age", 0, 10), ("recent", 7, 0)])
+def test_zero_counts_are_rejected(mode: str, age: int, recent: int) -> None:
+    with pytest.raises(ValueError, match="between 1"):
+        filter_visible_items([], mode, age_days=age, recent_count=recent)
 
 
 def test_age_visibility_uses_exact_full_24_hour_boundary():
@@ -80,12 +76,10 @@ def test_recent_visibility_ranks_known_times_then_timestamp_ties_and_legacy_ids(
     retained = filter_visible_items(items, "recent", recent_count=2)
     retained_legacy = filter_visible_items(items, "recent", recent_count=5)
     retained_all = filter_visible_items(items, "recent", recent_count=7)
-    none_retained = filter_visible_items(items, "recent", recent_count=0)
 
     assert {row["id"] for row in retained} == {4, 8, 21}
     assert {row["id"] for row in retained_legacy} == {4, 7, 8, 10, 21, 99}
     assert {row["id"] for row in retained_all} == {4, 7, 8, 10, 19, 20, 21, 99}
-    assert [row["id"] for row in none_retained] == [21]
 
 
 def test_visibility_helper_validates_mode_and_count_bounds():
@@ -110,7 +104,7 @@ def test_visibility_setting_defaults_and_atomic_identity_checked_update():
     assert crud.get_list_details_by_slug(slug)["hide_done_mode"] == "off"
 
     crud.update_list_visibility_settings(
-        list_id, mode="recent", age_days=0, recent_count=4, expected_slug=slug
+        list_id, mode="recent", age_days=1, recent_count=4, expected_slug=slug
     )
 
     updated = crud.get_list_details(list_id)
@@ -118,7 +112,7 @@ def test_visibility_setting_defaults_and_atomic_identity_checked_update():
         updated["hide_done_mode"],
         updated["hide_done_age_days"],
         updated["hide_done_recent_count"],
-    ) == ("recent", 0, 4)
+    ) == ("recent", 1, 4)
     assert crud.get_list_details_by_slug(slug)["hide_done_recent_count"] == 4
 
 
@@ -126,6 +120,8 @@ def test_visibility_setting_defaults_and_atomic_identity_checked_update():
     ("mode", "age_days", "recent_count"),
     [
         ("unknown", 7, 10),
+        ("off", 0, 10),
+        ("off", 7, 0),
         ("off", -1, 10),
         ("off", 7, -1),
         ("off", True, 10),

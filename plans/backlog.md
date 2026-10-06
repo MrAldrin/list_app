@@ -22,7 +22,7 @@ Agreed as worth doing; no date.
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
 - [ ] [data] Strengthen field constraints: nullable names, completion state and slugs; quantities below one; length limits; valid tags JSON. Inspect existing data first.
-- [ ] [data] Hide-done numbers: require at least 1 for "After X days" and "Keep last X" (0 acts like "All"). Change the Svelte field, the API check and saved zeros together. See the [Svelte rewrite plan](svelte-frontend-rewrite.md#gate-a-checklist).
+- [x] [data] Hide-done counters require at least 1; saved zeros migrate without changing visibility. See [checked-item visibility](../docs/checked-item-visibility.md).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [security] Room sign-in answers faster for an unknown room than for a wrong password, because bcrypt is skipped. This reveals which rooms exist. Check a dummy hash for unknown rooms. See `authenticate_room_and_issue_token` in [`src/database_crud.py`](../src/database_crud.py).
@@ -59,6 +59,7 @@ results (with OS/browser versions for devices) in the linked doc.
 
 - [ ] Finish the deployment guide's outstanding production checks: persistence across restart/deployment, migration verification, remembered room access and password-reset revocation.
 - [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index.
+- [ ] Verify the positive-counter migration after deployment: existing zero modes become All; both number fields reject 0 and accept 1. See [checked-item visibility](../docs/checked-item-visibility.md).
 - [ ] Verify the [checked-item visibility](../docs/checked-item-visibility.md#existing-lists-and-verification) migration on production and real devices.
 - [x] Before the Svelte switch (Gate B): check the Railway service uses the new `Dockerfile` build, has no dashboard build or start command, and still has the volume at `/data` and `DB_PATH`. See [production image](../docs/deployment.md#production-image).
 - [ ] After the Svelte switch on production: sign in to a room over HTTPS and check in the browser's cookie view that `__Host-listapp-room-...` exists (Secure). Railway already has `FORWARDED_ALLOW_IPS=*`, so the prefix is expected. Also check a room you were signed in to before the switch still opens without a password. See the [rehearsal note](../docs/background/deploy-rehearsal-2026-10-06.md#https-detection-and-forwarded-headers).

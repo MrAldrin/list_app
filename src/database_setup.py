@@ -536,6 +536,34 @@ def _migration_4_change_tracking_triggers(db: sqlite3.Connection) -> None:
         db.execute(f"CREATE TRIGGER {name} {body}")
 
 
+def _migration_5_positive_visibility_counts(db: sqlite3.Connection) -> None:
+    """Preserve zero-count hiding with All, and require positive counters."""
+    db.execute("""
+        UPDATE lists SET
+            hide_done_mode = CASE
+                WHEN (hide_done_mode = 'age' AND hide_done_age_days = 0)
+                  OR (hide_done_mode = 'recent' AND hide_done_recent_count = 0)
+                THEN 'all' ELSE hide_done_mode END,
+            hide_done_age_days = CASE WHEN hide_done_age_days = 0
+                THEN 7 ELSE hide_done_age_days END,
+            hide_done_recent_count = CASE WHEN hide_done_recent_count = 0
+                THEN 10 ELSE hide_done_recent_count END
+        WHERE hide_done_age_days = 0 OR hide_done_recent_count = 0
+    """)
+    # Add focused guards without rebuilding lists or disturbing tracking triggers.
+    for action in ("INSERT", "UPDATE OF hide_done_age_days, hide_done_recent_count"):
+        name = "insert" if action == "INSERT" else "update"
+        db.execute(f"""
+            CREATE TRIGGER lists_positive_visibility_{name}
+            BEFORE {action} ON lists
+            WHEN typeof(NEW.hide_done_age_days) != 'integer'
+              OR NEW.hide_done_age_days NOT BETWEEN 1 AND 100000
+              OR typeof(NEW.hide_done_recent_count) != 'integer'
+              OR NEW.hide_done_recent_count NOT BETWEEN 1 AND 100000
+            BEGIN SELECT RAISE(ABORT, 'visibility counters must be 1 to 100000'); END
+        """)
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -543,6 +571,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_2_item_ids_never_reused,
         _migration_3_offline_ready_schema,
         _migration_4_change_tracking_triggers,
+        _migration_5_positive_visibility_counts,
     ]
 
 

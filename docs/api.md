@@ -260,7 +260,7 @@ Anyone with the link (no sign-in):
 
 - List `name` is shown as typed. Item `name` is stored in lowercase.
 - List `tags` are sorted ignoring case. Item `tags` keep their order.
-- `hide_done.mode` is `off`, `all`, `age` or `recent`; counts are 0–100,000.
+- `hide_done.mode` is `off`, `all`, `age` or `recent`; counts are 1–100,000.
 - `completed_at` is UTC, or `null` when not done or not known (items checked
   before completion times existed).
 - `changed_seq` is the room `seq` of the row's last change.

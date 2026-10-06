@@ -217,9 +217,9 @@ def test_visibility_sends_only_changed_fields(room, notified):
     op(
         client,
         slug,
-        list_body("list.visibility", list_uid, recent_count=0, mode=None),
+        list_body("list.visibility", list_uid, recent_count=1, mode=None),
     )
-    assert visibility(list_id) == ("age", 3, 0)
+    assert visibility(list_id) == ("age", 3, 1)
     assert notified == [room_id] * 3
 
 
@@ -238,10 +238,10 @@ def test_visibility_all_fields(room):
     _, slug, client = room
     list_id, list_uid = default_list()
     body = list_body(
-        "list.visibility", list_uid, mode="all", age_days=100_000, recent_count=0
+        "list.visibility", list_uid, mode="all", age_days=100_000, recent_count=1
     )
     op(client, slug, body)
-    assert visibility(list_id) == ("all", 100_000, 0)
+    assert visibility(list_id) == ("all", 100_000, 1)
 
 
 @pytest.mark.parametrize(
@@ -252,6 +252,8 @@ def test_visibility_all_fields(room):
         {"mode": "bogus"},
         {"mode": ""},
         {"mode": "ALL"},
+        {"age_days": 0},
+        {"recent_count": 0},
         {"age_days": -1},
         {"age_days": 100_001},
         {"recent_count": -1},

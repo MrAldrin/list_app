@@ -30,13 +30,12 @@ describe('filterVisibleItems (parity with item_visibility.py)', () => {
 		expect(ids(filterVisibleItems(items))).toEqual([1, 2, 3]);
 		expect(ids(filterVisibleItems(items, settings('all')))).toEqual([1]);
 		expect(ids(filterVisibleItems(items, settings('age', 1), now))).toEqual([1, 2]);
-		expect(ids(filterVisibleItems(items, settings('age', 0), now))).toEqual([1]);
 		expect(items[1].completed_at).toBeNull();
 	});
 
-	it('age 0 hides checked items even with future timestamps', () => {
-		const items = [item(1, false), item(2, true, '2030-01-01T00:00:00Z')];
-		expect(ids(filterVisibleItems(items, settings('age', 0), now))).toEqual([1]);
+	it('rejects zero counts in either numeric mode', () => {
+		expect(() => filterVisibleItems([], settings('age', 0))).toThrow('age_days');
+		expect(() => filterVisibleItems([], settings('recent', 7, 0))).toThrow('recent_count');
 	});
 
 	it('uses the exact full 24-hour boundary in age mode', () => {
@@ -84,7 +83,6 @@ describe('filterVisibleItems (parity with item_visibility.py)', () => {
 		expect([99, 19, 20].filter((id) => five.has(id))).toHaveLength(1);
 
 		expect(visible(7)).toEqual(new Set([4, 7, 8, 10, 19, 20, 21, 99]));
-		expect(ids(filterVisibleItems(items, settings('recent', 7, 0)))).toEqual([21]);
 	});
 
 	it('keeps the given order', () => {
@@ -105,6 +103,8 @@ describe('filterVisibleItems (parity with item_visibility.py)', () => {
 
 	it.each([
 		['unknown', 7, 10],
+		['off', 0, 10],
+		['off', 7, 0],
 		['off', -1, 10],
 		['off', 7, -1],
 		['off', 7, 1.5],

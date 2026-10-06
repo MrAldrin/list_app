@@ -80,7 +80,7 @@
 				class="count"
 				type="number"
 				inputmode="numeric"
-				min="0"
+				min="1"
 				max="100000"
 				step="1"
 				value={settings[field]}

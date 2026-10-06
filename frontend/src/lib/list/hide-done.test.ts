@@ -10,20 +10,20 @@ const settings = (overrides: Partial<HideDone> = {}): HideDone => ({
 });
 
 describe('parseHideDoneCount', () => {
-	it('reads whole numbers from 0 to 100,000', () => {
-		expect(parseHideDoneCount('0')).toBe(0);
+	it('reads whole numbers from 1 to 100,000', () => {
+		expect(parseHideDoneCount('1')).toBe(1);
 		expect(parseHideDoneCount(' 12 ')).toBe(12);
 		expect(parseHideDoneCount('100000')).toBe(100_000);
 	});
 
 	it('refuses blanks, fractions, negatives and too large numbers', () => {
-		for (const text of ['', '  ', '1.5', '-1', '100001', 'abc', 'Infinity']) {
+		for (const text of ['0', '', '  ', '1.5', '-1', '100001', 'abc', 'Infinity']) {
 			expect(parseHideDoneCount(text)).toBeNull();
 		}
 	});
 
 	it('has NiceGUI warning text', () => {
-		expect(COUNT_WARNING).toBe('Enter a whole number between 0 and 100000.');
+		expect(COUNT_WARNING).toBe('Enter a whole number between 1 and 100000.');
 	});
 });
 
@@ -51,7 +51,7 @@ describe('hideDoneChange', () => {
 
 	it('sends one count only when it changed', () => {
 		const current = settings({ mode: 'age' });
-		expect(hideDoneChange(current, { field: 'age_days', value: 0 })).toEqual({ age_days: 0 });
+		expect(hideDoneChange(current, { field: 'age_days', value: 1 })).toEqual({ age_days: 1 });
 		expect(hideDoneChange(current, { field: 'age_days', value: 7 })).toBeNull();
 		expect(hideDoneChange(current, { field: 'recent_count', value: 3 })).toEqual({
 			recent_count: 3

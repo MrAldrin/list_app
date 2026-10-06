@@ -19,9 +19,9 @@ def validate_visibility_settings(mode: str, age_days: int, recent_count: int) ->
         ("age_days", age_days),
         ("recent_count", recent_count),
     ):
-        if type(value) is not int or not 0 <= value <= MAX_HIDE_DONE_COUNT:
+        if type(value) is not int or not 1 <= value <= MAX_HIDE_DONE_COUNT:
             raise ValueError(
-                f"{name} must be a whole number between 0 and {MAX_HIDE_DONE_COUNT}"
+                f"{name} must be a whole number between 1 and {MAX_HIDE_DONE_COUNT}"
             )
 
 
@@ -59,7 +59,7 @@ def filter_visible_items(
     if mode == "off":
         return list(items)
 
-    if mode == "all" or (mode == "age" and age_days == 0):
+    if mode == "all":
         return [item for item in items if not item.get("done", False)]
 
     if mode == "age":

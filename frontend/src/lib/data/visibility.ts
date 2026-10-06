@@ -10,7 +10,7 @@ export const HIDE_DONE_MODES: readonly HideDoneMode[] = ['off', 'all', 'age', 'r
 
 const MICROS_PER_DAY = 24 * 60 * 60 * 1_000_000;
 
-/** Throws for an unknown mode or a count that is not a whole number from 0 to 100,000. */
+/** Throws for an unknown mode or a count that is not a whole number from 1 to 100,000. */
 export function validateVisibilitySettings(mode: string, ageDays: number, recentCount: number) {
 	if (!(HIDE_DONE_MODES as readonly string[]).includes(mode)) {
 		throw new Error(`Unknown checked-item visibility mode: ${JSON.stringify(mode)}`);
@@ -19,8 +19,8 @@ export function validateVisibilitySettings(mode: string, ageDays: number, recent
 		['age_days', ageDays],
 		['recent_count', recentCount]
 	] as const) {
-		if (!Number.isInteger(value) || value < 0 || value > MAX_HIDE_DONE_COUNT) {
-			throw new Error(`${name} must be a whole number between 0 and ${MAX_HIDE_DONE_COUNT}`);
+		if (!Number.isInteger(value) || value < 1 || value > MAX_HIDE_DONE_COUNT) {
+			throw new Error(`${name} must be a whole number between 1 and ${MAX_HIDE_DONE_COUNT}`);
 		}
 	}
 }
@@ -77,7 +77,7 @@ export function filterVisibleItems<T extends Pick<Item, 'done' | 'completed_at' 
 	validateVisibilitySettings(mode, ageDays, recentCount);
 	if (mode === 'off') return [...items];
 
-	if (mode === 'all' || (mode === 'age' && ageDays === 0)) {
+	if (mode === 'all') {
 		return items.filter((item) => !item.done);
 	}
 

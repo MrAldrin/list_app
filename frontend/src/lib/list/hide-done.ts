@@ -4,7 +4,7 @@
 import { MAX_HIDE_DONE_COUNT, type HideDone, type HideDoneMode } from '#lib/data/index.ts';
 
 /** NiceGUI's warning for a bad number. */
-export const COUNT_WARNING = `Enter a whole number between 0 and ${MAX_HIDE_DONE_COUNT}.`;
+export const COUNT_WARNING = `Enter a whole number between 1 and ${MAX_HIDE_DONE_COUNT}.`;
 
 /** The modes the "Hide mode" choice offers, with NiceGUI's labels. */
 export const HIDE_MODES: readonly { mode: Exclude<HideDoneMode, 'off'>; label: string }[] = [
@@ -13,11 +13,11 @@ export const HIDE_MODES: readonly { mode: Exclude<HideDoneMode, 'off'>; label: s
 	{ mode: 'recent', label: 'Keep last X' }
 ];
 
-/** A count typed into a number field, or null unless a whole number from 0 to 100,000. */
+/** A count typed into a number field, or null unless a whole number from 1 to 100,000. */
 export function parseHideDoneCount(text: string): number | null {
 	if (!text.trim()) return null;
 	const value = Number(text);
-	return Number.isInteger(value) && value >= 0 && value <= MAX_HIDE_DONE_COUNT ? value : null;
+	return Number.isInteger(value) && value >= 1 && value <= MAX_HIDE_DONE_COUNT ? value : null;
 }
 
 export type HideDoneControl =
