@@ -61,6 +61,7 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index.
 - [ ] Verify the [checked-item visibility](../docs/checked-item-visibility.md#existing-lists-and-verification) migration on production and real devices.
 - [ ] Before the Svelte switch (Gate B): check the Railway service uses the new `Dockerfile` build, has no dashboard build or start command, and still has the volume at `/data` and `DB_PATH`. See [production image](../docs/deployment.md#production-image).
+- [ ] After the Svelte switch on production: sign in to a room over HTTPS and check in the browser's cookie view that `__Host-listapp-room-...` exists (Secure). If the cookie has no `__Host-` prefix, set Railway `FORWARDED_ALLOW_IPS=*`. Also check a room you were signed in to before the switch still opens without a password. See the [rehearsal note](../docs/background/deploy-rehearsal-2026-10-06.md#https-detection-and-forwarded-headers).
 - [ ] Confirm on Railway that automatic reload is off by default. See [deployment configuration](../docs/deployment.md#configuration).
 - [ ] Do the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification).
 - [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
