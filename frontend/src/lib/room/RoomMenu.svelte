@@ -1,6 +1,6 @@
 <!--
 	The room menu (the ⋮ button in the room header): share the room link,
-	home-screen install help, rename the room, change its password, delete it. Texts and order match
+	home-screen install help, rename the room, change its password, delete it, log out. Texts and order match
 	NiceGUI's room menu. Each entry closes the menu and opens a dialog.
 -->
 <script lang="ts">
@@ -16,7 +16,11 @@
 	import ChangePasswordDialog from './ChangePasswordDialog.svelte';
 	import DeleteRoomDialog from './DeleteRoomDialog.svelte';
 
-	let { room, backToAdmin = false }: { room: RoomHandle; backToAdmin?: boolean } = $props();
+	let {
+		room,
+		backToAdmin = false,
+		onLogout
+	}: { room: RoomHandle; backToAdmin?: boolean; onLogout: () => void } = $props();
 
 	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | null>(null);
 	let shareUrl = $state('');
@@ -59,6 +63,14 @@
 		<button type="button" class="danger-text" onclick={() => choose(close, 'delete')}>
 			Delete Room
 		</button>
+		<hr />
+		<button
+			type="button"
+			onclick={() => {
+				close();
+				onLogout();
+			}}>Log out</button
+		>
 	{/snippet}
 </MenuButton>
 

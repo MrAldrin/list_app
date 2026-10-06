@@ -1,6 +1,7 @@
 <!--
-	The top bar of the room page: app name, room name, sign-out and the room
-	menu. Opened from the admin page, a back link to it replaces the app name.
+	The top bar of the room page: app name, room name, the room
+	menu (with "Log out") and dark mode. A browser signed in as admin gets a
+	back link to the admin page instead of the app name.
 -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
@@ -25,8 +26,7 @@
 		<span class="brand" aria-hidden="true">List<b>R</b></span>
 	{/if}
 	<h1>{room.store.room?.name ?? ''}</h1>
-	<button class="outline" type="button" onclick={onLogout}>Log out</button>
-	<RoomMenu {room} {backToAdmin} />
+	<RoomMenu {room} {backToAdmin} {onLogout} />
 	<ThemeToggle />
 </header>
 

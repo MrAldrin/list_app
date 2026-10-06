@@ -16,15 +16,17 @@ def toggle(page: Page):
     return page.get_by_role("button", name="Toggle dark mode")
 
 
+def list_menu_switch(page: Page):
+    """The list page has no top-bar button: dark mode is in the list menu."""
+    return page.get_by_role("button", name="Dark mode")
+
+
 def expect_theme(page: Page, theme: str) -> None:
     expect(page.locator("html")).to_have_attribute("data-theme", theme)
     background = DARK_BACKGROUND if theme == "dark" else LIGHT_BACKGROUND
     expect(page.locator("body")).to_have_css("background-color", background)
     color = "#111418" if theme == "dark" else "#f4f5f7"
     expect(page.locator('meta[name="theme-color"]')).to_have_attribute("content", color)
-    expect(toggle(page)).to_have_attribute(
-        "aria-pressed", "true" if theme == "dark" else "false"
-    )
 
 
 def saved(page: Page) -> str | None:
@@ -53,15 +55,29 @@ def test_theme_follows_the_system_until_toggled(svelte_server, open_session):
     ).to_be_visible()
     expect(toggle(page)).to_have_count(1)
     expect_theme(page, "light")
+    expect(toggle(page)).to_have_attribute("aria-pressed", "false")
     page.reload()
     expect(page.get_by_role("button", name="Add New List")).to_be_visible()
     expect_theme(page, "light")
 
     create_list(page, "Theme")
-    expect(toggle(page)).to_have_count(1)
-    toggle(page).click()
+    # The list page's top bar has no dark mode button; the list menu has it,
+    # and the layout adds no second one above the page.
+    expect(toggle(page)).to_have_count(0)
+    expect(
+        page.locator("header").get_by_role("button", name="Dark mode")
+    ).to_have_count(0)
+    expect(list_menu_switch(page)).to_have_count(0)
+    page.get_by_role("button", name="List menu").click()
+    expect(list_menu_switch(page)).to_have_attribute("aria-pressed", "false")
+    list_menu_switch(page).click()
     expect_theme(page, "dark")
     assert saved(page) == "dark"
+    # The menu closed itself; opened again it shows the new state.
+    expect(list_menu_switch(page)).to_have_count(0)
+    page.get_by_role("button", name="List menu").click()
+    expect(list_menu_switch(page)).to_have_attribute("aria-pressed", "true")
+    page.keyboard.press("Escape")
 
     # A saved choice wins over the system.
     page.emulate_media(color_scheme="light")

@@ -34,6 +34,7 @@ def test_start_page_login_and_remembered_room(svelte_server, open_session):
     expect(page.get_by_role("heading", name="Home")).to_be_visible()
 
     # Log out: the password prompt comes back, also after a reload.
+    page.get_by_role("button", name="Room menu").click()
     page.get_by_role("button", name="Log out").click()
     expect(page.get_by_label("Room Password")).to_be_visible()
     page.reload()

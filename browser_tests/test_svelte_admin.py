@@ -63,13 +63,18 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     expect(owner.get_by_role("link")).to_have_text(["Cabin", "Home"])
 
     # Reset the Home password: blank is refused; then the member must sign in again.
-    owner.get_by_role("button", name="Reset password of Home").click()
-    dialog = owner.get_by_role("dialog", name="Admin Reset: Home")
-    dialog.get_by_role("button", name="Reset").click()
+    reset_button = owner.get_by_role("button", name="Reset password of Home")
+    expect(reset_button).to_contain_text("Reset password")
+    reset_button.click()
+    dialog = owner.get_by_role("dialog", name="Admin reset of room password: Home")
+    # The dialog says what happens: members are logged out, share links stay.
+    expect(dialog).to_contain_text("logged out on every device")
+    expect(dialog).to_contain_text("Share links to its lists keep working")
+    dialog.get_by_role("button", name="Reset", exact=True).click()
     expect(owner.get_by_text("New password cannot be empty")).to_be_visible()
     expect(dialog).to_be_visible()
     dialog.get_by_label("New Room Password").fill(RESET_PASSWORD)
-    dialog.get_by_role("button", name="Reset").click()
+    dialog.get_by_role("button", name="Reset", exact=True).click()
     expect(owner.get_by_text("Password reset successfully")).to_be_visible()
     expect(owner.get_by_role("dialog")).to_have_count(0)
 
@@ -81,7 +86,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     member.get_by_label("Room Password").press("Enter")
     expect(member.get_by_role("button", name="Add New List")).to_be_visible()
 
-    # A room opened without ?admin=true has no way back to admin.
+    # Opened without ?admin=true: the room still asks for its password.
     owner.goto(app_url(server, f"room/{slug}"))
     expect(owner.get_by_label("Room Password")).to_be_visible()
 

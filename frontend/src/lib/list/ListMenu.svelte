@@ -1,7 +1,7 @@
 <!--
-	The list menu (the ⋮ button in the list header), as NiceGUI's: "Share List"
-	for everyone who sees the list, and "Reset share link" for room members
-	only. A share link opens this list without the room password; resetting
+	The list menu (the ⋮ button in the list header): "Share List" for everyone
+	who sees the list, "Reset share link" for room members only, and "Dark
+	mode" (it lives here, not in the top bar). A share link opens this list without the room password; resetting
 	it stops the old link for everyone.
 -->
 <script lang="ts">
@@ -9,6 +9,7 @@
 	import type { List, RoomHandle } from '#lib/data/index.ts';
 	import ConfirmDialog from '#lib/ui/ConfirmDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
+	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
 	import { absoluteUrl, shareNatively } from '#lib/ui/share.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -87,6 +88,8 @@
 		{#if canReset}
 			<button type="button" onclick={() => askReset(close)}>Reset share link</button>
 		{/if}
+		<hr />
+		<ThemeMenuItem {close} />
 	{/snippet}
 </MenuButton>
 

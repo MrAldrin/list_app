@@ -6,7 +6,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { admin, closeRoom, logout, openRoom, type RoomHandle } from '#lib/data/index.ts';
-	import { openedFromAdmin } from '#lib/admin/admin-links.ts';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
 	import RoomLogin from '#lib/room/RoomLogin.svelte';
@@ -31,13 +30,13 @@
 		return () => closeRoom(handle);
 	});
 
-	// Opened from the admin page (`?admin=true`) by a signed-in admin: the
-	// header leads back there, as in NiceGUI. It never gives room access.
-	const fromAdmin = $derived(openedFromAdmin(page.url));
+	// A browser signed in as admin gets a way back to the admin page in the
+	// header, also after opening a list and coming back. It never gives room
+	// access. A browser that is not signed in as admin sees the normal header.
 	let isAdmin = $state(false);
 	$effect(() => {
+		void slug; // Ask again when another room opens.
 		isAdmin = false;
-		if (!fromAdmin) return;
 		let current = true;
 		admin
 			.signedIn()

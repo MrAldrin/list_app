@@ -1,7 +1,8 @@
 <!--
-	"Admin Reset: {room}": a new room password, without the current one.
-	Every device of the room must then sign in again. Texts match NiceGUI's
-	admin page. A room that is gone closes the dialog and reloads the rooms.
+	"Admin reset of room password: {room}": a new room password, without the
+	current one. Every device signed in to the room is logged out and must use
+	the new password (the server revokes all room access tokens). Share links
+	and the room link keep working. Admin sign-in is not room access. A room that is gone closes the dialog and reloads the rooms.
 -->
 <script lang="ts">
 	import { admin, type Room } from '#lib/data/index.ts';
@@ -46,8 +47,13 @@
 	}
 </script>
 
-<Dialog title="Admin Reset: {room.name}" {onClose}>
+<Dialog title="Admin reset of room password: {room.name}" {onClose}>
 	<form onsubmit={submit} novalidate>
+		<p class="explain">
+			Sets a new password for this room without asking for the old one. Everyone who is signed in to
+			the room is logged out on every device and must sign in with the new password. Share links to
+			its lists keep working.
+		</p>
 		<label for="{id}-password">New Room Password</label>
 		<input id="{id}-password" type="password" bind:value={password} autocomplete="new-password" />
 		<div class="actions">
@@ -61,6 +67,11 @@
 	form {
 		display: grid;
 		gap: var(--gap);
+	}
+
+	.explain {
+		margin: 0;
+		color: var(--text-muted);
 	}
 
 	label {

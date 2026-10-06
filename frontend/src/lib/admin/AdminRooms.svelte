@@ -1,7 +1,7 @@
 <!--
 	The admin room overview (NiceGUI's /admin): "Create New Room", "Refresh
 	rooms" and every room, by name. A room name opens the room page, which
-	still asks for the room password. The key button resets the password.
+	still asks for the room password. The "Reset password" button resets the room password.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -86,6 +86,7 @@
 					onclick={() => (resetting = room)}
 				>
 					<Icon name="key" />
+					Reset password
 				</button>
 			</li>
 		{/each}
@@ -170,10 +171,14 @@
 		white-space: nowrap;
 	}
 
+	/* Icon and text; the text keeps the button easy to understand and to hit. */
 	.icon {
-		padding: 0;
-		display: grid;
-		place-items: center;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0 0.5rem;
 		color: var(--text-muted);
+		font-size: 0.9rem;
 	}
 </style>

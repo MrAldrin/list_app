@@ -1,13 +1,12 @@
 <!--
-	The top of the list page: a back link to the room (the app name on a
-	share link, as NiceGUI), the "Options" button (it says "Done" while the
-	options are open), the list menu and the list name. The bar stays at the
-	top of the screen while the page scrolls; the name does not.
+	The top bar of the list page: a back link to the room (the app name on a
+	share link, as NiceGUI), the list name (cut off with "…" when long), the
+	"Options" button (it says "Done" while the options are open) and the list
+	menu. The bar stays at the top of the screen while the page scrolls.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import Icon from '#lib/ui/Icon.svelte';
-	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 
 	let {
 		name,
@@ -31,20 +30,19 @@
 	{:else}
 		<span class="brand" aria-hidden="true">List<b>R</b></span>
 	{/if}
+	<h1 title={name}>{name}</h1>
 	<div class="end">
 		<button type="button" aria-expanded={optionsOpen} onclick={onToggleOptions}>
 			{optionsOpen ? 'Done' : 'Options'}
 		</button>
 		{@render menu?.()}
-		<ThemeToggle />
 	</div>
 </header>
-<h1>{name}</h1>
 
 <style>
 	/* `sticky` keeps the bar at the top of the screen once the page scrolls
 	   past it. It must be a direct child of the page to stay stuck the whole
-	   way down, so the name is a separate element below it. */
+	   way down. */
 	.bar {
 		position: sticky;
 		top: 0;
@@ -53,11 +51,12 @@
 		background: var(--bg);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 0.25rem;
 	}
 
 	/* A link styled like a round icon button, with a large touch area. */
 	.back {
+		flex-shrink: 0;
 		display: grid;
 		place-items: center;
 		width: var(--touch);
@@ -77,6 +76,7 @@
 	}
 
 	.end {
+		flex-shrink: 0;
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
@@ -88,8 +88,10 @@
 	}
 
 	h1 {
-		margin: 0.25rem 0 0.5rem;
-		font-size: 1.5rem;
+		flex: 1;
+		min-width: 0;
+		margin: 0;
+		font-size: 1.25rem;
 		/* Long names end with "…" instead of taking more lines. */
 		overflow: hidden;
 		text-overflow: ellipsis;
