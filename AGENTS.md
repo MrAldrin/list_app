@@ -52,6 +52,15 @@ Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 - When editing a top-level doc, keep it within these rules. If it has grown past them, split detail out to `docs/background/` rather than adding more.
 
 
+## Jujutsu development baseline
+
+- `integration` marks the accepted development baseline. It means “keep this work”, not “production-tested”. Start new independent work from this bookmark (`jj new integration`); continue existing work on its own line.
+- `main` is the production deployment line. `main-staging` marks a tested deployment candidate. Feature bookmarks mark work not yet integrated. Do not repurpose these bookmarks.
+- Before starting work, inspect `jj status`, `jj bookmark list`, and the graph. Preserve existing workspace edits. If `integration` is missing or conflicted, ask rather than choosing another baseline silently.
+- Move `integration` only with explicit user approval to accept completed work. Point it at the completed change, not an empty working-copy child. Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
+- Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent’s active work merely to tidy the graph.
+- Updating `integration` does not authorize moving `main` or `main-staging`, pushing, or deploying. Existing deployment approval and deploy-window rules still apply.
+
 ## Tools:
 - Packages: Use uv (use the dev group if only for development).
 - Formatting: Use ruff.
