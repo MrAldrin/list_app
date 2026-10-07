@@ -9,7 +9,8 @@ The business rules live in Python and are shared with every write path: see
 ## Basics
 
 - Base path `/api/v1`. Requests and responses are JSON (`Content-Type:
-  application/json`). Every response has `Cache-Control: no-store`.
+  application/json`). Every response has `Cache-Control: no-store` and an
+  `X-Api-Version` header (see [API version](#api-version)).
 - Lists and items are identified by `uid`, a UUID string. A `uid` is never
   reused. Integer IDs, password hashes and room tokens are never sent. Share
   tokens are sent only to room members, by the share-link endpoints.
@@ -17,6 +18,20 @@ The business rules live in Python and are shared with every write path: see
 - Every room request checks room access on the server, in the same transaction
   as the read or write.
 - An unknown room and a room you cannot access give the same response.
+
+## API version
+
+`API_VERSION` in `src/api/version.py` is a whole number set by hand. The server
+sends it as `X-Api-Version` on every `/api` answer. The frontend keeps the
+number it was built for as `EXPECTED_API_VERSION` in
+`frontend/src/lib/data/compat.svelte.ts`. A test checks that both are equal.
+
+- Bump both together in a change that would break a frontend that is still open
+  in a browser: a changed meaning, a removed or renamed field, a new rule for
+  writes. Adding a field or an endpoint needs no bump.
+- A page that sees another number blocks writes and shows a Reload banner (see
+  [offline viewing](offline-viewing.md#after-a-deploy)). A missing or unreadable
+  header counts as compatible.
 
 ## Errors
 

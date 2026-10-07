@@ -2,6 +2,7 @@
 // pending local ops projected on top (see overlay.ts).
 
 import { SvelteMap } from 'svelte/reactivity';
+import { compat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
 import { isProjected, nowIso, project, type PendingOp, type RoomData } from './overlay';
@@ -118,7 +119,12 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	/** Cached identity and data never authorize writes. */
 	get canWrite(): boolean {
-		return this.#writeAuthorized && this.status === 'ready' && this.error === null;
+		return (
+			this.#writeAuthorized &&
+			this.status === 'ready' &&
+			this.error === null &&
+			!compat.incompatible
+		);
 	}
 
 	get readOnly(): boolean {

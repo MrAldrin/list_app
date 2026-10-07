@@ -137,11 +137,14 @@ real iPhone.
 ## Deployment prerequisite
 
 Pre-worker tabs and uncontrolled first-install tabs cannot be retroactively
-protected. The server serves only the current build; a later lazy request for
-an old hashed chunk can return 404 after deployment. The first rollout must
-resolve old-tab/asset handling before production approval. No prior-build
-retention or Docker/Railway changes were made in this milestone. Local A→B tests
-with an installed worker do not prove first-rollout safety.
+protected. The server serves only the current build, so a later lazy request for
+an old hashed chunk returns 404 after deployment. A fix is built but not yet
+verified or reviewed: a
+reload onto the new build (SvelteKit's version check, plus a guarded
+`vite:preloadError` reload for the first load) and by an API version check; see
+[offline viewing](../offline-viewing.md#after-a-deploy). No prior-build
+retention or Docker/Railway changes were made. Local A to B tests do not prove
+first-rollout safety on real devices.
 
 ## Remaining verification
 

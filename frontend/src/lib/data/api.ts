@@ -1,6 +1,7 @@
 // A thin client for the JSON API (docs/api.md). Only the data layer uses it;
 // components never call `fetch` themselves.
 
+import { checkApiVersion, compat, INCOMPATIBLE_CODE, INCOMPATIBLE_MESSAGE } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import type {
 	Feed,
@@ -41,6 +42,15 @@ export function isRetryable(error: unknown): boolean {
 	return error instanceof ApiError && [502, 503, 504].includes(error.status);
 }
 
+/**
+ * Once the server runs another API version, nothing that changes data is sent.
+ * Signing out is the one exception: it must keep working.
+ */
+function blockedByVersion(method: string, path: string): boolean {
+	if (!compat.incompatible || method === 'GET' || method === 'HEAD') return false;
+	return !(method === 'DELETE' && /\/session$/.test(path));
+}
+
 export class Api {
 	readonly #fetch: FetchFn;
 
@@ -51,6 +61,9 @@ export class Api {
 
 	/** Sends one request. Throws `NetworkError` without an answer, `ApiError` for HTTP errors. */
 	async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+		if (blockedByVersion(method, path)) {
+			throw new ApiError(0, INCOMPATIBLE_CODE, INCOMPATIBLE_MESSAGE);
+		}
 		const headers: Record<string, string> = { Accept: 'application/json' };
 		const init: RequestInit = { method, headers, credentials: 'same-origin' };
 		if (body !== undefined) {
@@ -66,6 +79,7 @@ export class Api {
 			throw new NetworkError();
 		}
 
+		checkApiVersion(response.headers);
 		if (response.status === 204) return undefined as T;
 
 		let data: unknown;

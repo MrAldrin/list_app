@@ -932,11 +932,17 @@ Milestone 5: offline viewing
   passed (`-n 4`, three engines), Vitest 365, Python 1205, lint/format/check/
   build/worker `tsc` clean. Current behavior is in
   [offline viewing](../docs/offline-viewing.md). Not covered locally: a
-  mid-DELETE reload test, a compatibility-mismatch UI, old lazy chunks for
-  pre-worker tabs after a deploy, and any real iPhone.
-- [ ] Open before first production rollout (backlog): compatibility-mismatch UI
-  (blocks writes, offers a safe reload; needs a decision on where the version
-  comes from) and old lazy chunks for uncontrolled or pre-worker tabs.
+  mid-DELETE reload test and any real iPhone (the two launch blockers are
+  built, see the next item).
+- [ ] Launch blockers built, NOT yet verified or reviewed (full browser suite
+  had 1 failure and 3 WebKit errors). Old lazy chunks: SvelteKit's
+  version check reloads link clicks and first loads; `stale-build.ts` reloads
+  once on `vite:preloadError` with a 60 s loop guard. Compatibility: the server
+  sends `X-Api-Version` (`src/api/version.py`), the data layer blocks writes
+  (reason `incompatible_version`), keeps queued ops, and a banner offers
+  Reload. A missing header counts as compatible. See
+  [offline viewing](../docs/offline-viewing.md#after-a-deploy) and
+  [API version](../docs/api.md#api-version). Real-device check is in the backlog.
 - [ ] **Gate V: owner offline-viewing review** (no deployment approval implied). Owner guide and iPhone checklist: [offline-viewing-gate-v.md](offline-viewing-gate-v.md). No iPhone verification yet.
 
 Milestone 6: offline editing

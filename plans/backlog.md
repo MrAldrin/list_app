@@ -18,10 +18,10 @@ In order: the top item is done first.
 
 Agreed as worth doing; no date.
 
+- [ ] [feature] (in progress) Before the first production rollout of offline mode: compatibility-mismatch UI and stale-chunk reload. Built on bookmark `offline-launch-blockers-wip` but NOT verified or reviewed: the full browser suite had 1 failure and 3 WebKit errors. Finish checks, review, split commits. See [offline viewing](../docs/offline-viewing.md#after-a-deploy).
+
 - [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing; after offline viewing. See the [offline viewing scope](svelte-frontend-rewrite.md#milestone-5-offline-viewing).
 
-- [ ] [feature] Before the first production rollout of offline mode: build the compatibility-mismatch UI (block writes, offer a safe reload). Decide where the app version comes from first. See the [acceptance matrix](svelte-frontend-rewrite.md#milestone-5-offline-viewing).
-- [ ] [infra] Before the first production rollout of offline mode: solve old lazy chunks requested by pre-worker or uncontrolled tabs after a deploy (a 404 today). See the [deployment prerequisite](../docs/background/offline-viewing-validation.md#deployment-prerequisite).
 - [ ] [test] Fix a rare (about 1 in 12) WebKit teardown flake from cancelled in-flight requests in the rename-after-password-change test in `browser_tests/test_svelte_live.py`. See the [validation record](../docs/background/offline-viewing-validation.md).
 - [ ] [test] Add a browser test for a reload in the middle of a room DELETE (the sign-out marker is stored before the DELETE by design).
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
@@ -81,3 +81,4 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] [test] Svelte on the iPhone: go offline, then back online, and wait up to 30 s without refreshing. If the pill stays longer, file a reconnect bug. One case on 2026-10-04 hung ~10 s (within the retry delays). See decisions 67 and 92 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [test] Svelte dark mode on the iPhone: with a page open, switch the iPhone's dark mode, then use Dark mode in both the room and list menus. Safari's bars should change color at once, without scrolling. The `theme-color` tag follows the page (decision 138 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log)).
 - [ ] [test] Gate V: check offline viewing on a real iPhone (Safari and home screen). Use the [Gate V guide](offline-viewing-gate-v.md) and record the iOS version there.
+- [ ] [test] After the first deploy that follows offline mode, with a tab left open on the old version: check the "A new version is available" banner appears and Reload reaches the new version. A waiting worker may serve the old shell until all tabs close; if so, decide on a safe skip-waiting step. See [offline viewing](../docs/offline-viewing.md#after-a-deploy).

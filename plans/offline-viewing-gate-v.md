@@ -41,10 +41,12 @@ Record the iOS version: ______
 
 ## Blockers before the first production rollout
 
-- Compatibility-mismatch UI (block writes, offer a safe reload) is not built.
-- Old lazy chunks requested by pre-worker or uncontrolled tabs after a deploy
-  are unsolved.
-- Both are in the [backlog](backlog.md). Deployment needs separate approval.
+- Both blockers are built but NOT yet verified or reviewed (bookmark
+  `offline-launch-blockers-wip`). The full browser suite still has 1 failure
+  and 3 WebKit errors to diagnose. See
+  [offline viewing](../docs/offline-viewing.md#after-a-deploy).
+- Real-device behaviour of that banner is a [backlog](backlog.md) manual check.
+  Deployment needs separate approval.
 
 ## Progress
 
