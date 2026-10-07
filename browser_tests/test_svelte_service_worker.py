@@ -1,4 +1,7 @@
-"""The Svelte shell is complete before it can serve an offline navigation."""
+"""The Svelte shell is complete before it can serve an offline navigation.
+
+Also: a tab from a replaced build reloads onto the new build (stale lazy chunks).
+"""
 
 import mimetypes
 import re
@@ -6,6 +9,7 @@ import shutil
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
@@ -130,17 +134,31 @@ def built_app_server(svelte_build):
         server.stop()
 
 
-def _changed_build(tmp_path, version: str):
+def _changed_build(
+    tmp_path, version: str, realistic: bool = False, new_version_file: bool = False
+):
     """Make a second built app with distinct HTML and a real lazy chunk URL."""
     build = tmp_path / version
     shutil.copytree(FRONTEND_BUILD, build)
     old_chunk = next((build / "_app" / "immutable" / "nodes").glob("5.*.js"))
     new_chunk = old_chunk.with_name(old_chunk.stem + "-B.js")
     old_chunk.rename(new_chunk)
-    for script in build.rglob("*.js"):
+    renames = {old_chunk.name: new_chunk.name}
+    if realistic:
+        # A real build also renames the entry file (it names the lazy chunks).
+        # Without this, immutable caching would keep serving the old entry file.
+        old_entry = next((build / "_app" / "immutable" / "entry").glob("app.*.js"))
+        new_entry = old_entry.with_name(old_entry.stem + "-B.js")
+        old_entry.rename(new_entry)
+        renames[old_entry.name] = new_entry.name
+    if new_version_file:
+        # SvelteKit compares this file with the one the page was built with.
+        (build / "_app" / "version.json").write_text(f'{{"version":"{version}"}}')
+    for script in [*build.rglob("*.js"), build / "index.html"]:
         body = script.read_text()
-        if old_chunk.name in body:
-            script.write_text(body.replace(old_chunk.name, new_chunk.name))
+        for old_name, new_name in renames.items():
+            body = body.replace(old_name, new_name)
+        script.write_text(body)
     worker = build / "service-worker.js"
     body, count = re.subn(
         r"version:`[^`]+`", f"version:`{version}`", worker.read_text(), count=1
@@ -378,3 +396,126 @@ def test_interrupted_update_keeps_last_complete_version_usable(
     page.goto(server.url + "/room/last-complete-version")
     expect(page.get_by_text("Connect to load this room.")).to_be_visible()
     assert _cache_names(page) == [cache_a]
+
+
+# Stale lazy chunks after a deploy (docs/offline-viewing.md) ---------------------
+
+
+def _click_new_link(page, href: str) -> None:
+    """Start a client-side navigation, as a click on an app link does."""
+    page.evaluate(
+        """(href) => {
+            const link = document.createElement('a');
+            link.href = href;
+            link.id = 'injected-link';
+            link.textContent = 'go';
+            document.body.append(link);
+        }""",
+        href,
+    )
+    page.locator("#injected-link").click()
+
+
+def test_failed_link_click_opens_the_link_on_the_new_build(
+    built_app_server, open_session, tmp_path
+):
+    server = built_app_server
+    page = open_session("stale-chunk", service_workers="block")
+    page.goto(server.url)
+    expect(page.get_by_label("Room link or code")).to_be_visible()
+    assert "test-stale-B" not in page.content()
+
+    server.state.build_path, _ = _changed_build(
+        tmp_path, "test-stale-B", realistic=True, new_version_file=True
+    )
+    page.evaluate("window.__stillOldPage = true")
+    _click_new_link(page, "/list/stale-chunk")
+
+    # The old chunk 404s; the page reloads, so the marker on `window` is gone
+    # and the shell comes from build B.
+    page.wait_for_function("window.__stillOldPage === undefined")
+    page.wait_for_function(
+        "document.documentElement.outerHTML.includes('test-stale-B')"
+    )
+    # The list address page of build B ran: its chunk exists and loaded.
+    expect(page.get_by_text("Could not open this list.")).to_be_visible()
+
+
+def test_unchanged_build_keeps_the_page(built_app_server, open_session):
+    """No new version: nothing reloads, so the old behaviour is unchanged."""
+    page = open_session("fresh-chunk", service_workers="block")
+    page.goto(built_app_server.url)
+    page.evaluate("window.__stillOldPage = true")
+    _click_new_link(page, "/create-room/some-token")
+    expect(page.get_by_text("Could not check this invitation.")).to_be_visible()
+    assert page.evaluate("window.__stillOldPage") is True
+
+
+def _stale_first_page(server, open_session, tmp_path):
+    """Serve build B, but answer the first page load with build A's page.
+
+    Build A's page asks for a lazy chunk that build B no longer has, like a tab
+    that was restored just before a deploy. `_app/version.json` stays the same,
+    so SvelteKit's own version check stays quiet and only our handler can act.
+    """
+    build_b, _ = _changed_build(tmp_path, "test-stale-B", realistic=True)
+    entry_dir = Path("_app") / "immutable" / "entry"
+    for old_entry in (FRONTEND_BUILD / entry_dir).glob("app.*.js"):
+        shutil.copy(old_entry, build_b / entry_dir / old_entry.name)
+    server.state.build_path = build_b
+    old_shell = (FRONTEND_BUILD / "index.html").read_bytes()
+
+    page = open_session("preload-recovers", service_workers="block")
+    page_loads = []
+
+    def serve_page(route):
+        page_loads.append(route.request.url)
+        if len(page_loads) == 1:
+            route.fulfill(
+                body=old_shell,
+                content_type="text/html",
+                headers={"Cache-Control": "no-store"},
+            )
+        else:
+            route.continue_()
+
+    page.route("**/list/stale-chunk", serve_page)
+    return page, page_loads
+
+
+def test_failed_first_load_reloads_once_and_recovers(
+    built_app_server, open_session, tmp_path
+):
+    page, page_loads = _stale_first_page(built_app_server, open_session, tmp_path)
+    page.goto(f"{built_app_server.url}/list/stale-chunk")
+    expect(page.get_by_text("Could not open this list.")).to_be_visible()
+    page.wait_for_function(
+        "document.documentElement.outerHTML.includes('test-stale-B')"
+    )
+    assert len(page_loads) == 2  # the load that failed, one reload
+
+
+def test_chunk_that_stays_missing_shows_the_error_without_a_loop(
+    built_app_server, open_session
+):
+    page = open_session("preload-loop-guard", service_workers="block")
+    page_loads = []
+    page.on(
+        "request",
+        lambda request: (
+            page_loads.append(request.url) if request.is_navigation_request() else None
+        ),
+    )
+    page.route(
+        "**/_app/immutable/nodes/5.*.js",
+        lambda route: route.fulfill(
+            status=404,
+            content_type="text/html",
+            headers={"Cache-Control": "no-store"},
+            body="gone",
+        ),
+    )
+    page.goto(f"{built_app_server.url}/list/stale-chunk")
+    expect(page.get_by_role("heading", name="Something went wrong")).to_be_visible()
+    page.wait_for_timeout(1_000)
+    assert len(page_loads) == 2  # the load that failed, one reload, no more

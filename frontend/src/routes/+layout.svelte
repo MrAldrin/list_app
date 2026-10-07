@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { manifestHref } from '#lib/install/manifest.ts';
 	import { registerServiceWorker } from '#lib/service-worker.ts';
+	import { endStaleBuildReload } from '#lib/stale-build.ts';
 	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { startTheme, theme } from '#lib/ui/theme.svelte.ts';
 	import Toast from '#lib/ui/Toast.svelte';
@@ -23,6 +24,8 @@
 	$effect(() => startTheme());
 
 	onMount(() => {
+		// The first page loaded; a failed lazy import after this is SvelteKit's to handle.
+		endStaleBuildReload();
 		void registerServiceWorker();
 	});
 </script>
