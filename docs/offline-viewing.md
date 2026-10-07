@@ -19,6 +19,26 @@ the [backlog](../plans/backlog.md)). Evidence is in the
   gives suggestions.
 - If the network is gone, the start page can reopen the last room.
 
+## After a deploy
+
+- A tab that no worker controls can still ask for a lazy chunk of the replaced
+  build, which is gone. SvelteKit sees the new `_app/version.json` and opens the
+  address again (a full page load), for link clicks and the first load.
+- `lib/stale-build.ts` covers the first load when the version file is
+  unchanged: on Vite's `vite:preloadError` it reloads once. Offline it does
+  nothing. A second failure within 60 s, or no usable session storage, shows
+  the normal error page instead of reloading.
+- A worker-controlled tab keeps its complete cached version, so it does not hit
+  this.
+- When an API answer has another `X-Api-Version` than the page expects, the
+  data layer stops all writes (reason `incompatible_version`, also in the
+  Api client for admin and other calls; sign-out still works). Queued ops keep
+  their `op_id` and are not retried or dropped. A banner "A new version is
+  available" has a Reload button. Nothing reloads by itself. Reading continues.
+  Answers without the header are treated as compatible, because proxy and
+  maintenance pages during a deploy have none. See
+  [API version](api.md#api-version).
+
 ## Errors
 
 - "Connect to load..." means a network failure and no snapshot.

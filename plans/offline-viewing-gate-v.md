@@ -41,10 +41,10 @@ Record the iOS version: ______
 
 ## Blockers before the first production rollout
 
-- Compatibility-mismatch UI (block writes, offer a safe reload) is not built.
-- Old lazy chunks requested by pre-worker or uncontrolled tabs after a deploy
-  are unsolved.
-- Both are in the [backlog](backlog.md). Deployment needs separate approval.
+- Both blockers are built and pass the local checks; the owner review is still
+  open. See [offline viewing](../docs/offline-viewing.md#after-a-deploy).
+- Real-device behaviour of that banner is a [backlog](backlog.md) manual check.
+  Deployment needs separate approval.
 
 ## Progress
 
