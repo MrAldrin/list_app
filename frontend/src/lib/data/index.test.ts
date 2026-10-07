@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { closeRoom, openRoom, RoomHandle, type RoomApi } from './index';
 import {
 	applied,
@@ -437,5 +438,49 @@ describe('openRoom / closeRoom', () => {
 		await settle();
 		expect(FakeEventSource.instances).toHaveLength(2);
 		closeRoom(first);
+	});
+
+	describe('after a new server version is seen', () => {
+		afterEach(resetCompat);
+
+		it('blocks every write with its own reason, without sending anything', async () => {
+			const { room, store, ops } = await opened();
+			expect(store.canWrite).toBe(true);
+			compat.incompatible = true;
+
+			expect(store.canWrite).toBe(false);
+			const results = await Promise.all([
+				room.setDone(milk, true),
+				room.addItem(list, 'bread'),
+				room.createList('New'),
+				room.deleteItem(milk),
+				room.restoreItem('nothing'),
+				room.changePassword('old', 'new'),
+				room.deleteRoom('pw'),
+				room.resetShareLink(list)
+			]);
+			for (const result of results) {
+				expect(result).toMatchObject({ ok: false, code: INCOMPATIBLE_CODE });
+			}
+			expect(ops).toHaveLength(0);
+			expect(store.pendingOps).toHaveLength(0);
+		});
+
+		it('keeps a queued write and its op_id when the version changes mid-flight', async () => {
+			const { room, store, ops } = await opened();
+			void room.setDone(milk, true);
+			await settle();
+			expect(ops).toHaveLength(1);
+			const opId = ops[0].op.op_id;
+
+			compat.incompatible = true;
+			ops[0].answer.reject(new ApiError(503, 'unavailable', 'Busy'));
+			await settle();
+			vi.useFakeTimers();
+			await vi.advanceTimersByTimeAsync(60_000);
+
+			expect(ops).toHaveLength(1);
+			expect(store.pendingOps.map((pending) => pending.op.op_id)).toEqual([opId]);
+		});
 	});
 });

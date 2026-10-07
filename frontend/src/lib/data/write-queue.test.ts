@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { applied, deferred, settle, type Deferred } from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Op, OpResponse, SentOp } from './types';
@@ -202,5 +203,61 @@ describe('WriteQueue', () => {
 		await expect(second).rejects.toBe(reason);
 		expect(queue.pending).toHaveLength(0);
 		await expect(queue.send(op('c'))).rejects.toThrow('closed');
+	});
+
+	describe('after a new server version is seen', () => {
+		afterEach(resetCompat);
+
+		it('stops retrying but keeps the op and its op_id', async () => {
+			const sender = fakeSender();
+			const host = fakeHost();
+			const queue = new WriteQueue('home', sender, host, { retryDelays: [1_000] });
+
+			void queue.send(op('a')).catch(() => undefined);
+			await settle();
+			const opId = sender.calls[0].op.op_id;
+			compat.incompatible = true;
+			sender.calls[0].answer.reject(new NetworkError());
+			await settle();
+			await vi.advanceTimersByTimeAsync(60_000);
+
+			expect(sender.calls).toHaveLength(1);
+			expect(queue.pending.map((queued) => queued.op_id)).toEqual([opId]);
+			expect(host.opFailed).not.toHaveBeenCalled();
+		});
+
+		it('sends nothing more, and keeps every queued op', async () => {
+			const sender = fakeSender();
+			const host = fakeHost();
+			const queue = new WriteQueue('home', sender, host);
+
+			void queue.send(op('a')).catch(() => undefined);
+			void queue.send(op('b')).catch(() => undefined);
+			await settle();
+			compat.incompatible = true;
+			sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
+			await settle();
+			queue.resume();
+			await settle();
+
+			expect(sender.calls).toHaveLength(1);
+			expect(queue.pending).toHaveLength(1);
+			expect(queue.pending[0]).toMatchObject({ list_uid: 'b' });
+		});
+
+		it('keeps an op the client refused to send', async () => {
+			const sender = fakeSender();
+			const host = fakeHost();
+			const queue = new WriteQueue('home', sender, host);
+
+			void queue.send(op('a')).catch(() => undefined);
+			await settle();
+			const opId = sender.calls[0].op.op_id;
+			sender.calls[0].answer.reject(new ApiError(0, INCOMPATIBLE_CODE, 'New version'));
+			await settle();
+
+			expect(host.opFailed).not.toHaveBeenCalled();
+			expect(queue.pending.map((queued) => queued.op_id)).toEqual([opId]);
+		});
 	});
 });

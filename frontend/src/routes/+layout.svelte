@@ -8,6 +8,7 @@
 	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { startTheme, theme } from '#lib/ui/theme.svelte.ts';
 	import Toast from '#lib/ui/Toast.svelte';
+	import UpdateNotice from '#lib/ui/UpdateNotice.svelte';
 	// Importing a CSS file here adds it to every page.
 	import '../app.css';
 
@@ -39,6 +40,7 @@
 {#if theme.headerToggles === 0}
 	<div class="theme-corner"><ThemeToggle corner /></div>
 {/if}
+<UpdateNotice />
 {@render children()}
 <!-- In the layout, so toasts stay visible while moving between pages. -->
 <Toast />

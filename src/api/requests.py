@@ -7,6 +7,7 @@ from fastapi import Request
 from pydantic import BaseModel, ValidationError
 
 from api.errors import NO_STORE, ApiError, is_api_path
+from api.version import API_VERSION, API_VERSION_HEADER
 from room_cookies import is_same_origin_request
 
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -63,7 +64,7 @@ def parse_body[ModelT: BaseModel](model: type[ModelT], data: dict[str, Any]) -> 
 
 
 class NoStoreMiddleware:
-    """Pure ASGI middleware: `Cache-Control: no-store` on every /api response.
+    """Pure ASGI middleware: no-store and the API version on every /api response.
 
     Pure ASGI (not BaseHTTPMiddleware) so streamed responses pass straight
     through.
@@ -82,9 +83,11 @@ class NoStoreMiddleware:
                 headers = [
                     (name, value)
                     for name, value in message.get("headers", [])
-                    if name.lower() != b"cache-control"
+                    if name.lower()
+                    not in (b"cache-control", API_VERSION_HEADER.lower().encode())
                 ]
                 headers.append((b"cache-control", NO_STORE.encode()))
+                headers.append((API_VERSION_HEADER.encode(), str(API_VERSION).encode()))
                 message = {**message, "headers": headers}
             await send(message)
 

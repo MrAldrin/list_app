@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Api, isRetryable } from './api';
+import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import type { SentOp } from './types';
 
@@ -127,5 +128,56 @@ describe('Api', () => {
 
 	it('builds the events URL', () => {
 		expect(new Api(fakeFetch(json(200, {}))).eventsUrl('home')).toBe('/api/v1/rooms/home/events');
+	});
+});
+
+describe('Api and the server version', () => {
+	afterEach(resetCompat);
+
+	function versioned(version: string, body: unknown = { slug: null }): Response {
+		const response = json(200, body);
+		response.headers.set('X-Api-Version', version);
+		return response;
+	}
+
+	it('marks the session incompatible from any answer with another version', async () => {
+		const fetch = fakeFetch(versioned('2'));
+		await new Api(fetch).lastRoom();
+		expect(compat.incompatible).toBe(true);
+	});
+
+	it('also reads the version from an error answer', async () => {
+		const response = json(503, { error: { code: 'unavailable', message: 'Busy' } });
+		response.headers.set('X-Api-Version', '2');
+		await expect(new Api(fakeFetch(response)).lastRoom()).rejects.toBeInstanceOf(ApiError);
+		expect(compat.incompatible).toBe(true);
+	});
+
+	it('does not mind answers without the header', async () => {
+		await new Api(fakeFetch(json(200, { slug: null }))).lastRoom();
+		expect(compat.incompatible).toBe(false);
+	});
+
+	it('sends no write after a mismatch, but still reads and signs out', async () => {
+		const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+			void input;
+			void init;
+			return versioned('2');
+		});
+		const api = new Api(fetch);
+		await api.lastRoom();
+		fetch.mockClear();
+
+		const op: SentOp = { op_id: 'x', type: 'list.delete', list_uid: 'l' };
+		await expect(api.sendOp('home', op)).rejects.toMatchObject({ code: INCOMPATIBLE_CODE });
+		await expect(api.adminCreateRoom('a', 'b')).rejects.toMatchObject({ code: INCOMPATIBLE_CODE });
+		expect(fetch).not.toHaveBeenCalled();
+
+		await api.changes('home', 1);
+		await api.logout('home').catch(() => undefined);
+		expect(fetch.mock.calls.map(([url, init]) => `${init?.method} ${url}`)).toEqual([
+			'GET /api/v1/rooms/home/changes?since=1',
+			'DELETE /api/v1/rooms/home/session'
+		]);
 	});
 });

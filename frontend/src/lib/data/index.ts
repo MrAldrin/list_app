@@ -12,6 +12,7 @@
 // Components never call `fetch` themselves.
 
 import { Api, api as defaultApi } from './api';
+import { compat, INCOMPATIBLE_CODE, INCOMPATIBLE_MESSAGE } from './compat.svelte';
 import {
 	LiveUpdates,
 	RECONNECT_DELAYS,
@@ -116,6 +117,17 @@ const READ_ONLY = {
 	code: 'read_only',
 	message: 'Saved data is read-only until room access is refreshed.'
 };
+const INCOMPATIBLE = {
+	ok: false as const,
+	code: INCOMPATIBLE_CODE,
+	message: INCOMPATIBLE_MESSAGE
+};
+
+/** Why a write cannot start now, or null when it may. A new server version wins. */
+function writeBlock(store: { canWrite: boolean }): typeof READ_ONLY | typeof INCOMPATIBLE | null {
+	if (compat.incompatible) return INCOMPATIBLE;
+	return store.canWrite ? null : READ_ONLY;
+}
 const SIGNIN_LOCK_UNAVAILABLE =
 	'Room sign-in is waiting for a pending sign-out to finish. Reopen this page in a supported secure browser and try again.';
 const SIGNIN_STATE_UNAVAILABLE =
@@ -267,7 +279,8 @@ export class RoomHandle {
 
 	/** Changes the password without ever storing it for retries. */
 	async changePassword(currentPassword: string, newPassword: string): Promise<ActionResult<Room>> {
-		if (!this.store.canWrite) return READ_ONLY;
+		const blocked = writeBlock(this.store);
+		if (blocked) return blocked;
 		const change = this.#api.changePassword(this.slug, currentPassword, newPassword);
 		this.#passwordChange = change.catch(() => undefined);
 		try {
@@ -284,7 +297,8 @@ export class RoomHandle {
 
 	/** Deletes the room with all its lists and items, then forgets it here. */
 	async deleteRoom(password: string): Promise<ActionResult> {
-		if (!this.store.canWrite) return READ_ONLY;
+		const blocked = writeBlock(this.store);
+		if (blocked) return blocked;
 		try {
 			await this.#api.deleteRoom(this.slug, password);
 		} catch (error) {
@@ -308,7 +322,8 @@ export class RoomHandle {
 
 	/** Gives the list a new share link; the old one stops working for everyone. */
 	resetShareLink(list: ListRef): Promise<ActionResult<ShareLink>> {
-		if (!this.store.canWrite) return Promise.resolve(READ_ONLY);
+		const blocked = writeBlock(this.store);
+		if (blocked) return Promise.resolve(blocked);
 		return this.#call(() => this.#api.resetShareLink(this.slug, list.uid), true);
 	}
 
@@ -372,14 +387,16 @@ export class RoomHandle {
 
 	/** Deletes an item and keeps its data so `restoreItem(item.uid)` can undo it. */
 	deleteItem(item: Item): Promise<ActionResult> {
-		if (!this.store.canWrite) return Promise.resolve(READ_ONLY);
+		const blocked = writeBlock(this.store);
+		if (blocked) return Promise.resolve(blocked);
 		this.#deleted.set(item.uid, this.store.item(item.uid) ?? item);
 		return this.#run({ type: 'item.delete', ...itemKeys(item) });
 	}
 
 	/** Undo of `deleteItem`: a new item (new uid) with the kept data. */
 	async restoreItem(itemUid: string): Promise<ActionResult<ItemRestoreResult>> {
-		if (!this.store.canWrite) return READ_ONLY;
+		const blocked = writeBlock(this.store);
+		if (blocked) return blocked;
 		const item = this.#deleted.get(itemUid);
 		if (!item) {
 			return { ok: false, code: 'undo_unavailable', message: 'There is nothing to undo.' };
@@ -1008,7 +1025,8 @@ export class RoomHandle {
 	}
 
 	async #run<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
-		if (!this.store.canWrite) return READ_ONLY;
+		const blocked = writeBlock(this.store);
+		if (blocked) return blocked;
 		const epoch = this.#identityEpoch;
 		try {
 			const response = await this.#queue.send(op);

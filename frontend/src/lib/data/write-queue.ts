@@ -4,6 +4,8 @@
 // - No answer, 502, 503 or 504: retry the same op with the same `op_id`, after
 //   a growing pause. Later ops wait, so the order is kept.
 // - 401: pause. The ops stay queued; `resume()` after signing in sends them.
+// - A new server version (see compat.svelte.ts): stop sending. The ops stay
+//   queued with their op_ids; nothing is retried or dropped.
 // - Any other HTTP error (403, 409, 415, 422, …): that op fails; go on.
 // - 200 `applied` or `rejected`: done; go on.
 //
@@ -11,6 +13,7 @@
 // hold back changes feeds while an answer is open (see RoomStore).
 
 import { isRetryable } from './api';
+import { compat, INCOMPATIBLE_CODE } from './compat.svelte';
 import { newId } from './ids';
 import { ApiError } from './types';
 import type { Op, OpResponse, SentOp } from './types';
@@ -158,7 +161,7 @@ export class WriteQueue {
 		if (this.#running) return;
 		this.#running = true;
 		try {
-			while (!this.#paused) {
+			while (!this.#paused && !compat.incompatible) {
 				const op = this.#storage.all()[0];
 				if (!op) break;
 				await this.#sendOne(op);
@@ -175,8 +178,16 @@ export class WriteQueue {
 			response = await this.#sender.sendOp(this.#slug, op);
 		} catch (error) {
 			if (this.#disposed) return;
+			if (error instanceof ApiError && error.code === INCOMPATIBLE_CODE) {
+				// The client refused to send: a new version was seen. Keep the op as
+				// it is, with its op_id; the loop stops because `compat` is set.
+				this.#host.opUnanswered(op, false);
+				return;
+			}
 			if (isRetryable(error)) {
 				this.#host.opUnanswered(op, true);
+				// A new version was seen meanwhile: no more retries.
+				if (compat.incompatible) return;
 				const delay = this.#delays[Math.min(this.#attempt, this.#delays.length - 1)];
 				this.#attempt += 1;
 				await this.#sleep(delay);
