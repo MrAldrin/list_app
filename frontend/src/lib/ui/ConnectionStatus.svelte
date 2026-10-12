@@ -30,7 +30,7 @@
 
 <!-- Always in the page, so screen readers announce the text when it appears. -->
 <div class="connection" role="status">
-	{#if visible && status}
+	{#if visible && status && !store.showsOfflineNotice}
 		<span class="pill {status.kind}">
 			<span class="dot" aria-hidden="true"></span>
 			{status.text}

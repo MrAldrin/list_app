@@ -94,9 +94,13 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     )
 
     server.stop()
-    expect(
-        page.get_by_text("Saved view — may be out of date.", exact=False)
-    ).to_be_visible()
+    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    # The notice is the only connection message, and its spaces render.
+    expect(page.get_by_text("online.", exact=False).first).to_contain_text(
+        ". Editing is back"
+    )
+    expect(page.get_by_text("Could not load the latest changes")).to_have_count(0)
+    expect(page.get_by_text("Reconnecting…")).to_have_count(0)
 
     # Search can reveal saved checked items without changing shared state.
     field = page.get_by_label("Add or Search")
@@ -154,9 +158,7 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     share_page = page.context.new_page()
     share_page.goto(public_url)
     expect(share_page.get_by_role("heading", name="Groceries")).to_be_visible()
-    expect(
-        share_page.get_by_text("Saved view — may be out of date.", exact=False)
-    ).to_be_visible()
+    expect(share_page.get_by_text("Offline — showing", exact=False)).to_be_visible()
     expect(share_page.get_by_role("link", name="Back to room")).to_have_count(0)
     share_page.get_by_role("button", name="List menu").click()
     expect(share_page.get_by_role("button", name="Reset share link")).to_have_count(0)
@@ -182,9 +184,7 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     server.start()
     page.goto(f"{list_url}?reopen=after-offline")
     expect(page.get_by_role("button", name="Add")).to_be_enabled()
-    expect(
-        page.get_by_text("Saved view — may be out of date.", exact=False)
-    ).to_have_count(0)
+    expect(page.get_by_text("Offline — showing", exact=False)).to_have_count(0)
 
 
 def test_offline_logout_clears_room_but_keeps_share_and_marker(
@@ -230,9 +230,7 @@ def test_offline_logout_clears_room_but_keeps_share_and_marker(
 
     page.reload()
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
-    expect(
-        page.get_by_text("Saved view — may be out of date.", exact=False)
-    ).to_be_visible()
+    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
     expect(page.get_by_role("link", name="Back to room")).to_have_count(0)
 
     server.start()
@@ -264,9 +262,7 @@ def test_legacy_private_list_route_opens_from_room_snapshot_offline(
 
     page.goto(f"{server.url}/list/{list_slug}")
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
-    expect(
-        page.get_by_text("Saved view — may be out of date.", exact=False)
-    ).to_be_visible()
+    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
     expect(item_names(page)).to_have_text(["milk"])
     page.wait_for_timeout(250)
 

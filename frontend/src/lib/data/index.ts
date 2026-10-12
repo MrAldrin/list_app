@@ -58,7 +58,14 @@ export * as admin from './admin';
 export * as invitation from './invitation';
 export type { RoomStatus, Notice } from './room-store.svelte';
 export type { LiveState } from './events';
-export { connectionStatus, CONNECTION_STATUS_DELAY, type ConnectionStatus } from './status';
+export {
+	connectionStatus,
+	CONNECTION_STATUS_DELAY,
+	offlineNoticeText,
+	savedTimeLabel,
+	waitingChangesText,
+	type ConnectionStatus
+} from './status';
 export { RoomStore } from './room-store.svelte';
 export { filterVisibleItems, DEFAULT_HIDE_DONE, MAX_HIDE_DONE_COUNT } from './visibility';
 export { sortItems, sortLists, sortTags } from './order';

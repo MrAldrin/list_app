@@ -622,6 +622,18 @@ describe('RoomStore.unconfirmedView', () => {
 		expect(store.unconfirmedView).toBe(false);
 	});
 
+	it('showsOfflineNotice needs read-only, an unconfirmed view and a saved time', () => {
+		const store = storeWith(async () => makeFeed({ seq: 4, full: true, lists: [makeList()] }));
+		store.hydrate(saved);
+		expect(store.showsOfflineNotice).toBe(true);
+		store.savedAt = null;
+		expect(store.showsOfflineNotice).toBe(false);
+		store.savedAt = saved.savedAt;
+		store.setWriteAuthorized(true);
+		store.applyFeed(makeFeed({ seq: 4, full: true, lists: [makeList()] }));
+		expect(store.showsOfflineNotice).toBe(false);
+	});
+
 	it('is true after a failed load and false again after the next feed', async () => {
 		let fail = true;
 		const store = storeWith(async () => {

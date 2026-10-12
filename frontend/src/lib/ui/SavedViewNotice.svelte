@@ -1,20 +1,16 @@
 <script lang="ts">
-	import type { RoomHandle } from '#lib/data/index.ts';
+	import { offlineNoticeText, waitingChangesText, type RoomHandle } from '#lib/data/index.ts';
 
-	let { room }: { room: RoomHandle } = $props();
+	let { room, what = 'lists' }: { room: RoomHandle; what?: 'lists' | 'list' } = $props();
 
-	const refreshedAt = $derived.by(() => {
-		const savedAt = room.store.savedAt;
-		if (!savedAt) return null;
-		const date = new Date(savedAt);
-		return Number.isNaN(date.valueOf()) ? null : date.toLocaleString();
-	});
+	const text = $derived(offlineNoticeText(room.store.savedAt, what));
+	const waiting = $derived(waitingChangesText(room.store.queued));
 </script>
 
-{#if room.store.readOnly && room.store.unconfirmedView && room.store.savedAt}
+{#if room.store.showsOfflineNotice}
 	<p class="saved-notice" role="status">
-		Saved view — may be out of date.{#if refreshedAt}
-			Last refreshed {refreshedAt}.{/if}
+		{text}
+		{#if waiting}<br />{waiting}{/if}
 	</p>
 {/if}
 {#if room.store.snapshotWarning}

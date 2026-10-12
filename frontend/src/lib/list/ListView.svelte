@@ -180,7 +180,7 @@
 		<ListMenu {room} {list} canReset={canReset && canWrite} {onReset} />
 	{/snippet}
 </ListHeader>
-{#if room.store.error}
+{#if room.store.error && !(room.store.showsOfflineNotice && room.store.unreachable)}
 	<!-- The items below may be out of date; they stay usable. -->
 	<LoadError
 		title="Could not load the latest changes."

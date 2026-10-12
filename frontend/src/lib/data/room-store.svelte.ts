@@ -141,6 +141,14 @@ export class RoomStore implements QueueHost, LiveHost {
 		return this.#savedView || this.error !== null || this.live === 'reconnecting';
 	}
 
+	/**
+	 * True while the page shows the offline notice. Then the notice is the only
+	 * connection message: the pill and the network "latest changes" error hide.
+	 */
+	get showsOfflineNotice(): boolean {
+		return this.readOnly && this.unconfirmedView && Boolean(this.savedAt);
+	}
+
 	setWriteAuthorized(authorized: boolean): void {
 		if (this.#writeAuthorized !== authorized) this.#authorizationVersion += 1;
 		this.#writeAuthorized = authorized;

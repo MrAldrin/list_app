@@ -65,7 +65,7 @@
 	{#if !share || share.store.status === 'loading'}
 		<p class="muted">Loading…</p>
 	{:else if share.store.status === 'error'}
-		<SavedViewNotice room={share} />
+		<SavedViewNotice room={share} what="list" />
 		<LoadError
 			title={!share.store.savedAt && share.store.unreachable
 				? 'Connect to load this shared list.'
@@ -74,7 +74,7 @@
 			onRetry={() => share!.store.refresh()}
 		/>
 	{:else if !list}
-		<SavedViewNotice room={share} />
+		<SavedViewNotice room={share} what="list" />
 		<div class="card problem" role="status">
 			<p>{shownToken === token ? SHARE_RESET_MESSAGE : SHARE_UNAVAILABLE_MESSAGE}</p>
 			{#if roomHref && shownToken === token}
@@ -82,7 +82,7 @@
 			{/if}
 		</div>
 	{:else}
-		<SavedViewNotice room={share} />
+		<SavedViewNotice room={share} what="list" />
 		<ListView room={share} {list} {roomHref} canReset={roomHref !== null} onReset={followReset} />
 	{/if}
 	{#if share && share.store.status !== 'auth_required'}

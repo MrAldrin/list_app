@@ -36,3 +36,36 @@ export function connectionStatus({
 
 /** Milliseconds a status must last before it shows, so quick saves do not flicker. */
 export const CONNECTION_STATUS_DELAY = 800;
+
+/** "18:05" when `savedAt` is today, else "12 Oct, 18:05". Null if unusable. */
+export function savedTimeLabel(
+	savedAt: string | null,
+	now: Date = new Date(),
+	locale?: string
+): string | null {
+	if (!savedAt) return null;
+	const date = new Date(savedAt);
+	if (Number.isNaN(date.valueOf())) return null;
+	const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+	if (date.toDateString() === now.toDateString()) return time;
+	const day = date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+	return `${day}, ${time}`;
+}
+
+/** The first sentence of the offline notice. */
+export function offlineNoticeText(
+	savedAt: string | null,
+	what: 'lists' | 'list',
+	now?: Date,
+	locale?: string
+): string {
+	const subject = what === 'list' ? 'this list' : 'your lists';
+	const time = savedTimeLabel(savedAt, now, locale);
+	return `Offline — showing ${subject}${time ? ` from ${time}` : ''}. Editing is back when you're online.`;
+}
+
+/** "1 change waiting to be sent." or "N changes waiting to be sent."; null for none. */
+export function waitingChangesText(queued: number): string | null {
+	if (queued <= 0) return null;
+	return `${queued} ${queued === 1 ? 'change' : 'changes'} waiting to be sent.`;
+}

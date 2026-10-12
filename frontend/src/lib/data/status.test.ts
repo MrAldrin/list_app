@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { connectionStatus } from './status';
+import { connectionStatus, offlineNoticeText, savedTimeLabel, waitingChangesText } from './status';
 
 describe('connectionStatus', () => {
 	it('is null when the stream is open and nothing waits', () => {
@@ -27,5 +27,40 @@ describe('connectionStatus', () => {
 		expect(connectionStatus({ live: 'connecting', queued: 0, retrying: false })?.text).toBe(
 			'Connecting…'
 		);
+	});
+});
+
+describe('offline notice text', () => {
+	const now = new Date(2026, 9, 12, 20, 0);
+	const today = new Date(2026, 9, 12, 18, 5).toISOString();
+	const earlier = new Date(2026, 9, 10, 18, 5).toISOString();
+
+	it('shows only the time for today', () => {
+		expect(savedTimeLabel(today, now, 'en-GB')).toBe('18:05');
+	});
+
+	it('adds a short date for another day', () => {
+		expect(savedTimeLabel(earlier, now, 'en-GB')).toBe('10 Oct, 18:05');
+	});
+
+	it('leaves the time out when missing or invalid', () => {
+		expect(savedTimeLabel(null, now)).toBeNull();
+		expect(savedTimeLabel('nope', now)).toBeNull();
+		expect(offlineNoticeText(null, 'lists', now)).toBe(
+			"Offline — showing your lists. Editing is back when you're online."
+		);
+	});
+
+	it('words the sentence for lists and for a shared list', () => {
+		expect(offlineNoticeText(today, 'lists', now, 'en-GB')).toBe(
+			"Offline — showing your lists from 18:05. Editing is back when you're online."
+		);
+		expect(offlineNoticeText(today, 'list', now, 'en-GB')).toContain('showing this list from');
+	});
+
+	it('counts waiting changes', () => {
+		expect(waitingChangesText(0)).toBeNull();
+		expect(waitingChangesText(1)).toBe('1 change waiting to be sent.');
+		expect(waitingChangesText(3)).toBe('3 changes waiting to be sent.');
 	});
 });

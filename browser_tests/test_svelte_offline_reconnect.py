@@ -32,7 +32,7 @@ RESUME = {
         new PageTransitionEvent('pageshow', { persisted: true })
     )""",
 }
-SAVED = "Saved view — may be out of date."
+SAVED = "Offline — showing"
 SLOW = {"timeout": 20_000}  # revalidation retries back off: 1 s, 2 s, 5 s, ...
 
 

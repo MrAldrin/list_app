@@ -88,7 +88,7 @@
 	{:else}
 		<SavedViewNotice {room} />
 		<RoomHeader {room} backToAdmin={isAdmin} onLogout={signOut} />
-		{#if room.store.error}
+		{#if room.store.error && !(room.store.showsOfflineNotice && room.store.unreachable)}
 			<!-- The lists below may be out of date; they stay usable. -->
 			<LoadError
 				title="Could not load the latest changes."

@@ -12,7 +12,7 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - `/admin` and `/app` navigations always go to the network.
 - After a successful online load, the browser (IndexedDB) keeps a snapshot of
   the room, its lists, each private list and each share link you opened.
-- Offline, these pages show the snapshot with a "saved view" notice: room, room
+- Offline, these pages show the snapshot with an offline notice: room, room
   list, private list (including the old URL shape) and share pages.
 - All edit controls are disabled, and the data layer refuses writes too.
 - The page turns read-only right away when the phone reports no network, or
@@ -21,6 +21,19 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - Typing in the Add field filters the list, only in saved views. Online it only
   gives suggestions.
 - If the network is gone, the start page can reopen the last room.
+
+## The offline notice
+
+- Text: "Offline — showing your lists from 18:05. Editing is back when you're
+  online." Share pages say "this list". The time is `HH:MM` for today, else a
+  short date and time. Without a usable time, that part is left out.
+- If changes wait in memory, a second line says "N changes waiting to be sent."
+  They are sent when the connection returns. They live in memory only, so
+  closing the app loses them.
+- While the notice shows, it is the only connection message. The "Reconnecting…"
+  pill and the "Could not load the latest changes." box (network errors only)
+  are hidden. Server errors still show the error box.
+- One check decides this: `RoomStore.showsOfflineNotice`.
 
 ## After a deploy
 
