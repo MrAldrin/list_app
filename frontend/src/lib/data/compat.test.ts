@@ -33,4 +33,14 @@ describe('checkApiVersion', () => {
 		checkApiVersion(headers(String(EXPECTED_API_VERSION)));
 		expect(compat.incompatible).toBe(true);
 	});
+
+	it('sums the waiting writes of every queue and forgets empty ones', () => {
+		const first = {};
+		const second = {};
+		compat.reportWaiting(first, 2);
+		compat.reportWaiting(second, 1);
+		expect(compat.waitingWrites).toBe(3);
+		compat.reportWaiting(first, 0);
+		expect(compat.waitingWrites).toBe(1);
+	});
 });

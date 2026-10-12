@@ -245,6 +245,24 @@ describe('WriteQueue', () => {
 			expect(queue.pending[0]).toMatchObject({ list_uid: 'b' });
 		});
 
+		it('reports its waiting ops, so the banner can warn before a reload', async () => {
+			resetCompat();
+			const sender = fakeSender();
+			const queue = new WriteQueue('home', sender, fakeHost());
+
+			void queue.send(op('a')).catch(() => undefined);
+			void queue.send(op('b')).catch(() => undefined);
+			await settle();
+			expect(compat.waitingWrites).toBe(2);
+
+			sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
+			await settle();
+			expect(compat.waitingWrites).toBe(1);
+
+			queue.dispose();
+			expect(compat.waitingWrites).toBe(0);
+		});
+
 		it('keeps an op the client refused to send', async () => {
 			const sender = fakeSender();
 			const host = fakeHost();

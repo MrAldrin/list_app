@@ -2,6 +2,8 @@
 	Shown when the server runs another API version than this page expects
 	(see lib/data/compat.svelte.ts). Changes are blocked until the page is
 	reloaded. The page never reloads by itself, so nothing typed is lost.
+	Unsent changes live in memory only, so a reload loses them: the notice
+	says so while there are any.
 -->
 <script lang="ts">
 	import { compat } from '#lib/data/compat.svelte.ts';
@@ -10,6 +12,13 @@
 {#if compat.incompatible}
 	<div class="update-notice" role="alert">
 		<p>A new version is available. Reload to keep making changes.</p>
+		{#if compat.waitingWrites > 0}
+			<p class="warning">
+				{compat.waitingWrites === 1
+					? '1 change is not saved yet. Reloading now will lose it.'
+					: `${compat.waitingWrites} changes are not saved yet. Reloading now will lose them.`}
+			</p>
+		{/if}
 		<button type="button" onclick={() => window.location.reload()}>Reload</button>
 	</div>
 {/if}
@@ -35,5 +44,11 @@
 
 	p {
 		margin: 0;
+	}
+
+	.warning {
+		flex-basis: 100%;
+		order: 1;
+		font-weight: 600;
 	}
 </style>

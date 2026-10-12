@@ -33,8 +33,9 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - When an API answer has another `X-Api-Version` than the page expects, the
   data layer stops all writes (reason `incompatible_version`, also in the
   Api client for admin and other calls; sign-out still works). Queued ops keep
-  their `op_id` and are not retried or dropped. A banner "A new version is
-  available" has a Reload button. Nothing reloads by itself. Reading continues.
+  their `op_id` and are not retried or dropped, but they live in memory, so a
+  reload loses them. A banner "A new version is available" has a Reload button
+  and says how many changes are not saved yet. Nothing reloads by itself. Reading continues.
   Answers without the header are treated as compatible, because proxy and
   maintenance pages during a deploy have none. See
   [API version](api.md#api-version).

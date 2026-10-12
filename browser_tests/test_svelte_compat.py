@@ -6,6 +6,7 @@ from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in
 
 API_ROUTES = re.compile(r".*/api/v1/(?!.*/events).*")
+OPS = re.compile(r".*/api/v1/rooms/[^/]+/ops$")
 
 
 def _answer_with_version(version: str):
@@ -35,6 +36,7 @@ def test_new_server_version_blocks_writes_until_reload(svelte_server, open_sessi
     add_item(page, "bread")
     expect(notice).to_be_visible()
     expect(notice.get_by_role("button", name="Reload")).to_be_visible()
+    expect(notice).not_to_contain_text("not saved")
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
     # The answer that carried the new version was still a real answer, so
@@ -83,3 +85,28 @@ def test_answers_without_a_version_do_not_block_anything(svelte_server, open_ses
     expect(page.get_by_role("alert")).to_have_count(0)
     add_item(page, "bread")
     expect(item_names(page)).to_have_text(["bread", "milk"])
+
+
+def test_notice_warns_about_changes_a_reload_would_lose(svelte_server, open_session):
+    page = open_session("compat-waiting", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    notice = page.get_by_role("alert").filter(has_text="A new version is available")
+
+    # The new server is not ready yet: the write gets no real answer, only the
+    # new version. The write stays unsent, and only lives in this page.
+    def busy_new_server(route):
+        route.fulfill(
+            status=503,
+            headers={"x-api-version": "2", "content-type": "application/json"},
+            body='{"error": {"code": "unavailable", "message": "Busy"}}',
+        )
+
+    page.route(OPS, busy_new_server)
+    field = page.get_by_label("Add or Search")
+    field.fill("milk")
+    field.press("Enter")
+    expect(notice).to_contain_text(
+        "1 change is not saved yet. Reloading now will lose it."
+    )
+    assert svelte_server.query("SELECT count(*) FROM items") == [(0,)]

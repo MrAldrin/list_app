@@ -3,6 +3,8 @@
 // deploy replaced the server while this page was open. Then writes stop and
 // the page offers a reload. Nothing reloads by itself.
 
+import { SvelteMap } from 'svelte/reactivity';
+
 /**
  * The API version this build was made for. The server keeps the same number in
  * `src/api/version.py`; a Python test checks that both match.
@@ -17,6 +19,27 @@ export const INCOMPATIBLE_MESSAGE = 'A new version is available. Reload to keep 
 class Compat {
 	/** True from the first answer with another version until the page reloads. */
 	incompatible = $state(false);
+
+	/** Unsent writes per open write queue. They live in memory only. */
+	readonly #waiting = new SvelteMap<object, number>();
+
+	/** Writes that a reload would lose, summed over every open queue. */
+	get waitingWrites(): number {
+		let total = 0;
+		for (const count of this.#waiting.values()) total += count;
+		return total;
+	}
+
+	/** A write queue reports how many ops it holds; 0 forgets the queue. */
+	reportWaiting(queue: object, count: number): void {
+		if (count > 0) this.#waiting.set(queue, count);
+		else this.#waiting.delete(queue);
+	}
+
+	/** For tests only, through `resetCompat`. */
+	clearWaiting(): void {
+		this.#waiting.clear();
+	}
 }
 
 export const compat = new Compat();
@@ -36,4 +59,5 @@ export function checkApiVersion(headers: Pick<Headers, 'get'>): void {
 /** For tests only: a page cannot become compatible again without a reload. */
 export function resetCompat(): void {
 	compat.incompatible = false;
+	compat.clearWaiting();
 }

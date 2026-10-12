@@ -124,6 +124,7 @@ export class WriteQueue {
 			this.#waiters.set(sent.op_id, { resolve, reject });
 		});
 		this.#storage.add(sent);
+		this.#reportWaiting();
 		this.#host.opQueued(sent);
 		void this.#pump();
 		return promise;
@@ -154,7 +155,13 @@ export class WriteQueue {
 		for (const op of this.#storage.all()) this.#waiters.get(op.op_id)?.reject(reason);
 		this.#waiters.clear();
 		this.#storage.clear();
+		this.#reportWaiting();
 		this.#wake?.();
+	}
+
+	/** Tells `compat` how many ops wait here, for the reload warning. */
+	#reportWaiting(): void {
+		compat.reportWaiting(this, this.#storage.all().length);
 	}
 
 	async #pump(): Promise<void> {
@@ -216,6 +223,7 @@ export class WriteQueue {
 
 	#finish(op: SentOp): void {
 		this.#storage.remove(op.op_id);
+		this.#reportWaiting();
 	}
 
 	#sleep(ms: number): Promise<void> {
