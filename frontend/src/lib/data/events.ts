@@ -64,6 +64,12 @@ export const RECONNECT_DELAYS = [1_000, 2_000, 5_000, 10_000, 30_000];
  */
 export const STALE_AFTER_HIDDEN = 30_000;
 
+/**
+ * A stream that stays down this long gets an access check, so the page turns
+ * read-only soon after the connection is lost, not only when the user returns.
+ */
+export const OFFLINE_CHECK_AFTER = 10_000;
+
 export class LiveUpdates {
 	readonly #options: LiveUpdatesOptions;
 	readonly #create: EventSourceFactory;
@@ -76,6 +82,7 @@ export class LiveUpdates {
 	#hasOpened = false;
 	#attempt = 0;
 	#timer: ReturnType<typeof setTimeout> | null = null;
+	#offlineTimer: ReturnType<typeof setTimeout> | null = null;
 	#state: LiveState = 'stopped';
 	#hiddenAt: number | null = null;
 	#revalidating = false;
@@ -132,12 +139,31 @@ export class LiveUpdates {
 		this.#source?.close();
 		this.#source = null;
 		this.#setState('stopped');
+		this.#clearOfflineTimer();
 	}
 
 	#setState(state: LiveState): void {
 		if (state === this.#state) return;
 		this.#state = state;
+		if (state === 'reconnecting') this.#startOfflineTimer();
+		else this.#clearOfflineTimer();
 		this.#options.host.liveChanged?.(state);
+	}
+
+	// While the stream stays down, check access every OFFLINE_CHECK_AFTER.
+	#startOfflineTimer(): void {
+		this.#clearOfflineTimer();
+		this.#offlineTimer = setTimeout(() => {
+			this.#offlineTimer = null;
+			if (!this.#running || this.#state !== 'reconnecting') return;
+			this.#reconnected();
+			this.#startOfflineTimer();
+		}, OFFLINE_CHECK_AFTER);
+	}
+
+	#clearOfflineTimer(): void {
+		if (this.#offlineTimer !== null) clearTimeout(this.#offlineTimer);
+		this.#offlineTimer = null;
 	}
 
 	#connect(): void {
@@ -228,7 +254,10 @@ export class LiveUpdates {
 	}
 
 	#onOffline = () => {
-		if (this.#running) this.#setState('reconnecting');
+		if (!this.#running) return;
+		this.#setState('reconnecting');
+		// Check now, so the page turns read-only at once.
+		this.#reconnected();
 	};
 
 	#onOnline = () => {

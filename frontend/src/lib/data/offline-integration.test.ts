@@ -674,12 +674,18 @@ describe('reconnect write gate', () => {
 		api.whoAmI.mockRejectedValueOnce(new NetworkError());
 		connectivity.emit('offline');
 		expect(room.store.canWrite).toBe(false);
-		connectivity.emit('online');
-		expect(room.store.canWrite).toBe(false);
+		// The offline signal itself runs the check, which fails.
 		await vi.waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(2));
 		await settle();
 		expect(room.store.canWrite).toBe(false);
 		expect(api.changes).toHaveBeenCalledTimes(1);
+
+		// An online signal is only a hint: a failing check keeps writes blocked.
+		api.whoAmI.mockRejectedValueOnce(new NetworkError());
+		connectivity.emit('online');
+		await vi.waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(3));
+		await settle();
+		expect(room.store.canWrite).toBe(false);
 
 		connectivity.emit('online');
 		await vi.waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));

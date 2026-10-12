@@ -307,3 +307,18 @@ def test_server_errors_without_a_snapshot_do_not_say_connect(
     page.goto(room_app_url(server))
     expect(page.get_by_text("Could not load this room.")).to_be_visible()
     expect(page.get_by_text("Connect to load this room.")).to_have_count(0)
+
+
+def test_losing_the_network_turns_the_open_page_read_only_then_back(
+    svelte_server, open_session
+):
+    page, _ = member_with_list(open_session, svelte_server, "basement")
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
+
+    page.context.set_offline(True)
+    expect(page.get_by_role("button", name="Add")).to_be_disabled(timeout=12_000)
+    expect(page.get_by_role("checkbox", name="milk")).to_be_disabled()
+
+    page.context.set_offline(False)
+    expect(page.get_by_role("button", name="Add")).to_be_enabled(**SLOW)
+    expect(page.get_by_role("checkbox", name="milk")).to_be_enabled()

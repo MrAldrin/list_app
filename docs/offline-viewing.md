@@ -15,6 +15,9 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - Offline, these pages show the snapshot with a "saved view" notice: room, room
   list, private list (including the old URL shape) and share pages.
 - All edit controls are disabled, and the data layer refuses writes too.
+- The page turns read-only right away when the phone reports no network, or
+  when the live connection has been down for 10 seconds. Changes already
+  waiting stay queued and are sent after the connection returns.
 - Typing in the Add field filters the list, only in saved views. Online it only
   gives suggestions.
 - If the network is gone, the start page can reopen the last room.

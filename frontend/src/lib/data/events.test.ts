@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	LiveUpdates,
+	OFFLINE_CHECK_AFTER,
 	STALE_AFTER_HIDDEN,
 	type LiveHost,
 	type LiveState,
@@ -255,5 +256,53 @@ describe('LiveUpdates', () => {
 		expect(first.closed).toBe(true);
 		expect(FakeEventSource.instances).toHaveLength(2);
 		expect(host.refresh).toHaveBeenCalledTimes(2);
+	});
+
+	it('checks access at once on the browser offline event', () => {
+		const { onReconnect, connectivity, live } = setup();
+		live.start();
+		FakeEventSource.last.open();
+		connectivity.dispatchEvent(new Event('offline'));
+		expect(live.state).toBe('reconnecting');
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+	});
+
+	it('checks access after the stream is down for OFFLINE_CHECK_AFTER', async () => {
+		const { onReconnect, live } = setup();
+		live.start();
+		FakeEventSource.last.open();
+		FakeEventSource.last.fail(true);
+		await vi.advanceTimersByTimeAsync(OFFLINE_CHECK_AFTER - 1);
+		expect(onReconnect).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+		// Still down: it repeats.
+		await vi.advanceTimersByTimeAsync(OFFLINE_CHECK_AFTER);
+		expect(onReconnect).toHaveBeenCalledTimes(2);
+	});
+
+	it('does not start the offline timer while connecting', async () => {
+		const { onReconnect, live } = setup();
+		live.start();
+		await vi.advanceTimersByTimeAsync(OFFLINE_CHECK_AFTER * 2);
+		expect(onReconnect).not.toHaveBeenCalled();
+	});
+
+	it('clears the offline timer when the stream reopens or stops', async () => {
+		const { onReconnect, live } = setup();
+		live.start();
+		const source = FakeEventSource.last;
+		source.open();
+		source.fail(true);
+		await vi.advanceTimersByTimeAsync(OFFLINE_CHECK_AFTER - 1);
+		source.open(); // the reopen runs its own check
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(OFFLINE_CHECK_AFTER * 2);
+		expect(onReconnect).toHaveBeenCalledTimes(1);
+
+		source.fail(true);
+		live.stop();
+		await vi.advanceTimersByTimeAsync(OFFLINE_CHECK_AFTER * 2);
+		expect(onReconnect).toHaveBeenCalledTimes(1);
 	});
 });
