@@ -26,23 +26,26 @@ guide is for your review. No iPhone check has been done.
 
 Record the iOS version: ______
 
-- [ ] Open the app over HTTPS and sign in to a room.
-- [ ] Open a room list, a private list and a share link online.
-- [ ] Add the app to the home screen.
-- [ ] Airplane mode: close and reopen from Safari. Saved views appear.
-- [ ] Airplane mode: close and reopen from the home-screen icon.
-- [ ] Navigate between room, lists and the share page offline.
-- [ ] Type in the Add field: the list filters.
-- [ ] Edit controls are disabled and say why.
+- [x] Open the app over HTTPS and sign in to a room.
+- [x] Open a room list, a private list and a share link online.
+- [x] Add the app to the home screen.
+- [x] Airplane mode: close and reopen from Safari. Saved views appear.
+- [x] Airplane mode: close and reopen from the home-screen icon.
+- [x] Navigate between room, lists and the share page offline.
+- [x] Type in the Add field: the list filters.
+- [x] Edit controls are disabled and say why.
 - [ ] Go online without reloading, and change an item on another device: it appears.
 - [ ] Log out (online, then also offline): saved data is gone after reload.
 - [ ] Open a revoked share link or reset the room password: saved data clears.
-- [ ] Note anything odd (wording, timing, layout).
+- [ ] Note anything odd (wording, timing, layout). 2026-10-12: three offline
+  messages at once and a missing space; fixed with one offline notice. Recheck it.
 
 ## Blockers before the first production rollout
 
 - Both blockers are built and pass the local checks; the owner review is still
   open. See [offline viewing](../docs/offline-viewing.md#after-a-deploy).
+- New versions only reach phones after every copy of the app is closed. Must
+  be fixed before going live: [offline version updates](offline-version-updates.md).
 - Real-device behaviour of that banner is a [backlog](backlog.md) manual check.
   Deployment needs separate approval.
 
