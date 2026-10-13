@@ -25,10 +25,14 @@ rules to keep.
   2026-09-29. Queried as a copy, with counts only.
 - Schema version (`PRAGMA user_version`): 1, so before migration 2.
 - Rows: 10 rooms, 21 lists, 287 items, 4 room access tokens, 1 invitation.
+- This audit predates migrations 2 to 5 and the Svelte app. Re-run the counts
+  on a fresh backup before writing the migration.
 
 ## Current state and proposed rules
 
-"App" means validation in `src/database_crud.py` and `src/item_service.py`.
+"App" means validation in `src/database_crud.py` and `src/item_service.py`,
+as audited. The Svelte app now writes through the JSON API in `src/api/`;
+check that path too when adding limits.
 "Bad rows" is the count in the audited copy that would break the proposed rule.
 
 ### rooms
@@ -50,7 +54,7 @@ rules to keep.
 | `share_token` | unique index, nullable | 43-character token | 0 NULL, 0 wrong length | NOT NULL. Length check not worth it |
 | `list_tags` | NOT NULL DEFAULT `'[]'` | written with `json.dumps`; broken JSON read as `[]` | 0 invalid, 0 not an array | CHECK valid JSON array |
 | tag text | none | trimmed, not empty; no length limit | 0 blank (max length 6, max 2 tags) | Limit tag length to 30 in the app only. A per-element database check is not worth the complexity |
-| `hide_done_*` | NOT NULL + CHECKs | validated | 0 | Keep as is |
+| `hide_done_*` | NOT NULL + CHECKs; counters 1 or more via migration 5 triggers | validated | 0 | Keep as is |
 
 ### items
 
@@ -73,6 +77,8 @@ direction: an unchecked item has no completion time.
 ### Not changed
 
 - `room_access_tokens` and `room_invitations`: already strict, 0 problems found.
+- Offline-sync columns and tables from migration 3 (`uid`, `changed_seq`,
+  `change_seq`, `deletions`, `processed_ops`): keep as they are.
 - The unique name indexes use `trim(name)` and skip blank names. With the new
   checks they could be simpler, but they still work. Leave them.
 
@@ -91,7 +97,7 @@ direction: an unchecked item has no completion time.
 ## Fixing existing bad rows
 
 The audited copy has no rows that break the proposed rules. Production may
-change before deploy, so migration 3 should:
+change before deploy, so migration 6 should:
 
 - Repair values with an obvious fix: NULL quantity or quantity below 1 becomes 1;
   NULL description becomes `''`; NULL `done` becomes 0; an unchecked item's
@@ -102,19 +108,26 @@ change before deploy, so migration 3 should:
 
 ## Proposed migration approach
 
-**Coordination with the Svelte branch.** The `svelte-frontend` branch adds its
-own migrations (3: `uid`, change counters and new tables; 4: change-tracking
-triggers). Whichever branch reaches `main` second renumbers its migrations to
-come after the other's, during the rebase; never renumber one that is deployed.
-If Svelte lands first, this rebuild must also keep the new columns
-(`uid`, `changed_seq`, `change_seq`) and recreate the triggers, because
-dropping a table drops its triggers. See `docs/change-tracking.md` on that
-branch.
+**Live schema today.** Production is at schema version 5
+(`_migrations` in `src/database_setup.py`). A rebuild of `rooms`, `lists` or
+`items` must keep everything later migrations added:
+
+- Migration 3: `uid` (filled by a trigger) and `changed_seq` on lists and items,
+  `change_seq` on rooms, the unique `uid` indexes, and the `deletions` and
+  `processed_ops` tables, which reference `rooms`.
+- Migration 4: the change-tracking triggers. Dropping a table drops its
+  triggers, so create them again from `_CHANGE_TRACKING_TRIGGERS`
+  ([change tracking](../docs/change-tracking.md)).
+- Migration 5: the two `lists_positive_visibility_*` triggers. Create them
+  again too.
 
 1. First change: app-side length limits and messages (room, list and item names
-   100; description 1000; tag 30). Tests for each limit.
-2. Second change: migration 3, `_migration_3_field_constraints`, appended in
-   `src/database_setup.py`. It builds on migration 2 and never edits it.
+   100; description 1000; tag 30), in the JSON API and the Svelte forms. Room
+   names already stop at 100 when created from an invitation. Tests for each
+   limit.
+2. Second change: migration 6, `_migration_6_field_constraints`, appended in
+   `src/database_setup.py`. It builds on migration 5 and never edits earlier
+   ones.
    - Rebuild `rooms`, `lists` and `items` in SQLite's documented order: create
      `<table>_new`, copy with the repairs above, drop the old table, rename the
      new one ([migration notes](../docs/deployment.md#schema-migrations)).
@@ -125,11 +138,13 @@ branch.
    - Keep `items` as `AUTOINCREMENT` and **carry over its `sqlite_sequence`
      value**. A plain copy resets the counter to the highest remaining ID, which
      would bring back the item-ID reuse bug that migration 2 fixed.
-   - Tests: each rule rejects a bad write; each repair works; an old database
-     at version 2 migrates; IDs are not reused after the migration.
-3. Deploy only after `item-id-fix` (migration 2), with the
+   - Recreate the triggers from migrations 4 and 5 after the rebuild.
+   - Tests: each rule rejects a bad write; each repair works; a database at
+     version 5 migrates; IDs are not reused; change tracking and the
+     visibility-counter triggers still work afterwards.
+3. Deploy with the
    [deployment checklist](../docs/deployment.md#deployment-checklist). Expect
-   `Database migrated from version 2 to 3`.
+   `Database migrated from version 5 to 6`.
 
 ## Decisions
 
@@ -143,10 +158,12 @@ Agreed with the user on 2026-09-30:
 
 ## Progress
 
-- [x] Audit schema, app validation and production copy (counts only)
+- [x] Audit schema, app validation and production copy (counts only), 2026-09-29 at version 1
 - [x] Write proposal
 - [x] User chooses rules and limits
+- [x] Update the plan for the live schema (version 5), 2026-10-13
+- [ ] Re-run the data audit on a fresh backup
 - [ ] App-side length limits and tests
-- [ ] Migration 3 and tests
+- [ ] Migration 6 and tests
 - [ ] Update `docs/item-writes.md` and related docs with the new rules
 - [ ] Rehearse on a fresh backup copy and deploy
