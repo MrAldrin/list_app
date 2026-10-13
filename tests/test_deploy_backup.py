@@ -13,6 +13,7 @@ import pytest
 from deploy_backup import DeployError
 
 NOW = datetime(2026, 9, 29, 12, 0, tzinfo=UTC)  # 14:00 in Oslo: no deploy window
+ACCOUNT_REPLY = '{"status":"ready","account":{"id":"x"}}\n'
 VOLUME_LIST = json.dumps(
     {
         "environment": "production",
@@ -53,6 +54,7 @@ class FakeRailwayAndJj:
         self.remote_output = output_for(self.source)
         self.shipping = shipping
         self.fail_on: str | None = None
+        self.not_ready_replies = 0
 
     def __call__(self, command: list[str]) -> str:
         self.calls.append(command)
@@ -61,6 +63,9 @@ class FakeRailwayAndJj:
         if command[:3] == ["railway", "volume", "list"]:
             return VOLUME_LIST
         if command[:2] == ["railway", "ssh"]:
+            if self.not_ready_replies:
+                self.not_ready_replies -= 1
+                return ACCOUNT_REPLY
             return self.remote_output
         if command[:2] == ["jj", "log"]:
             return self.shipping if "main.." in command[4] else ""
@@ -78,7 +83,7 @@ class FakeRailwayAndJj:
         return names
 
 
-def run_main(tmp_path, fake, argv, answers=(), now=NOW):
+def run_main(tmp_path, fake, argv, answers=(), now=NOW, waits=None):
     replies = iter(answers)
     return deploy_backup.main(
         argv,
@@ -86,6 +91,7 @@ def run_main(tmp_path, fake, argv, answers=(), now=NOW):
         now=lambda: now,
         ask=lambda prompt: next(replies),
         backup_dir=tmp_path / "backups",
+        sleep=(waits if waits is not None else []).append,
     )
 
 
@@ -167,7 +173,7 @@ def test_parse_remote_result_requires_result_line():
 
 
 def test_parse_remote_result_explains_sleeping_app():
-    reply = '{"status":"ready","account":{"id":"x"}}\n'
+    reply = ACCOUNT_REPLY
     with pytest.raises(DeployError, match="did not reach the app's container"):
         deploy_backup.parse_remote_result(reply)
 
@@ -277,12 +283,27 @@ def test_failed_wake_stops_before_ssh(tmp_path, capsys):
     assert "Could not wake the app" in capsys.readouterr().err
 
 
+def test_starting_app_is_retried_until_ssh_reaches_it(tmp_path):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.not_ready_replies = 2
+    waits = []
+
+    assert run_main(tmp_path, fake, ["--backup-only"], waits=waits) == 0
+
+    assert fake.names() == ["volumes", "wake"] + ["remote-backup"] * 3
+    assert waits == [deploy_backup.SSH_RETRY_WAIT_SECONDS] * 2
+    assert len(list((tmp_path / "backups").glob("*.db"))) == 1
+
+
 def test_sleeping_app_stops_with_clear_message(tmp_path, capsys):
     fake = FakeRailwayAndJj(tmp_path)
-    fake.remote_output = '{"status":"ready","account":{"id":"x"}}\n'
+    fake.remote_output = ACCOUNT_REPLY
+    waits = []
 
-    assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 1
+    assert run_main(tmp_path, fake, ["--rev", "feature"], ["y"], waits=waits) == 1
 
+    assert fake.names().count("remote-backup") == deploy_backup.SSH_TRIES
+    assert len(waits) == deploy_backup.SSH_TRIES - 1
     assert fake.names()[-1] == "remote-backup"
     assert "did not reach the app's container" in capsys.readouterr().err
     assert list((tmp_path / "backups").iterdir()) == []

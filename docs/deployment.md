@@ -182,7 +182,8 @@ uv run python scripts/deploy_backup.py --backup-only      # backup, never push
 
 1. Pushing only works if `main` is an ancestor of the revision.
 2. It wakes the app with a web request. A sleeping Railway app does not
-   answer `railway ssh`.
+   answer `railway ssh`. If ssh still reaches Railway's account service
+   instead of the app, it waits and tries again a few times.
 3. Over `railway ssh`, it makes a backup-API copy in the container's temp
    folder (not the volume), checks it, and streams it here as text.
 4. It saves the copy to `~/.local/share/list_app/backups/` and checks the size,

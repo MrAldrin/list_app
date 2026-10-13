@@ -20,6 +20,7 @@ import shlex
 import sqlite3
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from contextlib import closing
 from datetime import UTC, datetime
@@ -31,6 +32,9 @@ SOURCE_DB = f"{VOLUME_MOUNT}/list.db"
 KEEP_BACKUPS = 2
 # A sleeping Railway app starts on the first web request.
 APP_URL = "https://listapp-production-d627.up.railway.app/"
+# It can take a little longer before railway ssh reaches the container.
+SSH_TRIES = 4
+SSH_RETRY_WAIT_SECONDS = 15
 RESULT_PREFIX = "BACKUP_RESULT "
 DATA_BEGIN = "BACKUP_DATA_BEGIN"
 DATA_END = "BACKUP_DATA_END"
@@ -67,6 +71,10 @@ Runner = Callable[[list[str]], str]
 
 class DeployError(Exception):
     """A step failed; nothing after it runs."""
+
+
+class AppNotReadyError(DeployError):
+    """railway ssh reached Railway's account service, not the container."""
 
 
 def run_command(command: list[str]) -> str:
@@ -131,7 +139,7 @@ def parse_remote_result(output: str) -> dict:
     if '"account"' in output:
         # Seen when the app is asleep: Railway's account service answers
         # instead of the container.
-        raise DeployError(
+        raise AppNotReadyError(
             "railway ssh did not reach the app's container (Railway's account "
             "service answered instead). The app may still be starting; wait a "
             f"minute and run the script again.\n{output}"
@@ -189,7 +197,28 @@ def prepare_backup_dir(backup_dir: Path) -> None:
     backup_dir.chmod(0o700)
 
 
-def take_backup(run: Runner, now: datetime, backup_dir: Path) -> Path:
+def remote_backup(run: Runner, sleep: Callable[[float], None]) -> tuple[dict, bytes]:
+    """Run the remote backup, retrying while the container is not reachable."""
+    for attempt in range(1, SSH_TRIES + 1):
+        try:
+            return parse_remote_backup(run(remote_backup_command()))
+        except AppNotReadyError:
+            if attempt == SSH_TRIES:
+                raise
+            print(
+                f"The app is not reachable over ssh yet; trying again in "
+                f"{SSH_RETRY_WAIT_SECONDS} seconds ({attempt}/{SSH_TRIES - 1})"
+            )
+            sleep(SSH_RETRY_WAIT_SECONDS)
+    raise AssertionError("unreachable")
+
+
+def take_backup(
+    run: Runner,
+    now: datetime,
+    backup_dir: Path,
+    sleep: Callable[[float], None] = time.sleep,
+) -> Path:
     project, volume = find_production_volume(
         run(["railway", "volume", "list", "--json"])
     )
@@ -202,7 +231,7 @@ def take_backup(run: Runner, now: datetime, backup_dir: Path) -> Path:
 
     wake_app(run)
     print("Creating the backup over railway ssh (nothing is written to the volume)")
-    expected, data = parse_remote_backup(run(remote_backup_command()))
+    expected, data = remote_backup(run, sleep)
     print(f"Saving to {local_path}")
     write_new_file(local_path, data)
     try:
@@ -247,6 +276,7 @@ def main(
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ask: Callable[[str], str] = input,
     backup_dir: Path = BACKUP_DIR,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -258,7 +288,7 @@ def main(
         if args.rev:
             check_push_ready(run, args.rev)
 
-        take_backup(run, now(), backup_dir)
+        take_backup(run, now(), backup_dir, sleep)
         offer_cleanup(backup_dir, ask)
         if args.backup_only:
             return 0
