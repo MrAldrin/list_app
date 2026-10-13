@@ -52,8 +52,8 @@ with a key made from `APP_PASSWORD`.
 
 ### Production image
 
-Railway builds the root `Dockerfile` (`railway.json` pins the builder), so the
-repository fully defines the build. It has two stages:
+Railway detects and builds the root `Dockerfile`, so the repository fully
+defines the build. There is no `railway.json`. It has two stages:
 
 1. Node 24: `npm ci && npm run build` in `frontend/`, which writes
    `frontend/build/`. Only that folder is kept.
@@ -73,18 +73,18 @@ podman run --rm -p 8080:8080 -e APP_PASSWORD=test-password-123 \
   -e DB_PATH=/tmp/t.db listapp-test
 ```
 
-Railway variables, the volume and the start command do not change. Any start
-command or build command set in the Railway dashboard is overridden by
-`railway.json` and the `Dockerfile`; keep both empty there.
+Railway variables, the volume and the start command do not change. Keep the start
+command and build command empty in the Railway dashboard; the `Dockerfile`
+decides both.
 
 ### Railway settings to check
 
 Railway must not override the repository. In the service settings:
 
-- Leave the builder setting as it is: `railway.json` overrides it. After the
-  deploy, check that the build log shows the Dockerfile steps (such as
-  `npm ci`). A rollback to a commit from before the switch has no
-  `railway.json` and no `Dockerfile`, so it builds with the dashboard setting.
+- Leave the builder setting as it is, and leave "Config file path" empty.
+  After a deploy, the build log shows `Using detected Dockerfile!` and the
+  `npm ci` step. A rollback to a commit from before the Svelte switch has no
+  `Dockerfile`, so it builds with the dashboard builder setting.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
 - `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`. Keep
@@ -142,8 +142,8 @@ production cookie behavior. See the
 Before deploying:
 
 - [ ] `APP_PASSWORD` set, `DB_PATH` absolute, volume mounted, one instance.
-- [ ] Railway build and start command fields are empty (the `Dockerfile` and
-  `railway.json` decide). See [Railway settings](#railway-settings-to-check).
+- [ ] Railway build and start command fields are empty (the `Dockerfile`
+  decides). See [Railway settings](#railway-settings-to-check).
 - [ ] Note the currently deployed revision.
 - [ ] For schema changes: take a backup with
   [`--backup-only`](#backup-before-deploying) and start the new version against

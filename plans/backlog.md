@@ -10,6 +10,8 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
+- [ ] [infra] Before 2026-12-01, delete `railway.json` (Railway stops reading it then) and let Railway detect the root `Dockerfile`. See the [Railway config removal plan](railway-config-removal.md).
+
 - [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
 
 - [ ] [feature] (in progress) Svelte offline support: implement read-only offline viewing through Gate V; offline editing follows a separate owner review. Follow the [Milestone 5 plan](svelte-frontend-rewrite.md#milestone-5-offline-viewing) and its branch instructions.
@@ -23,7 +25,6 @@ Agreed as worth doing; no date.
 - [ ] [test] Fix a rare (about 1 in 12) WebKit teardown flake from cancelled in-flight requests in the rename-after-password-change test in `browser_tests/test_svelte_live.py`. See the [validation record](../docs/background/offline-viewing-validation.md).
 - [ ] [test] Add a browser test for a reload in the middle of a room DELETE (the sign-out marker is stored before the DELETE by design).
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
-- [ ] [infra] Before 2026-12-01, move `railway.json` to Railway's Infrastructure as Code (`.railway/railway.ts`); Railway stops reading Config as Code then. Start with `railway config migrate`. See [Railway's migration guide](https://docs.railway.com/infrastructure-as-code#migrating-from-config-as-code) and the [Railway settings](../docs/deployment.md#railway-settings-to-check).
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
 - [ ] [data] Strengthen field constraints: nullable names, completion state and slugs; quantities below one; length limits; valid tags JSON. Inspect existing data first.
