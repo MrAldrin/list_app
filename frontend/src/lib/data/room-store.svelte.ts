@@ -149,6 +149,11 @@ export class RoomStore implements QueueHost, LiveHost {
 		return this.readOnly && this.unconfirmedView && Boolean(this.savedAt);
 	}
 
+	/** Shows server data from this session's last good read (not a saved view). */
+	get confirmed(): boolean {
+		return this.status === 'ready' && !this.#savedView && this.error === null;
+	}
+
 	setWriteAuthorized(authorized: boolean): void {
 		if (this.#writeAuthorized !== authorized) this.#authorizationVersion += 1;
 		this.#writeAuthorized = authorized;

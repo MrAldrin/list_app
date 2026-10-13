@@ -1,13 +1,33 @@
 <script lang="ts">
-	import { offlineNoticeText, waitingChangesText, type RoomHandle } from '#lib/data/index.ts';
+	import {
+		offlineNoticeText,
+		SAVED_VIEW_NOTICE_DELAY,
+		waitingChangesText,
+		type RoomHandle
+	} from '#lib/data/index.ts';
 
 	let { room, what = 'lists' }: { room: RoomHandle; what?: 'lists' | 'list' } = $props();
 
 	const text = $derived(offlineNoticeText(room.store.savedAt, what));
 	const waiting = $derived(waitingChangesText(room.store.queued));
+
+	// A failed read or a lost live connection means offline now. A saved view
+	// that only waits for its first answer gets a moment first (see the delay).
+	const shows = $derived(room.store.showsOfflineNotice);
+	const known = $derived(room.store.error !== null || room.store.live === 'reconnecting');
+	let waited = $state(false);
+
+	$effect(() => {
+		if (!shows) {
+			waited = false;
+			return;
+		}
+		const timer = setTimeout(() => (waited = true), SAVED_VIEW_NOTICE_DELAY);
+		return () => clearTimeout(timer);
+	});
 </script>
 
-{#if room.store.showsOfflineNotice}
+{#if shows && (known || waited)}
 	<p class="saved-notice" role="status">
 		{text}
 		{#if waiting}<br />{waiting}{/if}

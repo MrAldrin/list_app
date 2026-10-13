@@ -3,7 +3,15 @@
 import re
 
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, create_list, item_names, room_app_url, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    create_list,
+    item_names,
+    list_links,
+    room_app_url,
+    sign_in,
+)
 
 
 def start_heading(page: Page):
@@ -271,3 +279,54 @@ def test_legacy_private_list_route_opens_from_room_snapshot_offline(
         empty.get_by_text("Connect to open this saved list", exact=False)
     ).to_be_visible()
     empty.wait_for_timeout(250)
+
+
+# Records whether the offline notice was ever put on the page, even briefly.
+NOTICE_RECORDER = """
+(() => {
+    window.__offlineNoticeSeen = false;
+    const check = () => {
+        if (document.querySelector('.saved-notice')) window.__offlineNoticeSeen = true;
+    };
+    new MutationObserver(check).observe(document, { childList: true, subtree: true });
+    check();
+})();
+"""
+
+
+def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
+    """Online, opening a page never shows the offline notice, not even briefly.
+
+    The saved view shows first, then the server answers. Showing the notice
+    in between made it flash and push the list down on every page.
+    """
+    server = svelte_server
+    page, _ = controlled_page(open_session("online-no-flash", **PHONE), server.url)
+    sign_in(page, server)
+    list_url = create_list(page, "Groceries")
+    add_item(page, "milk")
+    page.add_init_script(NOTICE_RECORDER)
+    page.evaluate(NOTICE_RECORDER)
+
+    # Moving between the room and a list, a few times.
+    for _ in range(2):
+        page.get_by_role("link", name="Back to room").click()
+        expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+        list_links(page).filter(has_text="Groceries").click()
+        expect(item_names(page)).to_have_text(["milk"])
+        page.wait_for_timeout(300)
+        assert not page.evaluate("window.__offlineNoticeSeen")
+
+    # A fresh start shows the saved view first, then the server's answer.
+    for url in (list_url, room_app_url(server)):
+        page.goto(url)
+        expect(page.get_by_text("Groceries").first).to_be_visible()
+        page.wait_for_timeout(2_000)
+        assert not page.evaluate("window.__offlineNoticeSeen")
+
+    # The saved view was there: offline, the same start shows the notice.
+    server.stop()
+    page.goto(list_url)
+    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    expect(item_names(page)).to_have_text(["milk"])
+    page.wait_for_timeout(250)

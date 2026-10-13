@@ -62,6 +62,7 @@ export {
 	connectionStatus,
 	CONNECTION_STATUS_DELAY,
 	offlineNoticeText,
+	SAVED_VIEW_NOTICE_DELAY,
 	savedTimeLabel,
 	waitingChangesText,
 	type ConnectionStatus
@@ -675,7 +676,9 @@ export class RoomHandle {
 			} else {
 				this.#warnSnapshot();
 			}
-			if (this.#hydrateSavedView && this.#snapshotGeneration) {
+			// Moving between pages reopens the room. Its data from the server is
+			// at least as new as the saved view, so keep it.
+			if (this.#hydrateSavedView && this.#snapshotGeneration && !this.store.confirmed) {
 				const saved = await this.#snapshotStore.read(this.#identity);
 				const current = await this.#snapshotStore.generation(this.#identity);
 				if (

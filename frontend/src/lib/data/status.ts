@@ -37,6 +37,13 @@ export function connectionStatus({
 /** Milliseconds a status must last before it shows, so quick saves do not flicker. */
 export const CONNECTION_STATUS_DELAY = 800;
 
+/**
+ * Milliseconds a saved view may wait for its first server answer before the
+ * offline notice shows. Online, the answer usually comes first, so the
+ * notice does not flash and push the page down. A failed read shows it at once.
+ */
+export const SAVED_VIEW_NOTICE_DELAY = 1500;
+
 /** "18:05" when `savedAt` is today, else "12 Oct, 18:05". Null if unusable. */
 export function savedTimeLabel(
 	savedAt: string | null,
