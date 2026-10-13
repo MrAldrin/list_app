@@ -277,6 +277,42 @@ def test_waiting_version_takes_over_when_the_app_opens_offline(
         time.sleep(0.1)
 
 
+def _come_back_to_the_app(page) -> None:
+    """What a phone does when the app returns from the background."""
+    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+
+
+def test_coming_back_to_the_app_fetches_and_then_switches_version(
+    built_app_server, open_session, tmp_path
+):
+    server = built_app_server
+    page = _wait_for_controlled_page(open_session("service-worker-return"), server.url)
+    server.state.build_path, _ = _changed_build(tmp_path, "test-return-B")
+    page.evaluate("window.__oldPage = true")
+
+    # The first return only downloads the new version; the page stays.
+    _come_back_to_the_app(page)
+    _wait_for_waiting_worker(page)
+    assert page.evaluate("window.__oldPage") is True
+
+    # Typed text would be lost by a reload, so the next return keeps the page.
+    field = page.get_by_label("Room link or code")
+    field.fill("half-typed")
+    _come_back_to_the_app(page)
+    page.wait_for_timeout(500)
+    assert page.evaluate("window.__oldPage") is True
+    assert page.evaluate("window.__appRegistration.waiting?.state") == "installed"
+
+    # With the field empty again, the next return switches to the new version.
+    field.fill("")
+    _come_back_to_the_app(page)
+    page.wait_for_function("window.__oldPage === undefined")
+    page.wait_for_function(
+        "document.documentElement.outerHTML.includes('test-return-B')"
+    )
+    expect(page.get_by_label("Room link or code")).to_be_visible()
+
+
 def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     built_app_server, open_session, tmp_path
 ):

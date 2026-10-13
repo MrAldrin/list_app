@@ -47,11 +47,12 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - A worker-controlled tab keeps its complete cached version, so it does not hit
   this.
 - New versions: the worker downloads a new version in the background. It only
-  reaches "waiting" once every file is stored. When the app opens and a version
-  waits, the page tells it to take over (`lib/service-worker.ts`), also
-  offline. Every open tab then reloads onto it, except a tab with unsent
-  changes; that tab keeps the old version until it is reloaded or closed. A
-  new version found while the app is open arrives on the next open.
+  reaches "waiting" once every file is stored. When the app opens, or comes
+  back to the screen, and a version waits, the page tells it to take over
+  (`lib/service-worker.ts`), also offline. Every open tab then reloads onto
+  it, except a tab with unsent changes or typed text in a field; that tab
+  keeps the old version for now. Coming back with no version waiting checks
+  for a new one, which takes over on a later open or return.
 - When an API answer has another `X-Api-Version` than the page expects, the
   data layer stops all writes (reason `incompatible_version`, also in the
   Api client for admin and other calls; sign-out still works). Queued ops keep

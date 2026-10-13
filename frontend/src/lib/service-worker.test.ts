@@ -85,7 +85,11 @@ describe('switching to a waiting version on open', () => {
 		});
 		const reload = vi.fn();
 
-		await registerServiceWorker(container, { hasWaitingWrites: () => false, reload });
+		await registerServiceWorker(container, {
+			hasWaitingWrites: () => false,
+			hasTypedText: () => false,
+			reload
+		});
 		expect(waiting.postMessage).toHaveBeenCalledWith(SKIP);
 		expect(reload).not.toHaveBeenCalled();
 
@@ -97,7 +101,11 @@ describe('switching to a waiting version on open', () => {
 		const container = serviceWorkerContainer();
 		const reload = vi.fn();
 
-		await registerServiceWorker(container, { hasWaitingWrites: () => false, reload });
+		await registerServiceWorker(container, {
+			hasWaitingWrites: () => false,
+			hasTypedText: () => false,
+			reload
+		});
 		expect(reload).not.toHaveBeenCalled();
 	});
 
@@ -108,7 +116,11 @@ describe('switching to a waiting version on open', () => {
 		});
 		const reload = vi.fn();
 
-		await registerServiceWorker(container, { hasWaitingWrites: () => true, reload });
+		await registerServiceWorker(container, {
+			hasWaitingWrites: () => true,
+			hasTypedText: () => false,
+			reload
+		});
 		expect(waiting.postMessage).not.toHaveBeenCalled();
 	});
 
@@ -117,13 +129,77 @@ describe('switching to a waiting version on open', () => {
 		const reload = vi.fn();
 		let unsent = true;
 
-		await registerServiceWorker(container, { hasWaitingWrites: () => unsent, reload });
+		await registerServiceWorker(container, {
+			hasWaitingWrites: () => unsent,
+			hasTypedText: () => false,
+			reload
+		});
 		container.changeController();
 		expect(reload).not.toHaveBeenCalled();
 
 		unsent = false;
 		container.changeController();
 		expect(reload).toHaveBeenCalledOnce();
+	});
+});
+
+describe('checking again when the app comes back to the screen', () => {
+	function page() {
+		const target = new EventTarget();
+		const visibility = {
+			visibilityState: 'hidden' as DocumentVisibilityState,
+			addEventListener: target.addEventListener.bind(target),
+			show() {
+				visibility.visibilityState = 'visible';
+				target.dispatchEvent(new Event('visibilitychange'));
+			},
+			hide() {
+				visibility.visibilityState = 'hidden';
+				target.dispatchEvent(new Event('visibilitychange'));
+			}
+		};
+		return visibility;
+	}
+
+	async function setUp(registration: { waiting: unknown; update: () => Promise<void> }) {
+		const visibility = page();
+		let typed = false;
+		const container = serviceWorkerContainer({
+			getRegistration: vi.fn().mockResolvedValue(registration)
+		});
+		await registerServiceWorker(container, {
+			hasWaitingWrites: () => false,
+			hasTypedText: () => typed,
+			reload: vi.fn(),
+			visibility: visibility as unknown as Document
+		});
+		return { visibility, type: (value: boolean) => (typed = value) };
+	}
+
+	it('looks for a newer version when no version waits', async () => {
+		const registration = { waiting: null, update: vi.fn().mockResolvedValue(undefined) };
+		const { visibility } = await setUp(registration);
+
+		visibility.hide();
+		await vi.waitFor(() => expect(registration.update).not.toHaveBeenCalled());
+		visibility.show();
+		await vi.waitFor(() => expect(registration.update).toHaveBeenCalledOnce());
+	});
+
+	it('switches to a waiting version unless text is typed', async () => {
+		const waiting = fakeWorker('installed');
+		const registration = { waiting, update: vi.fn().mockResolvedValue(undefined) };
+		const { visibility, type } = await setUp(registration);
+
+		type(true);
+		visibility.show();
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(waiting.postMessage).not.toHaveBeenCalled();
+
+		type(false);
+		visibility.show();
+		await vi.waitFor(() => expect(waiting.postMessage).toHaveBeenCalledOnce());
+		expect(registration.update).not.toHaveBeenCalled();
 	});
 });
 

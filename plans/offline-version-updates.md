@@ -44,6 +44,9 @@ switch without a complete new copy); tests for both.
 - [x] Owner picks an option: option 2, switch on open (2026-10-13)
 - [x] Build and test it (2026-10-13). Current behavior:
   [offline viewing](../docs/offline-viewing.md#after-a-deploy).
-- [ ] Recheck on the iPhone: deploy a new local build, open the home-screen
-  app once (it may reload once), and see the new version without closing
-  Safari. Then show the update banner and check Reload reaches the new version.
+- [x] Also switch when the app comes back to the screen, and check for a new
+  version then (2026-10-13). A phone often keeps the app in memory, so a
+  fresh open is rare.
+- [ ] Recheck on the iPhone: deploy a new local build, then switch away from
+  the home-screen app and back twice (or open it twice). The new version should
+  appear without closing Safari, with at most one quick reload. Then show the update banner and check Reload reaches the new version.

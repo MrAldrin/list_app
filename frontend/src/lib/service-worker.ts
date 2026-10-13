@@ -1,8 +1,10 @@
 // New app versions (docs/offline-viewing.md, "New versions"): the browser
 // downloads a new worker in the background, but it waits until every page of
-// the old one is closed. On a phone that can take days. So a page that opens
-// while a new version waits asks it to take over at once. Every open page then
-// reloads onto it, unless that page holds changes that are not sent yet.
+// the old one is closed. On a phone that can take days. So a page that opens,
+// or comes back to the screen, while a new version waits asks it to take over
+// at once. Every open page then reloads onto it, unless that page holds unsent
+// changes or typed text. Coming back also checks for a newer version; it
+// downloads in the background and takes over on the next return.
 
 import { compat } from '#lib/data/compat.svelte.ts';
 import { SKIP_WAITING } from '#lib/worker-routes.ts';
@@ -16,15 +18,29 @@ export const UPDATE_WAIT_MS = 10_000;
 export interface VersionSwitchOptions {
 	/** Unsent changes live in memory only, so a reload would lose them. */
 	hasWaitingWrites?: () => boolean;
+	/** Text typed into a field but not submitted yet; a reload would lose it. */
+	hasTypedText?: () => boolean;
 	reload?: () => void;
+	/** Where "the app came back to the screen" is heard. */
+	visibility?: Pick<Document, 'addEventListener' | 'visibilityState'>;
 }
 
 function defaultContainer(): ServiceWorkerContainer | undefined {
 	return typeof navigator === 'undefined' ? undefined : navigator.serviceWorker;
 }
 
-const defaults: Required<VersionSwitchOptions> = {
+function hasTypedText(): boolean {
+	return [...document.querySelectorAll('input, textarea')].some(
+		(field) =>
+			(field instanceof HTMLTextAreaElement ||
+				(field instanceof HTMLInputElement && ['text', 'search', ''].includes(field.type))) &&
+			field.value.trim() !== ''
+	);
+}
+
+const defaults: Omit<Required<VersionSwitchOptions>, 'visibility'> = {
 	hasWaitingWrites: () => compat.waitingWrites > 0,
+	hasTypedText,
 	reload: () => window.location.reload()
 };
 
@@ -43,7 +59,15 @@ export async function registerServiceWorker(
 	options: VersionSwitchOptions = {}
 ): Promise<boolean> {
 	if (!container) return false;
-	const { hasWaitingWrites, reload } = { ...defaults, ...options };
+	const { hasWaitingWrites, hasTypedText, reload, visibility } = {
+		...defaults,
+		visibility: typeof document === 'undefined' ? undefined : document,
+		...options
+	};
+	const busy = () => hasWaitingWrites() || hasTypedText();
+	const switchTo = (waiting: ServiceWorker | null | undefined) => {
+		if (waiting && !busy()) waiting.postMessage({ type: SKIP_WAITING });
+	};
 
 	try {
 		const registrations = await container.getRegistrations();
@@ -63,11 +87,23 @@ export async function registerServiceWorker(
 		// The worker never claims pages, so this only fires when a waiting
 		// version was told to take over: by this page, another tab or Reload.
 		container.addEventListener('controllerchange', () => {
-			if (!hasWaitingWrites()) reload();
+			if (!busy()) reload();
 		});
 		// Before registering: offline, register() fails on its update check.
-		const waiting = registrations.find((registration) => registration.waiting)?.waiting;
-		if (waiting && !hasWaitingWrites()) waiting.postMessage({ type: SKIP_WAITING });
+		switchTo(registrations.find((registration) => registration.waiting)?.waiting);
+
+		// A phone keeps the app in memory, so coming back is often its only
+		// "open". Switch to a waiting version, or look for a newer one.
+		visibility?.addEventListener('visibilitychange', () => {
+			if (visibility.visibilityState !== 'visible') return;
+			void container
+				.getRegistration()
+				.then((registration) => {
+					if (registration?.waiting) switchTo(registration.waiting);
+					else return registration?.update();
+				})
+				.catch(() => undefined);
+		});
 
 		// Registering an existing URL also asks the browser to check for an
 		// update; cached navigation shells still mount this layout on each load.
