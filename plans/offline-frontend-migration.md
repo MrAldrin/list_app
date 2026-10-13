@@ -35,17 +35,16 @@ that talk to the Python API.
 ## Where the work lives
 
 - The online app is deployed. For offline continuation, follow the current
-  [branch instructions](svelte-frontend-rewrite.md#branches), not the earlier
-  `svelte-frontend` starting point. Bookmark moves and rebases need approval.
+  [branch instructions](svelte-frontend-rewrite.md#branches). Bookmark moves
+  and rebases need approval.
 - Put the Svelte project in `frontend/`; Python stays in `src/`.
 - Offline work stays off production until separately approved. Pushing `main`
-  deploys; follow the deployment checklist. Do not build on the historical
-  offline experiment or the owner's learning line.
+  deploys; follow the deployment checklist.
 
 ## Learning approach
 
-The owner learns Svelte by hand on the `svelte-learning` branch, separate from
-the implementation. That branch is practice code and is never merged.
+The owner learned Svelte by hand on a separate practice line that was never
+merged. It was abandoned on 2026-10-13.
 
 ## Order of work
 
@@ -102,6 +101,6 @@ can follow later, but the read-only design must leave room for them.
 - [ ] Owner reviews/integrates the shared documentation baseline.
 - [ ] Rebase selected active stacks after explicit approval; preserve experiment.
 - [x] Choose frontend: Svelte 5 + SvelteKit static/SPA (2026-09-29).
-- [x] Guided Svelte basics walkthrough (continues on `svelte-learning`).
+- [x] Guided Svelte basics walkthrough (practice line since abandoned).
 - [x] Agree milestones and gates: see the [Svelte rewrite plan](svelte-frontend-rewrite.md) (2026-10-03).
 - [ ] Implementation, testing and gates: tracked in the rewrite plan.

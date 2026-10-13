@@ -20,8 +20,10 @@ cause for the real-use failures.
 Evidence retained at the time of this decision:
 
 - Experiment tip: change `plxvtrsm`, commit `7873ef1b` (includes later view changes).
-- Earlier checkpoint: bookmark `backup-offline-read-only`, commit `6279f6c7`.
-  This bookmark is not the full experiment tip.
+- Earlier checkpoint: commit `6279f6c7`.
+- The `backup-offline-read-only` bookmark was deleted and the experiment's
+  changes abandoned on 2026-10-13. The commits stay viewable by commit ID
+  while jj's operation history keeps them.
 - Experiment-only references: `plans/offline-readonly.md`,
   `plans/offline-options.md`, `plans/iphone-installed-offline-acceptance.md`,
   and the browser/emulator testing guides at those revisions.

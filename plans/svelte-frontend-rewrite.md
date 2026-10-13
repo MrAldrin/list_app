@@ -17,8 +17,7 @@ Status: approved by the owner on 2026-10-03 as the working plan. Reviewed on
 2. Find the first unchecked step in [Progress](#progress). For Milestone 5,
    get the fresh-session approval first, then continue the approved steps to
    Gate V. Outside that milestone, do one step unless the owner asks for more.
-3. Follow [Branches](#branches); Milestone 5 continues the current planning
-   line, not the stale `svelte-frontend` bookmark.
+3. Follow [Branches](#branches).
 4. Run all [checks](#checks-for-every-step) before you call a step done.
 5. Tick the step in [Progress](#progress) and add a short note if useful.
 6. If you hit a decision, follow [Decisions without the owner](#decisions-without-the-owner).
@@ -31,19 +30,16 @@ Make every accepted step leave the app working, with its required checks green.
 
 ## Branches
 
-The online rewrite has shipped. The `svelte-frontend` bookmark still points
-at the earlier production switch; it is not the offline starting point.
+The online rewrite has shipped. The old `svelte-frontend` and
+`svelte-learning` bookmarks were deleted on 2026-10-13.
 
 - For Milestone 5, continue the existing documentation/planning line above
   deployed `main`, containing the approved offline decisions. Inspect
   `jj status`, bookmarks, graph and diff first; preserve edits. Do not create
-  independent work from the currently older `integration` or check out the
-  stale `svelte-frontend` bookmark and lose the subsequent fixes/plan.
+  independent work from an older commit and lose the subsequent fixes/plan.
 - This is continuation of an existing line, not permission to move bookmarks.
-  Do not move `integration`, `main-staging`, `svelte-frontend` or `main` without
+  Do not move `integration`, `main-staging` or `main` without
   explicit approval. If the graph has changed, ask rather than guessing.
-- Never build on, merge or rebase onto `svelte-learning` or
-  `backup-offline-read-only`.
 - One reviewable jj change per logical step (behavior and tests together).
   For Milestone 5 use the stable task prefix `offline - viewing`, for example
   `offline - viewing: cache complete app versions`. Leave an empty working
