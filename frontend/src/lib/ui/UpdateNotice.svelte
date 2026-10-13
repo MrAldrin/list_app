@@ -1,12 +1,21 @@
 <!--
 	Shown when the server runs another API version than this page expects
 	(see lib/data/compat.svelte.ts). Changes are blocked until the page is
-	reloaded. The page never reloads by itself, so nothing typed is lost.
+	reloaded. This notice never reloads by itself, so nothing typed is lost.
 	Unsent changes live in memory only, so a reload loses them: the notice
 	says so while there are any.
 -->
 <script lang="ts">
 	import { compat } from '#lib/data/compat.svelte.ts';
+	import { reloadOntoNewVersion } from '#lib/service-worker.ts';
+
+	// Fetching the new version can take a few seconds; one click is enough.
+	let reloading = $state(false);
+
+	function reload() {
+		reloading = true;
+		void reloadOntoNewVersion();
+	}
 </script>
 
 {#if compat.incompatible}
@@ -19,7 +28,9 @@
 					: `${compat.waitingWrites} changes are not saved yet. Reloading now will lose them.`}
 			</p>
 		{/if}
-		<button type="button" onclick={() => window.location.reload()}>Reload</button>
+		<button type="button" disabled={reloading} onclick={reload}>
+			{reloading ? 'Reloading…' : 'Reload'}
+		</button>
 	</div>
 {/if}
 

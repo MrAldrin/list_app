@@ -230,71 +230,51 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     )
 
 
-def test_waiting_update_keeps_old_tab_assets_until_safe_reopen(
+def test_waiting_version_takes_over_when_the_app_opens_offline(
     built_app_server, open_session, tmp_path
 ):
     server = built_app_server
-    page = _wait_for_controlled_page(open_session("service-worker-update"), server.url)
-    cache_a = _cache_names(page)[0]
+    old_tab = _wait_for_controlled_page(
+        open_session("service-worker-update"), server.url
+    )
+    cache_a = _cache_names(old_tab)[0]
+    cache_b = f"{WORKER_PREFIX}test-update-B"
 
     build_b, lazy_b = _changed_build(tmp_path, "test-update-B")
     server.state.build_path = build_b
-    page.evaluate(
+    old_tab.evaluate(
         "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
     )
-    _wait_for_waiting_worker(page)
-    cache_names = _cache_names(page)
-    assert cache_a in cache_names
-    assert f"{WORKER_PREFIX}test-update-B" in cache_names
-    assert page.evaluate("navigator.serviceWorker.controller.scriptURL").endswith(
-        WORKER_SCRIPT
-    )
-    assert lazy_b in page.evaluate(
-        """async () => (await (await caches.open('listr-app-shell-test-update-B')).keys()).map(r => new URL(r.url).pathname)"""
-    )
-    # Even while B is live on the server, A's controlled navigation stays
-    # paired with A's complete assets. No mixed-version HTML is served.
-    page.goto(server.url + "/room/old-tab-lazy-route")
-    assert "test-update-B" not in page.content()
+    _wait_for_waiting_worker(old_tab)
+    # The download alone changes nothing: the open tab keeps version A.
+    assert set(_cache_names(old_tab)) == {cache_a, cache_b}
+    assert "test-update-B" not in old_tab.content()
+    old_tab.evaluate("window.__oldTab = true")
 
+    # Opening the app switches to B, even offline: B is a complete copy.
     server.stop()
-    page.goto(server.url + "/room/old-tab-lazy-route")
-    expect(page.get_by_text("Connect to load this room.")).to_be_visible()
-    assert cache_a in _cache_names(page)
-
-    context = page.context
-    page.close()
-    server.start()
-    deadline = time.monotonic() + 20
-    while time.monotonic() < deadline:
-        time.sleep(0.2)
-        page = context.new_page()
-        page.goto(server.url)
-        page.wait_for_function(
-            "navigator.serviceWorker.controller?.scriptURL.endsWith('/service-worker.js')"
-        )
-        cache_names = _cache_names(page)
-        if (
-            f"{WORKER_PREFIX}test-update-B" in cache_names
-            and cache_a not in cache_names
-        ):
-            break
-        page.close()
-    else:
-        raise AssertionError(
-            "the waiting app version was not adopted after old tabs closed"
-        )
-
-    assert "test-update-B" in page.content()
-    server.stop()
-    page.goto(server.url + "/room/reopened-offline")
-    expect(page.get_by_text("Connect to load this room.")).to_be_visible()
-    assert "test-update-B" in page.content()
-    assert page.evaluate(
+    new_tab = old_tab.context.new_page()
+    # The start page: a room page would also start API requests, and WebKit
+    # reports the ones the switch's reload cancels as page errors.
+    new_tab.goto(server.url)
+    new_tab.wait_for_function(
+        "document.documentElement.outerHTML.includes('test-update-B')"
+    )
+    expect(new_tab.get_by_label("Room link or code")).to_be_visible()
+    assert new_tab.evaluate(
         "async (url) => (await fetch(url)).headers.get('content-type')?.includes('javascript')",
         lazy_b,
     )
-    assert _cache_names(page) == [f"{WORKER_PREFIX}test-update-B"]
+
+    # The old tab had no unsent changes, so it reloaded onto B as well.
+    old_tab.wait_for_function("window.__oldTab === undefined")
+    old_tab.wait_for_function(
+        "document.documentElement.outerHTML.includes('test-update-B')"
+    )
+    deadline = time.monotonic() + 10
+    while _cache_names(new_tab) != [cache_b]:
+        assert time.monotonic() < deadline, "version A was not cleaned up"
+        time.sleep(0.1)
 
 
 def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(

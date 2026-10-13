@@ -46,12 +46,20 @@ the [backlog](../plans/backlog.md)). Evidence is in the
   the normal error page instead of reloading.
 - A worker-controlled tab keeps its complete cached version, so it does not hit
   this.
+- New versions: the worker downloads a new version in the background. It only
+  reaches "waiting" once every file is stored. When the app opens and a version
+  waits, the page tells it to take over (`lib/service-worker.ts`), also
+  offline. Every open tab then reloads onto it, except a tab with unsent
+  changes; that tab keeps the old version until it is reloaded or closed. A
+  new version found while the app is open arrives on the next open.
 - When an API answer has another `X-Api-Version` than the page expects, the
   data layer stops all writes (reason `incompatible_version`, also in the
   Api client for admin and other calls; sign-out still works). Queued ops keep
   their `op_id` and are not retried or dropped, but they live in memory, so a
   reload loses them. A banner "A new version is available" has a Reload button
-  and says how many changes are not saved yet. Nothing reloads by itself. Reading continues.
+  and says how many changes are not saved yet. The banner never reloads by
+  itself. Reload first fetches the newest version and lets it take over, so it
+  does not load the old saved copy again. Reading continues.
   Answers without the header are treated as compatible, because proxy and
   maintenance pages during a deploy have none. See
   [API version](api.md#api-version).

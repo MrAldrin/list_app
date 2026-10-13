@@ -2,7 +2,7 @@ import { version } from '$app/env';
 import { assets, immutable, prerendered } from '$app/manifest';
 import { resolve } from '$app/paths';
 import { self } from '$app/service-worker';
-import { isNetworkOnlyNavigation } from './lib/worker-routes';
+import { isNetworkOnlyNavigation, SKIP_WAITING } from './lib/worker-routes';
 
 const CACHE_PREFIX = 'listr-app-shell-';
 const CACHE_NAME = `${CACHE_PREFIX}${version}`;
@@ -78,6 +78,12 @@ self.addEventListener('activate', (event) => {
 	// Keep complete versions if an open page predates worker control. A later
 	// fetch can clean them up after those unclaimed clients have closed.
 	event.waitUntil(discardUnusedVersions());
+});
+
+// A page asks the waiting version to take over now (lib/service-worker.ts).
+// Only a complete install reaches "waiting", so the switch is safe offline.
+self.addEventListener('message', (event) => {
+	if (event.data?.type === SKIP_WAITING) void self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

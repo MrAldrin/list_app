@@ -10,3 +10,6 @@ export function isNetworkOnlyNavigation(pathname: string): boolean {
 		(prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 	);
 }
+
+/** The message a page sends to make the waiting worker take over at once. */
+export const SKIP_WAITING = 'skip-waiting';
