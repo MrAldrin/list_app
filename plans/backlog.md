@@ -10,8 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [infra] Offline viewing, last blocker before going live: new versions reach phones only after every copy of the app is closed, so the Reload banner can loop. Built: a waiting new version takes over when the app opens (in progress: iPhone recheck left). See [offline version updates](offline-version-updates.md).
-
 - [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
 
 - [ ] [feature] (in progress) Svelte offline support: implement read-only offline viewing through Gate V; offline editing follows a separate owner review. Follow the [Milestone 5 plan](svelte-frontend-rewrite.md#milestone-5-offline-viewing) and its branch instructions.
@@ -81,4 +79,4 @@ results (with OS/browser versions for devices) in the linked doc.
 - [ ] [test] Svelte on the iPhone: go offline, then back online, and wait up to 30 s without refreshing. If the pill stays longer, file a reconnect bug. One case on 2026-10-04 hung ~10 s (within the retry delays). See decisions 67 and 92 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [test] Svelte dark mode on the iPhone: with a page open, switch the iPhone's dark mode, then use Dark mode in both the room and list menus. Safari's bars should change color at once, without scrolling. The `theme-color` tag follows the page (decision 138 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log)).
 - [ ] [test] Gate V: check offline viewing on a real iPhone (Safari and home screen). Use the [Gate V guide](offline-viewing-gate-v.md) and record the iOS version there.
-- [ ] [test] After the first deploy that follows offline mode, with a tab left open on the old version: check the "A new version is available" banner appears and Reload reaches the new version. Depends on the [offline version updates](offline-version-updates.md) fix. See [offline viewing](../docs/offline-viewing.md#after-a-deploy).
+- [ ] [test] At the next deploy after offline mode went live (2026-10-13): the new version should appear on the phone after returning to the app once or twice, without closing Safari. If the "A new version is available" banner shows, Reload should reach the new version. See [offline version updates](offline-version-updates.md). See [offline viewing](../docs/offline-viewing.md#after-a-deploy).

@@ -45,8 +45,9 @@ Record the iOS version: ______
 - Both blockers are built and pass the local checks; the owner review is still
   open. See [offline viewing](../docs/offline-viewing.md#after-a-deploy).
 - New versions only reached phones after every copy of the app was closed.
-  Fixed locally (switch on open); iPhone recheck left:
-  [offline version updates](offline-version-updates.md).
+  Fixed: [offline version updates](offline-version-updates.md).
+- 2026-10-13: the owner chose to go live without the remaining iPhone checks;
+  they continue on production.
 - Real-device behaviour of that banner is a [backlog](backlog.md) manual check.
   Deployment needs separate approval.
 
