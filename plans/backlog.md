@@ -10,7 +10,7 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [infra] Offline viewing, last blocker before going live: new versions reach phones only after every copy of the app is closed, so the Reload banner can loop. Switch to a waiting new version on open (likely choice) or on Reload. See [offline version updates](offline-version-updates.md).
+- [ ] [infra] Offline viewing, last blocker before going live: new versions reach phones only after every copy of the app is closed, so the Reload banner can loop. Built: a waiting new version takes over when the app opens (in progress: iPhone recheck left). See [offline version updates](offline-version-updates.md).
 
 - [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
 
