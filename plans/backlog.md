@@ -10,8 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [infra] Before 2026-12-01, delete `railway.json` (Railway stops reading it then) and let Railway detect the root `Dockerfile`. See the [Railway config removal plan](railway-config-removal.md).
-
 - [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
 
 - [ ] [feature] (in progress) Svelte offline support: implement read-only offline viewing through Gate V; offline editing follows a separate owner review. Follow the [Milestone 5 plan](svelte-frontend-rewrite.md#milestone-5-offline-viewing) and its branch instructions.

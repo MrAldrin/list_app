@@ -81,9 +81,8 @@ decides both.
 
 Railway must not override the repository. In the service settings:
 
-- Leave the builder setting as it is, and leave "Config file path" empty.
-  After a deploy, the build log shows `Using detected Dockerfile!` and the
-  `npm ci` step. A rollback to a commit from before the Svelte switch has no
+- The builder shows "Dockerfile — Automatically Detected"; do not change it.
+  Leave "Config file path" empty. The build log shows the `npm ci` step. A rollback to a commit from before the Svelte switch has no
   `Dockerfile`, so it builds with the dashboard builder setting.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.

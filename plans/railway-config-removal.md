@@ -8,8 +8,8 @@ Railway stops reading `railway.json` (Config as Code).
 ## Decision
 
 Delete `railway.json` and rely on Railway's Dockerfile detection. Railway uses
-a file named `Dockerfile` at the source root and logs
-`Using detected Dockerfile!` in the build. See
+a file named `Dockerfile` at the source root and shows
+"Dockerfile — Automatically Detected" under Settings → Build. See
 [Railway's Dockerfile docs](https://docs.railway.com/builds/dockerfiles).
 
 Not chosen now: Railway Infrastructure as Code (`.railway/railway.ts`) or
@@ -30,8 +30,8 @@ be fixed by restoring the file. After 2026-12-01 that fallback is gone.
    `railway config migrate`. It should only show the Dockerfile builder.
 4. Deploy through the normal [deployment checklist](../docs/deployment.md#deployment-checklist),
    with approval to push `main`.
-5. Check the build log shows `Using detected Dockerfile!` and the `npm ci`
-   step. Then run the after-deploy checks.
+5. Check Settings → Build shows "Dockerfile — Automatically Detected" and
+   the build log has the `npm ci` step. Then run the after-deploy checks.
 6. If the log shows Railpack instead: set the builder to Dockerfile in the
    dashboard and redeploy. For a quick undo, restore `railway.json` (works until
    2026-12-01).
@@ -44,6 +44,6 @@ dashboard builder if step 6 needs it.
 
 - [x] 1. Repository change (`railway.json` deleted, docs updated; image built and served locally with podman)
 - [x] 2. Dashboard settings noted (config file path: none set; builder shows Dockerfile from `railway.json`, dashboard value hidden until the file is gone)
-- [ ] 3. Migrate preview (optional)
-- [ ] 4. Deployed to production
-- [ ] 5. Build log and after-deploy checks verified
+- [x] 3. Migrate preview (optional; skipped)
+- [x] 4. Deployed to production (2026-10-13, deploy backup script)
+- [x] 5. Build verified (auto-detected Dockerfile, `npm ci` in log); after-deploy checks passed on phone, no log errors
