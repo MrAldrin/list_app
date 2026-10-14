@@ -6,8 +6,7 @@ Goal: make the database reject bad values, not only the app code. Today most
 rules live only in Python. A bug, a script or a future code path could store a
 blank name, a quantity of 0 or broken tag data, and the database would accept it.
 
-This is an audit and a proposal. Nothing here is implemented. You choose which
-rules to keep.
+The rules are agreed (see Decisions). Progress is at the bottom.
 
 ## Terms in simple words
 
@@ -16,8 +15,11 @@ rules to keep.
 - **CHECK**: a small rule the database tests on every insert and update, for
   example `quantity >= 1`. A write that breaks it fails with an error.
 - **Table rebuild**: SQLite cannot add NOT NULL or CHECK to an existing column.
-  Instead we create a new table with the rules, copy the rows, drop the old
-  table and rename the new one.
+  Instead you create a new table with the rules, copy the rows, drop the old
+  table and rename the new one. We do **not** do this; see below.
+- **Guard trigger**: a `BEFORE INSERT` or `BEFORE UPDATE` trigger that stops a
+  bad write with `RAISE(ABORT, ...)`. It gives the same protection as a CHECK
+  and can be added to an existing table.
 
 ## Data audited
 
@@ -25,8 +27,9 @@ rules to keep.
   2026-09-29. Queried as a copy, with counts only.
 - Schema version (`PRAGMA user_version`): 1, so before migration 2.
 - Rows: 10 rooms, 21 lists, 287 items, 4 room access tokens, 1 invitation.
-- This audit predates migrations 2 to 5 and the Svelte app. Re-run the counts
-  on a fresh backup before writing the migration.
+- Re-run on 2026-10-14 with the deploy backup
+  `list-deploy-20261013T182609Z-1626e4d0.db` (schema version 5): 11 rooms,
+  23 lists, 340 items, and **0 rows break any rule below**.
 
 ## Current state and proposed rules
 
@@ -94,54 +97,36 @@ direction: an unchecked item has no completion time.
 - JSON checks use `json_valid(x) AND json_type(x) = 'array'`. The app's SQLite
   is 3.50, which includes JSON support.
 
-## Fixing existing bad rows
+## Existing rows
 
-The audited copy has no rows that break the proposed rules. Production may
-change before deploy, so migration 6 should:
+Both audits found no rows that break the rules, so migration 6 repairs
+nothing. It counts the rows that break each rule first. If any do, it stops
+with those counts and rolls back, and the app does not start. The deploy
+rehearsal on a fresh backup copy catches this before production.
 
-- Repair values with an obvious fix: NULL quantity or quantity below 1 becomes 1;
-  NULL description becomes `''`; NULL `done` becomes 0; an unchecked item's
-  completion time becomes NULL; invalid tags JSON becomes `'[]'`.
-- Not guess on names and long text. If a name is blank or too long, the
-  migration fails and rolls back. The deploy rehearsal on a fresh backup copy
-  catches this before production.
+## Migration approach
 
-## Proposed migration approach
+Production is at schema version 5 (`_migrations` in `src/database_setup.py`).
 
-**Live schema today.** Production is at schema version 5
-(`_migrations` in `src/database_setup.py`). A rebuild of `rooms`, `lists` or
-`items` must keep everything later migrations added:
+**Guard triggers, not table rebuilds.** A rebuild of `rooms`, `lists` and
+`items` would have to keep the offline-sync columns and indexes, recreate the
+change-tracking and visibility triggers, and carry over the item ID counter. A
+mistake there could break syncing or bring back item-ID reuse. Guard triggers
+give the same protection without touching the tables. Migration 5 already
+guards the hide-done counters this way.
 
-- Migration 3: `uid` (filled by a trigger) and `changed_seq` on lists and items,
-  `change_seq` on rooms, the unique `uid` indexes, and the `deletions` and
-  `processed_ops` tables, which reference `rooms`.
-- Migration 4: the change-tracking triggers. Dropping a table drops its
-  triggers, so create them again from `_CHANGE_TRACKING_TRIGGERS`
-  ([change tracking](../docs/change-tracking.md)).
-- Migration 5: the two `lists_positive_visibility_*` triggers. Create them
-  again too.
-
-1. First change: app-side length limits and messages (room, list and item names
-   100; description 1000; tag 30), in the JSON API and the Svelte forms. Room
-   names already stop at 100 when created from an invitation. Tests for each
-   limit.
+1. First change: app-side length limits with friendly messages (room, list and
+   item names 100; description 1000; list tag 30), in the JSON API ops and the
+   admin room form, plus `maxlength` on the Svelte inputs. Tests for each limit.
 2. Second change: migration 6, `_migration_6_field_constraints`, appended in
-   `src/database_setup.py`. It builds on migration 5 and never edits earlier
-   ones.
-   - Rebuild `rooms`, `lists` and `items` in SQLite's documented order: create
-     `<table>_new`, copy with the repairs above, drop the old table, rename the
-     new one ([migration notes](../docs/deployment.md#schema-migrations)).
-     Foreign keys are off while migrations run, and the runner checks them
-     afterwards.
-   - Save each table's index SQL before the rebuild and run it again after, as
-     migration 2 does.
-   - Keep `items` as `AUTOINCREMENT` and **carry over its `sqlite_sequence`
-     value**. A plain copy resets the counter to the highest remaining ID, which
-     would bring back the item-ID reuse bug that migration 2 fixed.
-   - Recreate the triggers from migrations 4 and 5 after the rebuild.
-   - Tests: each rule rejects a bad write; each repair works; a database at
-     version 5 migrates; IDs are not reused; change tracking and the
-     visibility-counter triggers still work afterwards.
+   `src/database_setup.py`.
+   - Each rule is one SQL condition, written once and used both by the
+     existing-row check and by the triggers.
+   - Per table, one `BEFORE INSERT` trigger and one `BEFORE UPDATE OF <checked
+     columns>` trigger. Updates that only touch other columns (such as the
+     change-tracking `changed_seq`) skip the check.
+   - Tests: each rule rejects a bad write; normal app writes still pass; a
+     database with a bad row stops the migration and is left unchanged.
 3. Deploy with the
    [deployment checklist](../docs/deployment.md#deployment-checklist). Expect
    `Database migrated from version 5 to 6`.
@@ -156,13 +141,19 @@ Agreed with the user on 2026-09-30:
 - A blank or too-long name stops the migration and rolls it back. No automatic
   shortening.
 
+Agreed on 2026-10-14:
+
+- Use guard triggers instead of table rebuilds.
+- No repairs in the migration: the data is clean, so any bad row stops it.
+
 ## Progress
 
 - [x] Audit schema, app validation and production copy (counts only), 2026-09-29 at version 1
 - [x] Write proposal
 - [x] User chooses rules and limits
 - [x] Update the plan for the live schema (version 5), 2026-10-13
-- [ ] Re-run the data audit on a fresh backup
+- [x] Re-run the data audit on a fresh backup, 2026-10-14
+- [x] Switch to guard triggers, 2026-10-14
 - [ ] App-side length limits and tests
 - [ ] Migration 6 and tests
 - [ ] Update `docs/item-writes.md` and related docs with the new rules
