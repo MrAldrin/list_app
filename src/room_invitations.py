@@ -12,6 +12,7 @@ import bcrypt
 
 from database_crud import _DB_LOCK, normalize_display_name
 from database_setup import db
+from field_limits import MAX_NAME_LENGTH
 
 INVITATION_LIFETIME = 7 * 24 * 60 * 60
 INVITATION_RETENTION = 7 * 24 * 60 * 60
@@ -102,8 +103,8 @@ def create_room_from_invitation(token: str, name: str, password: str) -> str:
     if not invitation_is_active(token):
         raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
     name = normalize_display_name(name)
-    if not name or len(name) > 100:
-        raise ValueError("Room name must contain 1-100 characters.")
+    if not name or len(name) > MAX_NAME_LENGTH:
+        raise ValueError(f"Room name must contain 1-{MAX_NAME_LENGTH} characters.")
     if not password.strip() or len(password.encode("utf-8")) > 72:
         raise ValueError("Password must be nonblank and at most 72 UTF-8 bytes.")
     password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()

@@ -55,6 +55,12 @@ from database_crud import (
     update_item_done_locked,
     update_list_visibility_settings_locked,
 )
+from field_limits import (
+    MAX_DESCRIPTION_LENGTH,
+    MAX_NAME_LENGTH,
+    MAX_TAG_LENGTH,
+    too_long_message,
+)
 from item_service import STATUS_DUPLICATE_ACTIVE, clamp_quantity, normalize_item_details
 from item_visibility import (
     DEFAULT_HIDE_DONE_AGE_DAYS,
@@ -286,18 +292,37 @@ def _item_found(matched: bool) -> None:
         raise OpRejected("item_not_found", ITEM_NOT_FOUND)
 
 
+def _within_limit(what: str, text: str, limit: int) -> str:
+    message = too_long_message(what, text, limit)
+    if message:
+        raise OpRejected("too_long", message)
+    return text
+
+
 def _item_name(raw: str) -> str:
     name = normalize_item_name(raw)
     if not name:
         raise OpRejected("invalid_name", EMPTY_NAME)
-    return name
+    return _within_limit("Name", name, MAX_NAME_LENGTH)
 
 
 def _display_name(raw: str) -> str:
     name = normalize_display_name(raw)
     if not name:
         raise OpRejected("invalid_name", EMPTY_NAME)
-    return name
+    return _within_limit("Name", name, MAX_NAME_LENGTH)
+
+
+def _tag(raw: str) -> str:
+    # Trimmed and nonempty, like a list name.
+    tag = normalize_display_name(raw)
+    if not tag:
+        raise OpRejected("invalid_name", EMPTY_NAME)
+    return _within_limit("Tag", tag, MAX_TAG_LENGTH)
+
+
+def _description(text: str) -> str:
+    return _within_limit("Description", text, MAX_DESCRIPTION_LENGTH)
 
 
 def _new_uid(uid: str | None) -> str | None:
@@ -335,8 +360,7 @@ def list_delete(scope: OpScope, op: ListDelete) -> dict[str, Any]:
 
 def list_tag_add(scope: OpScope, op: ListTagAdd) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
-    # Trimmed and nonempty, like a list name.
-    change_list_tag_locked(list_id, _display_name(op.tag), add=True)
+    change_list_tag_locked(list_id, _tag(op.tag), add=True)
     return {}
 
 
@@ -386,6 +410,8 @@ def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
     )
     if not name:
         raise OpRejected("invalid_name", EMPTY_NAME)
+    _within_limit("Name", name, MAX_NAME_LENGTH)
+    _description(description)
     status = update_item_details_locked(item_id, list_id, name, description, quantity)
     if status == "duplicate":
         raise OpRejected("duplicate_name", f"'{name}' already exists")
@@ -417,7 +443,7 @@ def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
         _item_name(op.name),
         op.done,
         op.tags,
-        op.description,
+        _description(op.description),
         clamp_quantity(op.quantity),
         completed_at=op.completed_at,
         uid=uid,

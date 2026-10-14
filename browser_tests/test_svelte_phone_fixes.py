@@ -16,7 +16,10 @@ from svelte_app import (
 )
 
 SMALL_PHONE = {"viewport": {"width": 375, "height": 700}, "has_touch": True}
-LONG_NAME = "A very long list name that cannot fit between the arrow and the menus " * 2
+# At the 100-character name limit.
+LONG_NAME = (
+    "A very long list name that cannot fit between the arrow and the menus " * 2
+)[:100]
 
 
 def test_log_out_is_the_last_entry_of_the_room_menu(svelte_server, open_session):

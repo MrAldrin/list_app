@@ -5,6 +5,7 @@
 	password, as in NiceGUI.
 -->
 <script lang="ts">
+	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { invitation } from '#lib/data/index.ts';
@@ -50,7 +51,7 @@
 	<p>Choose a password. Anyone you share it with can manage this room.</p>
 	<p class="small">The app admin also needs the room password to enter.</p>
 	<label for="new-room-name">Room name</label>
-	<input id="new-room-name" bind:value={name} maxlength="100" autocomplete="off" />
+	<input id="new-room-name" bind:value={name} maxlength={MAX_NAME_LENGTH} autocomplete="off" />
 	<label for="new-room-password">Room password</label>
 	<input id="new-room-password" type="password" bind:value={password} autocomplete="new-password" />
 	<label for="new-room-confirmation">Confirm password</label>

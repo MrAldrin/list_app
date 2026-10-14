@@ -4,6 +4,7 @@
 	dialog stays open. Enter in the password field creates the room.
 -->
 <script lang="ts">
+	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { admin, type ActionResult, type Room } from '#lib/data/index.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -43,7 +44,7 @@
 <Dialog title="New Room" {onClose}>
 	<form onsubmit={submit} novalidate>
 		<label for="{id}-name">Room name</label>
-		<input id="{id}-name" bind:value={name} autocomplete="off" />
+		<input id="{id}-name" bind:value={name} maxlength={MAX_NAME_LENGTH} autocomplete="off" />
 		<label for="{id}-password">Password</label>
 		<input id="{id}-password" type="password" bind:value={password} autocomplete="new-password" />
 		<div class="actions">

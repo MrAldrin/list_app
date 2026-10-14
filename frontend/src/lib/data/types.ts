@@ -184,7 +184,8 @@ export type RejectionCode =
 	| 'duplicate_active'
 	| 'undo_name_taken'
 	| 'list_unavailable'
-	| 'item_not_found';
+	| 'item_not_found'
+	| 'too_long';
 
 export interface OpApplied {
 	op_id: string;

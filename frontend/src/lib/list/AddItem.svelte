@@ -7,6 +7,7 @@
 	once.
 -->
 <script lang="ts">
+	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import type { Item } from '#lib/data/index.ts';
 	import { itemSuggestions, normalizeItemName } from './items';
 
@@ -95,6 +96,7 @@
 		<input
 			bind:this={input}
 			bind:value={text}
+			maxlength={MAX_NAME_LENGTH}
 			oninput={typed}
 			onkeydown={keydown}
 			onfocus={() => (focused = true)}

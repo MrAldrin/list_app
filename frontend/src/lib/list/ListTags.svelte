@@ -4,6 +4,7 @@
 	each chip gets a × to delete the tag from the list.
 -->
 <script lang="ts">
+	import { MAX_TAG_LENGTH } from '#lib/ui/field-limits.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import { newTag, tagColor } from './tags';
@@ -63,6 +64,7 @@
 		<input
 			bind:this={input}
 			bind:value={text}
+			maxlength={MAX_TAG_LENGTH}
 			aria-label="Add Tag"
 			placeholder="Add Tag"
 			autocomplete="off"

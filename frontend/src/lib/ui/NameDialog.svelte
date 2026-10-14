@@ -3,6 +3,7 @@
 	Used for "New List" and for renaming a list.
 -->
 <script lang="ts">
+	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
 	import Dialog from './Dialog.svelte';
 
@@ -44,7 +45,13 @@
 <Dialog {title} {onClose}>
 	<form onsubmit={submit} novalidate>
 		<label for={inputId}>{label}</label>
-		<input id={inputId} bind:value={name} autocomplete="off" enterkeyhint="done" />
+		<input
+			id={inputId}
+			bind:value={name}
+			maxlength={MAX_NAME_LENGTH}
+			autocomplete="off"
+			enterkeyhint="done"
+		/>
 		<div class="actions">
 			<button type="button" onclick={onClose}>Cancel</button>
 			<button class="primary" type="submit" disabled={busy || saveDisabled}>Save</button>

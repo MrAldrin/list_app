@@ -5,6 +5,7 @@
 	that version as `base_seq`.
 -->
 <script lang="ts">
+	import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
 	import type { Item } from '#lib/data/index.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
@@ -51,9 +52,19 @@
 <Dialog title="Edit Item" {onClose} focusBox>
 	<form onsubmit={submit} novalidate>
 		<label for={nameId}>Item Name</label>
-		<input id={nameId} bind:value={name} autocomplete="off" enterkeyhint="done" />
+		<input
+			id={nameId}
+			bind:value={name}
+			maxlength={MAX_NAME_LENGTH}
+			autocomplete="off"
+			enterkeyhint="done"
+		/>
 		<label for={descriptionId}>Description / Notes</label>
-		<textarea id={descriptionId} bind:value={description} rows="3"></textarea>
+		<textarea
+			id={descriptionId}
+			bind:value={description}
+			maxlength={MAX_DESCRIPTION_LENGTH}
+			rows="3"></textarea>
 		<div class="quantity">
 			<span id="{nameId}-quantity">Quantity</span>
 			<div class="stepper" role="group" aria-labelledby="{nameId}-quantity">

@@ -386,6 +386,7 @@ yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
 | `code` | Operations | Message |
 |---|---|---|
 | `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
+| `too_long` | the same, after trimming: names 100 characters, `list.tag_add` tags 30, `item.edit` and `item.restore` descriptions 1000 | Name (Tag, Description) can be at most N characters |
 | `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
 | `duplicate_active` | `item.add` | 'x' is already on the list |
 | `undo_name_taken` | `item.restore` | Cannot undo: item name already exists |

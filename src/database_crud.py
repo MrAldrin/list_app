@@ -13,6 +13,7 @@ from typing import Literal
 import bcrypt
 
 from database_setup import db
+from field_limits import MAX_NAME_LENGTH, too_long_message
 from item_visibility import parse_completion_time, validate_visibility_settings
 
 _DB_LOCK = threading.RLock()
@@ -1003,6 +1004,8 @@ def create_room(name: str, plain_password: str):
     normalized_name = normalize_display_name(name)
     if not normalized_name:
         raise ValueError("Room name cannot be empty")
+    if message := too_long_message("Room name", normalized_name, MAX_NAME_LENGTH):
+        raise ValueError(message)
     if not plain_password:
         raise ValueError("Password cannot be empty")
 
