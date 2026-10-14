@@ -243,6 +243,15 @@ def take_backup(
     return local_path
 
 
+def ask_user(prompt: str) -> str:
+    """Read an answer; no input (as when run without a terminal) means no."""
+    try:
+        return input(prompt)
+    except EOFError:
+        print()
+        return ""
+
+
 def offer_cleanup(backup_dir: Path, ask: Callable[[str], str]) -> None:
     old = older_backups(backup_dir)
     if not old:
@@ -274,7 +283,7 @@ def main(
     argv: list[str] | None = None,
     run: Runner = run_command,
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
-    ask: Callable[[str], str] = input,
+    ask: Callable[[str], str] = ask_user,
     backup_dir: Path = BACKUP_DIR,
     sleep: Callable[[float], None] = time.sleep,
 ) -> int:

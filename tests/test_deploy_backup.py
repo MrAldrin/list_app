@@ -353,3 +353,18 @@ def test_check_push_ready_with_real_jj(tmp_path, monkeypatch):
     run(["jj", "bookmark", "set", "main", "-r", "@"])
     with pytest.raises(DeployError, match="not an ancestor"):
         deploy_backup.check_push_ready(run, "description(substring:feature)")
+
+
+def test_no_input_at_a_question_means_no(tmp_path, monkeypatch):
+    # Run without a terminal: input() raises EOFError instead of answering.
+    def no_input(prompt):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", no_input)
+    old = tmp_path / "list-manual-20260101T000000Z-00000000.db"
+    old.write_bytes(b"")
+    for day in (2, 3):
+        (tmp_path / f"list-manual-2026010{day}T000000Z-00000000.db").write_bytes(b"")
+
+    deploy_backup.offer_cleanup(tmp_path, deploy_backup.ask_user)
+    assert old.exists()
