@@ -147,7 +147,7 @@ def test_full_snapshot(shop):
     )
 
 
-def test_odd_stored_values_are_read_leniently(shop):
+def test_odd_stored_values_are_read_leniently(shop, without_field_rules):
     _, list_id, slug = shop
     milk = item_id(list_id, "milk")
     bread = item_id(list_id, "bread")

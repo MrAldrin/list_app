@@ -564,6 +564,92 @@ def _migration_5_positive_visibility_counts(db: sqlite3.Connection) -> None:
         """)
 
 
+def _bad_text(column: str, limit: int) -> str:
+    return (
+        f"typeof({column}) != 'text' OR {column} = '' OR {column} != trim({column})"
+        f" OR length({column}) > {limit}"
+    )
+
+
+def _not_json_array(column: str) -> str:
+    # CASE: json_type() fails on malformed JSON instead of returning NULL.
+    return (
+        f"CASE WHEN json_valid({column}) THEN json_type({column}) != 'array' ELSE 1 END"
+    )
+
+
+# Per table: the columns checked, and each rule as the condition of a bad row.
+# `{r}` is "" for stored rows and "NEW." in the triggers. SQLite's trim() and
+# lower() only know ASCII, so the Python rules stay the main ones.
+_FIELD_RULES: dict[str, tuple[tuple[str, ...], dict[str, str]]] = {
+    "rooms": (
+        ("name", "slug", "authorization_version"),
+        {
+            "name": _bad_text("{r}name", 100),
+            "slug": "{r}slug IS NULL OR {r}slug = ''",
+            "authorization_version": (
+                "typeof({r}authorization_version) != 'integer'"
+                " OR {r}authorization_version < 1"
+            ),
+        },
+    ),
+    "lists": (
+        ("name", "slug", "room_id", "share_token", "list_tags"),
+        {
+            "name": _bad_text("{r}name", 100),
+            "slug": "{r}slug IS NULL OR {r}slug = ''",
+            "room_id": "{r}room_id IS NULL",
+            "share_token": "{r}share_token IS NULL",
+            "list_tags": _not_json_array("{r}list_tags"),
+        },
+    ),
+    "items": (
+        ("name", "description", "quantity", "done", "completed_at", "active_tags"),
+        {
+            "name": _bad_text("{r}name", 100) + " OR {r}name != lower({r}name)",
+            "description": (
+                "typeof({r}description) != 'text' OR length({r}description) > 1000"
+            ),
+            "quantity": "typeof({r}quantity) != 'integer' OR {r}quantity < 1",
+            "done": "typeof({r}done) != 'integer' OR {r}done NOT IN (0, 1)",
+            "completed_at": "{r}done != 1 AND {r}completed_at IS NOT NULL",
+            "active_tags": _not_json_array("{r}active_tags"),
+        },
+    ),
+}
+
+
+def _migration_6_field_constraints(db: sqlite3.Connection) -> None:
+    """Make the database reject bad names, quantities, flags and tag JSON."""
+    broken = []
+    for table, (_columns, rules) in _FIELD_RULES.items():
+        for field, rule in rules.items():
+            condition = rule.format(r="")
+            count = db.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE {condition}"
+            ).fetchone()[0]
+            if count:
+                broken.append(f"{table}.{field}: {count}")
+    if broken:
+        # No guessing: a person decides how to fix the data, then deploys again.
+        raise RuntimeError("Rows break field rules: " + ", ".join(broken))
+
+    # Guards instead of CHECKs: adding a CHECK needs a table rebuild, which
+    # would drop the change-tracking triggers (see migration 5).
+    for table, (columns, rules) in _FIELD_RULES.items():
+        condition = " OR ".join(f"({rule.format(r='NEW.')})" for rule in rules.values())
+        for name, action in (
+            ("insert", "INSERT"),
+            ("update", f"UPDATE OF {', '.join(columns)}"),
+        ):
+            db.execute(f"""
+                CREATE TRIGGER {table}_field_rules_{name}
+                BEFORE {action} ON {table}
+                WHEN {condition}
+                BEGIN SELECT RAISE(ABORT, '{table}: a value breaks a field rule'); END
+            """)
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -572,6 +658,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_3_offline_ready_schema,
         _migration_4_change_tracking_triggers,
         _migration_5_positive_visibility_counts,
+        _migration_6_field_constraints,
     ]
 
 

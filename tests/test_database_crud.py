@@ -131,11 +131,11 @@ def test_add_and_get_items(room_id):
 
     items, history = get_list_data(list_id=list_id)
     assert len(items) == 2
-    assert history == ["Apples", "Bananas"]
+    assert history == ["apples", "bananas"]
     # items should be sorted by done ASC, name COLLATE NOCASE ASC
-    assert items[0]["name"] == "Apples"
+    assert items[0]["name"] == "apples"
     assert items[0]["done"] is False
-    assert items[1]["name"] == "Bananas"
+    assert items[1]["name"] == "bananas"
     assert items[1]["done"] is False
 
 
@@ -392,10 +392,10 @@ def test_get_list_data_sorting(room_id):
     update_item_done(item_id=apple_id, list_id=list_id, done=True)
 
     items, _ = get_list_data(list_id=list_id)
-    # Expected: banana (False), Zebra (False), Apple (True)
+    # Expected: banana (False), zebra (False), apple (True)
     assert items[0]["name"] == "banana"
-    assert items[1]["name"] == "Zebra"
-    assert items[2]["name"] == "Apple"
+    assert items[1]["name"] == "zebra"
+    assert items[2]["name"] == "apple"
 
 
 def test_get_list_data_history_isolation(room_id):
@@ -409,8 +409,8 @@ def test_get_list_data_history_isolation(room_id):
     _, history1 = get_list_data(list_id=list1_id)
     _, history2 = get_list_data(list_id=list2_id)
 
-    assert history1 == ["Apple"]
-    assert history2 == ["Banana"]
+    assert history1 == ["apple"]
+    assert history2 == ["banana"]
 
 
 def test_delete_item(room_id):
@@ -932,9 +932,9 @@ def test_update_item_details(room_id):
     update_item_details(
         item_id=item_id,
         list_id=list_id,
-        name="Fuji Apples",
+        name="fuji apples",
         description="Buy 3 large ones",
     )
     updated_items, _ = get_list_data(list_id=list_id)
-    assert updated_items[0]["name"] == "Fuji Apples"
+    assert updated_items[0]["name"] == "fuji apples"
     assert updated_items[0]["description"] == "Buy 3 large ones"

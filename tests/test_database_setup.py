@@ -183,7 +183,7 @@ def test_init_database_repairs_broken_items_foreign_key(tmp_path, monkeypatch):
             id, name, description, quantity, done, list_id, active_tags,
             completed_at
         ) VALUES (
-            1, 'Apples', 'keep cold', 3, 1, 1, '["fruit"]',
+            1, 'apples', 'keep cold', 3, 1, 1, '["fruit"]',
             '2025-01-02T03:04:05.000000Z'
         );
         """
@@ -202,7 +202,7 @@ def test_init_database_repairs_broken_items_foreign_key(tmp_path, monkeypatch):
         "SELECT name, list_id, description, quantity, active_tags, completed_at "
         "FROM items"
     ).fetchone() == (
-        "Apples",
+        "apples",
         1,
         "keep cold",
         3,
@@ -293,7 +293,7 @@ def test_init_database_migrates_legacy_visibility_schema_and_reinitializes(
             FOREIGN KEY(list_id) REFERENCES lists(id)
         );
         INSERT INTO items (id, name, done, list_id, active_tags)
-        VALUES (1, 'Apples', 1, 1, '[]');
+        VALUES (1, 'apples', 1, 1, '[]');
         """
     )
     legacy_db.commit()
@@ -307,7 +307,7 @@ def test_init_database_migrates_legacy_visibility_schema_and_reinitializes(
     ).fetchone() == ("off", 7, 10)
     assert migrated_db.execute(
         "SELECT done, completed_at, name FROM items WHERE id = 1"
-    ).fetchone() == (1, None, "Apples")
+    ).fetchone() == (1, None, "apples")
     assert migrated_db.execute("PRAGMA foreign_key_check").fetchall() == []
     migrated_db.close()
 
@@ -318,7 +318,7 @@ def test_init_database_migrates_legacy_visibility_schema_and_reinitializes(
     ).fetchone() == ("off", 7, 10)
     assert migrated_db.execute(
         "SELECT done, completed_at, name FROM items WHERE id = 1"
-    ).fetchone() == (1, None, "Apples")
+    ).fetchone() == (1, None, "apples")
     assert migrated_db.execute("PRAGMA foreign_key_check").fetchall() == []
     migrated_db.close()
 
@@ -355,7 +355,7 @@ def test_init_database_repairs_foreign_key_during_list_migration(tmp_path, monke
             FOREIGN KEY(list_id) REFERENCES lists(id)
         );
         INSERT INTO items (id, name, done, list_id, active_tags)
-        VALUES (1, 'Apples', 0, 1, '[]');
+        VALUES (1, 'apples', 0, 1, '[]');
         """
     )
     legacy_db.commit()
@@ -369,7 +369,7 @@ def test_init_database_repairs_foreign_key_during_list_migration(tmp_path, monke
     foreign_key = repaired_db.execute("PRAGMA foreign_key_list(items)").fetchone()
     assert foreign_key[2:5] == ("lists", "list_id", "id")
     assert repaired_db.execute("SELECT name, list_id FROM items").fetchone() == (
-        "Apples",
+        "apples",
         1,
     )
 
@@ -401,7 +401,7 @@ def test_legacy_database_is_repaired_and_set_to_latest_version(tmp_path, monkeyp
             list_id INTEGER NOT NULL, active_tags TEXT NOT NULL DEFAULT '[]',
             FOREIGN KEY(list_id) REFERENCES lists_old(id)
         );
-        INSERT INTO items (id, name, done, list_id) VALUES (1, 'Apples', 0, 1);
+        INSERT INTO items (id, name, done, list_id) VALUES (1, 'apples', 0, 1);
         """
     )
     legacy_db.close()
@@ -411,7 +411,7 @@ def test_legacy_database_is_repaired_and_set_to_latest_version(tmp_path, monkeyp
 
     assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
     assert db.execute("PRAGMA foreign_key_check").fetchall() == []
-    assert db.execute("SELECT name, list_id FROM items").fetchall() == [("Apples", 1)]
+    assert db.execute("SELECT name, list_id FROM items").fetchall() == [("apples", 1)]
     db.close()
 
 

@@ -515,7 +515,9 @@ def test_triggers_do_not_loop_even_with_recursive_triggers_on(tmp_path, monkeypa
         ).fetchone()[0]
 
     list_id = connection.execute(
-        "INSERT INTO lists (name, room_id) VALUES ('Shop', ?)", (room,)
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "VALUES ('Shop', 'shop', ?, 'token')",
+        (room,),
     ).lastrowid
     assert seq() == 1
     item = connection.execute(
@@ -537,7 +539,9 @@ def test_item_delete_after_its_list_is_gone_is_skipped(tmp_path, monkeypatch):
     connection = init_database()
     room = connection.execute("SELECT id FROM rooms").fetchone()[0]
     list_id = connection.execute(
-        "INSERT INTO lists (name, room_id) VALUES ('Shop', ?)", (room,)
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "VALUES ('Shop', 'shop', ?, 'token')",
+        (room,),
     ).lastrowid
     connection.execute(
         "INSERT INTO items (name, done, list_id) VALUES ('milk', 0, ?)", (list_id,)

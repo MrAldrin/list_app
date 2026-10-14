@@ -45,7 +45,8 @@ def test_unique_index_rejects_case_and_whitespace_but_allows_other_lists():
     with pytest.raises(sqlite3.IntegrityError):
         add_item(" Milk ", list_id)
     other = db.execute(
-        "INSERT INTO lists (name, room_id) SELECT 'other', room_id FROM lists WHERE id = ?",
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "SELECT 'other', 'other', room_id, 'other-token' FROM lists WHERE id = ?",
         (list_id,),
     ).lastrowid
     db.commit()
@@ -61,9 +62,13 @@ def test_migration_rejects_existing_duplicates_without_removing_them(
     connection = init_database()
     room_id = connection.execute("SELECT id FROM rooms LIMIT 1").fetchone()[0]
     list_id = connection.execute(
-        "INSERT INTO lists (name, room_id) VALUES ('groceries', ?)", (room_id,)
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "VALUES ('groceries', 'groceries', ?, 'token')",
+        (room_id,),
     ).lastrowid
     connection.execute("DROP INDEX idx_items_list_name_nocase")
+    # Old rows from before the field rules (migration 6).
+    connection.execute("DROP TRIGGER items_field_rules_insert")
     connection.execute(
         "INSERT INTO items (list_id, name) VALUES (?, 'Milk')", (list_id,)
     )

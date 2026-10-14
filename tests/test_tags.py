@@ -112,7 +112,9 @@ def test_deleted_list_tag_keeps_item_tags_so_undo_restores_them(room_id):
 
 
 @pytest.mark.parametrize("stored", ["not json", ""])
-def test_unreadable_stored_list_tags_are_treated_as_empty(room_id, stored):
+def test_unreadable_stored_list_tags_are_treated_as_empty(
+    room_id, stored, without_field_rules
+):
     list_id, _ = create_list("groceries", room_id)
     db.execute("UPDATE lists SET list_tags = ? WHERE id = ?", (stored, list_id))
     db.commit()
@@ -122,7 +124,7 @@ def test_unreadable_stored_list_tags_are_treated_as_empty(room_id, stored):
     assert list_tags(list_id) == ["dairy"]
 
 
-def test_unreadable_stored_item_tags_are_treated_as_empty(room_id):
+def test_unreadable_stored_item_tags_are_treated_as_empty(room_id, without_field_rules):
     list_id, _ = create_list("groceries", room_id)
     add_item("milk", list_id)
     item_id, _ = find_item_by_name(list_id, "milk")

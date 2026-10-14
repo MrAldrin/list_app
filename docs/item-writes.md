@@ -40,6 +40,21 @@ If the app starts with duplicate item names already in the database, it stops
 with a clear migration error instead of deleting any. Fix the duplicates and
 restart.
 
+## Field rules
+
+Text is trimmed first. Names (room, list, item) can be at most 100 characters,
+list tags 30 and descriptions 1000. Item names are lowercase. The API rejects
+longer text with `too_long` ([rejection codes](api.md#rejection-codes)), and
+the Svelte inputs stop at the same limits (`maxlength`).
+
+The database guards the same rules as a safety net (migration 6): `BEFORE
+INSERT` and `BEFORE UPDATE` triggers reject blank or untrimmed names, missing
+slugs, quantities below 1, `done` other than 0 or 1, a completion time on an
+unchecked item, and tags that are not a JSON array. A rejected write raises
+`sqlite3.IntegrityError`. Rules and reasons: the
+[field constraints plan](../plans/field-constraints.md). Tests:
+`tests/test_field_limits.py`, `tests/test_field_rules_migration.py`.
+
 ## Item identity
 
 Item IDs are never reused: the `items` table uses `AUTOINCREMENT` (migration 2).

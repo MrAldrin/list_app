@@ -252,7 +252,7 @@ def test_quantity_delta(room, notified):
 
 
 @pytest.mark.parametrize(("start", "delta"), [(3, -10), (1, -1), (None, -5)])
-def test_quantity_never_goes_below_one(room, start, delta):
+def test_quantity_never_goes_below_one(room, start, delta, without_field_rules):
     _, slug, client = room
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
@@ -262,7 +262,7 @@ def test_quantity_never_goes_below_one(room, start, delta):
     assert item_row(item_uid)["quantity"] == 1
 
 
-def test_empty_quantity_counts_as_one(room):
+def test_empty_quantity_counts_as_one(room, without_field_rules):
     _, slug, client = room
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")

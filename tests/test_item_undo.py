@@ -10,7 +10,7 @@ from database_setup import db
 
 def snapshot_fields():
     return {
-        "name": "Milk",
+        "name": "milk",
         "done": True,
         "active_tags": ["cold", "weekly"],
         "description": "whole milk",
@@ -28,7 +28,7 @@ def test_restore_brings_back_all_fields_after_delete():
     list_id, slug = new_list()
     original = snapshot_fields()
     assert crud.restore_deleted_item(list_id, **original, expected_slug=slug)
-    old_id = crud.find_item_by_name(list_id, "Milk")[0]
+    old_id = crud.find_item_by_name(list_id, "milk")[0]
     crud.delete_item(old_id, list_id, expected_slug=slug)
 
     assert crud.restore_deleted_item(list_id, **original, expected_slug=slug)

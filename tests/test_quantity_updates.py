@@ -61,7 +61,9 @@ def test_concurrent_quantity_changes(quantity_item, initial, deltas, expected):
 
 
 @pytest.mark.parametrize("delta, expected", [(1, 2), (-1, 1)])
-def test_legacy_null_quantity_uses_display_default(quantity_item, delta, expected):
+def test_legacy_null_quantity_uses_display_default(
+    quantity_item, delta, expected, without_field_rules
+):
     list_id, slug, item_id = quantity_item
     db.execute("UPDATE items SET quantity = NULL WHERE id = ?", (item_id,))
     db.commit()

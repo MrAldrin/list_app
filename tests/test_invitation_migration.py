@@ -17,7 +17,7 @@ def test_additive_invitation_migration_preserves_existing_rows(tmp_path, monkeyp
         "VALUES (1, 'Shop', 'shop', ?, 'existing-share-token')",
         (room_id,),
     )
-    connection.execute("INSERT INTO items (name, list_id) VALUES ('Milk', 1)")
+    connection.execute("INSERT INTO items (name, done, list_id) VALUES ('milk', 0, 1)")
     connection.execute(
         "INSERT INTO room_access_tokens (token_hash, room_id, authorization_version) "
         "VALUES ('existing-hash', ?, 1)",

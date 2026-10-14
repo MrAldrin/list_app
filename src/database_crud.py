@@ -648,7 +648,7 @@ def add_item(item_name: str, list_id: int, *, expected_slug: str | None = None):
             _begin_list_write_locked(list_id, expected_slug)
             db.execute(
                 "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
-                (item_name, False, list_id),
+                (normalize_item_name(item_name), False, list_id),
             )
             db.commit()
         except Exception:

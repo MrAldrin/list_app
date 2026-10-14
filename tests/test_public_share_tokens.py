@@ -119,8 +119,8 @@ def test_rotation_blocks_already_open_public_writes(shared):
     add_item("Allowed", shared.id, expected_slug=f"share:{new}")
     add_item("Room edit", shared.id, expected_slug=shared.slug)
     assert db.execute("SELECT name FROM items ORDER BY id").fetchall() == [
-        ("Allowed",),
-        ("Room edit",),
+        ("allowed",),
+        ("room edit",),
     ]
 
 

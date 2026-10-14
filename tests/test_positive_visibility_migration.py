@@ -77,11 +77,13 @@ def test_database_guards_invalid_inserts_and_updates(field: str, value: float) -
         room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
         with pytest.raises(sqlite3.IntegrityError):
             db.execute(
-                f"INSERT INTO lists (name, slug, room_id, {field}) VALUES ('Bad', 'bad', ?, ?)",
+                f"INSERT INTO lists (name, slug, room_id, share_token, {field}) "
+                "VALUES ('Bad', 'bad', ?, 't1', ?)",
                 (room_id, value),
             )
         db.execute(
-            "INSERT INTO lists (name, slug, room_id) VALUES ('Good', 'good', ?)",
+            "INSERT INTO lists (name, slug, room_id, share_token) "
+            "VALUES ('Good', 'good', ?, 't2')",
             (room_id,),
         )
         with pytest.raises(sqlite3.IntegrityError):

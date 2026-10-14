@@ -38,9 +38,31 @@ def clean_db(home_password_hash):
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", f"home-{str(uuid.uuid4())[:6]}", home_password_hash),
     ).lastrowid
-    db.execute("INSERT INTO lists (name, room_id) VALUES ('default', ?)", (room_id,))
+    db.execute(
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "VALUES ('default', ?, ?, ?)",
+        (f"default-{str(uuid.uuid4())[:6]}", room_id, str(uuid.uuid4())),
+    )
     db.commit()
     yield
+
+
+@pytest.fixture
+def without_field_rules():
+    """Drop the migration 6 guards, so a test can store old, odd values."""
+    guards = db.execute(
+        "SELECT name, sql FROM sqlite_master "
+        "WHERE type = 'trigger' AND name LIKE '%_field_rules_%'"
+    ).fetchall()
+    assert guards
+    for name, _sql in guards:
+        db.execute(f"DROP TRIGGER {name}")
+    db.commit()
+    yield
+    db.rollback()
+    for _name, sql in guards:
+        db.execute(sql)
+    db.commit()
 
 
 # Admin API tests (tests/api_helpers.py, "Admin"): the API router alone, with no
