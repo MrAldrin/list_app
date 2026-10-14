@@ -939,7 +939,7 @@ Milestone 5: offline viewing
   Reload. A missing header counts as compatible. See
   [offline viewing](../docs/offline-viewing.md#after-a-deploy) and
   [API version](../docs/api.md#api-version). Real-device check is in the backlog.
-- [ ] **Gate V: owner offline-viewing review** (no deployment approval implied). Owner guide and iPhone checklist: [offline-viewing-gate-v.md](offline-viewing-gate-v.md). No iPhone verification yet.
+- [x] **Gate V: owner offline-viewing review** (no deployment approval implied). Owner guide and iPhone checklist: [offline-viewing-gate-v.md](offline-viewing-gate-v.md). Accepted 2026-10-14 after daily use; three iPhone checks left untested.
 
 Milestone 6: offline editing
 - [ ] 6.1 Conflict rules design. Include late writes: today a change made

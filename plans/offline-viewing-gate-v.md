@@ -55,4 +55,4 @@ Record the iOS version: ______
 
 - [x] Local implementation and tests done
 - [ ] Owner iPhone checklist done
-- [ ] Owner accepts or requests changes
+- [x] Owner accepts or requests changes (accepted 2026-10-14; the open checklist items stay untested)

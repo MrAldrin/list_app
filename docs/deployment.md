@@ -86,9 +86,8 @@ Railway must not override the repository. In the service settings:
   `Dockerfile`, so it builds with the dashboard builder setting.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
-- `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`. Keep
-  `NICEGUI_STORAGE_SECRET` until a rollback is no longer needed: the new code
-  ignores it, but the old code needs it to start.
+- `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`. `NICEGUI_STORAGE_SECRET`
+  was deleted; only the old NiceGUI code needs it.
 
 ### Schema migrations
 
@@ -284,7 +283,7 @@ steps, in this order:
    from the [deploy script](#backup-before-deploying)) to `DB_PATH`, as in the
    steps above. Changes made since the deploy are lost.
 2. Redeploy the previous commit (the revision you noted before deploying). It
-   needs `NICEGUI_STORAGE_SECRET` and builds with the dashboard builder setting
+   needs `NICEGUI_STORAGE_SECRET` (set a new random value first) and builds with the dashboard builder setting
    (see [Railway settings](#railway-settings-to-check)).
 
 Restoring alone leaves the new code on an old database: it would migrate again.

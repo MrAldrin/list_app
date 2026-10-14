@@ -10,22 +10,20 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [x] [bug] Native room/list sharing sends only the URL; access reminders stay inside the app. See [`shareNatively`](../frontend/src/lib/ui/share.ts).
-
-- [ ] [feature] (in progress) Svelte offline support: implement read-only offline viewing through Gate V; offline editing follows a separate owner review. Follow the [Milestone 5 plan](svelte-frontend-rewrite.md#milestone-5-offline-viewing) and its branch instructions.
+None.
 
 ## Later
 
 Agreed as worth doing; no date.
 
-- [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing; after offline viewing. See the [offline viewing scope](svelte-frontend-rewrite.md#milestone-5-offline-viewing).
+- [ ] [feature] Offline editing (Milestone 6), after Gate V and a separate owner review. See [Milestone 6](svelte-frontend-rewrite.md#milestone-6-offline-editing).
+- [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing. See the [offline viewing scope](svelte-frontend-rewrite.md#milestone-5-offline-viewing).
 
 - [ ] [test] Fix a rare (about 1 in 12) WebKit teardown flake from cancelled in-flight requests in the rename-after-password-change test in `browser_tests/test_svelte_live.py`. See the [validation record](../docs/background/offline-viewing-validation.md).
 - [ ] [test] Add a browser test for a reload in the middle of a room DELETE (the sign-out marker is stored before the DELETE by design).
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
-- [x] [data] Hide-done counters require at least 1; saved zeros migrate without changing visibility. See [checked-item visibility](../docs/checked-item-visibility.md).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
@@ -59,22 +57,4 @@ real-device evidence. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist) and record
 results (with OS/browser versions for devices) in the linked doc.
 
-- [ ] Finish the deployment guide's outstanding production checks: persistence across restart/deployment, migration verification, remembered room access and password-reset revocation.
-- [ ] Confirm production startup logs show no duplicate-name migration error after deploying the unique item-name index.
-- [ ] Check hide-done fields on production: reject 0 and accept 1. Database migration checks passed; see the [deployment record](../docs/background/fixes-deployment-2026-10-06.md).
-- [ ] Verify the [checked-item visibility](../docs/checked-item-visibility.md#existing-lists-and-verification) migration on production and real devices.
-- [x] Before the Svelte switch (Gate B): check the Railway service uses the new `Dockerfile` build, has no dashboard build or start command, and still has the volume at `/data` and `DB_PATH`. See [production image](../docs/deployment.md#production-image).
-- [ ] After the Svelte switch on production: sign in to a room over HTTPS and check in the browser's cookie view that `__Host-listapp-room-...` exists (Secure). Railway already has `FORWARDED_ALLOW_IPS=*`, so the prefix is expected. Also check a room you were signed in to before the switch still opens without a password. See the [rehearsal note](../docs/background/deploy-rehearsal-2026-10-06.md#https-detection-and-forwarded-headers).
-- [ ] After the Svelte switch on production: open the app from an old iPhone home-screen icon. At most one extra reload (the old service worker removes itself), then it works like the website. See the [kill switch](../ARCHITECTURE.md#major-ux-decisions).
-- [ ] About a week after the Svelte switch, when a rollback is no longer needed: delete `NICEGUI_STORAGE_SECRET` from Railway variables and from `.env`. See [Railway settings](../docs/deployment.md#railway-settings-to-check).
-- [ ] Confirm on Railway that automatic reload is off by default. See [deployment configuration](../docs/deployment.md#configuration).
-- [ ] [test] On iPhone, use Share Room and Share List → Copy, then paste: only the URL should appear. Check the access reminder appears inside the app after sharing.
-- [ ] Do the [public-sharing deployment and device checks](../docs/public-sharing.md#rollout-and-verification).
-- [ ] Verify deleted-list handling with multiple users on real devices or production. Local coverage is in [browser testing](../docs/browser-testing.md#deleted-list-regression-checks).
-- [ ] Run the [deploy backup script](../docs/deployment.md#backup-before-deploying) with `--backup-only` once. Check that a verified copy lands locally and no `list-deploy-*` file is left on the volume.
-- [ ] Run the real iPhone and Android checklist in [home-screen installation](../docs/home-screen-installation.md).
-- [ ] [test] Svelte home-screen install on the iPhone (Safari, HTTPS): sign in to a room at `/room/…`, then Add to Home Screen. The icon should open that room without a second sign-in. Also install from the start page (opens `/`), and with a NiceGUI icon already installed (note whether the browser reuses it). See the [Svelte rules](../docs/home-screen-installation.md#svelte-app).
-- [ ] [test] Svelte on the iPhone: go offline, then back online, and wait up to 30 s without refreshing. If the pill stays longer, file a reconnect bug. One case on 2026-10-04 hung ~10 s (within the retry delays). See decisions 67 and 92 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
-- [ ] [test] Svelte dark mode on the iPhone: with a page open, switch the iPhone's dark mode, then use Dark mode in both the room and list menus. Safari's bars should change color at once, without scrolling. The `theme-color` tag follows the page (decision 138 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log)).
-- [ ] [test] Gate V: check offline viewing on a real iPhone (Safari and home screen). Use the [Gate V guide](offline-viewing-gate-v.md) and record the iOS version there.
-- [ ] [test] At the next deploy after offline mode went live (2026-10-13): the new version should appear on the phone after returning to the app once or twice, without closing Safari. If the "A new version is available" banner shows, Reload should reach the new version. See [offline version updates](offline-version-updates.md). See [offline viewing](../docs/offline-viewing.md#after-a-deploy).
+None open. On 2026-10-14 the owner closed the remaining checks untested; fix issues if they appear.
