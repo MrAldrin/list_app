@@ -28,6 +28,7 @@ Agreed as worth doing; no date.
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] Admin can delete a room from the admin room list, without entering the room: a clear warning, type the room name to confirm, and tests that nothing else is deleted. Today the admin must reset the password, enter the room and delete it there (as in NiceGUI).
+- [ ] [feature] Due dates on items, in stages: first an optional date (no time) shown on the item, then a sort choice for each list: by name (today's default) or by due date. Open items always stay above checked ones. No calendar view. Notifications are in Ideas.
 
 ## Ideas
 
@@ -39,6 +40,7 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [security] Enforce a minimum password length in code.
 - [infra] Scheduled local backup job that pulls a verified SQLite copy from Railway to this machine or an always-on home machine. Railway snapshots are not available on the current plan. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
 - [infra] Add CI for format, lint and tests. First replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups and secrets out of git.
+- [feature] Due-date notifications (users asked): remind people when an item is due. Needs web push, a server job and phone permissions (iPhone: home-screen app only). Only after due dates exist.
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
 - [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
