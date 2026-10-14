@@ -1,4 +1,4 @@
-"""Migration 6: the database rejects bad values (plans/field-constraints.md)."""
+"""Migration 6: the database rejects bad values (docs/item-writes.md, "Field rules")."""
 
 import sqlite3
 from collections.abc import Iterator

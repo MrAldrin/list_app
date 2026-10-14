@@ -1,4 +1,4 @@
-"""Length limits on user text (plans/field-constraints.md)."""
+"""Length limits on user text (docs/item-writes.md, "Field rules")."""
 
 from collections.abc import Callable
 from typing import Any

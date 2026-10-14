@@ -52,7 +52,7 @@ INSERT` and `BEFORE UPDATE` triggers reject blank or untrimmed names, missing
 slugs, quantities below 1, `done` other than 0 or 1, a completion time on an
 unchecked item, and tags that are not a JSON array. A rejected write raises
 `sqlite3.IntegrityError`. Rules and reasons: the
-[field constraints plan](../plans/field-constraints.md). Tests:
+[field constraints background](background/field-constraints.md). Tests:
 `tests/test_field_limits.py`, `tests/test_field_rules_migration.py`.
 
 ## Item identity

@@ -1,12 +1,14 @@
 # Field constraints
 
-Lifecycle: tracked
+Background for the field rules, live since 2026-10-14. Current behavior is in
+[item writes](../item-writes.md#field-rules). This was the plan; it is kept
+for the audit and the reasoning.
 
 Goal: make the database reject bad values, not only the app code. Today most
 rules live only in Python. A bug, a script or a future code path could store a
 blank name, a quantity of 0 or broken tag data, and the database would accept it.
 
-The rules are agreed (see Decisions). Progress is at the bottom.
+The rules below were agreed and are now live. Progress at the bottom records the steps.
 
 ## Terms in simple words
 
@@ -73,7 +75,7 @@ check that path too when adding limits.
 The 207 checked items without a time were checked before completion times
 existed. The app treats a missing time as "unknown": "hide after N days" keeps
 them visible, and "keep recent" sorts them as oldest
-([checked-item visibility](../docs/checked-item-visibility.md)). Filling in a
+([checked-item visibility](../checked-item-visibility.md)). Filling in a
 fake time would change what users see, so the rule only covers the safe
 direction: an unchecked item has no completion time.
 
@@ -128,7 +130,7 @@ guards the hide-done counters this way.
    - Tests: each rule rejects a bad write; normal app writes still pass; a
      database with a bad row stops the migration and is left unchanged.
 3. Deploy with the
-   [deployment checklist](../docs/deployment.md#deployment-checklist). Expect
+   [deployment checklist](../deployment.md#deployment-checklist). Expect
    `Database migrated from version 5 to 6`.
 
 ## Decisions

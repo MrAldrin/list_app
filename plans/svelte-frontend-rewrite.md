@@ -48,9 +48,9 @@ The online rewrite has shipped. The old `svelte-frontend` and
   affected line. Never rewrite another agent's active work to tidy the graph.
 - The original production switch (Gate B) is complete. Offline work still
   needs separate approval before moving/pushing `main`; no automated deploy.
-- The `field-constraints` line also concerns the schema. The deployed schema is
-  version 5 after the positive-counter fix. Any new migration must follow the
-  current migration list; never renumber an already-deployed migration.
+- The deployed schema is version 6 after the field rules. Any new migration
+  must follow the current migration list; never renumber an already-deployed
+  migration.
 
 ## Goal and scope
 
