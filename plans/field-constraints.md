@@ -160,7 +160,6 @@ Agreed on 2026-10-14:
 - [x] Rehearse on a copy of a fresh production backup
   (`list-deploy-20261014T095051Z-c3509ab9.db`): no rows break a rule, version
   5 to 6, row counts kept, integrity and foreign key checks clean, 2026-10-14
-- [ ] Deploy with the deployment checklist (its fresh-backup rehearsal runs
-  migration 6 again on current data)
-- [ ] Check on production: startup log shows `Database migrated from version 5
-  to 6`
+- [x] Deployed 2026-10-14. Production log: `Database migrated from version 5
+  to 6`; integrity and foreign key checks clean, row counts unchanged, 6 guard
+  triggers.
