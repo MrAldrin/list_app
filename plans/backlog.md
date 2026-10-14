@@ -29,7 +29,6 @@ Agreed as worth doing; no date.
 - [x] [data] Hide-done counters require at least 1; saved zeros migrate without changing visibility. See [checked-item visibility](../docs/checked-item-visibility.md).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
-- [ ] [security] Room sign-in answers faster for an unknown room than for a wrong password, because bcrypt is skipped. This reveals which rooms exist. Check a dummy hash for unknown rooms. See `authenticate_room_and_issue_token` in [`src/database_crud.py`](../src/database_crud.py).
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] Admin can delete a room from the admin room list, without entering the room: a clear warning, type the room name to confirm, and tests that nothing else is deleted. Today the admin must reset the password, enter the room and delete it there (as in NiceGUI).
 

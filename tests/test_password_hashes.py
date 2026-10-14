@@ -68,3 +68,12 @@ def test_database_errors_are_not_swallowed_as_invalid_passwords():
         broken_db.execute.side_effect = sqlite3.OperationalError("database unavailable")
         with pytest.raises(sqlite3.OperationalError, match="database unavailable"):
             authenticate_room_and_issue_token("room", "password")
+
+
+def test_unknown_room_still_runs_one_bcrypt_check():
+    # An unknown room must cost as much as a wrong password, or timing reveals
+    # which room slugs exist. Count checks instead of measuring time.
+    create_room("Known room", "password")
+    with patch("database_crud.bcrypt.checkpw", return_value=False) as checkpw:
+        assert authenticate_room_and_issue_token("no-such-room", "password") is None
+    assert checkpw.call_count == 1

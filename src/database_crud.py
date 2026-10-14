@@ -7,6 +7,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from functools import cache
 from typing import Literal
 
 import bcrypt
@@ -1316,6 +1317,12 @@ def _password_matches(plain_password: str, stored_hash: object) -> bool:
         return False
 
 
+@cache
+def _dummy_password_hash() -> str:
+    """A hash with the same cost as room passwords, made once per process."""
+    return bcrypt.hashpw(b"no-such-room", bcrypt.gensalt()).decode("utf-8")
+
+
 def authenticate_room_and_issue_token(
     room_slug: str, plain_password: str
 ) -> tuple[int, str] | None:
@@ -1331,7 +1338,13 @@ def authenticate_room_and_issue_token(
                 """,
                 (room_slug,),
             ).fetchone()
-            if not row or not _password_matches(plain_password, row[1]):
+            if not row:
+                # Spend the same bcrypt time as a wrong password, so response
+                # timing does not reveal which room slugs exist.
+                _password_matches(plain_password, _dummy_password_hash())
+                db.rollback()
+                return None
+            if not _password_matches(plain_password, row[1]):
                 db.rollback()
                 return None
             token = _insert_room_access_token_locked(row[0], row[2])
