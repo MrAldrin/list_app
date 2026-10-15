@@ -130,7 +130,7 @@ def row_counts() -> tuple[int, int, int]:
 # the same SQL the live code runs.
 
 
-def _write(fn, *args, **kwargs):
+def write_locked(fn, *args, **kwargs):
     with _DB_LOCK:
         try:
             result = fn(*args, **kwargs)
@@ -142,7 +142,7 @@ def _write(fn, *args, **kwargs):
 
 
 def create_list(name: str, room_id: int) -> tuple[int, str]:
-    list_id, slug, _ = _write(create_or_find_list_locked, name, room_id)
+    list_id, slug, _ = write_locked(create_or_find_list_locked, name, room_id)
     return list_id, slug
 
 
@@ -153,11 +153,13 @@ def find_list_by_name(name: str, room_id: int) -> tuple[int] | None:
 
 
 def rename_list(list_id: int, new_name: str) -> None:
-    _write(db.execute, "UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
+    write_locked(
+        db.execute, "UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id)
+    )
 
 
 def update_list_tags_settings(list_id: int, list_tags: list[str]) -> None:
-    _write(
+    write_locked(
         db.execute,
         "UPDATE lists SET list_tags = ? WHERE id = ?",
         (json.dumps(list_tags), list_id),
@@ -165,18 +167,18 @@ def update_list_tags_settings(list_id: int, list_tags: list[str]) -> None:
 
 
 def add_list_tag(list_id: int, tag: str) -> None:
-    _write(change_list_tag_locked, list_id, tag, add=True)
+    write_locked(change_list_tag_locked, list_id, tag, add=True)
 
 
 def remove_list_tag(list_id: int, tag: str) -> None:
-    _write(change_list_tag_locked, list_id, tag, add=False)
+    write_locked(change_list_tag_locked, list_id, tag, add=False)
 
 
 def update_list_visibility_settings(
     list_id: int, *, mode: str, age_days: int, recent_count: int
 ) -> None:
     validate_visibility_settings(mode, age_days, recent_count)
-    _write(
+    write_locked(
         update_list_visibility_settings_locked,
         list_id,
         mode=mode,
@@ -247,7 +249,7 @@ def get_list_details_by_share_token(token: str) -> dict | None:
 
 
 def rotate_list_share_token(list_id: int) -> str:
-    return _write(rotate_share_token_locked, list_id)
+    return write_locked(rotate_share_token_locked, list_id)
 
 
 def get_list_data(list_id: int) -> tuple[list[dict], list[str]]:
@@ -283,7 +285,7 @@ def find_item_by_name(list_id: int, item_name: str):
 
 
 def insert_item(item_name: str, list_id: int) -> None:
-    _write(
+    write_locked(
         db.execute,
         "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
         (normalize_item_name(item_name), False, list_id),
@@ -294,7 +296,7 @@ def add_item_with_state(
     item_name: str, list_id: int, done: bool, active_tags: list[str], *, now=None
 ) -> None:
     completed_at = _completion_timestamp(now) if done else None
-    _write(
+    write_locked(
         db.execute,
         "INSERT INTO items (name, done, list_id, active_tags, completed_at) "
         "VALUES (?, ?, ?, ?, ?)",
@@ -303,7 +305,7 @@ def add_item_with_state(
 
 
 def restore_item(item_id: int, list_id: int) -> None:
-    _write(
+    write_locked(
         db.execute,
         "UPDATE items SET done = 0, completed_at = NULL WHERE id = ? AND list_id = ?",
         (item_id, list_id),
@@ -320,7 +322,7 @@ def restore_deleted_item(
     *,
     completed_at: str | None = None,
 ) -> bool:
-    item_id = _write(
+    item_id = write_locked(
         restore_deleted_item_locked,
         list_id,
         name,
@@ -334,7 +336,7 @@ def restore_deleted_item(
 
 
 def update_item_active_tags(item_id: int, list_id: int, active_tags: list[str]) -> None:
-    _write(
+    write_locked(
         db.execute,
         "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
         (json.dumps(active_tags), item_id, list_id),
@@ -342,7 +344,7 @@ def update_item_active_tags(item_id: int, list_id: int, active_tags: list[str]) 
 
 
 def toggle_item_active_tag(item_id: int, list_id: int, tag: str) -> bool:
-    return _write(toggle_item_active_tag_locked, item_id, list_id, tag)
+    return write_locked(toggle_item_active_tag_locked, item_id, list_id, tag)
 
 
 def verify_room(room_slug: str, plain_password: str) -> int | None:
@@ -365,7 +367,9 @@ def update_room_password(room_id: int, new_plain_password: str) -> bool:
     pw_hash = bcrypt.hashpw(
         new_plain_password.encode("utf-8"), bcrypt.gensalt()
     ).decode("utf-8")
-    authorization_version = _write(_replace_room_password_locked, room_id, pw_hash)
+    authorization_version = write_locked(
+        _replace_room_password_locked, room_id, pw_hash
+    )
     return authorization_version is not None
 
 
@@ -376,7 +380,7 @@ def change_room_password_and_issue_token(
         row = db.execute("SELECT id FROM rooms WHERE slug = ?", (room_slug,)).fetchone()
     if not row:
         return None
-    token = _write(
+    token = write_locked(
         change_room_password_locked, row[0], current_plain_password, new_plain_password
     )
     return (row[0], token) if token else None
@@ -391,7 +395,7 @@ def delete_room(room_id: int) -> None:
             db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
         db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
 
-    _write(delete)
+    write_locked(delete)
 
 
 def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
@@ -399,11 +403,11 @@ def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
         row = db.execute("SELECT id FROM rooms WHERE slug = ?", (room_slug,)).fetchone()
     if not row:
         return False
-    return _write(delete_room_with_password_locked, row[0], plain_password)
+    return write_locked(delete_room_with_password_locked, row[0], plain_password)
 
 
 def rename_room(room_id: int, new_name: str) -> None:
-    _write(rename_room_locked, room_id, new_name)
+    write_locked(rename_room_locked, room_id, new_name)
 
 
 # Admin. Admin sign-in has its own cookie (see `src/admin_access.py`), so admin

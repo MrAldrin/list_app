@@ -59,7 +59,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   (at least 39 confirmed; about 730 of 1729 lines), including the
   `expected_slug` checks and `*_with_room_token` wrappers. Port or delete the
   tests that use them as setup helpers.
-- [ ] [refactor] `src/item_service.py`: move `clamp_quantity` and the two used
+- [x] [refactor] `src/item_service.py`: move `clamp_quantity` and the two used
   names into `src/api/ops.py`, delete the module. Simplify `item_edit`
   (`ops.py:405-419`) to reuse `_item_name`.
 - [ ] [refactor] D1: delete `src/item_visibility.py` `filter_visible_items` and

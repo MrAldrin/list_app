@@ -61,7 +61,6 @@ from field_limits import (
     MAX_TAG_LENGTH,
     too_long_message,
 )
-from item_service import STATUS_DUPLICATE_ACTIVE, clamp_quantity, normalize_item_details
 from item_visibility import (
     DEFAULT_HIDE_DONE_AGE_DAYS,
     DEFAULT_HIDE_DONE_MODE,
@@ -71,6 +70,9 @@ from item_visibility import (
 from live_updates import notify_room_changed
 
 router = APIRouter()
+
+# Outcome of item.add when the name is already on the list.
+STATUS_DUPLICATE_ACTIVE = "duplicate_active"
 
 
 def _canonical_uuid(value: str) -> str:
@@ -325,6 +327,11 @@ def _description(text: str) -> str:
     return _within_limit("Description", text, MAX_DESCRIPTION_LENGTH)
 
 
+def clamp_quantity(quantity: int) -> int:
+    """Quantities are whole numbers from 1 up."""
+    return max(1, int(quantity))
+
+
 def _new_uid(uid: str | None) -> str | None:
     if uid is not None and uid_in_use_locked(uid):
         raise ApiError(422, "invalid_request", "This uid is already used.")
@@ -405,13 +412,9 @@ def item_quantity_delta(scope: OpScope, op: ItemQuantityDelta) -> dict[str, Any]
 def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
-    name, description, quantity = normalize_item_details(
-        op.name, op.description, op.quantity
-    )
-    if not name:
-        raise OpRejected("invalid_name", EMPTY_NAME)
-    _within_limit("Name", name, MAX_NAME_LENGTH)
-    _description(description)
+    name = _item_name(op.name)
+    description = _description((op.description or "").strip())
+    quantity = None if op.quantity is None else clamp_quantity(op.quantity)
     status = update_item_details_locked(item_id, list_id, name, description, quantity)
     if status == "duplicate":
         raise OpRejected("duplicate_name", f"'{name}' already exists")

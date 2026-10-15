@@ -17,27 +17,18 @@ from api_helpers import (
     changes,
     client_for,
     create_list,
-    get_list_details,
     home,
     insert_item,
     item_row,
     new_id,
     op,
     row_counts,
+    write_locked,
 )
 from starlette.testclient import TestClient
 
 import database_crud as crud
 from database_setup import db
-from item_service import (
-    STATUS_ADDED,
-    STATUS_RENAMED,
-    add_or_restore_item,
-    change_item_quantity,
-    delete_item_from_list,
-    rename_list_with_checks,
-    toggle_item_done,
-)
 
 TIMEOUT = 30
 
@@ -280,10 +271,7 @@ def test_a_list_renamed_directly_keeps_its_uid(room):
     room_id, slug, a, b = room
     list_id, list_uid = groceries()
     old_slug = b.lists[list_uid]["slug"]
-    status, _ = rename_list_with_checks(
-        list_id, room_id, "Shop", expected_slug=old_slug
-    )
-    assert status == STATUS_RENAMED
+    assert write_locked(crud.rename_list_if_unique_locked, list_id, room_id, "Shop")
     response = b.write({"type": "list.tag_add", "list_uid": list_uid, "tag": "Lidl"})
     assert response["status"] == "applied"
     b.sync()
@@ -385,7 +373,6 @@ def test_undo_after_the_other_client_re_added_the_name(room):
 def test_direct_and_api_writes_interleaved(room):
     room_id, slug, a, b = room
     list_id, list_uid = groceries()
-    list_slug = a.lists[list_uid]["slug"]
     seqs = [seq_of(room_id)]
 
     def direct(write) -> None:
@@ -400,26 +387,25 @@ def test_direct_and_api_writes_interleaved(room):
         assert response["seq"] == seq_of(room_id)
         assert_consistent(room_id, slug, a, b)
 
-    direct(lambda: add_or_restore_item(list_id, "milk", expected_slug=list_slug))
+    direct(lambda: write_locked(crud.add_or_restore_item_locked, "milk", list_id))
     milk_uid = a.item_named("milk")["uid"]
     milk_id = db.execute("SELECT id FROM items WHERE uid = ?", (milk_uid,)).fetchone()[
         0
     ]
     milk = {"list_uid": list_uid, "item_uid": milk_uid}
     api(a, {"type": "item.quantity_delta", "delta": 2, **milk})
-    direct(lambda: change_item_quantity(list_id, milk_id, 1, expected_slug=list_slug))
+    direct(lambda: write_locked(crud.adjust_item_quantity_locked, milk_id, list_id, 1))
     api(b, {"type": "item.set_done", "done": True, **milk})
-    direct(lambda: toggle_item_done(list_id, milk_id, False, expected_slug=list_slug))
+    direct(lambda: write_locked(crud.update_item_done_locked, milk_id, list_id, False))
     api(a, {"type": "item.add", "list_uid": list_uid, "name": "bread"})
     direct(lambda: add_list_tag(list_id, "Lidl"))
     api(b, {"type": "item.toggle_tag", "tag": "Lidl", **milk})
     direct(
-        lambda: rename_list_with_checks(
-            list_id, room_id, "Shop", expected_slug=list_slug
+        lambda: write_locked(
+            crud.rename_list_if_unique_locked, list_id, room_id, "Shop"
         )
     )
-    list_slug = get_list_details(list_id)["slug"]
-    direct(lambda: delete_item_from_list(list_id, milk_id, expected_slug=list_slug))
+    direct(lambda: write_locked(crud.delete_item_locked, milk_id, list_id))
     api(a, {"type": "item.add", "list_uid": list_uid, "name": "milk"})
     direct(lambda: insert_item("tea", list_id))
 
@@ -433,7 +419,6 @@ def test_parallel_requests_keep_seq_and_feed_consistent(room):
     """Two clients and direct database writes at once: no deadlock, no lost seq."""
     room_id, slug, a, b = room
     list_id, list_uid = groceries()
-    list_slug = a.lists[list_uid]["slug"]
     shared_uid = add_item(list_id, "shared")
     shared_id = db.execute(
         "SELECT id FROM items WHERE uid = ?", (shared_uid,)
@@ -470,11 +455,11 @@ def test_parallel_requests_keep_seq_and_feed_consistent(room):
 
     def direct_job() -> int:
         for number in range(rounds):
-            change_item_quantity(list_id, shared_id, 1, expected_slug=list_slug)
-            status, _ = add_or_restore_item(
-                list_id, f"n{number}", expected_slug=list_slug
+            write_locked(crud.adjust_item_quantity_locked, shared_id, list_id, 1)
+            outcome, _ = write_locked(
+                crud.add_or_restore_item_locked, f"n{number}", list_id
             )
-            assert status == STATUS_ADDED
+            assert outcome == "added"
         return 2 * rounds
 
     from_a, from_b, direct_writes = run_in_parallel(

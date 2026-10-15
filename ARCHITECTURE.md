@@ -71,8 +71,8 @@ back from a public list.
 - `src/main.py`: Entry point; runs uvicorn.
 - `src/server.py`: `create_app()` builds the FastAPI app (API, old install
   routes, static files, then the Svelte app last).
-- `src/api/`: JSON API under `/api/v1`; the contract is in
-  [docs/api.md](docs/api.md).
+- `src/api/`: JSON API under `/api/v1`. `src/api/ops.py` holds the item and
+  list write rules; the contract is in [docs/api.md](docs/api.md).
 - `src/svelte_frontend.py`: Serves the built Svelte app at `/`, with the old
   page addresses and `/app/...` redirects.
 - `src/pwa_routes.py`: Home-screen install manifests and icons, plus the
@@ -80,7 +80,6 @@ back from a public list.
 - `src/database_setup.py`: SQLite schema and the list of migrations.
 - `src/migrations.py`: versioned migration runner and pre-migration backup.
 - `src/database_crud.py`: Database reads/writes and persisted authorization.
-- `src/item_service.py`: Item business rules over database operations.
 - `src/room_cookies.py` and `src/admin_access.py`: Room cookie rules and the
   admin cookie.
 - `src/room_invitations.py`: Invitation logic.

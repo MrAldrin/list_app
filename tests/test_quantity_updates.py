@@ -2,14 +2,18 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
-from unittest.mock import patch
 
 import pytest
-from api_helpers import create_list, find_item_by_name, get_list_data, insert_item
+from api_helpers import (
+    create_list,
+    find_item_by_name,
+    get_list_data,
+    insert_item,
+    write_locked,
+)
 
-from database_crud import adjust_item_quantity, get_rooms
+from database_crud import adjust_item_quantity, adjust_item_quantity_locked, get_rooms
 from database_setup import db
-from item_service import STATUS_UPDATED, change_item_quantity
 
 
 @pytest.fixture
@@ -36,7 +40,7 @@ def stored_quantity(list_id):
     ],
 )
 def test_concurrent_quantity_changes(quantity_item, initial, deltas, expected):
-    list_id, slug, item_id = quantity_item
+    list_id, _, item_id = quantity_item
     db.execute("UPDATE items SET quantity = ? WHERE id = ?", (initial, item_id))
     db.commit()
     # All clients saw the same old value before sending their button changes.
@@ -45,10 +49,10 @@ def test_concurrent_quantity_changes(quantity_item, initial, deltas, expected):
 
     def change(delta):
         barrier.wait(timeout=10)
-        return change_item_quantity(list_id, item_id, delta, expected_slug=slug)
+        return write_locked(adjust_item_quantity_locked, item_id, list_id, delta)
 
     with ThreadPoolExecutor(max_workers=len(deltas)) as executor:
-        assert list(executor.map(change, deltas)) == [STATUS_UPDATED] * len(deltas)
+        assert all(executor.map(change, deltas))
 
     assert stored_quantity(list_id) == expected
     assert not db.in_transaction
@@ -70,15 +74,3 @@ def test_quantity_change_is_scoped_to_list(quantity_item):
     other_id, other_slug = create_list("other", get_rooms()[0]["id"])
     adjust_item_quantity(item_id, other_id, 1, expected_slug=other_slug)
     assert stored_quantity(list_id) == 1
-
-
-@pytest.mark.parametrize("delta", [-1, 1])
-def test_service_forwards_delta_and_identity(delta):
-    with patch("item_service.adjust_item_quantity") as adjust:
-        assert (
-            change_item_quantity(1, 2, delta, expected_slug="original")
-            == STATUS_UPDATED
-        )
-    adjust.assert_called_once_with(
-        item_id=2, list_id=1, delta=delta, expected_slug="original"
-    )

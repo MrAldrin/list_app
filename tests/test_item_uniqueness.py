@@ -3,20 +3,26 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
 import pytest
-from api_helpers import insert_item
+from api_helpers import insert_item, write_locked
 
-from database_crud import add_or_restore_item_atomic, db, update_item_done
+from database_crud import (
+    add_or_restore_item_atomic,
+    add_or_restore_item_locked,
+    db,
+    normalize_item_name,
+    update_item_done,
+)
 from database_setup import init_database
-from item_service import add_or_restore_item
 
 
 def test_simultaneous_adds_and_restores_keep_one_item():
     list_id = db.execute("SELECT id FROM lists").fetchone()[0]
     barrier = Barrier(8)
+    name = normalize_item_name(" Milk ")
 
     def submit(_: int) -> str:
         barrier.wait()
-        return add_or_restore_item(list_id, " Milk ")[0]
+        return write_locked(add_or_restore_item_locked, name, list_id)[0]
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(submit, range(8)))

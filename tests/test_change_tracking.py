@@ -24,10 +24,10 @@ from api_helpers import (
     update_list_tags_settings,
     update_list_visibility_settings,
     update_room_password,
+    write_locked,
 )
 
 import database_crud as crud
-import item_service
 from database_setup import db, init_database
 
 
@@ -80,7 +80,7 @@ def shop(room_id) -> tuple[int, str]:
 
 @pytest.fixture
 def item_id(shop) -> int:
-    item_service.add_or_restore_item(shop[0], "milk", expected_slug=shop[1])
+    write_locked(crud.add_or_restore_item_locked, "milk", shop[0])
     return find_item_by_name(shop[0], "milk")[0]
 
 
@@ -108,11 +108,8 @@ def test_rename_list_stamps_and_keeps_uid(room_id, shop):
     uid = _row("lists", shop[0])[0]
     before = _seq(room_id)
 
-    status, _ = item_service.rename_list_with_checks(
-        shop[0], room_id, "Market", expected_slug=shop[1]
-    )
+    assert write_locked(crud.rename_list_if_unique_locked, shop[0], room_id, "Market")
 
-    assert status == item_service.STATUS_RENAMED
     _assert_stamped("lists", shop[0], room_id, before)
     assert _row("lists", shop[0])[0] == uid
 
@@ -121,11 +118,10 @@ def test_rejected_list_rename_changes_nothing(room_id, shop):
     create_list("Market", room_id)
     before = _seq(room_id)
 
-    status, _ = item_service.rename_list_with_checks(
-        shop[0], room_id, "market", expected_slug=shop[1]
+    assert not write_locked(
+        crud.rename_list_if_unique_locked, shop[0], room_id, "market"
     )
 
-    assert status == item_service.STATUS_DUPLICATE_NAME
     assert _seq(room_id) == before
 
 
@@ -171,7 +167,7 @@ def test_share_token_rotation_stamps_the_list(room_id, shop):
 
 def test_delete_list_records_list_and_its_items(room_id, shop):
     for name in ("milk", "bread"):
-        item_service.add_or_restore_item(shop[0], name, expected_slug=shop[1])
+        write_locked(crud.add_or_restore_item_locked, name, shop[0])
     item_uids = [
         row[0]
         for row in db.execute(
@@ -181,7 +177,7 @@ def test_delete_list_records_list_and_its_items(room_id, shop):
     list_uid = _row("lists", shop[0])[0]
     before = _seq(room_id)
 
-    item_service.delete_list_and_items(shop[0], room_id, expected_slug=shop[1])
+    write_locked(crud.delete_list_locked, shop[0])
 
     assert _seq(room_id) == before + 3
     deletions = _deletions(room_id)
@@ -199,22 +195,21 @@ def test_delete_list_records_list_and_its_items(room_id, shop):
 def test_add_item_fills_uid_and_stamps(room_id, shop):
     before = _seq(room_id)
 
-    status, _ = item_service.add_or_restore_item(shop[0], "Milk", expected_slug=shop[1])
+    outcome, item_id = write_locked(crud.add_or_restore_item_locked, "milk", shop[0])
 
-    assert status == item_service.STATUS_ADDED
-    item_id = find_item_by_name(shop[0], "milk")[0]
+    assert outcome == "added"
     _assert_stamped("items", item_id, room_id, before)
     _assert_uuid4(_row("items", item_id)[0])
 
 
 def test_restore_checked_item_stamps_and_keeps_uid(room_id, shop, item_id):
-    item_service.toggle_item_done(shop[0], item_id, True, expected_slug=shop[1])
+    write_locked(crud.update_item_done_locked, item_id, shop[0], True)
     uid = _row("items", item_id)[0]
     before = _seq(room_id)
 
-    status, _ = item_service.add_or_restore_item(shop[0], "milk", expected_slug=shop[1])
+    outcome, _ = write_locked(crud.add_or_restore_item_locked, "milk", shop[0])
 
-    assert status == item_service.STATUS_RESTORED
+    assert outcome == "restored"
     _assert_stamped("items", item_id, room_id, before)
     assert _row("items", item_id)[0] == uid
 
@@ -222,33 +217,29 @@ def test_restore_checked_item_stamps_and_keeps_uid(room_id, shop, item_id):
 def test_duplicate_active_add_changes_nothing(room_id, shop, item_id):
     before = _seq(room_id)
 
-    status, _ = item_service.add_or_restore_item(shop[0], "milk", expected_slug=shop[1])
+    outcome, _ = write_locked(crud.add_or_restore_item_locked, "milk", shop[0])
 
-    assert status == item_service.STATUS_DUPLICATE_ACTIVE
+    assert outcome == "duplicate_active"
     assert _seq(room_id) == before
 
 
 @pytest.mark.parametrize(
     "write",
     [
-        lambda lid, iid, slug: item_service.toggle_item_done(
-            lid, iid, True, expected_slug=slug
+        lambda lid, iid: write_locked(crud.update_item_done_locked, iid, lid, True),
+        lambda lid, iid: restore_item(iid, lid),
+        lambda lid, iid: write_locked(crud.adjust_item_quantity_locked, iid, lid, 1),
+        lambda lid, iid: write_locked(
+            crud.update_item_details_locked, iid, lid, "milk", "", 4
         ),
-        lambda lid, iid, slug: restore_item(iid, lid),
-        lambda lid, iid, slug: item_service.change_item_quantity(
-            lid, iid, 1, expected_slug=slug
+        lambda lid, iid: write_locked(
+            crud.update_item_details_locked, iid, lid, "oat milk", "cold", 2
         ),
-        lambda lid, iid, slug: item_service.set_item_quantity(
-            lid, iid, 4, expected_slug=slug
+        lambda lid, iid: write_locked(
+            crud.update_item_details_locked, iid, lid, "oat milk", "cold", None
         ),
-        lambda lid, iid, slug: item_service.update_item_details_with_checks(
-            lid, iid, "oat milk", "cold", 2, expected_slug=slug
-        ),
-        lambda lid, iid, slug: item_service.rename_item_with_checks(
-            lid, iid, "oat milk", expected_slug=slug
-        ),
-        lambda lid, iid, slug: toggle_item_active_tag(iid, lid, "Lidl"),
-        lambda lid, iid, slug: update_item_active_tags(iid, lid, ["Lidl"]),
+        lambda lid, iid: toggle_item_active_tag(iid, lid, "Lidl"),
+        lambda lid, iid: update_item_active_tags(iid, lid, ["Lidl"]),
     ],
     ids=[
         "toggle_done",
@@ -265,7 +256,7 @@ def test_item_writes_stamp_and_keep_uid(room_id, shop, item_id, write):
     uid = _row("items", item_id)[0]
     before = _seq(room_id)
 
-    write(shop[0], item_id, shop[1])
+    write(shop[0], item_id)
 
     _assert_stamped("items", item_id, room_id, before)
     assert _row("items", item_id)[0] == uid
@@ -274,7 +265,7 @@ def test_item_writes_stamp_and_keep_uid(room_id, shop, item_id, write):
 def test_write_to_missing_item_changes_nothing(room_id, shop, item_id):
     before = _seq(room_id)
 
-    item_service.toggle_item_done(shop[0], item_id + 999, True, expected_slug=shop[1])
+    write_locked(crud.update_item_done_locked, item_id + 999, shop[0], True)
     toggle_item_active_tag(item_id + 999, shop[0], "Lidl")
 
     assert _seq(room_id) == before
@@ -284,7 +275,7 @@ def test_delete_item_records_deletion(room_id, shop, item_id):
     uid = _row("items", item_id)[0]
     before = _seq(room_id)
 
-    item_service.delete_item_from_list(shop[0], item_id, expected_slug=shop[1])
+    write_locked(crud.delete_item_locked, item_id, shop[0])
 
     assert _seq(room_id) == before + 1
     assert _deletions(room_id) == [("item", uid, before + 1)]
@@ -292,7 +283,7 @@ def test_delete_item_records_deletion(room_id, shop, item_id):
 
 def test_undo_delete_creates_item_with_new_uid(room_id, shop, item_id):
     old_uid = _row("items", item_id)[0]
-    item_service.delete_item_from_list(shop[0], item_id, expected_slug=shop[1])
+    write_locked(crud.delete_item_locked, item_id, shop[0])
     before = _seq(room_id)
 
     assert restore_deleted_item(shop[0], "milk", False, [], "", 1)
@@ -388,12 +379,12 @@ def _room_with_data(name: str, password_hash: str) -> tuple[int, str]:
         (name, f"{name.lower()}-x", password_hash),
     ).lastrowid
     db.commit()
-    list_id, slug = create_list("Trip", room_id)
-    item_service.add_or_restore_item(list_id, "tent", expected_slug=slug)
-    item_service.delete_item_from_list(
-        list_id, find_item_by_name(list_id, "tent")[0], expected_slug=slug
+    list_id, _ = create_list("Trip", room_id)
+    write_locked(crud.add_or_restore_item_locked, "tent", list_id)
+    write_locked(
+        crud.delete_item_locked, find_item_by_name(list_id, "tent")[0], list_id
     )
-    item_service.add_or_restore_item(list_id, "map", expected_slug=slug)
+    write_locked(crud.add_or_restore_item_locked, "map", list_id)
     db.execute(
         "INSERT INTO processed_ops (op_id, room_id, request_hash, response_json) "
         "VALUES (?, ?, 'h', '{}')",
@@ -427,16 +418,16 @@ def test_room_delete_leaves_no_orphans(home_password_hash, room_id, by_password)
 
 
 def test_seq_strictly_increases(room_id):
-    list_id, slug = create_list("Shop", room_id)
+    list_id, _ = create_list("Shop", room_id)
     seqs = [_seq(room_id)]
-    item_service.add_or_restore_item(list_id, "milk", expected_slug=slug)
+    write_locked(crud.add_or_restore_item_locked, "milk", list_id)
     seqs.append(_seq(room_id))
     item_id = find_item_by_name(list_id, "milk")[0]
-    item_service.toggle_item_done(list_id, item_id, True, expected_slug=slug)
+    write_locked(crud.update_item_done_locked, item_id, list_id, True)
     seqs.append(_seq(room_id))
     add_list_tag(list_id, "Lidl")
     seqs.append(_seq(room_id))
-    item_service.delete_item_from_list(list_id, item_id, expected_slug=slug)
+    write_locked(crud.delete_item_locked, item_id, list_id)
     seqs.append(_seq(room_id))
 
     assert seqs == sorted(set(seqs))
@@ -452,9 +443,9 @@ def test_other_rooms_are_untouched(home_password_hash, room_id, shop, item_id):
     ).fetchall()
     other_deletions = _deletions(other_id)
 
-    item_service.toggle_item_done(shop[0], item_id, True, expected_slug=shop[1])
+    write_locked(crud.update_item_done_locked, item_id, shop[0], True)
     rename_room(room_id, "Family")
-    item_service.delete_list_and_items(shop[0], room_id, expected_slug=shop[1])
+    write_locked(crud.delete_list_locked, shop[0])
 
     assert _seq(other_id) == other_seq
     assert (

@@ -12,11 +12,11 @@ from api_helpers import (
     insert_item,
     restore_item,
     update_list_visibility_settings,
+    write_locked,
 )
 
 import database_crud as crud
 from database_setup import db
-from item_service import add_or_restore_item
 from item_visibility import (
     DEFAULT_HIDE_DONE_AGE_DAYS,
     DEFAULT_HIDE_DONE_MODE,
@@ -197,7 +197,7 @@ def test_failed_visibility_settings_write_rolls_back_and_recovers():
 
 def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
     room_id = crud.get_rooms()[0]["id"]
-    list_id, slug = create_list("completion", room_id)
+    list_id, _ = create_list("completion", room_id)
     insert_item("Milk", list_id)
     item_id = find_item_by_name(list_id, "milk")[0]
     completed_first = datetime(2025, 1, 1, 12, tzinfo=UTC)
@@ -219,9 +219,8 @@ def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
     assert _stored_item(list_id, item_id)["completed_at"] is None
     crud.update_item_done(item_id, list_id, True, now=completed_first)
     assert filter_visible_items(get_list_data(list_id)[0], "all") == []
-    assert add_or_restore_item(list_id, "milk", expected_slug=slug) == (
-        "restored",
-        "milk",
+    assert (
+        write_locked(crud.add_or_restore_item_locked, "milk", list_id)[0] == "restored"
     )
     assert _stored_item(list_id, item_id)["completed_at"] is None
 

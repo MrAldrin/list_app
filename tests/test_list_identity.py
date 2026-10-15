@@ -11,7 +11,6 @@ from api_helpers import (
 )
 
 import database_crud as crud
-import item_service as service
 from database_setup import db
 
 
@@ -73,37 +72,3 @@ def test_database_writes_reject_reused_list_id(replacement, operation, args):
     # A rejected stale write must not poison the next valid transaction.
     mutate(**kwargs, expected_slug=new_slug)
     assert snapshot(list_id) != before
-
-
-@pytest.mark.parametrize(
-    "operation, args",
-    [
-        ("add_or_restore_item", {"raw_name": "stale"}),
-        ("add_or_restore_item", {"raw_name": "kept"}),
-        ("rename_item_with_checks", {"raw_name": "stale"}),
-        (
-            "update_item_details_with_checks",
-            {"raw_name": "stale", "raw_description": "stale"},
-        ),
-        ("toggle_item_done", {"done": False}),
-        ("set_item_quantity", {"quantity": 99}),
-        ("change_item_quantity", {"delta": 1}),
-        ("delete_item_from_list", {}),
-        ("rename_list_with_checks", {"raw_name": "stale"}),
-        ("delete_list_and_items", {}),
-    ],
-)
-def test_services_forward_original_slug(replacement, room_id, operation, args):
-    list_id, old_slug, _, item_id = replacement
-    before = snapshot(list_id)
-    kwargs = dict(args, list_id=list_id, expected_slug=old_slug)
-    if operation in {"rename_list_with_checks", "delete_list_and_items"}:
-        kwargs["room_id"] = room_id
-    elif operation != "add_or_restore_item":
-        kwargs["item_id"] = item_id
-
-    with pytest.raises(crud.ListUnavailable):
-        getattr(service, operation)(**kwargs)
-
-    assert snapshot(list_id) == before
-    assert not db.in_transaction
