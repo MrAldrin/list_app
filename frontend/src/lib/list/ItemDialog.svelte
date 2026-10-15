@@ -8,7 +8,7 @@
 	import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
 	import type { Item } from '#lib/data/index.ts';
-	import Dialog from '#lib/ui/Dialog.svelte';
+	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { stepQuantity } from './items';
 
@@ -35,81 +35,64 @@
 	let name = $state(untrack(() => item.name));
 	let description = $state(untrack(() => item.description));
 	let quantity = $state(untrack(() => item.quantity));
-	let busy = $state(false);
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy || !canWrite) return;
-		busy = true;
-		try {
-			await onSave({ name, description, quantity });
-		} finally {
-			busy = false;
-		}
-	}
 </script>
 
-<Dialog title="Edit Item" {onClose} focusBox>
-	<form onsubmit={submit} novalidate>
-		<label for={nameId}>Item Name</label>
-		<input
-			id={nameId}
-			bind:value={name}
-			maxlength={MAX_NAME_LENGTH}
-			autocomplete="off"
-			enterkeyhint="done"
-		/>
-		<label for={descriptionId}>Description / Notes</label>
-		<textarea
-			id={descriptionId}
-			bind:value={description}
-			maxlength={MAX_DESCRIPTION_LENGTH}
-			rows="3"></textarea>
-		<div class="quantity">
-			<span id="{nameId}-quantity">Quantity</span>
-			<div class="stepper" role="group" aria-labelledby="{nameId}-quantity">
-				<button
-					type="button"
-					aria-label="Less"
-					disabled={!canWrite || quantity <= 1}
-					onclick={() => (quantity = stepQuantity(quantity, -1))}
-				>
-					<Icon name="remove" />
-				</button>
-				<output aria-live="polite">{quantity}</output>
-				<button
-					type="button"
-					aria-label="More"
-					disabled={!canWrite}
-					onclick={() => (quantity = stepQuantity(quantity, 1))}
-				>
-					<Icon name="add" />
-				</button>
-			</div>
-		</div>
-		<div class="actions">
+<FormDialog
+	title="Edit Item"
+	submitLabel="Save"
+	submitDisabled={!canWrite}
+	focusBox
+	onSubmit={() => onSave({ name, description, quantity })}
+	{onClose}
+>
+	<label for={nameId}>Item Name</label>
+	<input
+		id={nameId}
+		bind:value={name}
+		maxlength={MAX_NAME_LENGTH}
+		autocomplete="off"
+		enterkeyhint="done"
+	/>
+	<label for={descriptionId}>Description / Notes</label>
+	<textarea id={descriptionId} bind:value={description} maxlength={MAX_DESCRIPTION_LENGTH} rows="3"
+	></textarea>
+	<div class="quantity">
+		<span id="{nameId}-quantity">Quantity</span>
+		<div class="stepper" role="group" aria-labelledby="{nameId}-quantity">
 			<button
-				class="delete"
 				type="button"
-				aria-label="Delete Item"
-				disabled={!canWrite}
-				onclick={onDelete}
+				aria-label="Less"
+				disabled={!canWrite || quantity <= 1}
+				onclick={() => (quantity = stepQuantity(quantity, -1))}
 			>
-				<Icon name="delete" />
+				<Icon name="remove" />
 			</button>
-			<span class="spacer"></span>
-			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy || !canWrite}>Save</button>
+			<output aria-live="polite">{quantity}</output>
+			<button
+				type="button"
+				aria-label="More"
+				disabled={!canWrite}
+				onclick={() => (quantity = stepQuantity(quantity, 1))}
+			>
+				<Icon name="add" />
+			</button>
 		</div>
-	</form>
-</Dialog>
+	</div>
+	{#snippet leading()}
+		<button
+			class="delete"
+			type="button"
+			aria-label="Delete Item"
+			disabled={!canWrite}
+			onclick={onDelete}
+		>
+			<Icon name="delete" />
+		</button>
+		<span class="spacer"></span>
+	{/snippet}
+</FormDialog>
 
 <style>
-	form {
-		display: grid;
-		gap: 0.5rem;
-	}
-
 	.quantity {
 		display: flex;
 		align-items: center;
@@ -136,15 +119,6 @@
 		min-width: 2rem;
 		text-align: center;
 		font-weight: 700;
-	}
-
-	.actions {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-top: 0.5rem;
-		/* app.css right-aligns .actions; here .spacer pushes the buttons apart. */
-		justify-content: normal;
 	}
 
 	.spacer {

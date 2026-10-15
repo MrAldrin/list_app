@@ -119,7 +119,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] Move repeated CSS (`.actions` in 13 files, labels, forms,
   titles) to `app.css`.
 - [x] [refactor] One `PasswordPrompt` for `RoomLogin` and `AdminLogin`.
-- [ ] [refactor] One `FormDialog` for the eight form dialogs.
+- [x] [refactor] One `FormDialog` for the eight form dialogs.
 - [ ] [refactor] One page shell for room, list and share pages (load, auth,
   error, connection status).
 - [ ] [refactor] Shared helpers: share/copy with toast, undo toast, admin

@@ -6,7 +6,7 @@
 <script lang="ts">
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { admin, type ActionResult, type Room } from '#lib/data/index.ts';
-	import Dialog from '#lib/ui/Dialog.svelte';
+	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -22,14 +22,9 @@
 	const id = $props.id();
 	let name = $state('');
 	let password = $state('');
-	let busy = $state(false);
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy) return;
-		busy = true;
+	async function submit() {
 		const result: ActionResult<Room> = await admin.createRoom(name, password);
-		busy = false;
 		if (!result.ok) {
 			toasts.show(result.message, 'warning');
 			if (admin.isSignedOut(result)) onSignedOut();
@@ -41,15 +36,9 @@
 	}
 </script>
 
-<Dialog title="New Room" {onClose}>
-	<form onsubmit={submit} novalidate>
-		<label for="{id}-name">Room name</label>
-		<input id="{id}-name" bind:value={name} maxlength={MAX_NAME_LENGTH} autocomplete="off" />
-		<label for="{id}-password">Password</label>
-		<input id="{id}-password" type="password" bind:value={password} autocomplete="new-password" />
-		<div class="actions">
-			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy}>Create</button>
-		</div>
-	</form>
-</Dialog>
+<FormDialog title="New Room" submitLabel="Create" onSubmit={submit} {onClose}>
+	<label for="{id}-name">Room name</label>
+	<input id="{id}-name" bind:value={name} maxlength={MAX_NAME_LENGTH} autocomplete="off" />
+	<label for="{id}-password">Password</label>
+	<input id="{id}-password" type="password" bind:value={password} autocomplete="new-password" />
+</FormDialog>

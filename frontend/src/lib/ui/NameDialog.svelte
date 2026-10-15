@@ -5,7 +5,7 @@
 <script lang="ts">
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
-	import Dialog from './Dialog.svelte';
+	import FormDialog from './FormDialog.svelte';
 
 	let {
 		title,
@@ -28,33 +28,21 @@
 	// `untrack`: start with the first value only; later changes of `initial`
 	// (for example a live rename by someone else) do not overwrite typing.
 	let name = $state(untrack(() => initial));
-	let busy = $state(false);
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy || saveDisabled) return;
-		busy = true;
-		try {
-			await onSave(name);
-		} finally {
-			busy = false;
-		}
-	}
 </script>
 
-<Dialog {title} {onClose}>
-	<form onsubmit={submit} novalidate>
-		<label for={inputId}>{label}</label>
-		<input
-			id={inputId}
-			bind:value={name}
-			maxlength={MAX_NAME_LENGTH}
-			autocomplete="off"
-			enterkeyhint="done"
-		/>
-		<div class="actions">
-			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy || saveDisabled}>Save</button>
-		</div>
-	</form>
-</Dialog>
+<FormDialog
+	{title}
+	submitLabel="Save"
+	submitDisabled={saveDisabled}
+	onSubmit={() => onSave(name)}
+	{onClose}
+>
+	<label for={inputId}>{label}</label>
+	<input
+		id={inputId}
+		bind:value={name}
+		maxlength={MAX_NAME_LENGTH}
+		autocomplete="off"
+		enterkeyhint="done"
+	/>
+</FormDialog>

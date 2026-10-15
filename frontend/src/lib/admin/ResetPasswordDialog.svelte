@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
 	import { admin, type Room } from '#lib/data/index.ts';
-	import Dialog from '#lib/ui/Dialog.svelte';
+	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -24,14 +24,9 @@
 
 	const id = $props.id();
 	let password = $state('');
-	let busy = $state(false);
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy) return;
-		busy = true;
+	async function submit() {
 		const result = await admin.resetPassword(room.slug, password);
-		busy = false;
 		if (result.ok) {
 			password = '';
 			toasts.show('Password reset successfully', 'success');
@@ -47,21 +42,21 @@
 	}
 </script>
 
-<Dialog title="Admin reset of room password: {room.name}" {onClose}>
-	<form onsubmit={submit} novalidate>
-		<p class="explain">
-			Sets a new password for this room without asking for the old one. Everyone who is signed in to
-			the room is logged out on every device and must sign in with the new password. Share links to
-			its lists keep working.
-		</p>
-		<label for="{id}-password">New Room Password</label>
-		<input id="{id}-password" type="password" bind:value={password} autocomplete="new-password" />
-		<div class="actions">
-			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="danger" type="submit" disabled={busy}>Reset</button>
-		</div>
-	</form>
-</Dialog>
+<FormDialog
+	title="Admin reset of room password: {room.name}"
+	submitLabel="Reset"
+	danger
+	onSubmit={submit}
+	{onClose}
+>
+	<p class="explain">
+		Sets a new password for this room without asking for the old one. Everyone who is signed in to
+		the room is logged out on every device and must sign in with the new password. Share links to
+		its lists keep working.
+	</p>
+	<label for="{id}-password">New Room Password</label>
+	<input id="{id}-password" type="password" bind:value={password} autocomplete="new-password" />
+</FormDialog>
 
 <style>
 	.explain {

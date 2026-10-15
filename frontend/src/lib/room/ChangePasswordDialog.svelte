@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
 	import type { RoomHandle } from '#lib/data/index.ts';
-	import Dialog from '#lib/ui/Dialog.svelte';
+	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -18,14 +18,9 @@
 	const id = $props.id();
 	let current = $state('');
 	let next = $state('');
-	let busy = $state(false);
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy || disabled) return;
-		busy = true;
+	async function submit() {
 		const result = await room.changePassword(current, next);
-		busy = false;
 		if (!result.ok) {
 			// Keep the dialog open, so a typo can be fixed.
 			toasts.show(result.message, 'warning');
@@ -38,15 +33,15 @@
 	}
 </script>
 
-<Dialog title="Change Room Password" {onClose}>
-	<form onsubmit={submit} novalidate>
-		<label for="{id}-current">Current Password</label>
-		<input id="{id}-current" type="password" bind:value={current} autocomplete="current-password" />
-		<label for="{id}-new">New Password</label>
-		<input id="{id}-new" type="password" bind:value={next} autocomplete="new-password" />
-		<div class="actions">
-			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="primary" type="submit" disabled={busy || disabled}>Change</button>
-		</div>
-	</form>
-</Dialog>
+<FormDialog
+	title="Change Room Password"
+	submitLabel="Change"
+	submitDisabled={disabled}
+	onSubmit={submit}
+	{onClose}
+>
+	<label for="{id}-current">Current Password</label>
+	<input id="{id}-current" type="password" bind:value={current} autocomplete="current-password" />
+	<label for="{id}-new">New Password</label>
+	<input id="{id}-new" type="password" bind:value={next} autocomplete="new-password" />
+</FormDialog>

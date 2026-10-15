@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import type { RoomHandle } from '#lib/data/index.ts';
-	import Dialog from '#lib/ui/Dialog.svelte';
+	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -21,14 +21,9 @@
 
 	const id = $props.id();
 	let password = $state('');
-	let busy = $state(false);
 
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy || disabled) return;
-		busy = true;
+	async function submit() {
 		const result = await room.deleteRoom(password);
-		busy = false;
 		if (!result.ok) {
 			toasts.show(result.message, 'warning');
 			return;
@@ -38,24 +33,20 @@
 	}
 </script>
 
-<Dialog title="Delete Room" {onClose}>
-	<form onsubmit={submit} novalidate>
-		<p class="warning">
-			Warning: This will delete ALL lists and items inside this room. This cannot be undone.
-		</p>
-		<label for="{id}-password">Enter Room Password to Confirm</label>
-		<input
-			id="{id}-password"
-			type="password"
-			bind:value={password}
-			autocomplete="current-password"
-		/>
-		<div class="actions">
-			<button type="button" onclick={onClose}>Cancel</button>
-			<button class="danger" type="submit" disabled={busy || disabled}>Delete</button>
-		</div>
-	</form>
-</Dialog>
+<FormDialog
+	title="Delete Room"
+	submitLabel="Delete"
+	danger
+	submitDisabled={disabled}
+	onSubmit={submit}
+	{onClose}
+>
+	<p class="warning">
+		Warning: This will delete ALL lists and items inside this room. This cannot be undone.
+	</p>
+	<label for="{id}-password">Enter Room Password to Confirm</label>
+	<input id="{id}-password" type="password" bind:value={password} autocomplete="current-password" />
+</FormDialog>
 
 <style>
 	.warning {
