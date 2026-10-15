@@ -26,7 +26,6 @@ from starlette.testclient import TestClient
 
 import api.ops
 import database_crud as crud
-import live_updates
 from database_setup import db
 
 
@@ -196,13 +195,6 @@ def ctx() -> Ctx:
 @pytest.fixture
 def client(ctx: Ctx) -> TestClient:
     return client_for(ctx.slug)
-
-
-@pytest.fixture
-def notified(monkeypatch) -> list[int]:
-    calls: list[int] = []
-    monkeypatch.setattr(live_updates, "_listeners", [calls.append])
-    return calls
 
 
 def body_for(case: Case, ctx: Ctx, op_id: str | None = None) -> dict[str, Any]:

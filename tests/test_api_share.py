@@ -30,7 +30,6 @@ from test_api_events import SseConnection, run
 
 import api.share
 import database_crud as crud
-import live_updates
 import main
 from database_setup import db
 
@@ -95,13 +94,6 @@ def shared():
         "other_uid": uid_of_list(other_id),
         "other_item": other_item,
     }
-
-
-@pytest.fixture
-def notified(monkeypatch) -> list[int]:
-    calls: list[int] = []
-    monkeypatch.setattr(live_updates, "_listeners", [calls.append])
-    return calls
 
 
 # Reading by token

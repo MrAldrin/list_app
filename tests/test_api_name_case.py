@@ -11,24 +11,15 @@ from typing import Any
 import pytest
 from api_helpers import (
     add_item,
-    client_for,
     create_list,
     default_list,
-    home,
     item_row,
     new_id,
     op,
 )
-from starlette.testclient import TestClient
 
 import database_crud as crud
 from database_setup import db
-
-
-@pytest.fixture
-def room() -> tuple[int, str, TestClient]:
-    room_id, slug = home()
-    return room_id, slug, client_for(slug)
 
 
 def list_names(room_id: int) -> list[str]:

@@ -9,10 +9,8 @@ from api_helpers import (
     add_list_tag,
     assert_error,
     changes,
-    client_for,
     create_list,
     default_list,
-    home,
     item_row,
     list_uid_of,
     new_id,
@@ -27,21 +25,7 @@ from api_helpers import (
 from starlette.testclient import TestClient
 
 import database_crud as crud
-import live_updates
 from database_setup import db
-
-
-@pytest.fixture
-def room() -> tuple[int, str, TestClient]:
-    room_id, slug = home()
-    return room_id, slug, client_for(slug)
-
-
-@pytest.fixture
-def notified(monkeypatch) -> list[int]:
-    calls: list[int] = []
-    monkeypatch.setattr(live_updates, "_listeners", [calls.append])
-    return calls
 
 
 def seq_of(room_id: int) -> int:

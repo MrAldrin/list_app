@@ -3,14 +3,17 @@ import uuid
 
 import bcrypt
 import pytest
+from starlette.testclient import TestClient
 
 # Set DB_PATH to memory for all tests to avoid touching the real database
 os.environ["DB_PATH"] = ":memory:"
 # Tests use explicit credentials, never a developer's .env or deployment secrets.
 os.environ["APP_PASSWORD"] = "test-only-app-password"
 
+from api_helpers import client_for, home
 from fastapi import FastAPI
 
+import live_updates
 from api import register_api
 from database_setup import db
 
@@ -45,6 +48,21 @@ def clean_db(home_password_hash):
     )
     db.commit()
     yield
+
+
+@pytest.fixture
+def room() -> tuple[int, str, TestClient]:
+    """The Home room with a signed-in client (api_helpers.home, client_for)."""
+    room_id, slug = home()
+    return room_id, slug, client_for(slug)
+
+
+@pytest.fixture
+def notified(monkeypatch) -> list[int]:
+    """Room IDs passed to live-update listeners (main's listener is replaced)."""
+    calls: list[int] = []
+    monkeypatch.setattr(live_updates, "_listeners", [calls.append])
+    return calls
 
 
 @pytest.fixture

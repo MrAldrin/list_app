@@ -1,15 +1,21 @@
 """List write ops and the op_id helper (docs/api.md, "Writing: operations")."""
 
 import sqlite3
-import uuid
-from typing import Any
 
 import pytest
 from api_helpers import (
+    HTTPS,
+    assert_error,
+    client_for,
     create_list,
     find_list_by_name,
+    home,
     insert_item,
+    new_id,
+    op,
+    processed_ops_count,
     rename_list,
+    send,
     update_room_password,
     write_locked,
 )
@@ -21,45 +27,6 @@ import live_updates
 import main
 import server
 from database_setup import db
-
-HTTPS = "https://testserver"
-
-
-def home() -> tuple[int, str]:
-    room_id, slug = db.execute(
-        "SELECT id, slug FROM rooms WHERE name = 'Home'"
-    ).fetchone()
-    return room_id, slug
-
-
-def client_for(slug: str | None = None, password: str = "pw") -> TestClient:
-    client = TestClient(
-        main.app,
-        base_url=HTTPS,
-        headers={"Origin": HTTPS},
-        raise_server_exceptions=False,
-    )
-    if slug is not None:
-        response = client.post(
-            f"/api/v1/rooms/{slug}/session", json={"password": password}
-        )
-        assert response.status_code == 200
-    return client
-
-
-def new_id() -> str:
-    return str(uuid.uuid4())
-
-
-def send(client: TestClient, slug: str, body: dict[str, Any]):
-    return client.post(f"/api/v1/rooms/{slug}/ops", json=body)
-
-
-def op(client: TestClient, slug: str, body: dict[str, Any]) -> dict[str, Any]:
-    response = send(client, slug, body)
-    assert response.status_code == 200, response.text
-    assert response.headers["cache-control"] == "no-store"
-    return response.json()
 
 
 def feed_seq(client: TestClient, slug: str) -> int:
@@ -74,30 +41,6 @@ def list_row(list_uid: str) -> tuple | None:
 
 def default_list_uid() -> str:
     return db.execute("SELECT uid FROM lists WHERE name = 'default'").fetchone()[0]
-
-
-def processed_ops_count() -> int:
-    return db.execute("SELECT COUNT(*) FROM processed_ops").fetchone()[0]
-
-
-def assert_error(response, status: int, code: str) -> None:
-    assert response.status_code == status
-    assert response.json()["error"]["code"] == code
-    assert response.headers["cache-control"] == "no-store"
-
-
-@pytest.fixture
-def room() -> tuple[int, str, TestClient]:
-    room_id, slug = home()
-    return room_id, slug, client_for(slug)
-
-
-@pytest.fixture
-def notified(monkeypatch) -> list[int]:
-    """Room IDs passed to live-update listeners (main's listener is replaced)."""
-    calls: list[int] = []
-    monkeypatch.setattr(live_updates, "_listeners", [calls.append])
-    return calls
 
 
 # list.create
