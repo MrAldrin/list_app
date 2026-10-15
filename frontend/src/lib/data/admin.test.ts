@@ -1,28 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import * as admin from './admin';
 import { Api } from './api';
-
-function json(status: number, body: unknown): Response {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: { 'Content-Type': 'application/json' }
-	});
-}
+import { fakeFetch, json } from './test-helpers';
 
 function error(status: number, code: string, message: string): Response {
 	return json(status, { error: { code, message } });
-}
-
-/** A fake fetch that answers each call with the next response. */
-function fakeFetch(...responses: (Response | Error)[]) {
-	return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-		void input;
-		void init;
-		const next = responses.shift();
-		if (!next) throw new Error('no more answers');
-		if (next instanceof Error) throw next;
-		return next;
-	});
 }
 
 function call(fetch: ReturnType<typeof fakeFetch>, index = 0) {

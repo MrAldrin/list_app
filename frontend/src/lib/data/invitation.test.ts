@@ -1,29 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Api } from './api';
 import * as invitation from './invitation';
+import { fakeFetch, json } from './test-helpers';
 
 const UNAVAILABLE = 'This invitation is invalid or no longer active.';
 
-function json(status: number, body: unknown): Response {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: { 'Content-Type': 'application/json' }
-	});
-}
-
 function unavailable(): Response {
 	return json(404, { error: { code: 'invitation_unavailable', message: UNAVAILABLE } });
-}
-
-function fakeFetch(...responses: (Response | Error)[]) {
-	return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-		void input;
-		void init;
-		const next = responses.shift();
-		if (!next) throw new Error('no more answers');
-		if (next instanceof Error) throw next;
-		return next;
-	});
 }
 
 describe('invitation data layer', () => {

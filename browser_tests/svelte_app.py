@@ -1,6 +1,7 @@
 """Shared steps for the Svelte browser tests (`test_svelte_*.py`)."""
 
 import re
+from collections.abc import Callable
 
 from playwright.sync_api import Page, expect
 
@@ -50,6 +51,52 @@ def item_names(page: Page):
 
 def list_links(page: Page):
     return page.locator("main li a")
+
+
+SHARE_LINK = re.compile(r"/share/[A-Za-z0-9_-]{43}$")
+
+
+def share_link(page: Page) -> str:
+    page.get_by_role("button", name="List menu").click()
+    page.get_by_role("button", name="Share List").click()
+    dialog = page.get_by_role("dialog")
+    expect(dialog.get_by_role("heading", name="Share this list")).to_be_visible()
+    expect(
+        dialog.get_by_text("Anyone with this link can open this list.")
+    ).to_be_visible()
+    link = dialog.get_by_role("textbox", name="Link").input_value()
+    assert SHARE_LINK.search(link), link
+    dialog.get_by_role("button", name="Close").click()
+    expect(dialog).to_have_count(0)
+    return link
+
+
+def hold_live_updates(page: Page) -> None:
+    """The page's live stream never connects, so it misses a share reset or a delete.
+
+    Its next write is then sent with the old link, as from a phone that was
+    asleep while the link was reset.
+    """
+    page.route(re.compile(r"/api/v1/(rooms|share)/[^/]+/events"), lambda route: None)
+
+
+def wait_until(
+    page: Page,
+    check: Callable[[], bool],
+    message: str,
+    timeout_ms: int = 10_000,
+) -> None:
+    """Let the page run until `check()` is true, for state only Python can see.
+
+    Use it for what a route handler or the server recorded in Python. Waits on
+    the page itself should use `expect` or `wait_for_function`.
+    """
+    waited = 0
+    while not check():
+        if waited >= timeout_ms:
+            raise AssertionError(message)
+        page.wait_for_timeout(100)
+        waited += 100
 
 
 def admin_sign_in(page, server) -> None:

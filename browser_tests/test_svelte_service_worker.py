@@ -7,7 +7,6 @@ import mimetypes
 import re
 import shutil
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -15,6 +14,7 @@ from urllib.parse import urlsplit
 import pytest
 from conftest import ROOT
 from playwright.sync_api import expect
+from svelte_app import wait_until
 
 FRONTEND_BUILD = ROOT / "frontend" / "build"
 WORKER_PREFIX = "listr-app-shell-"
@@ -271,10 +271,12 @@ def test_waiting_version_takes_over_when_the_app_opens_offline(
     old_tab.wait_for_function(
         "document.documentElement.outerHTML.includes('test-update-B')"
     )
-    deadline = time.monotonic() + 10
-    while _cache_names(new_tab) != [cache_b]:
-        assert time.monotonic() < deadline, "version A was not cleaned up"
-        time.sleep(0.1)
+    new_tab.wait_for_function(
+        "(expected) => caches.keys().then((names) => "
+        "JSON.stringify(names) === JSON.stringify(expected))",
+        arg=[cache_b],
+        timeout=10_000,
+    )
 
 
 def _come_back_to_the_app(page) -> None:
@@ -338,24 +340,12 @@ def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     assert set(_cache_names(unclaimed_page)) == {cache_a, cache_b}
 
     old_controlled_page.close()
-    deadline = time.monotonic() + 20
-    while time.monotonic() < deadline:
-        state = unclaimed_page.evaluate(
-            "navigator.serviceWorker.getRegistration().then((registration) => "
-            "({installing: registration.installing?.state, waiting: registration.waiting?.state, "
-            "active: registration.active?.state}))"
-        )
-        if (
-            not state["installing"]
-            and not state["waiting"]
-            and state["active"] == "activated"
-        ):
-            break
-        time.sleep(0.1)
-    else:
-        raise AssertionError(
-            "the waiting worker did not activate after its old tab closed"
-        )
+    unclaimed_page.wait_for_function(
+        "navigator.serviceWorker.getRegistration().then((registration) => "
+        "!registration.installing && !registration.waiting && "
+        "registration.active?.state === 'activated')",
+        timeout=20_000,
+    )
     assert set(_cache_names(unclaimed_page)) == {cache_a, cache_b}
 
     new_page = context.new_page()
@@ -389,21 +379,23 @@ def test_interrupted_update_keeps_last_complete_version_usable(
         "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
     )
 
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline:
+    def install_failed() -> bool:
         state = page.evaluate(
             "navigator.serviceWorker.getRegistration().then((registration) => "
             "({installing: registration.installing?.state, waiting: registration.waiting?.state}))"
         )
-        if (
-            server.state.failed_asset_requests
+        return (
+            bool(server.state.failed_asset_requests)
             and not state["installing"]
             and not state["waiting"]
-        ):
-            break
-        time.sleep(0.1)
-    else:
-        raise AssertionError("the interrupted worker install did not fail cleanly")
+        )
+
+    wait_until(
+        page,
+        install_failed,
+        "the interrupted worker install did not fail cleanly",
+        timeout_ms=30_000,
+    )
 
     assert server.state.failed_asset_requests
     assert set(server.state.failed_asset_requests) == {asset_path}

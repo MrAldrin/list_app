@@ -2,23 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Api, isRetryable } from './api';
 import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
+import { fakeFetch, json } from './test-helpers';
 import type { SentOp } from './types';
-
-function json(status: number, body: unknown): Response {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: { 'Content-Type': 'application/json' }
-	});
-}
-
-function fakeFetch(response: Response | Error) {
-	return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-		void input;
-		void init;
-		if (response instanceof Error) throw response;
-		return response;
-	});
-}
 
 describe('Api', () => {
 	it('reads the changes feed from /api/v1 at the origin root', async () => {

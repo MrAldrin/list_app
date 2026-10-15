@@ -9,15 +9,18 @@ import re
 
 import pytest
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, create_list, room_app_url, sign_in
-from test_svelte_share import RESET_MESSAGE, share_link, without_share_sheet
+from svelte_app import (
+    PHONE,
+    add_item,
+    create_list,
+    hold_live_updates,
+    room_app_url,
+    share_link,
+    sign_in,
+)
+from test_svelte_share import RESET_MESSAGE, without_share_sheet
 
 OPS = re.compile(r"/api/v1/(rooms|share)/[^/]+/ops$")
-
-
-def hold_live_updates(page: Page) -> None:
-    """The page's live stream never connects, so it misses the delete."""
-    page.route(re.compile(r"/api/v1/(rooms|share)/[^/]+/events"), lambda route: None)
 
 
 def prepare_action(page: Page, action: str):

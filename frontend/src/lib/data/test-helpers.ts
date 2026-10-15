@@ -1,5 +1,6 @@
 // Shared fakes for the data layer tests. Not used by the app.
 
+import { vi } from 'vitest';
 import type { EventSourceLike } from './events';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
 
@@ -147,4 +148,24 @@ export class FakeVisibility {
 		this.visibilityState = state;
 		for (const listener of this.#listeners) listener();
 	}
+}
+
+/** A JSON answer, as the server sends it. */
+export function json(status: number, body: unknown): Response {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: { 'Content-Type': 'application/json' }
+	});
+}
+
+/** A fake fetch that answers each call with the next response; it throws when none is left. */
+export function fakeFetch(...responses: (Response | Error)[]) {
+	return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+		void input;
+		void init;
+		const next = responses.shift();
+		if (!next) throw new Error('no more answers');
+		if (next instanceof Error) throw next;
+		return next;
+	});
 }

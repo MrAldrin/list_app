@@ -4,7 +4,15 @@ import re
 
 from conftest import wait_for_api_idle
 from playwright.sync_api import expect
-from svelte_app import PHONE, app_url, create_list, list_links, room_app_url, sign_in
+from svelte_app import (
+    PHONE,
+    app_url,
+    create_list,
+    list_links,
+    room_app_url,
+    sign_in,
+    wait_until,
+)
 
 
 def test_start_page_login_and_remembered_room(svelte_server, open_session):
@@ -120,10 +128,8 @@ def test_logout_shows_the_prompt_before_the_server_answers_and_retries(
     page.get_by_role("button", name="Room menu").click()
     page.get_by_role("button", name="Log out").click()
     expect(page.get_by_label("Room Password")).to_be_visible()
-    for _ in range(200):  # the DELETE goes out right after the marker
-        if held:
-            break
-        page.wait_for_timeout(25)
+    # The DELETE goes out right after the marker.
+    wait_until(page, lambda: bool(held), "the DELETE was not sent", timeout_ms=5_000)
     assert len(held) == 1
     assert page.request.get(f"{server.url}/api/v1/rooms/{slug}/session").ok
 

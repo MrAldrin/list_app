@@ -10,9 +10,17 @@ import json
 import re
 
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, app_url, create_list, item_names, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    app_url,
+    create_list,
+    hold_live_updates,
+    item_names,
+    share_link,
+    sign_in,
+)
 
-SHARE_LINK = re.compile(r"/share/[A-Za-z0-9_-]{43}$")
 RESET_MESSAGE = "This list was deleted or this share link was reset."
 UNAVAILABLE_MESSAGE = "This list was deleted or you no longer have access."
 
@@ -21,21 +29,6 @@ def without_share_sheet(page: Page) -> Page:
     """Hide the phone share sheet, so the link dialog shows on every engine."""
     page.context.add_init_script("delete Navigator.prototype.share")
     return page
-
-
-def share_link(page: Page) -> str:
-    page.get_by_role("button", name="List menu").click()
-    page.get_by_role("button", name="Share List").click()
-    dialog = page.get_by_role("dialog")
-    expect(dialog.get_by_role("heading", name="Share this list")).to_be_visible()
-    expect(
-        dialog.get_by_text("Anyone with this link can open this list.")
-    ).to_be_visible()
-    link = dialog.get_by_role("textbox", name="Link").input_value()
-    assert SHARE_LINK.search(link), link
-    dialog.get_by_role("button", name="Close").click()
-    expect(dialog).to_have_count(0)
-    return link
 
 
 def reset_link(page: Page) -> None:
@@ -51,15 +44,6 @@ def reset_link(page: Page) -> None:
     dialog.get_by_role("button", name="Reset share link").click()
     expect(page.get_by_text("Share link reset", exact=True)).to_be_visible()
     expect(dialog).to_have_count(0)
-
-
-def hold_live_updates(page: Page) -> None:
-    """The visitor's live stream never connects, so it misses the reset.
-
-    Its next write is then sent with the old link, as from a phone that was
-    asleep while the link was reset.
-    """
-    page.route("**/api/v1/share/*/events", lambda route: None)
 
 
 def share_token(server) -> str:

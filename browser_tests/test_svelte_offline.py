@@ -10,6 +10,7 @@ from svelte_app import (
     item_names,
     list_links,
     room_app_url,
+    share_link,
     sign_in,
 )
 
@@ -46,15 +47,6 @@ def controlled_page(page: Page, url: str) -> tuple[Page, dict[str, bool]]:
         "navigator.serviceWorker.controller?.scriptURL.endsWith('/service-worker.js')"
     )
     return page, capabilities
-
-
-def share_link(page: Page) -> str:
-    page.get_by_role("button", name="List menu").click()
-    page.get_by_role("button", name="Share List").click()
-    dialog = page.get_by_role("dialog")
-    link = dialog.get_by_role("textbox", name="Link").input_value()
-    dialog.get_by_role("button", name="Close").click()
-    return link
 
 
 def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_session):

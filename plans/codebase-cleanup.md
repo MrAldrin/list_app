@@ -108,7 +108,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   `set_cookies` / `plain_browser` copies.
 - [x] [test] Merge overlapping migration, manifest and route tests (keep unique
   assertions).
-- [ ] [test] Frontend: move `json()` / `fakeFetch()` to `test-helpers.ts`.
+- [x] [test] Frontend: move `json()` / `fakeFetch()` to `test-helpers.ts`.
   Browser tests: shared `share_link` and `hold_live_updates` in `svelte_app.py`;
   `wait_for_function` instead of sleep loops.
 - [ ] [test] One Playwright-free server launcher shared by

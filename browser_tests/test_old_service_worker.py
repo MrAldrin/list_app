@@ -9,7 +9,6 @@ for its update.
 """
 
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from conftest import TestServer
@@ -61,15 +60,18 @@ class OldAppHandler(BaseHTTPRequestHandler):
         pass
 
 
+REGISTRATION_SCRIPTS = (
+    "navigator.serviceWorker.getRegistrations().then((registrations) => "
+    "registrations.flatMap((registration) => "
+    "[registration.installing, registration.waiting, registration.active] "
+    ".filter(Boolean).map((worker) => new URL(worker.scriptURL).pathname)))"
+)
+
+
 def registration_scripts(page) -> list[str] | None:
     """Registered worker scripts, or None while the page is reloading."""
     try:
-        return page.evaluate(
-            "navigator.serviceWorker.getRegistrations().then((registrations) => "
-            "registrations.flatMap((registration) => "
-            "[registration.installing, registration.waiting, registration.active] "
-            ".filter(Boolean).map((worker) => new URL(worker.scriptURL).pathname)))"
-        )
+        return page.evaluate(REGISTRATION_SCRIPTS)
     except Error:
         return None
 
@@ -104,24 +106,18 @@ def test_the_old_service_worker_is_removed_before_the_new_shell_is_saved(
         page.evaluate(
             "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
         )
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            scripts = registration_scripts(page) or []
-            if "/service-worker.js" in scripts and "/sw.js" not in scripts:
-                break
-            time.sleep(0.1)
-        else:
-            raise AssertionError("legacy worker was not replaced by the Svelte worker")
+        page.wait_for_function(
+            f"{REGISTRATION_SCRIPTS}.then((scripts) => "
+            "scripts.includes('/service-worker.js') && !scripts.includes('/sw.js'))",
+            timeout=30_000,
+        )
         expect(page.get_by_label("Room link or code")).to_be_visible()
 
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            names = cache_names(page)
-            if any(name.startswith("listr-app-shell-") for name in names):
-                break
-            time.sleep(0.1)
-        else:
-            raise AssertionError("the Svelte worker did not save its shell")
+        page.wait_for_function(
+            "caches.keys().then((names) => "
+            "names.some((name) => name.startsWith('listr-app-shell-')))",
+            timeout=30_000,
+        )
 
         assert "/sw.js" not in registration_scripts(page)
         assert "listr-v1" not in cache_names(page)
