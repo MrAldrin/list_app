@@ -70,7 +70,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   column `ALTER`s) and their tests. Check a fresh database still builds.
 - [x] [refactor] `src/live_updates.py`: drop unused `register_listener` (keep
   `_listeners`; five test files use it as a hook).
-- [ ] [refactor] Frontend: drop test-only `RoomHandle.signedOut()`, simplify
+- [x] [refactor] Frontend: drop test-only `RoomHandle.signedOut()`, simplify
   `events.ts` `#reconnected` branches, delete empty `src/lib/index.ts` and the
   bare `#lib` alias.
 - [x] [test] Rename `browser_tests/test_svelte_install.py` (name clash with
@@ -155,7 +155,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 - [x] Review done and findings checked (2026-10-15).
 - [x] Decisions D1-D5 made (2026-10-15).
-- [ ] Phase 1
+- [x] Phase 1
 - [ ] Phase 2
 - [ ] Phase 3
 - [ ] Phase 4

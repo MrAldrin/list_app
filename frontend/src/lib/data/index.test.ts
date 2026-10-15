@@ -247,7 +247,7 @@ describe('RoomHandle', () => {
 		void pending.then(() => (completed = true));
 		await settle();
 		const original = room.queuedOps[0];
-		room.signedOut();
+		void room.logout();
 		await settle();
 		expect(completed).toBe(false);
 		expect(room.queuedOps).toEqual([original]);

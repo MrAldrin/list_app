@@ -636,16 +636,6 @@ export class RoomHandle {
 		}
 	}
 
-	/** Synchronous local-only hook retained for callers that only need to clear UI. */
-	signedOut(): void {
-		this.#blockAndClear('auth_required', false);
-		if (this.#identity.kind === 'room' && this.#snapshotStore) {
-			void this.#snapshotStore.localSignOut(this.#roomIdentity()).then((result) => {
-				if (!result.ok) this.#warnSnapshot();
-			});
-		}
-	}
-
 	#sameIdentity(identity: SnapshotIdentity): boolean {
 		return (
 			identity.kind === this.#identity.kind &&

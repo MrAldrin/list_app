@@ -227,15 +227,12 @@ export class LiveUpdates {
 	 * it, so a change of state is never lost.
 	 */
 	#reconnected(): void {
-		if (!this.#options.onReconnect) {
-			void this.#options.host.refresh();
-			return;
-		}
+		// Without onReconnect, `#revalidating` is never set, so this path is the same.
 		if (this.#revalidating) {
 			this.#revalidateAgain = true;
 			return;
 		}
-		const validated = this.#options.onReconnect();
+		const validated = this.#options.onReconnect?.();
 		if (validated === undefined) {
 			void this.#options.host.refresh();
 			return;
@@ -262,7 +259,7 @@ export class LiveUpdates {
 
 	#onOnline = () => {
 		if (!this.#running) return;
-		if (!this.#source || this.#source.readyState === CLOSED) {
+		if (this.#streamDown()) {
 			this.#setState('reconnecting');
 			this.#connect();
 		}
@@ -290,11 +287,16 @@ export class LiveUpdates {
 	};
 
 	#resume(stale: boolean): void {
-		if (!this.#source || this.#source.readyState === CLOSED || stale) {
+		if (this.#streamDown() || stale) {
 			this.#attempt = 0;
 			this.#connect();
 		}
 		this.#reconnected();
+	}
+
+	/** No stream, or one the browser closed for good. */
+	#streamDown(): boolean {
+		return !this.#source || this.#source.readyState === CLOSED;
 	}
 
 	#clearTimer(): void {
