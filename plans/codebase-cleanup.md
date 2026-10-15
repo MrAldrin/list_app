@@ -89,9 +89,8 @@ lead agent. Line numbers are from that date; re-check before editing.
   `ASYNC210/230/251`.
 - [x] [refactor] One `hash_password()` and shared room-creation checks; make
   `room_invitations.py` call them (keep its messages unless agreed otherwise).
-  Done for the hash and the 72-byte check. Open question for the user: admin
-  room creation accepts a whitespace-only password, invitation rooms refuse
-  it; name messages also differ. Not unified (would change behavior).
+  Done for the hash and the 72-byte check. The user then chose one password
+  rule for every path that sets a room password (see `docs/api.md`).
 - [x] [refactor] Small merges: stacked decorators in `pwa_routes.py`, one
   helper for the three error handlers in `api/errors.py`, one helper for
   `post_op`/`run_share_op`, single slug/UUID/token-hash helpers.
@@ -138,7 +137,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   on sign-out.
 - [x] [refactor] Service worker: run `discardUnusedVersions()` on activate and
   navigation only.
-- [ ] [security] D3, last: one sign-in/sign-out path in `index.ts` (today two
+- [x] [security] D3, last: one sign-in/sign-out path in `index.ts` (today two
   sign-in copies and five sign-out copies). Existing index and snapshot tests
   must stay green; add tests first if a path is uncovered.
 
@@ -162,4 +161,4 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] Phase 2
 - [x] Phase 3
 - [x] Phase 4
-- [ ] Phase 5
+- [x] Phase 5
