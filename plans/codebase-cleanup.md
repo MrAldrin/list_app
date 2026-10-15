@@ -97,7 +97,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   `post_op`/`run_share_op`, single slug/UUID/token-hash helpers.
 - [x] [infra] D4: fix the 5 `ty` findings, then add `uv run ty check` to the
   Python checks in `AGENTS.md`.
-- [ ] [refactor] A transaction context manager for the remaining hand-written
+- [x] [refactor] A transaction context manager for the remaining hand-written
   BEGIN/commit/rollback blocks.
 
 ## Phase 3: test DRY
@@ -159,7 +159,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] Review done and findings checked (2026-10-15).
 - [x] Decisions D1-D5 made (2026-10-15).
 - [x] Phase 1
-- [ ] Phase 2
+- [x] Phase 2
 - [ ] Phase 3
 - [ ] Phase 4
 - [ ] Phase 5

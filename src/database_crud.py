@@ -18,6 +18,24 @@ from password_hashing import hash_password
 _DB_LOCK = threading.RLock()
 
 
+@contextmanager
+def transaction(*, write: bool = False) -> Iterator[None]:
+    """Hold the database lock and one transaction for the block.
+
+    Commits when the block ends normally. Rolls back on any exception and
+    re-raises it. Use write=True for blocks that write: it takes SQLite's write
+    lock up front (BEGIN IMMEDIATE). Do not nest it; SQLite has no nested BEGIN.
+    """
+    with _DB_LOCK:
+        try:
+            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            yield
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
+
+
 def normalize_item_name(raw: str | None) -> str:
     return (raw or "").strip().lower()
 
@@ -87,18 +105,12 @@ def share_token_transaction(
     token. Raises ShareLinkDenied without a matching list. A share token never
     grants room access: callers must limit reads and writes to this list.
     """
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
-            found = _list_for_share_token_locked(token)
-            if found is None:
-                raise ShareLinkDenied
-            list_id, room_id = found
-            yield room_id, list_id
-            db.commit()
-        except BaseException:
-            db.rollback()
-            raise
+    with transaction(write=write):
+        found = _list_for_share_token_locked(token)
+        if found is None:
+            raise ShareLinkDenied
+        list_id, room_id = found
+        yield room_id, list_id
 
 
 def get_share_token_locked(list_id: int) -> str:
@@ -422,17 +434,12 @@ def create_room(name: str, plain_password: str):
 
     slug = make_slug(name)
 
-    with _DB_LOCK:
-        try:
-            result = db.execute(
-                "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
-                (normalized_name, slug, pw_hash),
-            )
-            db.commit()
-            return result.lastrowid, slug
-        except Exception:
-            db.rollback()
-            raise
+    with transaction(write=True):
+        result = db.execute(
+            "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
+            (normalized_name, slug, pw_hash),
+        )
+        return result.lastrowid, slug
 
 
 class RoomAccessDenied(PermissionError):
@@ -474,17 +481,11 @@ def room_token_transaction(
     the block ends normally and rolls back on any exception. Use write=True
     for blocks that write (takes SQLite's write lock up front).
     """
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE" if write else "BEGIN")
-            room_id = _valid_room_id_for_token_locked(room_slug, token)
-            if room_id is None:
-                raise RoomAccessDenied
-            yield room_id
-            db.commit()
-        except BaseException:
-            db.rollback()
-            raise
+    with transaction(write=write):
+        room_id = _valid_room_id_for_token_locked(room_slug, token)
+        if room_id is None:
+            raise RoomAccessDenied
+        yield room_id
 
 
 def get_room_details_locked(room_id: int) -> dict | None:
@@ -675,19 +676,14 @@ PROCESSED_OP_DAYS = 30
 
 def prune_processed_ops(max_age_days: int = PROCESSED_OP_DAYS) -> int:
     """Delete stored op results older than `max_age_days`; return the count."""
-    with _DB_LOCK:
-        try:
-            # created_at uses the same text format, so text order is time order.
-            result = db.execute(
-                "DELETE FROM processed_ops WHERE created_at < "
-                "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)",
-                (f"-{int(max_age_days)} days",),
-            )
-            db.commit()
-            return result.rowcount
-        except Exception:
-            db.rollback()
-            raise
+    with transaction(write=True):
+        # created_at uses the same text format, so text order is time order.
+        result = db.execute(
+            "DELETE FROM processed_ops WHERE created_at < "
+            "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)",
+            (f"-{int(max_age_days)} days",),
+        )
+        return result.rowcount
 
 
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:
@@ -725,51 +721,39 @@ def authenticate_room_and_issue_token(
     room_slug: str, plain_password: str
 ) -> tuple[int, str] | None:
     """Check a password and atomically create a token for the current room version."""
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                """
-                SELECT id, password_hash, authorization_version
-                FROM rooms
-                WHERE slug = ?
-                """,
-                (room_slug,),
-            ).fetchone()
-            if not row:
-                # Spend the same bcrypt time as a wrong password, so response
-                # timing does not reveal which room slugs exist.
-                _password_matches(plain_password, _dummy_password_hash())
-                db.rollback()
-                return None
-            if not _password_matches(plain_password, row[1]):
-                db.rollback()
-                return None
-            token = _insert_room_access_token_locked(row[0], row[2])
-            db.commit()
-            return row[0], token
-        except Exception:
-            db.rollback()
-            raise
+    # Early "return None" paths only read, so the commit at block end changes nothing.
+    with transaction(write=True):
+        row = db.execute(
+            """
+            SELECT id, password_hash, authorization_version
+            FROM rooms
+            WHERE slug = ?
+            """,
+            (room_slug,),
+        ).fetchone()
+        if not row:
+            # Spend the same bcrypt time as a wrong password, so response
+            # timing does not reveal which room slugs exist.
+            _password_matches(plain_password, _dummy_password_hash())
+            return None
+        if not _password_matches(plain_password, row[1]):
+            return None
+        token = _insert_room_access_token_locked(row[0], row[2])
+        return row[0], token
 
 
 def revoke_room_access_token(room_slug: str, token: str) -> None:
     """Revoke a token after the browser could not persist it."""
-    with _DB_LOCK:
-        try:
-            db.execute(
-                """
-                UPDATE room_access_tokens
-                SET revoked_at = CURRENT_TIMESTAMP
-                WHERE token_hash = ?
-                  AND room_id = (SELECT id FROM rooms WHERE slug = ?)
-                """,
-                (token_hash(token), room_slug),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
+    with transaction(write=True):
+        db.execute(
+            """
+            UPDATE room_access_tokens
+            SET revoked_at = CURRENT_TIMESTAMP
+            WHERE token_hash = ?
+              AND room_id = (SELECT id FROM rooms WHERE slug = ?)
+            """,
+            (token_hash(token), room_slug),
+        )
 
 
 def _replace_room_password_locked(room_id: int, password_hash: str) -> int | None:
@@ -802,20 +786,12 @@ def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int 
     check_new_room_password(new_plain_password)
 
     pw_hash = hash_password(new_plain_password)
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
-            ).fetchone()
-            if row is None or _replace_room_password_locked(row[0], pw_hash) is None:
-                db.rollback()
-                return None
-            db.commit()
-            return row[0]
-        except Exception:
-            db.rollback()
-            raise
+    # The early "return None" happens before any write, so the commit changes nothing.
+    with transaction(write=True):
+        row = db.execute("SELECT id FROM rooms WHERE slug = ?", (room_slug,)).fetchone()
+        if row is None or _replace_room_password_locked(row[0], pw_hash) is None:
+            return None
+        return row[0]
 
 
 # bcrypt refuses longer passwords (bcrypt 5 raises ValueError).

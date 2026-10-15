@@ -27,6 +27,7 @@ from database_crud import (
     restore_deleted_item_locked,
     rotate_share_token_locked,
     toggle_item_active_tag_locked,
+    transaction,
     update_list_visibility_settings_locked,
 )
 from database_setup import db
@@ -131,14 +132,8 @@ def row_counts() -> tuple[int, int, int]:
 
 
 def write_locked(fn, *args, **kwargs):
-    with _DB_LOCK:
-        try:
-            result = fn(*args, **kwargs)
-            db.commit()
-            return result
-        except Exception:
-            db.rollback()
-            raise
+    with transaction(write=True):
+        return fn(*args, **kwargs)
 
 
 def create_list(name: str, room_id: int) -> tuple[int, str]:

@@ -11,6 +11,7 @@ from database_crud import (
     _DB_LOCK,
     check_new_room_password,
     normalize_display_name,
+    transaction,
 )
 from database_setup import db
 from field_limits import MAX_NAME_LENGTH
@@ -29,7 +30,7 @@ class InvitationUnavailable(ValueError):
 def create_invitation() -> tuple[int, str]:
     token = secrets.token_urlsafe(32)
     now = int(time.time())
-    with _DB_LOCK, db:
+    with transaction(write=True):
         result = db.execute(
             "INSERT INTO room_invitations (token_hash, created_at, expires_at) "
             "VALUES (?, ?, ?)",
@@ -45,7 +46,7 @@ def get_invitations() -> list[dict]:
     invitation must not extend its retention period. Room data is independent.
     """
     cutoff = int(time.time()) - INVITATION_RETENTION
-    with _DB_LOCK, db:
+    with transaction(write=True):
         db.execute(
             "DELETE FROM room_invitations WHERE expires_at <= ? OR revoked_at <= ?",
             (cutoff, cutoff),
@@ -73,7 +74,7 @@ def invitation_status(invitation: dict) -> str:
 
 
 def revoke_invitation(invitation_id: int) -> None:
-    with _DB_LOCK, db:
+    with transaction(write=True):
         db.execute(
             "UPDATE room_invitations SET revoked_at = ? "
             "WHERE id = ? AND revoked_at IS NULL",
@@ -107,17 +108,11 @@ def create_room_from_invitation(token: str, name: str, password: str) -> str:
     check_new_room_password(password)
     password_hash = hash_password(password)
     slug = secrets.token_urlsafe(18)
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            if not _is_active_locked(token):
-                raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
-            db.execute(
-                "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
-                (name, slug, password_hash),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
+    with transaction(write=True):
+        if not _is_active_locked(token):
+            raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
+        db.execute(
+            "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
+            (name, slug, password_hash),
+        )
     return slug
