@@ -20,6 +20,17 @@ import {
 	type SessionState
 } from './events';
 import { newId } from './ids';
+import {
+	SIGNIN_LOCK_UNAVAILABLE,
+	SIGNIN_REFRESH_FAILED,
+	SIGNIN_STATE_UNAVAILABLE,
+	SNAPSHOT_UNAVAILABLE,
+	LOGOUT_LOCAL_CLEAR_UNCONFIRMED,
+	LOGOUT_MARKER_UNACKNOWLEDGED,
+	LOGOUT_SERVER_PENDING,
+	PENDING_OPERATION_NOTICE
+} from './messages';
+import { hasPendingServerLogout, retryPendingServerLogout } from './pending-logout';
 import { failed, type ActionResult } from './result';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { ShareApi } from './share';
@@ -31,7 +42,12 @@ import {
 	type SessionLockManager
 } from './session-transition';
 import {
-	createSnapshotStore,
+	browserSnapshots,
+	standaloneLogin,
+	standaloneLogout,
+	takeVolatileSignIn
+} from './standalone-session';
+import {
 	type RoomIdentity,
 	type SnapshotData,
 	type SnapshotGeneration,
@@ -71,16 +87,6 @@ export { RoomStore } from './room-store.svelte';
 export { filterVisibleItems, DEFAULT_HIDE_DONE, MAX_HIDE_DONE_COUNT } from './visibility';
 export { sortItems, sortLists, sortTags } from './order';
 export { newId } from './ids';
-
-let defaultSnapshots: SnapshotStore | null = null;
-const volatileSignIns = new Set<string>();
-
-function browserSnapshots(): SnapshotStore {
-	defaultSnapshots ??= createSnapshotStore({
-		channel: typeof window === 'undefined' ? null : undefined
-	});
-	return defaultSnapshots;
-}
 
 type ListRef = Pick<List, 'uid'>;
 type ItemRef = Pick<Item, 'uid' | 'list_uid'>;
@@ -136,22 +142,6 @@ function writeBlock(store: { canWrite: boolean }): typeof READ_ONLY | typeof INC
 	if (compat.incompatible) return INCOMPATIBLE;
 	return store.canWrite ? null : READ_ONLY;
 }
-const SIGNIN_LOCK_UNAVAILABLE =
-	'Room sign-in is waiting for a pending sign-out to finish. Reopen this page in a supported secure browser and try again.';
-const SIGNIN_STATE_UNAVAILABLE =
-	'Room sign-in is blocked because pending sign-out state could not be read. Allow local storage, then retry.';
-const SIGNIN_REFRESH_FAILED =
-	'Room access could not be confirmed. The app will retry before enabling changes.';
-const SNAPSHOT_UNAVAILABLE = 'Saved data could not be updated on this device.';
-const LOGOUT_SERVER_PENDING =
-	'This sign-out cleared the visible room and its prior saved copy, but server sign-out is pending. A newer sign-in may have restored access; the room cookie may still work. Retry in a secure browser with Web Locks.';
-const LOGOUT_LOCAL_CLEAR_UNCONFIRMED =
-	'Room data was cleared from this page, but saved data could not be confirmed cleared on this device. Server sign-out was not attempted; the room cookie may still work.';
-const LOGOUT_MARKER_UNACKNOWLEDGED =
-	'Server sign-out succeeded and its cookie was cleared, but the local sign-out marker could not be acknowledged. Room access stays blocked until the marker can be resolved.';
-const PENDING_OPERATION_NOTICE =
-	'A change may still be saving. Sign in again to check its status before retrying it.';
-
 /** One room or one share link: committed data, queue, and live updates. */
 /** How long logout waits for the sign-out marker before it clears the view anyway. */
 export const LOCAL_SIGNOUT_TIMEOUT_MS = 5_000;
@@ -206,7 +196,7 @@ export class RoomHandle {
 		this.#isShare = this.#api instanceof ShareApi;
 		this.#identity = this.#isShare ? { kind: 'share', token: slug } : { kind: 'room', slug };
 		if (this.#identity.kind === 'room') {
-			this.#volatileAuthorized = volatileSignIns.delete(slug);
+			this.#volatileAuthorized = takeVolatileSignIn(slug);
 		}
 		this.#snapshotStore =
 			options.snapshotStore === undefined ? browserSnapshots() : options.snapshotStore;
@@ -689,40 +679,14 @@ export class RoomHandle {
 
 	async #retryPendingLogout(): Promise<boolean> {
 		if (!this.#snapshotStore || this.#identity.kind !== 'room') return false;
-		let pending;
-		try {
-			pending = await this.#snapshotStore.pendingServerLogouts();
-		} catch {
-			this.#warnSnapshot();
-			return false;
-		}
-		if (!pending.ok) {
-			this.#warnSnapshot();
-			return false;
-		}
-		if (!pending.value.some((identity) => identity.slug === this.slug)) return false;
-		const retry = async () => {
-			const latest = await this.#snapshotStore!.pendingServerLogouts();
-			if (!latest.ok) return false;
-			if (!latest.value.some((identity) => identity.slug === this.slug)) return true;
-			try {
-				await this.#api.logout(this.slug);
-				const acknowledged = await this.#snapshotStore!.acknowledgeServerLogout(
-					this.#roomIdentity()
-				);
-				if (!acknowledged.ok) this.#warnSnapshot();
-				return acknowledged.ok;
-			} catch {
-				return false;
-			}
-		};
-		try {
-			const locked = await withRoomSessionLock(this.slug, retry, this.#locks);
-			if (!locked.acquired) return false;
-			return locked.value ?? false;
-		} catch {
-			return false;
-		}
+		return retryPendingServerLogout({
+			slug: this.slug,
+			identity: this.#roomIdentity(),
+			snapshots: this.#snapshotStore,
+			api: this.#api,
+			locks: this.#locks,
+			warn: () => this.#warnSnapshot()
+		});
 	}
 
 	async #finishPendingLogout(client: Pick<Api, 'logout'>): Promise<boolean> {
@@ -950,17 +914,7 @@ export class RoomHandle {
 
 	async #hasPendingLogout(): Promise<boolean> {
 		if (!this.#snapshotStore || this.#identity.kind !== 'room') return false;
-		try {
-			const pending = await this.#snapshotStore.pendingServerLogouts();
-			if (!pending.ok) {
-				this.#warnSnapshot();
-				return false;
-			}
-			return pending.value.some((identity) => identity.slug === this.slug);
-		} catch {
-			this.#warnSnapshot();
-			return false;
-		}
+		return hasPendingServerLogout(this.#snapshotStore, this.slug, () => this.#warnSnapshot());
 	}
 
 	#handleUnauthorizedError(error: unknown): void {
@@ -1116,95 +1070,6 @@ export function closeShare(share: RoomHandle): void {
 	share.release();
 }
 
-async function standaloneLogin(
-	slug: string,
-	password: string,
-	client: Api
-): Promise<ActionResult<Room>> {
-	const snapshots = browserSnapshots();
-	const locks = browserSessionLocks();
-	const signIn = async (): Promise<ActionResult<Room>> => {
-		let pending;
-		try {
-			pending = await snapshots.pendingServerLogouts();
-		} catch {
-			return {
-				ok: false,
-				code: 'session_transition_unavailable',
-				message: SIGNIN_STATE_UNAVAILABLE
-			};
-		}
-		if (!pending.ok) {
-			return {
-				ok: false,
-				code: 'session_transition_unavailable',
-				message: SIGNIN_STATE_UNAVAILABLE
-			};
-		}
-		if (pending.value.some((identity) => identity.slug === slug)) {
-			if (!locks) return { ok: false, code: 'logout_pending', message: SIGNIN_LOCK_UNAVAILABLE };
-			try {
-				await client.logout(slug);
-				const ack = await snapshots.acknowledgeServerLogout({ kind: 'room', slug });
-				if (!ack.ok) return { ok: false, code: 'storage', message: SNAPSHOT_UNAVAILABLE };
-			} catch (error) {
-				return failed(error);
-			}
-		}
-		const identity: RoomIdentity = { kind: 'room', slug };
-		const markerCleared = await snapshots.clearSignOutAfterSignIn(identity);
-		const baseline = await snapshots.generation(identity);
-		if (!baseline.ok && baseline.reason === 'signed_out') {
-			return { ok: false, code: 'logout_pending', message: SIGNIN_LOCK_UNAVAILABLE };
-		}
-		try {
-			const room = await client.login(slug, password);
-			const pendingAfter = await snapshots.pendingServerLogouts();
-			if (!pendingAfter.ok) {
-				await snapshots.localSignOut(identity);
-				await client.logout(slug).catch(() => undefined);
-				return {
-					ok: false,
-					code: 'session_transition_unavailable',
-					message: SIGNIN_STATE_UNAVAILABLE
-				};
-			}
-			const current = await snapshots.generation(identity);
-			if (
-				pendingAfter.value.some((entry) => entry.slug === slug) ||
-				(!current.ok && current.reason === 'signed_out') ||
-				(baseline.ok &&
-					current.ok &&
-					(current.value.identityKey !== baseline.value.identityKey ||
-						current.value.generation !== baseline.value.generation))
-			) {
-				await snapshots.localSignOut(identity);
-				return {
-					ok: false,
-					code: 'signed_out',
-					message: 'Room sign-in was interrupted by sign-out.'
-				};
-			}
-			if (!markerCleared.ok || !current.ok) volatileSignIns.add(slug);
-			announceRoomSignIn(slug);
-			return { ok: true, result: room };
-		} catch (error) {
-			return failed(error);
-		}
-	};
-	try {
-		const locked = await withRoomSessionLock(slug, signIn, locks);
-		if (locked.acquired) return locked.value!;
-		const pending = await snapshots.pendingServerLogouts();
-		if (pending.ok && pending.value.some((identity) => identity.slug === slug)) {
-			return { ok: false, code: 'logout_pending', message: SIGNIN_LOCK_UNAVAILABLE };
-		}
-		return await signIn();
-	} catch (error) {
-		return failed(error);
-	}
-}
-
 /** Signs in to a room and validates its fresh server feed before enabling writes. */
 export async function login(
 	slug: string,
@@ -1220,42 +1085,7 @@ export async function login(
 export async function logout(slug: string, client: Api = defaultApi): Promise<ActionResult> {
 	const room = rooms.get(slug);
 	if (room) return room.logout(client);
-	const snapshots = browserSnapshots();
-	const identity: RoomIdentity = { kind: 'room', slug };
-	let marked = false;
-	try {
-		marked = (await snapshots.localSignOut(identity)).ok;
-	} catch {
-		// The visible room is already gone; do not race a newer sign-in with DELETE.
-	}
-	const locks = browserSessionLocks();
-	if (!marked)
-		return { ok: false, code: 'local_clear_unconfirmed', message: LOGOUT_LOCAL_CLEAR_UNCONFIRMED };
-	if (!locks) return { ok: false, code: 'server_logout_pending', message: LOGOUT_SERVER_PENDING };
-	let serverSignedOut = false;
-	try {
-		const locked = await withRoomSessionLock(
-			slug,
-			async () => {
-				const pending = await snapshots.pendingServerLogouts();
-				if (!pending.ok || !pending.value.some((entry) => entry.slug === slug)) return false;
-				const generation = await snapshots.generation(identity);
-				if (generation.ok || generation.reason !== 'signed_out') return false;
-				await client.logout(slug);
-				serverSignedOut = true;
-				return (await snapshots.acknowledgeServerLogout(identity)).ok;
-			},
-			locks
-		);
-		if (locked.acquired && locked.value) return { ok: true, result: {} };
-		return serverSignedOut
-			? { ok: false, code: 'logout_marker_unacknowledged', message: LOGOUT_MARKER_UNACKNOWLEDGED }
-			: { ok: false, code: 'server_logout_pending', message: LOGOUT_SERVER_PENDING };
-	} catch {
-		return serverSignedOut
-			? { ok: false, code: 'logout_marker_unacknowledged', message: LOGOUT_MARKER_UNACKNOWLEDGED }
-			: { ok: false, code: 'server_logout_pending', message: LOGOUT_SERVER_PENDING };
-	}
+	return standaloneLogout(slug, client);
 }
 
 /** The room if signed in, null if not. Throws for network or server errors. */
