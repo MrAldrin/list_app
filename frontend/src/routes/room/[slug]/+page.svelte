@@ -6,30 +6,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { admin, closeRoom, logout, openRoom, type RoomHandle } from '#lib/data/index.ts';
+	import PageShell from '#lib/room/PageShell.svelte';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
-	import RoomLogin from '#lib/room/RoomLogin.svelte';
-	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
-	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
-	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	// `$derived` recomputes when what it reads changes (here: the URL).
 	const slug = $derived(page.params.slug ?? '');
 
 	let room = $state.raw<RoomHandle | null>(null);
-	/** Bumped after signing out, so the effect below opens the room afresh. */
+	/** Bumped after signing out, so the shell opens the room afresh. */
 	let generation = $state(0);
-
-	// Open the room while this page is shown. The function returned from an
-	// effect runs before the effect runs again, and when the page is left.
-	$effect(() => {
-		void generation; // Read it, so a new value re-runs this effect.
-		const handle = openRoom(slug, { hydrateSavedView: true });
-		room = handle;
-		return () => closeRoom(handle);
-	});
 
 	// A browser signed in as admin gets a way back to the admin page in the
 	// header, also after opening a list and coming back. It never gives room
@@ -50,9 +38,6 @@
 		};
 	});
 
-	// Messages from the data layer (a rejected or failed change) become toasts.
-	showNoticesAsToasts(() => room?.store);
-
 	async function signOut() {
 		const result = await logout(slug);
 		if (!result.ok) {
@@ -68,37 +53,25 @@
 	<title>{room?.store.room?.name ?? 'Room'} – ListR</title>
 </svelte:head>
 
-<main class="page">
-	{#if !room || room.store.status === 'loading'}
-		<p class="muted">Loading…</p>
-	{:else if room.store.status === 'auth_required'}
-		<SavedViewNotice {room} />
-		<RoomLogin onLogin={(password) => room!.login(password)} />
-	{:else if room.store.status === 'error'}
-		<SavedViewNotice {room} />
-		<!-- The first load failed (server down or busy). It also retries by
-		     itself when the live stream gets through again. -->
-		<LoadError
-			title={!room.store.savedAt && room.store.unreachable
-				? 'Connect to load this room.'
-				: 'Could not load this room.'}
-			detail={room.store.error}
-			onRetry={() => room!.store.refresh()}
-		/>
-	{:else}
-		<SavedViewNotice {room} />
-		<RoomHeader {room} backToAdmin={isAdmin} onLogout={signOut} />
-		{#if room.store.error && !(room.store.showsOfflineNotice && room.store.unreachable)}
+<PageShell
+	bind:handle={room}
+	open={() => openRoom(slug, { hydrateSavedView: true })}
+	close={closeRoom}
+	reopenKey={generation}
+	canSignIn
+	connectTitle="Connect to load this room."
+	failedTitle="Could not load this room."
+>
+	{#snippet content(handle)}
+		<RoomHeader room={handle} backToAdmin={isAdmin} onLogout={signOut} />
+		{#if handle.store.error && !(handle.store.showsOfflineNotice && handle.store.unreachable)}
 			<!-- The lists below may be out of date; they stay usable. -->
 			<LoadError
 				title="Could not load the latest changes."
-				detail={room.store.error}
-				onRetry={() => room!.store.refresh()}
+				detail={handle.store.error}
+				onRetry={() => handle.store.refresh()}
 			/>
 		{/if}
-		<RoomLists {room} />
-	{/if}
-	{#if room && room.store.status !== 'auth_required'}
-		<ConnectionStatus store={room.store} />
-	{/if}
-</main>
+		<RoomLists room={handle} />
+	{/snippet}
+</PageShell>

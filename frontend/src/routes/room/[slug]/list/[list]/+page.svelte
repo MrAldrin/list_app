@@ -10,26 +10,13 @@
 	import { closeRoom, openRoom, type RoomHandle } from '#lib/data/index.ts';
 	import { DELETED_LIST_MESSAGE, UNAVAILABLE_LIST_MESSAGE } from '#lib/list/items.ts';
 	import ListView from '#lib/list/ListView.svelte';
-	import RoomLogin from '#lib/room/RoomLogin.svelte';
-	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
-	import LoadError from '#lib/ui/LoadError.svelte';
-	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
-	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
+	import PageShell from '#lib/room/PageShell.svelte';
 
 	const roomSlug = $derived(page.params.slug ?? '');
 	const listSlug = $derived(page.params.list ?? '');
 	const roomHref = $derived(resolve('/room/[slug]', { slug: roomSlug }));
 
 	let room = $state.raw<RoomHandle | null>(null);
-
-	// Open the room while this page is shown (see the room page).
-	$effect(() => {
-		const handle = openRoom(roomSlug, { hydrateSavedView: true });
-		room = handle;
-		return () => closeRoom(handle);
-	});
-
-	showNoticesAsToasts(() => room?.store);
 
 	const list = $derived(room?.store.listBySlug(listSlug));
 
@@ -45,34 +32,25 @@
 	<title>{list?.name ?? 'List'} – ListR</title>
 </svelte:head>
 
-<main class="page">
-	{#if !room || room.store.status === 'loading'}
-		<p class="muted">Loading…</p>
-	{:else if room.store.status === 'auth_required'}
-		<SavedViewNotice {room} />
-		<RoomLogin onLogin={(password) => room!.login(password)} />
-	{:else if room.store.status === 'error'}
-		<SavedViewNotice {room} />
-		<LoadError
-			title={!room.store.savedAt && room.store.unreachable
-				? 'Connect to load this list.'
-				: 'Could not load this list.'}
-			detail={room.store.error}
-			onRetry={() => room!.store.refresh()}
-		/>
-	{:else if !list}
-		<div class="card problem" role="status">
-			<p>{shownSlug === listSlug ? DELETED_LIST_MESSAGE : UNAVAILABLE_LIST_MESSAGE}</p>
-			<a class="back" href={roomHref}>Back to room</a>
-		</div>
-	{:else}
-		<SavedViewNotice {room} />
-		<ListView {room} {list} {roomHref} canReset />
-	{/if}
-	{#if room && room.store.status !== 'auth_required'}
-		<ConnectionStatus store={room.store} />
-	{/if}
-</main>
+<PageShell
+	bind:handle={room}
+	open={() => openRoom(roomSlug, { hydrateSavedView: true })}
+	close={closeRoom}
+	canSignIn
+	connectTitle="Connect to load this list."
+	failedTitle="Could not load this list."
+>
+	{#snippet content(handle)}
+		{#if !list}
+			<div class="card problem" role="status">
+				<p>{shownSlug === listSlug ? DELETED_LIST_MESSAGE : UNAVAILABLE_LIST_MESSAGE}</p>
+				<a class="back" href={roomHref}>Back to room</a>
+			</div>
+		{:else}
+			<ListView room={handle} {list} {roomHref} canReset />
+		{/if}
+	{/snippet}
+</PageShell>
 
 <style>
 	.problem {

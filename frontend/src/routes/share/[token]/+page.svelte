@@ -13,23 +13,11 @@
 	import { closeShare, openShare, type RoomHandle } from '#lib/data/index.ts';
 	import { SHARE_RESET_MESSAGE, SHARE_UNAVAILABLE_MESSAGE } from '#lib/list/items.ts';
 	import ListView from '#lib/list/ListView.svelte';
-	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
-	import LoadError from '#lib/ui/LoadError.svelte';
-	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
-	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
+	import PageShell from '#lib/room/PageShell.svelte';
 
 	const token = $derived(page.params.token ?? '');
 
 	let share = $state.raw<RoomHandle | null>(null);
-
-	// Open the link while this page is shown (like a room on the room page).
-	$effect(() => {
-		const handle = openShare(token, { hydrateSavedView: true });
-		share = handle;
-		return () => closeShare(handle);
-	});
-
-	showNoticesAsToasts(() => share?.store);
 
 	// The feed of a share link holds exactly one list.
 	const list = $derived(share?.store.status === 'ready' ? share.store.lists[0] : undefined);
@@ -61,34 +49,33 @@
 	<title>{list?.name ?? 'List'} – ListR</title>
 </svelte:head>
 
-<main class="page">
-	{#if !share || share.store.status === 'loading'}
-		<p class="muted">Loading…</p>
-	{:else if share.store.status === 'error'}
-		<SavedViewNotice room={share} what="list" />
-		<LoadError
-			title={!share.store.savedAt && share.store.unreachable
-				? 'Connect to load this shared list.'
-				: 'Could not load this list.'}
-			detail={share.store.error}
-			onRetry={() => share!.store.refresh()}
-		/>
-	{:else if !list}
-		<SavedViewNotice room={share} what="list" />
-		<div class="card problem" role="status">
-			<p>{shownToken === token ? SHARE_RESET_MESSAGE : SHARE_UNAVAILABLE_MESSAGE}</p>
-			{#if roomHref && shownToken === token}
-				<a class="back" href={roomHref}>Back to room</a>
-			{/if}
-		</div>
-	{:else}
-		<SavedViewNotice room={share} what="list" />
-		<ListView room={share} {list} {roomHref} canReset={roomHref !== null} onReset={followReset} />
-	{/if}
-	{#if share && share.store.status !== 'auth_required'}
-		<ConnectionStatus store={share.store} />
-	{/if}
-</main>
+<PageShell
+	bind:handle={share}
+	open={() => openShare(token, { hydrateSavedView: true })}
+	close={closeShare}
+	what="list"
+	connectTitle="Connect to load this shared list."
+	failedTitle="Could not load this list."
+>
+	{#snippet content(handle)}
+		{#if !list}
+			<div class="card problem" role="status">
+				<p>{shownToken === token ? SHARE_RESET_MESSAGE : SHARE_UNAVAILABLE_MESSAGE}</p>
+				{#if roomHref && shownToken === token}
+					<a class="back" href={roomHref}>Back to room</a>
+				{/if}
+			</div>
+		{:else}
+			<ListView
+				room={handle}
+				{list}
+				{roomHref}
+				canReset={roomHref !== null}
+				onReset={followReset}
+			/>
+		{/if}
+	{/snippet}
+</PageShell>
 
 <style>
 	.problem {

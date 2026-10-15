@@ -120,7 +120,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   titles) to `app.css`.
 - [x] [refactor] One `PasswordPrompt` for `RoomLogin` and `AdminLogin`.
 - [x] [refactor] One `FormDialog` for the eight form dialogs.
-- [ ] [refactor] One page shell for room, list and share pages (load, auth,
+- [x] [refactor] One page shell for room, list and share pages (load, auth,
   error, connection status).
 - [ ] [refactor] Shared helpers: share/copy with toast, undo toast, admin
   sign-out handling, `keepFocus`, theme-save notice. Move list search into a
