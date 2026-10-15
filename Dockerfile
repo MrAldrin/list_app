@@ -16,7 +16,7 @@ ENV UV_COMPILE_BYTECODE=1 \
     PATH="/app/.venv/bin:$PATH" \
     REQUIRE_FRONTEND_BUILD=true
 COPY pyproject.toml uv.lock .python-version ./
-RUN uv sync --locked --no-dev --no-install-project
+RUN uv sync --locked --no-dev --no-install-project --no-cache
 COPY src/ ./src/
 COPY --from=frontend /frontend/build ./frontend/build
 CMD ["python", "src/main.py"]

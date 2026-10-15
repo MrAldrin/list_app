@@ -68,15 +68,15 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [data] D2: delete the version-0-only branches of migration 1 in
   `src/database_setup.py` (slug backfill, list rebuild, items FK repair, legacy
   column `ALTER`s) and their tests. Check a fresh database still builds.
-- [ ] [refactor] `src/live_updates.py`: drop unused `register_listener` (keep
+- [x] [refactor] `src/live_updates.py`: drop unused `register_listener` (keep
   `_listeners`; five test files use it as a hook).
 - [ ] [refactor] Frontend: drop test-only `RoomHandle.signedOut()`, simplify
   `events.ts` `#reconnected` branches, delete empty `src/lib/index.ts` and the
   bare `#lib` alias.
-- [ ] [test] Rename `browser_tests/test_svelte_install.py` (name clash with
+- [x] [test] Rename `browser_tests/test_svelte_install.py` (name clash with
   `tests/`), delete the NiceGUI leftover assertion in
   `tests/test_serve_svelte_local.py:35`.
-- [ ] [infra] `Dockerfile`: `uv sync --no-cache` so the uv cache stays out of
+- [x] [infra] `Dockerfile`: `uv sync --no-cache` so the uv cache stays out of
   the image.
 
 ## Phase 2: backend DRY and idioms
