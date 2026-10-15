@@ -10,7 +10,7 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-None.
+- [ ] [refactor] Codebase cleanup: delete dead code, remove copies, adopt a few current idioms, in five phases. Start with decisions D1-D5 (one is an architecture drift). See the [cleanup plan](codebase-cleanup.md).
 
 ## Later
 
