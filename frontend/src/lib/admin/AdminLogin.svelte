@@ -5,45 +5,22 @@
 -->
 <script lang="ts">
 	import { admin } from '#lib/data/index.ts';
+	import PasswordPrompt from '#lib/ui/PasswordPrompt.svelte';
 
 	let { onSignedIn }: { onSignedIn: () => void } = $props();
 
-	let password = $state('');
-	let error = $state('');
-	let busy = $state(false);
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (busy) return;
-		const sent = password;
-		password = '';
-		busy = true;
-		const result = await admin.login(sent);
-		busy = false;
-		if (!result.ok) {
-			error = result.message;
-			return;
-		}
-		error = '';
-		onSignedIn();
+	async function login(password: string) {
+		const result = await admin.login(password);
+		if (result.ok) onSignedIn();
+		return result;
 	}
 </script>
 
-<form class="card" onsubmit={submit} novalidate>
-	<h1>Enter Admin Password</h1>
-	<label for="admin-password">Admin Password</label>
-	<input
-		id="admin-password"
-		type="password"
-		bind:value={password}
-		autocomplete="current-password"
-		aria-invalid={error ? 'true' : undefined}
-		aria-describedby={error ? 'admin-password-error' : undefined}
-	/>
-	{#if error}
-		<p id="admin-password-error" class="error" role="alert">{error}</p>
-	{/if}
-	<div class="actions">
-		<button class="primary" type="submit" disabled={busy}>Log in</button>
-	</div>
-</form>
+<PasswordPrompt
+	title="Enter Admin Password"
+	label="Admin Password"
+	inputId="admin-password"
+	errorId="admin-password-error"
+	buttonText="Log in"
+	onSubmit={login}
+/>
