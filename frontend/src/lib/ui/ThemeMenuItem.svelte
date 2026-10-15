@@ -4,8 +4,7 @@
 	add its own button above the page. The menu closes after a tap.
 -->
 <script lang="ts">
-	import { registerHeaderToggle, theme, toggleTheme } from './theme.svelte.ts';
-	import { toasts } from './toasts.svelte.ts';
+	import { registerHeaderToggle, theme, toggleThemeWithNotice } from './theme.svelte.ts';
 
 	let { close }: { close: () => void } = $props();
 
@@ -13,8 +12,7 @@
 
 	function toggle() {
 		close();
-		// NiceGUI's warning; the page still switches until it is reloaded.
-		if (!toggleTheme()) toasts.show('Theme could not be saved on this device', 'warning');
+		toggleThemeWithNotice();
 	}
 </script>
 

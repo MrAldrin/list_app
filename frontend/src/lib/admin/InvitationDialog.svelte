@@ -6,8 +6,7 @@
 <script lang="ts">
 	import type { IssuedInvitation } from '#lib/data/index.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
-	import { copyText } from '#lib/ui/share.ts';
-	import { toasts } from '#lib/ui/toasts.svelte.ts';
+	import { copyLinkWithToast } from '#lib/ui/share.ts';
 	import { invitationUrl } from './invitations.ts';
 
 	let { issued, onClose }: { issued: IssuedInvitation; onClose: () => void } = $props();
@@ -16,10 +15,7 @@
 	const url = $derived(invitationUrl(issued.token));
 	let field = $state<HTMLInputElement>();
 
-	async function copy() {
-		if (await copyText(url, field)) toasts.show('Link copied', 'success');
-		else toasts.show('Could not copy. Select the link and copy it.', 'warning');
-	}
+	const copy = () => copyLinkWithToast(url, field);
 </script>
 
 <Dialog title="Invitation #{issued.invitation.id}" {onClose} focusBox>

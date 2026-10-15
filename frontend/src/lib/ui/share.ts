@@ -2,6 +2,8 @@
 // (`src/ui/sharing.py`): the phone's share sheet when there is one, else a
 // dialog with the link and "Copy link".
 
+import { toasts } from './toasts.svelte.ts';
+
 export type ShareKind = 'room' | 'list';
 
 /** The access reminder shown inside the app, never sent with the URL. */
@@ -72,4 +74,21 @@ export async function copyText(
 	} catch {
 		return false;
 	}
+}
+
+/**
+ * Shares a link from a tap: the share sheet, and a toast when it was sent.
+ * Returns true when there is no share sheet (or it failed), so the caller
+ * shows the share dialog instead. Call it straight from a click.
+ */
+export async function shareLinkWithToast(url: string, kind: ShareKind): Promise<boolean> {
+	const outcome = await shareNatively(url);
+	if (outcome === 'shared') toasts.show(shareMessage(kind), 'info');
+	return outcome === 'fallback';
+}
+
+/** Copies a link, with the toast that says whether it worked. */
+export async function copyLinkWithToast(url: string, field?: HTMLInputElement): Promise<void> {
+	if (await copyText(url, field)) toasts.show('Link copied', 'success');
+	else toasts.show('Could not copy. Select the link and copy it.', 'warning');
 }

@@ -5,6 +5,7 @@
 
 import { untrack } from 'svelte';
 import { effectiveTheme, otherTheme, savedTheme, saveTheme, type Theme } from './theme';
+import { toasts } from './toasts.svelte.ts';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
@@ -51,6 +52,11 @@ export function toggleTheme(): boolean {
 	const next = otherTheme(theme.current);
 	apply(next);
 	return saveTheme(next);
+}
+
+/** Toggles the mode for a button; a warning toast when it could not be saved (NiceGUI's text). */
+export function toggleThemeWithNotice(): void {
+	if (!toggleTheme()) toasts.show('Theme could not be saved on this device', 'warning');
 }
 
 /** Counts a toggle in a top bar while the calling component lives (call in `$effect`). */

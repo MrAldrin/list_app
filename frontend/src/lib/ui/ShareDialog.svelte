@@ -4,17 +4,13 @@
 -->
 <script lang="ts">
 	import Dialog from './Dialog.svelte';
-	import { copyText, shareMessage, type ShareKind } from './share.ts';
-	import { toasts } from './toasts.svelte.ts';
+	import { copyLinkWithToast, shareMessage, type ShareKind } from './share.ts';
 
 	let { kind, url, onClose }: { kind: ShareKind; url: string; onClose: () => void } = $props();
 
 	let field = $state<HTMLInputElement>();
 
-	async function copy() {
-		if (await copyText(url, field)) toasts.show('Link copied', 'success');
-		else toasts.show('Could not copy. Select the link and copy it.', 'warning');
-	}
+	const copy = () => copyLinkWithToast(url, field);
 </script>
 
 <Dialog title="Share this {kind}" {onClose} focusBox>

@@ -8,6 +8,7 @@
 	import { admin, type ActionResult, type Room } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
+	import { showAdminFailure } from './failure.ts';
 
 	let {
 		onCreated,
@@ -26,8 +27,7 @@
 	async function submit() {
 		const result: ActionResult<Room> = await admin.createRoom(name, password);
 		if (!result.ok) {
-			toasts.show(result.message, 'warning');
-			if (admin.isSignedOut(result)) onSignedOut();
+			showAdminFailure(result, onSignedOut);
 			return;
 		}
 		password = '';

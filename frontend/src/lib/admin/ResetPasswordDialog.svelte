@@ -8,6 +8,7 @@
 	import { admin, type Room } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
+	import { showAdminFailure } from './failure.ts';
 
 	let {
 		room,
@@ -36,8 +37,7 @@
 			onDone();
 		} else {
 			// A blank password or a lost connection: keep the dialog to fix it.
-			toasts.show(result.message, 'warning');
-			if (admin.isSignedOut(result)) onSignedOut();
+			showAdminFailure(result, onSignedOut);
 		}
 	}
 </script>

@@ -11,7 +11,7 @@
 	import MenuButton from '#lib/ui/MenuButton.svelte';
 	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
-	import { absoluteUrl, shareMessage, shareNatively } from '#lib/ui/share.ts';
+	import { absoluteUrl, shareLinkWithToast } from '#lib/ui/share.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -57,9 +57,7 @@
 		const current = token ?? (await loadToken());
 		if (!current) return;
 		const url = absoluteUrl(resolve('/share/[token]', { token: current }));
-		const outcome = await shareNatively(url);
-		if (outcome === 'shared') toasts.show(shareMessage('list'), 'info');
-		if (outcome !== 'fallback') return;
+		if (!(await shareLinkWithToast(url, 'list'))) return;
 		shareUrl = url;
 		dialog = 'share';
 	}

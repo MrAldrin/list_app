@@ -10,6 +10,7 @@
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import type { Item } from '#lib/data/index.ts';
 	import { itemSuggestions, normalizeItemName } from './items';
+	import { keepFocus } from '#lib/ui/focus.ts';
 
 	let {
 		items,
@@ -82,12 +83,6 @@
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
 		void add(active >= 0 && shown[active] ? shown[active] : text);
-	}
-
-	// Pressing a button would move the focus away from the field (and close
-	// the phone keyboard). Stopping the press's default keeps it in the field.
-	function keepFocus(event: Event) {
-		event.preventDefault();
 	}
 </script>
 

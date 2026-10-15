@@ -5,18 +5,12 @@
 -->
 <script lang="ts">
 	import Icon from './Icon.svelte';
-	import { registerHeaderToggle, theme, toggleTheme } from './theme.svelte.ts';
-	import { toasts } from './toasts.svelte.ts';
+	import { registerHeaderToggle, theme, toggleThemeWithNotice } from './theme.svelte.ts';
 
 	let { corner = false }: { corner?: boolean } = $props();
 
 	// A toggle in a top bar tells the layout to hide its own.
 	$effect(() => (corner ? undefined : registerHeaderToggle()));
-
-	function toggle() {
-		// NiceGUI's warning; the page still switches until it is reloaded.
-		if (!toggleTheme()) toasts.show('Theme could not be saved on this device', 'warning');
-	}
 </script>
 
 <button
@@ -25,7 +19,7 @@
 	aria-label="Toggle dark mode"
 	aria-pressed={theme.current === 'dark'}
 	title="Toggle light / dark mode"
-	onclick={toggle}
+	onclick={toggleThemeWithNotice}
 >
 	<Icon name="dark_mode" />
 </button>

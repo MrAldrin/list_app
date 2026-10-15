@@ -7,6 +7,7 @@
 	import { MAX_TAG_LENGTH } from '#lib/ui/field-limits.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
+	import { keepFocus } from '#lib/ui/focus.ts';
 	import { newTag, tagColor } from './tags';
 
 	let {
@@ -52,10 +53,6 @@
 		input?.focus();
 		const clear = await onAdd(tag);
 		if (clear && text === sent) text = '';
-	}
-
-	function keepFocus(event: Event) {
-		event.preventDefault();
 	}
 </script>
 

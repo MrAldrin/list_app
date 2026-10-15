@@ -7,9 +7,9 @@
 <script lang="ts">
 	import { admin, type Invitation, type IssuedInvitation } from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
-	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import InvitationDialog from './InvitationDialog.svelte';
 	import { formatUtc, statusLabel } from './invitations.ts';
+	import { showAdminFailure } from './failure.ts';
 
 	let { onSignedOut }: { onSignedOut: () => void } = $props();
 
@@ -20,11 +20,7 @@
 
 	/** Shows a failed answer as a toast; a lost admin sign-in shows the sign-in prompt. */
 	function handleFailure(result: { ok: false; code: string; message: string }) {
-		toasts.show(result.message, 'warning');
-		if (admin.isSignedOut(result)) {
-			issued = null;
-			onSignedOut();
-		}
+		showAdminFailure(result, onSignedOut, () => (issued = null));
 	}
 
 	async function load() {

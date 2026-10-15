@@ -8,9 +8,9 @@
 	import { admin, type Room } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
-	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import { adminRoomHref } from './admin-links.ts';
 	import CreateRoomDialog from './CreateRoomDialog.svelte';
+	import { showAdminFailure } from './failure.ts';
 	import ResetPasswordDialog from './ResetPasswordDialog.svelte';
 
 	let { onSignedOut }: { onSignedOut: () => void } = $props();
@@ -28,8 +28,7 @@
 			return;
 		}
 		if (admin.isSignedOut(result)) {
-			toasts.show(result.message, 'warning');
-			onSignedOut();
+			showAdminFailure(result, onSignedOut);
 			return;
 		}
 		error = result.message;

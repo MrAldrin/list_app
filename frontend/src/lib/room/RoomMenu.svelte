@@ -12,7 +12,7 @@
 	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
-	import { absoluteUrl, shareMessage, shareNatively } from '#lib/ui/share.ts';
+	import { absoluteUrl, shareLinkWithToast } from '#lib/ui/share.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import ChangePasswordDialog from './ChangePasswordDialog.svelte';
 	import DeleteRoomDialog from './DeleteRoomDialog.svelte';
@@ -35,9 +35,7 @@
 	async function share(close: () => void) {
 		close();
 		const url = absoluteUrl(resolve('/room/[slug]', { slug: room.slug }));
-		const outcome = await shareNatively(url);
-		if (outcome === 'shared') toasts.show(shareMessage('room'), 'info');
-		if (outcome !== 'fallback') return;
+		if (!(await shareLinkWithToast(url, 'room'))) return;
 		shareUrl = url;
 		dialog = 'share';
 	}

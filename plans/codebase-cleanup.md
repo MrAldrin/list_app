@@ -122,7 +122,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] One `FormDialog` for the eight form dialogs.
 - [x] [refactor] One page shell for room, list and share pages (load, auth,
   error, connection status).
-- [ ] [refactor] Shared helpers: share/copy with toast, undo toast, admin
+- [x] [refactor] Shared helpers: share/copy with toast, undo toast, admin
   sign-out handling, `keepFocus`, theme-save notice. Move list search into a
   tested pure function.
 - [ ] [refactor] Small components: `Brand`, `BackLink`, shared list-row style.

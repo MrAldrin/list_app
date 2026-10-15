@@ -7,6 +7,7 @@
 <script lang="ts">
 	import type { HideDone, Item, List, RoomHandle } from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
+	import { showUndoToast } from '#lib/ui/undo-toast.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import AddItem from './AddItem.svelte';
 	import ItemDialog from './ItemDialog.svelte';
@@ -16,6 +17,7 @@
 	import ListOptions from './ListOptions.svelte';
 	import ListTags from './ListTags.svelte';
 	import { addFeedback, loadShowQuantities, saveShowQuantities, UNDO_DURATION } from './items.ts';
+	import { searchItems } from './search.ts';
 	import { activeFilter, filterByTag } from './tags.ts';
 
 	let {
@@ -54,15 +56,9 @@
 	const visibleItems = $derived.by(() => {
 		// Typing filters the list only for a saved or unconfirmed view; online it
 		// only suggests (also while access is briefly being revalidated).
-		const query = room.store.unconfirmedView ? searchText.trim().toLowerCase() : '';
-		const items = query
-			? room.store
-					.itemsOf(list.uid)
-					.filter((item) =>
-						[item.name, item.description, ...item.tags].some((value) =>
-							value.toLowerCase().includes(query)
-						)
-					)
+		const searching = room.store.unconfirmedView && searchText.trim() !== '';
+		const items = searching
+			? searchItems(room.store.itemsOf(list.uid), searchText)
 			: room.store.visibleItemsOf(list.uid, now);
 		return filterByTag(items, filterTag);
 	});
@@ -109,17 +105,12 @@
 	function deleteTag(target: List, tag: string) {
 		if (chosenTag === tag) chosenTag = null;
 		const handle = room;
-		const deleted = handle.removeListTag(target, tag);
-		const toastId = toasts.show(`Deleted tag ${tag}`, 'danger', {
+		showUndoToast({
+			message: `Deleted tag ${tag}`,
+			deleted: handle.removeListTag(target, tag),
 			duration: UNDO_DURATION,
-			action: {
-				label: 'Undo',
-				disabled: () => !handle.store.canWrite,
-				run: () => void undoDeleteTag(handle, target, tag)
-			}
-		});
-		void deleted.then((result) => {
-			if (!result.ok) toasts.dismiss(toastId);
+			canUndo: () => handle.store.canWrite,
+			undo: () => undoDeleteTag(handle, target, tag)
 		});
 	}
 
@@ -148,17 +139,12 @@
 	function deleteItem(item: Item) {
 		editing = null;
 		const handle = room;
-		const deleted = handle.deleteItem(item);
-		const toastId = toasts.show(`Deleted ${item.name}`, 'danger', {
+		showUndoToast({
+			message: `Deleted ${item.name}`,
+			deleted: handle.deleteItem(item),
 			duration: UNDO_DURATION,
-			action: {
-				label: 'Undo',
-				disabled: () => !handle.store.canWrite,
-				run: () => void undoDelete(handle, item)
-			}
-		});
-		void deleted.then((result) => {
-			if (!result.ok) toasts.dismiss(toastId);
+			canUndo: () => handle.store.canWrite,
+			undo: () => undoDelete(handle, item)
 		});
 	}
 
