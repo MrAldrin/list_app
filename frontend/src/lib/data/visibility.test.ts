@@ -1,4 +1,4 @@
-// The cases of tests/test_item_visibility.py, so the client and server agree.
+// Checked-item visibility cases for the client rules in visibility.ts.
 import { describe, expect, it } from 'vitest';
 import { sortItems, sortLists, sortTags } from './order';
 import { makeItem, makeList } from './test-helpers';
@@ -21,7 +21,7 @@ function settings(mode: HideDoneMode, ageDays = 7, recentCount = 10): HideDone {
 
 const ids = (rows: { uid: string }[]) => rows.map((row) => Number(row.uid));
 
-describe('filterVisibleItems (parity with item_visibility.py)', () => {
+describe('filterVisibleItems', () => {
 	const now = new Date(Date.UTC(2025, 0, 8, 12));
 
 	it('keeps unchecked and legacy checked items as specified', () => {

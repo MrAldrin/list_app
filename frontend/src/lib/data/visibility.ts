@@ -1,4 +1,5 @@
-// Which checked items are hidden: a port of src/item_visibility.py.
+// Which checked items are hidden: the source of truth for this rule in the client.
+// The server only validates the settings (src/item_visibility.py).
 // Rules: docs/checked-item-visibility.md. The API sends every item; the client hides.
 
 import { compareCodePoints } from './order';

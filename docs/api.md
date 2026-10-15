@@ -3,8 +3,9 @@
 The contract between the Python server and the Svelte app. It covers items and lists, room
 management, share links, admin and creation invitations.
 
-The business rules live in Python and are shared with every write path: see
-[item writes](item-writes.md) and [checked-item visibility](checked-item-visibility.md).
+Write rules live in Python and apply to every write path: see
+[item writes](item-writes.md). The client applies checked-item visibility: see
+[checked-item visibility](checked-item-visibility.md).
 
 ## Basics
 

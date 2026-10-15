@@ -22,12 +22,8 @@ from item_visibility import (
     DEFAULT_HIDE_DONE_MODE,
     DEFAULT_HIDE_DONE_RECENT_COUNT,
     MAX_HIDE_DONE_COUNT,
-    filter_visible_items,
+    validate_visibility_settings,
 )
-
-
-def _item(item_id, done, completed_at=None):
-    return {"id": item_id, "done": done, "completed_at": completed_at}
 
 
 def _stored_item(list_id, item_id):
@@ -35,73 +31,21 @@ def _stored_item(list_id, item_id):
     return next(item for item in items if item["id"] == item_id)
 
 
-def test_visibility_modes_keep_unchecked_and_legacy_checked_items_as_specified():
-    items = [
-        _item(1, False),
-        _item(2, True),
-        _item(3, True, "2025-01-07T12:00:00Z"),
-    ]
-    now = datetime(2025, 1, 8, 12, tzinfo=UTC)
-
-    assert [row["id"] for row in filter_visible_items(items)] == [1, 2, 3]
-    assert [row["id"] for row in filter_visible_items(items, "all")] == [1]
-    assert [row["id"] for row in filter_visible_items(items, "age", 1, now=now)] == [
-        1,
-        2,
-    ]
-    assert items[1]["completed_at"] is None
-
-
 @pytest.mark.parametrize("mode, age, recent", [("age", 0, 10), ("recent", 7, 0)])
 def test_zero_counts_are_rejected(mode: str, age: int, recent: int) -> None:
     with pytest.raises(ValueError, match="between 1"):
-        filter_visible_items([], mode, age_days=age, recent_count=recent)
+        validate_visibility_settings(mode, age, recent)
 
 
-def test_age_visibility_uses_exact_full_24_hour_boundary():
-    now = datetime(2025, 1, 8, 12, tzinfo=UTC)
-    items = [
-        _item(1, True, "2025-01-01T12:00:00Z"),
-        _item(2, True, "2025-01-01T12:00:01Z"),
-        _item(3, True, "2025-01-01T11:59:59Z"),
-        _item(4, False),
-    ]
-
-    visible = filter_visible_items(items, "age", age_days=7, now=now)
-
-    assert [row["id"] for row in visible] == [2, 4]
-
-
-def test_recent_visibility_ranks_known_times_then_timestamp_ties_and_legacy_ids():
-    items = [
-        _item(99, True),
-        _item(4, True, "2025-01-03T00:00:00Z"),
-        _item(7, True, "2025-01-02T00:00:00Z"),
-        _item(8, True, "2025-01-02T00:00:00Z"),
-        _item(10, True, "2025-01-01T00:00:00Z"),
-        _item(19, True),
-        _item(20, True),
-        _item(21, False),
-    ]
-
-    retained = filter_visible_items(items, "recent", recent_count=2)
-    retained_legacy = filter_visible_items(items, "recent", recent_count=5)
-    retained_all = filter_visible_items(items, "recent", recent_count=7)
-
-    assert {row["id"] for row in retained} == {4, 8, 21}
-    assert {row["id"] for row in retained_legacy} == {4, 7, 8, 10, 21, 99}
-    assert {row["id"] for row in retained_all} == {4, 7, 8, 10, 19, 20, 21, 99}
-
-
-def test_visibility_helper_validates_mode_and_count_bounds():
+def test_visibility_settings_validate_mode_and_count_bounds():
     with pytest.raises(ValueError, match="Unknown checked-item visibility mode"):
-        filter_visible_items([], "unknown")
+        validate_visibility_settings("unknown", 7, 10)
     with pytest.raises(ValueError, match="age_days"):
-        filter_visible_items([], "age", age_days=-1)
+        validate_visibility_settings("age", -1, 10)
     with pytest.raises(ValueError, match="recent_count"):
-        filter_visible_items([], "recent", recent_count=True)
+        validate_visibility_settings("recent", 7, True)
     with pytest.raises(ValueError, match="recent_count"):
-        filter_visible_items([], "recent", recent_count=MAX_HIDE_DONE_COUNT + 1)
+        validate_visibility_settings("recent", 7, MAX_HIDE_DONE_COUNT + 1)
 
 
 def test_visibility_setting_defaults_and_atomic_identity_checked_update():
@@ -228,7 +172,6 @@ def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
     write_locked(
         crud.update_item_done_locked, item_id, list_id, True, now=completed_first
     )
-    assert filter_visible_items(get_list_data(list_id)[0], "all") == []
     assert (
         write_locked(crud.add_or_restore_item_locked, "milk", list_id)[0] == "restored"
     )
@@ -250,4 +193,3 @@ def test_checked_item_insert_gets_utc_timestamp_and_get_list_data_keeps_history(
     assert items[0]["completed_at"] == "2025-01-01T15:00:00.000000Z"
     assert items[0]["done"] is True
     assert history == ["already done"]
-    assert filter_visible_items(items, "all") == []

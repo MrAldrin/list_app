@@ -62,7 +62,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] `src/item_service.py`: move `clamp_quantity` and the two used
   names into `src/api/ops.py`, delete the module. Simplify `item_edit`
   (`ops.py:405-419`) to reuse `_item_name`.
-- [ ] [refactor] D1: delete `src/item_visibility.py` `filter_visible_items` and
+- [x] [refactor] D1: delete `src/item_visibility.py` `filter_visible_items` and
   its tests; update `ARCHITECTURE.md` (lines 83, 89), `docs/api.md:6` and the
   `visibility.ts` header comment.
 - [ ] [data] D2: delete the version-0-only branches of migration 1 in

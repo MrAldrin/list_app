@@ -85,7 +85,8 @@ back from a public list.
 - `src/room_invitations.py`: Invitation logic.
 - `src/live_updates.py`: Wakes open API live streams when a room changed.
 
-Business rules live in Python. The frontend never copies them.
+Rules that change data live in Python. Display rules, such as hiding
+checked items, run in the browser so they work offline.
 
 ## Major UX decisions
 
