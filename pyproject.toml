@@ -42,6 +42,10 @@ select = [
     "SIM",
     "RUF",
     "BLE",
+    "FAST",
+    "ASYNC210",
+    "ASYNC230",
+    "ASYNC251",
 ]
 
 [tool.ruff.format]

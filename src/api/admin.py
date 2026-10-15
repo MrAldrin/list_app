@@ -13,7 +13,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import StrictStr
 from starlette.concurrency import run_in_threadpool
 
 from admin_access import (
@@ -25,8 +25,7 @@ from admin_access import (
 from api.access import is_https
 from api.cookies import clear_cookie, set_cookie
 from api.errors import ApiError, error_response
-from api.requests import json_object, parse_body
-from api.session import MAX_PASSWORD_LENGTH
+from api.requests import JsonBody, Password, StrictBody, parse_body
 from database_crud import (
     check_new_room_password,
     check_password_length,
@@ -68,29 +67,21 @@ router = APIRouter(prefix="/admin")
 admin_only = APIRouter(dependencies=[Depends(require_admin)])
 
 
-class AdminSignInBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
+class AdminSignInBody(StrictBody):
+    password: Password
 
 
-class CreateRoomBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CreateRoomBody(StrictBody):
     name: StrictStr
-    password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
+    password: Password
 
 
-class ResetPasswordBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    new_password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
+class ResetPasswordBody(StrictBody):
+    new_password: Password
 
 
 @router.post("/session")
-async def sign_in(
-    request: Request, body: dict[str, Any] = Depends(json_object)
-) -> Response:
+async def sign_in(request: Request, body: JsonBody) -> Response:
     password = parse_body(AdminSignInBody, body).password
     if not admin_password_matches(password):
         # A wrong password does not sign out an admin session.
@@ -137,7 +128,7 @@ async def rooms() -> dict[str, Any]:
 
 
 @admin_only.post("/rooms")
-async def new_room(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any]:
+async def new_room(body: JsonBody) -> dict[str, Any]:
     data = parse_body(CreateRoomBody, body)
 
     def create() -> dict[str, Any] | None:
@@ -159,7 +150,7 @@ async def new_room(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any
 async def reset_password(
     slug: str,
     background: BackgroundTasks,
-    body: dict[str, Any] = Depends(json_object),
+    body: JsonBody,
 ) -> dict[str, Any]:
     new_password = parse_body(ResetPasswordBody, body).new_password
     try:

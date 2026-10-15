@@ -11,16 +11,15 @@ the creator signs in with the new password.
 """
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import StrictStr
 from starlette.concurrency import run_in_threadpool
 
 from api.admin import require_admin
 from api.errors import ApiError
-from api.requests import json_object, parse_body
-from api.session import MAX_PASSWORD_LENGTH
+from api.requests import JsonBody, Password, StrictBody, parse_body
 from database_crud import normalize_display_name
 from room_invitations import (
     InvitationUnavailable,
@@ -41,15 +40,13 @@ admin_router = APIRouter(
 router = APIRouter(prefix="/invitations")
 
 
-class EmptyBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class EmptyBody(StrictBody):
+    """A request that takes no fields."""
 
 
-class CreateRoomBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CreateRoomBody(StrictBody):
     name: StrictStr
-    password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
+    password: Password
 
 
 def _utc(timestamp: int | None) -> str | None:
@@ -80,7 +77,7 @@ async def invitations() -> dict[str, Any]:
 
 
 @admin_router.post("")
-async def issue(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any]:
+async def issue(body: JsonBody) -> dict[str, Any]:
     """A new 7-day invitation. The token is in this answer only."""
     parse_body(EmptyBody, body)
 
@@ -99,8 +96,8 @@ async def issue(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any]:
 
 @admin_router.post("/{invitation_id}/revoke")
 async def revoke(
-    invitation_id: int = Path(ge=1, le=MAX_INVITATION_ID),
-    body: dict[str, Any] = Depends(json_object),
+    invitation_id: Annotated[int, Path(ge=1, le=MAX_INVITATION_ID)],
+    body: JsonBody,
 ) -> dict[str, Any]:
     """Stops further room creation with this invitation. Rooms made with it
     stay. An unknown or already revoked invitation changes nothing."""
@@ -121,7 +118,7 @@ def check(token: str) -> dict[str, Any]:
 
 
 @router.post("/{token}/rooms")
-def create_room(token: str, body: dict[str, Any] = Depends(json_object)) -> dict:
+def create_room(token: str, body: JsonBody) -> dict:
     """Creates a room. The invitation is checked again inside the write
     transaction. The creator is not signed in: no cookie is set."""
     data = parse_body(CreateRoomBody, body)

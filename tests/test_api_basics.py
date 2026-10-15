@@ -13,7 +13,7 @@ import database_crud
 import main
 from api import register_api
 from api.access import room_access
-from api.requests import check_write_request, json_object
+from api.requests import JsonBody, check_write_request
 from database_crud import authenticate_room_and_issue_token
 from database_setup import db
 from room_cookies import plain_token_cookie_name, token_cookie_name
@@ -46,7 +46,7 @@ def build_test_app() -> FastAPI:
     )
 
     @probes.post("/echo")
-    def echo(body: dict[str, Any] = Depends(json_object)) -> dict[str, Any]:
+    def echo(body: JsonBody) -> dict[str, Any]:
         return body
 
     @probes.delete("/thing")
@@ -59,9 +59,7 @@ def build_test_app() -> FastAPI:
             return {"room_id": room.room_id, "in_transaction": db.in_transaction}
 
     @probes.post("/rooms/{slug}/fail")
-    def write_then_fail(
-        slug: str, request: Request, body: dict[str, Any] = Depends(json_object)
-    ) -> None:
+    def write_then_fail(slug: str, request: Request, body: JsonBody) -> None:
         with room_access(request, slug, write=True) as room:
             db.execute(
                 "UPDATE rooms SET name = 'changed' WHERE id = ?", (room.room_id,)

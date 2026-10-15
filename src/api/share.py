@@ -13,15 +13,14 @@ that list, and the room endpoints still need the room cookie.
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter, Query, Request
 
 from api.access import room_access, room_token, share_access
 from api.changes import MAX_SEQ
 from api.errors import ApiError
 from api.idempotency import Response
 from api.ops import run_share_op
-from api.requests import json_object, parse_body
+from api.requests import JsonBody, StrictBody, parse_body
 from database_crud import (
     get_item_changes_locked,
     get_list_changes_locked,
@@ -84,12 +83,12 @@ def share_changes(
 
 
 @router.post("/share/{token}/ops")
-def share_op(token: str, body: dict[str, Any] = Depends(json_object)) -> Response:
+def share_op(token: str, body: JsonBody) -> Response:
     return run_share_op(token, body)
 
 
-class ResetBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class ResetBody(StrictBody):
+    """A reset takes no fields."""
 
 
 def _room_list_id(room_id: int, list_uid: str) -> int:
@@ -116,7 +115,7 @@ def reset_share_link(
     slug: str,
     list_uid: str,
     request: Request,
-    body: dict[str, Any] = Depends(json_object),
+    body: JsonBody,
 ) -> dict[str, str]:
     """Reset the share link: the old token stops working for everyone at once.
 

@@ -5,11 +5,10 @@ an HTTP-only cookie; it is never in a response body.
 """
 
 import sqlite3
-from typing import Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from api.access import (
     last_room_cookie_name,
@@ -20,7 +19,7 @@ from api.access import (
 )
 from api.cookies import clear_cookie, set_room_cookies
 from api.errors import ApiError, error_response
-from api.requests import json_object, parse_body
+from api.requests import JsonBody, Password, parse_body
 from database_crud import (
     authenticate_room_and_issue_token,
     get_room_details_locked,
@@ -29,19 +28,17 @@ from database_crud import (
 
 # Longer than any slug the app creates; longer cookie values are ignored.
 MAX_SLUG_LENGTH = 256
-MAX_PASSWORD_LENGTH = 1024
 
 router = APIRouter()
 
 
 class SignInBody(BaseModel):
-    password: str = Field(max_length=MAX_PASSWORD_LENGTH)
+    # Not StrictBody: unknown fields are ignored here, as before.
+    password: Password
 
 
 @router.post("/rooms/{slug}/session")
-def sign_in(
-    slug: str, request: Request, body: dict[str, Any] = Depends(json_object)
-) -> Response:
+def sign_in(slug: str, request: Request, body: JsonBody) -> Response:
     password = parse_body(SignInBody, body).password
     try:
         issued = authenticate_room_and_issue_token(slug, password)

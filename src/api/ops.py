@@ -12,11 +12,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from pydantic import (
     AfterValidator,
-    BaseModel,
-    ConfigDict,
     Field,
     StrictBool,
     StrictInt,
@@ -29,7 +27,7 @@ from pydantic import (
 from api.access import room_access, share_access
 from api.errors import ApiError
 from api.idempotency import Response, request_hash, run_once_locked
-from api.requests import json_object
+from api.requests import JsonBody, StrictBody
 from database_crud import (
     add_or_restore_item_locked,
     adjust_item_quantity_locked,
@@ -102,9 +100,7 @@ def _completion_time(value: str | None) -> str | None:
 CompletedAt = Annotated[StrictStr | None, AfterValidator(_completion_time)]
 
 
-class Op(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class Op(StrictBody):
     op_id: Uuid
 
 
@@ -514,9 +510,7 @@ def _apply_locked(scope: OpScope, op: Any) -> Response:
 
 
 @router.post("/rooms/{slug}/ops")
-def post_op(
-    slug: str, request: Request, body: dict[str, Any] = Depends(json_object)
-) -> Response:
+def post_op(slug: str, request: Request, body: JsonBody) -> Response:
     op = parse_op(body)
     body_hash = request_hash(op)
     with room_access(request, slug, write=True) as room:

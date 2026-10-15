@@ -6,17 +6,13 @@ They are online-only actions. Each one needs room access (the cookie) and the
 current password, checked in the same write transaction.Rename is an op (`room.rename` in `api/ops.py`).
 """
 
-from typing import Any
-
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from api.access import last_room_cookie_name, room_access, room_cookie_name
 from api.cookies import clear_cookie, set_room_cookies
 from api.errors import ApiError
-from api.requests import json_object, parse_body
-from api.session import MAX_PASSWORD_LENGTH
+from api.requests import JsonBody, Password, StrictBody, parse_body
 from database_crud import (
     change_room_password_locked,
     check_new_room_password,
@@ -32,17 +28,13 @@ WRONG_CURRENT_PASSWORD = "Incorrect current password"
 WRONG_PASSWORD = "Incorrect password"
 
 
-class ChangePasswordBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    current_password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
-    new_password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
+class ChangePasswordBody(StrictBody):
+    current_password: Password
+    new_password: Password
 
 
-class DeleteRoomBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    password: StrictStr = Field(max_length=MAX_PASSWORD_LENGTH)
+class DeleteRoomBody(StrictBody):
+    password: Password
 
 
 @router.post("/rooms/{slug}/password")
@@ -50,7 +42,7 @@ def change_password(
     slug: str,
     request: Request,
     background: BackgroundTasks,
-    body: dict[str, Any] = Depends(json_object),
+    body: JsonBody,
 ) -> Response:
     data = parse_body(ChangePasswordBody, body)
     try:
@@ -78,7 +70,7 @@ def delete_room(
     slug: str,
     request: Request,
     background: BackgroundTasks,
-    body: dict[str, Any] = Depends(json_object),
+    body: JsonBody,
 ) -> Response:
     password = parse_body(DeleteRoomBody, body).password
     with room_access(request, slug, write=True) as room:

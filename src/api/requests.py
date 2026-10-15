@@ -1,17 +1,28 @@
 """Request rules for every API endpoint: same-origin writes and JSON bodies."""
 
 import json
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import Request
-from pydantic import BaseModel, ValidationError
+from fastapi import Depends, Request
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
 
 from api.errors import NO_STORE, ApiError, is_api_path
 from api.version import API_VERSION, API_VERSION_HEADER
+from field_limits import MAX_PASSWORD_LENGTH
 from room_cookies import is_same_origin_request
 
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 MAX_BODY_BYTES = 64 * 1024
+
+
+class StrictBody(BaseModel):
+    """Base for request bodies: a field the model does not know is a 422."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+# A password: text, at most MAX_PASSWORD_LENGTH characters.
+Password = Annotated[StrictStr, Field(max_length=MAX_PASSWORD_LENGTH)]
 
 
 def _has_body(request: Request) -> bool:
@@ -53,6 +64,10 @@ async def json_object(request: Request) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ApiError(422, "invalid_request", "The body must be a JSON object.")
     return data
+
+
+# The request body, read by json_object.
+JsonBody = Annotated[dict[str, Any], Depends(json_object)]
 
 
 def parse_body[ModelT: BaseModel](model: type[ModelT], data: dict[str, Any]) -> ModelT:

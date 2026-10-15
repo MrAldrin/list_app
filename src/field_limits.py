@@ -7,6 +7,7 @@ here first gives the user a clear message instead of a server error.
 MAX_NAME_LENGTH = 100  # Room, list and item names.
 MAX_DESCRIPTION_LENGTH = 1000
 MAX_TAG_LENGTH = 30
+MAX_PASSWORD_LENGTH = 1024  # Passwords, in characters.
 
 
 def too_long_message(what: str, text: str, limit: int) -> str | None:
