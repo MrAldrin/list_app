@@ -1,11 +1,19 @@
 import type { Item, List, Room } from '#lib/data/types.ts';
+import { CONTROLS, ROUTING, SNAPSHOTS, openDatabase, requestValue, transact } from './snapshot-idb';
+import {
+	isRecord,
+	isSequence,
+	nonEmptyString,
+	parseClearHint,
+	sameIdentity,
+	validControl,
+	validIdentity,
+	validateData,
+	type StoredControl
+} from './snapshot-validate';
 
 export const SNAPSHOT_SCHEMA_VERSION = 1;
-const DATABASE_VERSION = 1;
 const DEFAULT_DATABASE_NAME = 'listr-snapshots';
-const SNAPSHOTS = 'snapshots';
-const CONTROLS = 'controls';
-const ROUTING = 'routing';
 const LAST_ROOM_KEY = 'last-room';
 
 export type RoomIdentity = { kind: 'room'; slug: string };
@@ -78,13 +86,6 @@ export interface SnapshotStoreOptions {
 	channel?: SnapshotClearChannel | null;
 }
 
-interface StoredControl {
-	key: string;
-	identity: SnapshotIdentity;
-	generation: number;
-	signOut?: { pendingServerLogout: boolean };
-}
-
 interface StoredSnapshot {
 	key: string;
 	identity: SnapshotIdentity;
@@ -94,28 +95,6 @@ interface StoredSnapshot {
 interface IdentityKey {
 	identity: SnapshotIdentity;
 	key: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function nonEmptyString(value: unknown): value is string {
-	return typeof value === 'string' && value.length > 0;
-}
-
-function validIdentity(value: unknown): value is SnapshotIdentity {
-	if (!isRecord(value)) return false;
-	if (value.kind === 'room') return nonEmptyString(value.slug) && value.slug.length <= 2048;
-	if (value.kind === 'share') return nonEmptyString(value.token) && value.token.length <= 2048;
-	return false;
-}
-
-function sameIdentity(a: SnapshotIdentity, b: SnapshotIdentity): boolean {
-	return (
-		a.kind === b.kind &&
-		('slug' in a ? a.slug === (b as RoomIdentity).slug : a.token === (b as ShareIdentity).token)
-	);
 }
 
 function identify(identity: SnapshotIdentity): IdentityKey | null {
@@ -128,141 +107,6 @@ function identify(identity: SnapshotIdentity): IdentityKey | null {
 		identity: copy,
 		key: `${copy.kind}:${encodeURIComponent('slug' in copy ? copy.slug : copy.token)}`
 	};
-}
-
-function isSequence(value: unknown): value is number {
-	return Number.isSafeInteger(value) && (value as number) >= 0;
-}
-
-function validTags(value: unknown): value is string[] {
-	return Array.isArray(value) && value.every((tag) => typeof tag === 'string');
-}
-
-function validList(value: unknown, seq: number): value is List {
-	if (!isRecord(value) || !nonEmptyString(value.uid)) return false;
-	if (typeof value.slug !== 'string' || typeof value.name !== 'string' || !validTags(value.tags))
-		return false;
-	if (
-		!isRecord(value.hide_done) ||
-		!['off', 'all', 'age', 'recent'].includes(String(value.hide_done.mode))
-	)
-		return false;
-	if (
-		!Number.isSafeInteger(value.hide_done.age_days) ||
-		(value.hide_done.age_days as number) < 1 ||
-		(value.hide_done.age_days as number) > 100_000 ||
-		!Number.isSafeInteger(value.hide_done.recent_count) ||
-		(value.hide_done.recent_count as number) < 1 ||
-		(value.hide_done.recent_count as number) > 100_000
-	)
-		return false;
-	return isSequence(value.changed_seq) && value.changed_seq <= seq;
-}
-
-function validItem(value: unknown, seq: number): value is Item {
-	if (!isRecord(value) || !nonEmptyString(value.uid) || !nonEmptyString(value.list_uid))
-		return false;
-	if (typeof value.name !== 'string' || typeof value.description !== 'string') return false;
-	if (
-		typeof value.done !== 'boolean' ||
-		!Number.isSafeInteger(value.quantity) ||
-		(value.quantity as number) < 1
-	)
-		return false;
-	if (value.completed_at !== null && typeof value.completed_at !== 'string') return false;
-	if (typeof value.completed_at === 'string' && !Number.isFinite(Date.parse(value.completed_at)))
-		return false;
-	if (!value.done && value.completed_at !== null) return false;
-	return validTags(value.tags) && isSequence(value.changed_seq) && value.changed_seq <= seq;
-}
-
-function copyList(list: List): List {
-	return {
-		uid: list.uid,
-		slug: list.slug,
-		name: list.name,
-		tags: [...list.tags],
-		hide_done: {
-			mode: list.hide_done.mode,
-			age_days: list.hide_done.age_days,
-			recent_count: list.hide_done.recent_count
-		},
-		changed_seq: list.changed_seq
-	};
-}
-
-function copyItem(item: Item): Item {
-	return {
-		uid: item.uid,
-		list_uid: item.list_uid,
-		name: item.name,
-		done: item.done,
-		completed_at: item.completed_at,
-		quantity: item.quantity,
-		description: item.description,
-		tags: [...item.tags],
-		changed_seq: item.changed_seq
-	};
-}
-
-function validateData(identity: SnapshotIdentity, data: unknown): SnapshotData | null {
-	if (
-		!isRecord(data) ||
-		!isSequence(data.seq) ||
-		!Array.isArray(data.lists) ||
-		!Array.isArray(data.items)
-	)
-		return null;
-	if (identity.kind === 'room') {
-		if (
-			!isRecord(data.room) ||
-			data.room.slug !== identity.slug ||
-			typeof data.room.name !== 'string'
-		)
-			return null;
-	} else if (data.lists.length !== 1) {
-		return null;
-	}
-	if (!data.lists.every((list) => validList(list, data.seq as number))) return null;
-	if (!data.items.every((item) => validItem(item, data.seq as number))) return null;
-	const listIds = new Set(data.lists.map((list) => (list as List).uid));
-	const itemIds = new Set(data.items.map((item) => (item as Item).uid));
-	if (listIds.size !== data.lists.length || itemIds.size !== data.items.length) return null;
-	if (data.items.some((item) => !listIds.has((item as Item).list_uid))) return null;
-	if (identity.kind === 'share') {
-		const listUid = (data.lists[0] as List).uid;
-		if (data.items.some((item) => (item as Item).list_uid !== listUid)) return null;
-	}
-	return {
-		seq: data.seq as number,
-		room: identity.kind === 'room' ? { slug: identity.slug, name: (data.room as Room).name } : null,
-		lists: (data.lists as List[]).map(copyList),
-		items: (data.items as Item[]).map(copyItem)
-	};
-}
-
-function validControl(
-	value: unknown,
-	key: string,
-	identity: SnapshotIdentity
-): value is StoredControl {
-	if (
-		!isRecord(value) ||
-		value.key !== key ||
-		!validIdentity(value.identity) ||
-		!sameIdentity(value.identity, identity) ||
-		!isSequence(value.generation)
-	)
-		return false;
-	if (value.signOut !== undefined) {
-		if (
-			identity.kind !== 'room' ||
-			!isRecord(value.signOut) ||
-			typeof value.signOut.pendingServerLogout !== 'boolean'
-		)
-			return false;
-	}
-	return true;
 }
 
 function readSnapshot(identity: SnapshotIdentity, value: unknown): SavedSnapshot | null {
@@ -280,87 +124,6 @@ function readSnapshot(identity: SnapshotIdentity, value: unknown): SavedSnapshot
 	};
 }
 
-function requestValue<T>(request: IDBRequest<T>): Promise<T> {
-	return new Promise((resolve, reject) => {
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'));
-	});
-}
-
-function transactionDone(transaction: IDBTransaction): Promise<void> {
-	return new Promise((resolve, reject) => {
-		transaction.oncomplete = () => resolve();
-		transaction.onabort = () =>
-			reject(transaction.error ?? new Error('IndexedDB transaction aborted'));
-		transaction.onerror = () =>
-			reject(transaction.error ?? new Error('IndexedDB transaction failed'));
-	});
-}
-
-async function transact<T>(
-	database: IDBDatabase,
-	storeNames: string | string[],
-	mode: IDBTransactionMode,
-	operation: (transaction: IDBTransaction) => Promise<T>
-): Promise<T> {
-	const transaction = database.transaction(storeNames, mode);
-	const done = transactionDone(transaction);
-	try {
-		const result = await operation(transaction);
-		await done;
-		return result;
-	} catch (error) {
-		try {
-			transaction.abort();
-		} catch {
-			// The transaction may already have completed or aborted.
-		}
-		await done.catch(() => undefined);
-		throw error;
-	}
-}
-
-function openDatabase(factory: IDBFactory, name: string): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
-		let request: IDBOpenDBRequest;
-		try {
-			request = factory.open(name, DATABASE_VERSION);
-		} catch (error) {
-			reject(error);
-			return;
-		}
-		let finished = false;
-		request.onupgradeneeded = () => {
-			const database = request.result;
-			if (!database.objectStoreNames.contains(SNAPSHOTS))
-				database.createObjectStore(SNAPSHOTS, { keyPath: 'key' });
-			if (!database.objectStoreNames.contains(CONTROLS))
-				database.createObjectStore(CONTROLS, { keyPath: 'key' });
-			if (!database.objectStoreNames.contains(ROUTING))
-				database.createObjectStore(ROUTING, { keyPath: 'key' });
-		};
-		request.onsuccess = () => {
-			if (finished) {
-				request.result.close();
-				return;
-			}
-			finished = true;
-			request.result.onversionchange = () => request.result.close();
-			resolve(request.result);
-		};
-		request.onerror = () => {
-			if (finished) return;
-			finished = true;
-			reject(request.error ?? new Error('IndexedDB could not be opened'));
-		};
-		request.onblocked = () => {
-			if (finished) return;
-			finished = true;
-			reject(new Error('IndexedDB upgrade is blocked'));
-		};
-	});
-}
-
 function resultFailure<T>(reason: SnapshotFailureReason): SnapshotResult<T> {
 	return { ok: false, reason };
 }
@@ -369,21 +132,22 @@ function resultSuccess<T>(value: T): SnapshotResult<T> {
 	return { ok: true, value };
 }
 
-function parseClearHint(value: unknown): SnapshotClearHint | null {
-	if (
-		!isRecord(value) ||
-		value.type !== 'snapshot-clear' ||
-		!validIdentity(value.identity) ||
-		!isSequence(value.generation)
-	)
-		return null;
-	return {
-		identity:
-			value.identity.kind === 'room'
-				? { kind: 'room', slug: value.identity.slug }
-				: { kind: 'share', token: value.identity.token },
-		generation: value.generation
-	};
+/**
+ * Validates the stored control record and computes the next generation.
+ * Call it right after reading the record, before any other await, so the
+ * read and the bump stay in the same transaction step.
+ */
+function nextGeneration(
+	raw: unknown,
+	identified: IdentityKey
+): SnapshotResult<{ old: StoredControl | undefined; generation: number }> {
+	if (raw !== undefined && !validControl(raw, identified.key, identified.identity)) {
+		return resultFailure('unavailable');
+	}
+	const old = raw as StoredControl | undefined;
+	const generation = (old?.generation ?? 0) + 1;
+	if (!isSequence(generation)) return resultFailure('unavailable');
+	return resultSuccess({ old, generation });
 }
 
 export function createSnapshotStore(options: SnapshotStoreOptions = {}): SnapshotStore {
@@ -462,12 +226,9 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 				async (tx) => {
 					const controls = tx.objectStore(CONTROLS);
 					const raw = await requestValue(controls.get(identified.key));
-					if (raw !== undefined && !validControl(raw, identified.key, identified.identity)) {
-						return resultFailure('unavailable');
-					}
-					const old = raw as StoredControl | undefined;
-					const generation = (old?.generation ?? 0) + 1;
-					if (!isSequence(generation)) return resultFailure('unavailable');
+					const next = nextGeneration(raw, identified);
+					if (!next.ok) return next;
+					const { old, generation } = next.value;
 					const control: StoredControl = {
 						key: identified.key,
 						identity: identified.identity,
@@ -623,12 +384,9 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 					async (tx) => {
 						const controls = tx.objectStore(CONTROLS);
 						const raw = await requestValue(controls.get(identified.key));
-						if (raw !== undefined && !validControl(raw, identified.key, identified.identity)) {
-							return resultFailure('unavailable');
-						}
-						const old = raw as StoredControl | undefined;
-						const generation = (old?.generation ?? 0) + 1;
-						if (!isSequence(generation)) return resultFailure('unavailable');
+						const next = nextGeneration(raw, identified);
+						if (!next.ok) return next;
+						const { old, generation } = next.value;
 						const control: StoredControl = {
 							key: identified.key,
 							identity: identified.identity,
@@ -720,12 +478,9 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 				return await transact(db, CONTROLS, 'readwrite', async (tx) => {
 					const controls = tx.objectStore(CONTROLS);
 					const raw = await requestValue(controls.get(identified.key));
-					if (raw !== undefined && !validControl(raw, identified.key, identified.identity)) {
-						return resultFailure('unavailable');
-					}
-					const old = raw as StoredControl | undefined;
-					const generation = (old?.generation ?? 0) + 1;
-					if (!isSequence(generation)) return resultFailure('unavailable');
+					const next = nextGeneration(raw, identified);
+					if (!next.ok) return next;
+					const { generation } = next.value;
 					await requestValue(
 						controls.put({
 							key: identified.key,

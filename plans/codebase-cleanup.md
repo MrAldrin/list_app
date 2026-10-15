@@ -129,7 +129,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 ## Phase 5: data layer
 
-- [ ] [refactor] `snapshot-store.ts`: one generation-bump helper (three copies);
+- [x] [refactor] `snapshot-store.ts`: one generation-bump helper (three copies);
   split pure validators and IndexedDB helpers into their own files.
 - [ ] [refactor] `index.ts`: split messages, standalone session and a
   pending-logout helper into own files.
