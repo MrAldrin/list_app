@@ -1,6 +1,8 @@
 # Codebase cleanup
 
-Lifecycle: tracked
+Background for the cleanup done on 2026-10-15. Current behavior is in
+[ARCHITECTURE.md](../../ARCHITECTURE.md) and [the API doc](../api.md). This was
+the plan; it is kept for the decisions, the "Not now" list and the reasoning.
 
 Make the code smaller and easier to maintain: delete dead code, remove copies
 (DRY), and adopt a few current idioms. No behavior changes unless a decision
