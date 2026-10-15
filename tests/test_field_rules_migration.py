@@ -5,15 +5,15 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from migration_helpers import migrate_to
 
-from database_setup import _migrations
-from migrations import run_migrations, schema_version
+from migrations import schema_version
 
 
 @pytest.fixture
 def db() -> Iterator[sqlite3.Connection]:
     with sqlite3.connect(":memory:") as connection:
-        run_migrations(connection, _migrations("pw"))
+        migrate_to(connection)
         connection.execute(
             "INSERT INTO lists (name, slug, room_id, share_token) "
             "VALUES ('Shop', 'shop', 1, 'token')"
@@ -114,7 +114,7 @@ def test_other_columns_update_without_the_check(db):
 def test_a_bad_stored_row_stops_the_migration_unchanged(tmp_path: Path):
     path = tmp_path / "old.db"
     with sqlite3.connect(path) as db:
-        run_migrations(db, _migrations("pw")[:5])
+        migrate_to(db, 5)
         db.execute(
             "INSERT INTO lists (name, slug, room_id, share_token) "
             "VALUES ('Shop', 'shop', 1, 'token')"
@@ -130,7 +130,7 @@ def test_a_bad_stored_row_stops_the_migration_unchanged(tmp_path: Path):
             RuntimeError,
             match=r"Rows break field rules: items\.name: 1, items\.quantity: 1",
         ):
-            run_migrations(db, _migrations("pw"))
+            migrate_to(db)
 
         assert schema_version(db) == 5
         assert db.execute("SELECT * FROM items").fetchall() == before

@@ -252,19 +252,10 @@ def test_real_app_answers_every_page_address_with_svelte(path):
 
 @needs_build
 def test_other_server_routes_still_win_over_the_page():
+    # Manifest, icon and worker routes are tested in tests/test_pwa_routes.py.
     from main import app
 
     client = TestClient(app)
-    assert client.get("/manifest.json").status_code == 200
-    assert client.get("/manifest.webmanifest").json()["start_url"] == "/"
-    assert (
-        client.get("/sw.js")
-        .headers["content-type"]
-        .startswith("application/javascript")
-    )
-    assert client.get("/static/icons/favicon-32.png").status_code == 200
-    favicon = client.get("/favicon.ico")
-    assert favicon.headers["content-type"] == "image/png"
     assert client.get("/api/v1/nothing").status_code == 404
     # The application's JSON API answers, not the page.
     assert (

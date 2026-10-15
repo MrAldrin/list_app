@@ -1,7 +1,9 @@
-"""Old install addresses, icons and the old service worker's kill switch.
+"""Home-screen install manifests, icons and the old service worker's kill switch.
 
-Phones that installed the app before the Svelte switch still use these
-addresses (src/pwa_routes.py, docs/home-screen-installation.md).
+Phones that installed the app before the Svelte switch still use the old
+`.json` addresses. The pages at the root link the `.webmanifest` addresses
+(src/svelte_frontend.py). Both pairs answer with the same content, and only
+`start_url` changes. See src/pwa_routes.py and docs/home-screen-installation.md.
 """
 
 import json
@@ -10,6 +12,7 @@ import re
 import pytest
 from starlette.testclient import TestClient
 
+from database_setup import db
 from install_manifest import BASE_MANIFEST_PATH
 from main import app
 from pwa_routes import KILL_SWITCH_SCRIPT
@@ -21,6 +24,13 @@ NO_STORE_MANIFEST = "no-cache, no-store, must-revalidate"
 @pytest.fixture(scope="module")
 def client() -> TestClient:
     return TestClient(app)
+
+
+def assert_manifest_headers(response) -> None:
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/manifest+json"
+    assert response.headers["cache-control"] == NO_STORE_MANIFEST
+    assert response.headers["x-content-type-options"] == "nosniff"
 
 
 def test_service_worker_route_is_the_kill_switch(client):
@@ -58,22 +68,21 @@ def test_kill_switch_answers_head_and_is_not_an_api_page(client):
     assert "<html" not in client.get("/sw.js").text.lower()
 
 
-def test_old_manifest_routes(client):
-    for path in ["/manifest.json", "/static/manifest.json"]:
-        response = client.get(path)
-        assert response.status_code == 200
-        assert response.headers["content-type"] == "application/manifest+json"
-        assert response.headers["cache-control"] == NO_STORE_MANIFEST
-        assert response.json() == {**BASE_MANIFEST, "start_url": "/"}
+@pytest.mark.parametrize(
+    "path", ["/manifest.json", "/static/manifest.json", "/manifest.webmanifest"]
+)
+def test_default_manifest_opens_the_start_page(client, path):
+    response = client.get(path)
+    assert_manifest_headers(response)
+    assert response.json() == {**BASE_MANIFEST, "start_url": "/"}
 
 
-def test_old_room_manifest_opens_the_room_and_holds_no_secrets(client):
+@pytest.mark.parametrize("suffix", [".json", ".webmanifest"])
+def test_room_manifest_opens_the_room_and_holds_no_secrets(client, suffix):
     response = client.get(
-        "/room-manifest/home-ab12cd.json?admin=true&token=secret&password=secret"
+        f"/room-manifest/home-ab12cd{suffix}?admin=true&token=secret&password=secret"
     )
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "application/manifest+json"
-    assert response.headers["cache-control"] == NO_STORE_MANIFEST
+    assert_manifest_headers(response)
     manifest = response.json()
     assert manifest == {**BASE_MANIFEST, "start_url": "/room/home-ab12cd"}
     assert manifest["id"] == "/"
@@ -82,15 +91,22 @@ def test_old_room_manifest_opens_the_room_and_holds_no_secrets(client):
     assert "admin" not in response.text
 
 
-def test_old_room_manifest_does_not_tell_whether_a_room_exists(client):
-    from database_setup import db
-
+@pytest.mark.parametrize("suffix", [".json", ".webmanifest"])
+def test_room_manifest_does_not_tell_whether_a_room_exists(client, suffix):
     slug = db.execute("SELECT slug FROM rooms").fetchone()[0]
-    real = client.get(f"/room-manifest/{slug}.json")
-    unknown = client.get("/room-manifest/no-such-room.json")
-    assert real.status_code == unknown.status_code == 200
+    real = client.get(f"/room-manifest/{slug}{suffix}")
+    unknown = client.get(f"/room-manifest/no-such-room{suffix}")
+    assert_manifest_headers(real)
+    assert_manifest_headers(unknown)
     assert real.json() == {**BASE_MANIFEST, "start_url": f"/room/{slug}"}
+    # An unknown room's icon opens its password prompt, so the answer is the same shape.
     assert unknown.json() == {**BASE_MANIFEST, "start_url": "/room/no-such-room"}
+
+
+def test_room_manifest_encodes_an_untrusted_slug(client):
+    response = client.get("/room-manifest/room%22%3F%3E%3C%26%20%23.webmanifest")
+    assert_manifest_headers(response)
+    assert response.json()["start_url"] == "/room/room%22%3F%3E%3C%26%20%23"
 
 
 def test_old_and_new_manifests_match(client):

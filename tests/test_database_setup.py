@@ -7,8 +7,9 @@ from pathlib import Path
 
 import bcrypt
 import pytest
+from migration_helpers import LATEST_VERSION
 
-from database_setup import _backup_path, _migrations, init_database
+from database_setup import _backup_path, init_database
 
 
 def test_default_database_path_is_project_relative_from_other_working_directory(
@@ -44,10 +45,14 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     assert not (startup_directory / "list.db").exists()
 
 
-def test_fresh_schema_adds_visibility_and_completion_columns(tmp_path, monkeypatch):
+def test_fresh_database_is_at_latest_version_with_visibility_columns(
+    tmp_path, monkeypatch
+):
     monkeypatch.setenv("DB_PATH", str(tmp_path / "fresh.db"))
     connection = init_database()
 
+    assert connection.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
+    assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     list_columns = {
         column[1] for column in connection.execute("PRAGMA table_info(lists)")
     }
@@ -97,17 +102,6 @@ def test_missing_password_leaves_existing_database_untouched(
     with pytest.raises(RuntimeError, match="APP_PASSWORD must be set and not blank"):
         init_database()
     assert database_path.read_bytes() == original_contents
-
-
-LATEST_VERSION = len(_migrations("unused"))
-
-
-def test_fresh_database_is_at_latest_version(tmp_path, monkeypatch):
-    monkeypatch.setenv("DB_PATH", str(tmp_path / "fresh.db"))
-    db = init_database()
-    assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
-    assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-    db.close()
 
 
 def test_legacy_database_with_tables_fails_and_is_left_unchanged(tmp_path, monkeypatch):

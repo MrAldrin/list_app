@@ -106,7 +106,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   its copies; move `room` and `notified` fixtures to `conftest.py`.
 - [x] [test] One strict `assert_error` (five copies today); merge
   `set_cookies` / `plain_browser` copies.
-- [ ] [test] Merge overlapping migration, manifest and route tests (keep unique
+- [x] [test] Merge overlapping migration, manifest and route tests (keep unique
   assertions).
 - [ ] [test] Frontend: move `json()` / `fakeFetch()` to `test-helpers.ts`.
   Browser tests: shared `share_link` and `hold_live_updates` in `svelte_app.py`;

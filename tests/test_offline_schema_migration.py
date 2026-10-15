@@ -4,11 +4,9 @@ import sqlite3
 import uuid
 
 import pytest
+from migration_helpers import LATEST_VERSION, migrate_to
 
-from database_setup import _migrations, init_database
-from migrations import run_migrations
-
-LATEST_VERSION = len(_migrations("unused"))
+from database_setup import init_database
 
 
 def _columns(db: sqlite3.Connection, table: str) -> dict[str, tuple]:
@@ -33,7 +31,7 @@ def _assert_uuid4(value: str) -> None:
 def _version_two_database(path) -> sqlite3.Connection:
     """A version 2 database with two rooms, lists and items."""
     db = sqlite3.connect(path)
-    run_migrations(db, _migrations("pw")[:2])
+    migrate_to(db, 2)
     home = db.execute("SELECT id FROM rooms").fetchone()[0]
     other = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES ('Other', 'other', 'x')"

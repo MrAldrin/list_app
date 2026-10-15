@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from migration_helpers import migrate_to
 
 from database_setup import _migrations
 from migrations import run_migrations
@@ -26,7 +27,7 @@ def test_upgrade_preserves_behavior_and_identity(
 ) -> None:
     with sqlite3.connect(tmp_path / "old.db") as db:
         migrations = _migrations("pw")
-        run_migrations(db, migrations[:4])
+        migrate_to(db, 4)
         room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
         list_id = db.execute(
             "INSERT INTO lists (name, slug, room_id, share_token, hide_done_mode, "
@@ -73,7 +74,7 @@ def test_upgrade_preserves_behavior_and_identity(
 @pytest.mark.parametrize("value", [0, -1, 100001, 1.5])
 def test_database_guards_invalid_inserts_and_updates(field: str, value: float) -> None:
     with sqlite3.connect(":memory:") as db:
-        run_migrations(db, _migrations("pw"))
+        migrate_to(db)
         room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
         with pytest.raises(sqlite3.IntegrityError):
             db.execute(
