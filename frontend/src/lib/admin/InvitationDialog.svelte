@@ -39,14 +39,4 @@
 		display: grid;
 		gap: var(--gap);
 	}
-
-	label {
-		font-weight: 600;
-	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
-	}
 </style>

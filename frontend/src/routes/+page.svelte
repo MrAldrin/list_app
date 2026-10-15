@@ -116,23 +116,6 @@
 		padding-top: 15vh;
 	}
 
-	form {
-		display: grid;
-		gap: var(--gap);
-	}
-
-	h1 {
-		font-size: 1.3rem;
-	}
-
-	label {
-		font-weight: 600;
-	}
-
-	.error {
-		color: var(--danger);
-	}
-
 	.warning {
 		color: var(--warning);
 	}
@@ -141,11 +124,5 @@
 		display: flex;
 		align-items: center;
 		gap: var(--gap);
-	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
 	}
 </style>

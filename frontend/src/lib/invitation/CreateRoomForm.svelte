@@ -66,19 +66,6 @@
 </form>
 
 <style>
-	form {
-		display: grid;
-		gap: var(--gap);
-	}
-
-	h1 {
-		font-size: 1.3rem;
-	}
-
-	label {
-		font-weight: 600;
-	}
-
 	.small {
 		font-size: 0.9rem;
 	}

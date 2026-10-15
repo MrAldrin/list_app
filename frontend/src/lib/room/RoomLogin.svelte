@@ -43,27 +43,3 @@
 		<button class="primary" type="submit" disabled={busy}>Enter</button>
 	</div>
 </form>
-
-<style>
-	form {
-		display: grid;
-		gap: var(--gap);
-	}
-
-	h1 {
-		font-size: 1.3rem;
-	}
-
-	label {
-		font-weight: 600;
-	}
-
-	.error {
-		color: var(--danger);
-	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-	}
-</style>

@@ -58,23 +58,8 @@
 </Dialog>
 
 <style>
-	form {
-		display: grid;
-		gap: var(--gap);
-	}
-
 	.warning {
 		color: var(--text-muted);
 		font-size: 0.9rem;
-	}
-
-	label {
-		font-weight: 600;
-	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
 	}
 </style>

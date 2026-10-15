@@ -64,23 +64,8 @@
 </Dialog>
 
 <style>
-	form {
-		display: grid;
-		gap: var(--gap);
-	}
-
 	.explain {
 		margin: 0;
 		color: var(--text-muted);
-	}
-
-	label {
-		font-weight: 600;
-	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
 	}
 </style>

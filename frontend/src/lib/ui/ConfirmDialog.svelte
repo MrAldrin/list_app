@@ -48,10 +48,4 @@
 	.detail {
 		margin-bottom: 0.75rem;
 	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
-	}
 </style>

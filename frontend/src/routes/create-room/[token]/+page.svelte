@@ -62,8 +62,4 @@
 		display: grid;
 		gap: var(--gap);
 	}
-
-	h1 {
-		font-size: 1.3rem;
-	}
 </style>

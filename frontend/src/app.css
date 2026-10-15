@@ -107,6 +107,20 @@ a {
 	color: var(--primary);
 }
 
+/* Shared by the page titles, forms and labels of most components. */
+h1 {
+	font-size: 1.3rem;
+}
+
+form {
+	display: grid;
+	gap: var(--gap);
+}
+
+label {
+	font-weight: 600;
+}
+
 button,
 input,
 textarea {
@@ -245,4 +259,15 @@ input[role='switch']:checked::before {
 
 .muted {
 	color: var(--text-muted);
+}
+
+/* Buttons at the end of a dialog or form, on the right. */
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.error {
+	color: var(--danger);
 }

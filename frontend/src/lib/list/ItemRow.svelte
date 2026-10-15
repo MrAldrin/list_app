@@ -130,7 +130,9 @@
 		border-bottom: 1px solid var(--border);
 	}
 
+	/* app.css makes form labels bold; this label is not a form field. */
 	.check {
+		font-weight: inherit;
 		display: grid;
 		place-items: center;
 		width: var(--touch);

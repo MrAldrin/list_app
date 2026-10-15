@@ -110,10 +110,6 @@
 		gap: 0.5rem;
 	}
 
-	label {
-		font-weight: 600;
-	}
-
 	.quantity {
 		display: flex;
 		align-items: center;
@@ -147,6 +143,8 @@
 		align-items: center;
 		gap: 0.5rem;
 		margin-top: 0.5rem;
+		/* app.css right-aligns .actions; here .spacer pushes the buttons apart. */
+		justify-content: normal;
 	}
 
 	.spacer {

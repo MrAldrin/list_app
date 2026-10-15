@@ -70,9 +70,4 @@
 		margin: 0;
 		padding-left: 1.5rem;
 	}
-
-	.actions {
-		display: flex;
-		justify-content: flex-end;
-	}
 </style>
