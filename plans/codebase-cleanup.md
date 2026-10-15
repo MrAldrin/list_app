@@ -81,7 +81,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 ## Phase 2: backend DRY and idioms
 
-- [ ] [refactor] One cookie module: shared set/clear helpers for room and admin
+- [x] [refactor] One cookie module: shared set/clear helpers for room and admin
   cookies (`api/admin.py:58-78`, `api/session.py:42-62`, `api/room.py:67-68`).
   Security flags live in one place.
 - [ ] [refactor] Request models: a `StrictBody` base, a `Password` type and a

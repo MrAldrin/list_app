@@ -23,6 +23,7 @@ from admin_access import (
     issue_admin_token,
 )
 from api.access import is_https
+from api.cookies import clear_cookie, set_cookie
 from api.errors import ApiError, error_response
 from api.requests import json_object, parse_body
 from api.session import MAX_PASSWORD_LENGTH
@@ -53,29 +54,6 @@ def admin_cookie_name(request: Request) -> str:
 def admin_signed_in(request: Request) -> bool:
     """True when this request carries a valid admin cookie."""
     return admin_token_valid(request.cookies.get(admin_cookie_name(request)))
-
-
-def _set_admin_cookie(response: Response, request: Request, token: str) -> None:
-    response.set_cookie(
-        admin_cookie_name(request),
-        token,
-        max_age=ADMIN_SESSION_SECONDS,
-        path="/",
-        secure=is_https(request),
-        httponly=True,
-        samesite="lax",
-    )
-
-
-def _clear_admin_cookie(response: Response, request: Request) -> None:
-    # Deleting needs the same Path and Secure flag the cookie was set with.
-    response.delete_cookie(
-        admin_cookie_name(request),
-        path="/",
-        secure=is_https(request),
-        httponly=True,
-        samesite="lax",
-    )
 
 
 async def require_admin(request: Request) -> None:
@@ -118,7 +96,13 @@ async def sign_in(
         # A wrong password does not sign out an admin session.
         raise ApiError(401, "invalid_password", WRONG_ADMIN_PASSWORD)
     response = JSONResponse({})
-    _set_admin_cookie(response, request, issue_admin_token())
+    set_cookie(
+        response,
+        request,
+        admin_cookie_name(request),
+        issue_admin_token(),
+        ADMIN_SESSION_SECONDS,
+    )
     return response
 
 
@@ -130,14 +114,14 @@ async def who_am_i(request: Request) -> Response:
     response = error_response(401, "admin_required")
     if admin_cookie_name(request) in request.cookies:
         # An expired, forged or old-password cookie is useless; drop it.
-        _clear_admin_cookie(response, request)
+        clear_cookie(response, request, admin_cookie_name(request))
     return response
 
 
 @router.delete("/session")
 async def sign_out(request: Request) -> Response:
     response = Response(status_code=204)
-    _clear_admin_cookie(response, request)
+    clear_cookie(response, request, admin_cookie_name(request))
     return response
 
 

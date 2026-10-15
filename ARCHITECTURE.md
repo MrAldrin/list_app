@@ -72,7 +72,8 @@ back from a public list.
 - `src/server.py`: `create_app()` builds the FastAPI app (API, old install
   routes, static files, then the Svelte app last).
 - `src/api/`: JSON API under `/api/v1`. `src/api/ops.py` holds the item and
-  list write rules; the contract is in [docs/api.md](docs/api.md).
+  list write rules; `src/api/cookies.py` holds the cookie flags for the room
+  and admin cookies. The contract is in [docs/api.md](docs/api.md).
 - `src/svelte_frontend.py`: Serves the built Svelte app at `/`, with the old
   page addresses and `/app/...` redirects.
 - `src/pwa_routes.py`: Home-screen install manifests and icons, plus the

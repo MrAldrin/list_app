@@ -13,9 +13,10 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from api.access import last_room_cookie_name, room_access, room_cookie_name
+from api.cookies import clear_cookie, set_room_cookies
 from api.errors import ApiError
 from api.requests import json_object, parse_body
-from api.session import MAX_PASSWORD_LENGTH, clear_cookie, set_cookie
+from api.session import MAX_PASSWORD_LENGTH
 from database_crud import (
     change_room_password_locked,
     check_new_room_password,
@@ -64,8 +65,7 @@ def change_password(
             raise ApiError(403, "wrong_password", WRONG_CURRENT_PASSWORD)
         details = get_room_details_locked(room.room_id)
     response = JSONResponse({"room": details})
-    set_cookie(response, request, room_cookie_name(request, slug), token)
-    set_cookie(response, request, last_room_cookie_name(request), slug)
+    set_room_cookies(response, request, slug, token)
     # Old tokens are revoked: the room's other streams close. Woken after the
     # response is sent, so this browser has the new cookie before its own
     # stream asks "who am I".

@@ -12,13 +12,13 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from api.access import (
-    is_https,
     last_room_cookie_name,
     room_access,
     room_cookie_name,
     room_token,
     token_access,
 )
+from api.cookies import clear_cookie, set_room_cookies
 from api.errors import ApiError, error_response
 from api.requests import json_object, parse_body
 from database_crud import (
@@ -26,7 +26,6 @@ from database_crud import (
     get_room_details_locked,
     revoke_room_access_token,
 )
-from room_cookies import MAX_AGE
 
 # Longer than any slug the app creates; longer cookie values are ignored.
 MAX_SLUG_LENGTH = 256
@@ -37,29 +36,6 @@ router = APIRouter()
 
 class SignInBody(BaseModel):
     password: str = Field(max_length=MAX_PASSWORD_LENGTH)
-
-
-def set_cookie(response: Response, request: Request, name: str, value: str) -> None:
-    response.set_cookie(
-        name,
-        value,
-        max_age=MAX_AGE,
-        path="/",
-        secure=is_https(request),
-        httponly=True,
-        samesite="lax",
-    )
-
-
-def clear_cookie(response: Response, request: Request, name: str) -> None:
-    # Deleting needs the same Path and Secure flag the cookie was set with.
-    response.delete_cookie(
-        name,
-        path="/",
-        secure=is_https(request),
-        httponly=True,
-        samesite="lax",
-    )
 
 
 @router.post("/rooms/{slug}/session")
@@ -78,8 +54,7 @@ def sign_in(
     with token_access(slug, token) as room:
         details = get_room_details_locked(room.room_id)
     response = JSONResponse({"room": details})
-    set_cookie(response, request, room_cookie_name(request, slug), token)
-    set_cookie(response, request, last_room_cookie_name(request), slug)
+    set_room_cookies(response, request, slug, token)
     return response
 
 

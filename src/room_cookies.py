@@ -1,4 +1,4 @@
-"""Names and rules of the room cookies. The API sets them (src/api/access.py)."""
+"""Names and rules of the room cookies. The API sets them (src/api/cookies.py)."""
 
 import hashlib
 
