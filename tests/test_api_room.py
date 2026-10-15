@@ -162,6 +162,12 @@ def test_change_password_revokes_old_tokens_and_signs_this_browser_in_again():
     assert verify_room(slug, "pw") is None
 
 
+def test_change_password_accepts_a_short_password():
+    room_id, slug = home()
+    assert change_password(client_for(slug), slug, new="abcd").status_code == 200
+    assert verify_room(slug, "abcd") == room_id
+
+
 def test_change_password_with_a_wrong_current_password_changes_nothing():
     room_id, slug = home()
     client = client_for(slug)
@@ -180,8 +186,8 @@ def test_change_password_with_a_wrong_current_password_changes_nothing():
 @pytest.mark.parametrize(
     ("new", "message"),
     [
-        ("", "New password cannot be empty"),
-        ("   ", "New password cannot be empty"),
+        ("", "Password cannot be empty"),
+        ("   ", "Password cannot be empty"),
         ("x" * 73, "The password cannot be longer than 72 bytes"),
         ("\N{LATIN SMALL LETTER O WITH DIAERESIS}" * 37, "longer than 72 bytes"),
     ],

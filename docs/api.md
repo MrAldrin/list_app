@@ -84,6 +84,14 @@ housekeeping: listing invitations deletes old inactive ones.
 The room password gives a room token in an HTTP-only cookie. The browser never
 stores the password, and JavaScript never sees the token.
 
+### Room password rule
+
+Every path that sets a room password uses this rule: admin room creation,
+admin password reset, room password change, and room creation from an
+invitation. A password that is blank (only spaces) or longer than 72 UTF-8
+bytes is 422 `invalid_request`. There is no minimum length. The password is
+saved as typed. Sign-in only compares the password and does not apply the rule.
+
 | Request | Body | Success |
 |---|---|---|
 | `POST /api/v1/rooms/{slug}/session` | `{"password": "…"}` | 200 `{"room": {"slug", "name"}}`, sets the cookies |
@@ -119,10 +127,10 @@ unknown room. The password is checked in the same transaction.
 | `DELETE /api/v1/rooms/{slug}` | `{"password"}` | 204, clears the room cookie |
 
 - **Change password:** a wrong current password is 403 `wrong_password`
-  ("Incorrect current password"); nothing changes. A new password that is
-  blank (only spaces) or longer than 72 bytes is 422 with a message. It is
-  saved as typed. Every token of the room is revoked; this browser gets a new
-  one in the cookie. Other devices must sign in again.
+  ("Incorrect current password"); nothing changes. A new password that breaks
+  the [room password rule](#room-password-rule) is 422. Every token of the room
+  is revoked; this browser gets a new one in the cookie. Other devices must
+  sign in again.
 - **Delete room:** a wrong password is 403 `wrong_password` ("Incorrect
   password"). Deletes the room and all its lists and items; this cannot be
   undone. Clears the room cookie, and `last-room` when it names this room.
@@ -205,11 +213,10 @@ room endpoints ignore it, and admin endpoints never set a room cookie.
   checked before the body or the room.
 - **Rooms:** every room, by name ignoring case.
 - **Create room:** the name is trimmed and must not be empty ("Room name
-  cannot be empty"); the password must not be empty ("Password cannot be
-  empty"), at most 72 bytes, and is saved as typed. Both give 422. Creating
-  a room does not sign the admin in to it.
+  cannot be empty"). The password follows the [room password rule](#room-password-rule).
+  Both give 422. Creating a room does not sign the admin in to it.
 - **Password reset:** no current password needed. The new password follows
-  the change-password rules above (422 when blank or longer than 72 bytes).
+  the [room password rule](#room-password-rule).
   Every token of the room is revoked and its streams are woken. A room that is
   gone is 404 `room_unavailable`.
 - Passwords are at most 1,024 characters (else 422).
@@ -249,9 +256,9 @@ Anyone with the link (no sign-in):
 
 - A link that cannot create a room is 404 `invitation_unavailable`, the same
   for every reason. The invitation is checked again in the write transaction.
-- The name is trimmed and must have 1–100 characters. The password must not
-  be blank, at most 72 bytes, and is saved as typed. Both give 422 with
-  the usual message. Passwords are at most 1,024 characters in the body.
+- The name is trimmed and must have 1–100 characters. The password follows
+  the [room password rule](#room-password-rule). Both give 422 with a message.
+  Passwords are at most 1,024 characters in the body.
 - No cookie is set: the creator signs in to the new room with its password.
 
 ## Data shapes

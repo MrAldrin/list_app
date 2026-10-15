@@ -420,8 +420,7 @@ def create_room(name: str, plain_password: str):
         raise ValueError("Room name cannot be empty")
     if message := too_long_message("Room name", normalized_name, MAX_NAME_LENGTH):
         raise ValueError(message)
-    if not plain_password:
-        raise ValueError("Password cannot be empty")
+    check_new_room_password(plain_password)
 
     pw_hash = hash_password(plain_password)
 
@@ -810,8 +809,7 @@ def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int 
     Returns the room id, or None when no room has this slug (nothing changed).
     The caller checks admin sign-in and the password rules first.
     """
-    if not new_plain_password:
-        raise ValueError("Password cannot be empty")
+    check_new_room_password(new_plain_password)
 
     pw_hash = hash_password(new_plain_password)
     with _DB_LOCK:
@@ -834,25 +832,17 @@ def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int 
 MAX_PASSWORD_BYTES = 72
 
 
-def password_fits_bcrypt(plain_password: str) -> bool:
-    """True when bcrypt can hash the password (at most 72 UTF-8 bytes)."""
-    return len(plain_password.encode("utf-8")) <= MAX_PASSWORD_BYTES
-
-
 def check_new_room_password(new_plain_password: str) -> None:
-    """The rules for a new room password, as the change dialog has them.
+    """The one rule for every room password that is set.
 
-    Blank (only spaces) is refused; the password is saved as typed. Raises
-    ValueError with a message for the user.
+    Used by admin room creation, admin password reset, room password change and
+    room creation from an invitation. Blank (only spaces) and longer than 72
+    UTF-8 bytes are refused. There is no minimum length. The password is saved
+    as typed. Raises ValueError with a message for the user.
     """
     if not new_plain_password.strip():
-        raise ValueError("New password cannot be empty")
-    check_password_length(new_plain_password)
-
-
-def check_password_length(plain_password: str) -> None:
-    """Refuse a password bcrypt cannot hash, with a message for the user."""
-    if not password_fits_bcrypt(plain_password):
+        raise ValueError("Password cannot be empty")
+    if len(new_plain_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
         raise ValueError(
             f"The password cannot be longer than {MAX_PASSWORD_BYTES} bytes"
         )

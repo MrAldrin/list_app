@@ -8,7 +8,6 @@ import sqlite3
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
 
 from api.access import (
     last_room_cookie_name,
@@ -19,7 +18,7 @@ from api.access import (
 )
 from api.cookies import clear_cookie, set_room_cookies
 from api.errors import ApiError, error_response
-from api.requests import JsonBody, Password, parse_body
+from api.requests import JsonBody, Password, StrictBody, parse_body
 from database_crud import (
     authenticate_room_and_issue_token,
     get_room_details_locked,
@@ -32,8 +31,7 @@ MAX_SLUG_LENGTH = 256
 router = APIRouter()
 
 
-class SignInBody(BaseModel):
-    # Not StrictBody: unknown fields are ignored here, as before.
+class SignInBody(StrictBody):
     password: Password
 
 

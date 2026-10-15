@@ -282,6 +282,7 @@ def test_create_room_as_admin_and_no_room_access(admin_app):
     [
         ("  ", "pw", "Room name cannot be empty"),
         ("Cabin", "", "Password cannot be empty"),
+        ("Cabin", "   ", "Password cannot be empty"),
         ("Cabin", "x" * 73, "The password cannot be longer than 72 bytes"),
     ],
 )
@@ -293,11 +294,13 @@ def test_create_room_refuses_bad_values(admin_app, name, password, message):
     assert db.execute("SELECT COUNT(*) FROM rooms").fetchone()[0] == 1
 
 
-def test_create_room_keeps_password_rules(admin_app):
-    # Only an empty password is refused; spaces are a password.
+def test_create_room_accepts_a_short_password_as_typed(admin_app):
     client = admin(admin_app)
-    slug = create(client, "Cabin", "   ").json()["room"]["slug"]
-    assert client_for(slug, "   ")
+    slug = create(client, "Cabin", "abcd").json()["room"]["slug"]
+    assert verify_room(slug, "abcd")
+    slug = create(client, "Lake", " a b ").json()["room"]["slug"]
+    assert verify_room(slug, " a b ")
+    assert verify_room(slug, "a b") is None
 
 
 @pytest.mark.parametrize(
@@ -347,6 +350,12 @@ def test_reset_password_revokes_every_token_and_wakes_streams(admin_app):
     assert_error(client.get(f"/api/v1/rooms/{slug}/session"), 401, "not_authenticated")
 
 
+def test_reset_password_accepts_a_short_password(admin_app):
+    _, slug = home()
+    assert reset(admin(admin_app), slug, "abcd").status_code == 200
+    assert verify_room(slug, "abcd")
+
+
 def test_reset_password_changes_only_that_room(admin_app):
     _, slug = home()
     other_id, other_slug = crud.create_room("Cabin", "cabin-pw")
@@ -362,8 +371,8 @@ def test_reset_password_changes_only_that_room(admin_app):
 @pytest.mark.parametrize(
     ("new_password", "message"),
     [
-        ("", "New password cannot be empty"),
-        ("   ", "New password cannot be empty"),
+        ("", "Password cannot be empty"),
+        ("   ", "Password cannot be empty"),
         ("x" * 73, "The password cannot be longer than 72 bytes"),
         ("\N{EURO SIGN}" * 25, "The password cannot be longer than 72 bytes"),
     ],

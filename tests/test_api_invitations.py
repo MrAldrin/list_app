@@ -376,6 +376,8 @@ def test_admin_sign_in_is_not_needed_and_gives_no_room_access(admin_app):
         ("Room", ""),
         ("Room", " "),
         ("Room", "\N{LATIN SMALL LETTER E WITH ACUTE}" * 37),
+        ("Room", "x" * 73),
+        ("Room", "\t\n"),
     ],
 )
 def test_bad_names_and_passwords_are_422_with_clear_messages(name, password):
@@ -388,10 +390,18 @@ def test_bad_names_and_passwords_are_422_with_clear_messages(name, password):
     message = response.json()["error"]["message"]
     assert message in (
         "Room name must contain 1-100 characters.",
-        "Password must be nonblank and at most 72 UTF-8 bytes.",
+        "Password cannot be empty",
+        "The password cannot be longer than 72 bytes",
     )
     assert room_count() == 1
     assert invitations.invitation_is_active(token)
+
+
+def test_short_password_is_accepted_and_saved_as_typed():
+    _, token = invitations.create_invitation()
+    response = create_room(client_for(), token, "Hut", "abcd")
+    slug = response.json()["room"]["slug"]
+    assert verify_room(slug, "abcd")
 
 
 def test_password_is_saved_as_typed_and_100_characters_fit():

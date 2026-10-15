@@ -28,7 +28,6 @@ from api.errors import ApiError, error_response
 from api.requests import JsonBody, Password, StrictBody, parse_body
 from database_crud import (
     check_new_room_password,
-    check_password_length,
     create_room,
     get_room_details_by_slug,
     get_rooms,
@@ -132,7 +131,7 @@ async def new_room(body: JsonBody) -> dict[str, Any]:
     data = parse_body(CreateRoomBody, body)
 
     def create() -> dict[str, Any] | None:
-        check_password_length(data.password)
+        check_new_room_password(data.password)
         _room_id, slug = create_room(data.name, data.password)
         return get_room_details_by_slug(slug)
 

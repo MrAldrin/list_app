@@ -72,7 +72,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     expect(dialog).to_contain_text("logged out on every device")
     expect(dialog).to_contain_text("Share links to its lists keep working")
     dialog.get_by_role("button", name="Reset", exact=True).click()
-    expect(owner.get_by_text("New password cannot be empty")).to_be_visible()
+    expect(owner.get_by_text("Password cannot be empty")).to_be_visible()
     expect(dialog).to_be_visible()
     dialog.get_by_label("New Room Password").fill(RESET_PASSWORD)
     dialog.get_by_role("button", name="Reset", exact=True).click()

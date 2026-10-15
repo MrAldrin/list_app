@@ -99,6 +99,16 @@ def test_sign_in_on_plain_http_uses_plain_cookies_without_secure():
     assert client.get("/api/v1/last-room").json() == {"slug": slug}
 
 
+def test_sign_in_with_an_unknown_field_is_422():
+    _, slug = room()
+    response = browser().post(
+        f"/api/v1/rooms/{slug}/session", json={"password": "pw", "extra": 1}
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_request"
+    assert "set-cookie" not in response.headers
+
+
 def test_wrong_password_and_unknown_room_look_the_same():
     _, slug = room()
     client = browser()
