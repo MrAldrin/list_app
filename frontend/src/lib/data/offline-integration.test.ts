@@ -8,6 +8,7 @@ import {
 	type RoomApi
 } from './index';
 import { ShareApi } from './share';
+import { browserSnapshots } from './standalone-session';
 import { FakeEventSource, makeFeed, makeItem, makeList, ROOM, settle } from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Feed, OpResponse, SentOp } from './types';
@@ -659,6 +660,235 @@ describe('standalone sign-out', () => {
 		expect(await logout).toEqual({ ok: true, result: {} });
 		expect(await signin).toMatchObject({ ok: true });
 		expect(order).toEqual(['DELETE', 'ack', 'POST']);
+		vi.unstubAllGlobals();
+	});
+});
+
+const identityOf = (slug: string) => ({ kind: 'room' as const, slug });
+
+describe('standalone sign-in', () => {
+	it('signs in and makes saved data readable again after a local sign-out', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-clear';
+		const snapshots = browserSnapshots();
+		await snapshots.localSignOut(identityOf(slug));
+		const api = fakeApi();
+		const result = await standaloneLogin(slug, 'password', api as never);
+		expect(result).toEqual({ ok: true, result: ROOM });
+		expect(api.login).toHaveBeenCalledWith(slug, 'password');
+		expect((await snapshots.generation(identityOf(slug))).ok).toBe(true);
+		vi.unstubAllGlobals();
+	});
+
+	it('waits for a pending server sign-out when Web Locks are missing and does not post', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', {});
+		const slug = 'standalone-in-no-locks';
+		const api = fakeApi();
+		expect(await standaloneLogout(slug, api as never)).toMatchObject({
+			ok: false,
+			code: 'server_logout_pending'
+		});
+		const result = await standaloneLogin(slug, 'password', api as never);
+		expect(result).toMatchObject({ ok: false, code: 'logout_pending' });
+		expect(api.login).not.toHaveBeenCalled();
+		expect(api.logout).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+
+	it('stops before posting when pending sign-out state cannot be read', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-unreadable';
+		const snapshots = browserSnapshots();
+		const spy = vi
+			.spyOn(snapshots, 'pendingServerLogouts')
+			.mockResolvedValueOnce({ ok: false, reason: 'unavailable' });
+		const api = fakeApi();
+		expect(await standaloneLogin(slug, 'password', api as never)).toMatchObject({
+			ok: false,
+			code: 'session_transition_unavailable'
+		});
+		expect(api.login).not.toHaveBeenCalled();
+		spy.mockRestore();
+		vi.unstubAllGlobals();
+	});
+
+	it('is interrupted when a local sign-out lands during the password request', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-interrupted';
+		const snapshots = browserSnapshots();
+		const api = fakeApi();
+		api.login.mockImplementation(async () => {
+			await snapshots.localSignOut(identityOf(slug));
+			return ROOM;
+		});
+		expect(await standaloneLogin(slug, 'password', api as never)).toEqual({
+			ok: false,
+			code: 'signed_out',
+			message: 'Room sign-in was interrupted by sign-out.'
+		});
+		expect((await snapshots.generation(identityOf(slug))).ok).toBe(false);
+		vi.unstubAllGlobals();
+	});
+
+	it('returns the server error for a rejected password', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const api = fakeApi();
+		api.login.mockRejectedValueOnce(new ApiError(401, 'invalid_credentials', 'Wrong password.'));
+		expect(await standaloneLogin('standalone-in-password', 'bad', api as never)).toEqual({
+			ok: false,
+			code: 'invalid_credentials',
+			message: 'Wrong password.'
+		});
+		vi.unstubAllGlobals();
+	});
+
+	it('signs out locally and best-effort on the server when state is unreadable after the password request', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-unreadable-after';
+		const snapshots = browserSnapshots();
+		const original = snapshots.pendingServerLogouts.bind(snapshots);
+		const spy = vi
+			.spyOn(snapshots, 'pendingServerLogouts')
+			.mockImplementationOnce(original)
+			.mockResolvedValueOnce({ ok: false, reason: 'unavailable' });
+		const api = fakeApi();
+		expect(await standaloneLogin(slug, 'password', api as never)).toMatchObject({
+			ok: false,
+			code: 'session_transition_unavailable'
+		});
+		expect(api.login).toHaveBeenCalledTimes(1);
+		expect(api.logout).toHaveBeenCalledWith(slug);
+		expect((await snapshots.generation(identityOf(slug))).ok).toBe(false);
+		spy.mockRestore();
+		vi.unstubAllGlobals();
+	});
+	it('signs out locally and on the server when the state read throws after the password request', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-throws-after';
+		const snapshots = browserSnapshots();
+		const original = snapshots.pendingServerLogouts.bind(snapshots);
+		const spy = vi
+			.spyOn(snapshots, 'pendingServerLogouts')
+			.mockImplementationOnce(original)
+			.mockRejectedValueOnce(new Error('broken'));
+		const api = fakeApi();
+		expect(await standaloneLogin(slug, 'password', api as never)).toMatchObject({
+			ok: false,
+			code: 'session_transition_unavailable'
+		});
+		expect(api.logout).toHaveBeenCalledWith(slug);
+		expect((await snapshots.generation(identityOf(slug))).ok).toBe(false);
+		spy.mockRestore();
+		vi.unstubAllGlobals();
+	});
+
+	it('reports logout_pending and does not post when the pending server sign-out fails', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-pending-fails';
+		await browserSnapshots().localSignOut(identityOf(slug));
+		const api = fakeApi();
+		api.logout.mockRejectedValue(new NetworkError());
+		expect(await standaloneLogin(slug, 'password', api as never)).toMatchObject({
+			ok: false,
+			code: 'logout_pending'
+		});
+		expect(api.login).not.toHaveBeenCalled();
+		vi.unstubAllGlobals();
+	});
+
+	it('restores the sign-out and stops when the room is still signed out after clearing', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-in-still-signed-out';
+		const snapshots = browserSnapshots();
+		await snapshots.localSignOut(identityOf(slug));
+		const clear = vi
+			.spyOn(snapshots, 'clearSignOutAfterSignIn')
+			.mockResolvedValueOnce({ ok: true, value: undefined });
+		const restore = vi.spyOn(snapshots, 'localSignOut');
+		const api = fakeApi();
+		expect(await standaloneLogin(slug, 'password', api as never)).toMatchObject({
+			ok: false,
+			code: 'signed_out'
+		});
+		expect(api.login).not.toHaveBeenCalled();
+		expect(restore).toHaveBeenCalledWith(identityOf(slug));
+		clear.mockRestore();
+		restore.mockRestore();
+		vi.unstubAllGlobals();
+	});
+});
+
+describe('standalone sign-out paths', () => {
+	it('completes sign-out: local marker, server sign-out, then no pending marker', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-out-complete';
+		const snapshots = browserSnapshots();
+		const api = fakeApi();
+		expect(await standaloneLogout(slug, api as never)).toEqual({ ok: true, result: {} });
+		expect(api.logout).toHaveBeenCalledWith(slug);
+		const pending = await snapshots.pendingServerLogouts();
+		expect(pending.ok && pending.value.some((identity) => identity.slug === slug)).toBe(false);
+		expect((await snapshots.generation(identityOf(slug))).ok).toBe(false);
+		vi.unstubAllGlobals();
+	});
+
+	it('does not post when the local marker cannot be stored', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const snapshots = browserSnapshots();
+		const spy = vi
+			.spyOn(snapshots, 'localSignOut')
+			.mockResolvedValueOnce({ ok: false, reason: 'unavailable' });
+		const api = fakeApi();
+		expect(await standaloneLogout('standalone-out-unmarked', api as never)).toMatchObject({
+			ok: false,
+			code: 'local_clear_unconfirmed'
+		});
+		expect(api.logout).not.toHaveBeenCalled();
+		spy.mockRestore();
+		vi.unstubAllGlobals();
+	});
+
+	it('keeps the server sign-out pending when the request fails', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const slug = 'standalone-out-request-fails';
+		const snapshots = browserSnapshots();
+		const api = fakeApi();
+		api.logout.mockRejectedValueOnce(new NetworkError());
+		expect(await standaloneLogout(slug, api as never)).toMatchObject({
+			ok: false,
+			code: 'server_logout_pending'
+		});
+		const pending = await snapshots.pendingServerLogouts();
+		expect(pending.ok && pending.value.some((identity) => identity.slug === slug)).toBe(true);
+		vi.unstubAllGlobals();
+	});
+
+	it('reports a server sign-out whose marker cannot be acknowledged', async () => {
+		vi.stubGlobal('indexedDB', new IDBFactory());
+		vi.stubGlobal('navigator', { locks: serialLocks() });
+		const snapshots = browserSnapshots();
+		const spy = vi
+			.spyOn(snapshots, 'acknowledgeServerLogout')
+			.mockResolvedValueOnce({ ok: false, reason: 'unavailable' });
+		const api = fakeApi();
+		expect(await standaloneLogout('standalone-out-ack', api as never)).toMatchObject({
+			ok: false,
+			code: 'logout_marker_unacknowledged'
+		});
+		expect(api.logout).toHaveBeenCalledTimes(1);
+		spy.mockRestore();
 		vi.unstubAllGlobals();
 	});
 });
