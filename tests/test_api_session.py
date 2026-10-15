@@ -4,17 +4,17 @@ import sqlite3
 from http.cookies import SimpleCookie
 
 import pytest
+from api_helpers import (
+    change_room_password_and_issue_token,
+    rename_room,
+    update_room_password,
+    validate_room_access_token,
+)
 from starlette.testclient import TestClient
 
 import database_crud
 import main
-from database_crud import (
-    authenticate_room_and_issue_token,
-    change_room_password_and_issue_token,
-    create_room,
-    update_room_password,
-    validate_room_access_token,
-)
+from database_crud import authenticate_room_and_issue_token, create_room
 from database_setup import db
 from room_cookies import (
     LAST_ROOM_COOKIE,
@@ -167,7 +167,7 @@ def test_who_am_i_shows_the_current_room_name():
     room_id, slug = room()
     client = browser()
     sign_in(client, slug)
-    database_crud.rename_room(room_id, "Cabin")
+    rename_room(room_id, "Cabin")
     assert client.get(f"/api/v1/rooms/{slug}/session").json()["room"]["name"] == (
         "Cabin"
     )

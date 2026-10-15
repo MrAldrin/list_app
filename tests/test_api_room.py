@@ -8,15 +8,18 @@ from unittest.mock import patch
 
 import pytest
 from api_helpers import (
+    add_item_with_state,
     assert_error,
     changes,
     client_for,
+    create_list,
     default_list,
     home,
     new_id,
     op,
     processed_ops_count,
     send,
+    verify_room,
 )
 
 import database_crud as crud
@@ -155,8 +158,8 @@ def test_change_password_revokes_old_tokens_and_signs_this_browser_in_again():
     assert_error(
         other_device.get(f"/api/v1/rooms/{slug}/session"), 401, "not_authenticated"
     )
-    assert crud.verify_room(slug, "new-pw") == room_id
-    assert crud.verify_room(slug, "pw") is None
+    assert verify_room(slug, "new-pw") == room_id
+    assert verify_room(slug, "pw") is None
 
 
 def test_change_password_with_a_wrong_current_password_changes_nothing():
@@ -169,7 +172,7 @@ def test_change_password_with_a_wrong_current_password_changes_nothing():
     assert_error(response, 403, "wrong_password")
     assert response.json()["error"]["message"] == "Incorrect current password"
     assert "set-cookie" not in response.headers
-    assert crud.verify_room(slug, "pw") == room_id
+    assert verify_room(slug, "pw") == room_id
     assert db.execute("SELECT * FROM room_access_tokens").fetchall() == tokens
     assert client.get(f"/api/v1/rooms/{slug}/session").status_code == 200
 
@@ -188,14 +191,14 @@ def test_change_password_rejects_a_blank_or_too_long_new_password(new, message):
     response = change_password(client_for(slug), slug, new=new)
     assert_error(response, 422, "invalid_request")
     assert message in response.json()["error"]["message"]
-    assert crud.verify_room(slug, "pw") == room_id
+    assert verify_room(slug, "pw") == room_id
 
 
 def test_change_password_keeps_spaces_inside_and_around_the_new_password():
     room_id, slug = home()
     assert change_password(client_for(slug), slug, new=" a b ").status_code == 200
-    assert crud.verify_room(slug, " a b ") == room_id
-    assert crud.verify_room(slug, "a b") is None
+    assert verify_room(slug, " a b ") == room_id
+    assert verify_room(slug, "a b") is None
 
 
 @pytest.mark.parametrize(
@@ -212,7 +215,7 @@ def test_change_password_with_a_bad_body_is_422(body):
     room_id, slug = home()
     response = client_for(slug).post(f"/api/v1/rooms/{slug}/password", json=body)
     assert_error(response, 422, "invalid_request")
-    assert crud.verify_room(slug, "pw") == room_id
+    assert verify_room(slug, "pw") == room_id
 
 
 def test_change_password_needs_room_access_first():
@@ -223,7 +226,7 @@ def test_change_password_needs_room_access_first():
     assert_error(no_cookie, 401, "not_authenticated")
     assert_error(unknown, 401, "not_authenticated")
     assert no_cookie.content == unknown.content
-    assert crud.verify_room(slug, "pw") == room_id
+    assert verify_room(slug, "pw") == room_id
 
 
 def test_change_password_with_another_rooms_cookie_is_401():
@@ -242,7 +245,7 @@ def test_change_password_needs_same_origin():
         headers={"Origin": "https://evil.example"},
     )
     assert_error(response, 403, "forbidden_origin")
-    assert crud.verify_room(slug, "pw") == room_id
+    assert verify_room(slug, "pw") == room_id
 
 
 def test_change_password_wakes_the_room_streams_and_stores_no_op():
@@ -290,9 +293,9 @@ def test_password_change_on_plain_http_uses_plain_cookies():
 def test_delete_room_removes_its_lists_items_tokens_and_clears_cookies():
     room_id, slug = home()
     list_id, _ = default_list()
-    crud.add_item_with_state("milk", list_id, False, [])
+    add_item_with_state("milk", list_id, False, [])
     cabin_id, cabin = other_room()
-    cabin_list, _ = crud.create_list("Cabin list", cabin_id)
+    cabin_list, _ = create_list("Cabin list", cabin_id)
     client = client_for(slug)
     op(client, slug, {"op_id": new_id(), "type": "room.rename", "name": "Doomed"})
     other_device = client_for(slug)

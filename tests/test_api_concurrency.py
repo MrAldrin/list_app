@@ -13,9 +13,13 @@ from typing import Any
 import pytest
 from api_helpers import (
     add_item,
+    add_list_tag,
     changes,
     client_for,
+    create_list,
+    get_list_details,
     home,
+    insert_item,
     item_row,
     new_id,
     op,
@@ -153,7 +157,7 @@ def room() -> tuple[int, str, Mirror, Mirror]:
     """The fixture room with a real list (slug and share link) and two
     signed-in clients, both synced."""
     room_id, slug = home()
-    crud.create_list("Groceries", room_id)
+    create_list("Groceries", room_id)
     first, second = Mirror(client_for(slug), slug), Mirror(client_for(slug), slug)
     first.sync()
     second.sync()
@@ -407,18 +411,17 @@ def test_direct_and_api_writes_interleaved(room):
     api(b, {"type": "item.set_done", "done": True, **milk})
     direct(lambda: toggle_item_done(list_id, milk_id, False, expected_slug=list_slug))
     api(a, {"type": "item.add", "list_uid": list_uid, "name": "bread"})
-    direct(lambda: crud.add_list_tag(list_id, "Lidl", expected_slug=list_slug))
+    direct(lambda: add_list_tag(list_id, "Lidl"))
     api(b, {"type": "item.toggle_tag", "tag": "Lidl", **milk})
     direct(
         lambda: rename_list_with_checks(
             list_id, room_id, "Shop", expected_slug=list_slug
         )
     )
-    list_slug = crud.get_list_details(list_id)["slug"]
+    list_slug = get_list_details(list_id)["slug"]
     direct(lambda: delete_item_from_list(list_id, milk_id, expected_slug=list_slug))
     api(a, {"type": "item.add", "list_uid": list_uid, "name": "milk"})
-    share = crud.get_list_details(list_id)["share_token"]
-    direct(lambda: crud.add_item("tea", list_id, expected_slug=f"share:{share}"))
+    direct(lambda: insert_item("tea", list_id))
 
     assert seqs == sorted(set(seqs)), "seq must grow with every write"
     assert a.item_named("milk")["uid"] != milk_uid

@@ -1,19 +1,16 @@
 """Item service renames handle competing name claims atomically."""
 
 import pytest
-
-import item_service
-from database_crud import (
-    ListUnavailable,
-    add_item,
+from api_helpers import (
     create_list,
-    delete_list,
     find_item_by_name,
     get_list_data,
     get_list_details,
-    get_rooms,
-    update_item_details,
+    insert_item,
 )
+
+import item_service
+from database_crud import ListUnavailable, delete_list, get_rooms, update_item_details
 from database_setup import db
 from item_service import (
     STATUS_DUPLICATE_NAME,
@@ -25,7 +22,7 @@ from item_service import (
 @pytest.fixture
 def rename_items():
     list_id, slug = create_list("renames", get_rooms()[0]["id"])
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     item_id = find_item_by_name(list_id, "milk")[0]
     update_item_details(item_id, list_id, "milk", "cold", 4)
     return list_id, slug, item_id
@@ -66,7 +63,7 @@ def test_competing_name_claim_returns_duplicate_status(rename_items, monkeypatch
         nonlocal claim_once
         if not claim_once:
             # Let the competing writer commit before this rename's write transaction.
-            add_item("claimed", list_id)
+            insert_item("claimed", list_id)
             claim_once = True
         return rename_if_unique(**kwargs)
 
@@ -97,8 +94,8 @@ def test_rename_rejects_reused_list_identity_and_allows_current_identity(
     delete_list(list_id, expected_slug=old_slug)
     replacement_id, new_slug = create_list("replacement", room_id)
     assert replacement_id == list_id
-    add_item("milk", replacement_id)
-    add_item("bread", replacement_id)
+    insert_item("milk", replacement_id)
+    insert_item("bread", replacement_id)
     new_item_id = find_item_by_name(replacement_id, "milk")[0]
     bread_item_id = find_item_by_name(replacement_id, "bread")[0]
 

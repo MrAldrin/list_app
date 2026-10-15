@@ -4,6 +4,17 @@ import json
 from collections.abc import Callable
 
 import pytest
+from api_helpers import (
+    add_list_tag,
+    create_list,
+    get_list_details,
+    insert_item,
+    rename_list,
+    rename_room,
+    toggle_item_active_tag,
+    update_list_visibility_settings,
+    update_room_password,
+)
 from starlette.testclient import TestClient
 
 import api.changes
@@ -81,25 +92,23 @@ def assert_error(response, status: int, code: str) -> None:
 def shop() -> tuple[int, int, str]:
     """Home room with a "Shop" list holding milk (open) and bread (done)."""
     room_id, slug = home()
-    list_id, _ = crud.create_list("Shop", room_id)
-    crud.add_item("milk", list_id)
-    crud.add_item("bread", list_id)
+    list_id, _ = create_list("Shop", room_id)
+    insert_item("milk", list_id)
+    insert_item("bread", list_id)
     crud.update_item_done(item_id(list_id, "bread"), list_id, True)
     return room_id, list_id, slug
 
 
 def test_full_snapshot(shop):
     room_id, list_id, slug = shop
-    crud.add_list_tag(list_id, "market")
-    crud.add_list_tag(list_id, "Lidl")
-    crud.add_list_tag(list_id, "aldi")
-    crud.update_list_visibility_settings(
-        list_id, mode="age", age_days=3, recent_count=5
-    )
+    add_list_tag(list_id, "market")
+    add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "aldi")
+    update_list_visibility_settings(list_id, mode="age", age_days=3, recent_count=5)
     milk = item_id(list_id, "milk")
     crud.update_item_details(milk, list_id, "milk", "lactose free", 2)
-    crud.toggle_item_active_tag(milk, list_id, "market")
-    crud.toggle_item_active_tag(milk, list_id, "aldi")
+    toggle_item_active_tag(milk, list_id, "market")
+    toggle_item_active_tag(milk, list_id, "aldi")
 
     data = feed(signed_in(slug), slug, 0)
 
@@ -112,7 +121,7 @@ def test_full_snapshot(shop):
     assert len(lists) == 2  # "default" from the test setup, and "Shop"
     shop_list = lists[uid("lists", list_id)]
     assert set(shop_list) == LIST_KEYS
-    details = crud.get_list_details(list_id)
+    details = get_list_details(list_id)
     assert shop_list == {
         "uid": uid("lists", list_id),
         "slug": details["slug"],
@@ -200,17 +209,15 @@ def test_completed_at_is_utc_with_z(shop, stored, expected):
 
 
 def _rename_list(room_id: int, list_id: int) -> None:
-    crud.rename_list(list_id, "Market")
+    rename_list(list_id, "Market")
 
 
 def _add_list_tag(room_id: int, list_id: int) -> None:
-    crud.add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "Lidl")
 
 
 def _visibility(room_id: int, list_id: int) -> None:
-    crud.update_list_visibility_settings(
-        list_id, mode="recent", age_days=7, recent_count=3
-    )
+    update_list_visibility_settings(list_id, mode="recent", age_days=7, recent_count=3)
 
 
 def _check_milk(room_id: int, list_id: int) -> None:
@@ -230,7 +237,7 @@ def _details(room_id: int, list_id: int) -> None:
 
 
 def _item_tag(room_id: int, list_id: int) -> None:
-    crud.toggle_item_active_tag(item_id(list_id, "milk"), list_id, "Lidl")
+    toggle_item_active_tag(item_id(list_id, "milk"), list_id, "Lidl")
 
 
 @pytest.mark.parametrize(
@@ -278,8 +285,8 @@ def test_delta_shows_new_list_and_item(shop):
     room_id, _, slug = shop
     client = signed_in(slug)
     before = feed(client, slug, 0)["seq"]
-    new_list_id, _ = crud.create_list("Hardware", room_id)
-    crud.add_item("nails", new_list_id)
+    new_list_id, _ = create_list("Hardware", room_id)
+    insert_item("nails", new_list_id)
     data = feed(client, slug, before)
     assert [row["name"] for row in data["lists"]] == ["Hardware"]
     assert [row["name"] for row in data["items"]] == ["nails"]
@@ -290,7 +297,7 @@ def test_room_rename_shows_in_the_feed(shop):
     room_id, _, slug = shop
     client = signed_in(slug)
     before = feed(client, slug, 0)["seq"]
-    crud.rename_room(room_id, "Cabin")
+    rename_room(room_id, "Cabin")
     data = feed(client, slug, before)
     assert data["room"] == {"slug": slug, "name": "Cabin"}
     assert data["seq"] == before + 1
@@ -334,8 +341,8 @@ def test_list_created_and_deleted_after_since_is_only_a_deletion(shop):
     room_id, _, slug = shop
     client = signed_in(slug)
     before = feed(client, slug, 0)["seq"]
-    temp_id, _ = crud.create_list("Temp", room_id)
-    crud.add_item("thing", temp_id)
+    temp_id, _ = create_list("Temp", room_id)
+    insert_item("thing", temp_id)
     temp_uid = uid("lists", temp_id)
     crud.delete_list(temp_id)
     data = feed(client, slug, before)
@@ -358,14 +365,14 @@ def test_since_ahead_of_the_server_gives_a_full_snapshot(shop):
 def test_other_rooms_never_leak(shop):
     room_id, _, slug = shop
     other_id, other_slug = crud.create_room("Other", "other-pw")
-    other_list, _ = crud.create_list("Secret", other_id)
-    crud.add_item("hidden", other_list)
-    crud.add_item("gone", other_list)
+    other_list, _ = create_list("Secret", other_id)
+    insert_item("hidden", other_list)
+    insert_item("gone", other_list)
     client = signed_in(slug)
     before = feed(client, slug, 0)["seq"]
     crud.delete_item(item_id(other_list, "gone"), other_list)
     crud.update_item_done(item_id(other_list, "hidden"), other_list, True)
-    crud.rename_list(other_list, "Secret 2")
+    rename_list(other_list, "Secret 2")
 
     full = feed(client, slug, 0)
     delta = feed(client, slug, before)
@@ -409,7 +416,7 @@ def test_revoked_token_is_401(shop):
 def test_password_change_revokes_feed_access(shop):
     room_id, _, slug = shop
     client = signed_in(slug)
-    crud.update_room_password(room_id, "new-password")
+    update_room_password(room_id, "new-password")
     assert_error(
         client.get(f"/api/v1/rooms/{slug}/changes?since=0"), 401, "not_authenticated"
     )

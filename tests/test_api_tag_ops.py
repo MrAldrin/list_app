@@ -6,9 +6,11 @@ from typing import Any
 import pytest
 from api_helpers import (
     add_item,
+    add_list_tag,
     assert_error,
     changes,
     client_for,
+    create_list,
     default_list,
     home,
     item_row,
@@ -17,6 +19,9 @@ from api_helpers import (
     op,
     processed_ops_count,
     send,
+    toggle_item_active_tag,
+    update_item_active_tags,
+    update_list_visibility_settings,
 )
 from starlette.testclient import TestClient
 
@@ -74,7 +79,7 @@ def visibility(list_id: int) -> tuple[str, int, int]:
 def test_tag_add(room, notified):
     room_id, slug, client = room
     list_id, list_uid = default_list()
-    crud.add_list_tag(list_id, "market")
+    add_list_tag(list_id, "market")
     before = seq_of(room_id)
     response = op(client, slug, list_body("list.tag_add", list_uid, tag=" Lidl "))
     assert response["status"] == "applied" and response["result"] == {}
@@ -87,7 +92,7 @@ def test_tag_add(room, notified):
 def test_tag_add_existing_changes_nothing(room, notified):
     room_id, slug, client = room
     list_id, list_uid = default_list()
-    crud.add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "Lidl")
     seq = seq_of(room_id)
     response = op(client, slug, list_body("list.tag_add", list_uid, tag="Lidl"))
     assert response["status"] == "applied"
@@ -112,10 +117,10 @@ def test_tag_add_with_an_empty_tag_is_rejected(room, notified):
 def test_tag_remove_keeps_item_tags(room, notified):
     room_id, slug, client = room
     list_id, list_uid = default_list()
-    crud.add_list_tag(list_id, "Lidl")
-    crud.add_list_tag(list_id, "Market")
+    add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "Market")
     item_uid = add_item(list_id, "milk")
-    crud.toggle_item_active_tag(
+    toggle_item_active_tag(
         db.execute("SELECT id FROM items").fetchone()[0], list_id, "Lidl"
     )
     before = seq_of(room_id)
@@ -129,7 +134,7 @@ def test_tag_remove_keeps_item_tags(room, notified):
 def test_tag_remove_of_a_missing_tag_changes_nothing(room):
     room_id, slug, client = room
     list_id, list_uid = default_list()
-    crud.add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "Lidl")
     seq = seq_of(room_id)
     # Exact match: another case is another tag.
     response = op(client, slug, list_body("list.tag_remove", list_uid, tag="lidl"))
@@ -141,7 +146,7 @@ def test_tag_remove_of_a_missing_tag_changes_nothing(room):
 def test_tag_undo_is_tag_add(room):
     _, slug, client = room
     list_id, list_uid = default_list()
-    crud.add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "Lidl")
     op(client, slug, list_body("list.tag_remove", list_uid, tag="Lidl"))
     op(client, slug, list_body("list.tag_add", list_uid, tag="Lidl"))
     assert stored_tags(list_id) == ["Lidl"]
@@ -175,7 +180,7 @@ def test_toggle_uses_the_stored_tags(room):
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
     # Another device added a tag after this client last read the item.
-    crud.update_item_active_tags(
+    update_item_active_tags(
         db.execute("SELECT id FROM items").fetchone()[0], list_id, ["Market"]
     )
     op(client, slug, toggle_body(list_uid, item_uid, "Lidl"))
@@ -187,7 +192,7 @@ def test_toggle_on_a_deleted_item_or_another_list(room, notified):
     list_id, list_uid = default_list()
     gone = add_item(list_id, "milk")
     crud.delete_item(db.execute("SELECT id FROM items").fetchone()[0], list_id)
-    other_list_id, _ = crud.create_list("Other", room_id)
+    other_list_id, _ = create_list("Other", room_id)
     elsewhere = add_item(other_list_id, "bread")
     seq = seq_of(room_id)
     for item_uid in (gone, elsewhere, new_id()):
@@ -227,9 +232,7 @@ def test_visibility_merges_with_a_newer_stored_value(room):
     _, slug, client = room
     list_id, list_uid = default_list()
     # Another device changed the mode meanwhile; this one changes a count.
-    crud.update_list_visibility_settings(
-        list_id, mode="recent", age_days=7, recent_count=10
-    )
+    update_list_visibility_settings(list_id, mode="recent", age_days=7, recent_count=10)
     op(client, slug, list_body("list.visibility", list_uid, recent_count=4))
     assert visibility(list_id) == ("recent", 7, 4)
 
@@ -282,12 +285,10 @@ def test_bad_visibility_is_422_and_not_stored(room, fields):
 
 def test_direct_visibility_still_replaces_all_fields():
     list_id, _ = default_list()
-    crud.update_list_visibility_settings(
-        list_id, mode="recent", age_days=2, recent_count=3
-    )
+    update_list_visibility_settings(list_id, mode="recent", age_days=2, recent_count=3)
     assert visibility(list_id) == ("recent", 2, 3)
     with pytest.raises(ValueError):
-        crud.update_list_visibility_settings(
+        update_list_visibility_settings(
             list_id, mode="age", age_days=-1, recent_count=3
         )
     assert visibility(list_id) == ("recent", 2, 3)
@@ -306,8 +307,8 @@ LIST_OPS: dict[str, dict[str, Any]] = {
 def test_missing_or_foreign_list_is_unavailable(room, notified, op_type):
     room_id, slug, client = room
     other_room_id, _ = crud.create_room("Other", "other-pw")
-    other_list_id, _ = crud.create_list("Secret", other_room_id)
-    crud.add_list_tag(other_list_id, "Lidl")
+    other_list_id, _ = create_list("Secret", other_room_id)
+    add_list_tag(other_list_id, "Lidl")
     other_item = add_item(other_list_id, "milk")
     other_seq = seq_of(other_room_id)
     seq = seq_of(room_id)

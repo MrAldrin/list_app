@@ -11,10 +11,10 @@ import time
 from unittest.mock import patch
 
 import pytest
-from api_helpers import HTTPS, admin, assert_error, browser, client_for
+from api_helpers import HTTPS, admin, assert_error, browser, client_for, verify_room
 
 import room_invitations as invitations
-from database_crud import get_rooms, verify_room
+from database_crud import get_rooms
 from database_setup import db
 
 INVALID = "This invitation is invalid or no longer active."

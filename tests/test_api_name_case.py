@@ -12,6 +12,7 @@ import pytest
 from api_helpers import (
     add_item,
     client_for,
+    create_list,
     default_list,
     home,
     item_row,
@@ -42,7 +43,7 @@ def list_op(op_type: str, **fields: Any) -> dict[str, Any]:
 @pytest.mark.parametrize("typed", ["ØL", " øl ", "Øl"])
 def test_list_create_finds_a_list_in_another_case(room, typed):
     room_id, slug, client = room
-    list_id, _ = crud.create_list("øl", room_id)
+    list_id, _ = create_list("øl", room_id)
     before = list_names(room_id)
 
     result = op(client, slug, list_op("list.create", name=typed, uid=new_id()))
@@ -55,7 +56,7 @@ def test_list_create_finds_a_list_in_another_case(room, typed):
 
 def test_list_rename_rejects_another_case_of_another_list(room):
     room_id, slug, client = room
-    crud.create_list("Øl", room_id)
+    create_list("Øl", room_id)
     _, list_uid = default_list()
 
     body = list_op("list.rename", list_uid=list_uid, name=" øL ", base_seq=0)
@@ -68,7 +69,7 @@ def test_list_rename_rejects_another_case_of_another_list(room):
 
 def test_list_rename_to_another_case_of_its_own_name(room):
     room_id, slug, client = room
-    list_id, _ = crud.create_list("øl", room_id)
+    list_id, _ = create_list("øl", room_id)
     list_uid = crud.get_list_uid_locked(list_id)
 
     body = list_op("list.rename", list_uid=list_uid, name="ØL", base_seq=0)

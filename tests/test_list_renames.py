@@ -1,17 +1,10 @@
 """Private list renames preserve uniqueness and report duplicate names."""
 
 import pytest
+from api_helpers import create_list, get_list_details, rename_list
 
 import item_service
-from database_crud import (
-    ListUnavailable,
-    create_list,
-    create_room,
-    delete_list,
-    get_list_details,
-    get_rooms,
-    rename_list,
-)
+from database_crud import ListUnavailable, create_room, delete_list, get_rooms
 from database_setup import db
 from item_service import (
     STATUS_DUPLICATE_NAME,
@@ -61,7 +54,7 @@ def test_existing_duplicate_returns_status_without_changing_lists(rename_lists):
 def test_competing_rename_before_atomic_check_returns_duplicate_status(
     rename_lists, monkeypatch
 ):
-    room_id, list_id, slug, other_id, other_slug = rename_lists
+    room_id, list_id, slug, other_id, _ = rename_lists
     before_target = get_list_details(list_id)
     rename_if_unique = item_service.rename_list_if_unique
     competitor_renamed = False
@@ -69,7 +62,7 @@ def test_competing_rename_before_atomic_check_returns_duplicate_status(
     def compete_then_rename(**kwargs):
         nonlocal competitor_renamed
         if kwargs["new_name"] == "claimed" and not competitor_renamed:
-            rename_list(other_id, "claimed", expected_slug=other_slug)
+            rename_list(other_id, "claimed")
             competitor_renamed = True
         return rename_if_unique(**kwargs)
 
@@ -92,8 +85,8 @@ def test_competing_rename_before_atomic_check_returns_duplicate_status(
 
 
 def test_stale_list_identity_is_rejected_before_duplicate_lookup(rename_lists):
-    room_id, old_list_id, old_slug, competing_id, competing_slug = rename_lists
-    rename_list(competing_id, "claimed", expected_slug=competing_slug)
+    room_id, old_list_id, old_slug, competing_id, _ = rename_lists
+    rename_list(competing_id, "claimed")
     delete_list(old_list_id, expected_slug=old_slug)
     replacement_id, replacement_slug = create_list("replacement", room_id)
     assert replacement_id == old_list_id

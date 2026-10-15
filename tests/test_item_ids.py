@@ -3,6 +3,13 @@
 import sqlite3
 
 import pytest
+from api_helpers import (
+    create_list,
+    find_item_by_name,
+    get_list_data,
+    insert_item,
+    toggle_item_active_tag,
+)
 
 import database_crud as crud
 from database_setup import _migration_1_baseline, _migrations, init_database
@@ -12,20 +19,20 @@ from migrations import run_migrations
 @pytest.fixture
 def list_id():
     room_id = crud.get_rooms()[0]["id"]
-    return crud.create_list("groceries", room_id)[0]
+    return create_list("groceries", room_id)[0]
 
 
 def _items(list_id):
-    return crud.get_list_data(list_id)
+    return get_list_data(list_id)
 
 
 @pytest.fixture
 def stale_and_replacement(list_id):
-    crud.add_item("old", list_id)
-    old_id = crud.find_item_by_name(list_id, "old")[0]
+    insert_item("old", list_id)
+    old_id = find_item_by_name(list_id, "old")[0]
     crud.delete_item(old_id, list_id)
-    crud.add_item("replacement", list_id)
-    new_id = crud.find_item_by_name(list_id, "replacement")[0]
+    insert_item("replacement", list_id)
+    new_id = find_item_by_name(list_id, "replacement")[0]
     return old_id, new_id
 
 
@@ -37,7 +44,7 @@ def test_new_item_does_not_reuse_deleted_newest_id(stale_and_replacement):
 @pytest.mark.parametrize(
     "stale_action",
     [
-        lambda item_id, list_id: crud.toggle_item_active_tag(item_id, list_id, "x"),
+        lambda item_id, list_id: toggle_item_active_tag(item_id, list_id, "x"),
         lambda item_id, list_id: crud.update_item_done(item_id, list_id, True),
         lambda item_id, list_id: crud.adjust_item_quantity(item_id, list_id, 2),
         lambda item_id, list_id: crud.update_item_quantity(item_id, list_id, 5),

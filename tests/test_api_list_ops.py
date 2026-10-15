@@ -5,6 +5,13 @@ import uuid
 from typing import Any
 
 import pytest
+from api_helpers import (
+    create_list,
+    find_list_by_name,
+    insert_item,
+    rename_list,
+    update_room_password,
+)
 from starlette.testclient import TestClient
 
 import api.ops
@@ -160,13 +167,13 @@ def _used_by_list() -> str:
 
 def _used_by_item() -> str:
     list_id = db.execute("SELECT id FROM lists").fetchone()[0]
-    crud.add_item("milk", list_id)
+    insert_item("milk", list_id)
     return db.execute("SELECT uid FROM items").fetchone()[0]
 
 
 def _used_by_deleted_list() -> str:
     room_id, _ = home()
-    list_id, _ = crud.create_list("Gone", room_id)
+    list_id, _ = create_list("Gone", room_id)
     gone_uid = db.execute("SELECT uid FROM lists WHERE id = ?", (list_id,)).fetchone()[
         0
     ]
@@ -176,7 +183,7 @@ def _used_by_deleted_list() -> str:
 
 def _used_in_other_room() -> str:
     other_id, _ = crud.create_room("Other", "other-pw")
-    list_id, _ = crud.create_list("Secret", other_id)
+    list_id, _ = create_list("Secret", other_id)
     return db.execute("SELECT uid FROM lists WHERE id = ?", (list_id,)).fetchone()[0]
 
 
@@ -263,7 +270,7 @@ def test_rename_to_another_case_of_its_own_name(room):
 )
 def test_rename_rejections(room, notified, name, code, message):
     room_id, slug, client = room
-    crud.create_list("Shop", room_id)
+    create_list("Shop", room_id)
     list_uid = default_list_uid()
     seq = crud.get_room_seq_locked(room_id)
     op_id = new_id()
@@ -309,7 +316,7 @@ def test_rename_needs_a_base_seq(room, extra):
 def test_delete_list_with_items(room, notified):
     room_id, slug, client = room
     list_id = db.execute("SELECT id FROM lists").fetchone()[0]
-    crud.add_item("milk", list_id)
+    insert_item("milk", list_id)
     list_uid = default_list_uid()
     item_uid = db.execute("SELECT uid FROM items").fetchone()[0]
     before = feed_seq(client, slug)
@@ -345,7 +352,7 @@ def test_missing_list_is_unavailable(room, notified, op_type):
 def test_list_in_another_room_is_unavailable(room, op_type):
     _, slug, client = room
     other_id, _ = crud.create_room("Other", "other-pw")
-    other_list_id, _ = crud.create_list("Secret", other_id)
+    other_list_id, _ = create_list("Secret", other_id)
     other_uid = db.execute(
         "SELECT uid FROM lists WHERE id = ?", (other_list_id,)
     ).fetchone()[0]
@@ -369,7 +376,7 @@ def test_replay_returns_the_stored_response_without_writing_again(room, notified
     seq = crud.get_room_seq_locked(room_id)
     # The world moves on; the replay still answers as the first time.
     list_uid = first.json()["result"]["list_uid"]
-    crud.rename_list(list_row(list_uid)[0], "Market")
+    rename_list(list_row(list_uid)[0], "Market")
     later_seq = crud.get_room_seq_locked(room_id)
     second = send(client, slug, body)
     assert second.status_code == 200
@@ -398,11 +405,11 @@ def test_replay_of_a_rejection_is_the_same_rejection(room, notified):
         "name": "Shop",
         "base_seq": 0,
     }
-    crud.create_list("Shop", room_id)
+    create_list("Shop", room_id)
     first = op(client, slug, body)
     assert first["code"] == "duplicate_name"
     # Even after the cause is gone, the stored answer stays.
-    crud.rename_list(
+    rename_list(
         db.execute("SELECT id FROM lists WHERE name = 'Shop'").fetchone()[0], "Market"
     )
     assert op(client, slug, body) == first
@@ -420,7 +427,7 @@ def test_same_op_id_with_another_body_is_409(room):
     )
     assert_error(response, 409, "op_id_reused")
     assert crud.get_room_seq_locked(room_id) == seq
-    assert crud.find_list_by_name("Other", room_id) is None
+    assert find_list_by_name("Other", room_id) is None
 
 
 def test_same_op_id_in_another_room_is_409(room):
@@ -454,7 +461,7 @@ def test_unexpected_error_rolls_back_and_stores_nothing(room, monkeypatch, notif
     monkeypatch.setattr(api.ops, "get_list_uid_locked", boom)
     body = {"op_id": new_id(), "type": "list.create", "name": "Shop"}
     assert_error(send(client, slug, body), 500, "internal_error")
-    assert crud.find_list_by_name("Shop", room_id) is None
+    assert find_list_by_name("Shop", room_id) is None
     assert crud.get_room_seq_locked(room_id) == seq
     assert processed_ops_count() == 0
     assert notified == []
@@ -553,16 +560,16 @@ def test_no_access_and_unknown_room_look_the_same(room):
     for response in (no_cookie, unknown, other_room_cookie):
         assert_error(response, 401, "not_authenticated")
     assert no_cookie.content == unknown.content == other_room_cookie.content
-    assert crud.find_list_by_name("Shop", room_id) is None
+    assert find_list_by_name("Shop", room_id) is None
     assert processed_ops_count() == 0
 
 
 def test_revoked_access_cannot_write(room):
     room_id, slug, client = room
-    crud.update_room_password(room_id, "new-password")
+    update_room_password(room_id, "new-password")
     body = {"op_id": new_id(), "type": "list.create", "name": "Shop"}
     assert_error(send(client, slug, body), 401, "not_authenticated")
-    assert crud.find_list_by_name("Shop", room_id) is None
+    assert find_list_by_name("Shop", room_id) is None
 
 
 def test_a_failing_listener_does_not_fail_the_write(room, monkeypatch):
@@ -576,7 +583,7 @@ def test_a_failing_listener_does_not_fail_the_write(room, monkeypatch):
         client, slug, {"op_id": new_id(), "type": "list.create", "name": "Shop"}
     )
     assert response["status"] == "applied"
-    assert crud.find_list_by_name("Shop", room_id) is not None
+    assert find_list_by_name("Shop", room_id) is not None
 
 
 # Pruning stored op results

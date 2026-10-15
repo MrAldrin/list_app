@@ -5,15 +5,9 @@ from threading import Barrier
 from unittest.mock import patch
 
 import pytest
+from api_helpers import create_list, find_item_by_name, get_list_data, insert_item
 
-from database_crud import (
-    add_item,
-    adjust_item_quantity,
-    create_list,
-    find_item_by_name,
-    get_list_data,
-    get_rooms,
-)
+from database_crud import adjust_item_quantity, get_rooms
 from database_setup import db
 from item_service import STATUS_UPDATED, change_item_quantity
 
@@ -21,7 +15,7 @@ from item_service import STATUS_UPDATED, change_item_quantity
 @pytest.fixture
 def quantity_item():
     list_id, slug = create_list("quantities", get_rooms()[0]["id"])
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     item_id = find_item_by_name(list_id, "milk")[0]
     return list_id, slug, item_id
 

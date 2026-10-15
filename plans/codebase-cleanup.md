@@ -55,7 +55,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 ## Phase 1: delete dead code (low risk, big win)
 
-- [ ] [refactor] `src/database_crud.py`: delete about 50 functions only tests use
+- [x] [refactor] `src/database_crud.py`: delete about 50 functions only tests use
   (at least 39 confirmed; about 730 of 1729 lines), including the
   `expected_slug` checks and `*_with_room_token` wrappers. Port or delete the
   tests that use them as setup helpers.

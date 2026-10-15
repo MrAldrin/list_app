@@ -4,15 +4,14 @@ import sqlite3
 from unittest.mock import patch
 
 import pytest
-
-from database_crud import (
-    authenticate_room_and_issue_token,
+from api_helpers import (
     change_room_password_and_issue_token,
-    create_room,
     delete_room_with_password,
     update_room_password,
     verify_room,
 )
+
+from database_crud import authenticate_room_and_issue_token, create_room
 from database_setup import db
 
 

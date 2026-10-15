@@ -2,6 +2,17 @@ import sqlite3
 from datetime import UTC, datetime
 
 import pytest
+from api_helpers import (
+    add_item_with_state,
+    create_list,
+    find_item_by_name,
+    get_list_data,
+    get_list_details,
+    get_list_details_by_slug,
+    insert_item,
+    restore_item,
+    update_list_visibility_settings,
+)
 
 import database_crud as crud
 from database_setup import db
@@ -20,7 +31,7 @@ def _item(item_id, done, completed_at=None):
 
 
 def _stored_item(list_id, item_id):
-    items, _ = crud.get_list_data(list_id)
+    items, _ = get_list_data(list_id)
     return next(item for item in items if item["id"] == item_id)
 
 
@@ -95,25 +106,23 @@ def test_visibility_helper_validates_mode_and_count_bounds():
 
 def test_visibility_setting_defaults_and_atomic_identity_checked_update():
     room_id = crud.get_rooms()[0]["id"]
-    list_id, slug = crud.create_list("visibility", room_id)
+    list_id, slug = create_list("visibility", room_id)
 
-    defaults = crud.get_list_details(list_id)
+    defaults = get_list_details(list_id)
     assert defaults["hide_done_mode"] == DEFAULT_HIDE_DONE_MODE
     assert defaults["hide_done_age_days"] == DEFAULT_HIDE_DONE_AGE_DAYS
     assert defaults["hide_done_recent_count"] == DEFAULT_HIDE_DONE_RECENT_COUNT
-    assert crud.get_list_details_by_slug(slug)["hide_done_mode"] == "off"
+    assert get_list_details_by_slug(slug)["hide_done_mode"] == "off"
 
-    crud.update_list_visibility_settings(
-        list_id, mode="recent", age_days=1, recent_count=4, expected_slug=slug
-    )
+    update_list_visibility_settings(list_id, mode="recent", age_days=1, recent_count=4)
 
-    updated = crud.get_list_details(list_id)
+    updated = get_list_details(list_id)
     assert (
         updated["hide_done_mode"],
         updated["hide_done_age_days"],
         updated["hide_done_recent_count"],
     ) == ("recent", 1, 4)
-    assert crud.get_list_details_by_slug(slug)["hide_done_recent_count"] == 4
+    assert get_list_details_by_slug(slug)["hide_done_recent_count"] == 4
 
 
 @pytest.mark.parametrize(
@@ -134,26 +143,25 @@ def test_visibility_settings_reject_invalid_values_without_writing(
     mode, age_days, recent_count
 ):
     room_id = crud.get_rooms()[0]["id"]
-    list_id, slug = crud.create_list("visibility", room_id)
-    before = crud.get_list_details(list_id)
+    list_id, _ = create_list("visibility", room_id)
+    before = get_list_details(list_id)
 
     with pytest.raises(ValueError):
-        crud.update_list_visibility_settings(
+        update_list_visibility_settings(
             list_id,
             mode=mode,
             age_days=age_days,
             recent_count=recent_count,
-            expected_slug=slug,
         )
 
-    assert crud.get_list_details(list_id) == before
+    assert get_list_details(list_id) == before
     assert not db.in_transaction
 
 
 def test_failed_visibility_settings_write_rolls_back_and_recovers():
     room_id = crud.get_rooms()[0]["id"]
-    list_id, slug = crud.create_list("visibility", room_id)
-    before = crud.get_list_details(list_id)
+    list_id, _ = create_list("visibility", room_id)
+    before = get_list_details(list_id)
     db.execute(
         "CREATE TEMP TRIGGER fail_visibility_settings "
         "BEFORE UPDATE OF hide_done_mode ON lists "
@@ -162,26 +170,24 @@ def test_failed_visibility_settings_write_rolls_back_and_recovers():
     )
     try:
         with pytest.raises(sqlite3.IntegrityError, match="injected visibility"):
-            crud.update_list_visibility_settings(
+            update_list_visibility_settings(
                 list_id,
                 mode="all",
                 age_days=3,
                 recent_count=5,
-                expected_slug=slug,
             )
 
-        assert crud.get_list_details(list_id) == before
+        assert get_list_details(list_id) == before
         assert not db.in_transaction
 
         db.execute("DROP TRIGGER fail_visibility_settings")
-        crud.update_list_visibility_settings(
+        update_list_visibility_settings(
             list_id,
             mode="age",
             age_days=3,
             recent_count=5,
-            expected_slug=slug,
         )
-        assert crud.get_list_details(list_id)["hide_done_mode"] == "age"
+        assert get_list_details(list_id)["hide_done_mode"] == "age"
         assert not db.in_transaction
     finally:
         db.rollback()
@@ -191,9 +197,9 @@ def test_failed_visibility_settings_write_rolls_back_and_recovers():
 
 def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
     room_id = crud.get_rooms()[0]["id"]
-    list_id, slug = crud.create_list("completion", room_id)
-    crud.add_item("Milk", list_id, expected_slug=slug)
-    item_id = crud.find_item_by_name(list_id, "milk")[0]
+    list_id, slug = create_list("completion", room_id)
+    insert_item("Milk", list_id)
+    item_id = find_item_by_name(list_id, "milk")[0]
     completed_first = datetime(2025, 1, 1, 12, tzinfo=UTC)
     completed_again = datetime(2025, 1, 2, 12, tzinfo=UTC)
 
@@ -209,31 +215,29 @@ def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
         _stored_item(list_id, item_id)["completed_at"] == "2025-01-02T12:00:00.000000Z"
     )
 
-    crud.restore_item(item_id, list_id, expected_slug=slug)
+    restore_item(item_id, list_id)
     assert _stored_item(list_id, item_id)["completed_at"] is None
     crud.update_item_done(item_id, list_id, True, now=completed_first)
-    assert filter_visible_items(crud.get_list_data(list_id)[0], "all") == []
+    assert filter_visible_items(get_list_data(list_id)[0], "all") == []
     assert add_or_restore_item(list_id, "milk", expected_slug=slug) == (
         "restored",
         "milk",
     )
     assert _stored_item(list_id, item_id)["completed_at"] is None
 
-    items, history = crud.get_list_data(list_id)
+    items, history = get_list_data(list_id)
     assert len(items) == 1
     assert history == ["milk"]
 
 
 def test_checked_item_insert_gets_utc_timestamp_and_get_list_data_keeps_history():
     room_id = crud.get_rooms()[0]["id"]
-    list_id, slug = crud.create_list("completion", room_id)
+    list_id, _ = create_list("completion", room_id)
     instant = datetime(2025, 1, 1, 15, tzinfo=UTC)
 
-    crud.add_item_with_state(
-        "already done", list_id, True, [], expected_slug=slug, now=instant
-    )
+    add_item_with_state("already done", list_id, True, [], now=instant)
 
-    items, history = crud.get_list_data(list_id)
+    items, history = get_list_data(list_id)
     assert items[0]["completed_at"] == "2025-01-01T15:00:00.000000Z"
     assert items[0]["done"] is True
     assert history == ["already done"]

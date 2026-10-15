@@ -10,7 +10,18 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import pytest
-from api_helpers import HTTPS, assert_error, client_for, default_list, home, new_id
+from api_helpers import (
+    HTTPS,
+    add_item_with_state,
+    assert_error,
+    client_for,
+    create_list,
+    default_list,
+    home,
+    new_id,
+    rename_room,
+    update_room_password,
+)
 from api_helpers import op as api_op
 from starlette.testclient import TestClient
 
@@ -218,7 +229,7 @@ def test_a_write_outside_the_ops_endpoint_sends_the_new_seq(room):
         await stream.open()
         await stream.next_event()
         # A write that does not go through the ops endpoint, then the wake.
-        crud.add_item_with_state("milk", list_id, False, [])
+        add_item_with_state("milk", list_id, False, [])
         live_updates.wake_streams(room_id)
         assert await stream.next_event() == ("seq", f'{{"seq": {room_seq(room_id)}}}')
         await stream.assert_quiet()
@@ -239,7 +250,7 @@ def test_writes_in_another_room_send_nothing(room):
         await api_write(other_client, other_slug, {"type": "list.create", "name": "B"})
         await stream.assert_quiet()
         # A wake for every stream; this one sees no change in its room.
-        crud.create_list("C", other_id)
+        create_list("C", other_id)
         live_updates.wake_streams()
         await stream.assert_quiet()
         await stream.close()
@@ -287,7 +298,7 @@ def test_a_password_change_is_noticed_at_the_keep_alive(room, monkeypatch):
         await stream.open()
         await stream.next_event()
         # No wake at all: the keep-alive check still finds it.
-        assert crud.update_room_password(room_id, "new", expected_slug=slug)
+        assert update_room_password(room_id, "new")
         assert await stream.next_event() == ("revoked", "{}")
         assert await stream.ended()
 
@@ -317,7 +328,7 @@ def test_a_change_seen_at_the_keep_alive_is_sent_as_seq(room, monkeypatch):
         stream = SseConnection(slug, token_for(slug))
         await stream.open()
         await stream.next_event()
-        crud.rename_room(room_id, "Renamed")  # no wake
+        rename_room(room_id, "Renamed")  # no wake
         assert await stream.next_event() == ("seq", f'{{"seq": {room_seq(room_id)}}}')
         await stream.close()
 

@@ -10,6 +10,7 @@ from api_helpers import (
     assert_error,
     changes,
     client_for,
+    create_list,
     default_list,
     home,
     item_row,
@@ -420,7 +421,7 @@ def test_delete_of_a_gone_item_is_applied(room, notified):
 def test_delete_does_not_touch_an_item_of_another_list(room):
     room_id, slug, client = room
     _, list_uid = default_list()
-    other_list_id, _ = crud.create_list("Other", room_id)
+    other_list_id, _ = create_list("Other", room_id)
     other_item = add_item(other_list_id, "milk")
     seq = seq_of(room_id)
     response = op(client, slug, item_body("item.delete", list_uid, other_item))
@@ -575,7 +576,7 @@ def test_deleted_item_is_not_found(room, notified, op_type):
 def test_item_of_another_list_is_not_found(room, op_type):
     room_id, slug, client = room
     _, list_uid = default_list()
-    other_list_id, _ = crud.create_list("Other", room_id)
+    other_list_id, _ = create_list("Other", room_id)
     other_item = add_item(other_list_id, "milk")
     before_row = item_row(other_item)
     seq = seq_of(room_id)
@@ -593,7 +594,7 @@ def test_item_of_another_room(room, op_type):
     _, slug, client = room
     _, list_uid = default_list()
     other_room_id, _ = crud.create_room("Other", "other-pw")
-    other_list_id, _ = crud.create_list("Secret", other_room_id)
+    other_list_id, _ = create_list("Secret", other_room_id)
     other_list_uid = list_uid_of(other_list_id)
     other_item = add_item(other_list_id, "milk")
     before_row = item_row(other_item)

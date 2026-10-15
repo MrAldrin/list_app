@@ -6,13 +6,13 @@ tested there. An admin sign-in never takes part (tests/test_api_admin.py).
 """
 
 import pytest
-
-from database_crud import (
-    authenticate_room_and_issue_token,
-    create_room,
+from api_helpers import (
+    delete_room,
     update_room_password,
     validate_room_access_token,
 )
+
+from database_crud import authenticate_room_and_issue_token, create_room
 
 
 @pytest.mark.parametrize(
@@ -53,42 +53,5 @@ def test_a_token_does_not_work_for_a_room_that_is_gone():
     token = authenticate_room_and_issue_token(slug, "password")[1]
     assert validate_room_access_token(slug, token) == room_id
 
-    from database_crud import delete_room
-
     delete_room(room_id)
     assert validate_room_access_token(slug, token) is None
-
-
-@pytest.mark.parametrize("replace_room", [False, True])
-def test_a_password_reset_with_a_stale_room_identity_changes_nothing(replace_room):
-    # Ported from the NiceGUI admin page test: the room was deleted while the
-    # reset dialog was open, and SQLite may reuse the room's row id.
-    from database_crud import delete_room, verify_room
-    from database_setup import db
-
-    db.execute("DELETE FROM lists")
-    db.execute("DELETE FROM rooms")
-    db.commit()
-    room_id, stale_slug = create_room("Target room", "original-password")
-    delete_room(room_id)
-    replacement_slug = None
-    if replace_room:
-        replacement_id, replacement_slug = create_room(
-            "Replacement room", "replacement-password"
-        )
-        assert replacement_id == room_id  # The row id is reused.
-        token = authenticate_room_and_issue_token(
-            replacement_slug, "replacement-password"
-        )[1]
-
-    assert not update_room_password(
-        room_id, "stale-reset-password", expected_slug=stale_slug
-    )
-
-    assert not db.in_transaction
-    if replace_room:
-        assert verify_room(replacement_slug, "replacement-password") == room_id
-        assert verify_room(replacement_slug, "stale-reset-password") is None
-        assert validate_room_access_token(replacement_slug, token) == room_id
-    else:
-        assert db.execute("SELECT 1 FROM rooms").fetchone() is None

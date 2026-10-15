@@ -1,15 +1,9 @@
 """Item edits save name, description, and quantity together or not at all."""
 
 import pytest
+from api_helpers import create_list, find_item_by_name, get_list_data, insert_item
 
-from database_crud import (
-    add_item,
-    create_list,
-    find_item_by_name,
-    get_list_data,
-    get_rooms,
-    update_item_details,
-)
+from database_crud import get_rooms, update_item_details
 from database_setup import db
 from item_service import (
     STATUS_DUPLICATE_NAME,
@@ -22,8 +16,8 @@ from item_service import (
 @pytest.fixture
 def edit_items():
     list_id, slug = create_list("edits", get_rooms()[0]["id"])
-    add_item("milk", list_id)
-    add_item("bread", list_id)
+    insert_item("milk", list_id)
+    insert_item("bread", list_id)
     item_id = find_item_by_name(list_id, "milk")[0]
     update_item_details(item_id, list_id, "milk", "semi-skimmed", 2)
     return list_id, slug, item_id
@@ -76,7 +70,7 @@ def test_duplicate_created_before_save_is_rejected_inside_transaction(edit_items
     # Another user adds "cheese" after this dialog opened; the save must not
     # rely on an earlier, separate duplicate check.
     list_id, _, item_id = edit_items
-    add_item("cheese", list_id)
+    insert_item("cheese", list_id)
     assert not update_item_details(item_id, list_id, "cheese", "x", 7)
     assert stored_item(list_id, item_id) == ("milk", "semi-skimmed", 2)
     assert not db.in_transaction

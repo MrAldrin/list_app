@@ -3,22 +3,23 @@
 import re
 
 import pytest
-
-import room_invitations as invitations
-from database_crud import (
-    add_item,
-    authenticate_room_and_issue_token,
+from api_helpers import (
     create_list,
-    create_room,
     delete_room,
     delete_room_with_password,
     get_list_data,
+    insert_item,
+    rename_room,
+    verify_room,
+)
+
+import room_invitations as invitations
+from database_crud import (
+    authenticate_room_and_issue_token,
+    create_room,
     get_lists,
     get_room_details_by_slug,
     get_rooms,
-    rename_room,
-    rename_room_with_room_token,
-    verify_room,
 )
 from database_setup import db
 
@@ -30,7 +31,7 @@ def count(table):
 def room_with_data(name):
     room_id, slug = create_room(name, "password")
     list_id, _ = create_list(f"{name} list", room_id)
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     return room_id, slug, list_id
 
 
@@ -61,25 +62,19 @@ def test_room_names_trim_edges_and_keep_case_and_inner_spaces():
 
 def test_room_renames_trim_edges_and_keep_case():
     room_id, slug = create_room("Before", "password")
-    _, token = authenticate_room_and_issue_token(slug, "password")
 
     rename_room(room_id, "  Admin  Name  ")
     assert get_room_details_by_slug(slug)["name"] == "Admin  Name"
 
-    rename_room_with_room_token(slug, token, "  Token  Name  ")
+    rename_room(room_id, "  Token  Name  ")
     assert get_room_details_by_slug(slug)["name"] == "Token  Name"
 
 
-@pytest.mark.parametrize("rename", ["admin", "token"])
-def test_room_renames_reject_blank_names(rename):
+def test_room_renames_reject_blank_names():
     room_id, slug = create_room("Keep", "password")
-    _, token = authenticate_room_and_issue_token(slug, "password")
 
     with pytest.raises(ValueError, match="Room name cannot be empty"):
-        if rename == "admin":
-            rename_room(room_id, "   ")
-        else:
-            rename_room_with_room_token(slug, token, "   ")
+        rename_room(room_id, "   ")
 
     assert get_room_details_by_slug(slug)["name"] == "Keep"
     assert not db.in_transaction

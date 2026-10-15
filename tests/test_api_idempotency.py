@@ -11,8 +11,10 @@ from typing import Any
 import pytest
 from api_helpers import (
     add_item,
+    add_list_tag,
     assert_error,
     client_for,
+    create_list,
     default_list,
     home,
     new_id,
@@ -184,10 +186,10 @@ def ctx() -> Ctx:
     another list 'shop'."""
     room_id, slug = home()
     list_id, list_uid = default_list()
-    crud.add_list_tag(list_id, "Lidl")
+    add_list_tag(list_id, "Lidl")
     milk_uid = add_item(list_id, "milk")
     add_item(list_id, "bread", done=True)
-    crud.create_list("shop", room_id)
+    create_list("shop", room_id)
     return Ctx(room_id, slug, list_uid, milk_uid)
 
 

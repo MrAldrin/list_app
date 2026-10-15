@@ -3,8 +3,9 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
 import pytest
+from api_helpers import insert_item
 
-from database_crud import add_item, add_or_restore_item_atomic, db, update_item_done
+from database_crud import add_or_restore_item_atomic, db, update_item_done
 from database_setup import init_database
 from item_service import add_or_restore_item
 
@@ -41,16 +42,16 @@ def test_simultaneous_adds_and_restores_keep_one_item():
 
 def test_unique_index_rejects_case_and_whitespace_but_allows_other_lists():
     list_id = db.execute("SELECT id FROM lists").fetchone()[0]
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     with pytest.raises(sqlite3.IntegrityError):
-        add_item(" Milk ", list_id)
+        insert_item(" Milk ", list_id)
     other = db.execute(
         "INSERT INTO lists (name, slug, room_id, share_token) "
         "SELECT 'other', 'other', room_id, 'other-token' FROM lists WHERE id = ?",
         (list_id,),
     ).lastrowid
     db.commit()
-    add_item("MILK", other)
+    insert_item("MILK", other)
     assert add_or_restore_item_atomic("milk", list_id) == "duplicate_active"
 
 

@@ -1,24 +1,22 @@
-import pytest
-
-from database_crud import (
-    RoomAccessDenied,
-    add_item,
+from api_helpers import (
     add_list_tag,
-    authenticate_room_and_issue_token,
-    create_list_with_room_token,
+    create_list,
     get_list_data,
     get_list_details,
     get_list_details_by_share_token,
-    rename_list_with_room_token,
+    insert_item,
     toggle_item_active_tag,
     validate_room_access_token,
 )
+
+from database_crud import authenticate_room_and_issue_token
 from database_setup import db
 from item_service import (
     STATUS_DUPLICATE_NAME,
     STATUS_RENAMED,
     STATUS_UPDATED,
     change_item_quantity,
+    rename_list_with_checks,
     update_item_details_with_checks,
 )
 
@@ -36,14 +34,14 @@ def test_room_and_public_write_paths_preserve_list_and_item_state() -> None:
     )
     assert authenticated_room_id == room_id
 
-    list_id, list_slug = create_list_with_room_token(room_slug, room_token, "groceries")
+    list_id, list_slug = create_list("groceries", room_id)
     share_token = get_list_details(list_id)["share_token"]
     share_identity = f"share:{share_token}"
-    occupied_list_id, _ = create_list_with_room_token(room_slug, room_token, "occupied")
+    occupied_list_id, _ = create_list("occupied", room_id)
 
-    add_list_tag(list_id, "pantry", expected_slug=list_slug)
-    add_item("milk", list_id, expected_slug=share_identity)
-    add_item("bread", list_id, expected_slug=share_identity)
+    add_list_tag(list_id, "pantry")
+    insert_item("milk", list_id)
+    insert_item("bread", list_id)
     items, _ = get_list_data(list_id)
     milk_id = next(item["id"] for item in items if item["name"] == "milk")
     bread_id = next(item["id"] for item in items if item["name"] == "bread")
@@ -53,38 +51,25 @@ def test_room_and_public_write_paths_preserve_list_and_item_state() -> None:
     assert update_item_details_with_checks(
         list_id, bread_id, "bread", "sourdough", 2, expected_slug=share_identity
     ) == (STATUS_RENAMED, "bread")
-    toggle_item_active_tag(milk_id, list_id, "chilled", expected_slug=share_identity)
-    toggle_item_active_tag(bread_id, list_id, "bakery", expected_slug=share_identity)
-
-    # A public list token can edit list contents, but cannot authorize room management.
-    before = write_state(list_id)
-    with pytest.raises(RoomAccessDenied):
-        rename_list_with_room_token(
-            room_slug, share_token, list_id, "forbidden", expected_slug=list_slug
-        )
-    assert write_state(list_id) == before
-    assert not db.in_transaction
+    toggle_item_active_tag(milk_id, list_id, "chilled")
+    toggle_item_active_tag(bread_id, list_id, "bakery")
 
     # The next valid write uses the private list identity and preserves old tags.
-    add_list_tag(list_id, "seasonal", expected_slug=list_slug)
+    add_list_tag(list_id, "seasonal")
     assert not db.in_transaction
 
     # A valid room grant still cannot rename a list to a duplicate name.
     before = write_state(list_id)
-    with pytest.raises(ValueError, match="already exists"):
-        rename_list_with_room_token(
-            room_slug, room_token, list_id, "occupied", expected_slug=list_slug
-        )
+    assert rename_list_with_checks(
+        list_id, room_id, "occupied", expected_slug=list_slug
+    ) == (STATUS_DUPLICATE_NAME, "occupied")
     assert write_state(list_id) == before
     assert not db.in_transaction
 
     # The valid room-path rename succeeds without rotating either list identity.
-    assert (
-        rename_list_with_room_token(
-            room_slug, room_token, list_id, "weekly groceries", expected_slug=list_slug
-        )
-        == "weekly groceries"
-    )
+    assert rename_list_with_checks(
+        list_id, room_id, "weekly groceries", expected_slug=list_slug
+    ) == (STATUS_RENAMED, "weekly groceries")
     assert not db.in_transaction
     details = get_list_details(list_id)
     assert details["name"] == "weekly groceries"
@@ -118,8 +103,8 @@ def test_room_and_public_write_paths_preserve_list_and_item_state() -> None:
         change_item_quantity(list_id, milk_id, 2, expected_slug=share_identity)
         == STATUS_UPDATED
     )
-    toggle_item_active_tag(milk_id, list_id, "organic", expected_slug=share_identity)
-    add_list_tag(list_id, "favorites", expected_slug=list_slug)
+    toggle_item_active_tag(milk_id, list_id, "organic")
+    add_list_tag(list_id, "favorites")
 
     details = get_list_details(list_id)
     assert details["slug"] == list_slug

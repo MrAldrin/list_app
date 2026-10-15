@@ -86,63 +86,6 @@ def get_lists(room_id: int):
     return [(r[0], r[1], r[2]) for r in rows]
 
 
-def get_list_details(list_id: int):
-    with _DB_LOCK:
-        row = db.execute(
-            """
-            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug, l.share_token,
-                   l.hide_done_mode, l.hide_done_age_days, l.hide_done_recent_count
-            FROM lists l
-            JOIN rooms r ON l.room_id = r.id
-            WHERE l.id = ?
-            """,
-            (list_id,),
-        ).fetchone()
-    if not row:
-        return None
-    list_tags = _decode_tags(row[2])
-    return {
-        "id": row[0],
-        "name": row[1],
-        "list_tags": list_tags,
-        "slug": row[3],
-        "room_id": row[4],
-        "room_slug": row[5],
-        "share_token": row[6],
-        "hide_done_mode": row[7],
-        "hide_done_age_days": row[8],
-        "hide_done_recent_count": row[9],
-    }
-
-
-def get_list_details_by_slug(slug: str):
-    with _DB_LOCK:
-        row = db.execute(
-            """
-            SELECT l.id, l.name, l.list_tags, l.slug, l.room_id, r.slug,
-                   l.hide_done_mode, l.hide_done_age_days, l.hide_done_recent_count
-            FROM lists l
-            JOIN rooms r ON l.room_id = r.id
-            WHERE l.slug = ?
-            """,
-            (slug,),
-        ).fetchone()
-    if not row:
-        return None
-    list_tags = _decode_tags(row[2])
-    return {
-        "id": row[0],
-        "name": row[1],
-        "list_tags": list_tags,
-        "slug": row[3],
-        "room_id": row[4],
-        "room_slug": row[5],
-        "hide_done_mode": row[6],
-        "hide_done_age_days": row[7],
-        "hide_done_recent_count": row[8],
-    }
-
-
 def list_identity_matches(details: dict, identity: str) -> bool:
     if identity.startswith("share:"):
         return details.get("share_token") == identity.removeprefix("share:")
@@ -161,12 +104,6 @@ def _list_for_share_token_locked(token: str | None) -> tuple[int, int] | None:
         "SELECT id, room_id FROM lists WHERE share_token = ?", (token,)
     ).fetchone()
     return (row[0], row[1]) if row else None
-
-
-def get_list_details_by_share_token(token: str):
-    with _DB_LOCK:
-        found = _list_for_share_token_locked(token)
-        return get_list_details(found[0]) if found else None
 
 
 class ShareLinkDenied(LookupError):
@@ -211,58 +148,6 @@ def rotate_share_token_locked(list_id: int) -> str:
     return token
 
 
-def get_list_details_by_identity(identity: str):
-    if identity.startswith("share:"):
-        return get_list_details_by_share_token(identity.removeprefix("share:"))
-    with _DB_LOCK:
-        details = get_list_details_by_slug(identity)
-        return get_list_details(details["id"]) if details else None
-
-
-def rotate_list_share_token(
-    room_slug: str, room_token: str, list_id: int, *, expected_slug: str
-) -> str:
-    """Only current room authorization can reset sharing; check atomically."""
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            room_id = _valid_room_id_for_token_locked(room_slug, room_token)
-            row = db.execute(
-                "SELECT room_id FROM lists WHERE id = ?", (list_id,)
-            ).fetchone()
-            if room_id is None or row is None or row[0] != room_id:
-                raise PermissionError("Room access required")
-            _require_list_identity_locked(list_id, expected_slug)
-            token = rotate_share_token_locked(list_id)
-            db.commit()
-            return token
-        except Exception:
-            db.rollback()
-            raise
-
-
-def update_list_visibility_settings(
-    list_id: int,
-    *,
-    mode: str,
-    age_days: int,
-    recent_count: int,
-    expected_slug: str | None = None,
-) -> None:
-    """Atomically replace a list's checked-item visibility settings."""
-    validate_visibility_settings(mode, age_days, recent_count)
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            update_list_visibility_settings_locked(
-                list_id, mode=mode, age_days=age_days, recent_count=recent_count
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def update_list_visibility_settings_locked(
     list_id: int,
     *,
@@ -292,35 +177,6 @@ def update_list_visibility_settings_locked(
     )
 
 
-def update_list_tags_settings(
-    list_id: int, list_tags: list[str], *, expected_slug: str | None = None
-):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE lists SET list_tags = ? WHERE id = ?",
-                (json.dumps(list_tags), list_id),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def _change_list_tag(
-    list_id: int, tag: str, *, add: bool, expected_slug: str | None
-) -> None:
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            change_list_tag_locked(list_id, tag, add=add)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
     """Add or remove one list tag on the stored tags; no write if unchanged.
 
@@ -343,57 +199,6 @@ def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
                 "UPDATE lists SET list_tags = ? WHERE id = ?",
                 (json.dumps(updated_tags), list_id),
             )
-
-
-def add_list_tag(list_id: int, tag: str, *, expected_slug: str | None = None) -> None:
-    """Add one list tag without replacing tags added by another page."""
-    _change_list_tag(list_id, tag, add=True, expected_slug=expected_slug)
-
-
-def remove_list_tag(
-    list_id: int, tag: str, *, expected_slug: str | None = None
-) -> None:
-    """Remove one list tag without replacing unrelated tags added by another page."""
-    _change_list_tag(list_id, tag, add=False, expected_slug=expected_slug)
-
-
-def update_item_active_tags(
-    item_id: int,
-    list_id: int,
-    active_tags: list[str],
-    *,
-    expected_slug: str | None = None,
-):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
-                (json.dumps(active_tags), item_id, list_id),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def toggle_item_active_tag(
-    item_id: int,
-    list_id: int,
-    tag: str,
-    *,
-    expected_slug: str | None = None,
-):
-    """Toggle one tag on the persisted item state in a write transaction."""
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            # A stale item matches no row and changes nothing.
-            toggle_item_active_tag_locked(item_id, list_id, tag)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
 
 
 def toggle_item_active_tag_locked(item_id: int, list_id: int, tag: str) -> bool:
@@ -433,12 +238,6 @@ def _find_list_by_name_locked(
     return None
 
 
-def find_list_by_name(name: str, room_id: int):
-    with _DB_LOCK:
-        found = _find_list_by_name_locked(name, room_id)
-    return None if found is None else (found[0],)
-
-
 def create_or_find_list_locked(
     name: str, room_id: int, *, uid: str | None = None
 ) -> tuple[int, str, bool]:
@@ -464,33 +263,6 @@ def create_or_find_list_locked(
         (normalized_name, slug, room_id, secrets.token_urlsafe(32), uid),
     )
     return result.lastrowid, slug, True
-
-
-def _create_list_locked(name: str, room_id: int) -> tuple[int, str]:
-    list_id, slug, _ = create_or_find_list_locked(name, room_id)
-    return list_id, slug
-
-
-def create_list(name: str, room_id: int):
-    with _DB_LOCK:
-        try:
-            list_id, slug = _create_list_locked(name, room_id)
-            db.commit()
-            return list_id, slug
-        except Exception:
-            db.rollback()
-            raise
-
-
-def rename_list(list_id: int, new_name: str, *, expected_slug: str | None = None):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute("UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id))
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
 
 
 def rename_list_if_unique(
@@ -533,53 +305,6 @@ def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> b
         (new_name, list_id, room_id),
     )
     return True
-
-
-def get_item_count(list_id: int) -> int:
-    with _DB_LOCK:
-        row = db.execute(
-            "SELECT COUNT(*) FROM items WHERE list_id = ?", (list_id,)
-        ).fetchone()
-    return row[0]
-
-
-def get_list_data(list_id: int):
-    with _DB_LOCK:
-        rows = db.execute(
-            (
-                "SELECT id, name, done, active_tags, description, quantity, completed_at "
-                "FROM items WHERE list_id = ? "
-                "ORDER BY done ASC, name COLLATE NOCASE ASC"
-            ),
-            (list_id,),
-        ).fetchall()
-
-    list_items = []
-    for r in rows:
-        active_tags = _decode_tags(r[3])
-        list_items.append(
-            {
-                "id": r[0],
-                "name": r[1],
-                "done": bool(r[2]),
-                "active_tags": active_tags,
-                "description": r[4] or "",
-                "quantity": r[5] if r[5] is not None else 1,
-                "completed_at": r[6],
-            }
-        )
-
-    list_history_names = sorted({item["name"] for item in list_items})
-    return list_items, list_history_names
-
-
-def find_item_by_name(list_id: int, item_name: str):
-    with _DB_LOCK:
-        result = db.execute(
-            "SELECT id, done FROM items WHERE trim(name) = ? COLLATE NOCASE AND list_id = ?",
-            (item_name, list_id),
-        )
-        return result.fetchone()
 
 
 def add_or_restore_item_atomic(
@@ -627,66 +352,6 @@ def add_or_restore_item_locked(
     return "added", result.lastrowid
 
 
-def restore_item(item_id: int, list_id: int, *, expected_slug: str | None = None):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE items SET done = 0, completed_at = NULL "
-                "WHERE id = ? AND list_id = ?",
-                (item_id, list_id),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def add_item(item_name: str, list_id: int, *, expected_slug: str | None = None):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
-                (normalize_item_name(item_name), False, list_id),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def restore_deleted_item(
-    list_id: int,
-    name: str,
-    done: bool,
-    active_tags: list[str],
-    description: str,
-    quantity: int,
-    *,
-    completed_at: str | None = None,
-    expected_slug: str | None = None,
-) -> bool:
-    """Restore a deleted item with all fields, unless its name is now taken."""
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            item_id = restore_deleted_item_locked(
-                list_id,
-                name,
-                done,
-                active_tags,
-                description,
-                quantity,
-                completed_at=completed_at,
-            )
-            db.commit()
-            return item_id is not None
-        except Exception:
-            db.rollback()
-            raise
-
-
 def restore_deleted_item_locked(
     list_id: int,
     name: str,
@@ -730,33 +395,6 @@ def restore_deleted_item_locked(
     return result.lastrowid
 
 
-def add_item_with_state(
-    item_name: str,
-    list_id: int,
-    done: bool,
-    active_tags: list[str],
-    *,
-    expected_slug: str | None = None,
-    now: datetime | None = None,
-):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            completed_at = _completion_timestamp(now) if done else None
-            db.execute(
-                """
-                INSERT INTO items (
-                    name, done, list_id, active_tags, completed_at
-                ) VALUES (?, ?, ?, ?, ?)
-                """,
-                (item_name, done, list_id, json.dumps(active_tags), completed_at),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def update_item_done(
     item_id: int,
     list_id: int,
@@ -797,31 +435,6 @@ def update_item_done_locked(
             (item_id, list_id),
         )
     return result.rowcount > 0
-
-
-def find_duplicate_name(list_id: int, item_id: int, new_name: str):
-    with _DB_LOCK:
-        result = db.execute(
-            "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE AND id != ? AND list_id = ?",
-            (new_name, item_id, list_id),
-        )
-        return result.fetchone()
-
-
-def rename_item(
-    item_id: int, list_id: int, new_name: str, *, expected_slug: str | None = None
-):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
-                (new_name, item_id, list_id),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
 
 
 def rename_item_if_unique(
@@ -1059,12 +672,6 @@ def _valid_room_id_for_token_locked(room_slug: str, token: str | None) -> int | 
 def room_matches_token_locked(room_slug: str, room_id: int, token: str | None) -> bool:
     """Whether the token authorizes this room; call inside a transaction."""
     return _valid_room_id_for_token_locked(room_slug, token) == room_id
-
-
-def validate_room_access_token(room_slug: str, token: str | None) -> int | None:
-    """Return the associated room ID only when the token currently authorizes it."""
-    with _DB_LOCK:
-        return _valid_room_id_for_token_locked(room_slug, token)
 
 
 @contextmanager
@@ -1377,27 +984,11 @@ def revoke_room_access_token(room_slug: str, token: str) -> None:
             raise
 
 
-def verify_room(room_slug: str, plain_password: str):
-    with _DB_LOCK:
-        row = db.execute(
-            "SELECT id, password_hash FROM rooms WHERE slug = ?", (room_slug,)
-        ).fetchone()
-    if not row:
-        return None
-
-    room_id, pw_hash = row
-    if _password_matches(plain_password, pw_hash):
-        return room_id
-    return None
-
-
-def _replace_room_password_locked(
-    room_id: int, password_hash: str, expected_slug: str | None = None
-) -> int | None:
+def _replace_room_password_locked(room_id: int, password_hash: str) -> int | None:
     row = db.execute(
-        "SELECT authorization_version, slug FROM rooms WHERE id = ?", (room_id,)
+        "SELECT authorization_version FROM rooms WHERE id = ?", (room_id,)
     ).fetchone()
-    if not row or (expected_slug is not None and row[1] != expected_slug):
+    if not row:
         return None
 
     authorization_version = row[0] + 1
@@ -1412,32 +1003,6 @@ def _replace_room_password_locked(
     # Deleting old rows avoids an unbounded accumulation after password resets.
     db.execute("DELETE FROM room_access_tokens WHERE room_id = ?", (room_id,))
     return authorization_version
-
-
-def update_room_password(
-    room_id: int,
-    new_plain_password: str,
-    *,
-    expected_slug: str | None = None,
-) -> bool:
-    """Reset a room password, returning false if its expected identity is stale."""
-    if not new_plain_password:
-        raise ValueError("Password cannot be empty")
-
-    pw_hash = bcrypt.hashpw(
-        new_plain_password.encode("utf-8"), bcrypt.gensalt()
-    ).decode("utf-8")
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            authorization_version = _replace_room_password_locked(
-                room_id, pw_hash, expected_slug
-            )
-            db.commit()
-            return authorization_version is not None
-        except Exception:
-            db.rollback()
-            raise
 
 
 def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int | None:
@@ -1463,36 +1028,6 @@ def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int 
                 return None
             db.commit()
             return row[0]
-        except Exception:
-            db.rollback()
-            raise
-
-
-def change_room_password_and_issue_token(
-    room_slug: str, current_plain_password: str, new_plain_password: str
-) -> tuple[int, str] | None:
-    """Change a password and issue the changing device a token in one transaction."""
-    if not new_plain_password:
-        raise ValueError("Password cannot be empty")
-
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
-            ).fetchone()
-            token = (
-                change_room_password_locked(
-                    row[0], current_plain_password, new_plain_password
-                )
-                if row
-                else None
-            )
-            if token is None:
-                db.rollback()
-                return None
-            db.commit()
-            return row[0], token
         except Exception:
             db.rollback()
             raise
@@ -1543,114 +1078,6 @@ def change_room_password_locked(
     return _insert_room_access_token_locked(room_id, authorization_version)
 
 
-def create_list_with_room_token(
-    room_slug: str, token: str, name: str
-) -> tuple[int, str]:
-    """Create a list only if the token is still valid at the write transaction."""
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            room_id = _valid_room_id_for_token_locked(room_slug, token)
-            if room_id is None:
-                db.rollback()
-                raise RoomAccessDenied
-            list_id, slug = _create_list_locked(name, room_id)
-            db.commit()
-            return list_id, slug
-        except Exception:
-            db.rollback()
-            raise
-
-
-def rename_list_with_room_token(
-    room_slug: str,
-    token: str,
-    list_id: int,
-    raw_name: str | None,
-    *,
-    expected_slug: str | None = None,
-) -> str:
-    """Rename a room list while validating the token and list ownership together."""
-    new_name = normalize_display_name(raw_name)
-    if not new_name:
-        raise ValueError("List name cannot be empty")
-
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            room_id = _valid_room_id_for_token_locked(room_slug, token)
-            if room_id is None:
-                db.rollback()
-                raise RoomAccessDenied
-            belongs_to_room = db.execute(
-                "SELECT 1 FROM lists WHERE id = ? AND room_id = ?",
-                (list_id, room_id),
-            ).fetchone()
-            if not belongs_to_room:
-                db.rollback()
-                raise RoomAccessDenied
-            _require_list_identity_locked(list_id, expected_slug)
-            if not rename_list_if_unique_locked(list_id, room_id, new_name):
-                db.rollback()
-                raise ValueError("A list with that name already exists in this room")
-            db.commit()
-            return new_name
-        except Exception:
-            db.rollback()
-            raise
-
-
-def delete_list_with_room_token(
-    room_slug: str, token: str, list_id: int, *, expected_slug: str | None = None
-) -> None:
-    """Delete a list only if it belongs to the token's currently authorized room."""
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            room_id = _valid_room_id_for_token_locked(room_slug, token)
-            if room_id is None:
-                db.rollback()
-                raise RoomAccessDenied
-            belongs_to_room = db.execute(
-                "SELECT 1 FROM lists WHERE id = ? AND room_id = ?",
-                (list_id, room_id),
-            ).fetchone()
-            if not belongs_to_room:
-                list_exists = db.execute(
-                    "SELECT 1 FROM lists WHERE id = ?", (list_id,)
-                ).fetchone()
-                db.rollback()
-                if not list_exists:
-                    raise ListUnavailable(f"List {list_id} is no longer available")
-                raise RoomAccessDenied
-            _require_list_identity_locked(list_id, expected_slug)
-            delete_list_locked(list_id)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def rename_room_with_room_token(room_slug: str, token: str, new_name: str) -> None:
-    """Rename only the room associated with a still-valid token."""
-    new_name = normalize_display_name(new_name)
-    if not new_name:
-        raise ValueError("Room name cannot be empty")
-
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            room_id = _valid_room_id_for_token_locked(room_slug, token)
-            if room_id is None:
-                db.rollback()
-                raise RoomAccessDenied
-            rename_room_locked(room_id, new_name)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def delete_room_with_password_locked(room_id: int, plain_password: str) -> bool:
     """Delete the room and all its lists and items if the password matches.
 
@@ -1672,58 +1099,9 @@ def delete_room_with_password_locked(room_id: int, plain_password: str) -> bool:
     return True
 
 
-def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
-    """Confirm the current password and delete the room in one transaction."""
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
-            ).fetchone()
-            if not row or not delete_room_with_password_locked(row[0], plain_password):
-                db.rollback()
-                return False
-            db.commit()
-            return True
-        except Exception:
-            db.rollback()
-            raise
-
-
 def rename_room_locked(room_id: int, new_name: str) -> None:
     """Rename a room (trimmed, case kept). Call inside a write transaction."""
     new_name = normalize_display_name(new_name)
     if not new_name:
         raise ValueError("Room name cannot be empty")
     db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))
-
-
-def rename_room(room_id: int, new_name: str):
-    new_name = normalize_display_name(new_name)
-    if not new_name:
-        raise ValueError("Room name cannot be empty")
-    with _DB_LOCK:
-        try:
-            rename_room_locked(room_id, new_name)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def delete_room(room_id: int):
-    with _DB_LOCK:
-        try:
-            db.execute("BEGIN IMMEDIATE")
-            lists = db.execute(
-                "SELECT id FROM lists WHERE room_id = ?", (room_id,)
-            ).fetchall()
-            for list_row in lists:
-                list_id = list_row[0]
-                db.execute("DELETE FROM items WHERE list_id = ?", (list_id,))
-                db.execute("DELETE FROM lists WHERE id = ?", (list_id,))
-            db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise

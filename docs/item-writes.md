@@ -29,8 +29,8 @@ copy of each rule.
 | Add | Add, restore a checked item, or reject a duplicate in one transaction (`add_or_restore_item_atomic`). A unique index blocks duplicate names per list, ignoring case and outer spaces. | `tests/test_item_uniqueness.py` |
 | Edit dialog | Name, description and quantity saved together (`update_item_details`). A blank or duplicate name changes nothing. | `tests/test_item_edits.py` |
 | Rename item | Duplicate check and rename in one transaction (`rename_item_with_checks`); list identity checked first. | `tests/test_item_renames.py` |
-| Item tag button | Toggles one tag on the current stored tags (`toggle_item_active_tag`). | `tests/test_database_crud.py` |
-| List tags | Add/remove one tag (`add_list_tag`, `remove_list_tag`); tag undo reuses add. | `tests/test_database_crud.py`, `tests/test_list_tag_ui.py` |
+| Item tag button | Toggles one tag on the current stored tags (`toggle_item_active_tag_locked`). | `tests/test_api_tag_ops.py`, `tests/test_tags.py` |
+| List tags | Add/remove one tag (`change_list_tag_locked`); tag undo reuses add. | `tests/test_api_tag_ops.py`, `tests/test_tags.py` |
 | Rename list | Identity, room ownership and name uniqueness checked in the same transaction. A lost race returns the normal duplicate-name warning. | `tests/test_list_renames.py` |
 | Delete + undo | Undo restores name, done state, tags, description and quantity as a new item. If the name was re-added meanwhile, undo warns and changes nothing. | `tests/test_item_undo.py` |
 | Delete list / room | All deletes roll back if any step fails. | `tests/test_database_crud.py` |

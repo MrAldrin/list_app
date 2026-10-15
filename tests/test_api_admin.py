@@ -14,8 +14,10 @@ from api_helpers import (
     assert_error,
     browser,
     client_for,
+    delete_room,
     home,
     sign_in,
+    verify_room,
 )
 from starlette.testclient import TestClient
 
@@ -338,9 +340,9 @@ def test_reset_password_revokes_every_token_and_wakes_streams(admin_app):
         "SELECT COUNT(*) FROM room_access_tokens WHERE room_id = ?", (room_id,)
     ).fetchone() == (0,)
     # Saved as typed, as typed before.
-    assert crud.verify_room(slug, "  reset pw ") == room_id
-    assert crud.verify_room(slug, "pw") is None
-    assert crud.verify_room(slug, "reset pw") is None
+    assert verify_room(slug, "  reset pw ") == room_id
+    assert verify_room(slug, "pw") is None
+    assert verify_room(slug, "reset pw") is None
     # Admin still has no room access.
     assert_error(client.get(f"/api/v1/rooms/{slug}/session"), 401, "not_authenticated")
 
@@ -381,7 +383,7 @@ def test_reset_password_refuses_bad_passwords(admin_app, new_password, message):
 
 def test_reset_password_of_a_gone_room_changes_nothing(admin_app):
     room_id, slug = home()
-    crud.delete_room(room_id)
+    delete_room(room_id)
     client = admin(admin_app)
 
     with patch("api.admin.wake_streams") as wake:

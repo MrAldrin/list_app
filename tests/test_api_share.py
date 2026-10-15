@@ -15,11 +15,15 @@ from api_helpers import (
     assert_error,
     changes,
     client_for,
+    create_list,
+    get_list_details,
     home,
     item_row,
     new_id,
     processed_ops_count,
+    rotate_list_share_token,
     row_counts,
+    update_room_password,
 )
 from starlette.testclient import TestClient
 from test_api_events import SseConnection, run
@@ -76,9 +80,9 @@ def uid_of_list(list_id: int) -> str:
 def shared():
     """A shared list in Home with one item, and another list in Home."""
     room_id, slug = home()
-    list_id, _ = crud.create_list("Groceries", room_id)
+    list_id, _ = create_list("Groceries", room_id)
     item_uid = add_item(list_id, "milk")
-    other_id, _ = crud.create_list("Private", room_id)
+    other_id, _ = create_list("Private", room_id)
     other_item = add_item(other_id, "secret")
     return {
         "room_id": room_id,
@@ -233,7 +237,7 @@ def test_share_holder_edits_items_tags_and_hide_done(shared, notified):
         "list_id": shared["list_id"],
     }
     assert item_row(shared["item_uid"])["name"] == "oat milk"
-    details = crud.get_list_details(shared["list_id"])
+    details = get_list_details(shared["list_id"])
     assert details["list_tags"] == ["Lidl"]
     assert details["hide_done_mode"] == "all"
     # Every applied op tells the room's listeners (streams).
@@ -285,7 +289,7 @@ def test_business_rules_reject_like_in_the_room(shared):
 def test_share_ops_reach_no_other_list(shared, notified):
     client = public_client()
     other_room_id, _ = crud.create_room("Cabin", "cabin-pw")
-    cabin_list, _ = crud.create_list("Cabin list", other_room_id)
+    cabin_list, _ = create_list("Cabin list", other_room_id)
     cabin_uid = uid_of_list(cabin_list)
     before = row_counts()
 
@@ -316,7 +320,7 @@ def test_share_ops_reach_no_other_list(shared, notified):
     assert response["code"] == "item_not_found"
     assert row_counts() == before
     assert item_row(shared["other_item"])["done"] == 0
-    assert crud.get_list_details(shared["other_id"])["list_tags"] == []
+    assert get_list_details(shared["other_id"])["list_tags"] == []
     assert notified == []
 
 
@@ -555,7 +559,7 @@ def test_reset_needs_current_room_access(shared, credential):
         # Cabin's cookie is not for Home.
     else:
         client = client_for(slug)
-        crud.update_room_password(shared["room_id"], "new-pw")
+        update_room_password(shared["room_id"], "new-pw")
 
     assert_error(reset_link(client, slug, shared["list_uid"]), 401, "not_authenticated")
     assert_error(share_link(client, slug, shared["list_uid"]), 401, "not_authenticated")
@@ -589,18 +593,16 @@ def test_password_change_keeps_share_links(shared):
 
 
 def test_database_reset_blocks_the_api_and_api_reset_blocks_the_database(shared):
-    _, room_token = crud.authenticate_room_and_issue_token(shared["slug"], "pw")
-    list_slug = crud.get_list_details(shared["list_id"])["slug"]
-    new = crud.rotate_list_share_token(
-        shared["slug"], room_token, shared["list_id"], expected_slug=list_slug
-    )
+    new = rotate_list_share_token(shared["list_id"])
     public = public_client()
     assert_error(share_changes(public, shared["token"]), 401, "share_unavailable")
 
     newer = reset_link(client_for(shared["slug"]), shared["slug"], shared["list_uid"])
     with pytest.raises(crud.ListUnavailable):
-        crud.add_item("blocked", shared["list_id"], expected_slug=f"share:{new}")
-    crud.add_item(
+        crud.add_or_restore_item_atomic(
+            "blocked", shared["list_id"], expected_slug=f"share:{new}"
+        )
+    crud.add_or_restore_item_atomic(
         "allowed", shared["list_id"], expected_slug=f"share:{newer.json()['token']}"
     )
 

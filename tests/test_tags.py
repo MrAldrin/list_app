@@ -1,18 +1,18 @@
 """Regression tests for list tags and per-item tag toggles."""
 
 import pytest
-
-from database_crud import (
-    add_item,
+from api_helpers import (
     add_list_tag,
     create_list,
-    create_room,
     find_item_by_name,
     get_list_data,
     get_list_details,
+    insert_item,
     remove_list_tag,
     toggle_item_active_tag,
 )
+
+from database_crud import create_room
 from database_setup import db
 
 
@@ -72,7 +72,7 @@ def test_list_tags_belong_to_one_list(room_id):
 
 def test_item_tag_toggle_adds_then_removes(room_id):
     list_id, _ = create_list("groceries", room_id)
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     item_id, _ = find_item_by_name(list_id, "milk")
 
     toggle_item_active_tag(item_id, list_id, "dairy")
@@ -85,7 +85,7 @@ def test_item_tag_toggle_adds_then_removes(room_id):
 def test_item_tag_toggle_ignores_an_item_from_another_list(room_id):
     own_list_id, _ = create_list("own", room_id)
     other_list_id, _ = create_list("other", room_id)
-    add_item("milk", other_list_id)
+    insert_item("milk", other_list_id)
     item_id, _ = find_item_by_name(other_list_id, "milk")
 
     toggle_item_active_tag(item_id, own_list_id, "dairy")
@@ -98,7 +98,7 @@ def test_deleted_list_tag_keeps_item_tags_so_undo_restores_them(room_id):
     # Undo of a tag delete only re-adds the list tag. Items must keep their
     # tag, or undo would bring back an empty tag.
     list_id, _ = create_list("groceries", room_id)
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     item_id, _ = find_item_by_name(list_id, "milk")
     add_list_tag(list_id, "dairy")
     toggle_item_active_tag(item_id, list_id, "dairy")
@@ -126,7 +126,7 @@ def test_unreadable_stored_list_tags_are_treated_as_empty(
 
 def test_unreadable_stored_item_tags_are_treated_as_empty(room_id, without_field_rules):
     list_id, _ = create_list("groceries", room_id)
-    add_item("milk", list_id)
+    insert_item("milk", list_id)
     item_id, _ = find_item_by_name(list_id, "milk")
     db.execute("UPDATE items SET active_tags = 'not json' WHERE id = ?", (item_id,))
     db.commit()
