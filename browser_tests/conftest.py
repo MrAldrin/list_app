@@ -3,103 +3,23 @@
 import fcntl
 import os
 import shutil
-import socket
-import sqlite3
 import subprocess
-import sys
 import time
-from contextlib import closing
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
 
 import pytest
 from playwright.sync_api import Page, sync_playwright
+from server_launcher import AppServer
 
 ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "browser-test-room-password"
 
 
-class TestServer:
+class TestServer(AppServer):
+    """The app server for browser tests, with the browser test password."""
+
     __test__ = False
     password = PASSWORD
-
-    def __init__(self, directory: Path):
-        self.directory = directory
-        self.database = directory / "browser-test.db"
-        self.log_path = directory / "server.log"
-        self.process = None
-        self.log_file = None
-        with socket.socket() as sock:
-            sock.bind(("127.0.0.1", 0))
-            self.port = sock.getsockname()[1]
-        self.url = f"http://127.0.0.1:{self.port}"
-        self.env = {
-            **os.environ,
-            "DB_PATH": str(self.database),
-            "APP_PASSWORD": PASSWORD,
-            "APP_RELOAD": "false",
-            "PYTHON_DOTENV_DISABLED": "1",
-            "PYTHONPATH": str(ROOT / "src"),
-        }
-
-    def start(self):
-        self.log_file = self.log_path.open("a")
-        self.process = subprocess.Popen(
-            [
-                sys.executable,
-                "-u",
-                "-c",
-                "import uvicorn; import main; "
-                "uvicorn.run(main.app, host='127.0.0.1', port=" + str(self.port) + ", "
-                "timeout_graceful_shutdown=main.SHUTDOWN_TIMEOUT_SECONDS)",
-            ],
-            cwd=self.directory,
-            env=self.env,
-            stdout=self.log_file,
-            stderr=subprocess.STDOUT,
-        )
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            if self.process.poll() is not None:
-                break
-            try:
-                with urlopen(f"{self.url}/manifest.json", timeout=1) as response:
-                    if response.status == 200:
-                        return
-            except (URLError, TimeoutError):
-                time.sleep(0.1)
-        raise RuntimeError(f"Test app failed to start:\n{self.log_path.read_text()}")
-
-    def stop(self):
-        if self.process and self.process.poll() is None:
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.process.wait(timeout=5)
-        if self.log_file:
-            self.log_file.close()
-
-    def restart(self):
-        self.stop()
-        self.start()
-
-    def query(self, sql, parameters=()):
-        # Read-only connection: assertions cannot accidentally modify app state.
-        with closing(
-            sqlite3.connect(f"file:{self.database}?mode=ro", uri=True)
-        ) as connection:
-            return connection.execute(sql, parameters).fetchall()
-
-    @property
-    def room_slug(self):
-        return self.query("SELECT slug FROM rooms WHERE name = 'Home'")[0][0]
-
-    @property
-    def room_url(self):
-        return f"{self.url}/room/{self.room_slug}"
 
 
 @pytest.fixture

@@ -111,7 +111,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [test] Frontend: move `json()` / `fakeFetch()` to `test-helpers.ts`.
   Browser tests: shared `share_link` and `hold_live_updates` in `svelte_app.py`;
   `wait_for_function` instead of sleep loops.
-- [ ] [test] One Playwright-free server launcher shared by
+- [x] [test] One Playwright-free server launcher shared by
   `test_server_shutdown.py` and `browser_tests/conftest.py`.
 
 ## Phase 4: frontend UI DRY
@@ -160,6 +160,6 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] Decisions D1-D5 made (2026-10-15).
 - [x] Phase 1
 - [x] Phase 2
-- [ ] Phase 3
+- [x] Phase 3
 - [ ] Phase 4
 - [ ] Phase 5

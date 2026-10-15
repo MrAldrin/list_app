@@ -24,7 +24,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "scripts"]
+pythonpath = ["src", "scripts", "tests"]
 addopts = "-n 8"
 
 [tool.ruff]

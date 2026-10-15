@@ -6,81 +6,33 @@ so uvicorn cancels the stream after a short wait. This test starts `src/main.py`
 like `uv run src/main.py` does, with a test database.
 """
 
-import os
 import signal
-import socket
-import sqlite3
-import subprocess
-import sys
 import time
 from collections.abc import Iterator
-from contextlib import closing
 from pathlib import Path
 
 import httpx2 as httpx
 import pytest
+from server_launcher import AppServer, main_command
 
 from server import SHUTDOWN_TIMEOUT_SECONDS
 
-ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = "shutdown-test-password"
-START_TIMEOUT = 30.0
-
-
-def free_port() -> int:
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        return sock.getsockname()[1]
 
 
 @pytest.fixture
-def server(tmp_path: Path) -> Iterator[tuple[subprocess.Popen, str, Path]]:
-    port = free_port()
-    database = tmp_path / "shutdown-test.db"
-    env = {
-        **os.environ,
-        "DB_PATH": str(database),
-        "APP_PASSWORD": PASSWORD,
-        "APP_RELOAD": "false",
-        "PYTHON_DOTENV_DISABLED": "1",
-    }
-    log_path = tmp_path / "server.log"
-    with log_path.open("w") as log:
-        process = subprocess.Popen(
-            [sys.executable, "-u", str(ROOT / "src" / "main.py"), "--port", str(port)],
-            cwd=tmp_path,
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-        )
-        url = f"http://127.0.0.1:{port}"
-        try:
-            deadline = time.monotonic() + START_TIMEOUT
-            while True:
-                if process.poll() is not None or time.monotonic() > deadline:
-                    raise RuntimeError(f"Server did not start:\n{log_path.read_text()}")
-                try:
-                    if httpx.get(f"{url}/manifest.json", timeout=1).status_code == 200:
-                        break
-                except httpx.HTTPError:
-                    time.sleep(0.1)
-            yield process, url, database
-        finally:
-            if process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
+def server(tmp_path: Path) -> Iterator[AppServer]:
+    server = AppServer(tmp_path, command=main_command, password=PASSWORD)
+    try:
+        server.start()
+        yield server
+    finally:
+        server.stop()
 
 
-def room_slug(database: Path) -> str:
-    with closing(sqlite3.connect(f"file:{database}?mode=ro", uri=True)) as connection:
-        return connection.execute(
-            "SELECT slug FROM rooms WHERE name = 'Home'"
-        ).fetchone()[0]
-
-
-def test_stopping_the_server_with_an_open_stream_is_quick(server):
-    process, url, database = server
-    slug = room_slug(database)
+def test_stopping_the_server_with_an_open_stream_is_quick(server: AppServer):
+    slug = server.room_slug
+    url = server.url
     with httpx.Client(base_url=url, headers={"Origin": url}, timeout=5) as client:
         login = client.post(
             f"/api/v1/rooms/{slug}/session", json={"password": PASSWORD}
@@ -97,9 +49,9 @@ def test_stopping_the_server_with_an_open_stream_is_quick(server):
             assert next(lines).startswith("event: seq")
 
             started = time.monotonic()
-            process.send_signal(signal.SIGTERM)
+            server.process.send_signal(signal.SIGTERM)
             # Without the timeout, uvicorn waits for the stream forever.
-            process.wait(timeout=SHUTDOWN_TIMEOUT_SECONDS + 5)
+            server.process.wait(timeout=SHUTDOWN_TIMEOUT_SECONDS + 5)
             elapsed = time.monotonic() - started
 
     assert elapsed < SHUTDOWN_TIMEOUT_SECONDS + 3
