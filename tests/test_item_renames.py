@@ -9,7 +9,7 @@ from api_helpers import (
     write_locked,
 )
 
-from database_crud import get_rooms, update_item_details, update_item_details_locked
+from database_crud import get_rooms, update_item_details_locked
 from database_setup import db
 
 
@@ -18,7 +18,7 @@ def rename_items():
     list_id, slug = create_list("renames", get_rooms()[0]["id"])
     insert_item("milk", list_id)
     item_id = find_item_by_name(list_id, "milk")[0]
-    update_item_details(item_id, list_id, "milk", "cold", 4)
+    write_locked(update_item_details_locked, item_id, list_id, "milk", "cold", 4)
     return list_id, slug, item_id
 
 

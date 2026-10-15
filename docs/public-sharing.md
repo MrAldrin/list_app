@@ -37,10 +37,10 @@ outgoing referrers (Svelte: a `same-origin` policy, because `no-referrer` would
 also blank the `Origin` its API writes need); this does not eliminate all URL
 leakage.
 
-Public list callbacks carry `share:<token>` as their `expected_slug` identity.
-Database mutations check that identity inside their write transaction, so reset
-also blocks queued edits and undo. Page refreshes, suggestions, and periodic
-checks revalidate access. The internal slug remains the identity for room pages.
+Share writes check the token inside their write transaction, so a reset also
+blocks queued edits and undo. Page refreshes, suggestions, and periodic checks
+revalidate access. Room pages address lists and items by public `uid`
+([API](api.md)).
 The application remains single-instance; see [deployment](deployment.md).
 
 ## Rollout and verification

@@ -22,6 +22,7 @@ from api_helpers import (
     toggle_item_active_tag,
     update_item_active_tags,
     update_list_visibility_settings,
+    write_locked,
 )
 from starlette.testclient import TestClient
 
@@ -191,7 +192,11 @@ def test_toggle_on_a_deleted_item_or_another_list(room, notified):
     room_id, slug, client = room
     list_id, list_uid = default_list()
     gone = add_item(list_id, "milk")
-    crud.delete_item(db.execute("SELECT id FROM items").fetchone()[0], list_id)
+    write_locked(
+        crud.delete_item_locked,
+        db.execute("SELECT id FROM items").fetchone()[0],
+        list_id,
+    )
     other_list_id, _ = create_list("Other", room_id)
     elsewhere = add_item(other_list_id, "bread")
     seq = seq_of(room_id)

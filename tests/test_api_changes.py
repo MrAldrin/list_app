@@ -14,6 +14,7 @@ from api_helpers import (
     toggle_item_active_tag,
     update_list_visibility_settings,
     update_room_password,
+    write_locked,
 )
 from starlette.testclient import TestClient
 
@@ -95,7 +96,7 @@ def shop() -> tuple[int, int, str]:
     list_id, _ = create_list("Shop", room_id)
     insert_item("milk", list_id)
     insert_item("bread", list_id)
-    crud.update_item_done(item_id(list_id, "bread"), list_id, True)
+    write_locked(crud.update_item_done_locked, item_id(list_id, "bread"), list_id, True)
     return room_id, list_id, slug
 
 
@@ -106,7 +107,9 @@ def test_full_snapshot(shop):
     add_list_tag(list_id, "aldi")
     update_list_visibility_settings(list_id, mode="age", age_days=3, recent_count=5)
     milk = item_id(list_id, "milk")
-    crud.update_item_details(milk, list_id, "milk", "lactose free", 2)
+    write_locked(
+        crud.update_item_details_locked, milk, list_id, "milk", "lactose free", 2
+    )
     toggle_item_active_tag(milk, list_id, "market")
     toggle_item_active_tag(milk, list_id, "aldi")
 
@@ -221,19 +224,28 @@ def _visibility(room_id: int, list_id: int) -> None:
 
 
 def _check_milk(room_id: int, list_id: int) -> None:
-    crud.update_item_done(item_id(list_id, "milk"), list_id, True)
+    write_locked(crud.update_item_done_locked, item_id(list_id, "milk"), list_id, True)
 
 
 def _restore_bread(room_id: int, list_id: int) -> None:
-    assert crud.add_or_restore_item_atomic("bread", list_id) == "restored"
+    assert (
+        write_locked(crud.add_or_restore_item_locked, "bread", list_id)[0] == "restored"
+    )
 
 
 def _quantity(room_id: int, list_id: int) -> None:
-    crud.adjust_item_quantity(item_id(list_id, "milk"), list_id, 2)
+    write_locked(crud.adjust_item_quantity_locked, item_id(list_id, "milk"), list_id, 2)
 
 
 def _details(room_id: int, list_id: int) -> None:
-    crud.update_item_details(item_id(list_id, "milk"), list_id, "oat milk", "x")
+    write_locked(
+        crud.update_item_details_locked,
+        item_id(list_id, "milk"),
+        list_id,
+        "oat milk",
+        "x",
+        None,
+    )
 
 
 def _item_tag(room_id: int, list_id: int) -> None:
@@ -310,7 +322,7 @@ def test_item_deletion(shop):
     before = feed(client, slug, 0)["seq"]
     milk = item_id(list_id, "milk")
     milk_uid = uid("items", milk)
-    crud.delete_item(milk, list_id)
+    write_locked(crud.delete_item_locked, milk, list_id)
     data = feed(client, slug, before)
     assert data["deletions"] == [{"kind": "item", "uid": milk_uid}]
     assert data["items"] == [] and data["lists"] == []
@@ -326,7 +338,7 @@ def test_list_deletion_with_items(shop):
     before = feed(client, slug, 0)["seq"]
     list_uid = uid("lists", list_id)
     item_uids = {uid("items", item_id(list_id, name)) for name in ("milk", "bread")}
-    crud.delete_list(list_id)
+    write_locked(crud.delete_list_locked, list_id)
     data = feed(client, slug, before)
     assert data["lists"] == [] and data["items"] == []
     assert data["deletions"][-1] == {"kind": "list", "uid": list_uid}
@@ -344,7 +356,7 @@ def test_list_created_and_deleted_after_since_is_only_a_deletion(shop):
     temp_id, _ = create_list("Temp", room_id)
     insert_item("thing", temp_id)
     temp_uid = uid("lists", temp_id)
-    crud.delete_list(temp_id)
+    write_locked(crud.delete_list_locked, temp_id)
     data = feed(client, slug, before)
     assert data["lists"] == [] and data["items"] == []
     assert {"kind": "list", "uid": temp_uid} in data["deletions"]
@@ -353,7 +365,7 @@ def test_list_created_and_deleted_after_since_is_only_a_deletion(shop):
 def test_since_ahead_of_the_server_gives_a_full_snapshot(shop):
     room_id, list_id, slug = shop
     client = signed_in(slug)
-    crud.delete_item(item_id(list_id, "milk"), list_id)
+    write_locked(crud.delete_item_locked, item_id(list_id, "milk"), list_id)
     seq = room_seq(room_id)
     data = feed(client, slug, seq + 10)
     assert data["full"] is True
@@ -370,8 +382,10 @@ def test_other_rooms_never_leak(shop):
     insert_item("gone", other_list)
     client = signed_in(slug)
     before = feed(client, slug, 0)["seq"]
-    crud.delete_item(item_id(other_list, "gone"), other_list)
-    crud.update_item_done(item_id(other_list, "hidden"), other_list, True)
+    write_locked(crud.delete_item_locked, item_id(other_list, "gone"), other_list)
+    write_locked(
+        crud.update_item_done_locked, item_id(other_list, "hidden"), other_list, True
+    )
     rename_list(other_list, "Secret 2")
 
     full = feed(client, slug, 0)

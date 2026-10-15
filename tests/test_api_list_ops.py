@@ -11,6 +11,7 @@ from api_helpers import (
     insert_item,
     rename_list,
     update_room_password,
+    write_locked,
 )
 from starlette.testclient import TestClient
 
@@ -177,7 +178,7 @@ def _used_by_deleted_list() -> str:
     gone_uid = db.execute("SELECT uid FROM lists WHERE id = ?", (list_id,)).fetchone()[
         0
     ]
-    crud.delete_list(list_id)
+    write_locked(crud.delete_list_locked, list_id)
     return gone_uid
 
 

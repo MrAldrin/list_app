@@ -19,33 +19,6 @@ from item_visibility import parse_completion_time, validate_visibility_settings
 _DB_LOCK = threading.RLock()
 
 
-class ListUnavailable(LookupError):
-    """Raised when a mutation targets a list that no longer exists."""
-
-
-def _require_list_identity_locked(list_id: int, expected_slug: str | None) -> None:
-    """Check identity inside a write transaction; SQLite can reuse numeric IDs.
-
-    UI callbacks pass the private slug or 'share:' plus the public token.
-    Public tokens are rechecked inside the write transaction, including undo.
-    None preserves ID-only calls for immediate, non-page database operations.
-    """
-    row = db.execute(
-        "SELECT slug, share_token FROM lists WHERE id = ?", (list_id,)
-    ).fetchone()
-    valid = row is not None and (
-        expected_slug is None
-        or list_identity_matches({"slug": row[0], "share_token": row[1]}, expected_slug)
-    )
-    if not valid:
-        raise ListUnavailable(f"List {list_id} is no longer available")
-
-
-def _begin_list_write_locked(list_id: int, expected_slug: str | None) -> None:
-    db.execute("BEGIN IMMEDIATE")
-    _require_list_identity_locked(list_id, expected_slug)
-
-
 def normalize_item_name(raw: str | None) -> str:
     return (raw or "").strip().lower()
 
@@ -84,12 +57,6 @@ def get_lists(room_id: int):
             (room_id,),
         ).fetchall()
     return [(r[0], r[1], r[2]) for r in rows]
-
-
-def list_identity_matches(details: dict, identity: str) -> bool:
-    if identity.startswith("share:"):
-        return details.get("share_token") == identity.removeprefix("share:")
-    return details["slug"] == identity
 
 
 # Share tokens are secrets.token_urlsafe(32): always 43 characters.
@@ -265,34 +232,6 @@ def create_or_find_list_locked(
     return result.lastrowid, slug, True
 
 
-def rename_list_if_unique(
-    list_id: int,
-    room_id: int,
-    new_name: str,
-    *,
-    expected_slug: str | None = None,
-) -> bool:
-    """Rename a room list unless another list already uses its name."""
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            belongs_to_room = db.execute(
-                "SELECT 1 FROM lists WHERE id = ? AND room_id = ?",
-                (list_id, room_id),
-            ).fetchone()
-            if not belongs_to_room:
-                raise ListUnavailable(f"List {list_id} is no longer available")
-
-            if not rename_list_if_unique_locked(list_id, room_id, new_name):
-                db.rollback()
-                return False
-            db.commit()
-            return True
-        except Exception:
-            db.rollback()
-            raise
-
-
 def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> bool:
     """Rename a list of the room; False (no change) if another list has the name.
 
@@ -305,21 +244,6 @@ def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> b
         (new_name, list_id, room_id),
     )
     return True
-
-
-def add_or_restore_item_atomic(
-    item_name: str, list_id: int, *, expected_slug: str | None = None
-) -> str:
-    """Add, uncheck, or reject an active item in a single write transaction."""
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            result, _ = add_or_restore_item_locked(item_name, list_id)
-            db.commit()
-            return result
-        except Exception:
-            db.rollback()
-            raise
 
 
 def add_or_restore_item_locked(
@@ -395,24 +319,6 @@ def restore_deleted_item_locked(
     return result.lastrowid
 
 
-def update_item_done(
-    item_id: int,
-    list_id: int,
-    done: bool,
-    *,
-    expected_slug: str | None = None,
-    now: datetime | None = None,
-):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            update_item_done_locked(item_id, list_id, done, now=now)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def update_item_done_locked(
     item_id: int, list_id: int, done: bool, *, now: datetime | None = None
 ) -> bool:
@@ -435,60 +341,6 @@ def update_item_done_locked(
             (item_id, list_id),
         )
     return result.rowcount > 0
-
-
-def rename_item_if_unique(
-    item_id: int, list_id: int, new_name: str, *, expected_slug: str | None = None
-) -> bool:
-    """Rename an item unless another item in the list already has that name."""
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            duplicate = db.execute(
-                "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
-                "AND id != ? AND list_id = ?",
-                (new_name, item_id, list_id),
-            ).fetchone()
-            if duplicate:
-                db.rollback()
-                return False
-            db.execute(
-                "UPDATE items SET name = ? WHERE id = ? AND list_id = ?",
-                (new_name, item_id, list_id),
-            )
-            db.commit()
-            return True
-        except Exception:
-            db.rollback()
-            raise
-
-
-def update_item_details(
-    item_id: int,
-    list_id: int,
-    name: str,
-    description: str,
-    quantity: int | None = None,
-    *,
-    expected_slug: str | None = None,
-) -> bool:
-    """Save an item edit in one transaction; return False on a duplicate name.
-
-    The duplicate check runs inside the write transaction, so no field changes
-    when another item already uses the name. None leaves the quantity unchanged.
-    """
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            status = update_item_details_locked(
-                item_id, list_id, name, description, quantity
-            )
-            db.commit()
-            # A stale item matches no row and changes nothing.
-            return status != "duplicate"
-        except Exception:
-            db.rollback()
-            raise
 
 
 def update_item_details_locked(
@@ -515,36 +367,6 @@ def update_item_details_locked(
     return "saved" if result.rowcount > 0 else "missing"
 
 
-def update_item_quantity(
-    item_id: int, list_id: int, quantity: int, *, expected_slug: str | None = None
-):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            db.execute(
-                "UPDATE items SET quantity = ? WHERE id = ? AND list_id = ?",
-                (quantity, item_id, list_id),
-            )
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
-def adjust_item_quantity(
-    item_id: int, list_id: int, delta: int, *, expected_slug: str | None = None
-):
-    """Apply a delta to the stored quantity, never to a stale UI snapshot."""
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            adjust_item_quantity_locked(item_id, list_id, delta)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def adjust_item_quantity_locked(item_id: int, list_id: int, delta: int) -> bool:
     """Add `delta`, never below 1 (empty counts as 1); False if no such item.
 
@@ -558,34 +380,12 @@ def adjust_item_quantity_locked(item_id: int, list_id: int, delta: int) -> bool:
     return result.rowcount > 0
 
 
-def delete_item(item_id: int, list_id: int, *, expected_slug: str | None = None):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            delete_item_locked(item_id, list_id)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-
-
 def delete_item_locked(item_id: int, list_id: int) -> bool:
     """Delete an item of the list; False if it was already gone."""
     result = db.execute(
         "DELETE FROM items WHERE id = ? AND list_id = ?", (item_id, list_id)
     )
     return result.rowcount > 0
-
-
-def delete_list(list_id: int, *, expected_slug: str | None = None):
-    with _DB_LOCK:
-        try:
-            _begin_list_write_locked(list_id, expected_slug)
-            delete_list_locked(list_id)
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
 
 
 def delete_list_locked(list_id: int) -> None:

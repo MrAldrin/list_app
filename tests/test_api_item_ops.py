@@ -19,6 +19,8 @@ from api_helpers import (
     op,
     processed_ops_count,
     send,
+    set_item_quantity,
+    write_locked,
 )
 from starlette.testclient import TestClient
 
@@ -128,7 +130,7 @@ def test_add_with_a_used_uid_is_422_and_not_stored(room, taken):
     if taken != "list":
         used = add_item(list_id, "old")
     if taken == "deleted_item":
-        crud.delete_item(_item_id(used), list_id)
+        write_locked(crud.delete_item_locked, _item_id(used), list_id)
     seq = seq_of(room_id)
     body = {
         "op_id": new_id(),
@@ -310,7 +312,7 @@ def test_edit_quantity(room, quantity, saved):
     _, slug, client = room
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
-    crud.update_item_quantity(_item_id(item_uid), list_id, 3)
+    set_item_quantity(_item_id(item_uid), list_id, 3)
     fields = {"name": "milk", "description": "", "base_seq": 0}
     if quantity is not None:
         fields["quantity"] = quantity
@@ -322,7 +324,7 @@ def test_edit_keeps_the_quantity_when_null(room):
     _, slug, client = room
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
-    crud.update_item_quantity(_item_id(item_uid), list_id, 3)
+    set_item_quantity(_item_id(item_uid), list_id, 3)
     body = item_body(
         "item.edit",
         list_uid,
@@ -560,7 +562,7 @@ def test_deleted_item_is_not_found(room, notified, op_type):
     room_id, slug, client = room
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
-    crud.delete_item(_item_id(item_uid), list_id)
+    write_locked(crud.delete_item_locked, _item_id(item_uid), list_id)
     seq = seq_of(room_id)
     response = op(
         client, slug, item_body(op_type, list_uid, item_uid, **ITEM_OPS[op_type])
@@ -631,7 +633,7 @@ def test_every_item_op_on_a_missing_list_is_unavailable(room, notified):
     room_id, slug, client = room
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
-    crud.delete_list(list_id)
+    write_locked(crud.delete_list_locked, list_id)
     seq = seq_of(room_id)
     for body in _all_item_bodies(list_uid, item_uid):
         assert_rejected(
@@ -707,26 +709,11 @@ def test_item_ops_need_room_access(room):
     assert processed_ops_count() == 0
 
 
-# The database helpers keep their silent no-op on stale items, through the same helpers.
-
-
-def test_database_helpers_stay_silent_on_a_stale_item():
-    list_id, _ = default_list()
-    item_uid = add_item(list_id, "milk")
-    item_id = _item_id(item_uid)
-    crud.delete_item(item_id, list_id)
-    crud.update_item_done(item_id, list_id, True)
-    crud.adjust_item_quantity(item_id, list_id, 1)
-    assert crud.update_item_details(item_id, list_id, "x", "") is True
-    crud.delete_item(item_id, list_id)
-    assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 0
-
-
 def test_locked_helpers_report_a_stale_item():
     list_id, _ = default_list()
     item_uid = add_item(list_id, "milk")
     item_id = _item_id(item_uid)
-    crud.delete_item(item_id, list_id)
+    write_locked(crud.delete_item_locked, item_id, list_id)
     with _transaction():
         assert crud.update_item_done_locked(item_id, list_id, True) is False
         assert crud.adjust_item_quantity_locked(item_id, list_id, 1) is False

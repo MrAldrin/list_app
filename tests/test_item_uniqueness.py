@@ -6,11 +6,10 @@ import pytest
 from api_helpers import insert_item, write_locked
 
 from database_crud import (
-    add_or_restore_item_atomic,
     add_or_restore_item_locked,
     db,
     normalize_item_name,
-    update_item_done,
+    update_item_done_locked,
 )
 from database_setup import init_database
 
@@ -33,7 +32,7 @@ def test_simultaneous_adds_and_restores_keep_one_item():
     ).fetchone()
     assert done == 0
 
-    update_item_done(item_id, list_id, True)
+    write_locked(update_item_done_locked, item_id, list_id, True)
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(submit, range(8)))
     assert results.count("restored") == 1
@@ -58,7 +57,10 @@ def test_unique_index_rejects_case_and_whitespace_but_allows_other_lists():
     ).lastrowid
     db.commit()
     insert_item("MILK", other)
-    assert add_or_restore_item_atomic("milk", list_id) == "duplicate_active"
+    assert (
+        write_locked(add_or_restore_item_locked, "milk", list_id)[0]
+        == "duplicate_active"
+    )
 
 
 def test_migration_rejects_existing_duplicates_without_removing_them(

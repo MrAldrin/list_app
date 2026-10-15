@@ -12,7 +12,7 @@ from api_helpers import (
     write_locked,
 )
 
-from database_crud import adjust_item_quantity, adjust_item_quantity_locked, get_rooms
+from database_crud import adjust_item_quantity_locked, get_rooms
 from database_setup import db
 
 
@@ -62,15 +62,15 @@ def test_concurrent_quantity_changes(quantity_item, initial, deltas, expected):
 def test_legacy_null_quantity_uses_display_default(
     quantity_item, delta, expected, without_field_rules
 ):
-    list_id, slug, item_id = quantity_item
+    list_id, _, item_id = quantity_item
     db.execute("UPDATE items SET quantity = NULL WHERE id = ?", (item_id,))
     db.commit()
-    adjust_item_quantity(item_id, list_id, delta, expected_slug=slug)
+    write_locked(adjust_item_quantity_locked, item_id, list_id, delta)
     assert stored_quantity(list_id) == expected
 
 
 def test_quantity_change_is_scoped_to_list(quantity_item):
     list_id, _, item_id = quantity_item
-    other_id, other_slug = create_list("other", get_rooms()[0]["id"])
-    adjust_item_quantity(item_id, other_id, 1, expected_slug=other_slug)
+    other_id, _ = create_list("other", get_rooms()[0]["id"])
+    write_locked(adjust_item_quantity_locked, item_id, other_id, 1)
     assert stored_quantity(list_id) == 1

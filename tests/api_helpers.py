@@ -343,6 +343,14 @@ def update_item_active_tags(item_id: int, list_id: int, active_tags: list[str]) 
     )
 
 
+def set_item_quantity(item_id: int, list_id: int, quantity: int) -> None:
+    write_locked(
+        db.execute,
+        "UPDATE items SET quantity = ? WHERE id = ? AND list_id = ?",
+        (quantity, item_id, list_id),
+    )
+
+
 def toggle_item_active_tag(item_id: int, list_id: int, tag: str) -> bool:
     return write_locked(toggle_item_active_tag_locked, item_id, list_id, tag)
 

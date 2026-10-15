@@ -21,9 +21,9 @@ from api_helpers import (
     item_row,
     new_id,
     processed_ops_count,
-    rotate_list_share_token,
     row_counts,
     update_room_password,
+    write_locked,
 )
 from starlette.testclient import TestClient
 from test_api_events import SseConnection, run
@@ -128,7 +128,8 @@ def test_share_feed_is_a_full_snapshot_of_only_the_shared_list(shared):
 def test_share_feed_ignores_since_and_never_sends_deletions(shared):
     client = public_client()
     seq = share_changes(client, shared["token"]).json()["seq"]
-    crud.delete_item(
+    write_locked(
+        crud.delete_item_locked,
         db.execute(
             "SELECT id FROM items WHERE uid = ?", (shared["other_item"],)
         ).fetchone()[0],
@@ -185,7 +186,7 @@ def test_invalid_tokens_reveal_nothing(shared):
 
 
 def test_a_deleted_list_looks_like_a_reset_link(shared):
-    crud.delete_list(shared["list_id"])
+    write_locked(crud.delete_list_locked, shared["list_id"])
     response = share_changes(public_client(), shared["token"])
     assert_error(response, 401, "share_unavailable")
     assert (
@@ -590,21 +591,6 @@ def test_password_change_keeps_share_links(shared):
     )
     assert response.status_code == 200
     assert share_changes(public_client(), shared["token"]).status_code == 200
-
-
-def test_database_reset_blocks_the_api_and_api_reset_blocks_the_database(shared):
-    new = rotate_list_share_token(shared["list_id"])
-    public = public_client()
-    assert_error(share_changes(public, shared["token"]), 401, "share_unavailable")
-
-    newer = reset_link(client_for(shared["slug"]), shared["slug"], shared["list_uid"])
-    with pytest.raises(crud.ListUnavailable):
-        crud.add_or_restore_item_atomic(
-            "blocked", shared["list_id"], expected_slug=f"share:{new}"
-        )
-    crud.add_or_restore_item_atomic(
-        "allowed", shared["list_id"], expected_slug=f"share:{newer.json()['token']}"
-    )
 
 
 def test_a_failed_reset_changes_nothing(shared, monkeypatch, notified):

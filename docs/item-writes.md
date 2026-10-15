@@ -6,11 +6,9 @@ newer changes or writing half an update.
 
 ## Core rules
 
-- **Check identity inside the write.** Every list write passes the list's
-  identity and the database checks it in the same transaction as the change.
-  Room pages send the list slug (`expected_slug`); public pages send
-  `share:<token>`. SQLite can reuse a deleted list's numeric ID, so the ID alone
-  is not enough. Tests: `tests/test_list_identity.py`.
+- **Check identity inside the write.** Room writes find lists and items by
+  their public `uid`, which is never reused. Share links are checked in the same
+  transaction as the change. A stale page gets an error and nothing changes.
 - **Send intent, not a whole value.** Buttons send "add 1" or "toggle tag X",
   not the full value the page last saw. The database applies it to the current
   data.
@@ -18,17 +16,15 @@ newer changes or writing half an update.
   or all roll back. Failed writes leave no open transaction.
 
 All helpers live in `src/database_crud.py`. The [JSON API](api.md) calls
-their `_locked` variants inside its room transaction, so both UIs share one
-copy of each rule.
+their `_locked` variants inside one write transaction, so each rule has one copy.
 
 ## Per action
 
 | Action | Behavior | Tests |
 |---|---|---|
-| Quantity +/− | Adds the delta in SQL (`adjust_item_quantity`); never below 1; empty counts as 1. The edit dialog sets an absolute value. | `tests/test_quantity_updates.py` |
-| Add | Add, restore a checked item, or reject a duplicate in one transaction (`add_or_restore_item_atomic`). A unique index blocks duplicate names per list, ignoring case and outer spaces. | `tests/test_item_uniqueness.py` |
-| Edit dialog | Name, description and quantity saved together (`update_item_details`). A blank or duplicate name changes nothing. | `tests/test_item_edits.py` |
-| Rename item | Duplicate check and rename in one transaction (`rename_item_with_checks`); list identity checked first. | `tests/test_item_renames.py` |
+| Quantity +/− | Adds the delta in SQL (`adjust_item_quantity_locked`); never below 1; empty counts as 1. The edit dialog sets an absolute value. | `tests/test_quantity_updates.py` |
+| Add | Add, restore a checked item, or reject a duplicate in one transaction (`add_or_restore_item_locked`). A unique index blocks duplicate names per list, ignoring case and outer spaces. | `tests/test_item_uniqueness.py` |
+| Edit dialog | Name, description and quantity saved together (`update_item_details_locked`). Renaming to a duplicate name changes nothing. | `tests/test_item_edits.py`, `tests/test_item_renames.py` |
 | Item tag button | Toggles one tag on the current stored tags (`toggle_item_active_tag_locked`). | `tests/test_api_tag_ops.py`, `tests/test_tags.py` |
 | List tags | Add/remove one tag (`change_list_tag_locked`); tag undo reuses add. | `tests/test_api_tag_ops.py`, `tests/test_tags.py` |
 | Rename list | Identity, room ownership and name uniqueness checked in the same transaction. A lost race returns the normal duplicate-name warning. | `tests/test_list_renames.py` |

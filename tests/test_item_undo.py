@@ -12,6 +12,7 @@ from api_helpers import (
     get_list_details,
     insert_item,
     restore_deleted_item,
+    write_locked,
 )
 
 import database_crud as crud
@@ -35,11 +36,11 @@ def new_list(name="shopping"):
 
 
 def test_restore_brings_back_all_fields_after_delete():
-    list_id, slug = new_list()
+    list_id, _ = new_list()
     original = snapshot_fields()
     assert restore_deleted_item(list_id, **original)
     old_id = find_item_by_name(list_id, "milk")[0]
-    crud.delete_item(old_id, list_id, expected_slug=slug)
+    write_locked(crud.delete_item_locked, old_id, list_id)
 
     assert restore_deleted_item(list_id, **original)
     items, _ = get_list_data(list_id)
@@ -70,7 +71,7 @@ def test_restore_gets_a_new_item_id():
     list_id, _ = new_list()
     insert_item("first", list_id)
     old_id = find_item_by_name(list_id, "first")[0]
-    crud.delete_item(old_id, list_id)
+    write_locked(crud.delete_item_locked, old_id, list_id)
     insert_item("second", list_id)
 
     assert restore_deleted_item(

@@ -8,7 +8,9 @@ from api_helpers import (
     find_item_by_name,
     get_list_data,
     insert_item,
+    set_item_quantity,
     toggle_item_active_tag,
+    write_locked,
 )
 
 import database_crud as crud
@@ -30,7 +32,7 @@ def _items(list_id):
 def stale_and_replacement(list_id):
     insert_item("old", list_id)
     old_id = find_item_by_name(list_id, "old")[0]
-    crud.delete_item(old_id, list_id)
+    write_locked(crud.delete_item_locked, old_id, list_id)
     insert_item("replacement", list_id)
     new_id = find_item_by_name(list_id, "replacement")[0]
     return old_id, new_id
@@ -45,13 +47,24 @@ def test_new_item_does_not_reuse_deleted_newest_id(stale_and_replacement):
     "stale_action",
     [
         lambda item_id, list_id: toggle_item_active_tag(item_id, list_id, "x"),
-        lambda item_id, list_id: crud.update_item_done(item_id, list_id, True),
-        lambda item_id, list_id: crud.adjust_item_quantity(item_id, list_id, 2),
-        lambda item_id, list_id: crud.update_item_quantity(item_id, list_id, 5),
-        lambda item_id, list_id: crud.update_item_details(
-            item_id, list_id, "renamed", "note"
+        lambda item_id, list_id: write_locked(
+            crud.update_item_done_locked, item_id, list_id, True
         ),
-        lambda item_id, list_id: crud.delete_item(item_id, list_id),
+        lambda item_id, list_id: write_locked(
+            crud.adjust_item_quantity_locked, item_id, list_id, 2
+        ),
+        lambda item_id, list_id: set_item_quantity(item_id, list_id, 5),
+        lambda item_id, list_id: write_locked(
+            crud.update_item_details_locked,
+            item_id,
+            list_id,
+            "renamed",
+            "note",
+            None,
+        ),
+        lambda item_id, list_id: write_locked(
+            crud.delete_item_locked, item_id, list_id
+        ),
     ],
     ids=["tag", "done", "adjust-qty", "set-qty", "edit", "delete"],
 )

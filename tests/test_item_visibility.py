@@ -203,21 +203,31 @@ def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
     completed_first = datetime(2025, 1, 1, 12, tzinfo=UTC)
     completed_again = datetime(2025, 1, 2, 12, tzinfo=UTC)
 
-    crud.update_item_done(item_id, list_id, True, now=completed_first)
+    write_locked(
+        crud.update_item_done_locked, item_id, list_id, True, now=completed_first
+    )
     first_timestamp = _stored_item(list_id, item_id)["completed_at"]
-    crud.update_item_done(item_id, list_id, True, now=completed_again)
+    write_locked(
+        crud.update_item_done_locked, item_id, list_id, True, now=completed_again
+    )
     assert _stored_item(list_id, item_id)["completed_at"] == first_timestamp
 
-    crud.update_item_done(item_id, list_id, False, now=completed_again)
+    write_locked(
+        crud.update_item_done_locked, item_id, list_id, False, now=completed_again
+    )
     assert _stored_item(list_id, item_id)["completed_at"] is None
-    crud.update_item_done(item_id, list_id, True, now=completed_again)
+    write_locked(
+        crud.update_item_done_locked, item_id, list_id, True, now=completed_again
+    )
     assert (
         _stored_item(list_id, item_id)["completed_at"] == "2025-01-02T12:00:00.000000Z"
     )
 
     restore_item(item_id, list_id)
     assert _stored_item(list_id, item_id)["completed_at"] is None
-    crud.update_item_done(item_id, list_id, True, now=completed_first)
+    write_locked(
+        crud.update_item_done_locked, item_id, list_id, True, now=completed_first
+    )
     assert filter_visible_items(get_list_data(list_id)[0], "all") == []
     assert (
         write_locked(crud.add_or_restore_item_locked, "milk", list_id)[0] == "restored"

@@ -9,29 +9,23 @@ from api_helpers import (
     create_list,
     delete_room,
     delete_room_with_password,
-    find_item_by_name,
     get_list_data,
     get_list_details_by_slug,
     insert_item,
     rename_room,
     validate_room_access_token,
     verify_room,
+    write_locked,
 )
 
 from database_crud import (
-    ListUnavailable,
-    add_or_restore_item_atomic,
     authenticate_room_and_issue_token,
     create_room,
-    delete_item,
-    delete_list,
+    delete_list_locked,
     get_lists,
     normalize_item_name,
     reset_room_password_by_slug,
     revoke_room_access_token,
-    update_item_details,
-    update_item_done,
-    update_item_quantity,
 )
 from database_setup import db
 
@@ -113,19 +107,21 @@ def test_failed_create_list_rolls_back_and_connection_recovers(room_id):
         db.commit()
 
 
-def test_update_item_done(room_id):
-    # Verify that an item's completion status can be updated.
-    list_id, _ = create_list(name="My List", room_id=room_id)
-    insert_item(item_name="Apples", list_id=list_id)
-    item_id, _ = find_item_by_name(list_id=list_id, item_name="apples")
-
-    update_item_done(item_id=item_id, list_id=list_id, done=True)
-    item = find_item_by_name(list_id=list_id, item_name="apples")
-    assert item[1] == 1  # done=True
-
-    update_item_done(item_id=item_id, list_id=list_id, done=False)
-    item = find_item_by_name(list_id=list_id, item_name="apples")
-    assert item[1] == 0  # done=False
+def test_failed_list_delete_restores_items(room_id):
+    list_id, slug = create_list("Keep list", room_id)
+    insert_item("Keep item", list_id)
+    db.execute(
+        "CREATE TEMP TRIGGER fail_list_delete BEFORE DELETE ON lists "
+        "BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END"
+    )
+    try:
+        with pytest.raises(Exception, match="injected delete failure"):
+            write_locked(delete_list_locked, list_id)
+        assert not db.in_transaction
+        assert get_list_details_by_slug(slug) is not None
+        assert len(get_list_data(list_id)[0]) == 1
+    finally:
+        db.execute("DROP TRIGGER fail_list_delete")
 
 
 def test_get_lists_sorting(room_id):
@@ -137,75 +133,6 @@ def test_get_lists_sorting(room_id):
     lists = get_lists(room_id)
     names = [entry[1] for entry in lists if entry[1] != "default"]
     assert names == ["Apple", "banana", "Zebra"]
-
-
-def test_delete_item(room_id):
-    # Verify that an item can be removed from a list.
-    list_id, _ = create_list(name="My List", room_id=room_id)
-    insert_item(item_name="Apples", list_id=list_id)
-    apple_id, _ = find_item_by_name(list_id=list_id, item_name="apples")
-
-    delete_item(item_id=apple_id, list_id=list_id)
-    assert find_item_by_name(list_id=list_id, item_name="apples") is None
-
-
-def test_delete_nonexistent_item(room_id):
-    # Verify that attempting to delete an item that doesn't exist does not raise an error.
-    list_id, _ = create_list(name="My List", room_id=room_id)
-    # This should simply do nothing and not crash
-    delete_item(item_id=999, list_id=list_id)
-
-
-def test_update_nonexistent_item_done(room_id):
-    # Verify that attempting to update a non-existent item does not raise an error.
-    list_id, _ = create_list(name="My List", room_id=room_id)
-    update_item_done(item_id=999, list_id=list_id, done=True)
-
-
-def test_delete_list(room_id):
-    # Verify that a list and its items are correctly deleted.
-    list_id, _ = create_list(name="Delete Me", room_id=room_id)
-    insert_item(item_name="Item 1", list_id=list_id)
-
-    delete_list(list_id=list_id)
-
-    lists = get_lists(room_id)
-    assert not any(entry[0] == list_id for entry in lists)
-
-    # Verify items are gone too
-    items, _ = get_list_data(list_id=list_id)
-    assert len(items) == 0
-
-
-def test_failed_list_delete_restores_items(room_id):
-    list_id, slug = create_list("Keep list", room_id)
-    insert_item("Keep item", list_id)
-    db.execute(
-        "CREATE TEMP TRIGGER fail_list_delete BEFORE DELETE ON lists "
-        "BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END"
-    )
-    try:
-        with pytest.raises(Exception, match="injected delete failure"):
-            delete_list(list_id)
-        assert not db.in_transaction
-        assert get_list_details_by_slug(slug) is not None
-        assert len(get_list_data(list_id)[0]) == 1
-    finally:
-        db.execute("DROP TRIGGER fail_list_delete")
-
-
-def test_mutations_fail_without_creating_data_for_deleted_list(room_id):
-    list_id, _ = create_list(name="Delete Me", room_id=room_id)
-    delete_list(list_id)
-
-    with pytest.raises(ListUnavailable):
-        add_or_restore_item_atomic("orphan", list_id)
-    with pytest.raises(ListUnavailable):
-        update_item_done(item_id=1, list_id=list_id, done=True)
-    with pytest.raises(ListUnavailable):
-        update_item_quantity(list_id=list_id, item_id=1, quantity=2)
-
-    assert get_list_data(list_id) == ([], [])
 
 
 def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
@@ -508,23 +435,3 @@ def test_login_token_cannot_remain_valid_when_a_password_reset_races_it():
 
     assert authenticated is not None
     assert validate_room_access_token(room_slug, authenticated[1]) is None
-
-
-def test_update_item_details(room_id):
-    # Verify updating name and description for an item.
-    list_id, _ = create_list(name="My List", room_id=room_id)
-    insert_item(item_name="Apples", list_id=list_id)
-
-    items, _ = get_list_data(list_id=list_id)
-    item_id = items[0]["id"]
-    assert items[0]["description"] == ""
-
-    update_item_details(
-        item_id=item_id,
-        list_id=list_id,
-        name="fuji apples",
-        description="Buy 3 large ones",
-    )
-    updated_items, _ = get_list_data(list_id=list_id)
-    assert updated_items[0]["name"] == "fuji apples"
-    assert updated_items[0]["description"] == "Buy 3 large ones"
