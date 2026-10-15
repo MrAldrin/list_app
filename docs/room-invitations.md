@@ -30,7 +30,7 @@ apps share the invitations: a link from either one works in both.
 
 ## Deployment and migration
 
-Normal startup adds the `room_invitations` table if missing; no manual SQL is needed.
+The `room_invitations` table is created by the schema migrations (`src/database_setup.py`); no manual SQL is needed.
 
 There is no abuse throttling, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
 

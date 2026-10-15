@@ -11,7 +11,6 @@ from database_crud import (
     normalize_item_name,
     update_item_done_locked,
 )
-from database_setup import init_database
 
 
 def test_simultaneous_adds_and_restores_keep_one_item():
@@ -61,42 +60,3 @@ def test_unique_index_rejects_case_and_whitespace_but_allows_other_lists():
         write_locked(add_or_restore_item_locked, "milk", list_id)[0]
         == "duplicate_active"
     )
-
-
-def test_migration_rejects_existing_duplicates_without_removing_them(
-    tmp_path, monkeypatch
-):
-    path = tmp_path / "duplicates.db"
-    monkeypatch.setenv("DB_PATH", str(path))
-    connection = init_database()
-    room_id = connection.execute("SELECT id FROM rooms LIMIT 1").fetchone()[0]
-    list_id = connection.execute(
-        "INSERT INTO lists (name, slug, room_id, share_token) "
-        "VALUES ('groceries', 'groceries', ?, 'token')",
-        (room_id,),
-    ).lastrowid
-    connection.execute("DROP INDEX idx_items_list_name_nocase")
-    # Old rows from before the field rules (migration 6).
-    connection.execute("DROP TRIGGER items_field_rules_insert")
-    connection.execute(
-        "INSERT INTO items (list_id, name) VALUES (?, 'Milk')", (list_id,)
-    )
-    connection.execute(
-        "INSERT INTO items (list_id, name) VALUES (?, ' milk ')", (list_id,)
-    )
-    # Simulate a database from before versioned migrations.
-    connection.execute("PRAGMA user_version = 0")
-    connection.commit()
-    connection.close()
-
-    with pytest.raises(sqlite3.IntegrityError, match="resolve duplicates first"):
-        init_database()
-    with sqlite3.connect(path) as check:
-        assert check.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 2
-        assert check.execute("PRAGMA user_version").fetchone()[0] == 0
-        assert (
-            check.execute(
-                "SELECT COUNT(*) FROM sqlite_master WHERE name = 'idx_items_list_name_nocase'"
-            ).fetchone()[0]
-            == 0
-        )

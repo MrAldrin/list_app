@@ -28,7 +28,7 @@
 
 ## Implementation
 
-`lists.share_token` has a unique index. New lists and legacy lists receive
+`lists.share_token` has a unique index. New lists receive
 `secrets.token_urlsafe(32)` tokens (256 random bits), stored in the database.
 Renaming lists and restarting the app preserve tokens. Tokens are stored in
 plaintext: the database already contains the list contents. Treat URLs, browser

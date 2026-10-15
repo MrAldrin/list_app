@@ -65,7 +65,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] D1: delete `src/item_visibility.py` `filter_visible_items` and
   its tests; update `ARCHITECTURE.md` (lines 83, 89), `docs/api.md:6` and the
   `visibility.ts` header comment.
-- [ ] [data] D2: delete the version-0-only branches of migration 1 in
+- [x] [data] D2: delete the version-0-only branches of migration 1 in
   `src/database_setup.py` (slug backfill, list rebuild, items FK repair, legacy
   column `ALTER`s) and their tests. Check a fresh database still builds.
 - [ ] [refactor] `src/live_updates.py`: drop unused `register_listener` (keep

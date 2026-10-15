@@ -32,10 +32,6 @@ their `_locked` variants inside one write transaction, so each rule has one copy
 | Delete list / room | All deletes roll back if any step fails. | `tests/test_database_crud.py` |
 | Admin password reset | The API finds the room by slug in the write transaction. If the room was deleted or replaced, nothing changes and the UI says so. | `tests/test_database_crud.py`, `tests/test_api_admin.py` |
 
-If the app starts with duplicate item names already in the database, it stops
-with a clear migration error instead of deleting any. Fix the duplicates and
-restart.
-
 ## Field rules
 
 Text is trimmed first. Names (room, list, item) can be at most 100 characters,
