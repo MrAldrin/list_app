@@ -81,7 +81,7 @@
 	{#if invitations === null}
 		{#if !error}<p class="muted">Loading…</p>{/if}
 	{:else if invitations.length > 0}
-		<ul>
+		<ul class="list-rows">
 			{#each invitations as invitation (invitation.id)}
 				<li class="card">
 					<div>
@@ -129,14 +129,6 @@
 
 	.generate {
 		width: 100%;
-	}
-
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.5rem;
 	}
 
 	li {

@@ -14,6 +14,7 @@
 	import { SHARE_RESET_MESSAGE, SHARE_UNAVAILABLE_MESSAGE } from '#lib/list/items.ts';
 	import ListView from '#lib/list/ListView.svelte';
 	import PageShell from '#lib/room/PageShell.svelte';
+	import BackLink from '#lib/ui/BackLink.svelte';
 
 	const token = $derived(page.params.token ?? '');
 
@@ -62,7 +63,7 @@
 			<div class="card problem" role="status">
 				<p>{shownToken === token ? SHARE_RESET_MESSAGE : SHARE_UNAVAILABLE_MESSAGE}</p>
 				{#if roomHref && shownToken === token}
-					<a class="back" href={roomHref}>Back to room</a>
+					<BackLink href={roomHref} label="Back to room" />
 				{/if}
 			</div>
 		{:else}
@@ -84,18 +85,5 @@
 		justify-items: center;
 		text-align: center;
 		margin-bottom: 1rem;
-	}
-
-	/* A link that looks like an outlined button (as on the list page). */
-	.back {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--touch);
-		padding: 0 1rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
-		font-weight: 600;
-		text-decoration: none;
 	}
 </style>

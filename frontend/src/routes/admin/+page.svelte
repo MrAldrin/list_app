@@ -11,6 +11,7 @@
 	import AdminInvitations from '#lib/admin/AdminInvitations.svelte';
 	import AdminRooms from '#lib/admin/AdminRooms.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
+	import Brand from '#lib/ui/Brand.svelte';
 	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
@@ -53,7 +54,7 @@
 		<AdminLogin onSignedIn={() => (status = 'signed_in')} />
 	{:else}
 		<header>
-			<span class="brand" aria-hidden="true">List<b>R</b></span>
+			<Brand size="1.8rem" />
 			<h1 class="visually-hidden">Admin</h1>
 			<div class="end">
 				<button class="outline" type="button" onclick={signOut}>Log out</button>
@@ -81,15 +82,5 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-	}
-
-	.brand {
-		font-size: 1.8rem;
-		font-weight: 700;
-	}
-
-	.brand b {
-		color: var(--primary);
-		font-weight: 900;
 	}
 </style>

@@ -125,7 +125,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] Shared helpers: share/copy with toast, undo toast, admin
   sign-out handling, `keepFocus`, theme-save notice. Move list search into a
   tested pure function.
-- [ ] [refactor] Small components: `Brand`, `BackLink`, shared list-row style.
+- [x] [refactor] Small components: `Brand`, `BackLink`, shared list-row style.
 
 ## Phase 5: data layer
 
@@ -161,5 +161,5 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] Phase 1
 - [x] Phase 2
 - [x] Phase 3
-- [ ] Phase 4
+- [x] Phase 4
 - [ ] Phase 5

@@ -257,6 +257,44 @@ input[role='switch']:checked::before {
 	padding: 1rem;
 }
 
+/* A list of rows (<ul class="list-rows"><li class="card list-row">): the
+   name is a link that fills the row, so the whole row is easy to tap, and
+   the buttons sit at its end. The row must come after .card: its padding
+   wins. */
+.list-rows {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.5rem;
+}
+
+.list-row {
+	display: flex;
+	align-items: center;
+	padding: 0.25rem;
+}
+
+.list-row-link {
+	flex: 1;
+	min-width: 0;
+	min-height: var(--touch);
+	display: flex;
+	align-items: center;
+	padding: 0 0.75rem;
+	color: var(--text);
+	font-size: 1.1rem;
+	text-decoration: none;
+}
+
+/* Long names stay on one line and end with "…". */
+.list-row-link span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .muted {
 	color: var(--text-muted);
 }

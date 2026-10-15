@@ -61,11 +61,13 @@
 {#if room.store.lists.length === 0}
 	<p class="muted empty">No lists yet. Create your first one!</p>
 {:else}
-	<ul>
+	<ul class="list-rows">
 		<!-- `(list.uid)` is the key: Svelte uses it to match rows when the order changes. -->
 		{#each room.store.lists as list (list.uid)}
-			<li class="card">
-				<a href={resolve('/room/[slug]/list/[list]', { slug: room.slug, list: list.slug })}
+			<li class="card list-row">
+				<a
+					class="list-row-link"
+					href={resolve('/room/[slug]/list/[list]', { slug: room.slug, list: list.slug })}
 					><span>{list.name}</span></a
 				>
 				<button
@@ -139,41 +141,6 @@
 	.empty {
 		font-style: italic;
 		text-align: center;
-	}
-
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.5rem;
-	}
-
-	li {
-		display: flex;
-		align-items: center;
-		padding: 0.25rem;
-	}
-
-	/* The name is a link that fills the row, so the whole row is easy to tap. */
-	a {
-		flex: 1;
-		min-width: 0;
-		min-height: var(--touch);
-		display: flex;
-		align-items: center;
-		padding: 0 0.75rem;
-		color: var(--text);
-		font-size: 1.1rem;
-		text-decoration: none;
-	}
-
-	/* Long names stay on one line and end with "…". */
-	a span {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	.icon {

@@ -74,10 +74,10 @@
 {:else if rooms.length === 0}
 	<p class="muted empty">No rooms yet. Create your first one!</p>
 {:else}
-	<ul>
+	<ul class="list-rows">
 		{#each rooms as room (room.slug)}
-			<li class="card">
-				<a href={adminRoomHref(room.slug)}><span>{room.name}</span></a>
+			<li class="card list-row">
+				<a class="list-row-link" href={adminRoomHref(room.slug)}><span>{room.name}</span></a>
 				<button
 					class="icon"
 					type="button"
@@ -134,40 +134,6 @@
 	.empty {
 		font-style: italic;
 		text-align: center;
-	}
-
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.5rem;
-	}
-
-	li {
-		display: flex;
-		align-items: center;
-		padding: 0.25rem;
-	}
-
-	/* The name is a link that fills the row, so the whole row is easy to tap. */
-	a {
-		flex: 1;
-		min-width: 0;
-		min-height: var(--touch);
-		display: flex;
-		align-items: center;
-		padding: 0 0.75rem;
-		color: var(--text);
-		font-size: 1.1rem;
-		text-decoration: none;
-	}
-
-	a span {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	/* Icon and text; the text keeps the button easy to understand and to hit. */

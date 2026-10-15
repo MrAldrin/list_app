@@ -11,6 +11,7 @@
 	import { DELETED_LIST_MESSAGE, UNAVAILABLE_LIST_MESSAGE } from '#lib/list/items.ts';
 	import ListView from '#lib/list/ListView.svelte';
 	import PageShell from '#lib/room/PageShell.svelte';
+	import BackLink from '#lib/ui/BackLink.svelte';
 
 	const roomSlug = $derived(page.params.slug ?? '');
 	const listSlug = $derived(page.params.list ?? '');
@@ -44,7 +45,7 @@
 		{#if !list}
 			<div class="card problem" role="status">
 				<p>{shownSlug === listSlug ? DELETED_LIST_MESSAGE : UNAVAILABLE_LIST_MESSAGE}</p>
-				<a class="back" href={roomHref}>Back to room</a>
+				<BackLink href={roomHref} label="Back to room" />
 			</div>
 		{:else}
 			<ListView room={handle} {list} {roomHref} canReset />
@@ -59,19 +60,5 @@
 		justify-items: center;
 		text-align: center;
 		margin-bottom: 1rem;
-	}
-
-	/* A link that looks like an outlined button, as in NiceGUI. It stays a
-	   link because it goes to another page. */
-	.back {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--touch);
-		padding: 0 1rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
-		font-weight: 600;
-		text-decoration: none;
 	}
 </style>

@@ -6,7 +6,8 @@
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Icon from '#lib/ui/Icon.svelte';
+	import Brand from '#lib/ui/Brand.svelte';
+	import BackLink from '#lib/ui/BackLink.svelte';
 
 	let {
 		name,
@@ -26,9 +27,9 @@
 
 <header class="bar">
 	{#if roomHref}
-		<a class="back" href={roomHref} aria-label="Back to room"><Icon name="arrow_back" /></a>
+		<BackLink href={roomHref} label="Back to room" icon />
 	{:else}
-		<span class="brand" aria-hidden="true">List<b>R</b></span>
+		<Brand />
 	{/if}
 	<h1 title={name}>{name}</h1>
 	<div class="end">
@@ -52,27 +53,6 @@
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
-	}
-
-	/* A link styled like a round icon button, with a large touch area. */
-	.back {
-		flex-shrink: 0;
-		display: grid;
-		place-items: center;
-		width: var(--touch);
-		height: var(--touch);
-		border-radius: 50%;
-		color: var(--text);
-	}
-
-	.brand {
-		font-size: 1.2rem;
-		font-weight: 700;
-	}
-
-	.brand b {
-		color: var(--primary);
-		font-weight: 900;
 	}
 
 	.end {
