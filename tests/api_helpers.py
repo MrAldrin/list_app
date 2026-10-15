@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from http.cookies import SimpleCookie
 from typing import Any
 
 import bcrypt
@@ -80,9 +81,25 @@ def changes(client: TestClient, slug: str, since: int) -> dict[str, Any]:
 
 
 def assert_error(response, status: int, code: str) -> None:
+    """A JSON error in the documented shape: {"error": {"code", "message"}}."""
     assert response.status_code == status
-    assert response.json()["error"]["code"] == code
+    assert response.headers["content-type"] == "application/json"
     assert response.headers["cache-control"] == "no-store"
+    body = response.json()
+    assert set(body) == {"error"}
+    assert body["error"]["code"] == code
+    assert isinstance(body["error"]["message"], str) and body["error"]["message"]
+
+
+def set_cookies(response) -> dict[str, SimpleCookie]:
+    """The response's Set-Cookie headers, by cookie name."""
+    cookies = {}
+    for header in response.headers.get_list("set-cookie"):
+        cookie = SimpleCookie()
+        cookie.load(header)
+        name = next(iter(cookie))
+        cookies[name] = cookie[name]
+    return cookies
 
 
 def default_list() -> tuple[int, str]:

@@ -1,12 +1,13 @@
 """Room session endpoints of the JSON API (docs/api.md, "Room session")."""
 
 import sqlite3
-from http.cookies import SimpleCookie
 
 import pytest
 from api_helpers import (
+    assert_error,
     change_room_password_and_issue_token,
     rename_room,
+    set_cookies,
     update_room_password,
     validate_room_access_token,
 )
@@ -43,22 +44,6 @@ def browser(origin: str = HTTPS) -> TestClient:
 
 def sign_in(client: TestClient, slug: str, password: str = "pw"):
     return client.post(f"/api/v1/rooms/{slug}/session", json={"password": password})
-
-
-def set_cookies(response) -> dict[str, SimpleCookie]:
-    cookies = {}
-    for header in response.headers.get_list("set-cookie"):
-        cookie = SimpleCookie()
-        cookie.load(header)
-        name = next(iter(cookie))
-        cookies[name] = cookie[name]
-    return cookies
-
-
-def assert_error(response, status: int, code: str) -> None:
-    assert response.status_code == status
-    assert response.json()["error"]["code"] == code
-    assert response.headers["cache-control"] == "no-store"
 
 
 def test_sign_in_sets_the_https_cookies():

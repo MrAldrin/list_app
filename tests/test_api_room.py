@@ -3,7 +3,6 @@
 The rules are in docs/api.md ("Room management").
 """
 
-from http.cookies import SimpleCookie
 from unittest.mock import patch
 
 import pytest
@@ -19,22 +18,13 @@ from api_helpers import (
     op,
     processed_ops_count,
     send,
+    set_cookies,
     verify_room,
 )
 
 import database_crud as crud
 from database_setup import db
 from room_cookies import LAST_ROOM_COOKIE, token_cookie_name
-
-
-def set_cookies(response) -> dict[str, SimpleCookie]:
-    cookies = {}
-    for header in response.headers.get_list("set-cookie"):
-        cookie = SimpleCookie()
-        cookie.load(header)
-        name = next(iter(cookie))
-        cookies[name] = cookie[name]
-    return cookies
 
 
 def room_name(room_id: int) -> str:

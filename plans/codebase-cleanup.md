@@ -102,9 +102,9 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 ## Phase 3: test DRY
 
-- [ ] [test] `tests/test_api_list_ops.py`: import from `api_helpers` instead of
+- [x] [test] `tests/test_api_list_ops.py`: import from `api_helpers` instead of
   its copies; move `room` and `notified` fixtures to `conftest.py`.
-- [ ] [test] One strict `assert_error` (five copies today); merge
+- [x] [test] One strict `assert_error` (five copies today); merge
   `set_cookies` / `plain_browser` copies.
 - [ ] [test] Merge overlapping migration, manifest and route tests (keep unique
   assertions).

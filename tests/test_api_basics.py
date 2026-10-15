@@ -4,6 +4,7 @@ import sqlite3
 from typing import Any
 
 import pytest
+from api_helpers import assert_error
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -92,16 +93,6 @@ def signed_in(client: TestClient, slug: str) -> str:
     token = authenticate_room_and_issue_token(slug, "pw")[1]
     client.cookies.set(token_cookie_name(slug), token)
     return token
-
-
-def assert_error(response, status: int, code: str) -> None:
-    assert response.status_code == status
-    assert response.headers["content-type"] == "application/json"
-    assert response.headers["cache-control"] == "no-store"
-    body = response.json()
-    assert set(body) == {"error"}
-    assert body["error"]["code"] == code
-    assert isinstance(body["error"]["message"], str) and body["error"]["message"]
 
 
 # --- Error format and no-store ---

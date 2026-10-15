@@ -6,6 +6,7 @@ from collections.abc import Callable
 import pytest
 from api_helpers import (
     add_list_tag,
+    assert_error,
     create_list,
     get_list_details,
     insert_item,
@@ -81,12 +82,6 @@ def item_id(list_id: int, name: str) -> int:
 
 def by_uid(rows: list[dict]) -> dict[str, dict]:
     return {row["uid"]: row for row in rows}
-
-
-def assert_error(response, status: int, code: str) -> None:
-    assert response.status_code == status
-    assert response.json()["error"]["code"] == code
-    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.fixture
