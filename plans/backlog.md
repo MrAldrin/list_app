@@ -29,6 +29,9 @@ Agreed as worth doing; no date.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] Admin can delete a room from the admin room list, without entering the room: a clear warning, type the room name to confirm, and tests that nothing else is deleted. Today the admin must reset the password, enter the room and delete it there (as in NiceGUI).
 - [ ] [feature] Due dates on items, in stages: first an optional date (no time) shown on the item, then a sort choice for each list: by name (today's default) or by due date. Open items always stay above checked ones. No calendar view. Notifications are in Ideas.
+- [ ] [refactor] Use FastAPI's built-in server-sent events (`EventSourceResponse`) for live updates and delete our own keep-alive code. Best done the next time `src/api/events.py` changes. See [Not now](../docs/background/codebase-cleanup.md#not-now).
+- [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).
+- [ ] [infra] Add small resource limits: bound the open-handle registry, prune old offline snapshots in the browser, prune old processed ops on the server, and avoid opening the database at import time. Tiny at about 4 users. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 
 ## Ideas
 
