@@ -5,10 +5,9 @@ import uuid
 from functools import partial
 from pathlib import Path
 
-import bcrypt
-
 from config import require_app_password
 from migrations import Migration, run_migrations
+from password_hashing import hash_password
 
 _DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "list.db"
 # How long a write waits for another connection's lock (e.g. a backup) before
@@ -42,9 +41,7 @@ def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
     if existing_room:
         return existing_room[0]
 
-    pw_hash = bcrypt.hashpw(app_password.encode("utf-8"), bcrypt.gensalt()).decode(
-        "utf-8"
-    )
+    pw_hash = hash_password(app_password)
     insert = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", _create_slug("Home"), pw_hash),

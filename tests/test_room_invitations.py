@@ -79,7 +79,7 @@ def test_invalid_inputs_do_not_create_rooms(name, password):
 def test_rechecks_invitation_after_password_hashing(monkeypatch, invalidate):
     monkeypatch.setattr(invitations.time, "time", lambda: 1000)
     invitation_id, token = invitations.create_invitation()
-    original = invitations.bcrypt.hashpw
+    original = invitations.hash_password
 
     def hash_and_invalidate(*args):
         result = original(*args)
@@ -89,7 +89,7 @@ def test_rechecks_invitation_after_password_hashing(monkeypatch, invalidate):
             invitations.revoke_invitation(invitation_id)
         return result
 
-    monkeypatch.setattr(invitations.bcrypt, "hashpw", hash_and_invalidate)
+    monkeypatch.setattr(invitations, "hash_password", hash_and_invalidate)
     before = get_rooms()
     with pytest.raises(invitations.InvitationUnavailable):
         invitations.create_room_from_invitation(token, "Denied", "pw")

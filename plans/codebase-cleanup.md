@@ -87,8 +87,11 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] Request models: a `StrictBody` base, a `Password` type and a
   `JsonBody` `Annotated` dependency. Enable Ruff `FAST` (15 hits) and
   `ASYNC210/230/251`.
-- [ ] [refactor] One `hash_password()` and shared room-creation checks; make
+- [x] [refactor] One `hash_password()` and shared room-creation checks; make
   `room_invitations.py` call them (keep its messages unless agreed otherwise).
+  Done for the hash and the 72-byte check. Open question for the user: admin
+  room creation accepts a whitespace-only password, invitation rooms refuse
+  it; name messages also differ. Not unified (would change behavior).
 - [ ] [refactor] Small merges: stacked decorators in `pwa_routes.py`, one
   helper for the three error handlers in `api/errors.py`, one helper for
   `post_op`/`run_share_op`, single slug/UUID/token-hash helpers.

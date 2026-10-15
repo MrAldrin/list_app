@@ -81,6 +81,7 @@ back from a public list.
 - `src/database_setup.py`: SQLite schema and the list of migrations.
 - `src/migrations.py`: versioned migration runner and pre-migration backup.
 - `src/database_crud.py`: Database reads/writes and persisted authorization.
+- `src/password_hashing.py`: The bcrypt hash for room passwords.
 - `src/room_cookies.py` and `src/admin_access.py`: Room cookie rules and the
   admin cookie.
 - `src/room_invitations.py`: Invitation logic.

@@ -423,14 +423,14 @@ def test_bad_bodies_are_422(body):
 
 def test_invitation_is_checked_again_after_hashing_the_password():
     invitation_id, token = invitations.create_invitation()
-    original = invitations.bcrypt.hashpw
+    original = invitations.hash_password
 
     def hash_and_revoke(*args):
         result = original(*args)
         invitations.revoke_invitation(invitation_id)
         return result
 
-    with patch.object(invitations.bcrypt, "hashpw", hash_and_revoke):
+    with patch.object(invitations, "hash_password", hash_and_revoke):
         response = create_room(client_for(), token)
 
     assert_error(response, 404, "invitation_unavailable")

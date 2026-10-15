@@ -15,6 +15,7 @@ import bcrypt
 from database_setup import db
 from field_limits import MAX_NAME_LENGTH, too_long_message
 from item_visibility import parse_completion_time, validate_visibility_settings
+from password_hashing import hash_password
 
 _DB_LOCK = threading.RLock()
 
@@ -422,9 +423,7 @@ def create_room(name: str, plain_password: str):
     if not plain_password:
         raise ValueError("Password cannot be empty")
 
-    pw_hash = bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode(
-        "utf-8"
-    )
+    pw_hash = hash_password(plain_password)
 
     safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
     short_uuid = str(uuid.uuid4())[:6]
@@ -730,7 +729,7 @@ def _password_matches(plain_password: str, stored_hash: object) -> bool:
 @cache
 def _dummy_password_hash() -> str:
     """A hash with the same cost as room passwords, made once per process."""
-    return bcrypt.hashpw(b"no-such-room", bcrypt.gensalt()).decode("utf-8")
+    return hash_password("no-such-room")
 
 
 def authenticate_room_and_issue_token(
@@ -814,9 +813,7 @@ def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int 
     if not new_plain_password:
         raise ValueError("Password cannot be empty")
 
-    pw_hash = bcrypt.hashpw(
-        new_plain_password.encode("utf-8"), bcrypt.gensalt()
-    ).decode("utf-8")
+    pw_hash = hash_password(new_plain_password)
     with _DB_LOCK:
         try:
             db.execute("BEGIN IMMEDIATE")
@@ -837,6 +834,11 @@ def reset_room_password_by_slug(room_slug: str, new_plain_password: str) -> int 
 MAX_PASSWORD_BYTES = 72
 
 
+def password_fits_bcrypt(plain_password: str) -> bool:
+    """True when bcrypt can hash the password (at most 72 UTF-8 bytes)."""
+    return len(plain_password.encode("utf-8")) <= MAX_PASSWORD_BYTES
+
+
 def check_new_room_password(new_plain_password: str) -> None:
     """The rules for a new room password, as the change dialog has them.
 
@@ -850,7 +852,7 @@ def check_new_room_password(new_plain_password: str) -> None:
 
 def check_password_length(plain_password: str) -> None:
     """Refuse a password bcrypt cannot hash, with a message for the user."""
-    if len(plain_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+    if not password_fits_bcrypt(plain_password):
         raise ValueError(
             f"The password cannot be longer than {MAX_PASSWORD_BYTES} bytes"
         )
@@ -869,9 +871,7 @@ def change_room_password_locked(
     ).fetchone()
     if not row or not _password_matches(current_plain_password, row[0]):
         return None
-    new_hash = bcrypt.hashpw(
-        new_plain_password.encode("utf-8"), bcrypt.gensalt()
-    ).decode("utf-8")
+    new_hash = hash_password(new_plain_password)
     authorization_version = _replace_room_password_locked(room_id, new_hash)
     if authorization_version is None:
         return None
