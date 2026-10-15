@@ -13,12 +13,8 @@
 
 import { Api, api as defaultApi } from './api';
 import { compat, INCOMPATIBLE_CODE, INCOMPATIBLE_MESSAGE } from './compat.svelte';
-import {
-	LiveUpdates,
-	RECONNECT_DELAYS,
-	type EventSourceFactory,
-	type SessionState
-} from './events';
+import { BACKOFF_DELAYS, backoffDelay } from './backoff';
+import { LiveUpdates, type EventSourceFactory, type SessionState } from './events';
 import { newId } from './ids';
 import {
 	SIGNIN_LOCK_UNAVAILABLE,
@@ -137,11 +133,6 @@ const INCOMPATIBLE = {
 	message: INCOMPATIBLE_MESSAGE
 };
 
-/** Why a write cannot start now, or null when it may. A new server version wins. */
-function writeBlock(store: { canWrite: boolean }): typeof READ_ONLY | typeof INCOMPATIBLE | null {
-	if (compat.incompatible) return INCOMPATIBLE;
-	return store.canWrite ? null : READ_ONLY;
-}
 /** One room or one share link: committed data, queue, and live updates. */
 /** How long logout waits for the sign-out marker before it clears the view anyway. */
 export const LOCAL_SIGNOUT_TIMEOUT_MS = 5_000;
@@ -240,6 +231,12 @@ export class RoomHandle {
 		});
 	}
 
+	/** Why a write cannot start now, or null when it may. A new server version wins. */
+	#guardWrite(): typeof READ_ONLY | typeof INCOMPATIBLE | null {
+		if (compat.incompatible) return INCOMPATIBLE;
+		return this.store.canWrite ? null : READ_ONLY;
+	}
+
 	/** Ops not answered by the server yet. */
 	get queuedOps() {
 		return this.#queue.pending;
@@ -277,7 +274,7 @@ export class RoomHandle {
 
 	/** Changes the password without ever storing it for retries. */
 	async changePassword(currentPassword: string, newPassword: string): Promise<ActionResult<Room>> {
-		const blocked = writeBlock(this.store);
+		const blocked = this.#guardWrite();
 		if (blocked) return blocked;
 		const change = this.#api.changePassword(this.slug, currentPassword, newPassword);
 		this.#passwordChange = change.catch(() => undefined);
@@ -295,7 +292,7 @@ export class RoomHandle {
 
 	/** Deletes the room with all its lists and items, then forgets it here. */
 	async deleteRoom(password: string): Promise<ActionResult> {
-		const blocked = writeBlock(this.store);
+		const blocked = this.#guardWrite();
 		if (blocked) return blocked;
 		try {
 			await this.#api.deleteRoom(this.slug, password);
@@ -320,7 +317,7 @@ export class RoomHandle {
 
 	/** Gives the list a new share link; the old one stops working for everyone. */
 	resetShareLink(list: ListRef): Promise<ActionResult<ShareLink>> {
-		const blocked = writeBlock(this.store);
+		const blocked = this.#guardWrite();
 		if (blocked) return Promise.resolve(blocked);
 		return this.#call(() => this.#api.resetShareLink(this.slug, list.uid), true);
 	}
@@ -385,7 +382,7 @@ export class RoomHandle {
 
 	/** Deletes an item and keeps its data so `restoreItem(item.uid)` can undo it. */
 	deleteItem(item: Item): Promise<ActionResult> {
-		const blocked = writeBlock(this.store);
+		const blocked = this.#guardWrite();
 		if (blocked) return Promise.resolve(blocked);
 		this.#deleted.set(item.uid, this.store.item(item.uid) ?? item);
 		return this.#run({ type: 'item.delete', ...itemKeys(item) });
@@ -393,7 +390,7 @@ export class RoomHandle {
 
 	/** Undo of `deleteItem`: a new item (new uid) with the kept data. */
 	async restoreItem(itemUid: string): Promise<ActionResult<ItemRestoreResult>> {
-		const blocked = writeBlock(this.store);
+		const blocked = this.#guardWrite();
 		if (blocked) return blocked;
 		const item = this.#deleted.get(itemUid);
 		if (!item) {
@@ -768,8 +765,7 @@ export class RoomHandle {
 
 	#scheduleRevalidation(): void {
 		if (this.#signoutBlocked || this.#users === 0 || this.#revalidationTimer !== null) return;
-		const delay =
-			RECONNECT_DELAYS[Math.min(this.#revalidationAttempt, RECONNECT_DELAYS.length - 1)];
+		const delay = backoffDelay(BACKOFF_DELAYS, this.#revalidationAttempt);
 		this.#revalidationAttempt += 1;
 		this.#revalidationTimer = setTimeout(() => {
 			this.#revalidationTimer = null;
@@ -979,7 +975,7 @@ export class RoomHandle {
 	}
 
 	async #run<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
-		const blocked = writeBlock(this.store);
+		const blocked = this.#guardWrite();
 		if (blocked) return blocked;
 		const epoch = this.#identityEpoch;
 		try {

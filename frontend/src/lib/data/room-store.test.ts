@@ -596,6 +596,26 @@ describe('connection state for the indicator', () => {
 	});
 });
 
+describe('sign-out and write authorization', () => {
+	it('does not match a write sent before sign-out to its old authorization', () => {
+		const unauthorized = vi.fn();
+		const store = new RoomStore(ROOM.slug, { changes: vi.fn() }, { unauthorized });
+		const before = sent({ type: 'item.add', list_uid: 'list', name: 'milk' });
+		store.opSending(before);
+		store.clear();
+
+		// The answer for the old write is not current: it does not start a new sign-in.
+		expect(store.authRequired(before)).toBe('blocked');
+		expect(unauthorized).not.toHaveBeenCalled();
+
+		// A write sent after sign-out is tracked as usual.
+		const after = sent({ type: 'item.add', list_uid: 'list', name: 'eggs' });
+		store.opSending(after);
+		expect(store.authRequired(after)).toBe('current');
+		expect(unauthorized).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe('RoomStore.unconfirmedView', () => {
 	const saved: SavedSnapshot = {
 		schemaVersion: SNAPSHOT_SCHEMA_VERSION,

@@ -13,6 +13,7 @@
 // hold back changes feeds while an answer is open (see RoomStore).
 
 import { isRetryable } from './api';
+import { BACKOFF_DELAYS, backoffDelay } from './backoff';
 import { compat, INCOMPATIBLE_CODE } from './compat.svelte';
 import { newId } from './ids';
 import { ApiError } from './types';
@@ -68,9 +69,6 @@ export class MemoryQueueStorage implements QueueStorage {
 	}
 }
 
-/** Pauses before each retry, in milliseconds; the last one repeats. */
-export const RETRY_DELAYS = [1_000, 2_000, 5_000, 10_000, 30_000];
-
 export interface WriteQueueOptions {
 	storage?: QueueStorage;
 	retryDelays?: readonly number[];
@@ -100,7 +98,7 @@ export class WriteQueue {
 		this.#sender = sender;
 		this.#host = host;
 		this.#storage = options.storage ?? new MemoryQueueStorage();
-		this.#delays = options.retryDelays ?? RETRY_DELAYS;
+		this.#delays = options.retryDelays ?? BACKOFF_DELAYS;
 	}
 
 	/** Ops not answered yet, oldest first. */
@@ -195,7 +193,7 @@ export class WriteQueue {
 				this.#host.opUnanswered(op, true);
 				// A new version was seen meanwhile: no more retries.
 				if (compat.incompatible) return;
-				const delay = this.#delays[Math.min(this.#attempt, this.#delays.length - 1)];
+				const delay = backoffDelay(this.#delays, this.#attempt);
 				this.#attempt += 1;
 				await this.#sleep(delay);
 				return;

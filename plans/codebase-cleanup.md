@@ -133,7 +133,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   split pure validators and IndexedDB helpers into their own files.
 - [x] [refactor] `index.ts`: split messages, standalone session and a
   pending-logout helper into own files.
-- [ ] [refactor] Small fixes: `#guardWrite()`, one try/result helper, one
+- [x] [refactor] Small fixes: `#guardWrite()`, one try/result helper, one
   backoff constant, `room-store` `#load` reuse, clear `#sentAuthorization`
   on sign-out.
 - [ ] [refactor] Service worker: run `discardUnusedVersions()` on activate and

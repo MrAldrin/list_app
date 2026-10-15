@@ -2,6 +2,8 @@
 // The stream only says "the room seq is now N"; the room store then reads the
 // changes feed.
 
+import { BACKOFF_DELAYS, backoffDelay } from './backoff';
+
 /** The part of the browser's `EventSource` we use; tests pass a fake. */
 export interface EventSourceLike {
 	readonly readyState: number;
@@ -55,8 +57,6 @@ export interface LiveUpdatesOptions {
 	connectivity?: ConnectivityTarget | null;
 }
 
-export const RECONNECT_DELAYS = [1_000, 2_000, 5_000, 10_000, 30_000];
-
 /**
  * A page hidden this long gets a new stream when it shows again. Phones may
  * cut a hidden page's connection without an error, and keep-alives are
@@ -91,7 +91,7 @@ export class LiveUpdates {
 	constructor(options: LiveUpdatesOptions) {
 		this.#options = options;
 		this.#create = options.createEventSource ?? ((url) => new EventSource(url));
-		this.#delays = options.reconnectDelays ?? RECONNECT_DELAYS;
+		this.#delays = options.reconnectDelays ?? BACKOFF_DELAYS;
 		this.#visibility =
 			options.visibility !== undefined
 				? options.visibility
@@ -213,7 +213,7 @@ export class LiveUpdates {
 			this.#options.host.authRequired();
 			return;
 		}
-		const delay = this.#delays[Math.min(this.#attempt, this.#delays.length - 1)];
+		const delay = backoffDelay(this.#delays, this.#attempt);
 		this.#attempt += 1;
 		this.#timer = setTimeout(() => {
 			this.#timer = null;

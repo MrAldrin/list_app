@@ -7,7 +7,7 @@
 //   await invitation.createRoom(token, name, pw);    // { ok, result: room }
 
 import { api as defaultApi, type Api } from './api';
-import { failed, type ActionResult } from './result';
+import { attempt, type ActionResult } from './result';
 import { ApiError, type Room } from './types';
 
 type InvitationApi = Pick<Api, 'checkInvitation' | 'createRoomFromInvitation'>;
@@ -38,9 +38,5 @@ export async function createRoom(
 	password: string,
 	client: InvitationApi = defaultApi
 ): Promise<ActionResult<Room>> {
-	try {
-		return { ok: true, result: await client.createRoomFromInvitation(token, name, password) };
-	} catch (error) {
-		return failed(error);
-	}
+	return attempt(() => client.createRoomFromInvitation(token, name, password));
 }

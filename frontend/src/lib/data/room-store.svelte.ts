@@ -362,6 +362,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.retrying = false;
 		this.#sending = null;
 		this.#sentClearVersion.clear();
+		this.#sentAuthorization.clear();
 		this.#held?.resolve(false);
 		this.#held = null;
 	}

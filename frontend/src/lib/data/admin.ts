@@ -7,7 +7,7 @@
 //   await admin.login(password);   // { ok } or { ok: false, message }
 
 import { api as defaultApi, type Api } from './api';
-import { failed, type ActionResult } from './result';
+import { attempt, type ActionResult } from './result';
 import { ApiError, type Invitation, type IssuedInvitation, type Room } from './types';
 
 type AdminApi = Pick<
@@ -22,14 +22,6 @@ type AdminApi = Pick<
 	| 'adminIssueInvitation'
 	| 'adminRevokeInvitation'
 >;
-
-async function attempt<R>(request: () => Promise<R>): Promise<ActionResult<R>> {
-	try {
-		return { ok: true, result: await request() };
-	} catch (error) {
-		return failed(error);
-	}
-}
 
 /** True when an answer means "not signed in as admin" (for example, signed out in another tab). */
 export function isSignedOut(result: ActionResult<unknown>): boolean {
