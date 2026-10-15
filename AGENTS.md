@@ -78,11 +78,12 @@ uv run ruff check --fix .
 uv run pytest -q
 ```
 
-Then verify that formatting and linting are clean:
+Then verify that formatting, linting and types are clean (`ty` checks `src/` only):
 
 ```bash
 uv run ruff format --check .
 uv run ruff check .
+uv run ty check
 ```
 
 Review any remaining Ruff issues rather than using unsafe fixes automatically.

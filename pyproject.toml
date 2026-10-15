@@ -15,7 +15,7 @@ dependencies = [
 dev = [
     "pytest>=9.0.3",
     "ruff>=0.15.10",
-    "ty>=0.0.32",
+    "ty>=0.0.63",
     "cairosvg>=2.9.0",
     "pytest-xdist>=3.8.0",
     "playwright>=1.63.0",
@@ -50,3 +50,6 @@ select = [
 
 [tool.ruff.format]
 preview = false
+
+[tool.ty.src]
+include = ["src"]

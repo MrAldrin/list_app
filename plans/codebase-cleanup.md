@@ -95,7 +95,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] Small merges: stacked decorators in `pwa_routes.py`, one
   helper for the three error handlers in `api/errors.py`, one helper for
   `post_op`/`run_share_op`, single slug/UUID/token-hash helpers.
-- [ ] [infra] D4: fix the 5 `ty` findings, then add `uv run ty check` to the
+- [x] [infra] D4: fix the 5 `ty` findings, then add `uv run ty check` to the
   Python checks in `AGENTS.md`.
 - [ ] [refactor] A transaction context manager for the remaining hand-written
   BEGIN/commit/rollback blocks.

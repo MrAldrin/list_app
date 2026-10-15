@@ -231,7 +231,7 @@ AnyOp = Annotated[
 _OPS = TypeAdapter(AnyOp)
 
 
-def parse_op(data: dict[str, Any]) -> Op:
+def parse_op(data: dict[str, Any]) -> AnyOp:
     """Validate an op body; unknown `type` or wrong fields give 422."""
     try:
         return _OPS.validate_python(data)

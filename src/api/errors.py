@@ -8,6 +8,7 @@ other addresses keep their own error answers.
 import inspect
 import sqlite3
 from collections.abc import Awaitable, Callable
+from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import (
@@ -40,7 +41,8 @@ MESSAGES = {
     "internal_error": "Something went wrong on the server.",
 }
 
-Handler = Callable[[Request, Exception], Awaitable[Response] | Response]
+# Starlette keys each handler by one exception class, so `exc` is typed Any here.
+Handler = Callable[[Request, Any], Awaitable[Response] | Response]
 
 
 class ApiError(Exception):
@@ -82,7 +84,9 @@ def _code_for_status(status: int) -> str:
 
 async def _call(handler: Handler, request: Request, exc: Exception) -> Response:
     result = handler(request, exc)
-    return await result if inspect.isawaitable(result) else result
+    if inspect.isawaitable(result):
+        result = await result
+    return cast(Response, result)
 
 
 async def _api_error_handler(request: Request, exc: Exception) -> Response:
