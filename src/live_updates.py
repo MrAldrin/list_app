@@ -26,12 +26,6 @@ Listener = Callable[[int], None]
 _listeners: list[Listener] = []
 
 
-def register_listener(listener: Listener) -> None:
-    """Call `listener(room_id)` after each change. Registering twice is a no-op."""
-    if listener not in _listeners:
-        _listeners.append(listener)
-
-
 def notify_room_changed(room_id: int) -> None:
     """Wake the room's streams and call every listener.
 
