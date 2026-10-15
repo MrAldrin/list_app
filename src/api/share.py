@@ -10,7 +10,6 @@ that list, and the room endpoints still need the room cookie.
   `/api/v1/rooms/{slug}/lists/{list_uid}/share-link`.
 """
 
-import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, Request
@@ -31,6 +30,7 @@ from database_crud import (
     room_matches_token_locked,
     rotate_share_token_locked,
 )
+from identifiers import canonical_uuid
 from live_updates import notify_room_changed
 
 router = APIRouter()
@@ -93,7 +93,7 @@ class ResetBody(StrictBody):
 
 def _room_list_id(room_id: int, list_uid: str) -> int:
     try:
-        uid = str(uuid.UUID(list_uid))
+        uid = canonical_uuid(list_uid)
     except ValueError:
         uid = None
     list_id = None if uid is None else list_id_for_uid_locked(room_id, uid)

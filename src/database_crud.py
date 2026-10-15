@@ -1,9 +1,6 @@
-import hashlib
 import json
-import re
 import secrets
 import threading
-import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -14,6 +11,7 @@ import bcrypt
 
 from database_setup import db
 from field_limits import MAX_NAME_LENGTH, too_long_message
+from identifiers import make_slug, token_hash
 from item_visibility import parse_completion_time, validate_visibility_settings
 from password_hashing import hash_password
 
@@ -222,9 +220,7 @@ def create_or_find_list_locked(
     if existing:
         return existing[0], existing[1], False
 
-    safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
-    short_uuid = str(uuid.uuid4())[:6]
-    slug = f"{safe_name}-{short_uuid}"
+    slug = make_slug(name)
     result = db.execute(
         "INSERT INTO lists (name, slug, room_id, share_token, uid) "
         "VALUES (?, ?, ?, ?, ?)",
@@ -424,9 +420,7 @@ def create_room(name: str, plain_password: str):
 
     pw_hash = hash_password(plain_password)
 
-    safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
-    short_uuid = str(uuid.uuid4())[:6]
-    slug = f"{safe_name}-{short_uuid}"
+    slug = make_slug(name)
 
     with _DB_LOCK:
         try:
@@ -445,10 +439,6 @@ class RoomAccessDenied(PermissionError):
     """Raised when a token cannot authorize the requested private room action."""
 
 
-def _token_hash(token: str) -> str:
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
 def _valid_room_id_for_token_locked(room_slug: str, token: str | None) -> int | None:
     if not token:
         return None
@@ -462,7 +452,7 @@ def _valid_room_id_for_token_locked(room_slug: str, token: str | None) -> int | 
           AND t.authorization_version = r.authorization_version
           AND t.revoked_at IS NULL
         """,
-        (room_slug, _token_hash(token)),
+        (room_slug, token_hash(token)),
     ).fetchone()
     return row[0] if row else None
 
@@ -707,7 +697,7 @@ def _insert_room_access_token_locked(room_id: int, authorization_version: int) -
         INSERT INTO room_access_tokens (token_hash, room_id, authorization_version)
         VALUES (?, ?, ?)
         """,
-        (_token_hash(token), room_id, authorization_version),
+        (token_hash(token), room_id, authorization_version),
     )
     return token
 
@@ -774,7 +764,7 @@ def revoke_room_access_token(room_slug: str, token: str) -> None:
                 WHERE token_hash = ?
                   AND room_id = (SELECT id FROM rooms WHERE slug = ?)
                 """,
-                (_token_hash(token), room_slug),
+                (token_hash(token), room_slug),
             )
             db.commit()
         except Exception:

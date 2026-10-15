@@ -1,11 +1,11 @@
 import os
-import re
 import sqlite3
 import uuid
 from functools import partial
 from pathlib import Path
 
 from config import require_app_password
+from identifiers import make_slug
 from migrations import Migration, run_migrations
 from password_hashing import hash_password
 
@@ -30,12 +30,6 @@ def _backup_path(database_path: str) -> Path | None:
     return path.with_name(f"{path.stem}-pre-migration{path.suffix}")
 
 
-def _create_slug(name: str) -> str:
-    safe_name = re.sub(r"[^a-z0-9]", "-", name.lower().strip())
-    short_uuid = str(uuid.uuid4())[:6]
-    return f"{safe_name}-{short_uuid}"
-
-
 def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
     existing_room = db.execute("SELECT id FROM rooms WHERE name = 'Home'").fetchone()
     if existing_room:
@@ -44,7 +38,7 @@ def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
     pw_hash = hash_password(app_password)
     insert = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
-        ("Home", _create_slug("Home"), pw_hash),
+        ("Home", make_slug("Home"), pw_hash),
     )
     if insert.lastrowid is None:
         raise RuntimeError("Default room insert returned no ID")

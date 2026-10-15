@@ -85,25 +85,19 @@ def register_pwa_routes(app: FastAPI) -> None:
             },
         )
 
+    # The start page opens the last remembered room.
     @app.get("/manifest.json", include_in_schema=False)
     @app.get("/static/manifest.json", include_in_schema=False)
+    @app.get("/manifest.webmanifest", include_in_schema=False)
     def serve_manifest() -> JSONResponse:
         return _manifest_response("/")
 
+    # Routing metadata, never proof of access, and no database lookup: the
+    # answer does not tell whether a room exists. An unknown room's icon opens
+    # its password prompt.
     @app.get("/room-manifest/{slug}.json", include_in_schema=False)
-    def serve_room_manifest(slug: str) -> JSONResponse:
-        # Routing metadata, never proof of access, and no database lookup: the
-        # answer does not tell whether a room exists.
-        return _manifest_response(room_start_url("", slug))
-
-    @app.get("/manifest.webmanifest", include_in_schema=False)
-    def serve_app_manifest() -> JSONResponse:
-        # The start page opens the last remembered room.
-        return _manifest_response("/")
-
     @app.get("/room-manifest/{slug}.webmanifest", include_in_schema=False)
-    def serve_app_room_manifest(slug: str) -> JSONResponse:
-        # An unknown room's icon opens its password prompt.
+    def serve_room_manifest(slug: str) -> JSONResponse:
         return _manifest_response(room_start_url("", slug))
 
     @app.get("/apple-touch-icon.png", include_in_schema=False)

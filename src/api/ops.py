@@ -7,8 +7,8 @@ Rejected ops change nothing, but their response is stored like an applied
 one, so a retry gets the same answer.
 """
 
-import uuid
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
@@ -59,6 +59,7 @@ from field_limits import (
     MAX_TAG_LENGTH,
     too_long_message,
 )
+from identifiers import canonical_uuid
 from item_visibility import (
     DEFAULT_HIDE_DONE_AGE_DAYS,
     DEFAULT_HIDE_DONE_MODE,
@@ -73,12 +74,8 @@ router = APIRouter()
 STATUS_DUPLICATE_ACTIVE = "duplicate_active"
 
 
-def _canonical_uuid(value: str) -> str:
-    return str(uuid.UUID(value))
-
-
 # A UUID string in its lowercase, hyphenated form.
-Uuid = Annotated[StrictStr, AfterValidator(_canonical_uuid)]
+Uuid = Annotated[StrictStr, AfterValidator(canonical_uuid)]
 
 # Bounds quantities and deltas far from SQLite's 64-bit integer limit.
 MAX_QUANTITY = 1_000_000
@@ -509,19 +506,36 @@ def _apply_locked(scope: OpScope, op: Any) -> Response:
     }
 
 
-@router.post("/rooms/{slug}/ops")
-def post_op(slug: str, request: Request, body: JsonBody) -> Response:
-    op = parse_op(body)
+def _run_write_op(
+    op: Op,
+    access: AbstractContextManager[Any],
+    scope_for: Callable[[Any], OpScope],
+) -> Response:
+    """Run one op in the access transaction, then tell live streams of a change.
+
+    `access` checks the caller and yields the room or share; `scope_for` turns
+    that into what the op may touch.
+    """
     body_hash = request_hash(op)
-    with room_access(request, slug, write=True) as room:
-        scope = OpScope(room.room_id)
+    with access as target:
+        scope = scope_for(target)
         response, replayed = run_once_locked(
-            room.room_id, op.op_id, body_hash, lambda: _apply_locked(scope, op)
+            target.room_id, op.op_id, body_hash, lambda: _apply_locked(scope, op)
         )
     # After the commit, outside the database lock.
     if not replayed and response["status"] == "applied":
-        notify_room_changed(room.room_id)
+        notify_room_changed(target.room_id)
     return response
+
+
+@router.post("/rooms/{slug}/ops")
+def post_op(slug: str, request: Request, body: JsonBody) -> Response:
+    op = parse_op(body)
+    return _run_write_op(
+        op,
+        room_access(request, slug, write=True),
+        lambda room: OpScope(room.room_id),
+    )
 
 
 def run_share_op(token: str, body: dict[str, Any]) -> Response:
@@ -529,12 +543,8 @@ def run_share_op(token: str, body: dict[str, Any]) -> Response:
     op = parse_op(body)
     if op.type not in SHARE_OP_TYPES:
         raise ApiError(422, "invalid_request", "A share link cannot do this.")
-    body_hash = request_hash(op)
-    with share_access(token, write=True) as share:
-        scope = OpScope(share.room_id, shared_list_id=share.list_id)
-        response, replayed = run_once_locked(
-            share.room_id, op.op_id, body_hash, lambda: _apply_locked(scope, op)
-        )
-    if not replayed and response["status"] == "applied":
-        notify_room_changed(share.room_id)
-    return response
+    return _run_write_op(
+        op,
+        share_access(token, write=True),
+        lambda share: OpScope(share.room_id, shared_list_id=share.list_id),
+    )

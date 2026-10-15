@@ -4,7 +4,6 @@ Admin authentication is enforced by UI callers of management functions. The
 public creation function always checks the invitation itself, transactionally.
 """
 
-import hashlib
 import secrets
 import time
 
@@ -15,6 +14,7 @@ from database_crud import (
 )
 from database_setup import db
 from field_limits import MAX_NAME_LENGTH
+from identifiers import token_hash
 from password_hashing import hash_password
 
 INVITATION_LIFETIME = 7 * 24 * 60 * 60
@@ -26,10 +26,6 @@ class InvitationUnavailable(ValueError):
     """The invitation is unknown, expired, or revoked."""
 
 
-def _hash(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
 def create_invitation() -> tuple[int, str]:
     token = secrets.token_urlsafe(32)
     now = int(time.time())
@@ -37,7 +33,7 @@ def create_invitation() -> tuple[int, str]:
         result = db.execute(
             "INSERT INTO room_invitations (token_hash, created_at, expires_at) "
             "VALUES (?, ?, ?)",
-            (_hash(token), now, now + INVITATION_LIFETIME),
+            (token_hash(token), now, now + INVITATION_LIFETIME),
         )
         return result.lastrowid, token
 
@@ -91,7 +87,7 @@ def _is_active_locked(token: str) -> bool:
         and db.execute(
             "SELECT 1 FROM room_invitations "
             "WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?",
-            (_hash(token), int(time.time())),
+            (token_hash(token), int(time.time())),
         ).fetchone()
     )
 

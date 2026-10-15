@@ -92,7 +92,7 @@ lead agent. Line numbers are from that date; re-check before editing.
   Done for the hash and the 72-byte check. Open question for the user: admin
   room creation accepts a whitespace-only password, invitation rooms refuse
   it; name messages also differ. Not unified (would change behavior).
-- [ ] [refactor] Small merges: stacked decorators in `pwa_routes.py`, one
+- [x] [refactor] Small merges: stacked decorators in `pwa_routes.py`, one
   helper for the three error handlers in `api/errors.py`, one helper for
   `post_op`/`run_share_op`, single slug/UUID/token-hash helpers.
 - [ ] [infra] D4: fix the 5 `ty` findings, then add `uv run ty check` to the

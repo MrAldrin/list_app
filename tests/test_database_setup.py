@@ -19,6 +19,7 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     source_root = Path(__file__).resolve().parents[1]
     shutil.copy(source_root / "src" / "database_setup.py", project_src)
     shutil.copy(source_root / "src" / "config.py", project_src)
+    shutil.copy(source_root / "src" / "identifiers.py", project_src)
     shutil.copy(source_root / "src" / "migrations.py", project_src)
     shutil.copy(source_root / "src" / "password_hashing.py", project_src)
 

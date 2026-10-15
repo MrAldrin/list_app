@@ -90,56 +90,65 @@ async def _api_error_handler(request: Request, exc: Exception) -> Response:
     return error_response(exc.status, exc.code, exc.message)
 
 
+def _answer_api_paths(
+    previous: Handler | None, answer: Callable[[Request, Exception], Response]
+) -> Handler:
+    """Answer API paths with `answer`; every other path goes to `previous`.
+
+    With no `previous`, the error is re-raised for the other paths.
+    """
+
+    async def handler(request: Request, exc: Exception) -> Response:
+        if is_api_path(request.url.path):
+            return answer(request, exc)
+        if previous is None:
+            raise exc
+        return await _call(previous, request, exc)
+
+    return handler
+
+
+def _http_error_answer(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, StarletteHTTPException)
+    # Keep headers such as Allow (405), never the detail text.
+    return error_response(
+        exc.status_code,
+        _code_for_status(exc.status_code),
+        headers=dict(exc.headers or {}),
+    )
+
+
+def _validation_error_answer(request: Request, exc: Exception) -> Response:
+    return error_response(422, "invalid_request")
+
+
+def _unhandled_error_answer(request: Request, exc: Exception) -> Response:
+    if isinstance(exc, sqlite3.Error):
+        return error_response(503, "unavailable")
+    return error_response(500, "internal_error")
+
+
 def install_error_handlers(app: FastAPI) -> None:
     """Answer API errors with JSON; leave every other path to the app's handlers."""
     app.add_exception_handler(ApiError, _api_error_handler)
 
-    def wrap_http(previous: Handler | None) -> Handler:
-        previous = previous or http_exception_handler
-
-        async def handler(request: Request, exc: Exception) -> Response:
-            if is_api_path(request.url.path):
-                assert isinstance(exc, StarletteHTTPException)
-                # Keep headers such as Allow (405), never the detail text.
-                return error_response(
-                    exc.status_code,
-                    _code_for_status(exc.status_code),
-                    headers=dict(exc.headers or {}),
-                )
-            return await _call(previous, request, exc)
-
-        return handler
-
     # Starlette looks up HTTP errors by status code first, then by class.
     # Another handler may exist for 404 or for HTTPException; keep it.
-    app.exception_handlers[404] = wrap_http(app.exception_handlers.get(404))
-    app.exception_handlers[StarletteHTTPException] = wrap_http(
-        app.exception_handlers.get(StarletteHTTPException)
+    app.exception_handlers[404] = _answer_api_paths(
+        app.exception_handlers.get(404) or http_exception_handler,
+        _http_error_answer,
     )
-
-    previous_validation = (
+    app.exception_handlers[StarletteHTTPException] = _answer_api_paths(
+        app.exception_handlers.get(StarletteHTTPException) or http_exception_handler,
+        _http_error_answer,
+    )
+    app.exception_handlers[RequestValidationError] = _answer_api_paths(
         app.exception_handlers.get(RequestValidationError)
-        or request_validation_exception_handler
+        or request_validation_exception_handler,
+        _validation_error_answer,
     )
-
-    async def validation_handler(request: Request, exc: Exception) -> Response:
-        if is_api_path(request.url.path):
-            return error_response(422, "invalid_request")
-        return await _call(previous_validation, request, exc)
-
-    app.exception_handlers[RequestValidationError] = validation_handler
-
-    previous_unhandled = app.exception_handlers.get(Exception)
-
-    async def unhandled_handler(request: Request, exc: Exception) -> Response:
-        if is_api_path(request.url.path):
-            if isinstance(exc, sqlite3.Error):
-                return error_response(503, "unavailable")
-            return error_response(500, "internal_error")
-        if previous_unhandled is None:
-            raise exc
-        return await _call(previous_unhandled, request, exc)
-
     # Unhandled exceptions reach this handler last (Starlette's
     # ServerErrorMiddleware), which also logs them.
-    app.exception_handlers[Exception] = unhandled_handler
+    app.exception_handlers[Exception] = _answer_api_paths(
+        app.exception_handlers.get(Exception), _unhandled_error_answer
+    )
