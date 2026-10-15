@@ -76,7 +76,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
 	// Keep complete versions if an open page predates worker control. A later
-	// fetch can clean them up after those unclaimed clients have closed.
+	// navigation can clean them up after those unclaimed clients have closed.
 	event.waitUntil(discardUnusedVersions());
 });
 
@@ -108,10 +108,10 @@ self.addEventListener('fetch', (event) => {
 		return;
 	}
 
+	// Assets skip the cleanup: activate and navigations already run it.
 	if (!PRECACHE_SET.has(url.href)) return;
 	event.respondWith(
 		(async () => {
-			await discardUnusedVersions();
 			const cache = await caches.open(CACHE_NAME);
 			return (await cache.match(request)) ?? fetch(request);
 		})()

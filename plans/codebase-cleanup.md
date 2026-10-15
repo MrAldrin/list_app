@@ -136,7 +136,7 @@ lead agent. Line numbers are from that date; re-check before editing.
 - [x] [refactor] Small fixes: `#guardWrite()`, one try/result helper, one
   backoff constant, `room-store` `#load` reuse, clear `#sentAuthorization`
   on sign-out.
-- [ ] [refactor] Service worker: run `discardUnusedVersions()` on activate and
+- [x] [refactor] Service worker: run `discardUnusedVersions()` on activate and
   navigation only.
 - [ ] [security] D3, last: one sign-in/sign-out path in `index.ts` (today two
   sign-in copies and five sign-out copies). Existing index and snapshot tests
