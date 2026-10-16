@@ -16,7 +16,8 @@ None.
 
 Agreed as worth doing; no date.
 
-- [ ] [feature] Offline editing (Milestone 6), after Gate V and a separate owner review. See [Milestone 6](svelte-frontend-rewrite.md#milestone-6-offline-editing).
+- [ ] [feature] Offline editing (Milestone 6) (in progress). See [offline editing](offline-editing.md).
+- [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline editing](offline-editing.md#what-can-be-done-offline).
 - [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing. See the [offline viewing scope](svelte-frontend-rewrite.md#milestone-5-offline-viewing).
 
 - [ ] [test] Fix a rare (about 1 in 12) WebKit teardown flake from cancelled in-flight requests in the rename-after-password-change test in `browser_tests/test_svelte_live.py`. See the [validation record](../docs/background/offline-viewing-validation.md).

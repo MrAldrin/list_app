@@ -942,7 +942,7 @@ Milestone 5: offline viewing
 - [x] **Gate V: owner offline-viewing review** (no deployment approval implied). Owner guide and iPhone checklist: [offline-viewing-gate-v.md](offline-viewing-gate-v.md). Accepted 2026-10-14 after daily use; three iPhone checks left untested.
 
 Milestone 6: offline editing
-- [ ] 6.1 Conflict rules design. Include late writes: today a change made
+- [x] 6.1 Conflict rules design: see [offline editing](offline-editing.md); steps 6.2-6.4 are tracked there. Include late writes: today a change made
   just before the page turns read-only waits in memory and is sent on
   reconnect, so it can overwrite a newer change by someone else (for example,
   a late tick re-ticks an item another person unticked).
