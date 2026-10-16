@@ -291,7 +291,7 @@ def test_revoked_access_sends_revoked_and_closes(room):
 
 def test_a_password_change_is_noticed_at_the_keep_alive(room, monkeypatch):
     room_id, slug = room
-    monkeypatch.setattr(events, "KEEPALIVE_SECONDS", 0.2)
+    monkeypatch.setattr(events, "RECHECK_SECONDS", 0.2)
 
     async def test() -> None:
         stream = SseConnection(slug, token_for(slug))
@@ -307,14 +307,15 @@ def test_a_password_change_is_noticed_at_the_keep_alive(room, monkeypatch):
 
 def test_keep_alive_comment(room, monkeypatch):
     _, slug = room
-    monkeypatch.setattr(events, "KEEPALIVE_SECONDS", 0.05)
+    # FastAPI sends the keep-alive comment; a short interval keeps the test quick.
+    monkeypatch.setattr("fastapi.routing._PING_INTERVAL", 0.05)
 
     async def test() -> None:
         stream = SseConnection(slug, token_for(slug))
         await stream.open()
         await stream.next_event()
-        assert await stream.next_block() == ": keep-alive"
-        assert await stream.next_block() == ": keep-alive"
+        assert await stream.next_block() == ": ping"
+        assert await stream.next_block() == ": ping"
         await stream.close()
 
     run(test)
@@ -322,7 +323,7 @@ def test_keep_alive_comment(room, monkeypatch):
 
 def test_a_change_seen_at_the_keep_alive_is_sent_as_seq(room, monkeypatch):
     room_id, slug = room
-    monkeypatch.setattr(events, "KEEPALIVE_SECONDS", 0.2)
+    monkeypatch.setattr(events, "RECHECK_SECONDS", 0.2)
 
     async def test() -> None:
         stream = SseConnection(slug, token_for(slug))
