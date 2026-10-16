@@ -95,7 +95,7 @@ def server_env(database: Path, base: dict[str, str]) -> dict[str, str]:
 
 def prepare_database(env: dict[str, str]) -> None:
     """Create or migrate the test database the same way the app does."""
-    code = "import database_setup"
+    code = "import database_setup; database_setup.open_database()"
     if subprocess.run(
         [sys.executable, "-c", code], cwd=ROOT / "src", env=env, check=False
     ).returncode:

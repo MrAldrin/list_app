@@ -1,8 +1,8 @@
 """Entry point: `uv run src/main.py [--port 8080]` starts the web server.
 
 The server is a plain FastAPI app (src/server.py) run by uvicorn. Importing
-this module creates the app, so it checks `APP_PASSWORD` and sets up the
-database (migrations run when `database_setup` is imported).
+this module creates the app, so it checks `APP_PASSWORD`. The database opens
+and migrates when the server starts (`server.lifespan`).
 """
 
 import argparse

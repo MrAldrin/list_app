@@ -32,7 +32,7 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     env["PYTHONPATH"] = str(project_src)
     env["PYTHON_DOTENV_DISABLED"] = "1"
     result = subprocess.run(
-        [sys.executable, "-c", "import database_setup"],
+        [sys.executable, "-c", "import database_setup; database_setup.open_database()"],
         cwd=startup_directory,
         env=env,
         capture_output=True,
@@ -43,6 +43,26 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     assert result.returncode == 0, result.stderr
     assert (project_src.parent / "list.db").exists()
     assert not (startup_directory / "list.db").exists()
+
+
+def test_importing_the_database_module_does_not_open_the_database(tmp_path):
+    database = tmp_path / "lazy.db"
+    env = os.environ.copy()
+    env["DB_PATH"] = str(database)
+    env["APP_PASSWORD"] = "test-startup-password"
+    env["PYTHON_DOTENV_DISABLED"] = "1"
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+    result = subprocess.run(
+        [sys.executable, "-c", "import database_setup"],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not database.exists()
 
 
 def test_fresh_database_is_at_latest_version_with_visibility_columns(

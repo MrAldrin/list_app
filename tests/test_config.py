@@ -56,8 +56,19 @@ def test_startup_requires_password_before_creating_database(tmp_path, module, pa
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
     # An actual local .env must not mask a missing deployment setting in this test.
     env["PYTHON_DOTENV_DISABLED"] = "1"
+    # Import the app, then start it the way the server does (its lifespan opens
+    # the database). Importing database_setup alone no longer opens it.
+    startup = {
+        "main": (
+            "import main\n"
+            "from starlette.testclient import TestClient\n"
+            "with TestClient(main.app):\n"
+            "    pass\n"
+        ),
+        "database_setup": "import database_setup; database_setup.open_database()\n",
+    }[module]
     result = subprocess.run(
-        [sys.executable, "-c", f"import {module}"],
+        [sys.executable, "-c", startup],
         cwd=tmp_path,
         env=env,
         capture_output=True,

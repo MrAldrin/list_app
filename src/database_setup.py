@@ -1,8 +1,10 @@
 import os
 import sqlite3
+import threading
 import uuid
 from functools import partial
 from pathlib import Path
+from typing import Any
 
 from config import require_app_password
 from identifiers import make_slug
@@ -483,4 +485,36 @@ def init_database():
     return db
 
 
-db = init_database()
+class _LazyConnection:
+    """The app's one database connection, opened on first use.
+
+    Importing this module does not open the database. The server opens it at
+    startup (`server.lifespan`); tests and scripts open it on first use. Code
+    keeps writing `db.execute(...)`, as before.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._connection: sqlite3.Connection | None = None
+
+    def connect(self) -> sqlite3.Connection:
+        """Open and migrate the database once; later calls return the same connection."""
+        if self._connection is None:
+            with self._lock:
+                if self._connection is None:
+                    self._connection = init_database()
+        return self._connection
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.connect(), name)
+
+
+_lazy_db = _LazyConnection()
+# A lazy stand-in for a sqlite3.Connection. Typed Any: with the Connection type,
+# ty flags the `lastrowid` returns in the callers (`int | None`).
+db: Any = _lazy_db
+
+
+def open_database() -> sqlite3.Connection:
+    """Open and migrate the database now, unless it is open already."""
+    return _lazy_db.connect()

@@ -1,6 +1,6 @@
 """The one place that hashes room passwords.
 
-Kept apart from database_crud: database_setup needs it at import time, and
+Kept apart from database_crud: database_setup needs it, and
 database_crud imports database_setup, so importing it from there would cycle.
 """
 

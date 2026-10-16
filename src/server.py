@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from api import register_api
 from config import require_app_password
 from database_crud import prune_processed_ops
+from database_setup import open_database
 from pwa_routes import STATIC_DIR, register_pwa_routes
 from svelte_frontend import register_svelte_frontend
 
@@ -46,6 +47,8 @@ async def _prune_daily() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Open and migrate the database before serving; a failure stops startup.
+    open_database()
     prune_old_ops()
     prune = asyncio.create_task(_prune_daily())
     try:
