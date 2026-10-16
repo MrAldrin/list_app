@@ -62,7 +62,7 @@ const FIELDS: Record<Op['type'], Checks> = {
 		recent_count: optional(num)
 	},
 	'item.add': { list_uid: str, name: str, uid: optional(str) },
-	'item.set_done': { list_uid: str, item_uid: str, done: bool },
+	'item.set_done': { list_uid: str, item_uid: str, done: bool, base_seq: optional(num) },
 	'item.quantity_delta': { list_uid: str, item_uid: str, delta: num },
 	'item.edit': {
 		list_uid: str,
@@ -72,7 +72,7 @@ const FIELDS: Record<Op['type'], Checks> = {
 		quantity: optional(nullable(num)),
 		base_seq: num
 	},
-	'item.toggle_tag': { list_uid: str, item_uid: str, tag: str },
+	'item.toggle_tag': { list_uid: str, item_uid: str, tag: str, active: optional(bool) },
 	'item.delete': { list_uid: str, item_uid: str },
 	'item.restore': {
 		list_uid: str,

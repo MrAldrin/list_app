@@ -302,12 +302,13 @@ describe('optimistic overlay', () => {
 		expect(store.notice?.code).toBe('invalid_request');
 	});
 
-	it('does not project ops that wait for the server', () => {
+	it('projects add and rename at once, so the user sees them before the answer', () => {
 		const { store, list } = loaded();
-		store.opQueued(sent({ type: 'item.add', list_uid: list.uid, name: 'bread' }));
+		store.opQueued(sent({ type: 'item.add', list_uid: list.uid, name: 'bread', uid: 'new-1' }));
 		store.opQueued(sent({ type: 'list.rename', list_uid: list.uid, name: 'X', base_seq: 1 }));
-		expect(store.pendingOps).toHaveLength(0);
-		expect(store.itemsOf(list.uid)).toHaveLength(1);
+		expect(store.pendingOps).toHaveLength(2);
+		expect(store.itemsOf(list.uid).map((item) => item.name)).toEqual(['bread', 'milk']);
+		expect(store.lists[0].name).toBe('X');
 	});
 });
 

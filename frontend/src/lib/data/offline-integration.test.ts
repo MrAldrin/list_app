@@ -9,11 +9,20 @@ import {
 } from './index';
 import { ShareApi } from './share';
 import { browserSnapshots } from './standalone-session';
-import { FakeEventSource, makeFeed, makeItem, makeList, ROOM, settle } from './test-helpers';
+import {
+	FakeEventSource,
+	makeFeed,
+	makeItem,
+	makeList,
+	ROOM,
+	settle,
+	type Deferred
+} from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Feed, OpResponse, SentOp } from './types';
 import { createSnapshotStore, type SnapshotStore } from './snapshot-store';
 import type { SessionLockManager } from './session-transition';
+import { MemoryQueueStorage, type QueueStorage } from './queue-storage';
 
 const list = makeList({ uid: 'saved-list' });
 const item = makeItem(list.uid, { uid: 'saved-item', name: 'milk' });
@@ -111,6 +120,7 @@ function handle(
 		hydrateSavedView?: boolean;
 		connectivity?: Pick<Window, 'addEventListener' | 'removeEventListener'> | null;
 		sessionLocks?: SessionLockManager | null;
+		queueStorage?: QueueStorage;
 	} = {}
 ) {
 	const room = new RoomHandle(ROOM.slug, {
@@ -120,7 +130,8 @@ function handle(
 		hydrateSavedView: extra.hydrateSavedView,
 		createEventSource: (url) => new FakeEventSource(url),
 		visibility: null,
-		online: extra.connectivity ?? null
+		online: extra.connectivity ?? null,
+		queueStorage: extra.queueStorage
 	});
 	room.retain();
 	return room;
@@ -189,11 +200,22 @@ describe('saved room data integration', () => {
 		expect(offline.store.savedAt).toBe('2026-10-06T18:00:00.000Z');
 		expect(offline.store.readOnly).toBe(true);
 
-		const results = await Promise.all([
-			offline.renameRoom('new'),
+		// The actions that need a connection stay refused, and nothing is sent.
+		const refused = await Promise.all([
 			offline.createList('new'),
+			offline.changePassword('old', 'new'),
+			offline.deleteRoom('password'),
+			offline.resetShareLink(list)
+		]);
+		expect(refused.every((result) => !result.ok && result.code === 'read_only')).toBe(true);
+		expect(offlineApi.changePassword).not.toHaveBeenCalled();
+		expect(offlineApi.deleteRoom).not.toHaveBeenCalled();
+		expect(offlineApi.resetShareLink).not.toHaveBeenCalled();
+
+		// Edits are queued at once and shown; they go out only when online again.
+		const edits = await Promise.all([
+			offline.renameRoom('new'),
 			offline.renameList(list, 'new'),
-			offline.deleteList(list),
 			offline.addListTag(list, 'new'),
 			offline.removeListTag(list, 'Lidl'),
 			offline.setVisibility(list, { mode: 'all' }),
@@ -204,17 +226,13 @@ describe('saved room data integration', () => {
 			offline.toggleItemTag(item, 'new'),
 			offline.deleteItem(item),
 			offline.restoreItem(item.uid),
-			offline.changePassword('old', 'new'),
-			offline.deleteRoom('password'),
-			offline.resetShareLink(list)
+			offline.deleteList(list)
 		]);
-		expect(results.every((result) => !result.ok && result.code === 'read_only')).toBe(true);
+		expect(edits.every((result) => result.ok)).toBe(true);
 		expect(offlineApi.sendOp).not.toHaveBeenCalled();
-		expect(offlineApi.changePassword).not.toHaveBeenCalled();
-		expect(offlineApi.deleteRoom).not.toHaveBeenCalled();
-		expect(offlineApi.resetShareLink).not.toHaveBeenCalled();
-		expect(offline.queuedOps).toEqual([]);
-		expect(offline.store.item(item.uid)).toEqual(item);
+		expect(offline.queuedOps).toHaveLength(13);
+		expect(offline.store.room?.name).toBe('new');
+		expect(offline.store.lists).toEqual([]);
 		offline.release();
 		storage.close();
 	});
@@ -1372,11 +1390,187 @@ describe('room session transition serialization', () => {
 		await vi.waitFor(() => expect(sends).toHaveLength(2));
 		expect(sends[1]).toEqual(sends[0]);
 		expect(room.store.queued).toBe(1);
-		expect(room.store.pendingOps).toEqual([]);
+		// The waiting change is shown again once access is confirmed.
+		expect(room.store.pendingOps.map((pending) => pending.op.op_id)).toEqual([opId]);
 		retryAnswer.resolve(applied(sends[1], 6));
 		await action;
 		expect(room.store.queued).toBe(0);
 		expect(room.store.canWrite).toBe(true);
+		room.release();
+		storage.close();
+	});
+});
+
+describe('offline editing (6.2d)', () => {
+	/** A server that answers what the device sends, with the rows it changed. */
+	function answering(api: ReturnType<typeof fakeApi>, sent: SentOp[]) {
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			const result =
+				op.type === 'item.add'
+					? { item_uid: op.uid, outcome: 'added', changed_seq: 3 }
+					: { changed_seq: 2 };
+			return { op_id: op.op_id, status: 'applied', result, seq: 7 };
+		});
+	}
+
+	it('keeps offline edits across a reload, shows them, and sends them in order when back online', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const online = fakeApi();
+		const first = handle(online, storage);
+		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		first.release();
+
+		const connectivity = fakeConnectivity();
+		const offlineApi = fakeApi();
+		offlineApi.whoAmI.mockRejectedValue(new NetworkError());
+		offlineApi.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(offlineApi, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await settle();
+		expect(offline.store.canEdit).toBe(true);
+		expect(offline.store.canWrite).toBe(false);
+
+		void offline.setDone(item, true);
+		void offline.editItem(item, { name: 'milk', description: 'cold' });
+		void offline.addItem(list, 'bread');
+		expect(offlineApi.sendOp).not.toHaveBeenCalled();
+		// The three ops are written to storage before the page is closed.
+		await vi.waitFor(async () => expect(await queue.read()).toHaveLength(3));
+		offline.release();
+
+		// A reload while still offline: the stored ops are projected at once.
+		const reloaded = handle(offlineApi, storage, { hydrateSavedView: true, queueStorage: queue });
+		await vi.waitFor(() => expect(reloaded.store.itemsOf(list.uid)).toHaveLength(2));
+		expect(reloaded.queuedOps.map((sent) => sent.type)).toEqual([
+			'item.set_done',
+			'item.edit',
+			'item.add'
+		]);
+		expect(reloaded.store.item(item.uid)).toMatchObject({ done: true, description: 'cold' });
+		expect(reloaded.waitingCount).toBe(3);
+
+		// Back online: the 'online' signal revalidates, and the queue goes out in order.
+		const sent: SentOp[] = [];
+		answering(offlineApi, sent);
+		offlineApi.whoAmI.mockResolvedValue(ROOM);
+		offlineApi.changes.mockResolvedValue(
+			makeFeed({
+				seq: 7,
+				full: true,
+				lists: [list],
+				items: [{ ...item, done: true, changed_seq: 2 }]
+			})
+		);
+		connectivity.emit('online');
+		await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(3));
+		expect(sent.map((op) => op.type)).toEqual(['item.set_done', 'item.edit', 'item.add']);
+		expect(sent[0]).toMatchObject({ item_uid: item.uid, done: true, base_seq: 1 });
+		// The edit was based on the same view: its base moved to the seq the tick got.
+		expect(sent[1]).toMatchObject({ base_seq: 2, name: 'milk', description: 'cold' });
+		await vi.waitFor(() => expect(reloaded.waitingCount).toBe(0));
+		expect(reloaded.queuedOps).toEqual([]);
+		reloaded.release();
+		storage.close();
+	});
+
+	it('moves later ops on a new item to the existing item when the add is a duplicate', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const online = fakeApi();
+		const first = handle(online, storage);
+		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		first.release();
+
+		const connectivity = fakeConnectivity();
+		const offlineApi = fakeApi();
+		offlineApi.whoAmI.mockRejectedValue(new NetworkError());
+		offlineApi.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(offlineApi, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await settle();
+
+		const added = await offline.addItem(list, 'eggs');
+		expect(added).toMatchObject({ ok: true, result: { outcome: 'added' } });
+		const addOp = offline.queuedOps[0];
+		if (addOp.type !== 'item.add' || addOp.uid === undefined) throw new Error('no add queued');
+		const eggsUid = addOp.uid;
+		void offline.setDone({ uid: eggsUid, list_uid: list.uid, changed_seq: 0 }, true);
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toContain('eggs');
+		offline.release();
+
+		// The server already had "eggs" on the list: its add is a duplicate.
+		const sent: SentOp[] = [];
+		offlineApi.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			if (op.type === 'item.add') {
+				return {
+					op_id: op.op_id,
+					status: 'rejected',
+					code: 'duplicate_active',
+					message: "'eggs' is already on the list",
+					item_uid: 'kept-eggs',
+					seq: 8
+				};
+			}
+			return { op_id: op.op_id, status: 'applied', result: {}, seq: 8 };
+		});
+		offlineApi.whoAmI.mockResolvedValue(ROOM);
+		offlineApi.changes.mockResolvedValue(
+			makeFeed({ seq: 8, full: true, lists: [list], items: [item] })
+		);
+		const back = handle(offlineApi, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
+		expect(sent[1]).toMatchObject({ type: 'item.set_done', item_uid: 'kept-eggs', done: true });
+		await vi.waitFor(() => expect(back.store.notice?.code).toBe('duplicate_active'));
+		back.release();
+		storage.close();
+	});
+
+	it('bases a change on the seq its own answer just gave the row, before the feed shows it', async () => {
+		const storage = snapshots();
+		const api = fakeApi();
+		const sent: SentOp[] = [];
+		const answers: Deferred<OpResponse>[] = [];
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			const answer = deferred<OpResponse>();
+			answers.push(answer);
+			return answer.promise;
+		});
+		const room = handle(api, storage);
+		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		// From now on the feed does not answer: the device only has its own answers.
+		api.changes.mockImplementation(() => new Promise<Feed>(() => undefined));
+
+		void room.toggleItemTag(item, 'Market');
+		await vi.waitFor(() => expect(sent).toHaveLength(1));
+		answers[0].resolve({
+			op_id: sent[0].op_id,
+			status: 'applied',
+			result: { changed_seq: 2 },
+			seq: 6
+		});
+		await vi.waitFor(() => expect(room.store.item(item.uid)?.changed_seq).toBe(2));
+
+		const row = room.store.item(item.uid);
+		if (!row) throw new Error('the item is not shown');
+		void room.setDone(row, true);
+		await vi.waitFor(() => expect(sent).toHaveLength(2));
+		expect(sent[1]).toMatchObject({ type: 'item.set_done', base_seq: 2 });
 		room.release();
 		storage.close();
 	});

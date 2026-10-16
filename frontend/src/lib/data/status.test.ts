@@ -30,7 +30,7 @@ describe('connectionStatus', () => {
 	});
 });
 
-describe('offline notice text', () => {
+describe('saved time label', () => {
 	const now = new Date(2026, 9, 12, 20, 0);
 	const today = new Date(2026, 9, 12, 18, 5).toISOString();
 	const earlier = new Date(2026, 9, 10, 18, 5).toISOString();
@@ -46,16 +46,14 @@ describe('offline notice text', () => {
 	it('leaves the time out when missing or invalid', () => {
 		expect(savedTimeLabel(null, now)).toBeNull();
 		expect(savedTimeLabel('nope', now)).toBeNull();
-		expect(offlineNoticeText(null, 'lists', now)).toBe(
-			"Offline — showing your lists. Editing is back when you're online."
-		);
 	});
+});
 
-	it('words the sentence for lists and for a shared list', () => {
-		expect(offlineNoticeText(today, 'lists', now, 'en-GB')).toBe(
-			"Offline — showing your lists from 18:05. Editing is back when you're online."
+describe('offline notice text', () => {
+	it('says that changes are saved on the phone and sent later', () => {
+		expect(offlineNoticeText()).toBe(
+			"Offline — changes are saved on this phone and sent when you're back online."
 		);
-		expect(offlineNoticeText(today, 'list', now, 'en-GB')).toContain('showing this list from');
 	});
 
 	it('counts waiting changes', () => {

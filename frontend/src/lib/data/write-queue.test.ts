@@ -3,6 +3,8 @@ import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { applied, deferred, settle, type Deferred } from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Op, OpResponse, SentOp } from './types';
+import { MemoryQueueStorage } from './queue-storage';
+import { newStoredEntry } from './queue-entries';
 import { WriteQueue, type QueueHost } from './write-queue';
 
 const DELETE: Op = { type: 'list.delete', list_uid: 'l1' };
@@ -28,7 +30,11 @@ function fakeHost() {
 		opSettled: vi.fn(),
 		opFailed: vi.fn(),
 		opUnanswered: vi.fn(),
-		authRequired: vi.fn()
+		authRequired: vi.fn(),
+		opLoaded: vi.fn(),
+		opDiscarded: vi.fn(),
+		opsRewritten: vi.fn(),
+		knownSeq: vi.fn(() => undefined)
 	} satisfies QueueHost;
 }
 
@@ -276,6 +282,70 @@ describe('WriteQueue', () => {
 
 			expect(host.opFailed).not.toHaveBeenCalled();
 			expect(queue.pending.map((queued) => queued.op_id)).toEqual([opId]);
+		});
+	});
+
+	describe('offline edits (6.2d)', () => {
+		it('rewrites a later queued op in storage and tells the host, after an answer', async () => {
+			const sender = fakeSender();
+			const host = fakeHost();
+			const storage = new MemoryQueueStorage();
+			const queue = new WriteQueue('home', sender, host, { storage });
+			const tick: Op = {
+				type: 'item.set_done',
+				list_uid: 'l1',
+				item_uid: 'milk',
+				done: true,
+				base_seq: 5
+			};
+			const edit: Op = {
+				type: 'item.edit',
+				list_uid: 'l1',
+				item_uid: 'milk',
+				name: 'milk',
+				description: 'cold',
+				base_seq: 5
+			};
+			const first = queue.send(tick);
+			void queue.send(edit);
+			await settle();
+			const tickSent = sender.calls[0].op;
+			sender.calls[0].answer.resolve(applied(tickSent, 7, { changed_seq: 7 }));
+			await first;
+			await settle();
+
+			const editSent = sender.calls[1].op;
+			expect(editSent).toMatchObject({ type: 'item.edit', base_seq: 7 });
+			expect(host.opsRewritten).toHaveBeenCalledWith([
+				{ opId: editSent.op_id, op: { ...editSent, base_seq: 7 } }
+			]);
+			const stored = await storage.read();
+			expect(stored.map((entry) => entry.op)).toEqual([{ ...editSent, base_seq: 7 }]);
+			sender.calls[1].answer.resolve(applied(editSent, 8));
+		});
+
+		it('hands loaded ops to the host with their stored time', async () => {
+			const storage = new MemoryQueueStorage();
+			const stored: SentOp = { ...DELETE, op_id: 'stored-1' } as SentOp;
+			await storage.add(newStoredEntry(stored, '2026-10-01T10:00:00.000Z'));
+			const host = fakeHost();
+			const queue = new WriteQueue('home', fakeSender(), host, { storage });
+			await queue.load();
+			expect(host.opLoaded).toHaveBeenCalledWith(stored, '2026-10-01T10:00:00.000Z');
+		});
+
+		it('tells the host when the user discards a held op', async () => {
+			const storage = new MemoryQueueStorage();
+			const stored: SentOp = { ...DELETE, op_id: 'old-1' } as SentOp;
+			await storage.add(newStoredEntry(stored, '2026-08-01T10:00:00.000Z'));
+			const host = fakeHost();
+			const queue = new WriteQueue('home', fakeSender(), host, {
+				storage,
+				now: () => new Date('2026-10-16T10:00:00.000Z')
+			});
+			await queue.load();
+			expect(queue.discard('old-1')).toBe(true);
+			expect(host.opDiscarded).toHaveBeenCalledWith(stored);
 		});
 	});
 });

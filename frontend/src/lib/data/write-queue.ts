@@ -28,13 +28,23 @@ import {
 } from './queue-entries';
 import { MemoryQueueStorage, type QueueStorage } from './queue-storage';
 import { newId } from './ids';
+import { planRewrites, type Rewrite } from './rebase';
 import type { SessionLockManager } from './session-transition';
 import { ApiError } from './types';
 import type { Op, OpResponse, SentOp } from './types';
 
 /** What the queue tells its room. `RoomStore` implements it. */
 export interface QueueHost {
+	/** A new op waits (see `send`). */
 	opQueued(op: SentOp): void;
+	/** An op read from storage waits: it is shown as the stored `at` says. */
+	opLoaded(op: SentOp, at: string): void;
+	/** A waiting op was dropped by the user (see `discard`). */
+	opDiscarded(op: SentOp): void;
+	/** Later waiting ops were rewritten: a new `base_seq` or uid (see rebase.ts). */
+	opsRewritten(rewrites: readonly Rewrite[]): void;
+	/** The `changed_seq` of a row the server has, as this device knows it. */
+	knownSeq(row: string): number | undefined;
 	/** The op is on its way; its answer is open. */
 	opSending(op: SentOp): void;
 	/** The answer is applied or rejected; the host reads the changes it needs. */
@@ -98,6 +108,8 @@ export class WriteQueue {
 
 	/** Every stored entry, in send order: this tab's copy of the storage. */
 	#entries: StoredEntry[] = [];
+	/** Ops whose request was started and not yet answered (in flight or retried). */
+	#sent = new Set<string>();
 	/** Bumped by each local change. A storage read that overlaps a change is repeated. */
 	#version = 0;
 	/** Storage calls run one after another, in the order they were made. */
@@ -140,9 +152,19 @@ export class WriteQueue {
 		return this.#paused;
 	}
 
-	/** Reads what is stored for this room, so `pending` and `waiting` are right. */
+	/**
+	 * Reads what is stored for this room, so `pending` and `waiting` are right,
+	 * and tells the host about each readable op (it projects them, as `send` does).
+	 */
 	async load(): Promise<void> {
 		await this.#readStored();
+		const now = this.#nowMs();
+		for (const entry of this.#entries) {
+			const verdict = classifyEntry(entry, now);
+			if (verdict.kind === 'unreadable') continue;
+			const at = typeof entry.at === 'string' ? entry.at : this.#now().toISOString();
+			this.#host.opLoaded(verdict.op, at);
+		}
 	}
 
 	/**
@@ -207,10 +229,13 @@ export class WriteQueue {
 	 */
 	discard(opId: string): boolean {
 		if (opId === this.#inFlight) return false;
-		if (!this.#entries.some((entry) => entry.opId === opId)) return false;
+		const entry = this.#entries.find((item) => item.opId === opId);
+		if (!entry) return false;
+		const verdict = classifyEntry(entry, this.#nowMs());
 		this.#waiters.get(opId)?.reject(new Error('This change was discarded.'));
 		this.#waiters.delete(opId);
 		this.#removeEntry(opId);
+		if (verdict.kind !== 'unreadable') this.#host.opDiscarded(verdict.op);
 		void this.#pump();
 		return true;
 	}
@@ -262,6 +287,7 @@ export class WriteQueue {
 	}
 
 	#removeEntry(opId: string): void {
+		this.#sent.delete(opId);
 		this.#entries = this.#entries.filter((entry) => entry.opId !== opId);
 		this.#mutated();
 		void this.#enqueue(() => this.#storage.remove(opId));
@@ -304,6 +330,7 @@ export class WriteQueue {
 	/** Makes one request; `#inFlight` is set only while it is open. */
 	async #call(op: SentOp): Promise<OpResponse> {
 		this.#inFlight = op.op_id;
+		this.#sent.add(op.op_id);
 		try {
 			return await this.#sender.sendOp(this.#slug, op);
 		} finally {
@@ -349,9 +376,45 @@ export class WriteQueue {
 		if (this.#disposed) return;
 		this.#attempt = 0;
 		this.#removeEntry(op.op_id);
+		// Planned before the host records the answer: `knownSeq` is the seq before it.
+		const rewrites = this.#planRewrites(op, response);
 		this.#host.opSettled(op, response);
+		this.#applyRewrites(rewrites);
 		this.#waiters.get(op.op_id)?.resolve(response);
 		this.#waiters.delete(op.op_id);
+	}
+
+	/**
+	 * After an answer, the queued ops that were based on the same view take the
+	 * new `base_seq` or uid (R3, R6). Only ops never sent are rewritten.
+	 */
+	#planRewrites(settled: SentOp, response: OpResponse): Rewrite[] {
+		const now = this.#nowMs();
+		const later = this.#entries.flatMap((entry) => {
+			const verdict = classifyEntry(entry, now);
+			return verdict.kind === 'unreadable' ? [] : [verdict.op];
+		});
+		return planRewrites({
+			settled,
+			response,
+			later,
+			sent: (opId) => this.#sent.has(opId),
+			knownSeq: (row) => this.#host.knownSeq(row)
+		});
+	}
+
+	#applyRewrites(rewrites: readonly Rewrite[]): void {
+		if (rewrites.length === 0) return;
+		const byId = new Map(rewrites.map((rewrite) => [rewrite.opId, rewrite.op]));
+		this.#entries = this.#entries.map((entry) => {
+			const op = byId.get(entry.opId);
+			return op ? { ...entry, op } : entry;
+		});
+		this.#mutated();
+		for (const rewrite of rewrites) {
+			void this.#enqueue(() => this.#storage.setOp(rewrite.opId, rewrite.op));
+		}
+		this.#host.opsRewritten(rewrites);
 	}
 
 	#sleep(ms: number): Promise<void> {

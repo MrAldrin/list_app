@@ -12,6 +12,7 @@
 import { isRecord } from './snapshot-validate';
 import { requestValue, transact } from './snapshot-idb';
 import type { EntryState, StoredEntry } from './queue-entries';
+import type { SentOp } from './types';
 
 export const QUEUE_DATABASE_NAME = 'listr-queue';
 const QUEUE_DATABASE_VERSION = 1;
@@ -25,6 +26,8 @@ export interface QueueStorage {
 	add(entry: StoredEntry): Promise<void>;
 	remove(opId: string): Promise<void>;
 	setState(opId: string, state: EntryState): Promise<void>;
+	/** Replaces the op JSON of an entry (its `op_id` stays). */
+	setOp(opId: string, op: SentOp): Promise<void>;
 	/** Removes every entry of this room or share link. */
 	clear(): Promise<void>;
 }
@@ -47,6 +50,9 @@ export class MemoryQueueStorage implements QueueStorage {
 		this.#entries = this.#entries.map((entry) =>
 			entry.opId === opId ? { ...entry, state } : entry
 		);
+	}
+	async setOp(opId: string, op: SentOp): Promise<void> {
+		this.#entries = this.#entries.map((entry) => (entry.opId === opId ? { ...entry, op } : entry));
 	}
 	async clear(): Promise<void> {
 		this.#entries = [];
@@ -162,6 +168,13 @@ class IndexedDbQueueStorage implements QueueStorage {
 		return this.#change(
 			(raw) => raw.map((item) => (sameOp(item, opId) ? { ...item, state } : item)),
 			(memory) => memory.map((entry) => (entry.opId === opId ? { ...entry, state } : entry))
+		);
+	}
+
+	setOp(opId: string, op: SentOp): Promise<void> {
+		return this.#change(
+			(raw) => raw.map((item) => (sameOp(item, opId) ? { ...item, op } : item)),
+			(memory) => memory.map((entry) => (entry.opId === opId ? { ...entry, op } : entry))
 		);
 	}
 

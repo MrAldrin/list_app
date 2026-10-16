@@ -31,7 +31,11 @@ function fakeHost(): QueueHost {
 		opSettled: vi.fn(),
 		opFailed: vi.fn(),
 		opUnanswered: vi.fn(),
-		authRequired: vi.fn()
+		authRequired: vi.fn(),
+		opLoaded: vi.fn(),
+		opDiscarded: vi.fn(),
+		opsRewritten: vi.fn(),
+		knownSeq: vi.fn(() => undefined)
 	};
 }
 

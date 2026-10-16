@@ -5,7 +5,16 @@ import { SvelteMap } from 'svelte/reactivity';
 import { compat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
-import { isProjected, nowIso, project, type PendingOp, type RoomData } from './overlay';
+import {
+	isProjected,
+	nowIso,
+	project,
+	projectRoom,
+	type AnsweredSeq,
+	type PendingOp,
+	type RoomData
+} from './overlay';
+import { changedRow, type Rewrite } from './rebase';
 import { groupItemsByList, sortLists } from './order';
 import { mergeFeed } from './feed';
 import { filterVisibleItems } from './visibility';
@@ -67,7 +76,8 @@ export class RoomStore implements QueueHost, LiveHost {
 	readonly #source: FeedSource;
 	readonly #lifecycle: RoomStoreLifecycle;
 
-	room = $state.raw<Room | null>(null);
+	/** The room as the server sent it (see `room` for the projected name). */
+	#serverRoom = $state.raw<Room | null>(null);
 	/** The room `seq` of the last applied feed; sent as `since` next time. */
 	seq = $state(0);
 	status = $state<RoomStatus>('loading');
@@ -82,14 +92,17 @@ export class RoomStore implements QueueHost, LiveHost {
 	queued = $state(0);
 	/** True while a write got no answer and is being tried again. */
 	retrying = $state(false);
-	/** When available, the refresh time of the read-only saved view. */
+	/** When available, the refresh time of the saved view. */
 	savedAt = $state<string | null>(null);
 	/** Storage failures are informational; online data use continues. */
 	snapshotWarning = $state<string | null>(null);
 
 	#server = $state.raw<RoomData>(EMPTY);
 	#pending = $state.raw<readonly PendingOp[]>([]);
-	#view = $derived(project(this.#server, this.#pending));
+	/** Rows that answered ops changed, until the feed has them (see AnsweredSeq). */
+	#answeredRows = $state.raw<readonly AnsweredSeq[]>([]);
+	#view = $derived(project(this.#server, this.#pending, this.#answeredRows));
+	#projectedRoom = $derived(projectRoom(this.#serverRoom, this.#pending));
 
 	/** All lists, sorted by name ignoring case (pending ops included). */
 	lists = $derived(sortLists(this.#view.lists.values()));
@@ -102,6 +115,8 @@ export class RoomStore implements QueueHost, LiveHost {
 	#feedVersion = 0;
 	#cleared = false;
 	#writeAuthorized = $state(false);
+	/** Set once data is confirmed or saved for this room; cleared when it goes. */
+	#editable = $state(false);
 	#savedView = $state(false);
 	#authorizationVersion = 0;
 	#sentAuthorization = new SvelteMap<string, number>();
@@ -115,6 +130,25 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.slug = slug;
 		this.#source = source;
 		this.#lifecycle = lifecycle;
+	}
+
+	/** The room's name, with a pending rename shown at once. */
+	get room(): Room | null {
+		return this.#projectedRoom;
+	}
+
+	/**
+	 * Edits may start: the data is this room's (confirmed or saved) and no new
+	 * server version was seen. Offline, an edit is queued and sent later (R9
+	 * decides what happens if access is gone then).
+	 */
+	get canEdit(): boolean {
+		return this.#editable && this.status === 'ready' && !compat.incompatible;
+	}
+
+	/** Lets `canEdit` go false at once, for example when a sign-out starts. */
+	setEditable(editable: boolean): void {
+		this.#editable = editable;
 	}
 
 	/** Cached identity and data never authorize writes. */
@@ -167,11 +201,13 @@ export class RoomStore implements QueueHost, LiveHost {
 			lists: new SvelteMap(snapshot.lists.map((list) => [list.uid, list])),
 			items: new SvelteMap(snapshot.items.map((item) => [item.uid, item]))
 		};
-		this.room = snapshot.room;
+		this.#serverRoom = snapshot.room;
+		this.#answeredRows = [];
 		this.seq = snapshot.seq;
 		this.savedAt = snapshot.savedAt;
 		this.error = null;
 		this.status = 'ready';
+		this.#editable = true;
 		this.#savedView = true;
 		this.setWriteAuthorized(false);
 	}
@@ -179,7 +215,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	/** A room-only endpoint lost membership; the independently valid share view stays. */
 	dropMemberRoom(): void {
 		this.#feedVersion += 1;
-		this.room = null;
+		this.#serverRoom = null;
 		this.setWriteAuthorized(false);
 	}
 
@@ -242,13 +278,17 @@ export class RoomStore implements QueueHost, LiveHost {
 
 		this.#server = mergeFeed(this.#server, feed);
 		this.#cleared = false;
-		this.room = feed.room;
+		this.#serverRoom = feed.room;
 		this.seq = feed.seq;
 		// An applied op is in the data once we reached its seq. After a database
 		// restore (full feed with a lower seq) the old seqs mean nothing.
 		this.#pending = this.#pending.filter(
 			(pending) => pending.appliedSeq === null || (!restored && pending.appliedSeq > this.seq)
 		);
+		// The feed has the rows up to its seq; answers it does not reach are kept.
+		this.#answeredRows = restored
+			? []
+			: this.#answeredRows.filter((row) => row.appliedSeq > this.seq);
 		return true;
 	}
 
@@ -309,11 +349,12 @@ export class RoomStore implements QueueHost, LiveHost {
 			if (!this.applyFeed(feed)) return false;
 			this.error = null;
 			this.status = 'ready';
+			this.#editable = true;
 			this.#savedView = false;
 			if (this.#lifecycle.feedApplied) {
 				await this.#lifecycle.feedApplied({
 					seq: this.seq,
-					room: this.room,
+					room: this.#serverRoom,
 					lists: [...this.#server.lists.values()],
 					items: [...this.#server.items.values()]
 				});
@@ -351,7 +392,9 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.setWriteAuthorized(false);
 		this.#server = EMPTY;
 		this.#pending = [];
-		this.room = null;
+		this.#answeredRows = [];
+		this.#serverRoom = null;
+		this.#editable = false;
 		this.seq = 0;
 		this.savedAt = null;
 		this.#savedView = false;
@@ -401,9 +444,58 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	opQueued(op: SentOp): void {
 		this.#sentClearVersion.set(op.op_id, this.#clearVersion);
+		this.#waiting(op, nowIso());
+	}
+
+	/**
+	 * A stored op read again (see WriteQueue.load). It keeps the send generation
+	 * it had, so an op that is still in flight is not taken for a new one.
+	 */
+	opLoaded(op: SentOp, at: string): void {
+		this.#waiting(op, at);
+	}
+
+	#waiting(op: SentOp, at: string): void {
+		// Already shown (the queue was read again): nothing to add.
+		if (this.#pending.some((pending) => pending.op.op_id === op.op_id)) return;
 		this.queued += 1;
 		if (!isProjected(op)) return;
-		this.#pending = [...this.#pending, { op, at: nowIso(), appliedSeq: null }];
+		this.#pending = [...this.#pending, { op, at, appliedSeq: null }];
+	}
+
+	/** A waiting op was dropped by the user: its change is no longer shown. */
+	opDiscarded(op: SentOp): void {
+		this.#drop(op.op_id);
+		this.queued = Math.max(0, this.queued - 1);
+	}
+
+	/** Later ops were rewritten (base_seq or uid): keep the projection in step. */
+	opsRewritten(rewrites: readonly Rewrite[]): void {
+		this.#pending = this.#pending.map((pending) => {
+			const rewrite = rewrites.find((item) => item.opId === pending.op.op_id);
+			return rewrite ? { ...pending, op: rewrite.op } : pending;
+		});
+	}
+
+	/**
+	 * The `changed_seq` of a row as this device shows it, for rebasing (rebase.ts).
+	 * Read before the answer is recorded (the queue plans first).
+	 */
+	knownSeq(row: string): number | undefined {
+		const uid = row.slice(row.indexOf(':') + 1);
+		if (row.startsWith('list:')) return this.#view.lists.get(uid)?.changed_seq;
+		return this.#view.items.get(uid)?.changed_seq;
+	}
+
+	/** An applied change shows its row's new `changed_seq` at once (see AnsweredSeq). */
+	#recordAnswer(op: SentOp, response: OpResponse): void {
+		if (response.status !== 'applied' || typeof response.result.changed_seq !== 'number') return;
+		const row = changedRow(op, response);
+		if (row === null) return;
+		this.#answeredRows = [
+			...this.#answeredRows.filter((answered) => answered.row !== row),
+			{ row, changed_seq: response.result.changed_seq, appliedSeq: response.seq }
+		];
 	}
 
 	opSending(op: SentOp): void {
@@ -417,6 +509,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
 		this.#sentAuthorization.delete(op.op_id);
+		this.#recordAnswer(op, response);
 		if (response.status === 'rejected') {
 			this.#drop(op.op_id);
 			this.notify(response.code, response.message);

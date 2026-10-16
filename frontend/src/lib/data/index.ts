@@ -29,6 +29,7 @@ import {
 	retryPendingServerLogout
 } from './pending-logout';
 import { failed, type ActionResult } from './result';
+import { itemName } from './overlay';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { signInRoom, SIGNIN_INTERRUPTED } from './room-signin';
 import { ShareApi } from './share';
@@ -254,6 +255,15 @@ export class RoomHandle {
 		return this.store.canWrite ? null : READ_ONLY;
 	}
 
+	/**
+	 * Why an edit cannot start now, or null when it may. Edits also start
+	 * offline: they are queued (see `#run`).
+	 */
+	#guardEdit(): typeof READ_ONLY | typeof INCOMPATIBLE | null {
+		if (compat.incompatible) return INCOMPATIBLE;
+		return this.store.canEdit ? null : READ_ONLY;
+	}
+
 	/** Ops not answered by the server yet. */
 	get queuedOps() {
 		return this.#queue.pending;
@@ -373,8 +383,9 @@ export class RoomHandle {
 
 	// Lists
 
+	/** Needs a connection: the new list gets its address from the server. */
 	createList(name: string): Promise<ActionResult<ListCreateResult>> {
-		return this.#run({ type: 'list.create', name, uid: newId() });
+		return this.#runOnline({ type: 'list.create', name, uid: newId() });
 	}
 
 	renameList(list: Pick<List, 'uid' | 'changed_seq'>, name: string): Promise<ActionResult> {
@@ -405,8 +416,14 @@ export class RoomHandle {
 		return this.#run({ type: 'item.add', list_uid: list.uid, name, uid: newId() });
 	}
 
-	setDone(item: ItemRef, done: boolean): Promise<ActionResult> {
-		return this.#run({ type: 'item.set_done', ...itemKeys(item), done });
+	/** `item` is the item as shown: its `changed_seq` is the state the user saw. */
+	setDone(item: ItemRef & Pick<Item, 'changed_seq'>, done: boolean): Promise<ActionResult> {
+		return this.#run({
+			type: 'item.set_done',
+			...itemKeys(item),
+			done,
+			base_seq: item.changed_seq
+		});
 	}
 
 	changeQuantity(item: ItemRef, delta: number): Promise<ActionResult> {
@@ -425,13 +442,19 @@ export class RoomHandle {
 		});
 	}
 
-	toggleItemTag(item: ItemRef, tag: string): Promise<ActionResult> {
-		return this.#run({ type: 'item.toggle_tag', ...itemKeys(item), tag });
+	/** `active` is the wanted state: the tag is off now, so the op turns it on (or back). */
+	toggleItemTag(item: ItemRef & Pick<Item, 'tags'>, tag: string): Promise<ActionResult> {
+		return this.#run({
+			type: 'item.toggle_tag',
+			...itemKeys(item),
+			tag,
+			active: !item.tags.includes(tag)
+		});
 	}
 
 	/** Deletes an item and keeps its data so `restoreItem(item.uid)` can undo it. */
 	deleteItem(item: Item): Promise<ActionResult> {
-		const blocked = this.#guardWrite();
+		const blocked = this.#guardEdit();
 		if (blocked) return Promise.resolve(blocked);
 		this.#deleted.set(item.uid, this.store.item(item.uid) ?? item);
 		return this.#run({ type: 'item.delete', ...itemKeys(item) });
@@ -439,7 +462,7 @@ export class RoomHandle {
 
 	/** Undo of `deleteItem`: a new item (new uid) with the kept data. */
 	async restoreItem(itemUid: string): Promise<ActionResult<ItemRestoreResult>> {
-		const blocked = this.#guardWrite();
+		const blocked = this.#guardEdit();
 		if (blocked) return blocked;
 		const item = this.#deleted.get(itemUid);
 		if (!item) {
@@ -522,6 +545,7 @@ export class RoomHandle {
 		this.#clearRevalidationTimer();
 		this.#signoutBlocked = true;
 		this.store.setWriteAuthorized(false);
+		this.store.setEditable(false);
 		this.#queue.pause();
 		// A live event or reconnect must not reload (and so clear) the room
 		// while the marker is still being stored.
@@ -673,6 +697,9 @@ export class RoomHandle {
 		this.#sessionValidated = true;
 		this.store.setWriteAuthorized(true);
 		this.#revalidationAttempt = 0;
+		// A clear forgets the projection of stored ops; reading them again shows
+		// them (ops already shown are skipped).
+		await this.#queue.load();
 		this.store.syncQueued(this.#queue.waiting);
 		this.#queue.resume();
 		if (this.#users > 0) this.#live.start();
@@ -863,7 +890,49 @@ export class RoomHandle {
 		return a.identityKey === b.identityKey && a.generation === b.generation;
 	}
 
-	async #run<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
+	/**
+	 * Runs an edit. Online, it waits for the server's answer. Offline (or while
+	 * access is revalidated) it is queued at once: the change shows through the
+	 * overlay, the answer comes later, and a rejection is a toast then (6.3 will
+	 * list it instead). Stored ops are sent on reconnect (see RoomStore).
+	 */
+	#run<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
+		const blocked = this.#guardEdit();
+		if (blocked) return Promise.resolve(blocked);
+		if (this.store.canWrite) return this.#runOnline<R>(op);
+		const provisional = this.#provisional<R>(op);
+		// The answer, if it is a failure, is shown by the store; nobody awaits it here.
+		this.#queue.send(op).catch(() => undefined);
+		return Promise.resolve(provisional);
+	}
+
+	/**
+	 * What an edit reports before the server answers. The overlay already shows
+	 * its effect, so this only says what the answer would most likely be.
+	 */
+	#provisional<R>(op: Op): ActionResult<R> {
+		if (op.type === 'item.add') {
+			const name = itemName(op.name);
+			const same = this.store.itemsOf(op.list_uid).filter((item) => item.name === name);
+			if (same.some((item) => !item.done)) {
+				return {
+					ok: false,
+					code: 'duplicate_active',
+					message: `'${name}' is already on the list`
+				};
+			}
+			const existing = same[0];
+			return {
+				ok: true,
+				result: { item_uid: existing?.uid ?? op.uid, outcome: existing ? 'restored' : 'added' } as R
+			};
+		}
+		if (op.type === 'item.restore') return { ok: true, result: { item_uid: op.uid } as R };
+		return { ok: true, result: {} as R };
+	}
+
+	/** An edit that waits for the server's answer (see `#run`). */
+	async #runOnline<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
 		const blocked = this.#guardWrite();
 		if (blocked) return blocked;
 		const epoch = this.#identityEpoch;

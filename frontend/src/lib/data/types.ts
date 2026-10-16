@@ -107,6 +107,8 @@ export interface ItemSetDoneOp {
 	list_uid: string;
 	item_uid: string;
 	done: boolean;
+	/** The row's `changed_seq` the page showed when the user acted. */
+	base_seq?: number;
 }
 export interface ItemQuantityDeltaOp {
 	type: 'item.quantity_delta';
@@ -128,6 +130,8 @@ export interface ItemToggleTagOp {
 	list_uid: string;
 	item_uid: string;
 	tag: string;
+	/** The wanted state: on (`true`) or off (`false`). Safe to send twice. */
+	active?: boolean;
 }
 export interface ItemDeleteOp {
 	type: 'item.delete';
@@ -183,6 +187,7 @@ export type RejectionCode =
 	| 'duplicate_name'
 	| 'duplicate_active'
 	| 'undo_name_taken'
+	| 'changed_meanwhile'
 	| 'list_unavailable'
 	| 'item_not_found'
 	| 'too_long';
@@ -199,6 +204,8 @@ export interface OpRejected {
 	code: RejectionCode;
 	message: string;
 	seq: number;
+	/** With `duplicate_active`: the uid of the item that is already on the list. */
+	item_uid?: string;
 }
 export type OpResponse = OpApplied | OpRejected;
 

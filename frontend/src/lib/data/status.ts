@@ -59,16 +59,9 @@ export function savedTimeLabel(
 	return `${day}, ${time}`;
 }
 
-/** The first sentence of the offline notice. */
-export function offlineNoticeText(
-	savedAt: string | null,
-	what: 'lists' | 'list',
-	now?: Date,
-	locale?: string
-): string {
-	const subject = what === 'list' ? 'this list' : 'your lists';
-	const time = savedTimeLabel(savedAt, now, locale);
-	return `Offline — showing ${subject}${time ? ` from ${time}` : ''}. Editing is back when you're online.`;
+/** The offline notice (docs/offline-viewing.md, "The offline notice"). */
+export function offlineNoticeText(): string {
+	return "Offline — changes are saved on this phone and sent when you're back online.";
 }
 
 /** "1 change waiting to be sent." or "N changes waiting to be sent."; null for none. */
