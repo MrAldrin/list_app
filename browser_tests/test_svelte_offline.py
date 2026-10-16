@@ -12,6 +12,7 @@ from svelte_app import (
     room_app_url,
     share_link,
     sign_in,
+    wait_until,
 )
 
 
@@ -49,7 +50,9 @@ def controlled_page(page: Page, url: str) -> tuple[Page, dict[str, bool]]:
     return page, capabilities
 
 
-def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_session):
+def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
+    svelte_server, open_session
+):
     server = svelte_server
     page, capabilities = controlled_page(
         open_session("offline-member", **PHONE), server.url
@@ -94,39 +97,41 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     )
 
     server.stop()
-    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     # The notice is the only connection message, and its spaces render.
-    expect(page.get_by_text("online.", exact=False).first).to_contain_text(
-        ". Editing is back"
-    )
+    expect(
+        page.get_by_text(
+            "Offline — changes are saved on this phone and sent when you're back online."
+        )
+    ).to_be_visible()
     expect(page.get_by_text("Could not load the latest changes")).to_have_count(0)
     expect(page.get_by_text("Reconnecting…")).to_have_count(0)
 
-    # Search can reveal saved checked items without changing shared state.
+    # Search filters the saved items; the item controls are enabled (queued).
     field = page.get_by_label("Add or Search")
     field.fill("milk")
     expect(item_names(page)).to_have_text(["milk"])
-    expect(page.get_by_role("button", name="Add")).to_be_disabled()
-    expect(page.get_by_role("checkbox", name="milk")).to_be_disabled()
-    expect(page.get_by_role("button", name="Market tag for milk")).to_be_disabled()
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
+    expect(page.get_by_role("checkbox", name="milk")).to_be_enabled()
+    expect(page.get_by_role("button", name="Market tag for milk")).to_be_enabled()
     field.fill("")
     expect(item_names(page)).to_have_text(["apples", "bread"])
 
     page.get_by_role("button", name="Options").click()
-    expect(page.get_by_role("switch", name="Hide checked-off items")).to_be_disabled()
-    expect(page.get_by_role("button", name="Add new tag")).to_be_disabled()
-    expect(page.get_by_role("button", name="Delete tag Market")).to_be_disabled()
-    expect(page.get_by_role("button", name="Delete apples")).to_be_disabled()
+    expect(page.get_by_role("switch", name="Hide checked-off items")).to_be_enabled()
+    expect(page.get_by_role("button", name="Add new tag")).to_be_enabled()
+    expect(page.get_by_role("button", name="Delete tag Market")).to_be_enabled()
+    expect(page.get_by_role("button", name="Delete apples")).to_be_enabled()
     page.get_by_role("switch", name="Show quantities").check()
     page.get_by_role("button", name="Done").click()
     field.fill("milk")
-    expect(page.get_by_role("button", name="More milk")).to_be_disabled()
+    expect(page.get_by_role("button", name="More milk")).to_be_enabled()
     field.blur()
     page.get_by_role("button", name="milk", exact=True).click()
     dialog = page.get_by_role("dialog")
     dialog.get_by_label("Item Name").fill("unsaved draft")
-    expect(dialog.get_by_role("button", name="Save")).to_be_disabled()
-    expect(dialog.get_by_role("button", name="Delete Item")).to_be_disabled()
+    expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
+    expect(dialog.get_by_role("button", name="Delete Item")).to_be_enabled()
     expect(dialog.get_by_label("Item Name")).to_have_value("unsaved draft")
     dialog.get_by_role("button", name="Cancel").click()
     field.fill("")
@@ -136,15 +141,17 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     market.click()
     expect(item_names(page)).to_have_text(["apples", "bread"])
 
-    # Private room management is disabled, but local logout remains available.
+    # Creating a list, password and room delete need a connection; renames and
+    # the list delete are queued. Local logout remains available.
     room_page = page.context.new_page()
     room_page.goto(room_app_url(server))
     expect(room_page.get_by_role("heading", name="Home")).to_be_visible()
     expect(room_page.get_by_role("button", name="Add New List")).to_be_disabled()
     for name in ("Rename Groceries", "Delete Groceries"):
-        expect(room_page.get_by_role("button", name=name)).to_be_disabled()
+        expect(room_page.get_by_role("button", name=name)).to_be_enabled()
     room_page.get_by_role("button", name="Room menu").click()
-    for name in ("Rename Room", "Change Password", "Delete Room"):
+    expect(room_page.get_by_role("button", name="Rename Room")).to_be_enabled()
+    for name in ("Change Password", "Delete Room"):
         expect(room_page.get_by_role("button", name=name)).to_be_disabled()
     expect(room_page.get_by_role("button", name="Log out")).to_be_enabled()
 
@@ -158,9 +165,12 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     share_page = page.context.new_page()
     share_page.goto(public_url)
     expect(share_page.get_by_role("heading", name="Groceries")).to_be_visible()
-    expect(share_page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    expect(
+        share_page.get_by_text("Offline — changes are saved", exact=False)
+    ).to_be_visible()
     expect(share_page.get_by_role("link", name="Back to room")).to_have_count(0)
     share_page.get_by_role("button", name="List menu").click()
+    expect(share_page.get_by_role("button", name="Share List")).to_be_disabled()
     expect(share_page.get_by_role("button", name="Reset share link")).to_have_count(0)
 
     # Shell-only room and share URLs report Connect, not a permanent spinner.
@@ -184,7 +194,9 @@ def test_saved_room_and_share_views_are_read_only_offline(svelte_server, open_se
     server.start()
     page.goto(f"{list_url}?reopen=after-offline")
     expect(page.get_by_role("button", name="Add")).to_be_enabled()
-    expect(page.get_by_text("Offline — showing", exact=False)).to_have_count(0)
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_have_count(
+        0
+    )
 
 
 def test_offline_logout_clears_room_but_keeps_share_and_marker(
@@ -230,7 +242,7 @@ def test_offline_logout_clears_room_but_keeps_share_and_marker(
 
     page.reload()
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
-    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     expect(page.get_by_role("link", name="Back to room")).to_have_count(0)
 
     server.start()
@@ -262,7 +274,7 @@ def test_legacy_private_list_route_opens_from_room_snapshot_offline(
 
     page.goto(f"{server.url}/list/{list_slug}")
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
-    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     expect(item_names(page)).to_have_text(["milk"])
     page.wait_for_timeout(250)
 
@@ -319,6 +331,52 @@ def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
     # The saved view was there: offline, the same start shows the notice.
     server.stop()
     page.goto(list_url)
-    expect(page.get_by_text("Offline — showing", exact=False)).to_be_visible()
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     expect(item_names(page)).to_have_text(["milk"])
     page.wait_for_timeout(250)
+
+
+def test_offline_edits_survive_a_reload_and_reach_the_server(
+    svelte_server, open_session
+):
+    server = svelte_server
+    page, _ = controlled_page(open_session("offline-editor", **PHONE), server.url)
+    sign_in(page, server)
+    create_list(page, "Groceries")
+    add_item(page, "milk")
+    add_item(page, "bread")
+
+    server.stop()
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
+    add_item(page, "eggs")
+    page.get_by_role("checkbox", name="milk").check()
+    expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
+    expect(page.get_by_text("2 changes waiting to be sent.")).to_be_visible()
+
+    # A reload while still offline keeps both changes on the phone.
+    page.reload()
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
+    expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
+    expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
+    expect(page.get_by_text("2 changes waiting to be sent.")).to_be_visible()
+
+    # Back online: the changes are sent, and the notice goes away.
+    server.start()
+    page.evaluate("window.dispatchEvent(new Event('online'))")
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_have_count(
+        0, timeout=30_000
+    )
+    expected = [("bread", 0), ("eggs", 0), ("milk", 1)]
+    wait_until(
+        page,
+        lambda: server.query("SELECT name, done FROM items ORDER BY name") == expected,
+        "the queued changes did not reach the server",
+        timeout_ms=20_000,
+    )
+
+    # Another device, online, sees the same list.
+    peer = open_session("offline-peer", **PHONE)
+    sign_in(peer, server)
+    peer.get_by_role("link", name="Groceries").click()
+    expect(item_names(peer)).to_have_text(["bread", "eggs", "milk"])
+    expect(peer.get_by_role("checkbox", name="milk")).to_be_checked()

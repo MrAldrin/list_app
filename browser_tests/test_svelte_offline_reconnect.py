@@ -1,4 +1,4 @@
-"""Reconnect, revocation and resume rules for read-only saved views.
+"""Reconnect, revocation and resume rules for saved views.
 
 Network loss is simulated by failing every API call (`go_offline`); other faults
 use `page.route`. A second browser context plays "another device".
@@ -9,7 +9,15 @@ import re
 
 import pytest
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, create_list, item_names, room_app_url, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    create_list,
+    item_names,
+    room_app_url,
+    sign_in,
+    wait_until,
+)
 from test_svelte_offline import share_link
 from test_svelte_share import RESET_MESSAGE, UNAVAILABLE_MESSAGE, reset_link
 
@@ -32,7 +40,7 @@ RESUME = {
         new PageTransitionEvent('pageshow', { persisted: true })
     )""",
 }
-SAVED = "Offline — showing"
+SAVED = "Offline — changes are saved"
 SLOW = {"timeout": 20_000}  # revalidation retries back off: 1 s, 2 s, 5 s, ...
 
 
@@ -73,7 +81,7 @@ def view_offline(page: Page, url: str) -> None:
     go_offline(page)
     page.goto(url)
     expect(saved_notice(page)).to_be_visible()
-    expect(page.get_by_role("button", name="Add")).to_be_disabled()
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
 
 
 def count_requests(page: Page, pattern: str) -> list[str]:
@@ -111,11 +119,11 @@ def test_typing_during_an_online_revalidation_does_not_filter(
         "**/api/v1/rooms/*/session",
         lambda route: held.append(route) if not held else route.continue_(),
     )
-    # A resume (as after a back/forward cache restore) revalidates while online;
-    # writes stay off until it answers, but the data is not a saved view.
+    # A resume (as after a back/forward cache restore) revalidates while online.
+    # Edits are queued meanwhile, but the data is not a saved view.
     with page.expect_request(lambda r: r.url.endswith("/session")):
         page.evaluate(RESUME["pageshow"])
-    expect(page.get_by_role("button", name="Add")).to_be_disabled()
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
     expect(saved_notice(page)).to_have_count(0)
 
     field = page.get_by_label("Add or Search")
@@ -147,26 +155,30 @@ def test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes(
     other.get_by_role("button", name="Done").click()
     expect(item_names(other)).to_have_text(["eggs", "milk"])
 
-    # Online again, but the feed is blocked: the online signal alone is not
-    # enough to enable writes.
+    # Online again, but the feed is blocked: the online signal alone does not
+    # send changes. A tick made now is kept and waits for the feed.
     blocked = count_requests(page, r"/changes")
+    sent = count_requests(page, r"/ops$")
     page.route("**/api/v1/rooms/*/changes*", lambda route: route.abort())
     with page.expect_request(lambda r: "/changes" in r.url, **SLOW):
         go_online(page)
     page.wait_for_timeout(500)
     assert blocked
     expect(saved_notice(page)).to_be_visible()
-    expect(page.get_by_role("button", name="Add")).to_be_disabled()
-    expect(page.get_by_role("checkbox", name="milk")).to_be_disabled()
     expect(item_names(page)).to_have_text(["bread", "milk"])
+    page.get_by_role("checkbox", name="milk").check()
+    page.wait_for_timeout(500)
+    assert not sent
 
-    # Feed back: stale data is replaced and writes come back, with no reload.
+    # Feed back: stale data is replaced, the kept tick is sent, and the notice goes.
     page.unroute("**/api/v1/rooms/*/changes*")
     nudge(page)
-    expect(page.get_by_role("checkbox", name="milk")).to_be_enabled(**SLOW)
-    expect(item_names(page)).to_have_text(["eggs", "milk"])
+    expect(item_names(page)).to_have_text(["eggs", "milk"], **SLOW)
+    expect(page.get_by_role("checkbox", name="milk")).to_be_checked(**SLOW)
     expect(saved_notice(page)).to_have_count(0)
     expect(page.get_by_role("button", name="Add")).to_be_enabled()
+    # The queue sends right after access is confirmed: poll for the request.
+    wait_until(page, lambda: bool(sent), "the kept tick was not sent")
 
 
 def test_revoked_password_clears_saved_room_on_reconnect(svelte_server, open_session):
@@ -236,7 +248,7 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
         page.wait_for_timeout(500)
         expect(saved_notice(page)).to_be_visible()
         expect(item_names(page)).to_have_text(["bread", "milk"])
-        expect(page.get_by_role("button", name="Add")).to_be_disabled()
+        expect(page.get_by_role("button", name="Add")).to_be_enabled()
 
     # The network is back (the event fires) but every API call still fails.
     go_online(page)
@@ -309,15 +321,16 @@ def test_server_errors_without_a_snapshot_do_not_say_connect(
     expect(page.get_by_text("Connect to load this room.")).to_have_count(0)
 
 
-def test_losing_the_network_turns_the_open_page_read_only_then_back(
+def test_losing_the_network_keeps_the_open_page_editable_then_back(
     svelte_server, open_session
 ):
     page, _ = member_with_list(open_session, svelte_server, "basement")
     expect(page.get_by_role("button", name="Add")).to_be_enabled()
 
     page.context.set_offline(True)
-    expect(page.get_by_role("button", name="Add")).to_be_disabled(timeout=12_000)
-    expect(page.get_by_role("checkbox", name="milk")).to_be_disabled()
+    expect(saved_notice(page)).to_be_visible(timeout=12_000)
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
+    expect(page.get_by_role("checkbox", name="milk")).to_be_enabled()
 
     page.context.set_offline(False)
     expect(page.get_by_role("button", name="Add")).to_be_enabled(**SLOW)

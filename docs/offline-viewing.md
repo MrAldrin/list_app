@@ -1,9 +1,9 @@
-# Offline viewing
+# Offline use
 
-The app can show saved data without a network. It is read-only. Offline editing
-is not supported. Status: built and tested locally, awaiting owner review (see
-the [backlog](../plans/backlog.md)). Evidence is in the
-[validation record](background/offline-viewing-validation.md).
+The app works without a network for saved data. Edits made offline are kept on
+the phone and sent when the connection is back. Status: built and tested
+locally, awaiting owner review (see the [backlog](../plans/backlog.md)).
+Design: [offline editing plan](../plans/offline-editing.md).
 
 ## What works offline
 
@@ -12,28 +12,44 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - `/admin` and `/app` navigations always go to the network.
 - After a successful online load, the browser (IndexedDB) keeps a snapshot of
   the room, its lists, each private list and each share link you opened.
+- Offline, these pages show the snapshot: room, room list, private list
+  (including the old URL shape) and share pages.
+- Editing works on those pages: add, tick, quantity, edit, tags, delete and
+  undo, hide-done setting, list rename and delete, room rename. The change shows
+  at once.
+- Needs a connection (the control is disabled, with the title "Needs a
+  connection"): creating a list, password change, room delete, share link show
+  and reset, sign-in, sign-out, admin and invitations.
+- Edits are kept in IndexedDB (`listr-queue`), one record per room or share
+  link. They survive a reload or closing the app. Where IndexedDB is missing,
+  they live in memory only.
+- The page turns offline at once when the phone reports no network, or when the
+  live connection has been down for 10 seconds. Edits keep working.
 - A snapshot not saved for 30 days is dropped when a room or share opens. The
   room or share you open keeps its own.
-- Offline, these pages show the snapshot with an offline notice: room, room
-  list, private list (including the old URL shape) and share pages.
-- All edit controls are disabled, and the data layer refuses writes too.
-- The page turns read-only right away when the phone reports no network, or
-  when the live connection has been down for 10 seconds. Changes already
-  waiting stay queued and are sent after the connection returns.
 - Typing in the Add field filters the list, only in saved views. Online it only
   gives suggestions.
 - If the network is gone, the start page can reopen the last room.
 
+## Sending waiting changes
+
+- Waiting changes go out in order, one at a time, after the app checks access
+  and reads the changes feed. The check runs when the app opens, when the
+  connection returns (`online` event or live stream back) and when the app comes
+  back to the screen. No background sync.
+- A change made on a row the page already changed uses the new row version, so
+  the page's own changes do not conflict with each other. A change that someone
+  else made meanwhile is rejected (`changed_meanwhile`) and nothing is applied.
+- An item added offline gets its own id. If the server already has that item on
+  the list, later changes to the new item go to the existing one.
+- A rejection of a waiting change shows as a toast for now.
+
 ## The offline notice
 
-- Text: "Offline — showing your lists from 18:05. Editing is back when you're
-  online." Share pages say "this list". The time is `HH:MM` for today, else a
-  short date and time. Without a usable time, that part is left out.
-- If changes wait, a second line says "N changes waiting to be sent." They are
-  sent when the connection returns. They are kept on the device (IndexedDB), so
-  closing the app keeps them. Where IndexedDB is missing, they live in memory
-  only. Writing offline is still off, so this line only covers changes made
-  online that have not gone out yet.
+- Text: "Offline — changes are saved on this phone and sent when you're back
+  online." Share pages say the same.
+- If changes wait, a second line says "N changes waiting to be sent." It counts
+  the changes kept on the device.
 - While the notice shows, it is the only connection message. The "Reconnecting…"
   pill and the "Could not load the latest changes." box (network errors only)
   are hidden. Server errors still show the error box.
@@ -79,7 +95,7 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 ## Reconnect
 
 On reconnect, when the app returns to the foreground (`visibilitychange`, or a
-restored `pageshow`), it revalidates before editing. One check runs at a time.
+restored `pageshow`), it revalidates before sending. One check runs at a time.
 Other devices' edits, deletes and password resets then show up.
 
 ## Privacy and logout
@@ -88,6 +104,8 @@ Other devices' edits, deletes and password resets then show up.
   data and shows the password prompt. The marker survives a reload.
 - If local clearing takes more than 5 s, the result is `local_clear_unconfirmed`
   and the app says so.
+- Waiting changes stay on the device after sign-out. They are sent after the
+  next sign-in to the same room.
 - Snapshots hold server state only. A room snapshot never authorizes a share
   view, and the reverse.
 - Logout in one tab clears the others. Without Web Locks (plain HTTP on a LAN),
