@@ -66,6 +66,7 @@ function sharedMemorySnapshots(): SnapshotStore {
 			for (const listener of listeners) listener({ identity, generation });
 			return { ok: true as const, value: undefined };
 		},
+		prune: async () => ({ ok: true as const, value: 0 }),
 		pendingServerLogouts: async () => ({ ok: true as const, value: [] }),
 		acknowledgeServerLogout: async () => ({ ok: true as const, value: undefined }),
 		clearSignOutAfterSignIn: async () => ({ ok: true as const, value: undefined }),
@@ -1229,6 +1230,7 @@ describe('unavailable snapshot state', () => {
 				ok: false as const,
 				reason: 'unavailable' as const
 			})),
+			prune: vi.fn(async () => ({ ok: true as const, value: 0 })),
 			onClear: vi.fn(() => () => {})
 		} as unknown as SnapshotStore;
 		const api = fakeApi();

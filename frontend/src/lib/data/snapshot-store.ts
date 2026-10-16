@@ -13,6 +13,9 @@ import {
 } from './snapshot-validate';
 
 export const SNAPSHOT_SCHEMA_VERSION = 1;
+/** Snapshots saved longer ago than this are dropped (see `prune`). */
+export const SNAPSHOT_MAX_AGE_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DATABASE_NAME = 'listr-snapshots';
 const LAST_ROOM_KEY = 'last-room';
 
@@ -67,6 +70,8 @@ export interface SnapshotStore {
 		generation: SnapshotGeneration
 	): Promise<SnapshotResult<SavedSnapshot>>;
 	clear(identity: SnapshotIdentity): Promise<SnapshotResult<void>>;
+	/** Drops snapshots saved over `SNAPSHOT_MAX_AGE_DAYS` ago, except `keep`. Returns how many. */
+	prune(keep: SnapshotIdentity | null): Promise<SnapshotResult<number>>;
 	localSignOut(identity: RoomIdentity): Promise<SnapshotResult<void>>;
 	pendingServerLogouts(): Promise<SnapshotResult<RoomIdentity[]>>;
 	acknowledgeServerLogout(identity: RoomIdentity): Promise<SnapshotResult<void>>;
@@ -408,6 +413,35 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 				if (!result.ok) return result;
 				publishClear(identified.identity, result.value);
 				return resultSuccess(undefined);
+			} catch {
+				return resultFailure('unavailable');
+			}
+		},
+
+		async prune(keep) {
+			const keepKey = keep ? identify(keep)?.key : undefined;
+			try {
+				const cutoff = (options.now?.() ?? new Date()).getTime() - SNAPSHOT_MAX_AGE_DAYS * DAY_MS;
+				if (!Number.isFinite(cutoff)) return resultFailure('unavailable');
+				const db = await database();
+				return await transact(db, SNAPSHOTS, 'readwrite', async (tx) => {
+					const snapshots = tx.objectStore(SNAPSHOTS);
+					const stored = await requestValue(snapshots.getAll());
+					let removed = 0;
+					for (const record of stored as unknown[]) {
+						if (!isRecord(record) || typeof record.key !== 'string' || record.key === keepKey)
+							continue;
+						const savedAt =
+							isRecord(record.value) && typeof record.value.savedAt === 'string'
+								? Date.parse(record.value.savedAt)
+								: NaN;
+						// An unreadable record is dropped too: a snapshot is only a cache.
+						if (Number.isFinite(savedAt) && savedAt >= cutoff) continue;
+						await requestValue(snapshots.delete(record.key));
+						removed += 1;
+					}
+					return resultSuccess(removed);
+				});
 			} catch {
 				return resultFailure('unavailable');
 			}

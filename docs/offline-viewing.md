@@ -12,6 +12,8 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - `/admin` and `/app` navigations always go to the network.
 - After a successful online load, the browser (IndexedDB) keeps a snapshot of
   the room, its lists, each private list and each share link you opened.
+- A snapshot not saved for 30 days is dropped when a room or share opens. The
+  room or share you open keeps its own.
 - Offline, these pages show the snapshot with an offline notice: room, room
   list, private list (including the old URL shape) and share pages.
 - All edit controls are disabled, and the data layer refuses writes too.

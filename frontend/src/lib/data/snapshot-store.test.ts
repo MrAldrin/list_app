@@ -433,6 +433,47 @@ describe('snapshot store', () => {
 		expect(await store.lastRoom()).toEqual({ ok: true, value: 'kitchen' });
 	});
 
+	it('prunes snapshots saved over 30 days ago, except the kept room, and keeps recent ones', async () => {
+		const indexedDB = new IDBFactory();
+		const databaseName = `snapshot-test-${++databaseNumber}`;
+		const storeAt = (iso: string) => {
+			const store = createSnapshotStore({
+				indexedDB,
+				databaseName,
+				now: () => new Date(iso),
+				channel: null
+			});
+			stores.push(store);
+			return store;
+		};
+		const kitchen: SnapshotIdentity = { kind: 'room', slug: 'kitchen' };
+		const garage: SnapshotIdentity = { kind: 'room', slug: 'garage' };
+		const attic: SnapshotIdentity = { kind: 'room', slug: 'attic' };
+		const share: SnapshotIdentity = { kind: 'share', token: 'old-share' };
+		const saveAt = async (iso: string, identity: SnapshotIdentity, data: SnapshotData) => {
+			const store = storeAt(iso);
+			const token = await store.generation(identity);
+			if (!token.ok) throw new Error('no generation');
+			expect((await store.save(identity, data, token.value)).ok).toBe(true);
+		};
+		const shareData: SnapshotData = { seq: 8, room: null, lists: [roomData().lists[0]], items: [] };
+		await saveAt('2026-10-01T08:00:00.000Z', kitchen, roomData('kitchen'));
+		await saveAt('2026-10-01T08:00:00.000Z', garage, roomData('garage'));
+		await saveAt('2026-10-20T08:00:00.000Z', attic, roomData('attic'));
+		await saveAt('2026-10-01T08:00:00.000Z', share, shareData);
+
+		// 30 days before 2026-11-05 is 2026-10-06: the old ones go, except the kept room.
+		const later = storeAt('2026-11-05T12:00:00.000Z');
+		expect(await later.prune(kitchen)).toEqual({ ok: true, value: 2 });
+
+		const kitchenRead = await later.read(kitchen);
+		expect(kitchenRead.ok && kitchenRead.value?.room?.slug).toBe('kitchen');
+		expect(await later.read(garage)).toEqual({ ok: true, value: null });
+		const atticRead = await later.read(attic);
+		expect(atticRead.ok && atticRead.value?.room?.slug).toBe('attic');
+		expect(await later.read(share)).toEqual({ ok: true, value: null });
+	});
+
 	it('treats a malformed identity as invalid without opening IndexedDB', async () => {
 		const { store } = makeStore();
 		expect(await store.read({ kind: 'room', slug: '' })).toEqual({

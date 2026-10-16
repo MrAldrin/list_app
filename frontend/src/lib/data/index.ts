@@ -251,6 +251,8 @@ export class RoomHandle {
 	retain(): void {
 		this.#users += 1;
 		if (this.#users === 1) {
+			// Old snapshots of other rooms go; this room's snapshot stays.
+			void this.#snapshotStore?.prune(this.#identity);
 			void this.#initialize()
 				.catch((error) => {
 					this.store.reportLoadFailure(error);
