@@ -99,6 +99,20 @@ def wait_until(
         waited += 100
 
 
+def wait_for_live_stream(page: Page) -> None:
+    """Wait until the page's live stream request is in flight.
+
+    A page opens its stream right after it loads. A full reload before that
+    cancels the request while the browser is still starting it, and WebKit
+    reports the cancel as a page error. Wait until the request is in flight.
+    """
+    wait_until(
+        page,
+        lambda: any(r.url.endswith("/events") for r in page.api_pending),
+        "The live stream did not start.",
+    )
+
+
 def admin_sign_in(page, server) -> None:
     page.get_by_label("Admin Password").fill(server.password)
     page.get_by_role("button", name="Log in").click()

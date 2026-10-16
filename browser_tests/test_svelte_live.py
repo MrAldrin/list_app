@@ -11,6 +11,7 @@ from svelte_app import (
     item_names,
     room_app_url,
     sign_in,
+    wait_for_live_stream,
 )
 
 
@@ -105,6 +106,7 @@ def test_rename_saved_after_a_password_change_changes_nothing(
     stale.route("**/api/v1/rooms/*/events", lambda route: None)
     sign_in(stale, server)
     create_list(stale, "Groceries")
+    wait_for_live_stream(stale)
     stale.goto(room_app_url(server))
     stale.get_by_role("button", name="Rename Groceries").click()
     stale.get_by_label("List Name").fill("forbidden rename")
