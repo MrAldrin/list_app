@@ -4,7 +4,17 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from api_helpers import add_item, admin, client_for, default_list, home, new_id, op
+from api_helpers import (
+    add_item,
+    admin,
+    client_for,
+    default_list,
+    home,
+    item_changed_seq,
+    list_changed_seq,
+    new_id,
+    op,
+)
 
 from database_setup import db
 
@@ -18,7 +28,11 @@ CASES: list[tuple[str, Fields, int, str]] = [
     ("list.create", lambda lst, item, text: {"name": text}, NAME, "Name"),
     (
         "list.rename",
-        lambda lst, item, text: {"list_uid": lst, "name": text, "base_seq": 0},
+        lambda lst, item, text: {
+            "list_uid": lst,
+            "name": text,
+            "base_seq": list_changed_seq(lst),
+        },
         NAME,
         "Name",
     ),
@@ -36,7 +50,7 @@ CASES: list[tuple[str, Fields, int, str]] = [
             "item_uid": item,
             "name": text,
             "description": "",
-            "base_seq": 0,
+            "base_seq": item_changed_seq(item),
         },
         NAME,
         "Name",
@@ -48,7 +62,7 @@ CASES: list[tuple[str, Fields, int, str]] = [
             "item_uid": item,
             "name": "milk",
             "description": text,
-            "base_seq": 0,
+            "base_seq": item_changed_seq(item),
         },
         DESCRIPTION,
         "Description",

@@ -8,6 +8,7 @@ from api_helpers import (
     find_item_by_name,
     home,
     insert_item,
+    item_changed_seq,
     item_row,
     list_uid_of,
     new_id,
@@ -48,7 +49,7 @@ def edit(client, slug, list_id, item_uid, name, description, quantity):
             "name": name,
             "description": description,
             "quantity": quantity,
-            "base_seq": 0,
+            "base_seq": item_changed_seq(item_uid),
         },
     )
 

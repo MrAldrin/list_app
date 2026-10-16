@@ -20,6 +20,7 @@ from api_helpers import (
     home,
     insert_item,
     item_row,
+    list_changed_seq,
     new_id,
     op,
     row_counts,
@@ -253,7 +254,12 @@ def test_a_renamed_list_keeps_its_uid(room):
     _, list_uid = groceries()
     old_slug = b.lists[list_uid]["slug"]
     a.write(
-        {"type": "list.rename", "list_uid": list_uid, "name": "Shop", "base_seq": 0}
+        {
+            "type": "list.rename",
+            "list_uid": list_uid,
+            "name": "Shop",
+            "base_seq": list_changed_seq(list_uid),
+        }
     )
 
     # b has not seen the rename; its ops use the uid, so they still work.

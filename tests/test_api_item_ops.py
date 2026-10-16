@@ -12,6 +12,7 @@ from api_helpers import (
     client_for,
     create_list,
     default_list,
+    item_changed_seq,
     item_row,
     list_uid_of,
     new_id,
@@ -74,7 +75,11 @@ def test_add_item(room, notified):
     assert response == {
         "op_id": op_id,
         "status": "applied",
-        "result": {"item_uid": item_uid, "outcome": "added"},
+        "result": {
+            "item_uid": item_uid,
+            "outcome": "added",
+            "changed_seq": before + 1,
+        },
         "seq": before + 1,
     }
     assert feed_item(client, slug, before, item_uid) == {
@@ -151,7 +156,11 @@ def test_add_restores_a_checked_item(room, notified):
             "uid": client_uid,
         },
     )
-    assert response["result"] == {"item_uid": item_uid, "outcome": "restored"}
+    assert response["result"] == {
+        "item_uid": item_uid,
+        "outcome": "restored",
+        "changed_seq": item_changed_seq(item_uid),
+    }
     row = item_row(item_uid)
     assert row["done"] == 0 and row["completed_at"] is None
     assert item_row(client_uid) is None
@@ -201,7 +210,8 @@ def test_set_done_and_completed_at(room, notified):
     response = op(
         client, slug, item_body("item.set_done", list_uid, item_uid, done=True)
     )
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": before + 1}
     assert response["seq"] == before + 1
     checked = feed_item(client, slug, before, item_uid)
     assert checked["done"] is True
@@ -233,7 +243,8 @@ def test_quantity_delta(room, notified):
     response = op(
         client, slug, item_body("item.quantity_delta", list_uid, item_uid, delta=2)
     )
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": before + 1}
     assert feed_item(client, slug, before, item_uid)["quantity"] == 3
     assert notified == [room_id]
 
@@ -277,10 +288,11 @@ def test_edit_saves_all_fields(room, notified):
             name=" Oat Milk ",
             description="  lactose free \n",
             quantity=4,
-            base_seq=0,
+            base_seq=item_changed_seq(item_uid),
         ),
     )
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": before + 1}
     item = feed_item(client, slug, before, item_uid)
     assert (item["name"], item["description"], item["quantity"]) == (
         "oat milk",
@@ -297,7 +309,11 @@ def test_edit_quantity(room, quantity, saved):
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
     set_item_quantity(_item_id(item_uid), list_id, 3)
-    fields = {"name": "milk", "description": "", "base_seq": 0}
+    fields = {
+        "name": "milk",
+        "description": "",
+        "base_seq": item_changed_seq(item_uid),
+    }
     if quantity is not None:
         fields["quantity"] = quantity
     op(client, slug, item_body("item.edit", list_uid, item_uid, **fields))
@@ -344,7 +360,7 @@ def test_edit_rejections_change_nothing(room, notified, name, code, message):
         name=name,
         description="new",
         quantity=9,
-        base_seq=0,
+        base_seq=item_changed_seq(item_uid),
     )
     assert_rejected(op(client, slug, body), room_id, seq, code, message)
     assert item_row(item_uid) == before_row
@@ -356,7 +372,12 @@ def test_edit_to_its_own_name(room):
     list_id, list_uid = default_list()
     item_uid = add_item(list_id, "milk")
     body = item_body(
-        "item.edit", list_uid, item_uid, name="MILK", description="d", base_seq=0
+        "item.edit",
+        list_uid,
+        item_uid,
+        name="MILK",
+        description="d",
+        base_seq=item_changed_seq(item_uid),
     )
     assert op(client, slug, body)["status"] == "applied"
     assert item_row(item_uid)["description"] == "d"
@@ -443,7 +464,7 @@ def test_restore_creates_a_new_item(room, notified):
     response = op(client, slug, restore_body(list_uid))
     assert response["status"] == "applied"
     new_uid = response["result"]["item_uid"]
-    assert response["result"] == {"item_uid": new_uid}
+    assert response["result"] == {"item_uid": new_uid, "changed_seq": before + 1}
     assert new_uid != old_uid
     assert feed_item(client, slug, before, new_uid) == {
         "uid": new_uid,
@@ -470,7 +491,11 @@ def test_restore_with_client_uid_and_normalized_values(room):
         completed_at="2026-10-03T11:12:44+02:00",
         quantity=0,
     )
-    assert op(client, slug, body)["result"] == {"item_uid": client_uid}
+    result = op(client, slug, body)["result"]
+    assert result == {
+        "item_uid": client_uid,
+        "changed_seq": item_changed_seq(client_uid),
+    }
     row = item_row(client_uid)
     assert row["name"] == "milk"
     assert row["completed_at"] == "2026-10-03T09:12:44.000000Z"

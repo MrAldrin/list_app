@@ -13,7 +13,9 @@ from api_helpers import (
     add_item,
     create_list,
     default_list,
+    item_changed_seq,
     item_row,
+    list_changed_seq,
     new_id,
     op,
 )
@@ -50,7 +52,12 @@ def test_list_rename_rejects_another_case_of_another_list(room):
     create_list("Øl", room_id)
     _, list_uid = default_list()
 
-    body = list_op("list.rename", list_uid=list_uid, name=" øL ", base_seq=0)
+    body = list_op(
+        "list.rename",
+        list_uid=list_uid,
+        name=" øL ",
+        base_seq=list_changed_seq(list_uid),
+    )
     result = op(client, slug, body)
 
     assert result["status"] == "rejected"
@@ -63,7 +70,9 @@ def test_list_rename_to_another_case_of_its_own_name(room):
     list_id, _ = create_list("øl", room_id)
     list_uid = crud.get_list_uid_locked(list_id)
 
-    body = list_op("list.rename", list_uid=list_uid, name="ØL", base_seq=0)
+    body = list_op(
+        "list.rename", list_uid=list_uid, name="ØL", base_seq=list_changed_seq(list_uid)
+    )
 
     assert op(client, slug, body)["status"] == "applied"
     assert "ØL" in list_names(room_id)
@@ -107,7 +116,7 @@ def test_item_edit_rejects_another_case_of_another_item(room):
         item_uid=other,
         name="ØL",
         description="",
-        base_seq=0,
+        base_seq=item_changed_seq(other),
     )
     result = op(client, slug, body)
 

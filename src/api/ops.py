@@ -10,7 +10,7 @@ one, so a retry gets the same answer.
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import APIRouter, Request
 from pydantic import (
@@ -35,7 +35,11 @@ from database_crud import (
     create_or_find_list_locked,
     delete_item_locked,
     delete_list_locked,
+    get_item_changed_seq_locked,
+    get_item_state_locked,
     get_item_uid_locked,
+    get_list_changed_seq_locked,
+    get_list_state_locked,
     get_list_uid_locked,
     get_room_seq_locked,
     item_id_for_uid_locked,
@@ -99,6 +103,9 @@ CompletedAt = Annotated[StrictStr | None, AfterValidator(_completion_time)]
 
 class Op(StrictBody):
     op_id: Uuid
+    # Optional fields added after ops were first stored. An unset (null) one
+    # is left out of the request hash, so a retry of an older op keeps its hash.
+    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset()
 
 
 class RoomRename(Op):
@@ -116,7 +123,7 @@ class ListRename(Op):
     type: Literal["list.rename"]
     list_uid: Uuid
     name: StrictStr
-    # Required but not used yet: the last write wins until Milestone 6.
+    # The list's changed_seq the page saw (see _check_base_seq).
     base_seq: BaseSeq
 
 
@@ -174,6 +181,10 @@ class ItemOp(Op):
 class ItemSetDone(ItemOp):
     type: Literal["item.set_done"]
     done: StrictBool
+    # Optional: without it the last write wins.
+    base_seq: BaseSeq | None = None
+
+    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset({"base_seq"})
 
 
 class ItemQuantityDelta(ItemOp):
@@ -186,13 +197,17 @@ class ItemEdit(ItemOp):
     name: StrictStr
     description: StrictStr
     quantity: Quantity | None = None
-    # Required but not used yet: the last write wins until Milestone 6.
+    # The item's changed_seq the page saw (see _check_base_seq).
     base_seq: BaseSeq
 
 
 class ItemToggleTag(ItemOp):
     type: Literal["item.toggle_tag"]
     tag: StrictStr
+    # Optional: the wanted state. Without it the tag is toggled.
+    active: StrictBool | None = None
+
+    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset({"active"})
 
 
 class ItemDelete(ItemOp):
@@ -240,12 +255,17 @@ def parse_op(data: dict[str, Any]) -> AnyOp:
 
 
 class OpRejected(Exception):
-    """A business rule said no. Shown to the user; nothing is changed."""
+    """A business rule said no. Shown to the user; nothing is changed.
 
-    def __init__(self, code: str, message: str) -> None:
+    `fields` are extra keys for the rejected answer (for example the uid of
+    the item that already exists).
+    """
+
+    def __init__(self, code: str, message: str, **fields: Any) -> None:
         super().__init__(code)
         self.code = code
         self.message = message
+        self.fields = fields
 
 
 # Messages shown to the user.
@@ -253,6 +273,7 @@ LIST_UNAVAILABLE = "The list is no longer available."
 ITEM_NOT_FOUND = "The item is no longer available."
 EMPTY_NAME = "Name cannot be empty"
 UNDO_NAME_TAKEN = "Cannot undo: item name already exists"
+CHANGED_MEANWHILE = "Someone else changed this meanwhile."
 
 
 @dataclass(frozen=True)
@@ -285,6 +306,21 @@ def _list_item_id(list_id: int, item_uid: str) -> int:
 def _item_found(matched: bool) -> None:
     if not matched:
         raise OpRejected("item_not_found", ITEM_NOT_FOUND)
+
+
+def _check_base_seq(
+    base_seq: int | None, changed_seq: int, *, wanted_already_stored: bool
+) -> None:
+    """Refuse a set from a page that is behind, unless the row already has it.
+
+    `changed_seq` is the row's current value. Someone changed the row after the
+    page's `base_seq` and the stored value differs from what this op wants:
+    the op is rejected. If the stored value already matches, the op is applied.
+    Without `base_seq` the last write wins.
+    """
+    if base_seq is None or changed_seq <= base_seq or wanted_already_stored:
+        return
+    raise OpRejected("changed_meanwhile", CHANGED_MEANWHILE)
 
 
 def _within_limit(what: str, text: str, limit: int) -> str:
@@ -348,9 +384,11 @@ def list_create(scope: OpScope, op: ListCreate) -> dict[str, Any]:
 def list_rename(scope: OpScope, op: ListRename) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     name = _display_name(op.name)
+    stored_name, changed_seq = get_list_state_locked(list_id)
+    _check_base_seq(op.base_seq, changed_seq, wanted_already_stored=stored_name == name)
     if not rename_list_if_unique_locked(list_id, scope.room_id, name):
         raise OpRejected("duplicate_name", f"'{name}' already exists in this room")
-    return {}
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
 
 
 def list_delete(scope: OpScope, op: ListDelete) -> dict[str, Any]:
@@ -361,13 +399,13 @@ def list_delete(scope: OpScope, op: ListDelete) -> dict[str, Any]:
 def list_tag_add(scope: OpScope, op: ListTagAdd) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     change_list_tag_locked(list_id, _tag(op.tag), add=True)
-    return {}
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
 
 
 def list_tag_remove(scope: OpScope, op: ListTagRemove) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     change_list_tag_locked(list_id, op.tag, add=False)
-    return {}
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
 
 
 def list_visibility(scope: OpScope, op: ListVisibility) -> dict[str, Any]:
@@ -375,7 +413,7 @@ def list_visibility(scope: OpScope, op: ListVisibility) -> dict[str, Any]:
     update_list_visibility_settings_locked(
         list_id, mode=op.mode, age_days=op.age_days, recent_count=op.recent_count
     )
-    return {}
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
 
 
 def item_add(scope: OpScope, op: ItemAdd) -> dict[str, Any]:
@@ -384,22 +422,36 @@ def item_add(scope: OpScope, op: ItemAdd) -> dict[str, Any]:
     name = _item_name(op.name)
     outcome, item_id = add_or_restore_item_locked(name, list_id, uid=uid)
     if outcome == STATUS_DUPLICATE_ACTIVE:
-        raise OpRejected("duplicate_active", f"'{name}' is already on the list")
-    return {"item_uid": get_item_uid_locked(item_id), "outcome": outcome}
+        raise OpRejected(
+            "duplicate_active",
+            f"'{name}' is already on the list",
+            item_uid=get_item_uid_locked(item_id),
+        )
+    return {
+        "item_uid": get_item_uid_locked(item_id),
+        "outcome": outcome,
+        "changed_seq": get_item_changed_seq_locked(item_id),
+    }
 
 
 def item_set_done(scope: OpScope, op: ItemSetDone) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
+    stored = get_item_state_locked(item_id)
+    _check_base_seq(
+        op.base_seq,
+        stored["changed_seq"],
+        wanted_already_stored=stored["done"] == op.done,
+    )
     _item_found(update_item_done_locked(item_id, list_id, op.done))
-    return {}
+    return {"changed_seq": get_item_changed_seq_locked(item_id)}
 
 
 def item_quantity_delta(scope: OpScope, op: ItemQuantityDelta) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
     _item_found(adjust_item_quantity_locked(item_id, list_id, op.delta))
-    return {}
+    return {"changed_seq": get_item_changed_seq_locked(item_id)}
 
 
 def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
@@ -408,18 +460,30 @@ def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
     name = _item_name(op.name)
     description = _description((op.description or "").strip())
     quantity = None if op.quantity is None else clamp_quantity(op.quantity)
+    stored = get_item_state_locked(item_id)
+    # A quantity that was not sent is not part of what the op wants.
+    wanted_already_stored = (
+        stored["name"] == name
+        and stored["description"] == description
+        and (quantity is None or stored["quantity"] == quantity)
+    )
+    _check_base_seq(
+        op.base_seq, stored["changed_seq"], wanted_already_stored=wanted_already_stored
+    )
     status = update_item_details_locked(item_id, list_id, name, description, quantity)
     if status == "duplicate":
         raise OpRejected("duplicate_name", f"'{name}' already exists")
     _item_found(status == "saved")
-    return {}
+    return {"changed_seq": get_item_changed_seq_locked(item_id)}
 
 
 def item_toggle_tag(scope: OpScope, op: ItemToggleTag) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
-    _item_found(toggle_item_active_tag_locked(item_id, list_id, op.tag))
-    return {}
+    _item_found(
+        toggle_item_active_tag_locked(item_id, list_id, op.tag, active=op.active)
+    )
+    return {"changed_seq": get_item_changed_seq_locked(item_id)}
 
 
 def item_delete(scope: OpScope, op: ItemDelete) -> dict[str, Any]:
@@ -446,7 +510,10 @@ def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
     )
     if item_id is None:
         raise OpRejected("undo_name_taken", UNDO_NAME_TAKEN)
-    return {"item_uid": get_item_uid_locked(item_id)}
+    return {
+        "item_uid": get_item_uid_locked(item_id),
+        "changed_seq": get_item_changed_seq_locked(item_id),
+    }
 
 
 HANDLERS: dict[str, Callable[[OpScope, Any], dict[str, Any]]] = {
@@ -496,6 +563,7 @@ def _apply_locked(scope: OpScope, op: Any) -> Response:
             "status": "rejected",
             "code": rejection.code,
             "message": rejection.message,
+            **rejection.fields,
             "seq": get_room_seq_locked(room_id),
         }
     return {

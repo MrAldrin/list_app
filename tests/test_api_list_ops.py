@@ -12,6 +12,7 @@ from api_helpers import (
     find_list_by_name,
     home,
     insert_item,
+    list_changed_seq,
     new_id,
     op,
     processed_ops_count,
@@ -181,12 +182,11 @@ def test_rename_list(room, notified):
             "type": "list.rename",
             "list_uid": list_uid,
             "name": " Groceries ",
-            # base_seq is required but not used yet: the last write wins.
-            "base_seq": 0,
+            "base_seq": list_changed_seq(list_uid),
         },
     )
     assert response["status"] == "applied"
-    assert response["result"] == {}
+    assert response["result"] == {"changed_seq": list_changed_seq(list_uid)}
     assert response["seq"] == before + 1 == feed_seq(client, slug)
     assert list_row(list_uid)[1] == "Groceries"
     assert notified == [room_id]
@@ -200,7 +200,7 @@ def test_rename_to_another_case_of_its_own_name(room):
         "type": "list.rename",
         "list_uid": list_uid,
         "name": "Default",
-        "base_seq": 0,
+        "base_seq": list_changed_seq(list_uid),
     }
     assert op(client, slug, body)["status"] == "applied"
     assert list_row(list_uid)[1] == "Default"
@@ -224,7 +224,7 @@ def test_rename_rejections(room, notified, name, code, message):
         "type": "list.rename",
         "list_uid": list_uid,
         "name": name,
-        "base_seq": 0,
+        "base_seq": list_changed_seq(list_uid),
     }
     response = op(client, slug, body)
     assert response == {
@@ -348,7 +348,7 @@ def test_replay_of_a_rejection_is_the_same_rejection(room, notified):
         "type": "list.rename",
         "list_uid": default_list_uid(),
         "name": "Shop",
-        "base_seq": 0,
+        "base_seq": list_changed_seq(default_list_uid()),
     }
     create_list("Shop", room_id)
     first = op(client, slug, body)

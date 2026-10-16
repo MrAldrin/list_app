@@ -102,6 +102,18 @@ def set_cookies(response) -> dict[str, SimpleCookie]:
     return cookies
 
 
+def list_changed_seq(list_uid: str) -> int:
+    return db.execute(
+        "SELECT changed_seq FROM lists WHERE uid = ?", (list_uid,)
+    ).fetchone()[0]
+
+
+def item_changed_seq(item_uid: str) -> int:
+    return db.execute(
+        "SELECT changed_seq FROM items WHERE uid = ?", (item_uid,)
+    ).fetchone()[0]
+
+
 def default_list() -> tuple[int, str]:
     """(id, uid) of the fixture's list."""
     return db.execute("SELECT id, uid FROM lists WHERE name = 'default'").fetchone()

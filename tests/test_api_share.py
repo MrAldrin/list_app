@@ -18,6 +18,7 @@ from api_helpers import (
     create_list,
     get_list_details,
     home,
+    item_changed_seq,
     item_row,
     new_id,
     processed_ops_count,
@@ -212,7 +213,7 @@ def test_share_holder_edits_items_tags_and_hide_done(shared, notified):
             "item_uid": shared["item_uid"],
             "name": "oat milk",
             "description": "cold",
-            "base_seq": 0,
+            "base_seq": item_changed_seq(shared["item_uid"]),
         },
     ):
         response = share_op(client, token, {"list_uid": list_uid, **body})

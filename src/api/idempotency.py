@@ -20,9 +20,17 @@ Response = dict[str, Any]
 
 
 def request_hash(body: BaseModel) -> str:
-    """sha256 of the validated body as canonical JSON."""
+    """sha256 of the validated body as canonical JSON.
+
+    Fields named in the model's `hash_omit_if_null` are left out when null, so
+    an op stored before such a field existed keeps its hash.
+    """
+    data = body.model_dump(mode="json")
+    for name in getattr(body, "hash_omit_if_null", frozenset()):
+        if data.get(name) is None:
+            data.pop(name, None)
     canonical = json.dumps(
-        body.model_dump(mode="json"),
+        data,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,

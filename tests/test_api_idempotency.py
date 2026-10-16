@@ -35,6 +35,10 @@ class Ctx:
     slug: str
     list_uid: str
     milk_uid: str
+    # The current changed_seq of the list and of 'milk': the base_seq a page
+    # that has just loaded them would send.
+    list_seq: int
+    milk_seq: int
 
 
 Body = Callable[[Ctx], dict[str, Any]]
@@ -75,12 +79,12 @@ CASES = [
     rejected("list.create", "invalid_name", lambda c: {"name": " "}),
     applied(
         "list.rename",
-        lambda c: {"list_uid": c.list_uid, "name": "Groceries", "base_seq": 0},
+        lambda c: {"list_uid": c.list_uid, "name": "Groceries", "base_seq": c.list_seq},
     ),
     rejected(
         "list.rename",
         "duplicate_name",
-        lambda c: {"list_uid": c.list_uid, "name": "shop", "base_seq": 0},
+        lambda c: {"list_uid": c.list_uid, "name": "shop", "base_seq": c.list_seq},
     ),
     applied("list.delete", lambda c: {"list_uid": c.list_uid}),
     rejected("list.delete", "list_unavailable", lambda c: {"list_uid": new_id()}),
@@ -131,7 +135,7 @@ CASES = [
             "item_uid": c.milk_uid,
             "name": "oat milk",
             "description": "",
-            "base_seq": 0,
+            "base_seq": c.milk_seq,
         },
     ),
     rejected(
@@ -142,7 +146,7 @@ CASES = [
             "item_uid": c.milk_uid,
             "name": "bread",
             "description": "",
-            "base_seq": 0,
+            "base_seq": c.milk_seq,
         },
     ),
     applied(
@@ -189,7 +193,16 @@ def ctx() -> Ctx:
     milk_uid = add_item(list_id, "milk")
     add_item(list_id, "bread", done=True)
     create_list("shop", room_id)
-    return Ctx(room_id, slug, list_uid, milk_uid)
+    list_seq = db.execute("SELECT changed_seq FROM lists WHERE id = ?", (list_id,))
+    milk_seq = db.execute("SELECT changed_seq FROM items WHERE uid = ?", (milk_uid,))
+    return Ctx(
+        room_id,
+        slug,
+        list_uid,
+        milk_uid,
+        list_seq=list_seq.fetchone()[0],
+        milk_seq=milk_seq.fetchone()[0],
+    )
 
 
 @pytest.fixture

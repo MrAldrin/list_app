@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from functools import cache
-from typing import Literal
+from typing import Any, Literal
 
 import bcrypt
 
@@ -179,10 +179,13 @@ def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
             )
 
 
-def toggle_item_active_tag_locked(item_id: int, list_id: int, tag: str) -> bool:
+def toggle_item_active_tag_locked(
+    item_id: int, list_id: int, tag: str, *, active: bool | None = None
+) -> bool:
     """Toggle one tag on the stored item tags; False if no such item.
 
-    Call inside a write transaction.
+    With `active`, set the tag on or off instead; already in that state means
+    no write. Call inside a write transaction.
     """
     row = db.execute(
         "SELECT active_tags FROM items WHERE id = ? AND list_id = ?",
@@ -191,10 +194,14 @@ def toggle_item_active_tag_locked(item_id: int, list_id: int, tag: str) -> bool:
     if row is None:
         return False
     active_tags = _decode_tags(row[0])
-    if tag in active_tags:
-        active_tags.remove(tag)
-    else:
+    if active is None:
+        active = tag not in active_tags
+    elif (tag in active_tags) == active:
+        return True
+    if active:
         active_tags.append(tag)
+    else:
+        active_tags.remove(tag)
     db.execute(
         "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
         (json.dumps(active_tags), item_id, list_id),
@@ -326,6 +333,43 @@ def restore_deleted_item_locked(
         ),
     )
     return result.lastrowid
+
+
+def get_item_state_locked(item_id: int) -> dict[str, Any]:
+    """Stored done, name, description, quantity and changed_seq of an item.
+
+    Read leniently, as the feed reads it. Call inside a write transaction.
+    """
+    row = db.execute(
+        "SELECT COALESCE(done, 0), name, description, quantity, changed_seq "
+        "FROM items WHERE id = ?",
+        (item_id,),
+    ).fetchone()
+    return {
+        "done": bool(row[0]),
+        "name": row[1],
+        "description": row[2] or "",
+        "quantity": row[3] if row[3] is not None else 1,
+        "changed_seq": row[4],
+    }
+
+
+def get_item_changed_seq_locked(item_id: int) -> int:
+    return db.execute(
+        "SELECT changed_seq FROM items WHERE id = ?", (item_id,)
+    ).fetchone()[0]
+
+
+def get_list_state_locked(list_id: int) -> tuple[str, int]:
+    """(name, changed_seq) of a list. Call inside a write transaction."""
+    row = db.execute(
+        "SELECT name, changed_seq FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()
+    return row[0], row[1]
+
+
+def get_list_changed_seq_locked(list_id: int) -> int:
+    return get_list_state_locked(list_id)[1]
 
 
 def update_item_done_locked(

@@ -11,7 +11,9 @@ from api_helpers import (
     changes,
     create_list,
     default_list,
+    item_changed_seq,
     item_row,
+    list_changed_seq,
     list_uid_of,
     new_id,
     op,
@@ -67,7 +69,8 @@ def test_tag_add(room, notified):
     add_list_tag(list_id, "market")
     before = seq_of(room_id)
     response = op(client, slug, list_body("list.tag_add", list_uid, tag=" Lidl "))
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": list_changed_seq(list_uid)}
     assert response["seq"] == before + 1
     assert feed_list(client, slug, before, list_uid)["tags"] == ["Lidl", "market"]
     assert stored_tags(list_id) == ["Lidl", "market"]
@@ -110,7 +113,8 @@ def test_tag_remove_keeps_item_tags(room, notified):
     )
     before = seq_of(room_id)
     response = op(client, slug, list_body("list.tag_remove", list_uid, tag="Lidl"))
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": list_changed_seq(list_uid)}
     assert feed_list(client, slug, before, list_uid)["tags"] == ["Market"]
     assert item_tags(item_uid) == ["Lidl"]
     assert notified == [room_id]
@@ -150,7 +154,8 @@ def test_toggle_item_tag_on_and_off(room, notified):
     item_uid = add_item(list_id, "milk")
     before = seq_of(room_id)
     response = op(client, slug, toggle_body(list_uid, item_uid, "Lidl"))
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": item_changed_seq(item_uid)}
     changed = changes(client, slug, before)["items"]
     assert [(i["uid"], i["tags"]) for i in changed] == [(item_uid, ["Lidl"])]
     op(client, slug, toggle_body(list_uid, item_uid, "Market"))
@@ -201,7 +206,8 @@ def test_visibility_sends_only_changed_fields(room, notified):
     list_id, list_uid = default_list()
     before = seq_of(room_id)
     response = op(client, slug, list_body("list.visibility", list_uid, mode="age"))
-    assert response["status"] == "applied" and response["result"] == {}
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": list_changed_seq(list_uid)}
     assert feed_list(client, slug, before, list_uid)["hide_done"] == {
         "mode": "age",
         "age_days": 7,
