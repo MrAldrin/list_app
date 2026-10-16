@@ -75,6 +75,7 @@ def test_fresh_database_has_offline_ready_schema(tmp_path, monkeypatch):
         "uid",
         "changed_seq",
         "created_at",
+        "list_uid",
     }
     assert set(_columns(db, "processed_ops")) == {
         "op_id",

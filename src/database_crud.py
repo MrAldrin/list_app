@@ -556,6 +556,33 @@ def get_deletions_pruned_seq_locked(room_id: int) -> int:
     ).fetchone()[0]
 
 
+def get_share_seq_locked(list_id: int) -> int:
+    """The share seq of one list (docs/api.md, "Share links").
+
+    The highest change of the list row, of its items, of its deletion records,
+    and the floor left by pruned deletion records. It grows only with changes to
+    this list, so other lists of the room do not move it.
+    """
+    return db.execute(
+        """
+        SELECT COALESCE(MAX(seq), 0) FROM (
+            SELECT changed_seq AS seq FROM lists WHERE id = :list_id
+            UNION ALL
+            SELECT changed_seq FROM items WHERE list_id = :list_id
+            UNION ALL
+            SELECT d.changed_seq FROM deletions AS d
+            JOIN lists AS l ON l.uid = d.list_uid
+            WHERE l.id = :list_id
+            UNION ALL
+            SELECT f.changed_seq FROM share_seq_floors AS f
+            JOIN lists AS l ON l.uid = f.list_uid
+            WHERE l.id = :list_id
+        )
+        """,
+        {"list_id": list_id},
+    ).fetchone()[0]
+
+
 def _since_bound(since: int | None) -> int:
     # Rows from before change tracking have changed_seq 0.
     return -1 if since is None else since
@@ -756,6 +783,19 @@ def prune_deletions(max_age_days: int = DELETION_DAYS) -> int:
         ).fetchall()
         removed = 0
         for room_id, seq in old_rooms:
+            # Keep each list's highest pruned seq, so its share seq does not drop.
+            for list_uid, floor in db.execute(
+                "SELECT list_uid, MAX(changed_seq) FROM deletions "
+                "WHERE room_id = ? AND changed_seq <= ? AND list_uid IS NOT NULL "
+                "GROUP BY list_uid",
+                (room_id, seq),
+            ).fetchall():
+                db.execute(
+                    "INSERT INTO share_seq_floors (list_uid, changed_seq) VALUES (?, ?) "
+                    "ON CONFLICT(list_uid) DO UPDATE SET "
+                    "changed_seq = MAX(changed_seq, excluded.changed_seq)",
+                    (list_uid, floor),
+                )
             result = db.execute(
                 "DELETE FROM deletions WHERE room_id = ? AND changed_seq <= ?",
                 (room_id, seq),
@@ -766,6 +806,10 @@ def prune_deletions(max_age_days: int = DELETION_DAYS) -> int:
                 "WHERE id = ?",
                 (seq, room_id),
             )
+        # A deleted list has no share link any more, and its uid is never reused.
+        db.execute(
+            "DELETE FROM share_seq_floors WHERE list_uid NOT IN (SELECT uid FROM lists)"
+        )
         return removed
 
 

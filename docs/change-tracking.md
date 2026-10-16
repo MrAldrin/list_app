@@ -13,7 +13,11 @@ links, admin) is covered, and a rolled-back write leaves no trace.
 - `lists.changed_seq`, `items.changed_seq`: the room's `change_seq` right
   after the row's last change.
 - `deletions`: one row per deleted list or item: `room_id`, `kind` (`list` or
-  `item`), `uid`, `changed_seq`, `created_at`.
+  `item`), `uid`, `changed_seq`, `created_at`, `list_uid`. `list_uid` is the
+  list the item was in (for a list deletion, the list itself). Rows from before
+  migration 8 have NULL there.
+- `share_seq_floors`: per list, the highest `changed_seq` of its pruned
+  deletion rows.
 - `rooms.deletions_pruned_seq`: the highest `changed_seq` of the deletion
   rows removed so far (0 if none).
 - `processed_ops`: stored API results per `op_id`, for retry-safe writes.
@@ -25,6 +29,12 @@ Deleting a room removes its `deletions` and `processed_ops` rows
 server starts and once a day. Per room, pruning removes every row up to the
 newest old one, and the room keeps that seq as `deletions_pruned_seq`. The
 changes feed sends a full snapshot to a client behind it.
+
+Share links use a per-list seq instead of the room seq: the highest
+`changed_seq` of the list row, its items, its deletion rows (by `list_uid`) and
+its floor. Other lists' writes do not change it. It only grows, so the floor
+keeps it from dropping when pruning removes the list's deletion rows. See
+[share links](api.md#share-links).
 
 ## What the triggers do
 

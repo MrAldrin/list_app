@@ -42,6 +42,7 @@ from database_crud import (
     get_list_state_locked,
     get_list_uid_locked,
     get_room_seq_locked,
+    get_share_seq_locked,
     item_id_for_uid_locked,
     list_id_for_uid_locked,
     normalize_completion_time,
@@ -552,8 +553,14 @@ SHARE_OP_TYPES = frozenset(
 )
 
 
+def _answer_seq(scope: OpScope) -> int:
+    """The seq an answer carries: the room's, or the shared list's for a link."""
+    if scope.shared_list_id is not None:
+        return get_share_seq_locked(scope.shared_list_id)
+    return get_room_seq_locked(scope.room_id)
+
+
 def _apply_locked(scope: OpScope, op: Any) -> Response:
-    room_id = scope.room_id
     try:
         with savepoint_locked():
             result = HANDLERS[op.type](scope, op)
@@ -564,13 +571,13 @@ def _apply_locked(scope: OpScope, op: Any) -> Response:
             "code": rejection.code,
             "message": rejection.message,
             **rejection.fields,
-            "seq": get_room_seq_locked(room_id),
+            "seq": _answer_seq(scope),
         }
     return {
         "op_id": op.op_id,
         "status": "applied",
         "result": result,
-        "seq": get_room_seq_locked(room_id),
+        "seq": _answer_seq(scope),
     }
 
 

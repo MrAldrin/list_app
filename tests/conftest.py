@@ -43,6 +43,7 @@ def clean_db(home_password_hash):
     # Room deletes cascade to these; clear them anyway in case a test left
     # rows behind with foreign keys off.
     db.execute("DELETE FROM deletions")
+    db.execute("DELETE FROM share_seq_floors")
     db.execute("DELETE FROM processed_ops")
     room_id = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",

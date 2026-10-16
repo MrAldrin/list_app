@@ -510,6 +510,50 @@ def _migration_7_deletion_pruning(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_8_share_list_tracking(db: sqlite3.Connection) -> None:
+    """Record each deletion's list, so a share link can count its own list only.
+
+    `deletions.list_uid` is the list an item was in, or the list's own uid for a
+    list deletion. Older records stay NULL: no list is named for them. Pruned
+    records of a list keep their highest seq in `share_seq_floors`, so the
+    list's share seq never goes down. Only the two delete triggers change.
+    """
+    db.execute("ALTER TABLE deletions ADD COLUMN list_uid TEXT")
+    db.execute("CREATE INDEX idx_deletions_list_uid ON deletions(list_uid)")
+    db.execute(
+        "CREATE TABLE share_seq_floors ("
+        "list_uid TEXT PRIMARY KEY, changed_seq INTEGER NOT NULL)"
+    )
+    db.execute("DROP TRIGGER lists_track_delete")
+    db.execute(
+        f"""
+        CREATE TRIGGER lists_track_delete
+        AFTER DELETE ON lists
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = OLD.room_id;
+            INSERT INTO deletions (room_id, kind, uid, list_uid, changed_seq, created_at)
+            SELECT id, 'list', OLD.uid, OLD.uid, change_seq, {_NOW_TEXT} FROM rooms
+            WHERE id = OLD.room_id AND OLD.uid IS NOT NULL;
+        END
+        """
+    )
+    db.execute("DROP TRIGGER items_track_delete")
+    db.execute(
+        f"""
+        CREATE TRIGGER items_track_delete
+        AFTER DELETE ON items
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1
+            WHERE id = {_ITEM_ROOM_ID.format(row="OLD")};
+            INSERT INTO deletions (room_id, kind, uid, list_uid, changed_seq, created_at)
+            SELECT r.id, 'item', OLD.uid, l.uid, r.change_seq, {_NOW_TEXT}
+            FROM lists AS l JOIN rooms AS r ON r.id = l.room_id
+            WHERE l.id = OLD.list_id AND OLD.uid IS NOT NULL;
+        END
+        """
+    )
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -520,6 +564,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_5_positive_visibility_counts,
         _migration_6_field_constraints,
         _migration_7_deletion_pruning,
+        _migration_8_share_list_tracking,
     ]
 
 

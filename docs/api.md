@@ -161,7 +161,7 @@ Share holders:
 |---|---|---|
 | `GET /api/v1/share/{token}/changes?since=N` | – | 200 feed of the one list (below) |
 | `POST /api/v1/share/{token}/ops` | an op | 200, like `…/ops` of a room |
-| `GET /api/v1/share/{token}/events` | – | the live stream, like a room's |
+| `GET /api/v1/share/{token}/events` | – | the live stream, like a room's, but `seq` is sent only when the list's seq changes |
 
 - The feed is always a full snapshot (`full: true`) of the list and its
   items, with `deletions: []` and the list's `slug` as `""`. `room` is `null`,
@@ -169,8 +169,11 @@ Share holders:
   then it is `{"slug", "name"}` of that room, so the page can offer "back to
   room" and "Reset share link". A missing, stale or other room's cookie gives
   `null`, and no other part of a share answer names the room.
-  `since` is checked (as for rooms) but not used. `seq` is the room's `seq`,
-  the same number op answers and the stream send.
+  `since` is checked (as for rooms) but not used. `seq` is the list's own seq,
+  not the room's: it moves with changes to this list (its row, items and their
+  deletions), not with other lists. Op answers of the link and its stream send
+  the same number, so `seq` of a share op answer is the next feed `seq` if
+  nothing else changed the list. How it is kept: [change tracking](change-tracking.md).
 - Ops: the list ops `list.tag_add`, `list.tag_remove`, `list.visibility` and
   every item op. Other types (`room.rename`,
   `list.create`, `list.rename`, `list.delete`) are 422. A `list_uid` other

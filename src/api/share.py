@@ -24,7 +24,7 @@ from database_crud import (
     get_item_changes_locked,
     get_list_changes_locked,
     get_room_details_locked,
-    get_room_seq_locked,
+    get_share_seq_locked,
     get_share_token_locked,
     list_id_for_uid_locked,
     room_matches_token_locked,
@@ -71,7 +71,7 @@ def share_changes(
         room = _room_for_member(request, share.room_id)
         lists = get_list_changes_locked(share.room_id, None, list_id=share.list_id)
         return {
-            "seq": get_room_seq_locked(share.room_id),
+            "seq": get_share_seq_locked(share.list_id),
             "full": True,
             "room": room,
             "lists": [{**row, "slug": ""} for row in lists],

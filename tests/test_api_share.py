@@ -107,11 +107,15 @@ def test_share_feed_is_a_full_snapshot_of_only_the_shared_list(shared):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     feed = response.json()
-    room_feed = changes(client_for(shared["slug"]), shared["slug"], 0)
-    assert feed["seq"] == room_feed["seq"]
+    # The seq is the list's own: its row and its items (tests/test_share_seq.py).
+    assert feed["seq"] == max(
+        [li["changed_seq"] for li in feed["lists"]]
+        + [item["changed_seq"] for item in feed["items"]]
+    )
     assert feed["full"] is True
     assert feed["room"] is None
     assert feed["deletions"] == []
+    room_feed = changes(client_for(shared["slug"]), shared["slug"], 0)
     [shared_list] = [li for li in room_feed["lists"] if li["uid"] == shared["list_uid"]]
     # The slug is room navigation; the share holder does not get it.
     assert feed["lists"] == [{**shared_list, "slug": ""}]

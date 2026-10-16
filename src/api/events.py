@@ -27,7 +27,7 @@ from starlette.concurrency import run_in_threadpool
 import live_updates
 from api.access import room_token, share_access, token_access
 from api.errors import ApiError
-from database_crud import get_room_seq_locked
+from database_crud import get_room_seq_locked, get_share_seq_locked
 
 # Seconds between access and seq checks when no write wakes the stream. A
 # password change or a reset link is noticed within this time. Tests set it lower.
@@ -43,9 +43,9 @@ def _room_seq(slug: str, token: str | None) -> tuple[int, int]:
 
 
 def _share_seq(token: str) -> tuple[int, int]:
-    """(room_id, seq) of a shared list's room; raises ApiError when reset."""
+    """(room_id, seq) of a shared list; raises ApiError when reset."""
     with share_access(token) as share:
-        return share.room_id, get_room_seq_locked(share.room_id)
+        return share.room_id, get_share_seq_locked(share.list_id)
 
 
 def _reserve_capacity() -> live_updates.Reservation:
@@ -129,8 +129,8 @@ async def share_events(
 ) -> AsyncIterable[ServerSentEvent]:
     """The same stream for a share link: `revoked` once the link is reset.
 
-    It sends the seq of the list's room, the same number as the share feed
-    and op answers.
+    It sends the list's seq, the same number as the share feed and op answers.
+    Other lists' writes wake it, but it sends nothing unless this seq changed.
     """
     room_id, reservation = access
     async with aclosing(
