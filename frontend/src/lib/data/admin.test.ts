@@ -106,6 +106,25 @@ describe('admin data layer', () => {
 		});
 	});
 
+	it('deletes a room by slug, without a password', async () => {
+		const fetch = fakeFetch(
+			new Response(null, { status: 204 }),
+			error(404, 'room_unavailable', 'Room changed or no longer exists; refresh and try again')
+		);
+		const client = new Api(fetch);
+
+		expect(await admin.deleteRoom('home ab', client)).toEqual({ ok: true, result: undefined });
+		expect(call(fetch)).toEqual({
+			url: '/api/v1/admin/rooms/home%20ab',
+			method: 'DELETE',
+			body: undefined
+		});
+		expect(await admin.deleteRoom('gone', client)).toMatchObject({
+			ok: false,
+			code: 'room_unavailable'
+		});
+	});
+
 	it('recognises an admin session that ended', async () => {
 		const fetch = fakeFetch(
 			error(401, 'admin_required', 'Admin sign-in required'),

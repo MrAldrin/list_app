@@ -18,6 +18,7 @@ type AdminApi = Pick<
 	| 'adminRooms'
 	| 'adminCreateRoom'
 	| 'adminResetPassword'
+	| 'adminDeleteRoom'
 	| 'adminInvitations'
 	| 'adminIssueInvitation'
 	| 'adminRevokeInvitation'
@@ -68,6 +69,14 @@ export function resetPassword(
 	client: AdminApi = defaultApi
 ): Promise<ActionResult<void>> {
 	return attempt(() => client.adminResetPassword(slug, newPassword));
+}
+
+/** Deletes the room with its lists and items. Its open pages then need the room password. */
+export function deleteRoom(
+	slug: string,
+	client: AdminApi = defaultApi
+): Promise<ActionResult<void>> {
+	return attempt(() => client.adminDeleteRoom(slug));
 }
 
 export function invitations(client: AdminApi = defaultApi): Promise<ActionResult<Invitation[]>> {

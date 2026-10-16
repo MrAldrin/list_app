@@ -1,7 +1,8 @@
 <!--
 	The admin room overview (NiceGUI's /admin): "Create New Room", "Refresh
 	rooms" and every room, by name. A room name opens the room page, which
-	still asks for the room password. The "Reset password" button resets the room password.
+	still asks for the room password. The "Reset password" button resets the
+	room password; "Delete" deletes the room (see AdminDeleteRoomDialog).
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -9,6 +10,7 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { adminRoomHref } from './admin-links.ts';
+	import AdminDeleteRoomDialog from './AdminDeleteRoomDialog.svelte';
 	import CreateRoomDialog from './CreateRoomDialog.svelte';
 	import { showAdminFailure } from './failure.ts';
 	import ResetPasswordDialog from './ResetPasswordDialog.svelte';
@@ -19,6 +21,7 @@
 	let error = $state('');
 	let creating = $state(false);
 	let resetting = $state.raw<Room | null>(null);
+	let deleting = $state.raw<Room | null>(null);
 
 	async function load() {
 		const result = await admin.rooms();
@@ -41,6 +44,7 @@
 	function signedOut() {
 		creating = false;
 		resetting = null;
+		deleting = null;
 		onSignedOut();
 	}
 
@@ -51,6 +55,11 @@
 
 	function resetDone() {
 		resetting = null;
+		void load();
+	}
+
+	function deleteDone() {
+		deleting = null;
 		void load();
 	}
 </script>
@@ -87,6 +96,15 @@
 					<Icon name="key" />
 					Reset password
 				</button>
+				<button
+					class="icon delete"
+					type="button"
+					aria-label="Delete room {room.name}"
+					onclick={() => (deleting = room)}
+				>
+					<Icon name="delete" />
+					Delete
+				</button>
 			</li>
 		{/each}
 	</ul>
@@ -106,6 +124,15 @@
 		onDone={resetDone}
 		onSignedOut={signedOut}
 		onClose={() => (resetting = null)}
+	/>
+{/if}
+
+{#if deleting}
+	<AdminDeleteRoomDialog
+		room={deleting}
+		onDone={deleteDone}
+		onSignedOut={signedOut}
+		onClose={() => (deleting = null)}
 	/>
 {/if}
 
@@ -145,5 +172,9 @@
 		padding: 0 0.5rem;
 		color: var(--text-muted);
 		font-size: 0.9rem;
+	}
+	/* Beats .icon, which sets the muted colour. */
+	.icon.delete {
+		color: var(--danger);
 	}
 </style>

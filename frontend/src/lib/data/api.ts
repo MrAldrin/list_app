@@ -182,6 +182,11 @@ export class Api {
 		}).then(() => undefined);
 	}
 
+	/** Deletes the room with all its lists and items; no room password is needed. */
+	adminDeleteRoom(slug: string): Promise<void> {
+		return this.request<void>('DELETE', `${ADMIN}/rooms/${encodeURIComponent(slug)}`);
+	}
+
 	/** Every kept invitation, newest first. */
 	adminInvitations(): Promise<Invitation[]> {
 		return this.request<{ invitations: Invitation[] }>('GET', `${ADMIN}/invitations`).then(

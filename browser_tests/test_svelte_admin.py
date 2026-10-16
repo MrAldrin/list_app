@@ -97,3 +97,38 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     expect(owner.get_by_label("Admin Password")).to_be_visible()
     owner.reload()
     expect(owner.get_by_label("Admin Password")).to_be_visible()
+
+
+def test_admin_deletes_a_room_from_the_list(svelte_server, open_session):
+    server = svelte_server
+    owner = open_session("admin", **PHONE)
+    member = open_session("member", **PHONE)
+    sign_in(member, server)
+    expect(member.get_by_role("button", name="Add New List")).to_be_visible()
+
+    # Delete the Home room without opening it. Only the exact name enables Delete.
+    owner.goto(app_url(server, "admin"))
+    admin_sign_in(owner, server)
+    owner.get_by_role("button", name="Delete room Home").click()
+    dialog = owner.get_by_role("dialog", name="Admin delete of room: Home")
+    expect(dialog).to_contain_text("ALL its lists and items")
+    expect(dialog).to_contain_text("This cannot be undone")
+    delete_button = dialog.get_by_role("button", name="Delete", exact=True)
+    expect(delete_button).to_be_disabled()
+    dialog.get_by_label("Type the room name to confirm").fill("home")
+    expect(delete_button).to_be_disabled()
+    dialog.get_by_label("Type the room name to confirm").fill("Home")
+    expect(delete_button).to_be_enabled()
+    delete_button.click()
+
+    expect(owner.get_by_text("Room deleted")).to_be_visible()
+    expect(owner.get_by_role("dialog")).to_have_count(0)
+    expect(owner.get_by_text("No rooms yet. Create your first one!")).to_be_visible()
+    assert server.query("SELECT COUNT(*) FROM rooms") == [(0,)]
+    assert server.query("SELECT COUNT(*) FROM lists") == [(0,)]
+
+    # The open room page of the member is signed out, as after a normal delete.
+    expect(member.get_by_label("Room Password")).to_be_visible()
+    member.get_by_label("Room Password").fill(server.password)
+    member.get_by_label("Room Password").press("Enter")
+    expect(member.get_by_role("alert")).to_have_text("Wrong room or password.")
