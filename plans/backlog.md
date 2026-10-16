@@ -20,19 +20,15 @@ Agreed as worth doing; no date.
 - [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline editing](offline-editing.md#what-can-be-done-offline).
 - [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing. See the [offline viewing scope](svelte-frontend-rewrite.md#milestone-5-offline-viewing).
 
-- [ ] [test] Fix a rare (about 1 in 12) WebKit teardown flake from cancelled in-flight requests in the rename-after-password-change test in `browser_tests/test_svelte_live.py`. See the [validation record](../docs/background/offline-viewing-validation.md).
-- [ ] [test] Add a browser test for a reload in the middle of a room DELETE (the sign-out marker is stored before the DELETE by design).
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [ ] [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [ ] [infra] Add a Railway `staging` environment before production pushes. See the [staging environment plan](staging-environment.md).
+- [ ] [security] The sign-in limit per client address trusts the first `X-Forwarded-For` entry, which a client can set. The per-room limit does not depend on it. Check what Railway appends and read the right entry. See [sign-in limit](../docs/api.md#sign-in-limit).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
-- [ ] [feature] Admin can delete a room from the admin room list, without entering the room: a clear warning, type the room name to confirm, and tests that nothing else is deleted. Today the admin must reset the password, enter the room and delete it there (as in NiceGUI).
 - [ ] [feature] Due dates on items, in stages: first an optional date (no time) shown on the item, then a sort choice for each list: by name (today's default) or by due date. Open items always stay above checked ones. No calendar view. Notifications are in Ideas.
-- [ ] [refactor] Use FastAPI's built-in server-sent events (`EventSourceResponse`) for live updates and delete our own keep-alive code. Best done the next time `src/api/events.py` changes. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 - [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).
-- [ ] [infra] Add small resource limits: bound the open-handle registry, prune old offline snapshots in the browser, prune old processed ops on the server, and avoid opening the database at import time. Tiny at about 4 users. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 
 ## Ideas
 
@@ -48,7 +44,6 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
 - [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
-- [feature] Svelte list page: a "5 checked items hidden" line at the bottom when hide-done hides items. See decision 89 in the [Svelte rewrite plan](svelte-frontend-rewrite.md#decisions-log).
 - [feature] Bottom toolbar on the list page for thumb reach (for example back, list options, ⋮ menu). The add field stays where it is. Sketch a few layouts and test on the iPhone (Safari's bar, keyboard, home swipe area). After the Svelte switch.
 - [refactor] Move `src/` into a proper Python package. (Splitting `src/main.py` is done: since step 4.3 it is only the entry point, and `src/server.py` and `src/api/` hold the rest.)
 - [refactor] Replace the global SQLite connection with a connection/context-manager layer.

@@ -116,12 +116,38 @@ of each code step.
    offline use), `docs/api.md`, `docs/change-tracking.md`, `ARCHITECTURE.md`.
 8. **Gate C** Owner tests on the iPhone, including two devices.
 
+## Decisions made while building
+
+Choices the lead agent or subagents made; the owner reviews them at Gate C.
+
+- **Edit conflicts compare all sent fields.** An `item.edit` conflicts when
+  name, description or the sent quantity differs from what is stored. So a
+  +/− on another device conflicts with an open edit dialog's old quantity.
+  The edit dialog keeps the `base_seq` from when it opened.
+- **Old answers keep their shape.** A null new field (`base_seq`, `active`) is
+  left out of the stored request hash, so retries of ops sent before the
+  deploy still match.
+- **Sign-out keeps stored changes.** They stay on the device and are sent
+  after the next sign-in to the same room (as in memory before). Not cleared
+  on a shared phone.
+- **Held or unreadable ops block later ops** of the same room until sent or
+  discarded, so the order is kept.
+- **Deletion pruning** (migration 7) cuts at the newest old record per room,
+  so the cut-off is clean even with clock skew.
+- **Share seq floor table** (migration 8, `share_seq_floors`): keeps a
+  list's share `seq` from going down after pruning, without touching the
+  `lists` triggers.
+- **API version bump at deploy.** The share `seq` changes meaning (per list,
+  usually lower than before). Bump `API_VERSION` (server and client) in the
+  deploy that ships this, so old open pages reload instead of misreading the
+  lower `seq`.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
-- [ ] 6.2a Server conflict checks
-- [ ] 6.2b Deletion pruning and per-list share tracking
-- [ ] 6.2c Persistent queue
+- [x] 6.2a Server conflict checks
+- [x] 6.2b Deletion pruning and per-list share tracking
+- [x] 6.2c Persistent queue
 - [ ] 6.2d Offline editing in the client
 - [ ] 6.3 Not-saved UI
 - [ ] 6.4 Multi-device tests and docs

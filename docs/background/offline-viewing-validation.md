@@ -128,11 +128,13 @@ Root causes found:
   page).
 - **WebKit cancelled-request page errors:** rare (about 1 in 12) teardown
   flake from cancelled in-flight requests in the rename-after-password-change
-  test in `test_svelte_live.py`. Open; tracked in the backlog.
+  test in `test_svelte_live.py`. Fixed on 2026-10-16: the test waits for the
+  live stream before it reloads.
 
-Not covered: a reload in the middle of a room DELETE (the marker is stored
-before the DELETE by design), a compatibility-mismatch UI (not built), and any
-real iPhone.
+Not covered: a compatibility-mismatch UI (not built) and any real iPhone. A
+reload in the middle of sign-out or room delete got browser tests on
+2026-10-16 (`test_svelte_rooms.py`, `test_svelte_room_management.py`). The
+sign-out marker belongs to sign-out (`DELETE …/session`), not to room delete.
 
 ## Deployment prerequisite
 
