@@ -14,6 +14,9 @@ newer changes or writing half an update.
   data.
 - **One transaction per user action.** Multi-field changes either all succeed
   or all roll back. Failed writes leave no open transaction.
+- **Late edits are checked.** A rename, edit or tick carries the `changed_seq`
+  the page saw. If someone else changed the same value since, the write is
+  refused (`changed_meanwhile`). See [conflicts](api.md#conflicts).
 
 All helpers live in `src/database_crud.py`. The [JSON API](api.md) calls
 their `_locked` variants inside one write transaction, so each rule has one copy.
@@ -24,10 +27,10 @@ their `_locked` variants inside one write transaction, so each rule has one copy
 |---|---|---|
 | Quantity +/− | Adds the delta in SQL (`adjust_item_quantity_locked`); never below 1; empty counts as 1. The edit dialog sets an absolute value. | `tests/test_quantity_updates.py` |
 | Add | Add, restore a checked item, or reject a duplicate in one transaction (`add_or_restore_item_locked`). A unique index blocks duplicate names per list, ignoring case and outer spaces. | `tests/test_item_uniqueness.py` |
-| Edit dialog | Name, description and quantity saved together (`update_item_details_locked`). Renaming to a duplicate name changes nothing. | `tests/test_item_edits.py`, `tests/test_item_renames.py` |
-| Item tag button | Toggles one tag on the current stored tags (`toggle_item_active_tag_locked`). | `tests/test_api_tag_ops.py`, `tests/test_tags.py` |
+| Edit dialog | Name, description and quantity saved together (`update_item_details_locked`). Renaming to a duplicate name changes nothing. A stale edit of a changed value changes nothing (`changed_meanwhile`). | `tests/test_item_edits.py`, `tests/test_item_renames.py`, `tests/test_api_conflicts.py` |
+| Item tag button | Toggles one tag on the current stored tags (`toggle_item_active_tag_locked`). An `active` value sets the state instead and is safe to repeat. | `tests/test_api_tag_ops.py`, `tests/test_tags.py`, `tests/test_api_conflicts.py` |
 | List tags | Add/remove one tag (`change_list_tag_locked`); tag undo reuses add. | `tests/test_api_tag_ops.py`, `tests/test_tags.py` |
-| Rename list | Identity, room ownership and name uniqueness checked in the same transaction. A lost race returns the normal duplicate-name warning. | `tests/test_list_renames.py` |
+| Rename list | Identity, room ownership and name uniqueness checked in the same transaction. A lost race returns the normal duplicate-name warning. A stale rename of a changed name changes nothing (`changed_meanwhile`). | `tests/test_list_renames.py`, `tests/test_api_conflicts.py` |
 | Delete + undo | Undo restores name, done state, tags, description and quantity as a new item. If the name was re-added meanwhile, undo warns and changes nothing. | `tests/test_item_undo.py` |
 | Delete list / room | All deletes roll back if any step fails. | `tests/test_database_crud.py` |
 | Admin password reset | The API finds the room by slug in the write transaction. If the room was deleted or replaced, nothing changes and the UI says so. | `tests/test_database_crud.py`, `tests/test_api_admin.py` |

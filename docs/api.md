@@ -385,26 +385,46 @@ names are lowercased.
 |---|---|---|
 | `room.rename` | `name` | Trimmed, case kept. Room names need not be unique. The new name shows in the feed's `room`. |
 | `list.create` | `name`, `uid`? | `{"list_uid", "slug", "created"}`. If a list with that name exists (ignoring case), it is returned with `created: false` and the client `uid` is not used. |
-| `list.rename` | `list_uid`, `name`, `base_seq` | – |
+| `list.rename` | `list_uid`, `name`, `base_seq` | Checked against `base_seq` ([conflicts](#conflicts)). |
 | `list.delete` | `list_uid` | Deletes the list and all its items. |
 | `list.tag_add` | `list_uid`, `tag` | Adds one tag (trimmed); no change if it exists. Tags match exactly, case included. Also used to undo a tag delete. |
 | `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list; no change if it is not there. Item tags are not changed. |
 | `list.visibility` | `list_uid`, `mode`?, `age_days`?, `recent_count`? | Sends only the changed fields (at least one); the server keeps the others. Out-of-range values give 422. |
-| `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). |
-| `item.set_done` | `list_uid`, `item_uid`, `done` | Sets the state. Checking an already checked item keeps its `completed_at`. |
+| `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). |
+| `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
-| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. The description is trimmed. |
-| `item.toggle_tag` | `list_uid`, `item_uid`, `tag` | Toggles one tag on the stored item tags. |
+| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
+| `item.toggle_tag` | `list_uid`, `item_uid`, `tag`, `active`? | Toggles one tag on the stored item tags. With `active`, sets the tag on (`true`) or off (`false`); already in that state changes nothing, so the op is safe to send twice. |
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
-| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at` | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. |
+| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at` | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. |
 
 `?` means optional. A client `uid` must be a UUID that was never used by any
 list or item, in any room, even a deleted one; if it was, the server answers
 422. `quantity` and `delta` are whole numbers from −1,000,000 to 1,000,000.
 `completed_at` is an ISO 8601 time; without a time zone it counts as UTC.
 
-`base_seq` is the `changed_seq` the edit was based on. It is required but not
-yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
+### Conflicts
+
+`base_seq` is the row's `changed_seq` that the page had when the user acted.
+It is required for `list.rename` and `item.edit`, and optional for
+`item.set_done`. Without it the last write wins.
+
+If the row changed after `base_seq` and the stored value differs from what the
+op wants, the op is rejected with `changed_meanwhile` and nothing changes. What
+the op wants:
+
+- `item.edit`: name, description and quantity (only if sent).
+- `item.set_done`: the done state.
+- `list.rename`: the name.
+
+If the stored value already matches, the op is applied. A quantity that was
+not sent is not compared.
+
+Applied answers of one-row ops (`item.set_done`, `item.quantity_delta`,
+`item.edit`, `item.toggle_tag`, `item.add`, `item.restore`, `list.rename`,
+`list.tag_add`, `list.tag_remove`, `list.visibility`) include the row's new
+`changed_seq` in `result`. A client can use it as the next `base_seq` for that
+row. Answers stored before this was added have no `changed_seq`.
 
 ### Rejection codes
 
@@ -413,7 +433,8 @@ yet used: for now **the last write wins**. Conflict rules come in Milestone 6.
 | `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
 | `too_long` | the same, after trimming: names 100 characters, `list.tag_add` tags 30, `item.edit` and `item.restore` descriptions 1000 | Name (Tag, Description) can be at most N characters |
 | `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
-| `duplicate_active` | `item.add` | 'x' is already on the list |
+| `duplicate_active` | `item.add` | 'x' is already on the list. Also has `item_uid`: the uid of the existing item. |
+| `changed_meanwhile` | `list.rename`, `item.set_done`, `item.edit` | Someone else changed this meanwhile. |
 | `undo_name_taken` | `item.restore` | Cannot undo: item name already exists |
 | `list_unavailable` | every op with `list_uid` | The list is no longer available. |
 | `item_not_found` | `item.set_done`, `item.quantity_delta`, `item.edit`, `item.toggle_tag` | The item is no longer available. |
