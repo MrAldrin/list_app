@@ -3,7 +3,7 @@
 The lookup, the write and the stored response share the caller's write
 transaction, so a retry either sees the whole result or nothing. Applied and
 rejected responses are stored; HTTP errors are raised and nothing is stored.
-Old entries are pruned at startup (`database_crud.prune_processed_ops`).
+Old entries are pruned at startup and daily (`server.py`, `database_crud.prune_processed_ops`).
 """
 
 import hashlib

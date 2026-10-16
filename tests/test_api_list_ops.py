@@ -1,6 +1,7 @@
 """List write ops and the op_id helper (docs/api.md, "Writing: operations")."""
 
 import sqlite3
+import time
 
 import pytest
 from api_helpers import (
@@ -560,6 +561,21 @@ def test_prune_runs_at_startup(monkeypatch):
     monkeypatch.setattr(server, "prune_processed_ops", lambda: calls.append(1))
     with TestClient(main.app):
         assert calls == [1]
+
+
+def test_prune_repeats_while_the_server_runs(monkeypatch):
+    calls = []
+    monkeypatch.setattr(server, "prune_processed_ops", lambda: calls.append(1))
+    monkeypatch.setattr(server, "PRUNE_EVERY_SECONDS", 0.01)
+    with TestClient(main.app):
+        deadline = time.monotonic() + 5
+        while len(calls) < 3 and time.monotonic() < deadline:
+            time.sleep(0.01)
+    # One run at startup, then the repeats; the count stops once the app stops.
+    assert len(calls) >= 3
+    count = len(calls)
+    time.sleep(0.05)
+    assert len(calls) == count
 
 
 def test_startup_prune_survives_a_database_error(monkeypatch, caplog):

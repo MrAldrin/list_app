@@ -373,7 +373,7 @@ Responses (HTTP 200), one applied and one rejected:
   unchanged. The same `op_id` with a different body, or for another room,
   gives 409 `op_id_reused`. "Same body" means the same fields and values after
   checking: key order, UUID letter case and an optional field sent as `null`
-  do not count. Results older than 30 days are removed when the server starts.
+  do not count. Results older than 30 days are removed when the server starts and once a day.
 - HTTP errors (401, 403, 422, 503, …) are **not** stored. Fix the cause and
   retry with the same `op_id`.
 - The client reads the changes feed to get the new data.

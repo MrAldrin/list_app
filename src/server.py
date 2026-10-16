@@ -3,6 +3,7 @@
 `main.py` runs it with uvicorn. Tests import `create_app()` through `main.app`.
 """
 
+import asyncio
 import logging
 import sqlite3
 from collections.abc import AsyncIterator
@@ -11,6 +12,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from api import register_api
 from config import require_app_password
@@ -24,6 +26,9 @@ logger = logging.getLogger(__name__)
 # them. Live update streams never end by themselves (src/api/events.py).
 SHUTDOWN_TIMEOUT_SECONDS = 1
 
+# Old op results are pruned at startup and then once a day while the server runs.
+PRUNE_EVERY_SECONDS = 24 * 60 * 60
+
 
 def prune_old_ops() -> None:
     """Drop stored API op results older than 30 days; never block startup."""
@@ -33,10 +38,21 @@ def prune_old_ops() -> None:
         logger.exception("Could not prune processed_ops")
 
 
+async def _prune_daily() -> None:
+    while True:
+        await asyncio.sleep(PRUNE_EVERY_SECONDS)
+        await run_in_threadpool(prune_old_ops)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     prune_old_ops()
-    yield
+    prune = asyncio.create_task(_prune_daily())
+    try:
+        yield
+    finally:
+        # Cancel without waiting: a shutdown that waits here logs cancelled streams.
+        prune.cancel()
 
 
 def create_app(build_dir: Path | None = None) -> FastAPI:
