@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { IDBFactory } from 'fake-indexeddb';
 import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { closeRoom, openRoom, RoomHandle, type RoomApi } from './index';
+import { createQueueStorage } from './queue-storage';
 import {
 	applied,
 	deferred,
@@ -482,5 +484,87 @@ describe('openRoom / closeRoom', () => {
 			expect(ops).toHaveLength(1);
 			expect(store.pendingOps.map((pending) => pending.op.op_id)).toEqual([opId]);
 		});
+	});
+});
+
+/** IndexedDB works through timers, so these tests wait for a condition. */
+async function waitFor(check: () => boolean, label: string): Promise<void> {
+	for (let round = 0; round < 1000; round += 1) {
+		if (check()) return;
+		await new Promise((resolve) => setTimeout(resolve, 1));
+	}
+	throw new Error(`Timed out waiting for ${label}`);
+}
+
+describe('ops kept on the device', () => {
+	beforeEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('shows stored ops at once, sends them once the room is checked, then clears them', async () => {
+		const storage = createQueueStorage(`room:${ROOM.slug}`, { indexedDB: new IDBFactory() });
+		await storage.add({
+			opId: 'stored-1',
+			op: { type: 'list.tag_add', list_uid: list.uid, tag: 'Coop', op_id: 'stored-1' },
+			at: new Date().toISOString(),
+			format: 1,
+			state: 'pending'
+		});
+		const server = fakeApi();
+		const room = new RoomHandle(ROOM.slug, {
+			api: server.api,
+			snapshotStore: null,
+			sessionLocks: null,
+			queueStorage: storage,
+			createEventSource: (url) => new FakeEventSource(url),
+			visibility: null,
+			online: null
+		});
+		room.retain();
+
+		await waitFor(() => room.waitingCount === 1, 'stored op counted');
+		expect(room.heldOps).toEqual([]);
+		expect(room.unreadableOps).toEqual([]);
+		expect(room.changesDurable).toBe(true);
+		await waitFor(() => server.ops.length === 1, 'stored op sent');
+		expect(server.ops[0].op).toMatchObject({ op_id: 'stored-1', tag: 'Coop' });
+
+		server.ops[0].answer.resolve(applied(server.ops[0].op, 6));
+		await waitFor(() => room.waitingCount === 0, 'stored op cleared');
+		expect(await storage.read()).toEqual([]);
+	});
+
+	it('holds an op older than 30 days until the user sends it', async () => {
+		const storage = createQueueStorage(`room:${ROOM.slug}`, { indexedDB: new IDBFactory() });
+		const old = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString();
+		await storage.add({
+			opId: 'old-1',
+			op: { type: 'list.tag_add', list_uid: list.uid, tag: 'Coop', op_id: 'old-1' },
+			at: old,
+			format: 1,
+			state: 'pending'
+		});
+		const server = fakeApi();
+		const room = new RoomHandle(ROOM.slug, {
+			api: server.api,
+			snapshotStore: null,
+			sessionLocks: null,
+			queueStorage: storage,
+			createEventSource: (url) => new FakeEventSource(url),
+			visibility: null,
+			online: null
+		});
+		room.retain();
+
+		await waitFor(() => room.heldOps.length === 1, 'held op listed');
+		expect(room.heldOps[0]).toMatchObject({ opId: 'old-1', at: old });
+		await settle();
+		expect(server.ops).toHaveLength(0);
+
+		room.sendHeld();
+		await waitFor(() => server.ops.length === 1, 'held op sent');
+		expect(server.ops[0].op.op_id).toBe('old-1');
+		server.ops[0].answer.resolve(applied(server.ops[0].op, 6));
+		await waitFor(() => room.waitingCount === 0, 'held op cleared');
 	});
 });

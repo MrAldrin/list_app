@@ -29,9 +29,11 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - Text: "Offline — showing your lists from 18:05. Editing is back when you're
   online." Share pages say "this list". The time is `HH:MM` for today, else a
   short date and time. Without a usable time, that part is left out.
-- If changes wait in memory, a second line says "N changes waiting to be sent."
-  They are sent when the connection returns. They live in memory only, so
-  closing the app loses them.
+- If changes wait, a second line says "N changes waiting to be sent." They are
+  sent when the connection returns. They are kept on the device (IndexedDB), so
+  closing the app keeps them. Where IndexedDB is missing, they live in memory
+  only. Writing offline is still off, so this line only covers changes made
+  online that have not gone out yet.
 - While the notice shows, it is the only connection message. The "Reconnecting…"
   pill and the "Could not load the latest changes." box (network errors only)
   are hidden. Server errors still show the error box.
@@ -58,8 +60,8 @@ the [backlog](../plans/backlog.md)). Evidence is in the
 - When an API answer has another `X-Api-Version` than the page expects, the
   data layer stops all writes (reason `incompatible_version`, also in the
   Api client for admin and other calls; sign-out still works). Queued ops keep
-  their `op_id` and are not retried or dropped, but they live in memory, so a
-  reload loses them. A banner "A new version is available" has a Reload button
+  their `op_id` and are not retried or dropped. They are kept on the device, so
+  a reload keeps them. A banner "A new version is available" has a Reload button
   and says how many changes are not saved yet. The banner never reloads by
   itself. Reload first fetches the newest version and lets it take over, so it
   does not load the old saved copy again. Reading continues.

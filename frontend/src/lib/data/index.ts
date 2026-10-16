@@ -63,6 +63,9 @@ import type {
 	Room,
 	ShareLink
 } from './types';
+import type { HeldOp, UnreadableOp } from './queue-entries';
+import { createQueueStorage, type QueueStorage } from './queue-storage';
+import { QueueView } from './queue-view.svelte';
 import { WriteQueue } from './write-queue';
 
 export * from './types';
@@ -126,6 +129,8 @@ export interface RoomOptions {
 	hydrateSavedView?: boolean;
 	/** Injectable Web Locks boundary for session-transition tests. */
 	sessionLocks?: SessionLockManager | null;
+	/** Where queued ops are kept. Default: IndexedDB when available, else memory. */
+	queueStorage?: QueueStorage;
 }
 
 const READ_ONLY = {
@@ -163,6 +168,8 @@ export class RoomHandle {
 	readonly store: RoomStore;
 	readonly #api: RoomApi;
 	readonly #queue: WriteQueue;
+	readonly #queueKey: string;
+	readonly #queueView = new QueueView();
 	readonly #live: LiveUpdates;
 	readonly #snapshotStore: SnapshotStore | null;
 	readonly #identity: SnapshotIdentity;
@@ -211,8 +218,13 @@ export class RoomHandle {
 			},
 			connectionLost: () => this.#queue?.pause()
 		});
+		this.#queueKey = this.#isShare ? `share:${slug}` : `room:${slug}`;
 		this.#queue = new WriteQueue(slug, this.#api, this.store, {
-			retryDelays: options.retryDelays
+			retryDelays: options.retryDelays,
+			key: this.#queueKey,
+			locks: this.#locks,
+			storage: options.queueStorage ?? createQueueStorage(this.#queueKey),
+			onChange: (snapshot) => this.#queueView.apply(snapshot)
 		});
 		this.#queue.pause();
 		this.#live = new LiveUpdates({
@@ -245,6 +257,36 @@ export class RoomHandle {
 	/** Ops not answered by the server yet. */
 	get queuedOps() {
 		return this.#queue.pending;
+	}
+
+	/** Ops waiting on this device, held and unreadable ones included. */
+	get waitingCount(): number {
+		return this.#queueView.waiting;
+	}
+
+	/** Ops older than 30 days: sent only when the user chooses. */
+	get heldOps(): readonly HeldOp[] {
+		return this.#queueView.held;
+	}
+
+	/** Ops this app cannot read or send (for example, written by a newer version). */
+	get unreadableOps(): readonly UnreadableOp[] {
+		return this.#queueView.unreadable;
+	}
+
+	/** False when waiting changes live in memory only (no IndexedDB). */
+	get changesDurable(): boolean {
+		return this.#queueView.durable;
+	}
+
+	/** Sends the held ops now, in their usual order. */
+	sendHeld(): void {
+		this.#queue.sendHeld();
+	}
+
+	/** Drops one waiting op. False when it is being sent right now. */
+	discard(opId: string): boolean {
+		return this.#queue.discard(opId);
 	}
 
 	/** Starts saved-view preparation, access revalidation and live updates. */
@@ -473,7 +515,7 @@ export class RoomHandle {
 	}
 
 	async #logout(client: Pick<Api, 'logout'>): Promise<ActionResult> {
-		const hadPending = this.#queue.pending.length > 0;
+		const hadPending = this.#queue.waiting > 0;
 		// Stop writes now, but keep showing the room until the sign-out marker is
 		// stored. Showing the password prompt first would let a quick reload find
 		// no marker and a cookie that still works.
@@ -536,6 +578,8 @@ export class RoomHandle {
 	}
 
 	async #initialize(): Promise<void> {
+		// Ops stored by an earlier visit wait in the queue before anything sends.
+		await this.#queue.load();
 		const startEpoch = this.#identityEpoch;
 		if (this.#snapshotStore) {
 			const generation = await this.#snapshotStore.generation(this.#identity);
@@ -629,7 +673,7 @@ export class RoomHandle {
 		this.#sessionValidated = true;
 		this.store.setWriteAuthorized(true);
 		this.#revalidationAttempt = 0;
-		this.store.syncQueued(this.#queue.pending.length);
+		this.store.syncQueued(this.#queue.waiting);
 		this.#queue.resume();
 		if (this.#users > 0) this.#live.start();
 		return true;

@@ -8,14 +8,27 @@
 //   queued with their op_ids; nothing is retried or dropped.
 // - Any other HTTP error (403, 409, 415, 422, …): that op fails; go on.
 // - 200 `applied` or `rejected`: done; go on.
+// - Stored ops that are held (older than 30 days) or unreadable (see
+//   queue-entries.ts) block the queue until the user sends or discards them.
 //
+// Queued ops live in storage (queue-storage.ts) until the server answers.
+// Sending happens under a Web Lock per room, so one tab sends at a time (R12).
 // The host hears when an op goes out and when it comes back, so the room can
 // hold back changes feeds while an answer is open (see RoomStore).
 
 import { isRetryable } from './api';
 import { BACKOFF_DELAYS, backoffDelay } from './backoff';
 import { compat, INCOMPATIBLE_CODE } from './compat.svelte';
+import {
+	classifyEntry,
+	newStoredEntry,
+	summarizeEntries,
+	type QueueSnapshot,
+	type StoredEntry
+} from './queue-entries';
+import { MemoryQueueStorage, type QueueStorage } from './queue-storage';
 import { newId } from './ids';
+import type { SessionLockManager } from './session-transition';
 import { ApiError } from './types';
 import type { Op, OpResponse, SentOp } from './types';
 
@@ -41,37 +54,27 @@ export interface OpSender {
 	sendOp(slug: string, op: SentOp): Promise<OpResponse>;
 }
 
-/**
- * Where queued ops live until the server answers. In memory for now;
- * Milestone 6 keeps them in IndexedDB behind this same interface.
- */
-export interface QueueStorage {
-	all(): readonly SentOp[];
-	add(op: SentOp): void;
-	remove(opId: string): void;
-	clear(): void;
-}
-
-export class MemoryQueueStorage implements QueueStorage {
-	#ops: SentOp[] = [];
-
-	all(): readonly SentOp[] {
-		return this.#ops;
-	}
-	add(op: SentOp): void {
-		this.#ops.push(op);
-	}
-	remove(opId: string): void {
-		this.#ops = this.#ops.filter((op) => op.op_id !== opId);
-	}
-	clear(): void {
-		this.#ops = [];
-	}
-}
-
 export interface WriteQueueOptions {
+	/** Defaults to memory only. */
 	storage?: QueueStorage;
 	retryDelays?: readonly number[];
+	/** Web Locks for "one tab sends". Default: none (the room passes the browser's). */
+	locks?: SessionLockManager | null;
+	/** Storage and lock key, for example `room:<slug>`. Defaults to the slug. */
+	key?: string;
+	now?: () => Date;
+	/** Told after every change to what waits here. */
+	onChange?: (snapshot: QueueSnapshot) => void;
+}
+
+/** Runs `operation` while holding this queue's lock. Without Web Locks it just runs. */
+export function withQueueLock<T>(
+	key: string,
+	operation: () => Promise<T>,
+	locks: SessionLockManager | null
+): Promise<T> {
+	if (!locks) return operation();
+	return locks.request(`listr:queue:${encodeURIComponent(key)}`, { mode: 'exclusive' }, operation);
 }
 
 interface Waiter {
@@ -79,36 +82,67 @@ interface Waiter {
 	reject: (error: unknown) => void;
 }
 
+const noop = () => undefined;
+
 export class WriteQueue {
 	readonly #slug: string;
+	readonly #key: string;
 	readonly #sender: OpSender;
 	readonly #host: QueueHost;
 	readonly #storage: QueueStorage;
 	readonly #delays: readonly number[];
+	readonly #locks: SessionLockManager | null;
+	readonly #now: () => Date;
+	readonly #onChange: ((snapshot: QueueSnapshot) => void) | undefined;
 	readonly #waiters = new Map<string, Waiter>();
 
+	/** Every stored entry, in send order: this tab's copy of the storage. */
+	#entries: StoredEntry[] = [];
+	/** Bumped by each local change. A storage read that overlaps a change is repeated. */
+	#version = 0;
+	/** Storage calls run one after another, in the order they were made. */
+	#chain: Promise<unknown> = Promise.resolve();
 	#running = false;
 	#paused = false;
 	#disposed = false;
 	#attempt = 0;
+	#inFlight: string | null = null;
 	#wake: (() => void) | null = null;
 
 	constructor(slug: string, sender: OpSender, host: QueueHost, options: WriteQueueOptions = {}) {
 		this.#slug = slug;
+		this.#key = options.key ?? slug;
 		this.#sender = sender;
 		this.#host = host;
 		this.#storage = options.storage ?? new MemoryQueueStorage();
 		this.#delays = options.retryDelays ?? BACKOFF_DELAYS;
+		this.#locks = options.locks ?? null;
+		this.#now = options.now ?? (() => new Date());
+		this.#onChange = options.onChange;
 	}
 
-	/** Ops not answered yet, oldest first. */
+	/** Ops not answered yet, oldest first. Unreadable entries are left out (see `waiting`). */
 	get pending(): readonly SentOp[] {
-		return this.#storage.all();
+		const now = this.#nowMs();
+		return this.#entries.flatMap((entry) => {
+			const verdict = classifyEntry(entry, now);
+			return verdict.kind === 'unreadable' ? [] : [verdict.op];
+		});
+	}
+
+	/** Every stored entry that waits, including held and unreadable ones. */
+	get waiting(): number {
+		return this.#entries.length;
 	}
 
 	/** True after a 401, until `resume()`. */
 	get paused(): boolean {
 		return this.#paused;
+	}
+
+	/** Reads what is stored for this room, so `pending` and `waiting` are right. */
+	async load(): Promise<void> {
+		await this.#readStored();
 	}
 
 	/**
@@ -121,8 +155,10 @@ export class WriteQueue {
 		const promise = new Promise<OpResponse>((resolve, reject) => {
 			this.#waiters.set(sent.op_id, { resolve, reject });
 		});
-		this.#storage.add(sent);
-		this.#reportWaiting();
+		const entry = newStoredEntry(sent, this.#now().toISOString());
+		this.#entries = [...this.#entries, entry];
+		this.#mutated();
+		void this.#enqueue(() => this.#storage.add(entry));
 		this.#host.opQueued(sent);
 		void this.#pump();
 		return promise;
@@ -146,33 +182,132 @@ export class WriteQueue {
 		this.#wake?.();
 	}
 
+	/** Lets the user send held ops now (R10). The ops then go in their usual order. */
+	sendHeld(): void {
+		const now = this.#nowMs();
+		const held = new Set(
+			this.#entries
+				.filter((entry) => classifyEntry(entry, now).kind === 'held')
+				.map((entry) => entry.opId)
+		);
+		if (held.size === 0) return;
+		this.#entries = this.#entries.map((entry) =>
+			held.has(entry.opId) ? { ...entry, state: 'approved' } : entry
+		);
+		this.#mutated();
+		for (const opId of held) {
+			void this.#enqueue(() => this.#storage.setState(opId, 'approved'));
+		}
+		void this.#pump();
+	}
+
+	/**
+	 * Drops a stored op the user does not want (R10, R13). Its promise rejects.
+	 * False when the op is being sent right now, or is not stored here.
+	 */
+	discard(opId: string): boolean {
+		if (opId === this.#inFlight) return false;
+		if (!this.#entries.some((entry) => entry.opId === opId)) return false;
+		this.#waiters.get(opId)?.reject(new Error('This change was discarded.'));
+		this.#waiters.delete(opId);
+		this.#removeEntry(opId);
+		void this.#pump();
+		return true;
+	}
+
 	/** Drops every queued op (their promises reject with `reason`) and stops. */
 	dispose(reason: unknown = new Error('This room is closed.')): void {
 		this.#disposed = true;
 		this.#paused = true;
-		for (const op of this.#storage.all()) this.#waiters.get(op.op_id)?.reject(reason);
+		for (const entry of this.#entries) this.#waiters.get(entry.opId)?.reject(reason);
 		this.#waiters.clear();
-		this.#storage.clear();
-		this.#reportWaiting();
+		this.#entries = [];
+		this.#mutated();
+		void this.#enqueue(() => this.#storage.clear());
 		this.#wake?.();
 	}
 
-	/** Tells `compat` how many ops wait here, for the reload warning. */
-	#reportWaiting(): void {
-		compat.reportWaiting(this, this.#storage.all().length);
+	#nowMs(): number {
+		return this.#now().getTime();
+	}
+
+	/** Runs a storage call after the calls made before it. Never rejects. */
+	#enqueue<T>(task: () => Promise<T>): Promise<T> {
+		const run = this.#chain.then(task);
+		this.#chain = run.then(noop, noop);
+		return run;
+	}
+
+	/** Re-reads storage until no local change overlapped the read. */
+	async #readStored(): Promise<void> {
+		for (;;) {
+			const version = this.#version;
+			const stored = await this.#enqueue(() => this.#storage.read());
+			if (version === this.#version) {
+				this.#entries = stored;
+				this.#publish();
+				return;
+			}
+		}
+	}
+
+	#mutated(): void {
+		this.#version += 1;
+		this.#publish();
+	}
+
+	#publish(): void {
+		compat.reportWaiting(this, this.#entries.length);
+		this.#onChange?.(summarizeEntries(this.#entries, this.#nowMs(), this.#storage.durable));
+	}
+
+	#removeEntry(opId: string): void {
+		this.#entries = this.#entries.filter((entry) => entry.opId !== opId);
+		this.#mutated();
+		void this.#enqueue(() => this.#storage.remove(opId));
 	}
 
 	async #pump(): Promise<void> {
 		if (this.#running) return;
 		this.#running = true;
 		try {
-			while (!this.#paused && !compat.incompatible) {
-				const op = this.#storage.all()[0];
-				if (!op) break;
-				await this.#sendOne(op);
-			}
+			await withQueueLock(this.#key, () => this.#sendAll(), this.#locks);
 		} finally {
 			this.#running = false;
+		}
+		// An op sent while this loop was ending must not wait for the next trigger.
+		if (this.#hasSendable()) void this.#pump();
+	}
+
+	async #sendAll(): Promise<void> {
+		while (!this.#paused && !compat.incompatible) {
+			const next = await this.#nextReady();
+			if (!next) break;
+			await this.#sendOne(next);
+		}
+	}
+
+	/** The first stored op, if it can go now. Later ops wait behind it. */
+	async #nextReady(): Promise<SentOp | null> {
+		await this.#readStored();
+		const first = this.#entries[0];
+		if (!first) return null;
+		const verdict = classifyEntry(first, this.#nowMs());
+		return verdict.kind === 'ready' ? verdict.op : null;
+	}
+
+	#hasSendable(): boolean {
+		if (this.#paused || compat.incompatible || this.#entries.length === 0) return false;
+		return classifyEntry(this.#entries[0], this.#nowMs()).kind === 'ready';
+	}
+
+	/** Makes one request; `#inFlight` is set only while it is open. */
+	async #call(op: SentOp): Promise<OpResponse> {
+		this.#inFlight = op.op_id;
+		try {
+			return await this.#sender.sendOp(this.#slug, op);
+		} finally {
+			this.#inFlight = null;
 		}
 	}
 
@@ -180,7 +315,7 @@ export class WriteQueue {
 		let response: OpResponse;
 		this.#host.opSending(op);
 		try {
-			response = await this.#sender.sendOp(this.#slug, op);
+			response = await this.#call(op);
 		} catch (error) {
 			if (this.#disposed) return;
 			if (error instanceof ApiError && error.code === INCOMPATIBLE_CODE) {
@@ -205,7 +340,7 @@ export class WriteQueue {
 				if (this.#host.authRequired(op) === 'stale') this.#paused = false;
 				return;
 			}
-			this.#finish(op);
+			this.#removeEntry(op.op_id);
 			this.#host.opFailed(op, error);
 			this.#waiters.get(op.op_id)?.reject(error);
 			this.#waiters.delete(op.op_id);
@@ -213,15 +348,10 @@ export class WriteQueue {
 		}
 		if (this.#disposed) return;
 		this.#attempt = 0;
-		this.#finish(op);
+		this.#removeEntry(op.op_id);
 		this.#host.opSettled(op, response);
 		this.#waiters.get(op.op_id)?.resolve(response);
 		this.#waiters.delete(op.op_id);
-	}
-
-	#finish(op: SentOp): void {
-		this.#storage.remove(op.op_id);
-		this.#reportWaiting();
 	}
 
 	#sleep(ms: number): Promise<void> {
