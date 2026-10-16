@@ -9,6 +9,8 @@ Each list has its own shared visibility setting under **Options**. The setting h
   - **Keep last X** shows the X most recently checked items, regardless of age; default X is **10**. This counts across the entire list, even when a tag filter is active.
 - Both counters take whole numbers from 1 through 100,000. Use **All** to hide every checked item immediately. Turning off the main switch retains the counter values; turning it back on selects **All**, not the last selected mode.
 
+A muted line under the list counts the checked items that are hidden, for example "5 checked items hidden". It is plain text with no action. It shows nothing when none are hidden, and search and the tag filter do not change the count.
+
 The browser applies these rules to the items it has loaded, so hiding works offline. The server only validates and stores the settings.
 
 The server stores completion times in UTC. Unchecking an item clears its completion time; checking it again starts a new period. Repeating the same checked state does not restart the clock. Open age-filtered pages update within about a minute of an item passing the threshold; edits and setting changes also update connected list viewers immediately. A page refresh is not needed to save settings.

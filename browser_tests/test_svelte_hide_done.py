@@ -3,7 +3,8 @@
 The Svelte version of `test_visibility_settings.py`. A room member and a
 share-link visitor change the settings of one list; both see each change,
 hidden items stay searchable, and the numbers are kept when the switch goes
-off and on again. Day boundaries are covered by unit tests.
+off and on again. Day boundaries are covered by unit tests. A line under the
+list counts the checked items that are hidden; it shows nothing at zero.
 """
 
 import re
@@ -127,3 +128,47 @@ def test_hide_done_modes_history_and_shared_updates(svelte_server, open_session)
     expect(milk(visitor)).to_have_count(0)
     expect(mode(member, "All")).to_be_checked()
     assert settings(server) == ("all", 1, 1)
+
+
+def hidden_line(page: Page):
+    return page.get_by_text(re.compile(r"\d+ checked items? hidden"))
+
+
+def test_hidden_count_line_under_the_list(svelte_server, open_session):
+    server = svelte_server
+    member = without_share_sheet(open_session("member", **PHONE))
+    visitor = open_session("visitor", **PHONE)
+    sign_in(member, server)
+    create_list(member, "Groceries")
+    for name in ["milk", "eggs", "bread"]:
+        add_item(member, name)
+    milk(member).check()
+    member.get_by_role("checkbox", name="eggs").check()
+
+    visitor.goto(share_link(member))
+    expect(milk(visitor)).to_be_checked()
+    # Hiding is off: nothing is hidden, so no line.
+    expect(hidden_line(visitor)).to_have_count(0)
+
+    member.get_by_role("button", name="Options").click()
+    switch = member.get_by_role("switch", name="Hide checked-off items")
+    with member.expect_response(SAVED):
+        switch.check()
+    expect(hidden_line(member)).to_have_text("2 checked items hidden")
+    expect(hidden_line(visitor)).to_have_text("2 checked items hidden")
+
+    # Typing in the add field only suggests; the hidden count does not change.
+    visitor.get_by_label("Add or Search").fill("milk")
+    expect(hidden_line(visitor)).to_have_text("2 checked items hidden")
+    visitor.get_by_role("listbox", name="Suggestions").get_by_role(
+        "option", name="milk"
+    ).click()
+    expect(visitor.get_by_text("Restored milk!")).to_be_visible()
+    expect(hidden_line(visitor)).to_have_text("1 checked item hidden")
+    expect(hidden_line(member)).to_have_text("1 checked item hidden")
+
+    # Turning hiding off removes the line for both viewers.
+    with member.expect_response(SAVED):
+        switch.uncheck()
+    expect(hidden_line(member)).to_have_count(0)
+    expect(hidden_line(visitor)).to_have_count(0)

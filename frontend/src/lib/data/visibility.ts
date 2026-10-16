@@ -102,3 +102,17 @@ export function filterVisibleItems<T extends Pick<Item, 'done' | 'completed_at' 
 	const retained = new Set(ranked.slice(0, recentCount).map(({ item }) => item));
 	return items.filter((item) => !item.done || retained.has(item));
 }
+
+/**
+ * How many checked items the hide-done rule hides. Only checked items are ever
+ * hidden, so this is the checked items minus the checked items shown. Search
+ * and tag filters do not change it.
+ */
+export function countHiddenChecked<T extends Pick<Item, 'done' | 'completed_at' | 'uid'>>(
+	items: readonly T[],
+	settings: HideDone = DEFAULT_HIDE_DONE,
+	now: Date = new Date()
+): number {
+	const shown = filterVisibleItems(items, settings, now).filter((item) => item.done).length;
+	return items.filter((item) => item.done).length - shown;
+}

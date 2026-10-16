@@ -81,7 +81,12 @@ export {
 	type ConnectionStatus
 } from './status';
 export { RoomStore } from './room-store.svelte';
-export { filterVisibleItems, DEFAULT_HIDE_DONE, MAX_HIDE_DONE_COUNT } from './visibility';
+export {
+	filterVisibleItems,
+	countHiddenChecked,
+	DEFAULT_HIDE_DONE,
+	MAX_HIDE_DONE_COUNT
+} from './visibility';
 export { sortItems, sortLists, sortTags } from './order';
 export { newId } from './ids';
 

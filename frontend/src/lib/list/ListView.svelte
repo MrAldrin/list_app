@@ -5,7 +5,13 @@
 	browsers that have access to the room.
 -->
 <script lang="ts">
-	import type { HideDone, Item, List, RoomHandle } from '#lib/data/index.ts';
+	import {
+		countHiddenChecked,
+		type HideDone,
+		type Item,
+		type List,
+		type RoomHandle
+	} from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -70,6 +76,13 @@
 		const timer = setInterval(() => (now = new Date()), 60_000);
 		return () => clearInterval(timer);
 	});
+	// Checked items the hide-done rule hides (not search or tag filters).
+	const hiddenChecked = $derived(
+		countHiddenChecked(room.store.itemsOf(list.uid), list.hide_done, now)
+	);
+	const hiddenText = $derived(
+		`${hiddenChecked} ${hiddenChecked === 1 ? 'checked item' : 'checked items'} hidden`
+	);
 
 	async function addItem(target: List, name: string): Promise<boolean> {
 		const result = await room.addItem(target, name);
@@ -214,6 +227,9 @@
 		/>
 	{/each}
 </ul>
+{#if hiddenChecked > 0}
+	<p class="hidden-count">{hiddenText}</p>
+{/if}
 {#if editing}
 	{@const item = editing}
 	<ItemDialog
@@ -230,5 +246,11 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
+	}
+
+	.hidden-count {
+		margin: var(--gap) 0 0;
+		text-align: center;
+		color: var(--text-muted);
 	}
 </style>

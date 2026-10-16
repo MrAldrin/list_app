@@ -4,6 +4,7 @@ import { sortItems, sortLists, sortTags } from './order';
 import { makeItem, makeList } from './test-helpers';
 import type { HideDone, HideDoneMode } from './types';
 import {
+	countHiddenChecked,
 	filterVisibleItems,
 	MAX_HIDE_DONE_COUNT,
 	parseCompletionTime,
@@ -163,5 +164,39 @@ describe('sort orders', () => {
 
 	it('sorts tags like Python sorted(key=str.lower)', () => {
 		expect(sortTags(['market', 'Lidl', 'aldi', 'Zoo'])).toEqual(['aldi', 'Lidl', 'market', 'Zoo']);
+	});
+});
+
+describe('countHiddenChecked', () => {
+	const now = new Date(Date.UTC(2025, 0, 8, 12));
+
+	it('is zero when hiding is off or nothing is checked', () => {
+		expect(countHiddenChecked([item(1, true), item(2, false)], settings('off'))).toBe(0);
+		expect(countHiddenChecked([item(1, false)], settings('all'))).toBe(0);
+		expect(countHiddenChecked([], settings('all'))).toBe(0);
+	});
+
+	it('counts every checked item in "All" mode and never unchecked ones', () => {
+		const items = [item(1, true), item(2, true), item(3, false)];
+		expect(countHiddenChecked(items, settings('all'))).toBe(2);
+	});
+
+	it('counts the checked items that age and recent mode hide', () => {
+		const items = [
+			item(1, true, '2025-01-07T12:00:00Z'),
+			item(2, true, '2025-01-01T12:00:00Z'),
+			item(3, true),
+			item(4, false)
+		];
+		// Age: item 2 is past 7 days; item 3 has no time, so it stays visible.
+		expect(countHiddenChecked(items, settings('age', 7), now)).toBe(1);
+		// Recent: keep 1 keeps item 1; items 2 and 3 are hidden.
+		expect(countHiddenChecked(items, settings('recent', 7, 1), now)).toBe(2);
+	});
+
+	it('agrees with filterVisibleItems on what is shown', () => {
+		const items = [item(1, true), item(2, true, '2025-01-07T12:00:00Z'), item(3, false)];
+		const shown = filterVisibleItems(items, settings('age', 1), now).length;
+		expect(countHiddenChecked(items, settings('age', 1), now)).toBe(items.length - shown);
 	});
 });
