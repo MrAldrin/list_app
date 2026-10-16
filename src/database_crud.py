@@ -845,6 +845,12 @@ def delete_room_with_password_locked(room_id: int, plain_password: str) -> bool:
     ).fetchone()
     if not row or not _password_matches(plain_password, row[0]):
         return False
+    _delete_room_rows_locked(room_id)
+    return True
+
+
+def _delete_room_rows_locked(room_id: int) -> None:
+    """Remove a room's lists and items, then the room. The one delete rule."""
     list_rows = db.execute(
         "SELECT id FROM lists WHERE room_id = ?", (room_id,)
     ).fetchall()
@@ -852,7 +858,20 @@ def delete_room_with_password_locked(room_id: int, plain_password: str) -> bool:
         db.execute("DELETE FROM items WHERE list_id = ?", (list_row[0],))
     db.execute("DELETE FROM lists WHERE room_id = ?", (room_id,))
     db.execute("DELETE FROM rooms WHERE id = ?", (room_id,))
-    return True
+
+
+def delete_room_by_slug(room_slug: str) -> int | None:
+    """Admin delete: remove a room by slug, without its password.
+
+    Returns the room id, or None when no room has this slug (nothing changed).
+    The caller checks admin sign-in first.
+    """
+    with transaction(write=True):
+        row = db.execute("SELECT id FROM rooms WHERE slug = ?", (room_slug,)).fetchone()
+        if row is None:
+            return None
+        _delete_room_rows_locked(row[0])
+        return row[0]
 
 
 def rename_room_locked(room_id: int, new_name: str) -> None:

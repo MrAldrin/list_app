@@ -42,8 +42,8 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   organization. Field-level schema details may evolve.
 - **Admin:** `/admin` requires the global app password. A nonblank `APP_PASSWORD`
   is required before opening the database; there is no password-free fallback.
-  Admins can view the room overview and reset passwords, so rooms are not private
-  from the server administrator. Admin login or `?admin=true` alone does not
+  Admins can view the room overview, reset passwords and delete rooms, so rooms
+  are not private from the server administrator. Admin login or `?admin=true` alone does not
   grant entry to a room. Admin sign-in has its own signed, HTTP-only cookie
   (`__Host-` on HTTPS). It is stateless, and a changed `APP_PASSWORD` ends all
   admin sessions. See [API: Admin](docs/api.md#admin).

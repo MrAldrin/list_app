@@ -1,4 +1,5 @@
-"""Admin in the JSON API: sign-in, room overview, create room, password reset.
+"""Admin in the JSON API: sign-in, room overview, create room, password reset,
+delete room.
 
 The rules are in docs/api.md ("Admin"). The admin session
 cookie is tested in `test_api_admin_session.py`.
@@ -10,12 +11,16 @@ import pytest
 from api_helpers import (
     APP_PASSWORD,
     HTTPS,
+    add_item_with_state,
     admin,
     assert_error,
     browser,
     client_for,
+    create_list,
+    default_list,
     delete_room,
     home,
+    set_cookies,
     sign_in,
     verify_room,
 )
@@ -24,6 +29,7 @@ from starlette.testclient import TestClient
 import database_crud as crud
 from admin_access import admin_password_matches
 from database_setup import db
+from room_cookies import LAST_ROOM_COOKIE, token_cookie_name
 
 
 def password_hash(room_id: int) -> str:
@@ -432,3 +438,202 @@ def test_reset_password_needs_admin_before_anything_else(admin_app):
         "admin_required",
     )
     assert password_hash(room_id) == before
+
+
+# Delete room (no password: the admin is the authority)
+
+
+def admin_delete(client: TestClient, slug: str):
+    return client.delete(f"/api/v1/admin/rooms/{slug}")
+
+
+def count(table: str, room_id: int) -> int:
+    return db.execute(
+        f"SELECT COUNT(*) FROM {table} WHERE room_id = ?", (room_id,)
+    ).fetchone()[0]
+
+
+def test_admin_delete_removes_only_that_room(admin_app):
+    room_id, slug = home()
+    list_id, _ = default_list()
+    add_item_with_state("milk", list_id, False, [])
+    cabin_id, cabin = crud.create_room("Cabin", "cabin-pw")
+    cabin_list, _ = create_list("Cabin list", cabin_id)
+    add_item_with_state("tea", cabin_list, False, [])
+    cabin_member = client_for(cabin, "cabin-pw")
+    home_member = client_for(slug)
+    client = admin(admin_app)
+    issued = client.post("/api/v1/admin/invitations", json={}).json()
+    cabin_hash = db.execute(
+        "SELECT password_hash FROM rooms WHERE id = ?", (cabin_id,)
+    ).fetchone()
+    invitations_before = db.execute("SELECT COUNT(*) FROM room_invitations").fetchone()
+    cabin_tokens = db.execute(
+        "SELECT COUNT(*) FROM room_access_tokens WHERE room_id = ?", (cabin_id,)
+    ).fetchone()
+
+    response = admin_delete(client, slug)
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert response.headers["cache-control"] == "no-store"
+    for table in ["rooms", "lists", "room_access_tokens", "processed_ops", "deletions"]:
+        column = "id" if table == "rooms" else "room_id"
+        assert db.execute(
+            f"SELECT COUNT(*) FROM {table} WHERE {column} = ?", (room_id,)
+        ).fetchone() == (0,), table
+    assert db.execute(
+        "SELECT COUNT(*) FROM items WHERE list_id = ?", (list_id,)
+    ).fetchone() == (0,)
+    # The other room keeps its lists, items, password and tokens.
+    assert crud.get_room_details_by_slug(cabin)["id"] == cabin_id
+    assert [row[0] for row in crud.get_lists(cabin_id)] == [cabin_list]
+    assert db.execute(
+        "SELECT COUNT(*) FROM items WHERE list_id = ?", (cabin_list,)
+    ).fetchone() == (1,)
+    assert (
+        db.execute(
+            "SELECT password_hash FROM rooms WHERE id = ?", (cabin_id,)
+        ).fetchone()
+        == cabin_hash
+    )
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM room_access_tokens WHERE room_id = ?", (cabin_id,)
+        ).fetchone()
+        == cabin_tokens
+    )
+    assert cabin_member.get(f"/api/v1/rooms/{cabin}/changes?since=0").status_code == 200
+    # Invitations are not room data: they stay, and still work.
+    assert (
+        db.execute("SELECT COUNT(*) FROM room_invitations").fetchone()
+        == invitations_before
+    )
+    assert (
+        browser(admin_app).get(f"/api/v1/invitations/{issued['token']}").status_code
+        == 200
+    )
+    # Open pages of the deleted room find no access, as after a normal delete.
+    assert_error(
+        home_member.get(f"/api/v1/rooms/{slug}/changes?since=0"),
+        401,
+        "not_authenticated",
+    )
+    assert_error(
+        browser(admin_app).post(
+            f"/api/v1/rooms/{slug}/session", json={"password": "pw"}
+        ),
+        401,
+        "invalid_password",
+    )
+    # Admin stays signed in and gets no room access from it.
+    assert client.get("/api/v1/admin/session").status_code == 200
+    assert [
+        room["slug"] for room in client.get("/api/v1/admin/rooms").json()["rooms"]
+    ] == [cabin]
+
+
+def test_admin_delete_clears_this_browsers_room_cookies(admin_app):
+    _, slug = home()
+    crud.create_room("Cabin", "cabin-pw")
+    client = admin(admin_app)
+    client.post(f"/api/v1/rooms/{slug}/session", json={"password": "pw"})
+
+    response = admin_delete(client, slug)
+
+    assert response.status_code == 204
+    cookies = set_cookies(response)
+    assert set(cookies) == {token_cookie_name(slug), LAST_ROOM_COOKIE}
+    assert all(cookie.value == "" for cookie in cookies.values())
+
+
+def test_admin_delete_keeps_a_last_room_cookie_of_another_room(admin_app):
+    _, slug = home()
+    _, cabin = crud.create_room("Cabin", "cabin-pw")
+    client = admin(admin_app)
+    client.post(f"/api/v1/rooms/{cabin}/session", json={"password": "cabin-pw"})
+
+    response = admin_delete(client, slug)
+
+    assert response.status_code == 204
+    assert set(set_cookies(response)) == {token_cookie_name(slug)}
+    assert client.get("/api/v1/last-room").json() == {"slug": cabin}
+
+
+def test_admin_delete_wakes_its_streams(admin_app):
+    room_id, slug = home()
+    with patch("api.admin.wake_streams") as wake:
+        assert admin_delete(admin(admin_app), slug).status_code == 204
+    wake.assert_called_once_with(room_id)
+
+
+def test_admin_delete_unknown_or_gone_room_changes_nothing(admin_app):
+    room_id, slug = home()
+    client = admin(admin_app)
+    before = db.execute("SELECT COUNT(*) FROM lists").fetchone()
+
+    with patch("api.admin.wake_streams") as wake:
+        unknown = admin_delete(client, "no-such-room")
+        assert admin_delete(client, slug).status_code == 204
+        gone = admin_delete(client, slug)
+
+    assert_error(unknown, 404, "room_unavailable")
+    assert unknown.json()["error"]["message"] == (
+        "Room changed or no longer exists; refresh and try again"
+    )
+    assert_error(gone, 404, "room_unavailable")
+    assert gone.content == unknown.content
+    # Only the real delete woke streams.
+    wake.assert_called_once_with(room_id)
+    assert db.execute("SELECT COUNT(*) FROM lists").fetchone()[0] < before[0]
+    assert db.execute("SELECT COUNT(*) FROM rooms").fetchone() == (0,)
+
+
+def test_admin_delete_needs_admin_before_anything_else(admin_app):
+    room_id, slug = home()
+    client = browser(admin_app)
+    assert_error(admin_delete(client, slug), 401, "admin_required")
+    assert_error(admin_delete(client, "no-such-room"), 401, "admin_required")
+    assert crud.get_room_details_by_slug(slug)["id"] == room_id
+
+
+def test_admin_delete_needs_same_origin_and_a_json_body_when_sent(admin_app):
+    room_id, slug = home()
+    signed_in = admin(admin_app)
+
+    cross_origin = signed_in.delete(
+        f"/api/v1/admin/rooms/{slug}",
+        headers={"Origin": "https://evil.example"},
+    )
+    cross_site = signed_in.delete(
+        f"/api/v1/admin/rooms/{slug}",
+        headers={"Origin": HTTPS, "Sec-Fetch-Site": "cross-site"},
+    )
+    not_json = signed_in.request(
+        "DELETE",
+        f"/api/v1/admin/rooms/{slug}",
+        content=b"{}",
+        headers={"Content-Type": "text/plain"},
+    )
+
+    assert_error(cross_origin, 403, "forbidden_origin")
+    assert_error(cross_site, 403, "forbidden_origin")
+    assert_error(not_json, 415, "invalid_request")
+    assert crud.get_room_details_by_slug(slug)["id"] == room_id
+
+
+def test_a_failed_admin_delete_rolls_back_and_is_503(admin_app):
+    room_id, slug = home()
+    client = admin(admin_app)
+    db.execute(
+        "CREATE TEMP TRIGGER fail_admin_room_delete BEFORE DELETE ON rooms "
+        "BEGIN SELECT RAISE(ABORT, 'injected delete failure'); END"
+    )
+    try:
+        response = admin_delete(client, slug)
+    finally:
+        db.execute("DROP TRIGGER fail_admin_room_delete")
+    assert_error(response, 503, "unavailable")
+    assert not db.in_transaction
+    assert crud.get_room_details_by_slug(slug)["id"] == room_id
+    assert count("lists", room_id) == 1

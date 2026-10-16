@@ -57,7 +57,7 @@ HTTP errors use one shape:
 | 403 | `wrong_password` | Change password or delete room: wrong room password (you have access) |
 | 404 | `not_found` | Unknown API path |
 | 404 | `list_unavailable` | Share-link endpoints: the list is gone or in another room |
-| 404 | `room_unavailable` | Admin password reset: no room has this slug |
+| 404 | `room_unavailable` | Admin password reset or delete: no room has this slug |
 | 404 | `invitation_unavailable` | Creation invitation: unknown, expired, revoked or deleted (identical) |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
@@ -202,6 +202,7 @@ room endpoints ignore it, and admin endpoints never set a room cookie.
 | `GET /api/v1/admin/rooms` | – | 200 `{"rooms": [{"slug", "name"}]}` |
 | `POST /api/v1/admin/rooms` | `{"name", "password"}` | 200 `{"room": {"slug", "name"}}` |
 | `POST /api/v1/admin/rooms/{slug}/password` | `{"new_password"}` | 200 `{}` |
+| `DELETE /api/v1/admin/rooms/{slug}` | – | 204 |
 
 - **Sign-in:** a wrong password is 401 `invalid_password` ("Wrong password").
   It does not sign out an admin who is signed in. The check is exact and in
@@ -219,6 +220,11 @@ room endpoints ignore it, and admin endpoints never set a room cookie.
   the [room password rule](#room-password-rule).
   Every token of the room is revoked and its streams are woken. A room that is
   gone is 404 `room_unavailable`.
+- **Delete room:** no room password needed. Deletes the room with all its
+  lists, items and tokens, as the [room's own delete](#room-management) does.
+  The answer clears this browser's room cookies for it. Its open streams are
+  woken and send `revoked`. A room that is gone is 404 `room_unavailable`.
+  Creation invitations are not room data and stay.
 - Passwords are at most 1,024 characters (else 422).
 
 ## Creation invitations

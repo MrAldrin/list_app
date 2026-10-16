@@ -1,5 +1,5 @@
 """Admin endpoints: sign in with APP_PASSWORD, the room overview, creating a
-room and resetting a room password.
+room and resetting a room password, and deleting a room.
 
 Admin sign-in has its own cookie (decision 144): a signed token made with the
 current `APP_PASSWORD` (see `src/admin_access.py`). Admin never grants room
@@ -22,13 +22,14 @@ from admin_access import (
     admin_token_valid,
     issue_admin_token,
 )
-from api.access import is_https
+from api.access import is_https, last_room_cookie_name, room_cookie_name
 from api.cookies import clear_cookie, set_cookie
 from api.errors import ApiError, error_response
 from api.requests import JsonBody, Password, StrictBody, parse_body
 from database_crud import (
     check_new_room_password,
     create_room,
+    delete_room_by_slug,
     get_room_details_by_slug,
     get_rooms,
     reset_room_password_by_slug,
@@ -162,6 +163,26 @@ async def reset_password(
     # Every token of the room is revoked: its streams send `revoked`.
     background.add_task(wake_streams, room_id)
     return {}
+
+
+@admin_only.delete("/rooms/{slug}")
+async def delete_room(
+    slug: str,
+    request: Request,
+    background: BackgroundTasks,
+) -> Response:
+    """Delete a room with all its lists and items, without its password."""
+    room_id = await run_in_threadpool(delete_room_by_slug, slug)
+    if room_id is None:
+        raise ApiError(404, "room_unavailable")
+    response = Response(status_code=204)
+    # As the room's own delete: clear this browser's room cookies for it.
+    clear_cookie(response, request, room_cookie_name(request, slug))
+    if request.cookies.get(last_room_cookie_name(request)) == slug:
+        clear_cookie(response, request, last_room_cookie_name(request))
+    # The room's streams find no access and send `revoked`.
+    background.add_task(wake_streams, room_id)
+    return response
 
 
 router.include_router(admin_only)
