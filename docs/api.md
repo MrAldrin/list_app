@@ -61,9 +61,9 @@ HTTP errors use one shape:
 | 404 | `invitation_unavailable` | Creation invitation: unknown, expired, revoked or deleted (identical) |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
+| 429 | `too_many_attempts` | Too many failed sign-ins; `Retry-After` gives the seconds (see [sign-in limit](#sign-in-limit)) |
 | 503 | `unavailable` | Database busy or failing; retry later. Saved access stays. |
 
-There is no rate limiting, also not for the admin password; the app has none today.
 
 ## Writes: same-origin rule
 
@@ -99,6 +99,18 @@ older, shorter passwords still open their rooms.
 | `GET /api/v1/rooms/{slug}/session` | – | 200 `{"room": {"slug", "name"}}` ("who am I") |
 | `DELETE /api/v1/rooms/{slug}/session` | – | 204; revokes the token and clears the cookie, also when already signed out |
 | `GET /api/v1/last-room` | – | 200 `{"slug": "home-ab12cd"}` or `{"slug": null}` |
+
+### Sign-in limit
+
+Failed sign-ins are counted in memory, in this one process, for one minute.
+Limits: 10 failures per room, 20 per client address, and 10 failed admin
+sign-ins for all clients. A successful sign-in does not count. A full limit
+answers 429 `too_many_attempts` with `Retry-After` (seconds) before any password
+is checked. Unknown rooms count the same way, so a 429 does not show whether a
+room exists. The client address is the one uvicorn gives the app: behind
+Railway's proxy (`FORWARDED_ALLOW_IPS=*`) it is the first `X-Forwarded-For`
+entry, which a client can set, so the per-address limit is weak. The room limit
+does not depend on it. Counts reset when the app restarts.
 
 Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
 

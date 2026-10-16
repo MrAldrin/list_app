@@ -14,8 +14,9 @@ from api_helpers import client_for, home
 from fastapi import FastAPI
 
 import live_updates
-from api import register_api
+from api import register_api, sign_in_limit
 from database_setup import db
+from sign_in_limiter import SignInLimiter
 
 
 @pytest.fixture(scope="session")
@@ -23,6 +24,12 @@ def home_password_hash():
     # Reuse only the expensive hash, never mutable database state.
     # Keep bcrypt's production-default cost; room-creation tests still hash normally.
     return bcrypt.hashpw(b"pw", bcrypt.gensalt()).decode("utf-8")
+
+
+@pytest.fixture(autouse=True)
+def fresh_sign_in_limits(monkeypatch):
+    # Failed sign-ins are kept in memory by the app; each test starts with none.
+    monkeypatch.setattr(sign_in_limit, "sign_in_limiter", SignInLimiter())
 
 
 @pytest.fixture(autouse=True)

@@ -50,7 +50,8 @@ learning, targeting up to four simultaneous users rather than large-scale use.
 - **Room authorization:** Entry requires the room password or a valid token
   issued after checking it. Private reads and operations revalidate access;
   cached UI state is not authorization. Password changes revoke old tokens.
-  New room passwords have at least 4 characters.
+  New room passwords have at least 4 characters. Failed sign-ins are limited
+  per room and per client, in memory (see [API: Sign-in limit](docs/api.md#sign-in-limit)).
   The token lives in an HTTP-only room cookie (`__Host-`, Secure on HTTPS);
   JavaScript never sees it and the password is never stored. Plain HTTP
   (local testing) uses a cookie without `Secure`.

@@ -26,6 +26,7 @@ from api.access import is_https, last_room_cookie_name, room_cookie_name
 from api.cookies import clear_cookie, set_cookie
 from api.errors import ApiError, error_response
 from api.requests import JsonBody, Password, StrictBody, parse_body
+from api.sign_in_limit import release, reserve_admin_sign_in
 from database_crud import (
     check_new_room_password,
     create_room,
@@ -83,9 +84,13 @@ class ResetPasswordBody(StrictBody):
 @router.post("/session")
 async def sign_in(request: Request, body: JsonBody) -> Response:
     password = parse_body(AdminSignInBody, body).password
+    taken = reserve_admin_sign_in(request)
+    if isinstance(taken, Response):
+        return taken
     if not admin_password_matches(password):
         # A wrong password does not sign out an admin session.
         raise ApiError(401, "invalid_password", WRONG_ADMIN_PASSWORD)
+    release(taken)
     response = JSONResponse({})
     set_cookie(
         response,

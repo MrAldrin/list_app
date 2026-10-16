@@ -205,6 +205,7 @@ export type OpResponse = OpApplied | OpRejected;
 export type ErrorCode =
 	| 'invalid_request'
 	| 'invalid_password'
+	| 'too_many_attempts'
 	| 'not_authenticated'
 	| 'share_unavailable'
 	| 'list_unavailable'

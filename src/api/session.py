@@ -19,6 +19,7 @@ from api.access import (
 from api.cookies import clear_cookie, set_room_cookies
 from api.errors import ApiError, error_response
 from api.requests import JsonBody, Password, StrictBody, parse_body
+from api.sign_in_limit import release, reserve_room_sign_in
 from database_crud import (
     authenticate_room_and_issue_token,
     get_room_details_locked,
@@ -38,6 +39,11 @@ class SignInBody(StrictBody):
 @router.post("/rooms/{slug}/session")
 def sign_in(slug: str, request: Request, body: JsonBody) -> Response:
     password = parse_body(SignInBody, body).password
+    # Counts every attempt; a success gives its slot back. The same answer for
+    # every slug, so a 429 does not show whether the room exists.
+    taken = reserve_room_sign_in(request, slug)
+    if isinstance(taken, Response):
+        return taken
     try:
         issued = authenticate_room_and_issue_token(slug, password)
     except sqlite3.Error:
@@ -45,6 +51,7 @@ def sign_in(slug: str, request: Request, body: JsonBody) -> Response:
     if issued is None:
         # Same answer for a wrong password and an unknown room.
         raise ApiError(401, "invalid_password")
+    release(taken)
     token = issued[1]
     with token_access(slug, token) as room:
         details = get_room_details_locked(room.room_id)
