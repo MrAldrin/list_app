@@ -350,6 +350,28 @@ def test_client_disconnect_stops_the_stream(room):
     run(test)
 
 
+def test_a_full_stream_limit_answers_503_and_frees_up_again(room, monkeypatch):
+    _, slug = room
+    monkeypatch.setattr(live_updates, "MAX_SUBSCRIPTIONS", 1)
+
+    async def test() -> None:
+        first = SseConnection(slug, token_for(slug))
+        await first.open()
+        await first.next_event()
+        second = SseConnection(slug, token_for(slug))
+        await second.open()
+        assert second.status == 503
+        assert second.headers["content-type"] == "application/json"
+        assert b'"unavailable"' in await second.body()
+        await first.close()
+        third = SseConnection(slug, token_for(slug))
+        await third.open()
+        assert third.status == 200
+        await third.close()
+
+    run(test)
+
+
 def test_an_api_write_wakes_the_streams_and_tells_the_listeners_once(room, monkeypatch):
     room_id, slug = room
     client = client_for(slug)

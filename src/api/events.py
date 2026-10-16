@@ -48,14 +48,23 @@ def _share_seq(token: str) -> tuple[int, int]:
         return share.room_id, get_room_seq_locked(share.room_id)
 
 
+def _check_capacity() -> None:
+    # Full: a JSON 503. The client treats it like any closed stream and
+    # retries with its own backoff.
+    if not live_updates.has_capacity():
+        raise ApiError(503, "unavailable")
+
+
 async def _room_stream_access(slug: str, request: Request) -> int:
     """Check room access before the stream starts; returns the room id."""
+    _check_capacity()
     room_id, _ = await run_in_threadpool(_room_seq, slug, room_token(request, slug))
     return room_id
 
 
 async def _share_stream_access(token: str) -> int:
     """Check the share link before the stream starts; returns the room id."""
+    _check_capacity()
     room_id, _ = await run_in_threadpool(_share_seq, token)
     return room_id
 

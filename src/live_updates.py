@@ -71,6 +71,20 @@ class Subscription:
 _subscriptions: set[Subscription] = set()
 _subscriptions_lock = threading.Lock()
 
+# Most open streams at once. About 4 users need a handful; the cap only stops
+# a runaway client from growing the set without limit.
+MAX_SUBSCRIPTIONS = 100
+
+
+def has_capacity() -> bool:
+    """True while one more stream may open.
+
+    Only a check, not a reservation: a few requests that pass it together can
+    go a little over the cap, which is still bounded.
+    """
+    with _subscriptions_lock:
+        return len(_subscriptions) < MAX_SUBSCRIPTIONS
+
 
 @contextmanager
 def subscribe(room_id: int) -> Iterator[Subscription]:

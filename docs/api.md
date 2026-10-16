@@ -447,6 +447,8 @@ data: {}
   stream. The client then calls `GET …/session` and shows the sign-in prompt on
   401.
 - Without access at connect time, the response is the 401 JSON error.
+- The server allows 100 open streams at once. When full, a new stream gets the
+  503 `unavailable` JSON error; the client retries later.
 - Headers: `Content-Type: text/event-stream`, `Cache-Control: no-store`,
   `X-Accel-Buffering: no` (no proxy buffering).
 - The server closes the stream when it shuts down or restarts (after at most
