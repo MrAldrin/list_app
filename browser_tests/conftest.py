@@ -93,6 +93,11 @@ def wait_for_api_idle(page: Page, timeout_ms: int = 5_000) -> None:
         waited += 25
 
 
+# WebKit reports a request that a reload cancels as a page error, e.g.
+# "/api/v1/rooms/<slug>/session due to access control checks."
+RELOAD_CANCEL_ERROR = "due to access control checks"
+
+
 class BrowserSessions:
     """Separate browser contexts with traces, screenshots and error checks."""
 
@@ -110,11 +115,23 @@ class BrowserSessions:
         context.add_init_script(
             "Object.defineProperty(navigator, 'share', {value: undefined})"
         )
-        context.on("weberror", lambda error: self.errors.append(str(error.error)))
+        context.on("weberror", self.record_error)
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
         page = context.new_page()
         track_api_requests(page)
         return page
+
+    def record_error(self, error) -> None:
+        """Keep a page error, except a reload cancel that the page expects."""
+        message = str(error.error)
+        page = error.page
+        if (
+            page is not None
+            and getattr(page, "expects_reload_cancel", False)
+            and RELOAD_CANCEL_ERROR in message
+        ):
+            return
+        self.errors.append(message)
 
     def close(self):
         cleanup_errors = []

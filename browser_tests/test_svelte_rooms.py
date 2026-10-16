@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from conftest import wait_for_api_idle
 from playwright.sync_api import expect
 from svelte_app import (
@@ -148,3 +149,60 @@ def test_logout_shows_the_prompt_before_the_server_answers_and_retries(
     expect(page.get_by_label("Room Password")).to_be_visible()
     wait_for_api_idle(page)
     assert page.request.get(f"{server.url}/api/v1/rooms/{slug}/session").status == 401
+
+
+@pytest.mark.parametrize(
+    "server_signs_out", [False, True], ids=["not_sent", "delivered"]
+)
+def test_reload_during_logout_hides_the_room_and_retries(
+    svelte_server, open_session, server_signs_out
+):
+    """The sign-out marker is stored before the logout DELETE, so a reload keeps the room hidden.
+
+    not_sent: the DELETE never reaches the server, so the cookie still works.
+    delivered: the server revokes the cookie, but its answer is lost in the reload.
+    """
+    server = svelte_server
+    slug = server.room_slug
+    # Playwright's WebKit ignores page.route for a page the worker controls.
+    page = open_session("phone", service_workers="block", **PHONE)
+    page.expects_reload_cancel = True  # the reload cancels the held DELETE in WebKit
+    held = []
+
+    def hold_first_sign_out(route):
+        if route.request.method != "DELETE" or held:
+            route.continue_()
+            return
+        if server_signs_out:
+            route.fetch()  # the server signs out; the page never gets the answer
+        held.append(route)
+
+    page.route(re.compile(r"/api/v1/rooms/[^/]+/session$"), hold_first_sign_out)
+    sign_in(page, server)
+    create_list(page, "Groceries")
+    page.goto(room_app_url(server))
+    expect(page.get_by_role("link", name="Groceries")).to_be_visible()
+    wait_for_api_idle(page)
+
+    page.get_by_role("button", name="Room menu").click()
+    page.get_by_role("button", name="Log out").click()
+    expect(page.get_by_label("Room Password")).to_be_visible()
+    wait_until(page, lambda: bool(held), "the sign-out DELETE was not sent", 5_000)
+    cookie_still_works = page.request.get(
+        f"{server.url}/api/v1/rooms/{slug}/session"
+    ).ok
+    assert cookie_still_works is not server_signs_out
+
+    with page.expect_response(
+        lambda r: r.request.method == "DELETE" and r.url.endswith("/session")
+    ):
+        page.reload()
+    expect(page.get_by_label("Room Password")).to_be_visible()
+    expect(page.get_by_role("link", name="Groceries")).to_have_count(0)
+    wait_for_api_idle(page)
+    assert page.request.get(f"{server.url}/api/v1/rooms/{slug}/session").status == 401
+    assert server.query("SELECT COUNT(*) FROM rooms") == [(1,)]
+
+    page.get_by_label("Room Password").fill(server.password)
+    page.get_by_label("Room Password").press("Enter")
+    expect(page.get_by_role("link", name="Groceries")).to_be_visible()
