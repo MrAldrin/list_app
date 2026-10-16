@@ -28,6 +28,7 @@
 		onReset?: (token: string) => void;
 	} = $props();
 
+	const online = $derived(room.store.canWrite);
 	let dialog = $state<'share' | 'reset' | null>(null);
 	let shareUrl = $state('');
 	/** The token read when the menu opened (it may change elsewhere). */
@@ -84,9 +85,20 @@
 
 <MenuButton label="List menu" onOpen={menuOpened}>
 	{#snippet children(close)}
-		<button type="button" onclick={() => share(close)}>Share List</button>
+		<!-- A share link comes from the server: it needs a connection. -->
+		<button
+			type="button"
+			disabled={!online}
+			title={online ? undefined : 'Needs a connection'}
+			onclick={() => share(close)}>Share List</button
+		>
 		{#if canReset}
-			<button type="button" onclick={() => askReset(close)}>Reset share link</button>
+			<button
+				type="button"
+				disabled={!online}
+				title={online ? undefined : 'Needs a connection'}
+				onclick={() => askReset(close)}>Reset share link</button
+			>
 		{/if}
 		<hr />
 		<ThemeMenuItem {close} />

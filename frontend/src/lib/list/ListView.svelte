@@ -43,7 +43,9 @@
 		onReset?: (token: string) => void;
 	} = $props();
 
-	const canWrite = $derived(room.store.canWrite);
+	// Edits may start offline (they are queued). Sharing and resets need the server.
+	const canEdit = $derived(room.store.canEdit);
+	const online = $derived(room.store.canWrite);
 	let optionsOpen = $state(false);
 	let searchText = $state('');
 	// "Show quantities": personal, saved per list in this browser.
@@ -122,7 +124,7 @@
 			message: `Deleted tag ${tag}`,
 			deleted: handle.removeListTag(target, tag),
 			duration: UNDO_DURATION,
-			canUndo: () => handle.store.canWrite,
+			canUndo: () => handle.store.canEdit,
 			undo: () => undoDeleteTag(handle, target, tag)
 		});
 	}
@@ -156,7 +158,7 @@
 			message: `Deleted ${item.name}`,
 			deleted: handle.deleteItem(item),
 			duration: UNDO_DURATION,
-			canUndo: () => handle.store.canWrite,
+			canUndo: () => handle.store.canEdit,
 			undo: () => undoDelete(handle, item)
 		});
 	}
@@ -176,7 +178,7 @@
 	onToggleOptions={() => (optionsOpen = !optionsOpen)}
 >
 	{#snippet menu()}
-		<ListMenu {room} {list} canReset={canReset && canWrite} {onReset} />
+		<ListMenu {room} {list} canReset={canReset && online} {onReset} />
 	{/snippet}
 </ListHeader>
 {#if room.store.error && !(room.store.showsOfflineNotice && room.store.unreachable)}
@@ -191,7 +193,7 @@
 	<ListOptions
 		bind:showQuantities={() => showQuantities, setShowQuantities}
 		hideDone={list.hide_done}
-		{canWrite}
+		{canEdit}
 		onHideDone={(changes) => setHideDone(list, changes)}
 	/>
 {/if}
@@ -199,14 +201,14 @@
 	tags={list.tags}
 	filter={filterTag}
 	editing={optionsOpen}
-	{canWrite}
+	{canEdit}
 	onFilter={(tag) => (chosenTag = tag)}
 	onAdd={(tag) => addTag(list, tag)}
 	onDelete={(tag) => deleteTag(list, tag)}
 />
 <AddItem
 	items={room.store.itemsOf(list.uid)}
-	{canWrite}
+	{canEdit}
 	bind:text={searchText}
 	onAdd={(name) => addItem(list, name)}
 />
@@ -217,7 +219,7 @@
 			{item}
 			showQuantity={showQuantities}
 			showDelete={optionsOpen}
-			{canWrite}
+			{canEdit}
 			listTags={list.tags}
 			onToggle={(done) => toggle(item, done)}
 			onQuantity={(delta) => changeQuantity(item, delta)}
@@ -234,7 +236,7 @@
 	{@const item = editing}
 	<ItemDialog
 		{item}
-		{canWrite}
+		{canEdit}
 		onSave={(changes) => saveItem(item, changes)}
 		onDelete={() => deleteItem(item)}
 		onClose={() => (editing = null)}

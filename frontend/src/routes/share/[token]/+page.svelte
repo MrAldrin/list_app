@@ -54,7 +54,6 @@
 	bind:handle={share}
 	open={() => openShare(token, { hydrateSavedView: true })}
 	close={closeShare}
-	what="list"
 	connectTitle="Connect to load this shared list."
 	failedTitle="Could not load this list."
 >

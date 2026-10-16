@@ -23,6 +23,8 @@
 		onLogout
 	}: { room: RoomHandle; backToAdmin?: boolean; onLogout: () => void } = $props();
 
+	/** Password and delete are checked by the server: they need a connection. */
+	const online = $derived(room.store.canWrite);
 	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | null>(null);
 	let shareUrl = $state('');
 
@@ -60,16 +62,23 @@
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
 		<ThemeMenuItem {close} />
 		<hr />
-		<button type="button" disabled={room.store.readOnly} onclick={() => choose(close, 'rename')}>
+		<button type="button" disabled={!room.store.canEdit} onclick={() => choose(close, 'rename')}>
 			Rename Room
 		</button>
-		<button type="button" disabled={room.store.readOnly} onclick={() => choose(close, 'password')}>
+		<!-- These need a connection: the server checks the password. -->
+		<button
+			type="button"
+			disabled={!online}
+			title={online ? undefined : 'Needs a connection'}
+			onclick={() => choose(close, 'password')}
+		>
 			Change Password
 		</button>
 		<button
 			type="button"
 			class="danger-text"
-			disabled={room.store.readOnly}
+			disabled={!online}
+			title={online ? undefined : 'Needs a connection'}
 			onclick={() => choose(close, 'delete')}
 		>
 			Delete Room
@@ -94,17 +103,12 @@
 		title="Rename Room"
 		label="New name"
 		initial={room.store.room?.name ?? ''}
-		saveDisabled={room.store.readOnly}
+		saveDisabled={!room.store.canEdit}
 		onSave={rename}
 		onClose={() => (dialog = null)}
 	/>
 {:else if dialog === 'password'}
-	<ChangePasswordDialog {room} disabled={room.store.readOnly} onClose={() => (dialog = null)} />
+	<ChangePasswordDialog {room} disabled={!online} onClose={() => (dialog = null)} />
 {:else if dialog === 'delete'}
-	<DeleteRoomDialog
-		{room}
-		disabled={room.store.readOnly}
-		onDeleted={deleted}
-		onClose={() => (dialog = null)}
-	/>
+	<DeleteRoomDialog {room} disabled={!online} onDeleted={deleted} onClose={() => (dialog = null)} />
 {/if}

@@ -22,7 +22,6 @@
 		close,
 		reopenKey = 0,
 		canSignIn = false,
-		what = 'lists',
 		connectTitle,
 		failedTitle,
 		content
@@ -36,8 +35,6 @@
 		reopenKey?: number;
 		/** Whether the password prompt may show (not for share links). */
 		canSignIn?: boolean;
-		/** The word the saved-view notice uses: "lists" or "list". */
-		what?: 'lists' | 'list';
 		/** Load error title when there is no saved copy and the server is out of reach. */
 		connectTitle: string;
 		/** Load error title for any other failure. */
@@ -62,7 +59,7 @@
 	{#if !handle || handle.store.status === 'loading'}
 		<p class="muted">Loading…</p>
 	{:else}
-		<SavedViewNotice room={handle} {what} />
+		<SavedViewNotice room={handle} />
 		{#if handle.store.status === 'auth_required' && canSignIn}
 			<RoomLogin onLogin={(password) => handle!.login(password)} />
 		{:else if handle.store.status === 'error'}

@@ -13,6 +13,8 @@
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let { room }: { room: RoomHandle } = $props();
+	/** Creating a list needs the server (it gets its address there). */
+	const online = $derived(room.store.canWrite);
 
 	// Which dialog is open. `$state.raw` stores the list object as it is,
 	// without making it deeply reactive (we never change it in place).
@@ -51,7 +53,8 @@
 <button
 	class="outline add"
 	type="button"
-	disabled={room.store.readOnly}
+	disabled={!online}
+	title={online ? undefined : 'Needs a connection'}
 	onclick={() => (creating = true)}
 >
 	<Icon name="add" />
@@ -74,7 +77,7 @@
 					class="icon"
 					type="button"
 					aria-label="Rename {list.name}"
-					disabled={room.store.readOnly}
+					disabled={!room.store.canEdit}
 					onclick={() => (renaming = list)}
 				>
 					<Icon name="edit" />
@@ -83,7 +86,7 @@
 					class="icon delete"
 					type="button"
 					aria-label="Delete {list.name}"
-					disabled={room.store.readOnly}
+					disabled={!room.store.canEdit}
 					onclick={() => (deleting = list)}
 				>
 					<Icon name="delete" />
@@ -97,7 +100,7 @@
 	<NameDialog
 		title="New List"
 		label="List name"
-		saveDisabled={room.store.readOnly}
+		saveDisabled={!online}
 		onSave={createList}
 		onClose={() => (creating = false)}
 	/>
@@ -109,7 +112,7 @@
 		title="Edit '{list.name}'"
 		label="List Name"
 		initial={list.name}
-		saveDisabled={room.store.readOnly}
+		saveDisabled={!room.store.canEdit}
 		onSave={(name) => renameList(list, name)}
 		onClose={() => (renaming = null)}
 	/>
@@ -120,7 +123,7 @@
 	<ConfirmDialog
 		question="Delete '{list.name}' and its {room.store.itemsOf(list.uid).length} items?"
 		confirmLabel="Delete"
-		confirmDisabled={room.store.readOnly}
+		confirmDisabled={!room.store.canEdit}
 		onConfirm={() => deleteList(list)}
 		onClose={() => (deleting = null)}
 	/>

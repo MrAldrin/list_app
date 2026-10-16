@@ -16,7 +16,7 @@
 		item,
 		showQuantity,
 		showDelete,
-		canWrite,
+		canEdit,
 		listTags,
 		onToggle,
 		onQuantity,
@@ -28,7 +28,7 @@
 		showQuantity: boolean;
 		showDelete: boolean;
 		/** Whether shared-data writes are authorized. */
-		canWrite: boolean;
+		canEdit: boolean;
 		/** The list's tags, sorted; each gets a letter button. */
 		listTags: readonly string[];
 		onToggle: (done: boolean) => void;
@@ -48,7 +48,7 @@
 			type="checkbox"
 			checked={item.done}
 			aria-label={item.name}
-			disabled={!canWrite}
+			disabled={!canEdit}
 			onchange={(event) => onToggle(event.currentTarget.checked)}
 		/>
 	</label>
@@ -69,7 +69,7 @@
 			<button
 				type="button"
 				aria-label="Less {item.name}"
-				disabled={!canWrite || item.quantity <= 1}
+				disabled={!canEdit || item.quantity <= 1}
 				onclick={() => onQuantity(-1)}
 			>
 				<Icon name="remove" />
@@ -78,7 +78,7 @@
 			<button
 				type="button"
 				aria-label="More {item.name}"
-				disabled={!canWrite}
+				disabled={!canEdit}
 				onclick={() => onQuantity(1)}
 			>
 				<Icon name="add" />
@@ -96,7 +96,7 @@
 					type="button"
 					aria-label="{tag} tag for {item.name}"
 					aria-pressed={on}
-					disabled={!canWrite}
+					disabled={!canEdit}
 					title={tag}
 					onclick={() => onTag(tag)}
 				>
@@ -110,7 +110,7 @@
 			class="delete"
 			type="button"
 			aria-label="Delete {item.name}"
-			disabled={!canWrite}
+			disabled={!canEdit}
 			onclick={onDelete}
 		>
 			<Icon name="delete" />

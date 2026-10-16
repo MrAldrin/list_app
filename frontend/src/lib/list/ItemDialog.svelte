@@ -14,14 +14,14 @@
 
 	let {
 		item,
-		canWrite,
+		canEdit,
 		onSave,
 		onDelete,
 		onClose
 	}: {
 		item: Item;
 		/** Whether shared-data writes are authorized. */
-		canWrite: boolean;
+		canEdit: boolean;
 		/** Saves the fields. The parent closes the dialog if it worked. */
 		onSave: (changes: { name: string; description: string; quantity: number }) => Promise<void>;
 		onDelete: () => void;
@@ -40,7 +40,7 @@
 <FormDialog
 	title="Edit Item"
 	submitLabel="Save"
-	submitDisabled={!canWrite}
+	submitDisabled={!canEdit}
 	focusBox
 	onSubmit={() => onSave({ name, description, quantity })}
 	{onClose}
@@ -62,7 +62,7 @@
 			<button
 				type="button"
 				aria-label="Less"
-				disabled={!canWrite || quantity <= 1}
+				disabled={!canEdit || quantity <= 1}
 				onclick={() => (quantity = stepQuantity(quantity, -1))}
 			>
 				<Icon name="remove" />
@@ -71,7 +71,7 @@
 			<button
 				type="button"
 				aria-label="More"
-				disabled={!canWrite}
+				disabled={!canEdit}
 				onclick={() => (quantity = stepQuantity(quantity, 1))}
 			>
 				<Icon name="add" />
@@ -83,7 +83,7 @@
 			class="delete"
 			type="button"
 			aria-label="Delete Item"
-			disabled={!canWrite}
+			disabled={!canEdit}
 			onclick={onDelete}
 		>
 			<Icon name="delete" />

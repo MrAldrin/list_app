@@ -14,14 +14,14 @@
 
 	let {
 		items,
-		canWrite,
+		canEdit,
 		text = $bindable(''),
 		onAdd
 	}: {
 		/** All items of the list, hidden ones included. */
 		items: readonly Item[];
-		/** Whether shared-data writes are authorized. */
-		canWrite: boolean;
+		/** Whether edits may start (offline they are queued). */
+		canEdit: boolean;
 		/** The field text also drives local search. */
 		text?: string;
 		/** Adds the (normalized) name; true when the field should be cleared. */
@@ -68,7 +68,7 @@
 	async function add(raw: string) {
 		const name = normalizeItemName(raw);
 		if (!name) return;
-		if (!canWrite) {
+		if (!canEdit) {
 			text = name;
 			return;
 		}
@@ -110,7 +110,7 @@
 		<button
 			class="primary"
 			type="submit"
-			disabled={!canWrite}
+			disabled={!canEdit}
 			onpointerdown={keepFocus}
 			onmousedown={keepFocus}
 		>

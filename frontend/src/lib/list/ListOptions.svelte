@@ -11,12 +11,12 @@
 	let {
 		showQuantities = $bindable(),
 		hideDone,
-		canWrite,
+		canEdit,
 		onHideDone
 	}: {
 		showQuantities: boolean;
 		hideDone: HideDone;
-		canWrite: boolean;
+		canEdit: boolean;
 		onHideDone: (changes: Partial<HideDone>) => void;
 	} = $props();
 </script>
@@ -26,7 +26,7 @@
 		<span>Show quantities</span>
 		<input type="checkbox" role="switch" bind:checked={showQuantities} />
 	</label>
-	<HideDoneSettings settings={hideDone} disabled={!canWrite} onChange={onHideDone} />
+	<HideDoneSettings settings={hideDone} disabled={!canEdit} onChange={onHideDone} />
 </section>
 
 <style>

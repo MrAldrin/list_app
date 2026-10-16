@@ -14,7 +14,7 @@
 		tags,
 		filter,
 		editing,
-		canWrite,
+		canEdit,
 		onFilter,
 		onAdd,
 		onDelete
@@ -22,7 +22,7 @@
 		/** The list's tags, sorted ignoring case. */
 		tags: readonly string[];
 		/** Whether shared-data tag mutations are authorized. */
-		canWrite: boolean;
+		canEdit: boolean;
 		/** The tag the items are filtered by, or null. */
 		filter: string | null;
 		/** Options mode: adding and deleting tags. */
@@ -38,7 +38,7 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (!canWrite) return;
+		if (!canEdit) return;
 		const tag = newTag(text, tags);
 		if (tag === null) {
 			// Exact match only: "fruit" next to "Fruit" is allowed.
@@ -70,7 +70,7 @@
 		<button
 			type="submit"
 			aria-label="Add new tag"
-			disabled={!canWrite}
+			disabled={!canEdit}
 			onpointerdown={keepFocus}
 			onmousedown={keepFocus}
 		>
@@ -97,7 +97,7 @@
 						class="remove"
 						type="button"
 						aria-label="Delete tag {tag}"
-						disabled={!canWrite}
+						disabled={!canEdit}
 						onclick={() => onDelete(tag)}
 					>
 						<Icon name="close" />

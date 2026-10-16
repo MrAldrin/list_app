@@ -6,10 +6,11 @@
 		type RoomHandle
 	} from '#lib/data/index.ts';
 
-	let { room, what = 'lists' }: { room: RoomHandle; what?: 'lists' | 'list' } = $props();
+	let { room }: { room: RoomHandle } = $props();
 
-	const text = $derived(offlineNoticeText(room.store.savedAt, what));
-	const waiting = $derived(waitingChangesText(room.store.queued));
+	const text = offlineNoticeText();
+	/** Stored changes: the ones this device keeps, sent when the connection is back. */
+	const waiting = $derived(waitingChangesText(room.waitingCount));
 
 	// A failed read or a lost live connection means offline now. A saved view
 	// that only waits for its first answer gets a moment first (see the delay).
