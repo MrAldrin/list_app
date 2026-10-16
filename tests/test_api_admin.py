@@ -226,8 +226,8 @@ def test_admin_has_no_room_access(admin_app):
 
 def test_rooms_lists_every_room_by_name_ignoring_case(admin_app):
     _, home_slug = home()
-    _, b_slug = crud.create_room("beach", "x")
-    _, a_slug = crud.create_room("Attic", "x")
+    _, b_slug = crud.create_room("beach", "pass")
+    _, a_slug = crud.create_room("Attic", "pass")
     client = admin(admin_app)
 
     response = client.get("/api/v1/admin/rooms")
@@ -286,7 +286,7 @@ def test_create_room_as_admin_and_no_room_access(admin_app):
 @pytest.mark.parametrize(
     ("name", "password", "message"),
     [
-        ("  ", "pw", "Room name cannot be empty"),
+        ("  ", "pass", "Room name cannot be empty"),
         ("Cabin", "", "Password cannot be empty"),
         ("Cabin", "   ", "Password cannot be empty"),
         ("Cabin", "x" * 73, "The password cannot be longer than 72 bytes"),

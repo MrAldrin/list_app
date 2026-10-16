@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import { admin, type Room } from '#lib/data/index.ts';
+	import { shortPasswordMessage } from '#lib/ui/field-limits.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import { showAdminFailure } from './failure.ts';
@@ -27,6 +28,11 @@
 	let password = $state('');
 
 	async function submit() {
+		const tooShort = shortPasswordMessage(password);
+		if (tooShort) {
+			toasts.show(tooShort, 'warning');
+			return;
+		}
 		const result = await admin.resetPassword(room.slug, password);
 		if (result.ok) {
 			password = '';

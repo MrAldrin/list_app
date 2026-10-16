@@ -44,27 +44,27 @@ def test_reuse_creates_separate_rooms_without_authorizing_other_rooms():
 
 def test_revocation_blocks_creation_but_not_existing_rooms():
     invitation_id, token = invitations.create_invitation()
-    slug = invitations.create_room_from_invitation(token, "Existing", "pw")
+    slug = invitations.create_room_from_invitation(token, "Existing", "pass")
     invitations.revoke_invitation(invitation_id)
     invitations.revoke_invitation(invitation_id)
     assert not invitations.invitation_is_active(token)
     assert invitations.get_invitations()[0]["revoked_at"] is not None
     with pytest.raises(invitations.InvitationUnavailable):
-        invitations.create_room_from_invitation(token, "Denied", "pw")
-    assert verify_room(slug, "pw")
+        invitations.create_room_from_invitation(token, "Denied", "pass")
+    assert verify_room(slug, "pass")
 
 
 @pytest.mark.parametrize("token", ["", "wrong", "' OR 1=1 --"])
 def test_invalid_tokens_never_create_rooms(token):
     before = get_rooms()
     with pytest.raises(invitations.InvitationUnavailable):
-        invitations.create_room_from_invitation(token, "Denied", "pw")
+        invitations.create_room_from_invitation(token, "Denied", "pass")
     assert get_rooms() == before
 
 
 @pytest.mark.parametrize(
     ("name", "password"),
-    [(" ", "pw"), ("x" * 101, "pw"), ("Room", " "), ("Room", "é" * 37)],
+    [(" ", "pass"), ("x" * 101, "pass"), ("Room", " "), ("Room", "é" * 37)],
 )
 def test_invalid_inputs_do_not_create_rooms(name, password):
     _, token = invitations.create_invitation()
@@ -92,7 +92,7 @@ def test_rechecks_invitation_after_password_hashing(monkeypatch, invalidate):
     monkeypatch.setattr(invitations, "hash_password", hash_and_invalidate)
     before = get_rooms()
     with pytest.raises(invitations.InvitationUnavailable):
-        invitations.create_room_from_invitation(token, "Denied", "pw")
+        invitations.create_room_from_invitation(token, "Denied", "pass")
     assert get_rooms() == before
     assert not db.in_transaction
 
@@ -103,7 +103,7 @@ def test_failed_insert_rolls_back_without_consuming_invitation(monkeypatch):
     monkeypatch.setattr(invitations.secrets, "token_urlsafe", lambda _: existing_slug)
     before = get_rooms()
     with pytest.raises(sqlite3.IntegrityError):
-        invitations.create_room_from_invitation(token, "Collision", "pw")
+        invitations.create_room_from_invitation(token, "Collision", "pass")
     assert not db.in_transaction
     assert get_rooms() == before
     assert invitations.invitation_is_active(token)
@@ -114,8 +114,8 @@ def test_cleanup_at_seven_day_boundary_preserves_rooms(monkeypatch, reason):
     now = 1000
     monkeypatch.setattr(invitations.time, "time", lambda: now)
     invitation_id, token = invitations.create_invitation()
-    slug = invitations.create_room_from_invitation(token, "Keep me", "pw")
-    _, room_token = authenticate_room_and_issue_token(slug, "pw")
+    slug = invitations.create_room_from_invitation(token, "Keep me", "pass")
+    _, room_token = authenticate_room_and_issue_token(slug, "pass")
     inactive_at = now + invitations.INVITATION_LIFETIME
     if reason == "revoke":
         now += 60
@@ -140,8 +140,8 @@ def test_cleanup_at_seven_day_boundary_preserves_rooms(monkeypatch, reason):
     assert invitations.invitation_is_active(active_token)
     assert not invitations.invitation_is_active(token)
     with pytest.raises(invitations.InvitationUnavailable):
-        invitations.create_room_from_invitation(token, "Denied", "pw")
-    assert verify_room(slug, "pw")
+        invitations.create_room_from_invitation(token, "Denied", "pass")
+    assert verify_room(slug, "pass")
     assert validate_room_access_token(slug, room_token)
     # Repeated cleanup is harmless and never reuses a deleted invitation ID.
     assert [row["id"] for row in invitations.get_invitations()] == [active_id]

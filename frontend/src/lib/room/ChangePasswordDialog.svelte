@@ -7,6 +7,7 @@
 <script lang="ts">
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
+	import { shortPasswordMessage } from '#lib/ui/field-limits.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -20,6 +21,11 @@
 	let next = $state('');
 
 	async function submit() {
+		const tooShort = shortPasswordMessage(next);
+		if (tooShort) {
+			toasts.show(tooShort, 'warning');
+			return;
+		}
 		const result = await room.changePassword(current, next);
 		if (!result.ok) {
 			// Keep the dialog open, so a typo can be fixed.

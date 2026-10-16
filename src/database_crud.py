@@ -10,7 +10,7 @@ from typing import Literal
 import bcrypt
 
 from database_setup import db
-from field_limits import MAX_NAME_LENGTH, too_long_message
+from field_limits import MAX_NAME_LENGTH, MIN_PASSWORD_LENGTH, too_long_message
 from identifiers import make_slug, token_hash
 from item_visibility import parse_completion_time, validate_visibility_settings
 from password_hashing import hash_password
@@ -802,12 +802,15 @@ def check_new_room_password(new_plain_password: str) -> None:
     """The one rule for every room password that is set.
 
     Used by admin room creation, admin password reset, room password change and
-    room creation from an invitation. Blank (only spaces) and longer than 72
-    UTF-8 bytes are refused. There is no minimum length. The password is saved
-    as typed. Raises ValueError with a message for the user.
+    room creation from an invitation. Blank (only spaces), shorter than
+    MIN_PASSWORD_LENGTH characters, and longer than 72 UTF-8 bytes are refused.
+    The password is saved as typed. Sign-in does not apply this rule, so rooms
+    with older, shorter passwords still open. Raises ValueError for the user.
     """
     if not new_plain_password.strip():
         raise ValueError("Password cannot be empty")
+    if len(new_plain_password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
     if len(new_plain_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
         raise ValueError(
             f"The password cannot be longer than {MAX_PASSWORD_BYTES} bytes"

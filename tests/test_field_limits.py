@@ -114,7 +114,7 @@ def test_limits_count_characters_after_trimming():
 def test_admin_cannot_create_a_room_with_a_too_long_name(admin_app):
     client = admin(admin_app)
     response = client.post(
-        "/api/v1/admin/rooms", json={"name": "x" * (NAME + 1), "password": "pw"}
+        "/api/v1/admin/rooms", json={"name": "x" * (NAME + 1), "password": "pass"}
     )
     assert response.status_code == 422
     assert response.json()["error"]["message"] == (

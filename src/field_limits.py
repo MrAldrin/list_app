@@ -7,6 +7,7 @@ here first gives the user a clear message instead of a server error.
 MAX_NAME_LENGTH = 100  # Room, list and item names.
 MAX_DESCRIPTION_LENGTH = 1000
 MAX_TAG_LENGTH = 30
+MIN_PASSWORD_LENGTH = 4  # Room passwords set from now on, in characters.
 MAX_PASSWORD_LENGTH = 1024  # Passwords, in characters.
 
 

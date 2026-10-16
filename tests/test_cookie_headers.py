@@ -120,7 +120,7 @@ def test_room_cookie_flags_on_https_password_change():
     room_sign_in(client, slug)
     response = client.post(
         f"/api/v1/rooms/{slug}/password",
-        json={"current_password": "pw", "new_password": "pw2"},
+        json={"current_password": "pw", "new_password": "pass2"},
     )
     assert headers_of(response) == [
         set_flags(token_cookie_name(slug), ROOM_MAX_AGE, secure=True),

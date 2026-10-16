@@ -4,7 +4,7 @@
 	dialog stays open. Enter in the password field creates the room.
 -->
 <script lang="ts">
-	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
+	import { MAX_NAME_LENGTH, shortPasswordMessage } from '#lib/ui/field-limits.ts';
 	import { admin, type ActionResult, type Room } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -25,6 +25,11 @@
 	let password = $state('');
 
 	async function submit() {
+		const tooShort = shortPasswordMessage(password);
+		if (tooShort) {
+			toasts.show(tooShort, 'warning');
+			return;
+		}
 		const result: ActionResult<Room> = await admin.createRoom(name, password);
 		if (!result.ok) {
 			showAdminFailure(result, onSignedOut);

@@ -18,7 +18,7 @@ from database_setup import db
 
 @pytest.fixture
 def room_id():
-    room_id_value, _ = create_room("Tag room", "pw")
+    room_id_value, _ = create_room("Tag room", "pass")
     return room_id_value
 
 

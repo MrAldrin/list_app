@@ -240,8 +240,8 @@ def test_a_write_outside_the_ops_endpoint_sends_the_new_seq(room):
 
 def test_writes_in_another_room_send_nothing(room):
     _, slug = room
-    other_id, other_slug = crud.create_room("Other", "pw")
-    other_client = client_for(other_slug)
+    other_id, other_slug = crud.create_room("Other", "pass")
+    other_client = client_for(other_slug, "pass")
 
     async def test() -> None:
         stream = SseConnection(slug, token_for(slug))

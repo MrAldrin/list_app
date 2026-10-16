@@ -32,7 +32,7 @@ from database_setup import db
 
 @pytest.fixture
 def room_id():
-    room_id_value, _ = create_room("Test Room", "pw")
+    room_id_value, _ = create_room("Test Room", "pass")
     return room_id_value
 
 
@@ -333,7 +333,7 @@ def test_failed_token_revocation_keeps_access_and_connection_recovers(room_id):
     room_slug = db.execute(
         "SELECT slug FROM rooms WHERE id = ?", (room_id,)
     ).fetchone()[0]
-    token = authenticate_room_and_issue_token(room_slug, "pw")[1]
+    token = authenticate_room_and_issue_token(room_slug, "pass")[1]
     before = db.execute(
         "SELECT * FROM room_access_tokens WHERE room_id = ?", (room_id,)
     ).fetchall()

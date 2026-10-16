@@ -5,7 +5,7 @@
 	password, as in NiceGUI.
 -->
 <script lang="ts">
-	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
+	import { MAX_NAME_LENGTH, shortPasswordMessage } from '#lib/ui/field-limits.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { invitation } from '#lib/data/index.ts';
@@ -23,6 +23,11 @@
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
 		if (busy || done) return;
+		const tooShort = shortPasswordMessage(password);
+		if (tooShort) {
+			toasts.show(tooShort, 'warning');
+			return;
+		}
 		if (password !== confirmation) {
 			toasts.show('Passwords do not match', 'warning');
 			return;

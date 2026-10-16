@@ -88,9 +88,10 @@ stores the password, and JavaScript never sees the token.
 
 Every path that sets a room password uses this rule: admin room creation,
 admin password reset, room password change, and room creation from an
-invitation. A password that is blank (only spaces) or longer than 72 UTF-8
-bytes is 422 `invalid_request`. There is no minimum length. The password is
-saved as typed. Sign-in only compares the password and does not apply the rule.
+invitation. A password that is blank (only spaces), shorter than 4 characters,
+or longer than 72 UTF-8 bytes is 422 `invalid_request`. The password is saved
+as typed. Sign-in only compares the password and does not apply the rule, so
+older, shorter passwords still open their rooms.
 
 | Request | Body | Success |
 |---|---|---|
