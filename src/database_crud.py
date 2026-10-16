@@ -549,6 +549,13 @@ def get_room_seq_locked(room_id: int) -> int:
     ).fetchone()[0]
 
 
+def get_deletions_pruned_seq_locked(room_id: int) -> int:
+    """The highest seq whose deletion records were pruned (0 if none)."""
+    return db.execute(
+        "SELECT deletions_pruned_seq FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()[0]
+
+
 def _since_bound(since: int | None) -> int:
     # Rows from before change tracking have changed_seq 0.
     return -1 if since is None else since
@@ -728,6 +735,38 @@ def prune_processed_ops(max_age_days: int = PROCESSED_OP_DAYS) -> int:
             (f"-{int(max_age_days)} days",),
         )
         return result.rowcount
+
+
+DELETION_DAYS = 90
+
+
+def prune_deletions(max_age_days: int = DELETION_DAYS) -> int:
+    """Delete deletion records older than `max_age_days`; return the count.
+
+    Per room, every record up to the newest old one goes, so the records kept
+    are all newer than the pruned ones. The room keeps that seq as
+    `deletions_pruned_seq`: a client behind it gets a full snapshot.
+    """
+    with transaction(write=True):
+        old_rooms = db.execute(
+            "SELECT room_id, MAX(changed_seq) FROM deletions "
+            "WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?) "
+            "GROUP BY room_id",
+            (f"-{int(max_age_days)} days",),
+        ).fetchall()
+        removed = 0
+        for room_id, seq in old_rooms:
+            result = db.execute(
+                "DELETE FROM deletions WHERE room_id = ? AND changed_seq <= ?",
+                (room_id, seq),
+            )
+            removed += result.rowcount
+            db.execute(
+                "UPDATE rooms SET deletions_pruned_seq = MAX(deletions_pruned_seq, ?) "
+                "WHERE id = ?",
+                (seq, room_id),
+            )
+        return removed
 
 
 def _insert_room_access_token_locked(room_id: int, authorization_version: int) -> str:

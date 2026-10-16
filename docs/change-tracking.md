@@ -13,15 +13,18 @@ links, admin) is covered, and a rolled-back write leaves no trace.
 - `lists.changed_seq`, `items.changed_seq`: the room's `change_seq` right
   after the row's last change.
 - `deletions`: one row per deleted list or item: `room_id`, `kind` (`list` or
-  `item`), `uid`, `changed_seq`.
+  `item`), `uid`, `changed_seq`, `created_at`.
+- `rooms.deletions_pruned_seq`: the highest `changed_seq` of the deletion
+  rows removed so far (0 if none).
 - `processed_ops`: stored API results per `op_id`, for retry-safe writes.
   Rows older than 30 days are deleted when the server starts and once a day
   while it runs.
 
 Deleting a room removes its `deletions` and `processed_ops` rows
-(`ON DELETE CASCADE`). Otherwise `deletions` rows are kept for now; pruning
-them is decided with the offline work (Milestone 6 of the
-[rewrite plan](../plans/svelte-frontend-rewrite.md)).
+(`ON DELETE CASCADE`). `deletions` rows older than 90 days are pruned when the
+server starts and once a day. Per room, pruning removes every row up to the
+newest old one, and the room keeps that seq as `deletions_pruned_seq`. The
+changes feed sends a full snapshot to a client behind it.
 
 ## What the triggers do
 

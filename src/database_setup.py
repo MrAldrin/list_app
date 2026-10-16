@@ -459,6 +459,57 @@ def _migration_6_field_constraints(db: sqlite3.Connection) -> None:
             """)
 
 
+# The text format of created_at, the same as processed_ops (text order is time order).
+_NOW_TEXT = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+
+
+def _migration_7_deletion_pruning(db: sqlite3.Connection) -> None:
+    """Add a creation time to deletion records and each room's pruned seq.
+
+    Existing records get the migration time, so the first prune removes them
+    90 days after the upgrade. The two delete triggers are created again to
+    record the time. Nothing is rebuilt.
+    """
+    db.execute(
+        "ALTER TABLE rooms ADD COLUMN deletions_pruned_seq INTEGER NOT NULL DEFAULT 0"
+    )
+    # Nullable, because ADD COLUMN cannot take a non-constant default. The
+    # triggers below always set it for new records.
+    db.execute("ALTER TABLE deletions ADD COLUMN created_at TEXT")
+    db.execute(
+        f"UPDATE deletions SET created_at = {_NOW_TEXT} WHERE created_at IS NULL"
+    )
+    db.execute("CREATE INDEX idx_deletions_created_at ON deletions(created_at)")
+    db.execute("DROP TRIGGER lists_track_delete")
+    db.execute(
+        f"""
+        CREATE TRIGGER lists_track_delete
+        AFTER DELETE ON lists
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = OLD.room_id;
+            INSERT INTO deletions (room_id, kind, uid, changed_seq, created_at)
+            SELECT id, 'list', OLD.uid, change_seq, {_NOW_TEXT} FROM rooms
+            WHERE id = OLD.room_id AND OLD.uid IS NOT NULL;
+        END
+        """
+    )
+    db.execute("DROP TRIGGER items_track_delete")
+    db.execute(
+        f"""
+        CREATE TRIGGER items_track_delete
+        AFTER DELETE ON items
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1
+            WHERE id = {_ITEM_ROOM_ID.format(row="OLD")};
+            INSERT INTO deletions (room_id, kind, uid, changed_seq, created_at)
+            SELECT r.id, 'item', OLD.uid, r.change_seq, {_NOW_TEXT}
+            FROM lists AS l JOIN rooms AS r ON r.id = l.room_id
+            WHERE l.id = OLD.list_id AND OLD.uid IS NOT NULL;
+        END
+        """
+    )
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -468,6 +519,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_4_change_tracking_triggers,
         _migration_5_positive_visibility_counts,
         _migration_6_field_constraints,
+        _migration_7_deletion_pruning,
     ]
 
 

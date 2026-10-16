@@ -329,8 +329,8 @@ Each room has a counter `seq`; every write in the room increases it.
   no deletions. The client replaces all its data for the room.
 - The server also sends a full snapshot when it cannot serve the delta: `since`
   is larger than the current `seq` (for example after a database restore), or
-  older than the deletion records it keeps. Deletion records are not pruned
-  yet, so for now only the first case happens.
+  below the newest pruned deletion record. Deletion records are kept for 90
+  days.
 - `since` is required: a whole number from 0 up; anything else gives 422.
 - Stored values are read leniently: a missing quantity is 1,
   a missing description is `""`, unreadable tags are `[]`, and an unreadable

@@ -12,6 +12,7 @@ from fastapi import APIRouter, Query, Request
 from api.access import room_access
 from database_crud import (
     get_deletions_locked,
+    get_deletions_pruned_seq_locked,
     get_item_changes_locked,
     get_list_changes_locked,
     get_room_details_locked,
@@ -32,10 +33,11 @@ def changes(
 ) -> dict[str, Any]:
     with room_access(request, slug) as room:
         seq = get_room_seq_locked(room.room_id)
-        # A full snapshot on first load, and when the client is ahead of the
-        # server (for example after a database restore). Deletion records are
-        # not pruned yet, so "older than the kept deletions" cannot happen.
-        full = since == 0 or since > seq
+        pruned_seq = get_deletions_pruned_seq_locked(room.room_id)
+        # A full snapshot on first load, when the client is ahead of the server
+        # (for example after a database restore), and when the client is behind
+        # pruned deletion records: it may have missed some of them.
+        full = since == 0 or since > seq or since < pruned_seq
         rows_since = None if full else since
         return {
             "seq": seq,

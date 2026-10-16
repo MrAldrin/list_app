@@ -16,7 +16,7 @@ from starlette.concurrency import run_in_threadpool
 
 from api import register_api
 from config import require_app_password
-from database_crud import prune_processed_ops
+from database_crud import prune_deletions, prune_processed_ops
 from database_setup import open_database
 from pwa_routes import STATIC_DIR, register_pwa_routes
 from svelte_frontend import register_svelte_frontend
@@ -27,29 +27,34 @@ logger = logging.getLogger(__name__)
 # them. Live update streams never end by themselves (src/api/events.py).
 SHUTDOWN_TIMEOUT_SECONDS = 1
 
-# Old op results are pruned at startup and then once a day while the server runs.
+# Old op results and deletion records are pruned at startup and then once a day
+# while the server runs.
 PRUNE_EVERY_SECONDS = 24 * 60 * 60
 
 
-def prune_old_ops() -> None:
-    """Drop stored API op results older than 30 days; never block startup."""
-    try:
-        prune_processed_ops()
-    except sqlite3.Error:
-        logger.exception("Could not prune processed_ops")
+def prune_old_rows() -> None:
+    """Drop old op results and deletion records; never block startup."""
+    for name, prune in (
+        ("processed_ops", prune_processed_ops),
+        ("deletions", prune_deletions),
+    ):
+        try:
+            prune()
+        except sqlite3.Error:
+            logger.exception("Could not prune %s", name)
 
 
 async def _prune_daily() -> None:
     while True:
         await asyncio.sleep(PRUNE_EVERY_SECONDS)
-        await run_in_threadpool(prune_old_ops)
+        await run_in_threadpool(prune_old_rows)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Open and migrate the database before serving; a failure stops startup.
     open_database()
-    prune_old_ops()
+    prune_old_rows()
     prune = asyncio.create_task(_prune_daily())
     try:
         yield
