@@ -57,6 +57,8 @@ export interface QueueHost {
 	opSettled(op: SentOp, response: OpResponse): void;
 	/** The op failed for good (HTTP error); it is dropped. */
 	opFailed(op: SentOp, error: unknown): void;
+	/** Sign-out held these ops; a late refusal must still be preserved. */
+	opsHeldForSignOut?(ops: readonly SentOp[]): void;
 	/**
 	 * No answer; the op stays queued. `maybeApplied` is true when the server may
 	 * have applied it (no answer, 5xx), false when it surely did not (401).
@@ -178,7 +180,7 @@ export class WriteQueue {
 	 * (`applied` or `rejected`); rejects with the `ApiError` if the op failed.
 	 * `offline`: the page could not write when the user acted (see `QueueHost`).
 	 */
-	send(op: Op, offline = false): Promise<OpResponse> {
+	send(op: Op, offline = false, onQueued?: (sent: SentOp) => void): Promise<OpResponse> {
 		if (this.#disposed) return Promise.reject(new Error('This room is closed.'));
 		const sent = { ...op, op_id: newId() } as SentOp;
 		const promise = new Promise<OpResponse>((resolve, reject) => {
@@ -189,6 +191,7 @@ export class WriteQueue {
 		this.#mutated();
 		void this.#enqueue(() => this.#storage.add(entry));
 		this.#host.opQueued(sent, offline);
+		onQueued?.(sent);
 		void this.#pump();
 		return promise;
 	}
@@ -197,6 +200,41 @@ export class WriteQueue {
 	pause(): void {
 		this.#paused = true;
 		this.#wake?.();
+	}
+
+	/** Holds all readable waiting ops until the user chooses after sign-out. */
+	async holdForSignOut(): Promise<void> {
+		const held = this.#entries.filter(
+			(entry) => classifyEntry(entry, this.#nowMs()).kind !== 'unreadable'
+		);
+		if (held.length === 0) return;
+		const opIds = held.map((entry) => entry.opId);
+		this.#host.opsHeldForSignOut?.(
+			held.flatMap((entry) => {
+				const verdict = classifyEntry(entry, this.#nowMs());
+				return verdict.kind === 'unreadable' ? [] : [verdict.op];
+			})
+		);
+		const ids = new Set(opIds);
+		this.#entries = this.#entries.map((entry) =>
+			ids.has(entry.opId) ? { ...entry, state: 'signout' } : entry
+		);
+		this.#mutated();
+		await this.#enqueue(() => this.#storage.setStates(opIds, 'signout'));
+	}
+
+	/** Releases sign-out holds after an explicit choice; 30-day holds remain. */
+	sendAfterSignIn(): void {
+		const held = this.#entries.filter((entry) => entry.state === 'signout');
+		if (held.length === 0) return;
+		const opIds = held.map((entry) => entry.opId);
+		const ids = new Set(opIds);
+		this.#entries = this.#entries.map((entry) =>
+			ids.has(entry.opId) ? { ...entry, state: 'pending' } : entry
+		);
+		this.#mutated();
+		void this.#enqueue(() => this.#storage.setStates(opIds, 'pending'));
+		void this.#pump();
 	}
 
 	/** Sends the queued ops again, for example after signing in. */

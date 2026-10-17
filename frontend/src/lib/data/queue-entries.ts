@@ -11,8 +11,8 @@ export const QUEUE_FORMAT = 1;
 /** Pending ops older than this (by `at`) are held: sent only when the user says so. */
 export const HOLD_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** `pending`: waits to be sent. `approved`: the user chose to send it after a hold. */
-export type EntryState = 'pending' | 'approved';
+/** `signout` waits for the user to choose before sending after sign-in. */
+export type EntryState = 'pending' | 'approved' | 'signout';
 
 /**
  * What the device stores per op. Fields are `unknown` because a stored entry may
@@ -105,6 +105,7 @@ export type UnreadableReason = 'newer_format' | 'invalid';
 export type Verdict =
 	| { kind: 'ready'; op: SentOp }
 	| { kind: 'held'; op: SentOp; at: string | null }
+	| { kind: 'signout_held'; op: SentOp; at: string | null }
 	| { kind: 'unreadable'; reason: UnreadableReason };
 
 /**
@@ -121,10 +122,11 @@ export function classifyEntry(entry: StoredEntry, now: number): Verdict {
 	if (!isSentOp(entry.op) || entry.op.op_id !== entry.opId) {
 		return { kind: 'unreadable', reason: 'invalid' };
 	}
-	if (entry.state !== 'pending' && entry.state !== 'approved') {
+	if (entry.state !== 'pending' && entry.state !== 'approved' && entry.state !== 'signout') {
 		return { kind: 'unreadable', reason: 'invalid' };
 	}
 	const at = str(entry.at) ? (entry.at as string) : null;
+	if (entry.state === 'signout') return { kind: 'signout_held', op: entry.op, at };
 	if (entry.state === 'approved') return { kind: 'ready', op: entry.op };
 	const time = at === null ? NaN : Date.parse(at);
 	// `!(… <= …)` also holds an unparsable time.
@@ -150,6 +152,7 @@ export interface QueueSnapshot {
 	/** Every stored entry, including held and unreadable ones. */
 	waiting: number;
 	held: HeldOp[];
+	signoutHeld: HeldOp[];
 	unreadable: UnreadableOp[];
 	/** False when entries live only in memory (no IndexedDB, or it failed). */
 	durable: boolean;
@@ -161,14 +164,17 @@ export function summarizeEntries(
 	durable: boolean
 ): QueueSnapshot {
 	const held: HeldOp[] = [];
+	const signoutHeld: HeldOp[] = [];
 	const unreadable: UnreadableOp[] = [];
 	for (const entry of entries) {
 		const verdict = classifyEntry(entry, now);
 		const at = str(entry.at) ? (entry.at as string) : null;
 		if (verdict.kind === 'held') held.push({ opId: entry.opId, at, op: verdict.op });
+		else if (verdict.kind === 'signout_held')
+			signoutHeld.push({ opId: entry.opId, at, op: verdict.op });
 		else if (verdict.kind === 'unreadable') {
 			unreadable.push({ opId: entry.opId, at, format: entry.format, reason: verdict.reason });
 		}
 	}
-	return { waiting: entries.length, held, unreadable, durable };
+	return { waiting: entries.length, held, signoutHeld, unreadable, durable };
 }

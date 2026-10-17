@@ -3,8 +3,8 @@
 Saved data opens without a network. Edits made offline are kept on the phone
 and sent when the connection is back.
 
-Offline editing is built and tested locally. It awaits owner review (Gate C)
-and is not deployed. Plan: [offline editing](../plans/offline-editing.md).
+Offline editing is implemented and approved for automated release checks, but
+this version is not deployed. Plan: [offline editing](../plans/offline-editing.md).
 Mechanics: [offline editing details](background/offline-editing-details.md).
 Pending checks: [backlog](../plans/backlog.md).
 
@@ -29,7 +29,9 @@ Pending checks: [backlog](../plans/backlog.md).
 - Changes stay on the phone until they are sent, and a reload or closing the app
   keeps them. Where the browser cannot store them, they live in the page only,
   and a reload loses them.
-- Changes older than 30 days are held. You choose Send all or Discard each.
+- Changes older than 30 days stay in this room's device-local queue. The server
+  may no longer remember an earlier answer, so sending could apply a change
+  twice. Choose Send all or Discard each.
 
 ## Merging with other devices
 
@@ -48,20 +50,22 @@ Changes merge when they can:
 - Actions: Dismiss, or Dismiss all. A change refused because someone else
   changed it also has "Save mine anyway", which sends it again on the current
   version.
-- The list is kept in the page only. A reload clears it, and refused changes
-  are not sent again.
+- Rejections stay in this room's device-local queue across reloads and app
+  closure. They are not sent again automatically. Dismiss them, or use Save mine
+  anyway for a stale change. A successful retry removes its rejection.
 
 ## Access gone
 
 - If the room password changes, or a share link is reset, while changes wait,
   the banner says "N changes can't be sent."
-- For a room, sign in again: the password prompt sends the waiting changes.
+- For a room, sign in again, then choose Send or Discard. Signing in does not
+  release the device-local room queue automatically.
 - For a reset share link, the only action is Discard all.
 
 ## Sign-out and room delete
 
-- Signing out keeps waiting changes on the phone. They are sent after you sign
-  in to the same room. The app asks first.
+- Signing out keeps waiting changes in this room's device-local queue. After
+  signing in again, choose Send or Discard; the queue is not sent automatically.
 - Deleting a room discards its waiting changes. The app asks first.
 
 ## After a deploy

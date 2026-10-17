@@ -58,4 +58,4 @@ real-device evidence. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist) and record
 results (with OS/browser versions for devices) in the linked doc.
 
-- [ ] [test] Gate C: test offline editing on the iPhone, including two devices, before any deploy. Follow the steps in [offline editing](offline-editing.md#steps).
+- [ ] [test] After deployment, check offline editing on an iPhone, including two devices, sign-out holds and persistent rejections. Follow [offline editing](offline-editing.md#owner-review-decision-log) and the [offline-use guide](../docs/offline-viewing.md).

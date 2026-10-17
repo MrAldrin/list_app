@@ -184,8 +184,12 @@ describe('count texts', () => {
 	it('uses the singular for one change', () => {
 		expect(notSavedCountText(1)).toBe('1 change was not saved');
 		expect(notSavedCountText(2)).toBe('2 changes were not saved');
-		expect(notSentYetText(1)).toBe('1 change is not sent yet.');
-		expect(notSentYetText(3)).toBe('3 changes are not sent yet.');
+		expect(notSentYetText(1)).toBe(
+			"1 waiting change in this room's queue on this device will be held after sign-out."
+		);
+		expect(notSentYetText(3)).toBe(
+			"3 waiting changes in this room's queue on this device will be held after sign-out."
+		);
 	});
 });
 

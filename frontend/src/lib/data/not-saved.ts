@@ -131,9 +131,11 @@ export function unsentRows(
 	return rows;
 }
 
-/** "1 change is not sent yet." or "2 changes are not sent yet." (`count` > 0). */
+/** Names the device-local room queue before sign-out (`count` > 0). */
 export function notSentYetText(count: number): string {
-	return count === 1 ? '1 change is not sent yet.' : `${count} changes are not sent yet.`;
+	return count === 1
+		? "1 waiting change in this room's queue on this device will be held after sign-out."
+		: `${count} waiting changes in this room's queue on this device will be held after sign-out.`;
 }
 
 /** The banner's count: "1 change was not saved", "2 changes were not saved". */

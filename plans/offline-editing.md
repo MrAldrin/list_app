@@ -5,10 +5,10 @@ Lifecycle: tracked
 Steps 6.1 to 6.4 of [Milestone 6](svelte-frontend-rewrite.md#milestone-6-offline-editing).
 The owner approved building it start to finish (2026-10-16) without a review
 of the rules first. The rules below are the lead agent's choices; the owner
-reviews them afterwards. Nothing here is deployed; `main` does not move.
+reviewed them in the decision log. Nothing here is deployed; `main` does not move.
 
-Today: offline pages are read-only ([offline viewing](../docs/offline-viewing.md)).
-Unsent changes live in memory only and are lost when the app closes.
+Current behavior: offline editing and a persistent write queue are implemented.
+See [offline use](../docs/offline-viewing.md). This workspace is not deployed.
 
 ## Goal
 
@@ -91,8 +91,8 @@ goes to the **Not saved** list instead, so it is not missed.
   phone and sent when you're back online."
 - Not-saved list (6.3): a small banner "2 changes were not saved" opens a sheet.
   Each entry says what and why in plain words ("'milk' was deleted by someone
-  else"). Actions: Dismiss; for `changed_meanwhile` also "Save mine anyway"
-  (resends with the current `base_seq`).
+  else"). Entries persist in the device-local room queue until dismissed or a
+  successful retry; no rejection is retried automatically.
 - A small mark on items with unsent changes.
 
 ## Steps
@@ -114,11 +114,11 @@ of each code step.
    loss, revoked access while offline, app update with waiting changes,
    reload with waiting changes. Update `docs/offline-viewing.md` (rename to
    offline use), `docs/api.md`, `docs/change-tracking.md`, `ARCHITECTURE.md`.
-8. **Gate C** Owner tests on the iPhone, including two devices.
+8. **Gate C** Pre-release manual iPhone checks (waived by the owner; automated checks accepted).
 
 ## Decisions made while building
 
-Choices the lead agent or subagents made; the owner reviews them at Gate C.
+Historical implementation choices; the owner review decisions below supersede them where stated.
 
 - **Edit conflicts compare all sent fields.** An `item.edit` conflicts when
   name, description or the sent quantity differs from what is stored. So a
@@ -127,9 +127,9 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 - **Old answers keep their shape.** A null new field (`base_seq`, `active`) is
   left out of the stored request hash, so retries of ops sent before the
   deploy still match.
-- **Sign-out keeps stored changes.** They stay on the device and are sent
-  after the next sign-in to the same room (as in memory before). Not cleared
-  on a shared phone.
+- **Initial sign-out behavior (superseded by owner decision 2).** Stored changes
+  used to send after the next sign-in. They now remain held until the user
+  chooses Send or Discard.
 - **Held or unreadable ops block later ops** of the same room until sent or
   discarded, so the order is kept.
 - **Deletion pruning** (migration 7) cuts at the newest old record per room,
@@ -156,11 +156,12 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 - **A tab with waiting changes keeps the old app version** until they are
   sent (so an update never strands them). Offline for days means the old
   version for days.
-- **Not-saved list lives in memory.** A reload clears it; the changes it
-  describes were already refused by the server.
-- **Not covered by tests:** a real build swap with waiting changes (only the
-  version header is simulated), and R8, R10, R12, R13 in the browser (unit
-  tests only).
+- **Initial Not saved behavior (superseded by owner decision 3).** Rejections
+  used to live in memory only. They now persist in the device-local queue until
+  dismissal or successful retry.
+- **Browser coverage limits:** R8 and R12 remain unit-tested only. The real
+  build swap with a stored change, sign-out hold, persistent Not saved entry and
+  30-day warning have browser regressions.
 
 ## Owner review decision log
 
@@ -170,23 +171,23 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    different fields of the same row can still conflict. No field-by-field
    merging for this release. No implementation change needed.
 
-2. **Approved — hold unsent changes after sign-out.** Keep them on the device,
-   but do not send them automatically after signing back in. Ask the user to
-   send or discard them. This is a shared-device edge case; keep the solution
-   small. Implementation and verification pending until the review is complete.
+2. **Approved — hold unsent changes after sign-out.** Keep them in this room's
+   device-local queue, but do not send them automatically after signing back in.
+   Ask the user to send or discard them. Implemented and verified by focused unit
+   and browser regressions.
 
 3. **Approved — persistent Not saved list.** Keep rejected-change entries on
    the device across reloads and app closure until dismissed or successfully
-   retried. Never retry automatically. The screen exists, but persistence still
-   needs implementation and verification after this review.
+   retried. Never retry automatically. Implemented and verified by focused unit
+   and browser regressions.
 4. **Approved — delete wins.** Keep the existing rule: offline edits do not
    restore items or lists deleted elsewhere. Show the refusal under Not saved;
    the user can deliberately add an item again. No implementation change needed.
 
 5. **Approved — keep the 30-day hold.** Retain the existing pause for changes
    older than 30 days, with Send or Discard. The owner sees this as a rare edge
-   case and accepts keeping the built behaviour. Keep the UI simple and explain
-   the duplicate-send risk before sending. Verify the warning during implementation.
+   case and accepts keeping the built behaviour. The warning names this room's
+   device-local queue and explains the duplicate-send risk.
 
 6. **Approved — defer offline list creation.** Keep creating lists online-only
    for this release. Offline creation remains a separate Later backlog item;
@@ -199,9 +200,9 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 
 8. **Approved — delay app updates while changes wait.** Keep the current app
    version until unsent changes are resolved, rather than risk stranding them.
-   Accept that an offline device can stay on an older version for days. Verify
-   the real update flow before deployment; existing simulated-version tests
-   alone are not sufficient evidence.
+   Accept that an offline device can stay on an older version for days. The real
+   build-swap regression is now covered by the browser suite; post-deploy device
+   checks remain manual.
 
 9. **Approved — merge duplicate item adds.** Keep one item when devices add
    the same item under the existing naming rules. Direct later queued edits to
@@ -217,6 +218,13 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
     saved and do not block later sending, including edits to the same item.
     Keep this distinction clear in the UI. No change to the ordering rule needed.
 
+12. **Approved — automated release checks; no pre-release manual iPhone test.**
+    Run focused regressions, the full browser suite and complete automated
+    checks. Include a real build swap with waiting changes if feasible. The
+    owner waived pre-release iPhone testing; the waiver is not evidence that
+    manual or automated tests passed. Do not push, move bookmarks or deploy as
+    part of this implementation.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
@@ -226,4 +234,5 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 - [x] 6.2d Offline editing in the client
 - [x] 6.3 Not-saved UI
 - [x] 6.4 Multi-device tests and docs
-- [ ] Gate C: owner review on the iPhone
+- [x] Approved queue lifecycle improvements; complete automated checks passed, including the real build-swap browser regression
+- [x] Gate C: owner waived pre-release iPhone testing; no manual test was run. Post-deploy device checks remain manual.

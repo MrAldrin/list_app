@@ -22,7 +22,7 @@ import { ApiError, NetworkError } from './types';
 import type { Feed, Item, OpResponse, SentOp } from './types';
 import { createSnapshotStore, type SnapshotStore } from './snapshot-store';
 import type { SessionLockManager } from './session-transition';
-import { MemoryQueueStorage, type QueueStorage } from './queue-storage';
+import { createQueueStorage, MemoryQueueStorage, type QueueStorage } from './queue-storage';
 import { newStoredEntry } from './queue-entries';
 
 const list = makeList({ uid: 'saved-list' });
@@ -516,6 +516,35 @@ describe('clear and session boundaries', () => {
 			storage.close();
 		}
 	);
+
+	it('preserves a rejection that arrives after sign-out cleared the room view', async () => {
+		const snapshotsStore = snapshots();
+		const api = fakeApi();
+		const answer = deferred<OpResponse>();
+		api.sendOp.mockImplementation(() => answer.promise);
+		const queue = new MemoryQueueStorage();
+		const room = handle(api, snapshotsStore, { queueStorage: queue });
+		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+
+		const action = room.setDone(item, true);
+		await vi.waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
+		const sent = api.sendOp.mock.calls[0][1];
+		expect(await room.logout()).toEqual({ ok: true, result: {} });
+		answer.resolve({
+			op_id: sent.op_id,
+			status: 'rejected',
+			code: 'changed_meanwhile',
+			message: 'Someone else changed it meanwhile.',
+			seq: 6
+		});
+
+		await expect(action).resolves.toMatchObject({ ok: false, code: 'session_changed' });
+		await vi.waitFor(() => expect(room.store.notSaved).toHaveLength(1));
+		await vi.waitFor(async () => expect(await queue.readNotSaved()).toHaveLength(1));
+		expect(room.store.notSaved[0]).toMatchObject({ code: 'changed_meanwhile' });
+		room.release();
+		snapshotsStore.close();
+	});
 
 	it('reports that persistent clearing was not confirmed when localSignOut fails', async () => {
 		const storage = snapshots();
@@ -1388,11 +1417,15 @@ describe('room session transition serialization', () => {
 		await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
 
 		firstAnswer.reject(new ApiError(401, 'not_authenticated', 'Sign in to this room.'));
+		await settle();
+		expect(sends).toHaveLength(1);
+		expect(room.signoutHeldOps.map((held) => held.opId)).toEqual([opId]);
+		// Access confirmation alone does not release changes held after sign-out.
+		expect(room.store.pendingOps.map((pending) => pending.op.op_id)).toEqual([opId]);
+		room.sendAfterSignIn();
 		await vi.waitFor(() => expect(sends).toHaveLength(2));
 		expect(sends[1]).toEqual(sends[0]);
 		expect(room.store.queued).toBe(1);
-		// The waiting change is shown again once access is confirmed.
-		expect(room.store.pendingOps.map((pending) => pending.op.op_id)).toEqual([opId]);
 		retryAnswer.resolve(applied(sends[1], 6));
 		await action;
 		expect(room.store.queued).toBe(0);
@@ -1638,6 +1671,43 @@ describe('not-saved changes (6.3)', () => {
 		device.storage.close();
 	});
 
+	it('restores persisted rejections after a reload and does not retry them automatically', async () => {
+		const queue = createQueueStorage(`room:${ROOM.slug}`, {
+			indexedDB: new IDBFactory(),
+			databaseName: `offline-rejection-${++databaseCounter}`
+		});
+		const device = await offlineDevice(queue);
+		void device.offline.setDone(item, true);
+		reconnect(device, (op) => ({
+			op_id: op.op_id,
+			status: 'rejected',
+			code: 'changed_meanwhile',
+			message: 'Someone else changed this meanwhile.',
+			seq: 8
+		}));
+		await vi.waitFor(() => expect(device.offline.store.notSaved).toHaveLength(1));
+		await vi.waitFor(async () => expect(await queue.readNotSaved()).toHaveLength(1));
+		device.offline.release();
+
+		const api = fakeApi();
+		const reopened = handle(api, device.storage, {
+			hydrateSavedView: true,
+			queueStorage: queue
+		});
+		await vi.waitFor(() => expect(reopened.store.notSaved).toHaveLength(1));
+		await vi.waitFor(() => expect(reopened.store.canWrite).toBe(true));
+		expect(reopened.store.notSaved[0]).toMatchObject({
+			code: 'changed_meanwhile',
+			text: "Tick 'milk': someone else changed it meanwhile."
+		});
+		expect(api.sendOp).not.toHaveBeenCalled();
+
+		reopened.store.dismissNotSaved(reopened.store.notSaved[0].id);
+		await vi.waitFor(async () => expect(await queue.readNotSaved()).toEqual([]));
+		reopened.release();
+		device.storage.close();
+	});
+
 	it("sends a refused change again as a new op, based on the row's current changed_seq", async () => {
 		const device = await offlineDevice();
 		const { offline } = device;
@@ -1658,9 +1728,10 @@ describe('not-saved changes (6.3)', () => {
 
 		// Someone changed the row again: the device now knows changed_seq 9.
 		const again: SentOp[] = [];
+		const retryAnswer = deferred<OpResponse>();
 		device.offlineApi.sendOp.mockImplementation(async (_slug, op) => {
 			again.push(op);
-			return { op_id: op.op_id, status: 'applied', result: { changed_seq: 10 }, seq: 9 };
+			return retryAnswer.promise;
 		});
 		device.offlineApi.changes.mockResolvedValue(
 			makeFeed({
@@ -1672,7 +1743,16 @@ describe('not-saved changes (6.3)', () => {
 		);
 		await offline.store.refresh();
 
-		const result = await offline.saveMineAnyway(offline.store.notSaved[0].id);
+		const retrying = offline.saveMineAnyway(offline.store.notSaved[0].id);
+		await vi.waitFor(() => expect(again).toHaveLength(1));
+		expect(offline.store.notSaved).toHaveLength(1);
+		retryAnswer.resolve({
+			op_id: again[0].op_id,
+			status: 'applied',
+			result: { changed_seq: 10 },
+			seq: 9
+		});
+		const result = await retrying;
 		expect(result.ok).toBe(true);
 		expect(offline.store.notSaved).toEqual([]);
 		expect(again).toHaveLength(1);
@@ -1686,6 +1766,63 @@ describe('not-saved changes (6.3)', () => {
 		offline.release();
 		device.storage.close();
 	});
+
+	it.each(['applied', 'rejected'] as const)(
+		'finishes an in-flight Save mine anyway after sign-out (%s)',
+		async (status) => {
+			const queue = createQueueStorage('room:home', { indexedDB: new IDBFactory() });
+			const device = await offlineDevice(queue);
+			const { offline, offlineApi } = device;
+			void offline.setDone(item, true);
+			reconnect(device, (op) => ({
+				op_id: op.op_id,
+				status: 'rejected',
+				code: 'changed_meanwhile',
+				message: 'Changed.',
+				seq: 8
+			}));
+			await vi.waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
+			await vi.waitFor(() => expect(offline.store.canWrite).toBe(true));
+			const retryAnswer = deferred<OpResponse>();
+			offlineApi.sendOp.mockImplementation(async () => retryAnswer.promise);
+			const retry = offline.saveMineAnyway(offline.store.notSaved[0].id);
+			await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
+			const sent = offlineApi.sendOp.mock.calls[1][1];
+			await vi.waitFor(async () =>
+				expect(await queue.readNotSaved()).toMatchObject([{ retryOpId: sent.op_id }])
+			);
+			const logout = offline.logout();
+			await vi.waitFor(() => expect(offline.store.status).toBe('auth_required'));
+			retryAnswer.resolve(
+				status === 'applied'
+					? applied(sent, 9)
+					: {
+							op_id: sent.op_id,
+							status,
+							code: 'changed_meanwhile',
+							message: 'Still changed.',
+							seq: 9
+						}
+			);
+			await retry;
+			await logout;
+			await vi.waitFor(async () =>
+				expect(await queue.readNotSaved()).toHaveLength(status === 'applied' ? 0 : 1)
+			);
+			if (status === 'rejected') {
+				expect(offline.store.notSaved).toMatchObject([
+					{ code: 'changed_meanwhile', message: 'Still changed.' }
+				]);
+				expect(offline.store.notSaved[0].retryOpId).toBeUndefined();
+				expect(await queue.readNotSaved()).toMatchObject([{ message: 'Still changed.' }]);
+			} else expect(offline.store.notSaved).toEqual([]);
+			expect(await queue.read()).toEqual([]);
+			expect(offline.store.status).toBe('auth_required');
+			expect(offline.store.room).toBeNull();
+			offline.release();
+			device.storage.close();
+		}
+	);
 
 	it('shows a loaded op that may already have been sent once, as uncertain', async () => {
 		const storage = snapshots();

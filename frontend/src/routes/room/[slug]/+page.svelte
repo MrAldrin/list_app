@@ -95,7 +95,7 @@
 {#if askingSignOut && room}
 	<ConfirmDialog
 		question={notSentYetText(room.waitingCount)}
-		detail="They stay on this phone and are sent after you sign in to this room again."
+		detail="After sign-in, choose Send or Discard. Changes older than 30 days need a separate send choice."
 		confirmLabel="Sign out"
 		onConfirm={signOut}
 		onClose={() => (askingSignOut = false)}

@@ -1,7 +1,7 @@
 // The reactive data of one room: server state from the changes feed, with
 // pending local ops projected on top (see overlay.ts).
 
-import { SvelteMap } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { compat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
@@ -16,6 +16,8 @@ import {
 } from './overlay';
 import { changedRow, type Rewrite } from './rebase';
 import { countsAsWaited, notSavedMessage, unsentRows } from './not-saved';
+import { isSentOp } from './queue-entries';
+import { isRecord } from './snapshot-validate';
 import { groupItemsByList, sortLists } from './order';
 import { mergeFeed } from './feed';
 import { filterVisibleItems } from './visibility';
@@ -34,13 +36,19 @@ export interface Notice {
 
 /**
  * A change the server refused, or failed, after it waited (see `countsAsWaited`).
- * Kept in memory for the page: a reload clears the list (plans/offline-editing.md, 6.3).
+ * Stored with this room's device-local queue until dismissal or a successful retry.
  */
 export interface NotSavedChange {
 	id: number;
+	/** Stable across tabs and retries: the original rejected op id. */
+	key: string;
 	/** The op as it was sent; "Save mine anyway" sends its body again. */
 	op: SentOp;
 	code: string;
+	message: string;
+	name: string | null;
+	/** The active explicit retry, if one is waiting for its answer. */
+	retryOpId?: string;
 	/** What and why, in plain words. */
 	text: string;
 }
@@ -66,6 +74,11 @@ export interface RoomStoreLifecycle {
 	unauthorized?: () => void;
 	feedFailed?: () => void;
 	connectionLost?: () => void;
+	persistNotSaved?: (
+		change: NotSavedChange | null,
+		removedKeys: readonly string[],
+		add: boolean
+	) => void;
 }
 
 const EMPTY: RoomData = { lists: new Map(), items: new Map() };
@@ -138,6 +151,7 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	#noticeId = 0;
 	#notSavedId = 0;
+	#signoutHeld = new SvelteMap<string, string | null>();
 	#inflight: Promise<boolean> | null = null;
 	#queued: Promise<boolean> | null = null;
 	#clearVersion = 0;
@@ -511,6 +525,9 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#tracks.delete(op.op_id);
 		this.#drop(op.op_id);
 		this.queued = Math.max(0, this.queued - 1);
+		this.#signoutHeld.delete(op.op_id);
+		const retry = this.#retryChange(op);
+		if (retry) this.#retryStopped(retry);
 	}
 
 	/** The item or list name the user sees for this op's row, or null. */
@@ -540,20 +557,103 @@ export class RoomStore implements QueueHost, LiveHost {
 		return { waited, name: track?.name ?? this.#nameOf(op) };
 	}
 
+	/** Restores validated rejections from this room's device-local queue record. */
+	loadNotSaved(values: readonly unknown[]): void {
+		const seen = new SvelteSet<string>();
+		const restored: NotSavedChange[] = [];
+		for (const value of values) {
+			if (!isRecord(value)) continue;
+			const { id, op, code, message, name, retryOpId } = value;
+			if (
+				!Number.isSafeInteger(id) ||
+				(id as number) < 1 ||
+				!isSentOp(op) ||
+				typeof code !== 'string' ||
+				typeof message !== 'string' ||
+				!(name === null || typeof name === 'string') ||
+				!(retryOpId === undefined || typeof retryOpId === 'string')
+			)
+				continue;
+			const key = typeof value.key === 'string' ? value.key : op.op_id;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			const parsed: NotSavedChange = {
+				id: ++this.#notSavedId,
+				key,
+				op,
+				code,
+				message,
+				name,
+				...(typeof retryOpId === 'string' ? { retryOpId } : {}),
+				text: notSavedMessage({ op, code, message, name })
+			};
+			restored.push(parsed);
+		}
+		this.notSaved = restored;
+	}
+
+	/** Associates a deliberate retry with its rejection until the answer arrives. */
+	markNotSavedRetry(id: number, retryOpId: string): boolean {
+		const change = this.notSaved.find((item) => item.id === id);
+		if (!change || change.retryOpId) return false;
+		this.notSaved = this.notSaved.map((item) => (item.id === id ? { ...item, retryOpId } : item));
+		this.#persistNotSaved(this.notSaved.find((item) => item.id === id)!);
+		return true;
+	}
+
 	/** Puts a refused or failed change on the Not saved list. */
 	#collect(op: SentOp, code: string, message: string, name: string | null): void {
 		this.#notSavedId += 1;
 		const text = notSavedMessage({ op, code, message, name });
-		this.notSaved = [...this.notSaved, { id: this.#notSavedId, op, code, text }];
+		const change = { id: this.#notSavedId, key: op.op_id, op, code, message, name, text };
+		this.notSaved = [...this.notSaved, change];
+		this.#persistNotSaved(change, [], true);
+	}
+
+	#persistNotSaved(
+		change: NotSavedChange | null,
+		removedKeys: readonly string[] = [],
+		add = false
+	): void {
+		this.#lifecycle.persistNotSaved?.(change, removedKeys, add);
+	}
+
+	#retryChange(op: SentOp): NotSavedChange | undefined {
+		return this.notSaved.find((change) => change.retryOpId === op.op_id);
+	}
+
+	#retryFailed(change: NotSavedChange, op: SentOp, code: string, message: string): void {
+		const text = notSavedMessage({ op, code, message, name: change.name });
+		this.notSaved = this.notSaved.map((item) =>
+			item.id === change.id ? { ...item, op, code, message, text, retryOpId: undefined } : item
+		);
+		this.#persistNotSaved(this.notSaved.find((item) => item.key === change.key)!);
+	}
+
+	#retryFinished(change: NotSavedChange): void {
+		this.notSaved = this.notSaved.filter((item) => item.id !== change.id);
+		this.#persistNotSaved(null, [change.key]);
+	}
+
+	#retryStopped(change: NotSavedChange): void {
+		this.notSaved = this.notSaved.map((item) =>
+			item.id === change.id ? { ...item, retryOpId: undefined } : item
+		);
+		this.#persistNotSaved(this.notSaved.find((item) => item.key === change.key)!);
 	}
 
 	/** Removes an entry from the Not saved list (the user dismissed it). */
 	dismissNotSaved(id: number): void {
-		this.notSaved = this.notSaved.filter((change) => change.id !== id);
+		const change = this.notSaved.find((item) => item.id === id);
+		if (!change) return;
+		this.notSaved = this.notSaved.filter((item) => item.id !== id);
+		this.#persistNotSaved(null, [change.key]);
 	}
 
 	dismissAllNotSaved(): void {
+		const keys = this.notSaved.map((change) => change.key);
 		this.notSaved = [];
+		this.#persistNotSaved(null, keys);
 	}
 
 	/** Takes an entry off the Not saved list, to send it again. */
@@ -597,6 +697,10 @@ export class RoomStore implements QueueHost, LiveHost {
 		];
 	}
 
+	opsHeldForSignOut(ops: readonly SentOp[]): void {
+		for (const op of ops) this.#signoutHeld.set(op.op_id, this.#nameOf(op));
+	}
+
 	opSending(op: SentOp): void {
 		this.#sending = op.op_id;
 		this.#sentAuthorization.set(op.op_id, this.#authorizationVersion);
@@ -604,40 +708,74 @@ export class RoomStore implements QueueHost, LiveHost {
 	}
 
 	opSettled(op: SentOp, response: OpResponse): void {
-		if (!this.#currentOp(op)) return;
+		if (!this.#currentOp(op)) {
+			if (!this.#signoutHeld.has(op.op_id)) return;
+			const retry = this.#retryChange(op);
+			const name = this.#signoutHeld.get(op.op_id) ?? null;
+			this.#signoutHeld.delete(op.op_id);
+			if (response.status === 'rejected') {
+				if (retry) this.#retryFailed(retry, op, response.code, response.message);
+				else if (!(op.type === 'item.add' && response.code === 'duplicate_active'))
+					this.#collect(op, response.code, response.message, name);
+			} else if (retry) this.#retryFinished(retry);
+			return;
+		}
+		this.#signoutHeld.delete(op.op_id);
 		const { waited, name } = this.#settleTrack(op);
 		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
 		this.#sentAuthorization.delete(op.op_id);
 		this.#recordAnswer(op, response);
+		const retry = this.#retryChange(op);
 		if (response.status === 'rejected') {
 			this.#drop(op.op_id);
-			if (op.type === 'item.add' && response.code === 'duplicate_active' && waited) {
+			if (retry) {
+				if (waited) this.#retryFailed(retry, op, response.code, response.message);
+				else this.#retryStopped(retry);
+			} else if (op.type === 'item.add' && response.code === 'duplicate_active' && waited) {
 				// R6: the item is on the list already, which is what the add wanted.
 				// Nothing to tell the user; the later changes went to that item.
 			} else if (waited) this.#collect(op, response.code, response.message, name);
 			else this.notify(response.code, response.message);
-		} else if (response.seq <= this.seq) {
-			this.#drop(op.op_id);
 		} else {
-			// Our data is older than the op (a replay answers with the op's own
-			// seq), so it does not contain it: project it until the feed has it.
-			this.#update(op.op_id, { appliedSeq: response.seq, uncertain: false });
+			if (retry) this.#retryFinished(retry);
+			if (response.seq <= this.seq) {
+				this.#drop(op.op_id);
+			} else {
+				// Our data is older than the op (a replay answers with the op's own
+				// seq), so it does not contain it: project it until the feed has it.
+				this.#update(op.op_id, { appliedSeq: response.seq, uncertain: false });
+			}
 		}
 		// Someone (maybe this op) changed the room: read the changes.
 		this.#answered(response.seq > this.seq);
 	}
 
 	opFailed(op: SentOp, error: unknown): void {
-		if (!this.#currentOp(op)) return;
+		if (!this.#currentOp(op)) {
+			if (!this.#signoutHeld.has(op.op_id)) return;
+			const retry = this.#retryChange(op);
+			const name = this.#signoutHeld.get(op.op_id) ?? null;
+			this.#signoutHeld.delete(op.op_id);
+			const code = error instanceof ApiError ? error.code : 'unknown';
+			const message = error instanceof ApiError ? error.message : 'The change could not be saved.';
+			if (retry) this.#retryFailed(retry, op, code, message);
+			else this.#collect(op, code, message, name);
+			return;
+		}
+		this.#signoutHeld.delete(op.op_id);
 		const { waited, name } = this.#settleTrack(op);
 		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
 		this.#sentAuthorization.delete(op.op_id);
 		this.#drop(op.op_id);
+		const retry = this.#retryChange(op);
 		const code = error instanceof ApiError ? error.code : 'unknown';
 		const message = error instanceof ApiError ? error.message : 'The change could not be saved.';
-		if (waited) this.#collect(op, code, message, name);
+		if (retry) {
+			if (waited) this.#retryFailed(retry, op, code, message);
+			else this.#retryStopped(retry);
+		} else if (waited) this.#collect(op, code, message, name);
 		else this.notify(code, message);
 		this.#answered(false);
 	}

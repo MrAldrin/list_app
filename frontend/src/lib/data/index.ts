@@ -179,6 +179,7 @@ export class RoomHandle {
 	readonly store: RoomStore;
 	readonly #api: RoomApi;
 	readonly #queue: WriteQueue;
+	readonly #queueStorage: QueueStorage;
 	readonly #queueKey: string;
 	readonly #queueView = new QueueView();
 	readonly #live: LiveUpdates;
@@ -203,6 +204,7 @@ export class RoomHandle {
 	#loggingOut = false;
 	#revalidationAttempt = 0;
 	#revalidationTimer: ReturnType<typeof setTimeout> | null = null;
+	#notSavedWrites: Promise<void> = Promise.resolve();
 
 	constructor(slug: string, options: RoomOptions = {}) {
 		this.slug = slug;
@@ -216,6 +218,8 @@ export class RoomHandle {
 			options.snapshotStore === undefined ? browserSnapshots() : options.snapshotStore;
 		this.#locks = options.sessionLocks === undefined ? browserSessionLocks() : options.sessionLocks;
 		this.#hydrateSavedView = options.hydrateSavedView ?? false;
+		this.#queueKey = this.#isShare ? `share:${slug}` : `room:${slug}`;
+		this.#queueStorage = options.queueStorage ?? createQueueStorage(this.#queueKey);
 		this.store = createRoomStore(slug, this.#api, {
 			beforeApply: () => this.#identityStillCurrent(),
 			deferClear: () => this.#localSignoutInProgress,
@@ -227,14 +231,23 @@ export class RoomHandle {
 				this.#queue?.pause();
 				this.#scheduleRevalidation();
 			},
-			connectionLost: () => this.#queue?.pause()
+			connectionLost: () => this.#queue?.pause(),
+			persistNotSaved: (change, removedKeys, add) => {
+				const write = this.#notSavedWrites.then(() =>
+					change
+						? add
+							? this.#queueStorage.addNotSaved(change)
+							: this.#queueStorage.updateNotSaved(change)
+						: this.#queueStorage.removeNotSaved(removedKeys)
+				);
+				this.#notSavedWrites = write.catch(() => undefined);
+			}
 		});
-		this.#queueKey = this.#isShare ? `share:${slug}` : `room:${slug}`;
 		this.#queue = new WriteQueue(slug, this.#api, this.store, {
 			retryDelays: options.retryDelays,
 			key: this.#queueKey,
 			locks: this.#locks,
-			storage: options.queueStorage ?? createQueueStorage(this.#queueKey),
+			storage: this.#queueStorage,
 			onChange: (snapshot) => this.#queueView.apply(snapshot)
 		});
 		this.#queue.pause();
@@ -289,6 +302,11 @@ export class RoomHandle {
 		return this.#queueView.held;
 	}
 
+	/** Ops waiting for an explicit send choice after sign-out. */
+	get signoutHeldOps(): readonly HeldOp[] {
+		return this.#queueView.signoutHeld;
+	}
+
 	/** Ops this app cannot read or send (for example, written by a newer version). */
 	get unreadableOps(): readonly UnreadableOp[] {
 		return this.#queueView.unreadable;
@@ -302,6 +320,11 @@ export class RoomHandle {
 	/** Sends the held ops now, in their usual order. */
 	sendHeld(): void {
 		this.#queue.sendHeld();
+	}
+
+	/** Sends recent sign-out-held ops after the user explicitly chooses. */
+	sendAfterSignIn(): void {
+		this.#queue.sendAfterSignIn();
 	}
 
 	/** Drops one waiting op. False when it is being sent right now. */
@@ -345,8 +368,16 @@ export class RoomHandle {
 		}
 		const body: Partial<SentOp> = { ...change.op };
 		delete body.op_id;
-		this.store.dismissNotSaved(id);
-		return this.#run({ ...body, base_seq: seq } as Op);
+		if (change.retryOpId) {
+			return Promise.resolve({
+				ok: false,
+				code: 'retry_pending',
+				message: 'This change is already being retried.'
+			});
+		}
+		return this.#run({ ...body, base_seq: seq } as Op, (sent) => {
+			this.store.markNotSavedRetry(id, sent.op_id);
+		});
 	}
 
 	/** Starts saved-view preparation, access revalidation and live updates. */
@@ -597,6 +628,7 @@ export class RoomHandle {
 		this.store.setWriteAuthorized(false);
 		this.store.setEditable(false);
 		this.#queue.pause();
+		await this.#queue.holdForSignOut();
 		// A live event or reconnect must not reload (and so clear) the room
 		// while the marker is still being stored.
 		this.#live.stop();
@@ -654,6 +686,7 @@ export class RoomHandle {
 	async #initialize(): Promise<void> {
 		// Ops stored by an earlier visit wait in the queue before anything sends.
 		await this.#queue.load();
+		this.store.loadNotSaved(await this.#queueStorage.readNotSaved());
 		const startEpoch = this.#identityEpoch;
 		if (this.#snapshotStore) {
 			const generation = await this.#snapshotStore.generation(this.#identity);
@@ -853,6 +886,7 @@ export class RoomHandle {
 		try {
 			const pending = await this.#snapshotStore.pendingServerLogouts();
 			if (pending.ok && pending.value.some((identity) => identity.slug === this.slug)) {
+				await this.#queue.holdForSignOut();
 				void this.#retryPendingLogout();
 			}
 		} catch {
@@ -946,14 +980,17 @@ export class RoomHandle {
 	 * overlay, the answer comes later, and a rejection is a toast then (6.3 will
 	 * list it instead). Stored ops are sent on reconnect (see RoomStore).
 	 */
-	#run<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
+	#run<R = Record<string, never>>(
+		op: Op,
+		onQueued?: (sent: SentOp) => void
+	): Promise<ActionResult<R>> {
 		const blocked = this.#guardEdit();
 		if (blocked) return Promise.resolve(blocked);
-		if (this.store.canWrite) return this.#runOnline<R>(op);
+		if (this.store.canWrite) return this.#runOnline<R>(op, onQueued);
 		const provisional = this.#provisional<R>(op);
 		// The answer, if it is a failure, goes to the Not saved list (the op waited);
 		// nobody awaits it here.
-		this.#queue.send(op, true).catch(() => undefined);
+		this.#queue.send(op, true, onQueued).catch(() => undefined);
 		return Promise.resolve(provisional);
 	}
 
@@ -983,12 +1020,15 @@ export class RoomHandle {
 	}
 
 	/** An edit that waits for the server's answer (see `#run`). */
-	async #runOnline<R = Record<string, never>>(op: Op): Promise<ActionResult<R>> {
+	async #runOnline<R = Record<string, never>>(
+		op: Op,
+		onQueued?: (sent: SentOp) => void
+	): Promise<ActionResult<R>> {
 		const blocked = this.#guardWrite();
 		if (blocked) return blocked;
 		const epoch = this.#identityEpoch;
 		try {
-			const response = await this.#queue.send(op);
+			const response = await this.#queue.send(op, false, onQueued);
 			if (epoch !== this.#identityEpoch && (response.status === 'rejected' || !this.store.canWrite))
 				return this.#clearedAction();
 			if (response.status === 'rejected') {

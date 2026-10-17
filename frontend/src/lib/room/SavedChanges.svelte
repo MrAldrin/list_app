@@ -5,12 +5,14 @@
 	- Not saved: a change refused or failed after it waited (made offline, or
 	  answered late). Dismiss; "Save mine anyway" for a change someone else
 	  changed meanwhile.
-	- Old changes not sent yet: held for 30 days (R10). Send all, or discard each.
+	- Changes waiting after sign-out stay in this device's room queue until the
+	  user chooses Send or Discard.
+	- Old changes not sent yet: held for 30 days (R10). Sending could apply them
+	  twice if the server no longer remembers an earlier answer.
 	- Changes this version cannot read (R13). Discard each.
 
 	When access is gone (R9), the banner says so instead: sign in again, or
-	discard. The Not saved list lives in memory only; a reload clears it. The
-	waiting changes themselves stay on the phone.
+	discard. Not-saved rejections are stored with this room's device-local queue.
 -->
 <script lang="ts">
 	import {
@@ -28,7 +30,10 @@
 	let sheet = $state(false);
 	/** Everything the user may need to look at (the banner's count). */
 	const attention = $derived(
-		room.store.notSaved.length + room.heldOps.length + room.unreadableOps.length
+		room.store.notSaved.length +
+			room.heldOps.length +
+			room.signoutHeldOps.length +
+			room.unreadableOps.length
 	);
 	const waiting = $derived(room.waitingCount);
 
@@ -62,7 +67,15 @@
 	</div>
 {:else if attention > 0}
 	<div class="card banner" role="status">
-		<span>{notSavedCountText(attention)}</span>
+		<span>
+			{#if room.signoutHeldOps.length > 0}
+				{room.signoutHeldOps.length === 1
+					? "1 change is held in this room's queue on this device."
+					: `${room.signoutHeldOps.length} changes are held in this room's queue on this device.`}
+			{:else}
+				{notSavedCountText(attention)}
+			{/if}
+		</span>
 		<button type="button" onclick={() => (sheet = true)}>Review</button>
 	</div>
 {/if}
@@ -95,10 +108,37 @@
 			</section>
 		{/if}
 
+		{#if room.signoutHeldOps.length > 0}
+			<section>
+				<h3>Changes held after sign-out</h3>
+				<p class="muted">
+					These are in this room's queue on this device. They are not sent until you choose. Changes
+					more than 30 days old stay held and need a separate choice.
+				</p>
+				<ul>
+					{#each room.signoutHeldOps as held (held.opId)}
+						<li>
+							<span>{describeChange(held.op, nameOf(held.op))}</span>
+							<button type="button" onclick={() => room.discard(held.opId)}>Discard</button>
+						</li>
+					{/each}
+				</ul>
+				<div class="actions">
+					<button type="button" class="primary" onclick={() => room.sendAfterSignIn()}>
+						Send changes
+					</button>
+				</div>
+			</section>
+		{/if}
+
 		{#if room.heldOps.length > 0}
 			<section>
 				<h3>Old changes not sent yet</h3>
-				<p class="muted">Made more than 30 days ago. They are sent only when you choose.</p>
+				<p class="muted">
+					These are in this room's queue on this device and were made more than 30 days ago. The
+					server may no longer remember an earlier answer, so sending could apply them twice. They
+					are sent only when you choose.
+				</p>
 				<ul>
 					{#each room.heldOps as held (held.opId)}
 						<li>

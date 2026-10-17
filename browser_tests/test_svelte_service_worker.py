@@ -41,6 +41,7 @@ def _wait_for_controlled_page(page, url: str):
 class BuildServerState:
     build_path = FRONTEND_BUILD
     failed_asset: str | None = None
+    unauthorized_room: str | None = None
     failed_asset_requests: list[str]
 
     def __init__(self):
@@ -60,6 +61,18 @@ class BuiltAppHandler(BaseHTTPRequestHandler):
         if self.state.failed_asset == path:
             self.state.failed_asset_requests.append(path)
             self._send(b"interrupted update", "text/plain", "no-store", 503)
+            return
+
+        if (
+            self.state.unauthorized_room
+            and path == f"/api/v1/rooms/{self.state.unauthorized_room}/session"
+        ):
+            self._send(
+                b'{"error":{"code":"not_authenticated","message":"Sign in to this room."}}',
+                "application/json",
+                "no-store",
+                401,
+            )
             return
 
         if path == "/api" or path.startswith("/api/") or path.startswith("/static/"):
@@ -230,9 +243,75 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     )
 
 
+def test_real_build_swap_waits_for_a_stored_room_change(
+    built_app_server, open_session, tmp_path
+):
+    server = built_app_server
+    slug = "build-swap-room"
+    page = _wait_for_controlled_page(
+        open_session("service-worker-waiting-change"), server.url
+    )
+    page.evaluate(
+        """async (roomSlug) => {
+            const db = await new Promise((resolve, reject) => {
+                const request = indexedDB.open('listr-queue', 1);
+                request.onupgradeneeded = () => {
+                    request.result.createObjectStore('queue', { keyPath: 'key' });
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            const tx = db.transaction('queue', 'readwrite');
+            tx.objectStore('queue').put({
+                key: `room:${roomSlug}`,
+                entries: [{
+                    opId: 'waiting-build-swap',
+                    op: {
+                        type: 'item.quantity_delta', list_uid: 'list-1', item_uid: 'item-1',
+                        delta: 1, op_id: 'waiting-build-swap'
+                    },
+                    at: new Date().toISOString(), format: 1, state: 'pending'
+                }]
+            });
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+            db.close();
+        }""",
+        slug,
+    )
+    server.state.unauthorized_room = slug
+    page.goto(f"{server.url}/room/{slug}")
+    expect(page.get_by_text("1 change can't be sent")).to_be_visible()
+    page.evaluate("window.__oldTab = true")
+
+    cache_a = _cache_names(page)[0]
+    build_b, _ = _changed_build(tmp_path, "test-waiting-change-B")
+    server.state.build_path = build_b
+    page.evaluate(
+        "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
+    )
+    _wait_for_waiting_worker(page)
+    assert "test-waiting-change-B" not in page.content()
+    assert page.evaluate("window.__oldTab") is True
+    assert cache_a in _cache_names(page)
+
+    page.get_by_role("button", name="Discard all").click()
+    expect(page.get_by_text("can't be sent")).to_have_count(0)
+    _come_back_to_the_app(page)
+    page.wait_for_function("window.__oldTab === undefined")
+    page.wait_for_function(
+        "document.documentElement.outerHTML.includes('test-waiting-change-B')"
+    )
+    assert _cache_names(page) == [f"{WORKER_PREFIX}test-waiting-change-B"]
+
+
 def test_waiting_version_takes_over_when_the_app_opens_offline(
     built_app_server, open_session, tmp_path
 ):
+
     server = built_app_server
     old_tab = _wait_for_controlled_page(
         open_session("service-worker-update"), server.url

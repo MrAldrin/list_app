@@ -75,6 +75,58 @@ afterEach(() => {
 });
 
 describe('queue storage in IndexedDB', () => {
+	it('keeps rejections in their exact room-or-share record alongside queued ops', async () => {
+		const factory = freshFactory();
+		const rejection = {
+			id: 1,
+			code: 'changed_meanwhile',
+			message: 'The item changed.',
+			name: 'milk',
+			op: { type: 'list.delete', list_uid: 'l1', op_id: 'rejected-1' }
+		};
+		const room = createQueueStorage('room:home', { indexedDB: factory });
+		const other = createQueueStorage('room:other', { indexedDB: factory });
+		await room.addNotSaved({ ...rejection, key: rejection.op.op_id });
+		await room.add(newStoredEntry({ ...op('l2'), op_id: 'waiting-1' }, NOW.toISOString()));
+		await room.setStates(['waiting-1'], 'signout');
+
+		const reopened = createQueueStorage('room:home', { indexedDB: factory });
+		expect(await reopened.readNotSaved()).toEqual([{ ...rejection, key: rejection.op.op_id }]);
+		expect(await reopened.read()).toMatchObject([{ opId: 'waiting-1', state: 'signout' }]);
+		expect(await other.readNotSaved()).toEqual([]);
+
+		await reopened.removeNotSaved([rejection.op.op_id]);
+		expect(await reopened.read()).toHaveLength(1);
+		await reopened.clear();
+		expect(await room.readNotSaved()).toEqual([]);
+		expect(await room.read()).toEqual([]);
+	});
+
+	it("merges two tabs' rejections and only removes the dismissed identity", async () => {
+		const factory = freshFactory();
+		const a = createQueueStorage('room:home', { indexedDB: factory });
+		const b = createQueueStorage('room:home', { indexedDB: factory });
+		await a.readNotSaved();
+		await b.readNotSaved();
+		const first = { key: 'a', code: 'refused-a' };
+		const second = { key: 'b', code: 'refused-b' };
+		const future = { format: 2, payload: 'keep intact' };
+		await a.addNotSaved(first);
+		await a.addNotSaved({ ...future, key: 'future' });
+		await b.addNotSaved(second);
+		await a.removeNotSaved(['a']);
+		// A stale tab cannot reinsert a dismissed entry through an update.
+		const stale = { ...first, code: 'stale-update' };
+		await b.updateNotSaved(stale);
+		expect(await a.readNotSaved()).toEqual([{ ...future, key: 'future' }, second]);
+		const updated = { ...second, code: 'new-answer' };
+		await b.updateNotSaved(updated);
+		expect(await a.readNotSaved()).toEqual([
+			{ ...future, key: 'future' },
+			{ ...second, code: 'new-answer' }
+		]);
+	});
+
 	it('keeps ops, their op_ids and their order across a reload', async () => {
 		const factory = freshFactory();
 		const first = queueOn(factory, 'room:home', fakeSender());
@@ -293,6 +345,46 @@ describe('unreadable and held entries', () => {
 		await queue.load();
 		queue.resume();
 		await until(() => sender.calls.length === 1, 'recent op sent');
+	});
+
+	it('holds sign-out changes across reload, then keeps the 30-day hold separate', async () => {
+		const factory = freshFactory();
+		const storage = createQueueStorage('room:home', { indexedDB: factory });
+		const old = new Date(NOW.getTime() - 31 * DAY).toISOString();
+		const recent = new Date(NOW.getTime() - DAY).toISOString();
+		await storage.add(newStoredEntry({ ...op('old'), op_id: 'old-op' }, old));
+		await storage.add(newStoredEntry({ ...op('recent'), op_id: 'recent-op' }, recent));
+
+		const first = new WriteQueue('home', fakeSender(), fakeHost(), {
+			storage,
+			now: () => NOW
+		});
+		await first.load();
+		await first.holdForSignOut();
+		expect((await storage.read()).map((entry) => entry.state)).toEqual(['signout', 'signout']);
+
+		const sender = fakeSender();
+		const returned = new WriteQueue('home', sender, fakeHost(), {
+			storage: createQueueStorage('room:home', { indexedDB: factory }),
+			now: () => NOW
+		});
+		await returned.load();
+		returned.resume();
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(sender.calls).toHaveLength(0);
+		expect(returned.waiting).toBe(2);
+
+		returned.sendAfterSignIn();
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(sender.calls).toHaveLength(0);
+		expect((await storage.read()).map((entry) => entry.state)).toEqual(['pending', 'pending']);
+
+		returned.sendHeld();
+		await until(() => sender.calls.length === 1, 'old change sent after its own approval');
+		expect(sender.calls[0].op.op_id).toBe('old-op');
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
+		await until(() => sender.calls.length === 2, 'recent change sent after old one');
+		expect(sender.calls[1].op.op_id).toBe('recent-op');
 	});
 
 	it('reports held ops with their time', async () => {

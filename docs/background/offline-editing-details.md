@@ -35,8 +35,10 @@ mechanics behind them.
   read-modify-write transaction, so two tabs cannot lose an entry.
   See `frontend/src/lib/data/queue-storage.ts`.
 - Each entry keeps the op JSON, the time it was made, a format number and a
-  state (`pending` or `approved` after a hold). `sent` is set before the request
-  goes out, so after a reload an op may be shown as uncertain.
+  state (`pending`, `approved` after a 30-day hold, or `signout` while awaiting
+  the user's choice after sign-out). `sent` is set before the request goes out,
+  so after a reload an op may be shown as uncertain. Not-saved rejections are
+  stored in the same room-or-share record.
 - Without IndexedDB, or after a storage failure, entries live in memory and are
   lost on reload. The page asks the browser for persistent storage once.
 - Web Locks let one tab send a room's queue at a time. Without Web Locks, the
@@ -64,9 +66,18 @@ mechanics behind them.
 
 ## Not saved
 
-- The list is in memory. Dismiss, or Dismiss all, removes entries.
+- Validated rejection records are stored in the same device-local room-or-share
+  queue record. Dismiss, or Dismiss all, removes entries; successful retries do
+  too. Each rejection uses its original op ID as a stable storage key, so tabs
+  add, update, and dismiss only their own entries without replacing another
+  tab's list. A stale update cannot restore a dismissed entry. Rejections are
+  not retried automatically.
 - "Save mine anyway" (only for `changed_meanwhile`) sends the same change again,
-  with the row's current version as `base_seq`.
+  with the row's current version as `base_seq`. The rejection stays listed until
+  the retry succeeds. A second rejection updates the existing entry instead of
+  adding a duplicate. If sign-out clears the room while a retry is in flight,
+  its later answer still updates or removes the rejection without restoring
+  the room view.
 - The same sheet lists held changes (Send all, Discard each) and unreadable
   changes (Discard each).
 
@@ -74,8 +85,9 @@ mechanics behind them.
 
 - A password change or a share link reset is seen on the next access check.
   Waiting changes then stay on the device and show "can't be sent".
-- A room has "Sign in": the password prompt sends the waiting changes once
-  access is confirmed. A reset share link allows only Discard all.
+- A room has "Sign in". After access is confirmed, changes held by sign-out
+  stay in the queue until the user chooses Send or Discard. A reset share link
+  allows only Discard all.
 
 ## New versions
 
@@ -124,8 +136,9 @@ Other devices' edits, deletes and password resets then show up.
   data and shows the password prompt. The marker survives a reload.
 - If local clearing takes more than 5 s, the result is `local_clear_unconfirmed`
   and the app says so.
-- Waiting changes stay on the device after sign-out. They are sent after the
-  next sign-in to the same room. Signing out with changes waiting asks first.
+- Waiting changes stay in this room's device-local queue after sign-out. The
+  queue stays held across reloads and is not released by the next sign-in alone.
+  Signing out with changes waiting asks first.
 - Room delete with changes waiting says they will be discarded. They are
   discarded after the room is deleted.
 - Logout in one tab clears the others. Without Web Locks (plain HTTP on a LAN),

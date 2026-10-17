@@ -11,7 +11,7 @@
 
 import { isRecord } from './snapshot-validate';
 import { requestValue, transact } from './snapshot-idb';
-import type { EntryState, StoredEntry } from './queue-entries';
+import { isSentOp, type EntryState, type StoredEntry } from './queue-entries';
 import type { SentOp } from './types';
 
 export const QUEUE_DATABASE_NAME = 'listr-queue';
@@ -30,7 +30,14 @@ export interface QueueStorage {
 	setSent(opId: string): Promise<void>;
 	/** Replaces the op JSON of an entry (its `op_id` stays). */
 	setOp(opId: string, op: SentOp): Promise<void>;
-	/** Removes every entry of this room or share link. */
+	/** Updates valid entries in one transaction (for sign-out holds). */
+	setStates(opIds: readonly string[], state: EntryState): Promise<void>;
+	/** Rejected changes in this room or share link, stored with the queue. */
+	readNotSaved(): Promise<unknown[]>;
+	addNotSaved(change: { key: string }): Promise<void>;
+	updateNotSaved(change: { key: string }): Promise<void>;
+	removeNotSaved(keys: readonly string[]): Promise<void>;
+	/** Removes every entry and rejection of this room or share link. */
 	clear(): Promise<void>;
 }
 
@@ -38,6 +45,7 @@ export interface QueueStorage {
 export class MemoryQueueStorage implements QueueStorage {
 	readonly durable = false;
 	#entries: StoredEntry[] = [];
+	#notSaved: unknown[] = [];
 
 	async read(): Promise<StoredEntry[]> {
 		return this.#entries.slice();
@@ -61,14 +69,41 @@ export class MemoryQueueStorage implements QueueStorage {
 	async setOp(opId: string, op: SentOp): Promise<void> {
 		this.#entries = this.#entries.map((entry) => (entry.opId === opId ? { ...entry, op } : entry));
 	}
+	async setStates(opIds: readonly string[], state: EntryState): Promise<void> {
+		const selected = new Set(opIds);
+		this.#entries = this.#entries.map((entry) =>
+			validStateTarget(entry, selected) ? { ...entry, state } : entry
+		);
+	}
+	async readNotSaved(): Promise<unknown[]> {
+		return this.#notSaved.slice();
+	}
+	async addNotSaved(change: { key: string }): Promise<void> {
+		if (!this.#notSaved.some((item) => notSavedKey(item) === change.key))
+			this.#notSaved = [...this.#notSaved, change];
+	}
+	async updateNotSaved(change: { key: string }): Promise<void> {
+		this.#notSaved = this.#notSaved.map((item) =>
+			notSavedKey(item) === change.key ? change : item
+		);
+	}
+	async removeNotSaved(keys: readonly string[]): Promise<void> {
+		const selected = new Set(keys);
+		this.#notSaved = this.#notSaved.filter((item) => {
+			const key = notSavedKey(item);
+			return key === undefined || !selected.has(key);
+		});
+	}
 	async clear(): Promise<void> {
 		this.#entries = [];
+		this.#notSaved = [];
 	}
 }
 
 interface StoredRecord {
 	key: string;
 	entries: unknown[];
+	notSaved?: unknown[];
 }
 
 export function openQueueDatabase(factory: IDBFactory, name: string): Promise<IDBDatabase> {
@@ -109,8 +144,22 @@ export function openQueueDatabase(factory: IDBFactory, name: string): Promise<ID
 }
 
 /** The raw entries of a stored record; anything else counts as empty. */
-function entriesOf(record: unknown): unknown[] {
-	return isRecord(record) && Array.isArray(record.entries) ? record.entries : [];
+function entriesOf(record: unknown, key: string): unknown[] {
+	return isRecord(record) && record.key === key && Array.isArray(record.entries)
+		? record.entries
+		: [];
+}
+
+function notSavedKey(item: unknown): string | undefined {
+	if (!isRecord(item)) return undefined;
+	if (typeof item.key === 'string') return item.key;
+	return isRecord(item.op) && typeof item.op.op_id === 'string' ? item.op.op_id : undefined;
+}
+
+function notSavedOf(record: unknown, key: string): unknown[] {
+	return isRecord(record) && record.key === key && Array.isArray(record.notSaved)
+		? record.notSaved
+		: [];
 }
 
 /** Keeps the raw items that have an `opId`. Others stay in the record but are not shown. */
@@ -122,13 +171,29 @@ function sameOp(item: unknown, opId: string): item is Record<string, unknown> {
 	return isRecord(item) && item.opId === opId;
 }
 
+function validStateTarget(
+	item: unknown,
+	opIds: ReadonlySet<string>
+): item is Record<string, unknown> {
+	return (
+		isRecord(item) &&
+		typeof item.opId === 'string' &&
+		opIds.has(item.opId) &&
+		item.format === 1 &&
+		(item.state === 'pending' || item.state === 'approved' || item.state === 'signout') &&
+		isSentOp(item.op) &&
+		item.op.op_id === item.opId
+	);
+}
+
 class IndexedDbQueueStorage implements QueueStorage {
 	readonly #key: string;
 	readonly #factory: IDBFactory;
 	readonly #name: string;
 	#database: Promise<IDBDatabase> | null = null;
-	/** Last known entries: the answer when IndexedDB fails. */
+	/** Last known values: the answer when IndexedDB fails. */
 	#memory: StoredEntry[] = [];
+	#notSavedMemory: unknown[] = [];
 	/** Sticky: once IndexedDB failed, this page keeps its entries in memory. */
 	#failed = false;
 
@@ -148,7 +213,8 @@ class IndexedDbQueueStorage implements QueueStorage {
 				const database = await this.#open();
 				this.#memory = await transact(database, QUEUE_STORE, 'readonly', async (tx) => {
 					const record = await requestValue(tx.objectStore(QUEUE_STORE).get(this.#key));
-					return parseEntries(entriesOf(record));
+					this.#notSavedMemory = notSavedOf(record, this.#key);
+					return parseEntries(entriesOf(record, this.#key));
 				});
 			} catch {
 				this.#failed = true;
@@ -192,11 +258,68 @@ class IndexedDbQueueStorage implements QueueStorage {
 		);
 	}
 
-	clear(): Promise<void> {
+	setStates(opIds: readonly string[], state: EntryState): Promise<void> {
+		const selected = new Set(opIds);
 		return this.#change(
-			() => [],
-			() => []
+			(raw) => raw.map((item) => (validStateTarget(item, selected) ? { ...item, state } : item)),
+			(memory) =>
+				memory.map((entry) => (validStateTarget(entry, selected) ? { ...entry, state } : entry))
 		);
+	}
+
+	async readNotSaved(): Promise<unknown[]> {
+		if (!this.#failed) {
+			try {
+				const database = await this.#open();
+				this.#notSavedMemory = await transact(database, QUEUE_STORE, 'readonly', async (tx) => {
+					const record = await requestValue(tx.objectStore(QUEUE_STORE).get(this.#key));
+					return notSavedOf(record, this.#key);
+				});
+			} catch {
+				this.#failed = true;
+			}
+		}
+		return this.#notSavedMemory.slice();
+	}
+
+	addNotSaved(change: { key: string }): Promise<void> {
+		return this.#changeNotSaved((raw) =>
+			raw.some((item) => notSavedKey(item) === change.key) ? raw : [...raw, change]
+		);
+	}
+
+	updateNotSaved(change: { key: string }): Promise<void> {
+		return this.#changeNotSaved((raw) =>
+			raw.map((item) => (notSavedKey(item) === change.key ? change : item))
+		);
+	}
+
+	removeNotSaved(keys: readonly string[]): Promise<void> {
+		const selected = new Set(keys);
+		return this.#changeNotSaved((raw) =>
+			raw.filter((item) => {
+				const key = notSavedKey(item);
+				return key === undefined || !selected.has(key);
+			})
+		);
+	}
+
+	async clear(): Promise<void> {
+		if (!this.#failed) {
+			try {
+				const database = await this.#open();
+				await transact(database, QUEUE_STORE, 'readwrite', async (tx) => {
+					await requestValue(tx.objectStore(QUEUE_STORE).delete(this.#key));
+				});
+				this.#memory = [];
+				this.#notSavedMemory = [];
+				return;
+			} catch {
+				this.#failed = true;
+			}
+		}
+		this.#memory = [];
+		this.#notSavedMemory = [];
 	}
 
 	#open(): Promise<IDBDatabase> {
@@ -218,9 +341,20 @@ class IndexedDbQueueStorage implements QueueStorage {
 				this.#memory = await transact(database, QUEUE_STORE, 'readwrite', async (tx) => {
 					const store = tx.objectStore(QUEUE_STORE);
 					const record = await requestValue(store.get(this.#key));
-					const entries = change(entriesOf(record));
-					if (entries.length === 0) await requestValue(store.delete(this.#key));
-					else await requestValue(store.put({ key: this.#key, entries } satisfies StoredRecord));
+					const entries = change(entriesOf(record, this.#key));
+					const notSaved = notSavedOf(record, this.#key);
+					if (entries.length === 0 && notSaved.length === 0) {
+						await requestValue(store.delete(this.#key));
+					} else {
+						await requestValue(
+							store.put({
+								key: this.#key,
+								entries,
+								...(notSaved.length ? { notSaved } : {})
+							} satisfies StoredRecord)
+						);
+					}
+					this.#notSavedMemory = notSaved;
 					return parseEntries(entries);
 				});
 				return;
@@ -229,6 +363,37 @@ class IndexedDbQueueStorage implements QueueStorage {
 			}
 		}
 		this.#memory = fallback(this.#memory);
+	}
+
+	async #changeNotSaved(change: (raw: unknown[]) => unknown[]): Promise<void> {
+		if (!this.#failed) {
+			try {
+				const database = await this.#open();
+				const changes = await transact(database, QUEUE_STORE, 'readwrite', async (tx) => {
+					const store = tx.objectStore(QUEUE_STORE);
+					const record = await requestValue(store.get(this.#key));
+					const entries = entriesOf(record, this.#key);
+					const changes = change(notSavedOf(record, this.#key));
+					if (entries.length === 0 && changes.length === 0) {
+						await requestValue(store.delete(this.#key));
+					} else {
+						await requestValue(
+							store.put({
+								key: this.#key,
+								entries,
+								...(changes.length ? { notSaved: changes } : {})
+							} satisfies StoredRecord)
+						);
+					}
+					return changes;
+				});
+				this.#notSavedMemory = changes;
+				return;
+			} catch {
+				this.#failed = true;
+			}
+		}
+		this.#notSavedMemory = change(this.#notSavedMemory);
 	}
 }
 

@@ -26,6 +26,40 @@ def item_row(page, name: str):
     return page.locator("ul.items > li", has=page.get_by_role("checkbox", name=name))
 
 
+def make_first_queue_entry_old(page, room_slug: str) -> None:
+    page.evaluate(
+        """async (slug) => {
+            const db = await new Promise((resolve, reject) => {
+                const request = indexedDB.open('listr-queue', 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            let record;
+            for (let attempt = 0; attempt < 100; attempt += 1) {
+                const tx = db.transaction('queue', 'readonly');
+                record = await new Promise((resolve, reject) => {
+                    const request = tx.objectStore('queue').get(`room:${slug}`);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                if (record?.entries?.length) break;
+                await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+            if (!record?.entries?.length) throw new Error('the room queue was not stored');
+            const tx = db.transaction('queue', 'readwrite');
+            record.entries[0].at = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+            tx.objectStore('queue').put(record);
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+            db.close();
+        }""",
+        room_slug,
+    )
+
+
 def test_refused_tick_is_listed_and_save_mine_anyway_applies(
     svelte_server, open_session
 ):
@@ -58,6 +92,19 @@ def test_refused_tick_is_listed_and_save_mine_anyway_applies(
 
     go_online(phone)
     expect(phone.get_by_text("1 change was not saved")).to_be_visible(**SLOW)
+    retried_posts = []
+    phone.on(
+        "request",
+        lambda request: (
+            retried_posts.append(request.url)
+            if request.method == "POST" and "/ops" in request.url
+            else None
+        ),
+    )
+    phone.reload()
+    expect(phone.get_by_text("1 change was not saved")).to_be_visible(**SLOW)
+    phone.wait_for_timeout(300)
+    assert retried_posts == []
     phone.get_by_role("button", name="Review").click()
     dialog = phone.get_by_role("dialog")
     expect(
@@ -194,6 +241,21 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
     expect(
         item_row(phone, "milk").get_by_role("img", name="Not sent yet")
     ).to_be_visible()
+    make_first_queue_entry_old(phone, server.room_slug)
+    phone.reload()
+    expect(
+        phone.get_by_text("Offline — changes are saved", exact=False)
+    ).to_be_visible()
+    phone.get_by_role("button", name="Review").click()
+    old_dialog = phone.get_by_role("dialog")
+    expect(old_dialog.get_by_text("Old changes not sent yet")).to_be_visible()
+    expect(
+        old_dialog.get_by_text(
+            "These are in this room's queue on this device and were made more than 30 days ago. The server may no longer remember an earlier answer, so sending could apply them twice. They are sent only when you choose."
+        )
+    ).to_be_visible()
+    phone.keyboard.press("Escape")
+    expect(phone.get_by_role("dialog")).to_have_count(0)
     # In-app navigation, not a reload: the waiting change stays on this page.
     phone.get_by_role("link", name="Back to room").click()
     expect(phone.get_by_role("button", name="Add New List")).to_be_visible()
@@ -202,10 +264,14 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
     phone.get_by_role("button", name="Room menu").click()
     phone.get_by_role("button", name="Log out").click()
     dialog = phone.get_by_role("dialog")
-    expect(dialog.get_by_text("1 change is not sent yet.")).to_be_visible()
     expect(
         dialog.get_by_text(
-            "They stay on this phone and are sent after you sign in to this room again."
+            "1 waiting change in this room's queue on this device will be held after sign-out."
+        )
+    ).to_be_visible()
+    expect(
+        dialog.get_by_text(
+            "After sign-in, choose Send or Discard. Changes older than 30 days need a separate send choice."
         )
     ).to_be_visible()
     dialog.get_by_role("button", name="Cancel", exact=True).click()
@@ -219,3 +285,36 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
     ).click()
     expect(phone.get_by_label("Room Password")).to_be_visible(**SLOW)
     expect(phone.get_by_text("1 change can't be sent")).to_be_visible(**SLOW)
+    go_online(phone)
+    phone.get_by_label("Room Password").fill(server.password)
+    phone.get_by_role("button", name="Enter").click()
+    expect(
+        phone.get_by_text("1 change is held in this room's queue on this device.")
+    ).to_be_visible(**SLOW)
+    assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
+    phone.get_by_role("button", name="Review").click()
+    dialog = phone.get_by_role("dialog")
+    expect(dialog.get_by_text("Changes held after sign-out")).to_be_visible()
+    expect(dialog.get_by_text("Changes held after sign-out")).to_be_visible()
+    expect(
+        dialog.get_by_text(
+            "These are in this room's queue on this device. They are not sent until you choose. Changes more than 30 days old stay held and need a separate choice."
+        )
+    ).to_be_visible()
+    assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
+    dialog.get_by_role("button", name="Send changes").click()
+    expect(dialog.get_by_text("Old changes not sent yet")).to_be_visible()
+    expect(
+        dialog.get_by_text(
+            "These are in this room's queue on this device and were made more than 30 days ago. The server may no longer remember an earlier answer, so sending could apply them twice. They are sent only when you choose."
+        )
+    ).to_be_visible()
+    phone.wait_for_timeout(300)
+    assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
+    dialog.get_by_role("button", name="Send all").click()
+    wait_until(
+        phone,
+        lambda: server.query("SELECT done FROM items WHERE name = 'milk'") == [(1,)],
+        "the explicitly approved old change did not reach the server",
+        timeout_ms=20_000,
+    )
