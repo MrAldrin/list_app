@@ -175,6 +175,14 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    send or discard them. This is a shared-device edge case; keep the solution
    small. Implementation and verification pending until the review is complete.
 
+3. **Approved — persistent Not saved list.** Keep rejected-change entries on
+   the device across reloads and app closure until dismissed or successfully
+   retried. Never retry automatically. The screen exists, but persistence still
+   needs implementation and verification after this review.
+4. **Approved — delete wins.** Keep the existing rule: offline edits do not
+   restore items or lists deleted elsewhere. Show the refusal under Not saved;
+   the user can deliberately add an item again. No implementation change needed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
