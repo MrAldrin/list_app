@@ -211,6 +211,12 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
     name and hide-checked-items, including delayed offline changes. No conflict
     prompt for these easily reversible settings. No implementation change needed.
 
+11. **Approved — preserve queue order behind held entries.** A held or unreadable
+    entry blocks later queued changes for the same room on this device, not
+    other people's devices. Ordinary server-rejected edit conflicts move to Not
+    saved and do not block later sending, including edits to the same item.
+    Keep this distinction clear in the UI. No change to the ordering rule needed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
