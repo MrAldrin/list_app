@@ -4,7 +4,7 @@ import json
 import re
 
 from playwright.sync_api import expect
-from svelte_app import PHONE, add_item, create_list, item_names, sign_in
+from svelte_app import PHONE, add_item, create_list, item_names, sign_in, wait_until
 
 
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
@@ -234,6 +234,12 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     page.get_by_role("switch", name="Hide checked-off items").uncheck()
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk", "apples"])
 
+    # The page shows a change before the server answers it.
+    wait_until(
+        page,
+        lambda: server.query("SELECT hide_done_mode FROM lists") == [("off",)],
+        "hide-done mode not saved",
+    )
     [(tags, mode)] = server.query("SELECT list_tags, hide_done_mode FROM lists")
     assert sorted(json.loads(tags)) == ["Lidl", "Market", "lidl"]
     assert mode == "off"

@@ -19,6 +19,7 @@ from svelte_app import (
     item_names,
     share_link,
     sign_in,
+    wait_until,
 )
 
 RESET_MESSAGE = "This list was deleted or this share link was reset."
@@ -44,6 +45,10 @@ def reset_link(page: Page) -> None:
     dialog.get_by_role("button", name="Reset share link").click()
     expect(page.get_by_text("Share link reset", exact=True)).to_be_visible()
     expect(dialog).to_have_count(0)
+
+
+def list_tags(server) -> list[str]:
+    return json.loads(server.query("SELECT list_tags FROM lists")[0][0])
 
 
 def share_token(server) -> str:
@@ -86,9 +91,7 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
             "button", name="produce", exact=True
         )
     ).to_be_visible()
-    assert json.loads(
-        server.query("SELECT list_tags FROM lists WHERE name = 'Groceries'")[0][0]
-    ) == ["produce"]
+    wait_until(visitor, lambda: list_tags(server) == ["produce"], "tag not saved")
 
     # The visitor shares the same link.
     assert share_link(visitor) == link
@@ -225,13 +228,14 @@ def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
     visitor.get_by_label("Add Tag").press("Enter")
     tags = visitor.get_by_role("list", name="Tags")
     expect(tags.get_by_role("button", name="produce", exact=True)).to_be_visible()
-    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == ["produce"]
+    # The page shows a change before the server answers it.
+    wait_until(visitor, lambda: list_tags(server) == ["produce"], "tag not saved")
     with visitor.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
         visitor.get_by_role("button", name="Delete tag produce").click()
     assert answer.value.ok
     expect(visitor.get_by_text("Deleted tag produce")).to_be_visible()
     expect(tags.get_by_role("button", name="produce", exact=True)).to_have_count(0)
-    assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == []
+    wait_until(visitor, lambda: list_tags(server) == [], "tag delete not saved")
 
     # No rename or delete of the list, and no reset of the link.
     expect(visitor.get_by_role("button", name=re.compile("^Rename"))).to_have_count(0)
@@ -288,6 +292,7 @@ def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_se
             "button", name="current tag", exact=True
         )
     ).to_be_visible()
+    wait_until(tagger, lambda: list_tags(server) == ["current tag"], "tag not saved")
     assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == [
         "current tag"
     ]
