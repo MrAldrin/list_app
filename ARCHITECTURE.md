@@ -23,9 +23,10 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   `Dockerfile`. Deployment configuration, process limits, and recovery
   procedures belong in the [deployment guide](docs/deployment.md).
 - **Offline:** saved data can be viewed and edited without a network. Edits are
-  kept on the device (IndexedDB) and sent when the connection is back. Built and
-  awaiting owner review (see [offline use](docs/offline-viewing.md) and the
-  [offline editing plan](plans/offline-editing.md)). Discuss other stack changes
+  kept on the device (IndexedDB) and sent when the connection is back. Offline
+  editing is built locally and awaits owner review (Gate C); it is not deployed.
+  See [offline use](docs/offline-viewing.md) and the
+  [offline editing plan](plans/offline-editing.md). Discuss other stack changes
   before implementation.
 
 ## Domain and security boundaries
@@ -115,8 +116,7 @@ checked items, run in the browser so they work offline.
 - Offline: a service worker caches the app shell and the browser stores the last
   server snapshot. Edits made offline are queued on the device and sent in order
   when online; the server checks them against the row version the page saw. See
-  [offline use](docs/offline-viewing.md); an earlier experiment was rolled back
-  ([findings](docs/background/offline-findings.md)).
+  [offline use](docs/offline-viewing.md).
 - Old phone installs still hold the earlier app's service worker. `/sw.js`
   answers with a script that removes that worker and its caches (a kill
   switch). It must never return 404 or the app page. See
