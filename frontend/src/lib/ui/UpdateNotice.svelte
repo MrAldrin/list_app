@@ -2,8 +2,8 @@
 	Shown when the server runs another API version than this page expects
 	(see lib/data/compat.svelte.ts). Changes are blocked until the page is
 	reloaded. This notice never reloads by itself, so nothing typed is lost.
-	Unsent changes live in memory only, so a reload loses them: the notice
-	says so while there are any.
+	Unsent changes kept on the device survive a reload; only changes that live
+	in this page alone (no storage) are lost, and the notice says so.
 -->
 <script lang="ts">
 	import { compat } from '#lib/data/compat.svelte.ts';
@@ -21,11 +21,17 @@
 {#if compat.incompatible}
 	<div class="update-notice" role="alert">
 		<p>A new version is available. Reload to keep making changes.</p>
-		{#if compat.waitingWrites > 0}
+		{#if compat.unsavedWrites > 0}
+			<p class="warning">
+				{compat.unsavedWrites === 1
+					? '1 change is not saved yet. Reloading now will lose it.'
+					: `${compat.unsavedWrites} changes are not saved yet. Reloading now will lose them.`}
+			</p>
+		{:else if compat.waitingWrites > 0}
 			<p class="warning">
 				{compat.waitingWrites === 1
-					? '1 change is not saved yet. Reloading now will lose it.'
-					: `${compat.waitingWrites} changes are not saved yet. Reloading now will lose them.`}
+					? '1 change is saved on this phone and is not sent yet.'
+					: `${compat.waitingWrites} changes are saved on this phone and are not sent yet.`}
 			</p>
 		{/if}
 		<button type="button" disabled={reloading} onclick={reload}>

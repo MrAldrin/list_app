@@ -296,7 +296,7 @@ export class WriteQueue {
 	}
 
 	#publish(): void {
-		compat.reportWaiting(this, this.#entries.length);
+		compat.reportWaiting(this, this.#entries.length, this.#storage.durable);
 		this.#onChange?.(summarizeEntries(this.#entries, this.#nowMs(), this.#storage.durable));
 	}
 

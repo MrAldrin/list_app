@@ -260,13 +260,17 @@ describe('WriteQueue', () => {
 			void queue.send(op('b')).catch(() => undefined);
 			await settle();
 			expect(compat.waitingWrites).toBe(2);
+			// Memory storage: a reload would lose these.
+			expect(compat.unsavedWrites).toBe(2);
 
 			sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
 			await settle();
 			expect(compat.waitingWrites).toBe(1);
+			expect(compat.unsavedWrites).toBe(1);
 
 			queue.dispose();
 			expect(compat.waitingWrites).toBe(0);
+			expect(compat.unsavedWrites).toBe(0);
 		});
 
 		it('keeps an op the client refused to send', async () => {

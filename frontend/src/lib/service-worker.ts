@@ -16,7 +16,7 @@ const SERVICE_WORKER_PATH = '/service-worker.js';
 export const UPDATE_WAIT_MS = 10_000;
 
 export interface VersionSwitchOptions {
-	/** Unsent changes live in memory only, so a reload would lose them. */
+	/** Unsent changes: the takeover waits until they are sent. */
 	hasWaitingWrites?: () => boolean;
 	/** Text typed into a field but not submitted yet; a reload would lose it. */
 	hasTypedText?: () => boolean;
@@ -141,7 +141,7 @@ function waitForState(
  * The update notice's Reload button. A plain reload could load the old saved
  * version again, so first fetch the newest version, let it take over, then
  * reload. Offline, or when there is no new version, it just reloads. The
- * notice has already warned about unsent changes, so it reloads anyway.
+ * notice has already said what a reload does to unsent changes, so it reloads anyway.
  */
 export async function reloadOntoNewVersion(
 	container: ServiceWorkerContainer | undefined = defaultContainer(),

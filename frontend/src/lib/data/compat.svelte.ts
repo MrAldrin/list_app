@@ -20,19 +20,33 @@ class Compat {
 	/** True from the first answer with another version until the page reloads. */
 	incompatible = $state(false);
 
-	/** Unsent writes per open write queue. They live in memory only. */
-	readonly #waiting = new SvelteMap<object, number>();
+	/** Unsent writes per open write queue, and whether the device keeps them. */
+	readonly #waiting = new SvelteMap<object, { count: number; durable: boolean }>();
 
-	/** Writes that a reload would lose, summed over every open queue. */
+	/** Unsent writes, summed over every open queue. */
 	get waitingWrites(): number {
+		return this.#sum(() => true);
+	}
+
+	/** Unsent writes that only live in this page: a reload loses them. */
+	get unsavedWrites(): number {
+		return this.#sum((waiting) => !waiting.durable);
+	}
+
+	#sum(include: (waiting: { durable: boolean }) => boolean): number {
 		let total = 0;
-		for (const count of this.#waiting.values()) total += count;
+		for (const waiting of this.#waiting.values()) {
+			if (include(waiting)) total += waiting.count;
+		}
 		return total;
 	}
 
-	/** A write queue reports how many ops it holds; 0 forgets the queue. */
-	reportWaiting(queue: object, count: number): void {
-		if (count > 0) this.#waiting.set(queue, count);
+	/**
+	 * A write queue reports how many ops it holds and whether the device keeps
+	 * them across a reload (`durable`). 0 forgets the queue.
+	 */
+	reportWaiting(queue: object, count: number, durable: boolean): void {
+		if (count > 0) this.#waiting.set(queue, { count, durable });
 		else this.#waiting.delete(queue);
 	}
 

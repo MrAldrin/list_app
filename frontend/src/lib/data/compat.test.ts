@@ -37,10 +37,22 @@ describe('checkApiVersion', () => {
 	it('sums the waiting writes of every queue and forgets empty ones', () => {
 		const first = {};
 		const second = {};
-		compat.reportWaiting(first, 2);
-		compat.reportWaiting(second, 1);
+		compat.reportWaiting(first, 2, true);
+		compat.reportWaiting(second, 1, true);
 		expect(compat.waitingWrites).toBe(3);
-		compat.reportWaiting(first, 0);
+		compat.reportWaiting(first, 0, true);
 		expect(compat.waitingWrites).toBe(1);
+	});
+
+	it('counts only the writes a reload would lose as unsaved', () => {
+		const kept = {};
+		const memory = {};
+		compat.reportWaiting(kept, 2, true);
+		compat.reportWaiting(memory, 1, false);
+		expect(compat.waitingWrites).toBe(3);
+		expect(compat.unsavedWrites).toBe(1);
+		compat.reportWaiting(memory, 0, false);
+		expect(compat.unsavedWrites).toBe(0);
+		expect(compat.waitingWrites).toBe(2);
 	});
 });

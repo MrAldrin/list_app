@@ -410,13 +410,14 @@ def test_waiting_change_survives_a_reload_onto_a_new_version(
     page.route(OPS, busy_new_server)
     page.get_by_role("checkbox", name="milk").check()
     notice = page.get_by_role("alert").filter(has_text="A new version is available")
-    expect(notice).to_be_visible()
+    expect(notice).to_contain_text("1 change is saved on this phone")
     expect(not_sent_mark(page, "milk")).to_be_visible()
     assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
 
     # The page reloads while the server still answers the other version.
     page.reload()
-    expect(notice).to_be_visible()
+    expect(notice).to_contain_text("1 change is saved on this phone")
+    expect(notice).not_to_contain_text("will lose")
     # The waiting tick is still shown, and still marked as not sent.
     expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
     expect(not_sent_mark(page, "milk")).to_be_visible()

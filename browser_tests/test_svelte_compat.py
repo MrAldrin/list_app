@@ -92,14 +92,15 @@ def test_answers_without_a_version_do_not_block_anything(svelte_server, open_ses
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
 
-def test_notice_warns_about_changes_a_reload_would_lose(svelte_server, open_session):
+def test_notice_says_where_a_waiting_change_is_kept(svelte_server, open_session):
     page = open_session("compat-waiting", **PHONE)
     sign_in(page, svelte_server)
     create_list(page, "Groceries")
     notice = page.get_by_role("alert").filter(has_text="A new version is available")
 
     # The new server is not ready yet: the write gets no real answer, only the
-    # new version. The write stays unsent, and only lives in this page.
+    # new version. The write stays unsent. It is stored on the device, so a
+    # reload keeps it (see test_svelte_offline_multidevice.py).
     def busy_new_server(route):
         route.fulfill(
             status=503,
@@ -115,6 +116,7 @@ def test_notice_warns_about_changes_a_reload_would_lose(svelte_server, open_sess
     field.fill("milk")
     field.press("Enter")
     expect(notice).to_contain_text(
-        "1 change is not saved yet. Reloading now will lose it."
+        "1 change is saved on this phone and is not sent yet."
     )
+    expect(notice).not_to_contain_text("will lose")
     assert svelte_server.query("SELECT count(*) FROM items") == [(0,)]
