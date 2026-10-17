@@ -197,6 +197,12 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    where access can be restored, or discard where it cannot. No change to the
    existing access-loss rule; the approved post-sign-out hold still applies.
 
+8. **Approved — delay app updates while changes wait.** Keep the current app
+   version until unsent changes are resolved, rather than risk stranding them.
+   Accept that an offline device can stay on an older version for days. Verify
+   the real update flow before deployment; existing simulated-version tests
+   alone are not sufficient evidence.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
