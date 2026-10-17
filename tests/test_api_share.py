@@ -26,10 +26,11 @@ from api_helpers import (
     write_locked,
 )
 from starlette.testclient import TestClient
-from test_api_events import SseConnection, run
+from test_api_events import SseConnection, run, token_for
 
 import api.share
 import database_crud as crud
+import live_updates
 import main
 from database_setup import db
 
@@ -637,6 +638,35 @@ def test_share_stream_sends_seq_and_revoked_after_a_reset(shared):
         await asyncio.to_thread(reset_link, room, shared["slug"], shared["list_uid"])
         assert await stream.next_event() == ("revoked", "{}")
         assert await stream.ended()
+
+    run(test)
+
+
+def test_room_and_share_streams_share_the_same_capacity_limit(shared, monkeypatch):
+    monkeypatch.setattr(live_updates, "MAX_SUBSCRIPTIONS", 1)
+
+    async def test() -> None:
+        room = SseConnection(shared["slug"], token_for(shared["slug"]))
+        rejected_share = share_stream(shared["token"])
+        await room.open()
+        assert await room.next_event() is not None
+        await rejected_share.open()
+        assert rejected_share.status == 503
+        assert rejected_share.headers["content-type"] == "application/json"
+        assert b'"unavailable"' in await rejected_share.body()
+        await room.close()
+
+        share = share_stream(shared["token"])
+        await share.open()
+        assert share.status == 200
+        assert await share.next_event() is not None
+        rejected_room = SseConnection(shared["slug"], token_for(shared["slug"]))
+        await rejected_room.open()
+        assert rejected_room.status == 503
+        assert b'"unavailable"' in await rejected_room.body()
+        await share.close()
+        assert not live_updates._reservations
+        assert not live_updates._subscriptions
 
     run(test)
 

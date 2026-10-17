@@ -48,32 +48,46 @@ def _share_seq(token: str) -> tuple[int, int]:
         return share.room_id, get_room_seq_locked(share.room_id)
 
 
-def _check_capacity() -> None:
-    # Full: a JSON 503. The client treats it like any closed stream and
-    # retries with its own backoff.
-    if not live_updates.has_capacity():
+def _reserve_capacity() -> live_updates.Reservation:
+    # Full: a JSON 503 before the SSE response starts. The client retries with
+    # its own backoff.
+    reservation = live_updates.reserve()
+    if reservation is None:
         raise ApiError(503, "unavailable")
+    return reservation
 
 
-async def _room_stream_access(slug: str, request: Request) -> int:
-    """Check room access before the stream starts; returns the room id."""
-    _check_capacity()
-    room_id, _ = await run_in_threadpool(_room_seq, slug, room_token(request, slug))
-    return room_id
+async def _room_stream_access(
+    slug: str, request: Request
+) -> AsyncGenerator[tuple[int, live_updates.Reservation], None]:
+    """Reserve capacity and check room access before the stream starts."""
+    reservation = _reserve_capacity()
+    try:
+        room_id, _ = await run_in_threadpool(_room_seq, slug, room_token(request, slug))
+        yield room_id, reservation
+    finally:
+        reservation.release()
 
 
-async def _share_stream_access(token: str) -> int:
-    """Check the share link before the stream starts; returns the room id."""
-    _check_capacity()
-    room_id, _ = await run_in_threadpool(_share_seq, token)
-    return room_id
+async def _share_stream_access(
+    token: str,
+) -> AsyncGenerator[tuple[int, live_updates.Reservation], None]:
+    """Reserve capacity and check the share link before the stream starts."""
+    reservation = _reserve_capacity()
+    try:
+        room_id, _ = await run_in_threadpool(_share_seq, token)
+        yield room_id, reservation
+    finally:
+        reservation.release()
 
 
 async def _stream(
-    room_id: int, read: Callable[[], tuple[int, int]]
+    room_id: int,
+    reservation: live_updates.Reservation,
+    read: Callable[[], tuple[int, int]],
 ) -> AsyncGenerator[ServerSentEvent]:
     # Subscribe before the first read, so no write is missed in between.
-    with live_updates.subscribe(room_id) as subscription:
+    with live_updates.subscribe(room_id, reservation) as subscription:
         last_seq: int | None = None
         while True:
             try:
@@ -93,10 +107,15 @@ async def _stream(
 async def events(
     slug: str,
     request: Request,
-    room_id: Annotated[int, Depends(_room_stream_access)],
+    access: Annotated[
+        tuple[int, live_updates.Reservation], Depends(_room_stream_access)
+    ],
 ) -> AsyncIterable[ServerSentEvent]:
+    room_id, reservation = access
     token = room_token(request, slug)
-    async with aclosing(_stream(room_id, lambda: _room_seq(slug, token))) as stream:
+    async with aclosing(
+        _stream(room_id, reservation, lambda: _room_seq(slug, token))
+    ) as stream:
         async for event in stream:
             yield event
 
@@ -104,13 +123,18 @@ async def events(
 @router.get("/share/{token}/events", response_class=EventSourceResponse)
 async def share_events(
     token: str,
-    room_id: Annotated[int, Depends(_share_stream_access)],
+    access: Annotated[
+        tuple[int, live_updates.Reservation], Depends(_share_stream_access)
+    ],
 ) -> AsyncIterable[ServerSentEvent]:
     """The same stream for a share link: `revoked` once the link is reset.
 
     It sends the seq of the list's room, the same number as the share feed
     and op answers.
     """
-    async with aclosing(_stream(room_id, lambda: _share_seq(token))) as stream:
+    room_id, reservation = access
+    async with aclosing(
+        _stream(room_id, reservation, lambda: _share_seq(token))
+    ) as stream:
         async for event in stream:
             yield event

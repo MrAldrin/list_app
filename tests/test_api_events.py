@@ -6,6 +6,7 @@ a small fake connection, and every wait has a timeout.
 """
 
 import asyncio
+import threading
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -163,6 +164,7 @@ def room() -> tuple[int, str]:
 def no_leftover_streams():
     yield
     assert not live_updates._subscriptions, "a stream did not unsubscribe"
+    assert not live_updates._reservations, "a stream did not release its reservation"
 
 
 def test_connect_sends_the_current_seq_with_stream_headers(room):
@@ -346,6 +348,80 @@ def test_client_disconnect_stops_the_stream(room):
         assert len(live_updates._subscriptions) == 1
         await stream.close()  # times out if the stream keeps running
         assert not live_updates._subscriptions
+
+    run(test)
+
+
+def test_concurrent_stream_admission_reserves_capacity_before_auth(room, monkeypatch):
+    _, slug = room
+    monkeypatch.setattr(live_updates, "MAX_SUBSCRIPTIONS", 1)
+    auth_started = threading.Event()
+    finish_auth = threading.Event()
+    real_room_seq = events._room_seq
+
+    def blocked_room_seq(room_slug: str, token: str | None) -> tuple[int, int]:
+        auth_started.set()
+        if not finish_auth.wait(TIMEOUT):
+            raise TimeoutError("test did not release room access")
+        return real_room_seq(room_slug, token)
+
+    monkeypatch.setattr(events, "_room_seq", blocked_room_seq)
+
+    async def test() -> None:
+        first = SseConnection(slug, token_for(slug))
+        second = SseConnection(slug, token_for(slug))
+        first_open = asyncio.create_task(first.open())
+        first_event = None
+        try:
+            assert await asyncio.to_thread(auth_started.wait, TIMEOUT)
+            await second.open()
+            assert second.status == 503
+            assert second.headers["content-type"] == "application/json"
+            assert b'"unavailable"' in await second.body()
+            finish_auth.set()
+            await first_open
+            first_event = await first.next_event()
+        finally:
+            finish_auth.set()
+            await asyncio.gather(first_open, return_exceptions=True)
+            for stream in (first, second):
+                if hasattr(stream, "task") and not stream.task.done():
+                    stream.disconnected.set()
+                    await asyncio.gather(stream.task, return_exceptions=True)
+        assert first.status == 200
+        assert first_event is not None
+
+    run(test)
+
+
+def test_cancelled_access_check_releases_its_reservation(room, monkeypatch):
+    _, slug = room
+    auth_started = threading.Event()
+    finish_auth = threading.Event()
+    real_room_seq = events._room_seq
+
+    def blocked_room_seq(room_slug: str, token: str | None) -> tuple[int, int]:
+        auth_started.set()
+        if not finish_auth.wait(TIMEOUT):
+            raise TimeoutError("test did not release room access")
+        return real_room_seq(room_slug, token)
+
+    monkeypatch.setattr(events, "_room_seq", blocked_room_seq)
+
+    async def test() -> None:
+        stream = SseConnection(slug, token_for(slug))
+        opening = asyncio.create_task(stream.open())
+        try:
+            assert await asyncio.to_thread(auth_started.wait, TIMEOUT)
+            assert len(live_updates._reservations) == 1
+            stream.task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await stream.task
+            assert not live_updates._reservations
+        finally:
+            finish_auth.set()
+            opening.cancel()
+            await asyncio.gather(opening, return_exceptions=True)
 
     run(test)
 

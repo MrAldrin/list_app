@@ -1,7 +1,8 @@
 """Tell open live streams that room data changed.
 
-The API's live stream (`api/events.py`): each open stream holds a subscription
-and wakes up when its room may have changed.
+The API's live stream (`api/events.py`): opening requests reserve capacity
+while checking access, and each open stream holds a subscription that wakes up
+when its room may have changed.
 
 - API writes call `notify_room_changed(room_id)` after commit. It wakes the
   room's streams and calls the registered listeners (none in production;
@@ -71,26 +72,47 @@ class Subscription:
 _subscriptions: set[Subscription] = set()
 _subscriptions_lock = threading.Lock()
 
+
+class Reservation:
+    """One capacity slot held while a stream's access is being checked."""
+
+    def __init__(self) -> None:
+        self._reserved = True
+
+    def release(self) -> None:
+        """Return this slot unless it has already become a subscription."""
+        with _subscriptions_lock:
+            if self._reserved:
+                _reservations.discard(self)
+                self._reserved = False
+
+
+_reservations: set[Reservation] = set()
+
 # Most open streams at once. About 4 users need a handful; the cap only stops
 # a runaway client from growing the set without limit.
 MAX_SUBSCRIPTIONS = 100
 
 
-def has_capacity() -> bool:
-    """True while one more stream may open.
-
-    Only a check, not a reservation: a few requests that pass it together can
-    go a little over the cap, which is still bounded.
-    """
+def reserve() -> Reservation | None:
+    """Atomically reserve a slot, or return None when every slot is in use."""
     with _subscriptions_lock:
-        return len(_subscriptions) < MAX_SUBSCRIPTIONS
+        if len(_subscriptions) + len(_reservations) >= MAX_SUBSCRIPTIONS:
+            return None
+        reservation = Reservation()
+        _reservations.add(reservation)
+        return reservation
 
 
 @contextmanager
-def subscribe(room_id: int) -> Iterator[Subscription]:
-    """Hold a subscription for one stream; call inside the stream's loop."""
+def subscribe(room_id: int, reservation: Reservation) -> Iterator[Subscription]:
+    """Turn a reserved slot into a subscription for one stream."""
     subscription = Subscription(room_id)
     with _subscriptions_lock:
+        if reservation not in _reservations:
+            raise RuntimeError("stream capacity reservation is no longer active")
+        _reservations.remove(reservation)
+        reservation._reserved = False
         _subscriptions.add(subscription)
     try:
         yield subscription
