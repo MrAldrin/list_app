@@ -162,6 +162,14 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
   version header is simulated), and R8, R10, R12, R13 in the browser (unit
   tests only).
 
+## Owner review decision log
+
+1. **Approved — conflict handling.** Keep the existing conservative row-level
+   checks: refuse stale edits, show them under Not saved, and offer Save mine
+   anyway. Matching values do not conflict; quantity deltas merge. Changes to
+   different fields of the same row can still conflict. No field-by-field
+   merging for this release. No implementation change needed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
