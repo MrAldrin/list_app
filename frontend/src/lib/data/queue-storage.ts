@@ -26,6 +26,8 @@ export interface QueueStorage {
 	add(entry: StoredEntry): Promise<void>;
 	remove(opId: string): Promise<void>;
 	setState(opId: string, state: EntryState): Promise<void>;
+	/** Marks an entry as sent: its request is about to go out (see StoredEntry.sent). */
+	setSent(opId: string): Promise<void>;
 	/** Replaces the op JSON of an entry (its `op_id` stays). */
 	setOp(opId: string, op: SentOp): Promise<void>;
 	/** Removes every entry of this room or share link. */
@@ -49,6 +51,11 @@ export class MemoryQueueStorage implements QueueStorage {
 	async setState(opId: string, state: EntryState): Promise<void> {
 		this.#entries = this.#entries.map((entry) =>
 			entry.opId === opId ? { ...entry, state } : entry
+		);
+	}
+	async setSent(opId: string): Promise<void> {
+		this.#entries = this.#entries.map((entry) =>
+			entry.opId === opId ? { ...entry, sent: true } : entry
 		);
 	}
 	async setOp(opId: string, op: SentOp): Promise<void> {
@@ -168,6 +175,13 @@ class IndexedDbQueueStorage implements QueueStorage {
 		return this.#change(
 			(raw) => raw.map((item) => (sameOp(item, opId) ? { ...item, state } : item)),
 			(memory) => memory.map((entry) => (entry.opId === opId ? { ...entry, state } : entry))
+		);
+	}
+
+	setSent(opId: string): Promise<void> {
+		return this.#change(
+			(raw) => raw.map((item) => (sameOp(item, opId) ? { ...item, sent: true } : item)),
+			(memory) => memory.map((entry) => (entry.opId === opId ? { ...entry, sent: true } : entry))
 		);
 	}
 

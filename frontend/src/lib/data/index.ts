@@ -30,6 +30,7 @@ import {
 } from './pending-logout';
 import { failed, type ActionResult } from './result';
 import { itemName } from './overlay';
+import { rowOf } from './rebase';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { signInRoom, SIGNIN_INTERRUPTED } from './room-signin';
 import { ShareApi } from './share';
@@ -62,6 +63,7 @@ import type {
 	ListCreateResult,
 	Op,
 	Room,
+	SentOp,
 	ShareLink
 } from './types';
 import type { HeldOp, UnreadableOp } from './queue-entries';
@@ -297,6 +299,46 @@ export class RoomHandle {
 	/** Drops one waiting op. False when it is being sent right now. */
 	discard(opId: string): boolean {
 		return this.#queue.discard(opId);
+	}
+
+	/** Drops every waiting op that is not being sent right now (R9: access gone). */
+	discardWaiting(): void {
+		this.#queue.discardAll();
+	}
+
+	/** True for a share link (its ops cannot be sent once the link is reset). */
+	get isShare(): boolean {
+		return this.#isShare;
+	}
+
+	/**
+	 * Waiting changes cannot be sent: access is gone (R9). For a room, sign in
+	 * again; for a share link, only discarding helps.
+	 */
+	get accessLost(): boolean {
+		return this.store.status === 'auth_required' && this.#queueView.waiting > 0;
+	}
+
+	/**
+	 * Sends a refused change again as a new op, based on the row's current
+	 * `changed_seq` (R2, "Save mine anyway"). The entry leaves the Not saved list.
+	 */
+	saveMineAnyway(id: number): Promise<ActionResult> {
+		const blocked = this.#guardEdit();
+		if (blocked) return Promise.resolve(blocked);
+		const change = this.store.notSaved.find((item) => item.id === id);
+		const seq = change ? this.store.knownSeq(rowOf(change.op) ?? '') : undefined;
+		if (!change || seq === undefined) {
+			return Promise.resolve({
+				ok: false,
+				code: 'unavailable',
+				message: 'This change can no longer be saved.'
+			});
+		}
+		const body: Partial<SentOp> = { ...change.op };
+		delete body.op_id;
+		this.store.dismissNotSaved(id);
+		return this.#run({ ...body, base_seq: seq } as Op);
 	}
 
 	/** Starts saved-view preparation, access revalidation and live updates. */
@@ -901,8 +943,9 @@ export class RoomHandle {
 		if (blocked) return Promise.resolve(blocked);
 		if (this.store.canWrite) return this.#runOnline<R>(op);
 		const provisional = this.#provisional<R>(op);
-		// The answer, if it is a failure, is shown by the store; nobody awaits it here.
-		this.#queue.send(op).catch(() => undefined);
+		// The answer, if it is a failure, goes to the Not saved list (the op waited);
+		// nobody awaits it here.
+		this.#queue.send(op, true).catch(() => undefined);
 		return Promise.resolve(provisional);
 	}
 

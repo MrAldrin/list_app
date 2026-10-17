@@ -15,6 +15,7 @@ import {
 	type RoomData
 } from './overlay';
 import { changedRow, type Rewrite } from './rebase';
+import { countsAsWaited, notSavedMessage, unsentRows } from './not-saved';
 import { groupItemsByList, sortLists } from './order';
 import { mergeFeed } from './feed';
 import { filterVisibleItems } from './visibility';
@@ -29,6 +30,28 @@ export interface Notice {
 	id: number;
 	code: string;
 	message: string;
+}
+
+/**
+ * A change the server refused, or failed, after it waited (see `countsAsWaited`).
+ * Kept in memory for the page: a reload clears the list (plans/offline-editing.md, 6.3).
+ */
+export interface NotSavedChange {
+	id: number;
+	/** The op as it was sent; "Save mine anyway" sends its body again. */
+	op: SentOp;
+	code: string;
+	/** What and why, in plain words. */
+	text: string;
+}
+
+/** How an op this page knows about was made. Dropped when it is answered or discarded. */
+interface OpTrack {
+	queuedAt: number;
+	offline: boolean;
+	loaded: boolean;
+	/** The name the user saw when acting; the answer may come after it changed. */
+	name: string | null;
 }
 
 export interface FeedSource {
@@ -90,6 +113,8 @@ export class RoomStore implements QueueHost, LiveHost {
 	live = $state<LiveState>('stopped');
 	/** Writes not answered by the server yet. */
 	queued = $state(0);
+	/** Refused or failed changes that waited, for the user to look at (6.3). */
+	notSaved = $state.raw<readonly NotSavedChange[]>([]);
 	/** True while a write got no answer and is being tried again. */
 	retrying = $state(false);
 	/** When available, the refresh time of the saved view. */
@@ -99,6 +124,9 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	#server = $state.raw<RoomData>(EMPTY);
 	#pending = $state.raw<readonly PendingOp[]>([]);
+	/** Rows (`item:<uid>`, `list:<uid>`) with a change not answered yet. */
+	#unsent = $derived(unsentRows(this.#pending));
+	#tracks = new SvelteMap<string, OpTrack>();
 	/** Rows that answered ops changed, until the feed has them (see AnsweredSeq). */
 	#answeredRows = $state.raw<readonly AnsweredSeq[]>([]);
 	#view = $derived(project(this.#server, this.#pending, this.#answeredRows));
@@ -109,6 +137,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	#itemsByList = $derived(groupItemsByList(this.#view.items));
 
 	#noticeId = 0;
+	#notSavedId = 0;
 	#inflight: Promise<boolean> | null = null;
 	#queued: Promise<boolean> | null = null;
 	#clearVersion = 0;
@@ -408,6 +437,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#sentAuthorization.clear();
 		this.#held?.resolve(false);
 		this.#held = null;
+		this.#tracks.clear();
 	}
 
 	#hold(): Promise<boolean> {
@@ -442,31 +472,100 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.retrying = false;
 	}
 
-	opQueued(op: SentOp): void {
+	opQueued(op: SentOp, offline = false): void {
 		this.#sentClearVersion.set(op.op_id, this.#clearVersion);
-		this.#waiting(op, nowIso());
+		this.#waiting(op, nowIso(), { offline, loaded: false });
 	}
 
 	/**
 	 * A stored op read again (see WriteQueue.load). It keeps the send generation
 	 * it had, so an op that is still in flight is not taken for a new one.
+	 * `sent`: its request may have gone out before the reload, so the server may
+	 * already have it. Its projection is then uncertain (see `project`).
 	 */
-	opLoaded(op: SentOp, at: string): void {
-		this.#waiting(op, at);
+	opLoaded(op: SentOp, at: string, sent: boolean): void {
+		this.#waiting(op, at, { offline: false, loaded: true }, sent);
 	}
 
-	#waiting(op: SentOp, at: string): void {
+	#waiting(op: SentOp, at: string, how: Pick<OpTrack, 'offline' | 'loaded'>, sent = false): void {
+		if (!this.#tracks.has(op.op_id)) {
+			const parsed = Date.parse(at);
+			this.#tracks.set(op.op_id, {
+				queuedAt: Number.isNaN(parsed) ? Date.now() : parsed,
+				...how,
+				name: this.#nameOf(op)
+			});
+		}
 		// Already shown (the queue was read again): nothing to add.
 		if (this.#pending.some((pending) => pending.op.op_id === op.op_id)) return;
 		this.queued += 1;
 		if (!isProjected(op)) return;
-		this.#pending = [...this.#pending, { op, at, appliedSeq: null }];
+		this.#pending = [
+			...this.#pending,
+			{ op, at, appliedSeq: null, ...(sent ? { uncertain: true } : {}) }
+		];
 	}
 
 	/** A waiting op was dropped by the user: its change is no longer shown. */
 	opDiscarded(op: SentOp): void {
+		this.#tracks.delete(op.op_id);
 		this.#drop(op.op_id);
 		this.queued = Math.max(0, this.queued - 1);
+	}
+
+	/** The item or list name the user sees for this op's row, or null. */
+	#nameOf(op: SentOp): string | null {
+		if ('item_uid' in op) return this.#view.items.get(op.item_uid)?.name ?? null;
+		if (op.type.startsWith('list.') && 'list_uid' in op) {
+			return this.#view.lists.get(op.list_uid)?.name ?? null;
+		}
+		return null;
+	}
+
+	/**
+	 * Whether a settled op counts as waited (see `countsAsWaited`), with the
+	 * name to show. Forgets the op's track.
+	 */
+	#settleTrack(op: SentOp): { waited: boolean; name: string | null } {
+		const track = this.#tracks.get(op.op_id);
+		this.#tracks.delete(op.op_id);
+		const waited = track
+			? countsAsWaited({
+					offline: track.offline,
+					loaded: track.loaded,
+					queuedAt: track.queuedAt,
+					answeredAt: Date.now()
+				})
+			: false;
+		return { waited, name: track?.name ?? this.#nameOf(op) };
+	}
+
+	/** Puts a refused or failed change on the Not saved list. */
+	#collect(op: SentOp, code: string, message: string, name: string | null): void {
+		this.#notSavedId += 1;
+		const text = notSavedMessage({ op, code, message, name });
+		this.notSaved = [...this.notSaved, { id: this.#notSavedId, op, code, text }];
+	}
+
+	/** Removes an entry from the Not saved list (the user dismissed it). */
+	dismissNotSaved(id: number): void {
+		this.notSaved = this.notSaved.filter((change) => change.id !== id);
+	}
+
+	dismissAllNotSaved(): void {
+		this.notSaved = [];
+	}
+
+	/** Takes an entry off the Not saved list, to send it again. */
+	takeNotSaved(id: number): NotSavedChange | undefined {
+		const change = this.notSaved.find((item) => item.id === id);
+		if (change) this.dismissNotSaved(id);
+		return change;
+	}
+
+	/** True when a change on this row (`item:<uid>` or `list:<uid>`) is not sent yet. */
+	isUnsent(row: string): boolean {
+		return this.#unsent.has(row);
 	}
 
 	/** Later ops were rewritten (base_seq or uid): keep the projection in step. */
@@ -506,13 +605,18 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	opSettled(op: SentOp, response: OpResponse): void {
 		if (!this.#currentOp(op)) return;
+		const { waited, name } = this.#settleTrack(op);
 		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
 		this.#sentAuthorization.delete(op.op_id);
 		this.#recordAnswer(op, response);
 		if (response.status === 'rejected') {
 			this.#drop(op.op_id);
-			this.notify(response.code, response.message);
+			if (op.type === 'item.add' && response.code === 'duplicate_active' && waited) {
+				// R6: the item is on the list already, which is what the add wanted.
+				// Nothing to tell the user; the later changes went to that item.
+			} else if (waited) this.#collect(op, response.code, response.message, name);
+			else this.notify(response.code, response.message);
 		} else if (response.seq <= this.seq) {
 			this.#drop(op.op_id);
 		} else {
@@ -526,12 +630,15 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	opFailed(op: SentOp, error: unknown): void {
 		if (!this.#currentOp(op)) return;
+		const { waited, name } = this.#settleTrack(op);
 		this.#sentClearVersion.delete(op.op_id);
 		this.#done();
 		this.#sentAuthorization.delete(op.op_id);
 		this.#drop(op.op_id);
-		if (error instanceof ApiError) this.notify(error.code, error.message);
-		else this.notify('unknown', 'The change could not be saved.');
+		const code = error instanceof ApiError ? error.code : 'unknown';
+		const message = error instanceof ApiError ? error.message : 'The change could not be saved.';
+		if (waited) this.#collect(op, code, message, name);
+		else this.notify(code, message);
 		this.#answered(false);
 	}
 

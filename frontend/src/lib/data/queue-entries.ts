@@ -26,6 +26,12 @@ export interface StoredEntry {
 	at: unknown;
 	format: unknown;
 	state: unknown;
+	/**
+	 * Optional, so format 1 stays: true once the request for this op has gone out
+	 * (set in storage before it is sent). After a reload the op may already be
+	 * applied, so it is shown as uncertain (see RoomStore.opLoaded).
+	 */
+	sent?: unknown;
 }
 
 export function newStoredEntry(op: SentOp, at: string): StoredEntry {

@@ -19,10 +19,11 @@ import {
 	type Deferred
 } from './test-helpers';
 import { ApiError, NetworkError } from './types';
-import type { Feed, OpResponse, SentOp } from './types';
+import type { Feed, Item, OpResponse, SentOp } from './types';
 import { createSnapshotStore, type SnapshotStore } from './snapshot-store';
 import type { SessionLockManager } from './session-transition';
 import { MemoryQueueStorage, type QueueStorage } from './queue-storage';
+import { newStoredEntry } from './queue-entries';
 
 const list = makeList({ uid: 'saved-list' });
 const item = makeItem(list.uid, { uid: 'saved-item', name: 'milk' });
@@ -1535,7 +1536,10 @@ describe('offline editing (6.2d)', () => {
 		});
 		await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
 		expect(sent[1]).toMatchObject({ type: 'item.set_done', item_uid: 'kept-eggs', done: true });
-		await vi.waitFor(() => expect(back.store.notice?.code).toBe('duplicate_active'));
+		// The waited add is not an error (R6): no toast and no Not saved entry.
+		await settle();
+		expect(back.store.notice).toBeNull();
+		expect(back.store.notSaved).toEqual([]);
 		back.release();
 		storage.close();
 	});
@@ -1572,6 +1576,147 @@ describe('offline editing (6.2d)', () => {
 		await vi.waitFor(() => expect(sent).toHaveLength(2));
 		expect(sent[1]).toMatchObject({ type: 'item.set_done', base_seq: 2 });
 		room.release();
+		storage.close();
+	});
+});
+
+describe('not-saved changes (6.3)', () => {
+	/** A device that saved the list online, then goes offline with its own queue. */
+	async function offlineDevice(queue: QueueStorage = new MemoryQueueStorage()) {
+		const storage = snapshots();
+		const online = fakeApi();
+		const first = handle(online, storage);
+		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		first.release();
+		const connectivity = fakeConnectivity();
+		const offlineApi = fakeApi();
+		offlineApi.whoAmI.mockRejectedValue(new NetworkError());
+		offlineApi.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(offlineApi, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await settle();
+		return { storage, offline, offlineApi, connectivity };
+	}
+
+	/** Back online: the server answers `answer` for each op, and the feed says `items`. */
+	function reconnect(
+		device: Awaited<ReturnType<typeof offlineDevice>>,
+		answer: (op: SentOp) => OpResponse,
+		items: Item[] = [{ ...item, done: false, changed_seq: 6 }]
+	) {
+		const { offlineApi, connectivity } = device;
+		offlineApi.sendOp.mockImplementation(async (_slug, op) => answer(op));
+		offlineApi.whoAmI.mockResolvedValue(ROOM);
+		offlineApi.changes.mockResolvedValue(makeFeed({ seq: 8, full: true, lists: [list], items }));
+		connectivity.emit('online');
+	}
+
+	it('puts a change refused after it waited on the Not saved list, not in a toast', async () => {
+		const device = await offlineDevice();
+		const { offline } = device;
+		void offline.setDone(item, true);
+		reconnect(device, (op) => ({
+			op_id: op.op_id,
+			status: 'rejected',
+			code: 'changed_meanwhile',
+			message: 'Someone else changed this meanwhile.',
+			seq: 8
+		}));
+
+		await vi.waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
+		expect(offline.store.notSaved[0]).toMatchObject({
+			code: 'changed_meanwhile',
+			text: "Tick 'milk': someone else changed it meanwhile."
+		});
+		expect(offline.store.notice).toBeNull();
+		expect(offline.store.item(item.uid)?.done).toBe(false);
+		offline.release();
+		device.storage.close();
+	});
+
+	it("sends a refused change again as a new op, based on the row's current changed_seq", async () => {
+		const device = await offlineDevice();
+		const { offline } = device;
+		void offline.setDone(item, true);
+		const first: SentOp[] = [];
+		reconnect(device, (op) => {
+			first.push(op);
+			return {
+				op_id: op.op_id,
+				status: 'rejected',
+				code: 'changed_meanwhile',
+				message: '',
+				seq: 8
+			};
+		});
+		await vi.waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
+		await vi.waitFor(() => expect(offline.store.canWrite).toBe(true));
+
+		// Someone changed the row again: the device now knows changed_seq 9.
+		const again: SentOp[] = [];
+		device.offlineApi.sendOp.mockImplementation(async (_slug, op) => {
+			again.push(op);
+			return { op_id: op.op_id, status: 'applied', result: { changed_seq: 10 }, seq: 9 };
+		});
+		device.offlineApi.changes.mockResolvedValue(
+			makeFeed({
+				seq: 9,
+				full: true,
+				lists: [list],
+				items: [{ ...item, done: false, changed_seq: 9 }]
+			})
+		);
+		await offline.store.refresh();
+
+		const result = await offline.saveMineAnyway(offline.store.notSaved[0].id);
+		expect(result.ok).toBe(true);
+		expect(offline.store.notSaved).toEqual([]);
+		expect(again).toHaveLength(1);
+		expect(again[0]).toMatchObject({
+			type: 'item.set_done',
+			item_uid: item.uid,
+			done: true,
+			base_seq: 9
+		});
+		expect(again[0].op_id).not.toBe(first[0].op_id);
+		offline.release();
+		device.storage.close();
+	});
+
+	it('shows a loaded op that may already have been sent once, as uncertain', async () => {
+		const storage = snapshots();
+		const online = fakeApi();
+		const first = handle(online, storage);
+		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		first.release();
+		const queue = new MemoryQueueStorage();
+		const sent: SentOp = {
+			op_id: 'maybe-sent',
+			type: 'item.quantity_delta',
+			list_uid: list.uid,
+			item_uid: item.uid,
+			delta: 1
+		};
+		await queue.add({ ...newStoredEntry(sent, '2026-10-06T17:00:00.000Z'), sent: true });
+		const connectivity = fakeConnectivity();
+		const offlineApi = fakeApi();
+		offlineApi.whoAmI.mockRejectedValue(new NetworkError());
+		offlineApi.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(offlineApi, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await vi.waitFor(() => expect(offline.waitingCount).toBe(1));
+		await settle();
+		// The server may already have the +1: the saved quantity is shown, not one more.
+		expect(offline.store.item(item.uid)?.quantity).toBe(item.quantity);
+		expect(offline.store.pendingOps[0]).toMatchObject({ uncertain: true });
+		offline.release();
 		storage.close();
 	});
 });

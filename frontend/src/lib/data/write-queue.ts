@@ -35,10 +35,16 @@ import type { Op, OpResponse, SentOp } from './types';
 
 /** What the queue tells its room. `RoomStore` implements it. */
 export interface QueueHost {
-	/** A new op waits (see `send`). */
-	opQueued(op: SentOp): void;
-	/** An op read from storage waits: it is shown as the stored `at` says. */
-	opLoaded(op: SentOp, at: string): void;
+	/**
+	 * A new op waits (see `send`). `offline`: it was made while the page could
+	 * not write, so its answer is one the user did not see at once.
+	 */
+	opQueued(op: SentOp, offline: boolean): void;
+	/**
+	 * An op read from storage waits: it is shown as the stored `at` says. `sent`:
+	 * its request may have gone out before the reload, so the server may have it.
+	 */
+	opLoaded(op: SentOp, at: string, sent: boolean): void;
 	/** A waiting op was dropped by the user (see `discard`). */
 	opDiscarded(op: SentOp): void;
 	/** Later waiting ops were rewritten: a new `base_seq` or uid (see rebase.ts). */
@@ -163,15 +169,16 @@ export class WriteQueue {
 			const verdict = classifyEntry(entry, now);
 			if (verdict.kind === 'unreadable') continue;
 			const at = typeof entry.at === 'string' ? entry.at : this.#now().toISOString();
-			this.#host.opLoaded(verdict.op, at);
+			this.#host.opLoaded(verdict.op, at, entry.sent === true);
 		}
 	}
 
 	/**
 	 * Queues one op with a new `op_id`. Resolves with the server's answer
 	 * (`applied` or `rejected`); rejects with the `ApiError` if the op failed.
+	 * `offline`: the page could not write when the user acted (see `QueueHost`).
 	 */
-	send(op: Op): Promise<OpResponse> {
+	send(op: Op, offline = false): Promise<OpResponse> {
 		if (this.#disposed) return Promise.reject(new Error('This room is closed.'));
 		const sent = { ...op, op_id: newId() } as SentOp;
 		const promise = new Promise<OpResponse>((resolve, reject) => {
@@ -181,7 +188,7 @@ export class WriteQueue {
 		this.#entries = [...this.#entries, entry];
 		this.#mutated();
 		void this.#enqueue(() => this.#storage.add(entry));
-		this.#host.opQueued(sent);
+		this.#host.opQueued(sent, offline);
 		void this.#pump();
 		return promise;
 	}
@@ -221,6 +228,11 @@ export class WriteQueue {
 			void this.#enqueue(() => this.#storage.setState(opId, 'approved'));
 		}
 		void this.#pump();
+	}
+
+	/** Drops every waiting op that is not being sent right now (see `discard`). */
+	discardAll(): void {
+		for (const entry of [...this.#entries]) this.discard(entry.opId);
 	}
 
 	/**
@@ -269,6 +281,8 @@ export class WriteQueue {
 			const version = this.#version;
 			const stored = await this.#enqueue(() => this.#storage.read());
 			if (version === this.#version) {
+				// Sent before a reload: not to be rewritten (see #applyRewrites).
+				for (const entry of stored) if (entry.sent === true) this.#sent.add(entry.opId);
 				this.#entries = stored;
 				this.#publish();
 				return;
@@ -330,8 +344,13 @@ export class WriteQueue {
 	/** Makes one request; `#inFlight` is set only while it is open. */
 	async #call(op: SentOp): Promise<OpResponse> {
 		this.#inFlight = op.op_id;
-		this.#sent.add(op.op_id);
 		try {
+			if (!this.#sent.has(op.op_id)) {
+				this.#sent.add(op.op_id);
+				// Stored before the request goes out: after a reload the server may
+				// already have the op, and it is then shown as uncertain.
+				await this.#enqueue(() => this.#storage.setSent(op.op_id));
+			}
 			return await this.#sender.sendOp(this.#slug, op);
 		} finally {
 			this.#inFlight = null;

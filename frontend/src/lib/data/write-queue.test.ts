@@ -331,7 +331,7 @@ describe('WriteQueue', () => {
 			const host = fakeHost();
 			const queue = new WriteQueue('home', fakeSender(), host, { storage });
 			await queue.load();
-			expect(host.opLoaded).toHaveBeenCalledWith(stored, '2026-10-01T10:00:00.000Z');
+			expect(host.opLoaded).toHaveBeenCalledWith(stored, '2026-10-01T10:00:00.000Z', false);
 		});
 
 		it('tells the host when the user discards a held op', async () => {
@@ -347,5 +347,89 @@ describe('WriteQueue', () => {
 			expect(queue.discard('old-1')).toBe(true);
 			expect(host.opDiscarded).toHaveBeenCalledWith(stored);
 		});
+	});
+});
+
+describe('WriteQueue sent marks (6.3)', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('stores the sent flag before the request goes out', async () => {
+		const storage = new MemoryQueueStorage();
+		const sender = fakeSender();
+		const queue = new WriteQueue('home', sender, fakeHost(), { storage });
+
+		void queue.send(op('a'));
+		await settle();
+		expect(sender.calls).toHaveLength(1);
+		const [entry] = await storage.read();
+		expect(entry.sent).toBe(true);
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 3));
+	});
+
+	it('tells the host a loaded op may already have been sent', async () => {
+		const storage = new MemoryQueueStorage();
+		const sent: SentOp = { ...DELETE, op_id: 'sent-1' } as SentOp;
+		const fresh: SentOp = { ...DELETE, op_id: 'fresh-1' } as SentOp;
+		const at = '2026-10-01T10:00:00.000Z';
+		await storage.add({ ...newStoredEntry(sent, at), sent: true });
+		await storage.add(newStoredEntry(fresh, at));
+		const host = fakeHost();
+		const queue = new WriteQueue('home', fakeSender(), host, { storage });
+
+		await queue.load();
+		expect(host.opLoaded).toHaveBeenCalledWith(sent, at, true);
+		expect(host.opLoaded).toHaveBeenCalledWith(fresh, at, false);
+	});
+
+	it('does not send an op again as a new request after a reload, and keeps its body', async () => {
+		const storage = new MemoryQueueStorage();
+		const sent: SentOp = { ...DELETE, op_id: 'sent-1' } as SentOp;
+		await storage.add({ ...newStoredEntry(sent, '2026-10-01T10:00:00.000Z'), sent: true });
+		const sender = fakeSender();
+		const queue = new WriteQueue('home', sender, fakeHost(), { storage });
+
+		await queue.load();
+		queue.resume();
+		await settle();
+		// The stored op is retried with its own op_id.
+		expect(sender.calls[0].op.op_id).toBe('sent-1');
+		sender.calls[0].answer.resolve(applied(sent, 4));
+	});
+
+	it('reports a send made while the page could not write as offline', async () => {
+		const host = fakeHost();
+		const queue = new WriteQueue('home', fakeSender(), host, {
+			storage: new MemoryQueueStorage()
+		});
+
+		void queue.send(op('a'), true);
+		void queue.send(op('b'));
+		expect(host.opQueued).toHaveBeenNthCalledWith(1, expect.anything(), true);
+		expect(host.opQueued).toHaveBeenNthCalledWith(2, expect.anything(), false);
+	});
+
+	it('discards every waiting op that is not being sent', async () => {
+		const storage = new MemoryQueueStorage();
+		const sender = fakeSender();
+		const host = fakeHost();
+		const queue = new WriteQueue('home', sender, host, { storage });
+
+		const first = queue.send(op('a'));
+		const second = queue.send(op('b'));
+		const third = queue.send(op('c'));
+		await settle();
+		// `a` is in flight and stays; `b` and `c` go.
+		queue.discardAll();
+		await expect(second).rejects.toThrow('This change was discarded.');
+		await expect(third).rejects.toThrow('This change was discarded.');
+		expect(host.opDiscarded).toHaveBeenCalledTimes(2);
+		expect(queue.waiting).toBe(1);
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 5));
+		await first;
 	});
 });
