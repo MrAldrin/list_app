@@ -142,13 +142,21 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
   deploy that ships this, so old open pages reload instead of misreading the
   lower `seq`.
 
+- **Sending is not instant any more.** Since the stored queue (6.2c), a
+  change reaches the server about 10-15 ms later (Web Lock and IndexedDB
+  first). A subagent proposed a "send first, lock later" fast path; the lead
+  rejected it as too complex for 15 ms. Browser tests now wait for saved data
+  (`wait_until`) instead of reading the database at once.
+- **Edits queue during an online check too** (not only offline). The queue
+  sends only after access and the feed are confirmed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
 - [x] 6.2a Server conflict checks
 - [x] 6.2b Deletion pruning and per-list share tracking
 - [x] 6.2c Persistent queue
-- [ ] 6.2d Offline editing in the client
+- [x] 6.2d Offline editing in the client
 - [ ] 6.3 Not-saved UI
 - [ ] 6.4 Multi-device tests and docs
 - [ ] Gate C: owner review on the iPhone
