@@ -157,6 +157,6 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 - [x] 6.2b Deletion pruning and per-list share tracking
 - [x] 6.2c Persistent queue
 - [x] 6.2d Offline editing in the client
-- [ ] 6.3 Not-saved UI
+- [x] 6.3 Not-saved UI
 - [ ] 6.4 Multi-device tests and docs
 - [ ] Gate C: owner review on the iPhone
