@@ -188,6 +188,10 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    case and accepts keeping the built behaviour. Keep the UI simple and explain
    the duplicate-send risk before sending. Verify the warning during implementation.
 
+6. **Approved — defer offline list creation.** Keep creating lists online-only
+   for this release. Offline creation remains a separate Later backlog item;
+   editing saved lists offline is in scope. No implementation change needed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
