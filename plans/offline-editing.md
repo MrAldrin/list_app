@@ -203,6 +203,10 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    the real update flow before deployment; existing simulated-version tests
    alone are not sufficient evidence.
 
+9. **Approved — merge duplicate item adds.** Keep one item when devices add
+   the same item under the existing naming rules. Direct later queued edits to
+   that item, retaining normal conflict checks. No implementation change needed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
