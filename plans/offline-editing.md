@@ -225,6 +225,13 @@ Historical implementation choices; the owner review decisions below supersede th
     manual or automated tests passed. Do not push, move bookmarks or deploy as
     part of this implementation.
 
+## Release evidence
+
+Automated results, migration rehearsal and remaining deployment requirements:
+[release validation](../docs/background/offline-editing-release-validation.md).
+Deployment awaits explicit approval and a fresh backup. Pre-release manual
+checks were waived, not passed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
