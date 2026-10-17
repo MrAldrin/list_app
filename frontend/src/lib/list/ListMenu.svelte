@@ -9,6 +9,7 @@
 	import type { List, RoomHandle } from '#lib/data/index.ts';
 	import ConfirmDialog from '#lib/ui/ConfirmDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
+	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
 	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
 	import { absoluteUrl, shareLinkWithToast } from '#lib/ui/share.ts';
@@ -29,6 +30,7 @@
 	} = $props();
 
 	const online = $derived(room.store.canWrite);
+	const hintId = $props.id();
 	let dialog = $state<'share' | 'reset' | null>(null);
 	let shareUrl = $state('');
 	/** The token read when the menu opened (it may change elsewhere). */
@@ -90,6 +92,7 @@
 			type="button"
 			disabled={!online}
 			title={online ? undefined : 'Needs a connection'}
+			aria-describedby={online ? undefined : hintId}
 			onclick={() => share(close)}>Share List</button
 		>
 		{#if canReset}
@@ -97,9 +100,11 @@
 				type="button"
 				disabled={!online}
 				title={online ? undefined : 'Needs a connection'}
+				aria-describedby={online ? undefined : hintId}
 				onclick={() => askReset(close)}>Reset share link</button
 			>
 		{/if}
+		<NeedsConnection id={hintId} show={!online} />
 		<hr />
 		<ThemeMenuItem {close} />
 	{/snippet}

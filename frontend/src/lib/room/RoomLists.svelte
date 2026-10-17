@@ -10,11 +10,14 @@
 	import ConfirmDialog from '#lib/ui/ConfirmDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
+	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
+	import UnsentMark from '#lib/ui/UnsentMark.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let { room }: { room: RoomHandle } = $props();
 	/** Creating a list needs the server (it gets its address there). */
 	const online = $derived(room.store.canWrite);
+	const addHintId = $props.id();
 
 	// Which dialog is open. `$state.raw` stores the list object as it is,
 	// without making it deeply reactive (we never change it in place).
@@ -55,11 +58,13 @@
 	type="button"
 	disabled={!online}
 	title={online ? undefined : 'Needs a connection'}
+	aria-describedby={online ? undefined : addHintId}
 	onclick={() => (creating = true)}
 >
 	<Icon name="add" />
 	Add New List
 </button>
+<NeedsConnection id={addHintId} show={!online} />
 
 {#if room.store.lists.length === 0}
 	<p class="muted empty">No lists yet. Create your first one!</p>
@@ -73,6 +78,9 @@
 					href={resolve('/room/[slug]/list/[list]', { slug: room.slug, list: list.slug })}
 					><span>{list.name}</span></a
 				>
+				{#if room.store.isUnsent(`list:${list.uid}`)}
+					<UnsentMark />
+				{/if}
 				<button
 					class="icon"
 					type="button"

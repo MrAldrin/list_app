@@ -40,8 +40,8 @@ export interface NotSavedInput {
 const ITEM = (name: string | null) => (name === null ? 'the item' : `'${name}'`);
 const LIST = (name: string | null) => (name === null ? 'the list' : `list '${name}'`);
 
-/** What the user tried to do, in plain words. */
-function actionOf(op: SentOp, name: string | null): string {
+/** What the user tried to do, in plain words: "Tick 'milk'". */
+export function describeChange(op: SentOp, name: string | null): string {
 	switch (op.type) {
 		case 'item.set_done':
 			return `${op.done ? 'Tick' : 'Untick'} ${ITEM(name)}`;
@@ -95,7 +95,7 @@ function sentence(message: string): string {
 /** "Tick 'milk': someone else changed it meanwhile." */
 export function notSavedMessage(input: NotSavedInput): string {
 	const reason = Object.hasOwn(REASONS, input.code) ? REASONS[input.code] : sentence(input.message);
-	return `${actionOf(input.op, input.name)}: ${reason}`;
+	return `${describeChange(input.op, input.name)}: ${reason}`;
 }
 
 /** Rows ("item:<uid>" or "list:<uid>") that have a change not answered yet. */
@@ -139,4 +139,22 @@ export function notSentYetText(count: number): string {
 /** The banner's count: "1 change was not saved", "2 changes were not saved". */
 export function notSavedCountText(count: number): string {
 	return count === 1 ? '1 change was not saved' : `${count} changes were not saved`;
+}
+
+/** R9: "1 change can't be sent. Sign in again to send it." (or the share link text). */
+export function cantBeSentText(count: number, shareLinkReset: boolean): string {
+	if (shareLinkReset) {
+		const head = count === 1 ? "1 change can't be sent." : `${count} changes can't be sent.`;
+		return `${head} This share link was reset.`;
+	}
+	return count === 1
+		? "1 change can't be sent. Sign in again to send it."
+		: `${count} changes can't be sent. Sign in again to send them.`;
+}
+
+/** Room delete: the waiting changes go with the room. */
+export function willBeDiscardedText(count: number): string {
+	return count === 1
+		? '1 waiting change on this phone will be discarded.'
+		: `${count} waiting changes on this phone will be discarded.`;
 }

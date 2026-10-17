@@ -5,10 +5,18 @@
 -->
 <script lang="ts">
 	import { page } from '$app/state';
-	import { admin, closeRoom, logout, openRoom, type RoomHandle } from '#lib/data/index.ts';
+	import {
+		admin,
+		closeRoom,
+		logout,
+		notSentYetText,
+		openRoom,
+		type RoomHandle
+	} from '#lib/data/index.ts';
 	import PageShell from '#lib/room/PageShell.svelte';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
+	import ConfirmDialog from '#lib/ui/ConfirmDialog.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
@@ -38,7 +46,15 @@
 		};
 	});
 
+	/** Sign-out with changes waiting asks first: they stay here until the next sign-in. */
+	let askingSignOut = $state(false);
+	function requestSignOut() {
+		if ((room?.waitingCount ?? 0) > 0) askingSignOut = true;
+		else void signOut();
+	}
+
 	async function signOut() {
+		askingSignOut = false;
 		const result = await logout(slug);
 		if (!result.ok) {
 			toasts.show(result.message, 'warning');
@@ -63,7 +79,7 @@
 	failedTitle="Could not load this room."
 >
 	{#snippet content(handle)}
-		<RoomHeader room={handle} backToAdmin={isAdmin} onLogout={signOut} />
+		<RoomHeader room={handle} backToAdmin={isAdmin} onLogout={requestSignOut} />
 		{#if handle.store.error && !(handle.store.showsOfflineNotice && handle.store.unreachable)}
 			<!-- The lists below may be out of date; they stay usable. -->
 			<LoadError
@@ -75,3 +91,13 @@
 		<RoomLists room={handle} />
 	{/snippet}
 </PageShell>
+
+{#if askingSignOut && room}
+	<ConfirmDialog
+		question={notSentYetText(room.waitingCount)}
+		detail="They stay on this phone and are sent after you sign in to this room again."
+		confirmLabel="Sign out"
+		onConfirm={signOut}
+		onClose={() => (askingSignOut = false)}
+	/>
+{/if}

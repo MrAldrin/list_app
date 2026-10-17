@@ -221,6 +221,7 @@
 			showDelete={optionsOpen}
 			{canEdit}
 			listTags={list.tags}
+			unsent={room.store.isUnsent(`item:${item.uid}`)}
 			onToggle={(done) => toggle(item, done)}
 			onQuantity={(delta) => changeQuantity(item, delta)}
 			onTag={(tag) => toggleTag(item, tag)}

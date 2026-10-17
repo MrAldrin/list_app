@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+	cantBeSentText,
 	countsAsWaited,
 	notSavedCountText,
 	notSavedMessage,
 	notSentYetText,
 	unsentRows,
-	WAITED_MS
+	WAITED_MS,
+	willBeDiscardedText
 } from './not-saved';
 import type { SentOp } from './types';
 
@@ -184,5 +186,15 @@ describe('count texts', () => {
 		expect(notSavedCountText(2)).toBe('2 changes were not saved');
 		expect(notSentYetText(1)).toBe('1 change is not sent yet.');
 		expect(notSentYetText(3)).toBe('3 changes are not sent yet.');
+	});
+});
+
+describe('sentences for the sheet and the banner', () => {
+	it('uses the singular and the share link wording', () => {
+		expect(cantBeSentText(1, false)).toBe("1 change can't be sent. Sign in again to send it.");
+		expect(cantBeSentText(2, false)).toBe("2 changes can't be sent. Sign in again to send them.");
+		expect(cantBeSentText(2, true)).toBe("2 changes can't be sent. This share link was reset.");
+		expect(willBeDiscardedText(1)).toBe('1 waiting change on this phone will be discarded.');
+		expect(willBeDiscardedText(3)).toBe('3 waiting changes on this phone will be discarded.');
 	});
 });

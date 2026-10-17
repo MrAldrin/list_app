@@ -9,6 +9,7 @@
 <script lang="ts">
 	import type { Item } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
+	import UnsentMark from '#lib/ui/UnsentMark.svelte';
 	import { quantityBadge } from './items';
 	import { tagColor, tagLetter } from './tags';
 
@@ -18,6 +19,7 @@
 		showDelete,
 		canEdit,
 		listTags,
+		unsent = false,
 		onToggle,
 		onQuantity,
 		onTag,
@@ -31,6 +33,8 @@
 		canEdit: boolean;
 		/** The list's tags, sorted; each gets a letter button. */
 		listTags: readonly string[];
+		/** A change to this item is not sent yet (a small mark). */
+		unsent?: boolean;
 		onToggle: (done: boolean) => void;
 		onQuantity: (delta: number) => void;
 		onTag: (tag: string) => void;
@@ -64,6 +68,9 @@
 			<span class="badge">{badge}</span>
 		{/if}
 	</button>
+	{#if unsent}
+		<UnsentMark />
+	{/if}
 	{#if showQuantity}
 		<div class="qty" role="group" aria-label="Quantity of {item.name}">
 			<button

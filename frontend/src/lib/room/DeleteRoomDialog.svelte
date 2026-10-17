@@ -5,6 +5,7 @@
 <script lang="ts">
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
+	import { willBeDiscardedText } from '#lib/data/index.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 	let {
@@ -44,6 +45,9 @@
 	<p class="warning">
 		Warning: This will delete ALL lists and items inside this room. This cannot be undone.
 	</p>
+	{#if room.waitingCount > 0}
+		<p class="warning">{willBeDiscardedText(room.waitingCount)}</p>
+	{/if}
 	<label for="{id}-password">Enter Room Password to Confirm</label>
 	<input id="{id}-password" type="password" bind:value={password} autocomplete="current-password" />
 </FormDialog>

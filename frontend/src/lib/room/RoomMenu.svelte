@@ -9,6 +9,7 @@
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import InstallHelpDialog from '#lib/install/InstallHelpDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
+	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
 	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
 	import ShareDialog from '#lib/ui/ShareDialog.svelte';
@@ -25,6 +26,7 @@
 
 	/** Password and delete are checked by the server: they need a connection. */
 	const online = $derived(room.store.canWrite);
+	const hintId = $props.id();
 	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | null>(null);
 	let shareUrl = $state('');
 
@@ -70,6 +72,7 @@
 			type="button"
 			disabled={!online}
 			title={online ? undefined : 'Needs a connection'}
+			aria-describedby={online ? undefined : hintId}
 			onclick={() => choose(close, 'password')}
 		>
 			Change Password
@@ -79,10 +82,12 @@
 			class="danger-text"
 			disabled={!online}
 			title={online ? undefined : 'Needs a connection'}
+			aria-describedby={online ? undefined : hintId}
 			onclick={() => choose(close, 'delete')}
 		>
 			Delete Room
 		</button>
+		<NeedsConnection id={hintId} show={!online} />
 		<hr />
 		<button
 			type="button"

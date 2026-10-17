@@ -94,6 +94,14 @@ export {
 	MAX_HIDE_DONE_COUNT
 } from './visibility';
 export { sortItems, sortLists, sortTags } from './order';
+export {
+	cantBeSentText,
+	describeChange,
+	notSavedCountText,
+	notSentYetText,
+	willBeDiscardedText
+} from './not-saved';
+export type { NotSavedChange } from './room-store.svelte';
 export { newId } from './ids';
 
 type ListRef = Pick<List, 'uid'>;

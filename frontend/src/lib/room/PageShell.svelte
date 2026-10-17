@@ -15,6 +15,7 @@
 	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
 	import RoomLogin from './RoomLogin.svelte';
+	import SavedChanges from './SavedChanges.svelte';
 
 	let {
 		handle = $bindable(null),
@@ -60,6 +61,7 @@
 		<p class="muted">Loading…</p>
 	{:else}
 		<SavedViewNotice room={handle} />
+		<SavedChanges room={handle} />
 		{#if handle.store.status === 'auth_required' && canSignIn}
 			<RoomLogin onLogin={(password) => handle!.login(password)} />
 		{:else if handle.store.status === 'error'}
