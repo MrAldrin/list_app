@@ -58,4 +58,4 @@ real-device evidence. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist) and record
 results (with OS/browser versions for devices) in the linked doc.
 
-None open. On 2026-10-14 the owner closed the remaining checks untested; fix issues if they appear.
+- [ ] [test] Gate C: test offline editing on the iPhone, including two devices, before any deploy. Follow the steps in [offline editing](offline-editing.md#steps).

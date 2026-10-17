@@ -150,6 +150,18 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 - **Edits queue during an online check too** (not only offline). The queue
   sends only after access and the feed are confirmed.
 
+- **A very quick close can lose the last change.** The change is written to
+  IndexedDB a few milliseconds after the tap. Closing the app within that
+  time loses it. Accepted.
+- **A tab with waiting changes keeps the old app version** until they are
+  sent (so an update never strands them). Offline for days means the old
+  version for days.
+- **Not-saved list lives in memory.** A reload clears it; the changes it
+  describes were already refused by the server.
+- **Not covered by tests:** a real build swap with waiting changes (only the
+  version header is simulated), and R8, R10, R12, R13 in the browser (unit
+  tests only).
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
@@ -158,5 +170,5 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
 - [x] 6.2c Persistent queue
 - [x] 6.2d Offline editing in the client
 - [x] 6.3 Not-saved UI
-- [ ] 6.4 Multi-device tests and docs
+- [x] 6.4 Multi-device tests and docs
 - [ ] Gate C: owner review on the iPhone
