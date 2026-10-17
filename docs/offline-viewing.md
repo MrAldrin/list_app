@@ -17,9 +17,10 @@ Design: [offline editing plan](../plans/offline-editing.md).
 - Editing works on those pages: add, tick, quantity, edit, tags, delete and
   undo, hide-done setting, list rename and delete, room rename. The change shows
   at once.
-- Needs a connection (the control is disabled, with the title "Needs a
-  connection"): creating a list, password change, room delete, share link show
-  and reset, sign-in, sign-out, admin and invitations.
+- Needs a connection (the control is disabled, with the text "Needs a
+  connection" under the room menu, list menu and Add New List): creating a
+  list, password change, room delete, share link show and reset, sign-in,
+  sign-out, admin and invitations.
 - Edits are kept in IndexedDB (`listr-queue`), one record per room or share
   link. They survive a reload or closing the app. Where IndexedDB is missing,
   they live in memory only.
@@ -42,7 +43,30 @@ Design: [offline editing plan](../plans/offline-editing.md).
   else made meanwhile is rejected (`changed_meanwhile`) and nothing is applied.
 - An item added offline gets its own id. If the server already has that item on
   the list, later changes to the new item go to the existing one.
-- A rejection of a waiting change shows as a toast for now.
+- A rejection of a waiting change goes to the Not saved list (below). A quick
+  rejection of an online change is still a toast.
+- A dot marks each item and list with a change not sent yet.
+
+## Not saved
+
+- A change that waited is refused or fails after it was made offline, loaded
+  after a reload, or answered more than 10 seconds after it was made. It does
+  not show a toast. The banner "N changes were not saved" opens a sheet that
+  says what and why.
+- Actions: Dismiss, or Dismiss all. A change refused because someone else
+  changed it meanwhile also has "Save mine anyway". That sends the same change
+  again, as a new change based on the current version.
+- The same sheet lists old changes held for 30 days (Send all, Discard each)
+  and changes this version cannot read (Discard each).
+- The list is kept in memory: a reload clears it. Refused changes are not sent
+  again by a reload.
+
+## Access gone
+
+- When the room password changes, or a share link is reset, while changes
+  wait, the banner says "N changes can't be sent." A room has "Sign in": the
+  password prompt sends the waiting changes once you sign in. A reset share
+  link only allows "Discard all".
 
 ## The offline notice
 
@@ -105,7 +129,9 @@ Other devices' edits, deletes and password resets then show up.
 - If local clearing takes more than 5 s, the result is `local_clear_unconfirmed`
   and the app says so.
 - Waiting changes stay on the device after sign-out. They are sent after the
-  next sign-in to the same room.
+  next sign-in to the same room. Signing out with changes waiting asks first.
+- Room delete with changes waiting says they will be discarded. They are
+  discarded after the room is deleted.
 - Snapshots hold server state only. A room snapshot never authorizes a share
   view, and the reverse.
 - Logout in one tab clears the others. Without Web Locks (plain HTTP on a LAN),
