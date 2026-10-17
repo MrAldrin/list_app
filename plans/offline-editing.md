@@ -170,6 +170,11 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    different fields of the same row can still conflict. No field-by-field
    merging for this release. No implementation change needed.
 
+2. **Approved — hold unsent changes after sign-out.** Keep them on the device,
+   but do not send them automatically after signing back in. Ask the user to
+   send or discard them. This is a shared-device edge case; keep the solution
+   small. Implementation and verification pending until the review is complete.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
