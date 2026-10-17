@@ -41,7 +41,7 @@ def sign_in(slug: str, request: Request, body: JsonBody) -> Response:
     password = parse_body(SignInBody, body).password
     # Counts every attempt; a success gives its slot back. The same answer for
     # every slug, so a 429 does not show whether the room exists.
-    taken = reserve_room_sign_in(request, slug)
+    taken = reserve_room_sign_in(slug)
     if isinstance(taken, Response):
         return taken
     try:

@@ -32,14 +32,13 @@ def clock(monkeypatch) -> FakeClock:
     return fake
 
 
-def app_client(address: str = "testclient") -> TestClient:
-    """A client with no sign-in, from one client address."""
+def app_client() -> TestClient:
+    """A client with no sign-in."""
     return TestClient(
         main.app,
         base_url=HTTPS,
         headers={"Origin": HTTPS},
         raise_server_exceptions=False,
-        client=(address, 50000),
     )
 
 
@@ -120,27 +119,15 @@ def test_each_room_has_its_own_limit(clock):
     assert try_room(client, other_slug, "pass").status_code == 200
 
 
-def test_one_client_is_limited_across_rooms(clock):
-    _, first = home()
-    _, second = create_room("Second", "pass")
-    _, third = create_room("Third", "pass")
-    client = app_client()
-    exhaust_room(client, first)
-    exhaust_room(client, second)
+def test_a_forged_forwarded_address_does_not_bypass_the_room_limit(clock):
+    _, slug = home()
+    attacker = app_client()
+    attacker.headers["x-forwarded-for"] = "203.0.113.1"
+    exhaust_room(attacker, slug)
 
-    assert try_room(client, third, "pass").status_code == 429
-
-
-def test_another_client_is_not_limited_by_one_client(clock):
-    _, first = home()
-    _, second = create_room("Second", "pass")
-    _, third = create_room("Third", "pass")
-    attacker = app_client("10.0.0.1")
-    exhaust_room(attacker, first)
-    exhaust_room(attacker, second)
-
-    other = app_client("10.0.0.2")
-    assert try_room(other, third, "pass").status_code == 200
+    rotated = app_client()
+    rotated.headers["x-forwarded-for"] = "203.0.113.2"
+    assert try_room(rotated, slug, "wrong-one").status_code == 429
 
 
 def test_a_bad_body_does_not_use_a_slot(clock):

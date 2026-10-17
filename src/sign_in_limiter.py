@@ -1,7 +1,7 @@
 """A short in-memory limit on sign-in attempts. One process only.
 
-Each attempt takes one slot in every bucket it uses (for example one per room
-and one per client address). A failed attempt keeps its slots; a successful
+Each attempt takes one slot in every bucket it uses (one per room, or the
+shared admin bucket). A failed attempt keeps its slots; a successful
 attempt gives them back, so only failures count. When a bucket is full, the
 attempt is refused with the seconds to wait, before any password is checked.
 
@@ -20,7 +20,6 @@ from dataclasses import dataclass
 
 WINDOW_SECONDS = 60.0
 ROOM_LIMIT = 10  # Failed attempts per room in the window.
-CLIENT_LIMIT = 20  # Failed attempts per client address in the window.
 ADMIN_LIMIT = 10  # Failed admin sign-ins in the window, for all clients.
 MAX_BUCKETS = 10_000
 

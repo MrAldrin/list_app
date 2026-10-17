@@ -103,14 +103,12 @@ older, shorter passwords still open their rooms.
 ### Sign-in limit
 
 Failed sign-ins are counted in memory, in this one process, for one minute.
-Limits: 10 failures per room, 20 per client address, and 10 failed admin
-sign-ins for all clients. A successful sign-in does not count. A full limit
-answers 429 `too_many_attempts` with `Retry-After` (seconds) before any password
-is checked. Unknown rooms count the same way, so a 429 does not show whether a
-room exists. The client address is the one uvicorn gives the app: behind
-Railway's proxy (`FORWARDED_ALLOW_IPS=*`) it is the first `X-Forwarded-For`
-entry, which a client can set, so the per-address limit is weak. The room limit
-does not depend on it. Counts reset when the app restarts.
+Limits: 10 failures per room and 10 failed admin sign-ins for all clients.
+There is no per-client-address limit: Railway does not document a trustworthy
+client address. A successful sign-in does not count. A full limit answers 429
+`too_many_attempts` with `Retry-After` (seconds) before any password is checked.
+Unknown rooms count the same way, so a 429 does not show whether a room exists.
+Counts reset when the app restarts.
 
 Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
 

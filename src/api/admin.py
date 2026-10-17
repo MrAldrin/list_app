@@ -84,7 +84,7 @@ class ResetPasswordBody(StrictBody):
 @router.post("/session")
 async def sign_in(request: Request, body: JsonBody) -> Response:
     password = parse_body(AdminSignInBody, body).password
-    taken = reserve_admin_sign_in(request)
+    taken = reserve_admin_sign_in()
     if isinstance(taken, Response):
         return taken
     if not admin_password_matches(password):

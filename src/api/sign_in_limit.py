@@ -6,13 +6,11 @@ The limiter itself is in src/sign_in_limiter.py. Limits: see docs/api.md
 
 from collections.abc import Hashable
 
-from fastapi import Request
 from fastapi.responses import Response
 
 from api.errors import error_response
 from sign_in_limiter import (
     ADMIN_LIMIT,
-    CLIENT_LIMIT,
     ROOM_LIMIT,
     Reservation,
     SignInLimiter,
@@ -21,26 +19,14 @@ from sign_in_limiter import (
 sign_in_limiter = SignInLimiter()
 
 
-def client_address(request: Request) -> str:
-    """The client address as uvicorn reports it (see docs/api.md, "Sign-in limit")."""
-    return request.client.host if request.client else "unknown"
-
-
-def reserve_room_sign_in(request: Request, slug: str) -> Reservation | Response:
+def reserve_room_sign_in(slug: str) -> Reservation | Response:
     """One slot for a room sign-in attempt, or the 429 answer."""
-    return _reserve(
-        [
-            (("room", slug), ROOM_LIMIT),
-            (("client", client_address(request)), CLIENT_LIMIT),
-        ]
-    )
+    return _reserve([(("room", slug), ROOM_LIMIT)])
 
 
-def reserve_admin_sign_in(request: Request) -> Reservation | Response:
+def reserve_admin_sign_in() -> Reservation | Response:
     """One slot for an admin sign-in attempt, or the 429 answer."""
-    return _reserve(
-        [(("admin",), ADMIN_LIMIT), (("client", client_address(request)), CLIENT_LIMIT)]
-    )
+    return _reserve([(("admin",), ADMIN_LIMIT)])
 
 
 def release(reservation: Reservation) -> None:
