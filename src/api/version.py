@@ -6,5 +6,5 @@ a field or an endpoint does not need a new version. The frontend keeps the
 same number in `frontend/src/lib/data/compat.svelte.ts`; a test checks both.
 """
 
-API_VERSION = 1
+API_VERSION = 2
 API_VERSION_HEADER = "X-Api-Version"

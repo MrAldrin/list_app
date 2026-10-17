@@ -9,7 +9,7 @@ import { SvelteMap } from 'svelte/reactivity';
  * The API version this build was made for. The server keeps the same number in
  * `src/api/version.py`; a Python test checks that both match.
  */
-export const EXPECTED_API_VERSION = 1;
+export const EXPECTED_API_VERSION = 2;
 
 export const API_VERSION_HEADER = 'X-Api-Version';
 
