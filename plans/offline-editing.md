@@ -207,6 +207,10 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    the same item under the existing naming rules. Direct later queued edits to
    that item, retaining normal conflict checks. No implementation change needed.
 
+10. **Approved — last received setting wins.** Keep last-write-wins for room
+    name and hide-checked-items, including delayed offline changes. No conflict
+    prompt for these easily reversible settings. No implementation change needed.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
