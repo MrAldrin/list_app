@@ -192,6 +192,11 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    for this release. Offline creation remains a separate Later backlog item;
    editing saved lists offline is in scope. No implementation change needed.
 
+7. **Approved — preserve changes when access is lost.** Keep queued changes
+   on the device without bypassing server authorization. Offer sign-in again
+   where access can be restored, or discard where it cannot. No change to the
+   existing access-loss rule; the approved post-sign-out hold still applies.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
