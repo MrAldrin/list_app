@@ -5,6 +5,11 @@ import re
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in
 
+from api.version import API_VERSION
+
+# A version this build does not expect.
+OTHER_VERSION = str(API_VERSION + 1)
+
 API_ROUTES = re.compile(r".*/api/v1/(?!.*/events).*")
 OPS = re.compile(r".*/api/v1/rooms/[^/]+/ops$")
 
@@ -32,7 +37,7 @@ def test_new_server_version_blocks_writes_until_reload(svelte_server, open_sessi
     expect(notice).to_have_count(0)
 
     # The server is replaced: its next answer names another API version.
-    page.route(API_ROUTES, _answer_with_version("2"))
+    page.route(API_ROUTES, _answer_with_version(OTHER_VERSION))
     add_item(page, "bread")
     expect(notice).to_be_visible()
     expect(notice.get_by_role("button", name="Reload")).to_be_visible()
@@ -98,7 +103,10 @@ def test_notice_warns_about_changes_a_reload_would_lose(svelte_server, open_sess
     def busy_new_server(route):
         route.fulfill(
             status=503,
-            headers={"x-api-version": "2", "content-type": "application/json"},
+            headers={
+                "x-api-version": OTHER_VERSION,
+                "content-type": "application/json",
+            },
             body='{"error": {"code": "unavailable", "message": "Busy"}}',
         )
 
