@@ -183,6 +183,11 @@ Choices the lead agent or subagents made; the owner reviews them at Gate C.
    restore items or lists deleted elsewhere. Show the refusal under Not saved;
    the user can deliberately add an item again. No implementation change needed.
 
+5. **Approved — keep the 30-day hold.** Retain the existing pause for changes
+   older than 30 days, with Send or Discard. The owner sees this as a rare edge
+   case and accepts keeping the built behaviour. Keep the UI simple and explain
+   the duplicate-send risk before sending. Verify the warning during implementation.
+
 ## Progress
 
 - [x] 6.1 Conflict rules (this plan)
