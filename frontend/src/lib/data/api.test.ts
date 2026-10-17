@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Api, isRetryable } from './api';
-import { compat, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
+import { compat, EXPECTED_API_VERSION, INCOMPATIBLE_CODE, resetCompat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import { fakeFetch, json } from './test-helpers';
 import type { SentOp } from './types';
@@ -118,6 +118,7 @@ describe('Api', () => {
 
 describe('Api and the server version', () => {
 	afterEach(resetCompat);
+	const OTHER_VERSION = String(EXPECTED_API_VERSION + 1);
 
 	function versioned(version: string, body: unknown = { slug: null }): Response {
 		const response = json(200, body);
@@ -126,14 +127,14 @@ describe('Api and the server version', () => {
 	}
 
 	it('marks the session incompatible from any answer with another version', async () => {
-		const fetch = fakeFetch(versioned('2'));
+		const fetch = fakeFetch(versioned(OTHER_VERSION));
 		await new Api(fetch).lastRoom();
 		expect(compat.incompatible).toBe(true);
 	});
 
 	it('also reads the version from an error answer', async () => {
 		const response = json(503, { error: { code: 'unavailable', message: 'Busy' } });
-		response.headers.set('X-Api-Version', '2');
+		response.headers.set('X-Api-Version', OTHER_VERSION);
 		await expect(new Api(fakeFetch(response)).lastRoom()).rejects.toBeInstanceOf(ApiError);
 		expect(compat.incompatible).toBe(true);
 	});
@@ -147,7 +148,7 @@ describe('Api and the server version', () => {
 		const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
 			void input;
 			void init;
-			return versioned('2');
+			return versioned(OTHER_VERSION);
 		});
 		const api = new Api(fetch);
 		await api.lastRoom();
