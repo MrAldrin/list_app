@@ -37,6 +37,17 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     page.get_by_role("checkbox", name="apples").uncheck()
     expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
 
+    # Each check and uncheck names the item in a toast with Undo.
+    expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
+    expect(page.get_by_text("Unchecked apples")).to_be_visible()
+    with page.expect_response(saved_op):
+        page.get_by_role("checkbox", name="bread").check()
+    page.locator(".toast", has_text="Checked bread").get_by_role(
+        "button", name="Undo"
+    ).click()
+    expect(page.get_by_role("checkbox", name="bread")).not_to_be_checked()
+    expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
+
     # Adding a checked-off item restores it (here through a suggestion).
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()

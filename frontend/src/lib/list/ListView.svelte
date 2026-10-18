@@ -22,7 +22,13 @@
 	import ListMenu from './ListMenu.svelte';
 	import ListOptions from './ListOptions.svelte';
 	import ListTags from './ListTags.svelte';
-	import { addFeedback, loadShowQuantities, saveShowQuantities, UNDO_DURATION } from './items.ts';
+	import {
+		addFeedback,
+		checkFeedback,
+		loadShowQuantities,
+		saveShowQuantities,
+		UNDO_DURATION
+	} from './items.ts';
 	import { searchItems } from './search.ts';
 	import { activeFilter, filterByTag } from './tags.ts';
 
@@ -98,8 +104,26 @@
 		return result.code === 'duplicate_active';
 	}
 
+	/**
+	 * Checks or unchecks at once and says which item, with "Undo": when
+	 * someone else changes the list at the same moment, a tap can land on
+	 * the wrong item.
+	 */
 	function toggle(item: Item, done: boolean) {
-		void room.setDone(item, done);
+		const handle = room;
+		showUndoToast({
+			...checkFeedback(item.name, done),
+			request: handle.setDone(item, done),
+			duration: UNDO_DURATION,
+			canUndo: () => handle.store.canEdit,
+			undo: () => undoToggle(handle, item, done)
+		});
+	}
+
+	/** Sets the item back, unless it is gone or already back (someone else). */
+	function undoToggle(handle: RoomHandle, item: Item, done: boolean) {
+		const current = handle.store.itemsOf(item.list_uid).find((i) => i.uid === item.uid);
+		if (current && current.done === done) void handle.setDone(current, !done);
 	}
 
 	function changeQuantity(item: Item, delta: number) {
@@ -122,7 +146,7 @@
 		const handle = room;
 		showUndoToast({
 			message: `Deleted tag ${tag}`,
-			deleted: handle.removeListTag(target, tag),
+			request: handle.removeListTag(target, tag),
 			duration: UNDO_DURATION,
 			canUndo: () => handle.store.canEdit,
 			undo: () => undoDeleteTag(handle, target, tag)
@@ -156,7 +180,7 @@
 		const handle = room;
 		showUndoToast({
 			message: `Deleted ${item.name}`,
-			deleted: handle.deleteItem(item),
+			request: handle.deleteItem(item),
 			duration: UNDO_DURATION,
 			canUndo: () => handle.store.canEdit,
 			undo: () => undoDelete(handle, item)

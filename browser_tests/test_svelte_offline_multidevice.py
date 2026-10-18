@@ -231,7 +231,8 @@ def test_edit_of_an_item_deleted_elsewhere_refuses_a_tick_offline(
         dialog.get_by_text("Tick 'milk': it was deleted by someone else.")
     ).to_be_visible()
     expect(dialog.get_by_role("button", name="Save mine anyway")).to_have_count(0)
-    dialog.get_by_role("button", name="Dismiss", exact=True).click()
+    # The "Checked milk" toast inside the dialog has its own "Dismiss" button.
+    dialog.get_by_text("Dismiss", exact=True).click()
     expect(phone.get_by_role("dialog")).to_have_count(0)
     expect(phone.get_by_text("was not saved")).to_have_count(0)
     assert server.query("SELECT count(*) FROM items WHERE name = 'milk'") == [(0,)]

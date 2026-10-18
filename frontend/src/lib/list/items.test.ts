@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addFeedback,
+	checkFeedback,
 	itemSuggestions,
 	normalizeItemName,
 	loadShowQuantities,
@@ -44,6 +45,13 @@ describe('addFeedback', () => {
 	it('uses the NiceGUI texts', () => {
 		expect(addFeedback('added', 'milk')).toEqual({ message: 'Added milk', kind: 'success' });
 		expect(addFeedback('restored', 'milk')).toEqual({ message: 'Restored milk!', kind: 'info' });
+	});
+});
+
+describe('checkFeedback', () => {
+	it('names the item, green for checked', () => {
+		expect(checkFeedback('milk', true)).toEqual({ message: 'Checked milk', kind: 'success' });
+		expect(checkFeedback('milk', false)).toEqual({ message: 'Unchecked milk', kind: 'info' });
 	});
 });
 
