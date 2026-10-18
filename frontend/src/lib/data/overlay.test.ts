@@ -77,6 +77,7 @@ describe('overlay: item ops', () => {
 			completed_at: null,
 			quantity: 1,
 			description: '',
+			date: null,
 			tags: [],
 			changed_seq: NEW_ROW_SEQ
 		});

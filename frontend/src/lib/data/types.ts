@@ -34,6 +34,8 @@ export interface Item {
 	completed_at: string | null;
 	quantity: number;
 	description: string;
+	/** Optional day as `YYYY-MM-DD`; null for no date. */
+	date: string | null;
 	/** Keep their order. */
 	tags: string[];
 	changed_seq: number;
@@ -123,6 +125,8 @@ export interface ItemEditOp {
 	name: string;
 	description: string;
 	quantity?: number | null;
+	/** Absent keeps the date; null clears it. */
+	date?: string | null;
 	base_seq: number;
 }
 export interface ItemToggleTagOp {
@@ -148,6 +152,7 @@ export interface ItemRestoreOp {
 	description: string;
 	quantity: number;
 	completed_at: string | null;
+	date?: string | null;
 }
 
 export type Op =

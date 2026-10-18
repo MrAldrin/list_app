@@ -54,6 +54,7 @@ function roomData(slug = 'kitchen'): SnapshotData {
 				completed_at: null,
 				quantity: 1,
 				description: '',
+				date: null,
 				tags: ['Market'],
 				changed_seq: 8
 			}

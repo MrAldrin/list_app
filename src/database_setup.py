@@ -554,6 +554,25 @@ def _migration_8_share_list_tracking(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_9_item_date(db: sqlite3.Connection) -> None:
+    """Add an optional date to items: ISO `YYYY-MM-DD` text, NULL for none.
+
+    The format is checked here as a safety net; Python checks that the date
+    exists (ops.py). Existing items get NULL.
+    """
+    db.execute("ALTER TABLE items ADD COLUMN date TEXT")
+    for name, action in (("insert", "INSERT"), ("update", "UPDATE OF date")):
+        db.execute(f"""
+            CREATE TRIGGER items_date_format_{name}
+            BEFORE {action} ON items
+            WHEN NEW.date IS NOT NULL AND (
+                typeof(NEW.date) != 'text'
+                OR NEW.date NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+            )
+            BEGIN SELECT RAISE(ABORT, 'items: a date must be YYYY-MM-DD'); END
+        """)
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -565,6 +584,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_6_field_constraints,
         _migration_7_deletion_pruning,
         _migration_8_share_list_tracking,
+        _migration_9_item_date,
     ]
 
 

@@ -35,6 +35,7 @@ ITEM_KEYS = {
     "completed_at",
     "quantity",
     "description",
+    "date",
     "tags",
     "changed_seq",
 }

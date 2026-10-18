@@ -1,4 +1,5 @@
 import type { Item, List, Room } from '#lib/data/types.ts';
+import { isItemDate } from './item-date';
 import type {
 	RoomIdentity,
 	ShareIdentity,
@@ -79,6 +80,8 @@ function validItem(value: unknown, seq: number): value is Item {
 	if (typeof value.completed_at === 'string' && !Number.isFinite(Date.parse(value.completed_at)))
 		return false;
 	if (!value.done && value.completed_at !== null) return false;
+	// Saved before items had dates: a missing date means none.
+	if (value.date !== undefined && value.date !== null && !isItemDate(value.date)) return false;
 	return validTags(value.tags) && isSequence(value.changed_seq) && value.changed_seq <= seq;
 }
 
@@ -106,6 +109,7 @@ function copyItem(item: Item): Item {
 		completed_at: item.completed_at,
 		quantity: item.quantity,
 		description: item.description,
+		date: item.date ?? null,
 		tags: [...item.tags],
 		changed_seq: item.changed_seq
 	};

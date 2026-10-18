@@ -196,7 +196,8 @@ function projectRestore(
 		}),
 		tags: op.tags,
 		description: op.description.trim(),
-		quantity: op.quantity
+		quantity: op.quantity,
+		date: op.date ?? null
 	});
 }
 
@@ -215,6 +216,7 @@ function newRow(
 		completed_at: state.completed_at,
 		quantity: 1,
 		description: '',
+		date: null,
 		tags: [],
 		changed_seq: NEW_ROW_SEQ
 	};
@@ -236,7 +238,9 @@ function applyItemOp(item: Item, op: SentOp, at: string): Item {
 				quantity:
 					op.quantity === undefined || op.quantity === null
 						? item.quantity
-						: Math.max(1, op.quantity)
+						: Math.max(1, op.quantity),
+				// Absent keeps the date; null clears it.
+				date: op.date === undefined ? item.date : op.date
 			};
 		case 'item.toggle_tag': {
 			const on = op.active ?? !item.tags.includes(op.tag);

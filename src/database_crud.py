@@ -302,6 +302,7 @@ def restore_deleted_item_locked(
     *,
     completed_at: str | None = None,
     uid: str | None = None,
+    date: str | None = None,
 ) -> int | None:
     """Insert a deleted item again as a new row; return its ID.
 
@@ -318,8 +319,8 @@ def restore_deleted_item_locked(
         """
         INSERT INTO items (
             name, done, list_id, active_tags, description, quantity,
-            completed_at, uid
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            completed_at, uid, date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             name,
@@ -330,18 +331,19 @@ def restore_deleted_item_locked(
             quantity,
             completed_at if done else None,
             uid,
+            date,
         ),
     )
     return result.lastrowid
 
 
 def get_item_state_locked(item_id: int) -> dict[str, Any]:
-    """Stored done, name, description, quantity and changed_seq of an item.
+    """Stored done, name, description, quantity, date and changed_seq of an item.
 
     Read leniently, as the feed reads it. Call inside a write transaction.
     """
     row = db.execute(
-        "SELECT COALESCE(done, 0), name, description, quantity, changed_seq "
+        "SELECT COALESCE(done, 0), name, description, quantity, changed_seq, date "
         "FROM items WHERE id = ?",
         (item_id,),
     ).fetchone()
@@ -351,6 +353,7 @@ def get_item_state_locked(item_id: int) -> dict[str, Any]:
         "description": row[2] or "",
         "quantity": row[3] if row[3] is not None else 1,
         "changed_seq": row[4],
+        "date": row[5],
     }
 
 
@@ -397,13 +400,21 @@ def update_item_done_locked(
 
 
 def update_item_details_locked(
-    item_id: int, list_id: int, name: str, description: str, quantity: int | None
+    item_id: int,
+    list_id: int,
+    name: str,
+    description: str,
+    quantity: int | None,
+    *,
+    date_given: bool = False,
+    date: str | None = None,
 ) -> Literal["saved", "duplicate", "missing"]:
-    """Save name, description and quantity together, or nothing.
+    """Save name, description, quantity and date together, or nothing.
 
     "duplicate": another item of the list has the name (ignoring case and
-    outer spaces). "missing": no such item. None keeps the quantity. Call
-    inside a write transaction with checked values.
+    outer spaces). "missing": no such item. None keeps the quantity. The date
+    is saved only when `date_given`; then None clears it. Call inside a write
+    transaction with checked values.
     """
     duplicate = db.execute(
         "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
@@ -414,8 +425,9 @@ def update_item_details_locked(
         return "duplicate"
     result = db.execute(
         "UPDATE items SET name = ?, description = ?, "
-        "quantity = COALESCE(?, quantity) WHERE id = ? AND list_id = ?",
-        (name, description, quantity, item_id, list_id),
+        "quantity = COALESCE(?, quantity), "
+        "date = CASE WHEN ? THEN ? ELSE date END WHERE id = ? AND list_id = ?",
+        (name, description, quantity, date_given, date, item_id, list_id),
     )
     return "saved" if result.rowcount > 0 else "missing"
 
@@ -638,7 +650,7 @@ def get_item_changes_locked(
     rows = db.execute(
         """
         SELECT i.uid, l.uid, i.name, i.done, i.completed_at, i.quantity,
-               i.description, i.active_tags, i.changed_seq
+               i.description, i.active_tags, i.changed_seq, i.date
         FROM items AS i
         JOIN lists AS l ON l.id = i.list_id
         WHERE l.room_id = :room_id AND i.changed_seq > :since
@@ -662,6 +674,7 @@ def get_item_changes_locked(
                 "description": row[6] or "",
                 "tags": _decode_tags(row[7]),
                 "changed_seq": row[8],
+                "date": row[9],
             }
         )
     return items

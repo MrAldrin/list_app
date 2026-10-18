@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	addFeedback,
 	checkFeedback,
+	formatItemDate,
 	itemSuggestions,
 	normalizeItemName,
 	loadShowQuantities,
@@ -108,5 +109,14 @@ describe('stepQuantity', () => {
 		expect(stepQuantity(2, 1)).toBe(3);
 		expect(stepQuantity(2, -1)).toBe(1);
 		expect(stepQuantity(1, -1)).toBe(1);
+	});
+});
+
+describe('formatItemDate', () => {
+	it('shows the day and month, as written', () => {
+		expect(formatItemDate('2026-10-18')).toBe('18 Oct');
+		expect(formatItemDate('2026-01-05')).toBe('5 Jan');
+		// The day must not shift with the time zone.
+		expect(formatItemDate('2027-03-01')).toBe('1 Mar');
 	});
 });

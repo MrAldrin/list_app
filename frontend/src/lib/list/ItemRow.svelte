@@ -1,6 +1,7 @@
 <!--
 	One item: a checkbox, the name (tap to edit), a note icon when it has a
-	description, "×2" for a quantity of 2 or more, the quantity stepper (when
+	description, the date ("18 Oct") when it has one, "×2" for a quantity of
+	2 or more, the quantity stepper (when
 	"Show quantities" is on; it replaces "×2"), a letter
 	button per list tag (filled when the item has the tag) and, in Options
 	mode, a delete button. Checkbox, stepper and tags change at once; the data
@@ -10,7 +11,7 @@
 	import type { Item } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import UnsentMark from '#lib/ui/UnsentMark.svelte';
-	import { quantityBadge } from './items';
+	import { formatItemDate, quantityBadge } from './items';
 	import { tagColor, tagLetter } from './tags';
 
 	let {
@@ -66,6 +67,9 @@
 		{/if}
 		{#if badge}
 			<span class="badge">{badge}</span>
+		{/if}
+		{#if item.date}
+			<span class="date">{formatItemDate(item.date)}</span>
 		{/if}
 	</button>
 	{#if unsent}
@@ -205,6 +209,14 @@
 		color: var(--text-muted);
 		font-size: 0.875rem;
 		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Small and muted, after the name: a date is extra, not the main text. */
+	.date {
+		flex-shrink: 0;
+		color: var(--text-muted);
+		font-size: 0.8rem;
 		font-variant-numeric: tabular-nums;
 	}
 

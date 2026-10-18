@@ -295,8 +295,8 @@ Anyone with the link (no sign-in):
   "item": {
     "uid": "c39f…", "list_uid": "7c0e…", "name": "milk",
     "done": true, "completed_at": "2026-10-03T09:12:44.123456Z",
-    "quantity": 2, "description": "lactose free", "tags": ["Lidl"],
-    "changed_seq": 44
+    "quantity": 2, "description": "lactose free", "date": "2026-10-18",
+    "tags": ["Lidl"], "changed_seq": 44
   }
 }
 ```
@@ -337,7 +337,7 @@ Each room has a counter `seq`; every write in the room increases it.
 - `since` is required: a whole number from 0 up; anything else gives 422.
 - Stored values are read leniently: a missing quantity is 1,
   a missing description is `""`, unreadable tags are `[]`, and an unreadable
-  `completed_at` is `null`.
+  `completed_at` is `null`. `date` is `YYYY-MM-DD` or `null` (no date).
 - Otherwise (`full: false`) the client upserts `lists` and `items` by `uid` and
   removes each `uid` in `deletions`.
 - A deleted list means its items are gone too. The client drops them, whether or
@@ -396,15 +396,16 @@ names are lowercased.
 | `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). |
 | `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
-| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
+| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `date`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. `date` absent keeps it; `null` clears it. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
 | `item.toggle_tag` | `list_uid`, `item_uid`, `tag`, `active`? | Toggles one tag on the stored item tags. With `active`, sets the tag on (`true`) or off (`false`); already in that state changes nothing, so the op is safe to send twice. |
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
-| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at` | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. |
+| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at`, `date`? | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. `date` is kept as sent (absent is no date). |
 
 `?` means optional. A client `uid` must be a UUID that was never used by any
 list or item, in any room, even a deleted one; if it was, the server answers
 422. `quantity` and `delta` are whole numbers from −1,000,000 to 1,000,000.
 `completed_at` is an ISO 8601 time; without a time zone it counts as UTC.
+`date` is a real calendar day as `YYYY-MM-DD`; anything else is a 422.
 
 ### Conflicts
 
@@ -416,7 +417,7 @@ If the row changed after `base_seq` and the stored value differs from what the
 op wants, the op is rejected with `changed_meanwhile` and nothing changes. What
 the op wants:
 
-- `item.edit`: name, description and quantity (only if sent).
+- `item.edit`: name, description, quantity and date (quantity and date only if sent).
 - `item.set_done`: the done state.
 - `list.rename`: the name.
 

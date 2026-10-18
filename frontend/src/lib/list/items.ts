@@ -96,6 +96,20 @@ export function saveShowQuantities(listUid: string, on: boolean, storage = brows
 	}
 }
 
+const DAY_FORMAT = new Intl.DateTimeFormat('en-GB', {
+	day: 'numeric',
+	month: 'short',
+	timeZone: 'UTC'
+});
+
+/** A date as the list shows it: "18 Oct". Reads the day as written, with no time zone shift. */
+export function formatItemDate(date: string): string {
+	const [year, month, day] = date.split('-').map(Number);
+	const when = new Date(0);
+	when.setUTCFullYear(year, month - 1, day);
+	return DAY_FORMAT.format(when);
+}
+
 /** A quantity after − or +; never below 1, like the server. */
 export function stepQuantity(quantity: number, delta: number): number {
 	return Math.max(1, quantity + delta);

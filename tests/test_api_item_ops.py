@@ -90,6 +90,7 @@ def test_add_item(room, notified):
         "completed_at": None,
         "quantity": 1,
         "description": "",
+        "date": None,
         "tags": [],
         "changed_seq": before + 1,
     }
@@ -474,6 +475,7 @@ def test_restore_creates_a_new_item(room, notified):
         "completed_at": "2026-10-03T09:12:44.123456Z",
         "quantity": 2,
         "description": "lactose free",
+        "date": None,
         "tags": ["Lidl", "Market"],
         "changed_seq": before + 1,
     }

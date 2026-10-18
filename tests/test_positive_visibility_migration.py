@@ -9,6 +9,12 @@ from migration_helpers import migrate_to
 from database_setup import _migrations
 from migrations import run_migrations
 
+# The items columns of migration 4, before the later `date` column (migration 9).
+ITEM_COLUMNS = (
+    "id, name, description, quantity, done, list_id, active_tags, completed_at, "
+    "uid, changed_seq"
+)
+
 
 @pytest.mark.parametrize(
     "mode,age,recent,expected",
@@ -42,7 +48,7 @@ def test_upgrade_preserves_behavior_and_identity(
         )
         db.commit()
         identity = db.execute("SELECT id, uid, slug, share_token FROM lists").fetchall()
-        items = db.execute("SELECT * FROM items").fetchall()
+        items = db.execute(f"SELECT {ITEM_COLUMNS} FROM items").fetchall()
         before_seq = db.execute("SELECT change_seq FROM rooms").fetchone()[0]
         backup = tmp_path / "backup.db"
         run_migrations(db, migrations, backup)
@@ -56,7 +62,7 @@ def test_upgrade_preserves_behavior_and_identity(
             db.execute("SELECT id, uid, slug, share_token FROM lists").fetchall()
             == identity
         )
-        assert db.execute("SELECT * FROM items").fetchall() == items
+        assert db.execute(f"SELECT {ITEM_COLUMNS} FROM items").fetchall() == items
         seq = db.execute("SELECT change_seq FROM rooms").fetchone()[0]
         assert seq == before_seq + (1 if age == 0 or recent == 0 else 0)
         if age == 0 or recent == 0:

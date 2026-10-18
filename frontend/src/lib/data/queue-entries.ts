@@ -76,6 +76,7 @@ const FIELDS: Record<Op['type'], Checks> = {
 		name: str,
 		description: str,
 		quantity: optional(nullable(num)),
+		date: optional(nullable(str)),
 		base_seq: num
 	},
 	'item.toggle_tag': { list_uid: str, item_uid: str, tag: str, active: optional(bool) },
@@ -88,7 +89,8 @@ const FIELDS: Record<Op['type'], Checks> = {
 		tags: strs,
 		description: str,
 		quantity: num,
-		completed_at: nullable(str)
+		completed_at: nullable(str),
+		date: optional(nullable(str))
 	}
 };
 

@@ -513,7 +513,7 @@ export class RoomHandle {
 
 	editItem(
 		item: ItemRef & Pick<Item, 'changed_seq'>,
-		changes: { name: string; description: string; quantity?: number | null }
+		changes: { name: string; description: string; quantity?: number | null; date?: string | null }
 	): Promise<ActionResult> {
 		return this.#run({
 			type: 'item.edit',
@@ -558,7 +558,8 @@ export class RoomHandle {
 			tags: item.tags,
 			description: item.description,
 			quantity: item.quantity,
-			completed_at: item.completed_at
+			completed_at: item.completed_at,
+			date: item.date
 		});
 		if (result.ok) this.#deleted.delete(itemUid);
 		return result;

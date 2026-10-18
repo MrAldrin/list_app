@@ -1,6 +1,7 @@
 <!--
-	"Edit Item": name, description and quantity, saved together (or not at all).
-	Enter in the name field saves. The delete button deletes the item (with undo).
+	"Edit Item": name, description, quantity and date, saved together (or not at all).
+	The date is optional: "Clear" removes it. Enter in the name field saves.
+	The delete button deletes the item (with undo).
 	It starts with the item as it was when the dialog opened; the save sends
 	that version as `base_seq`.
 -->
@@ -23,18 +24,26 @@
 		/** Whether shared-data writes are authorized. */
 		canEdit: boolean;
 		/** Saves the fields. The parent closes the dialog if it worked. */
-		onSave: (changes: { name: string; description: string; quantity: number }) => Promise<void>;
+		onSave: (changes: {
+			name: string;
+			description: string;
+			quantity: number;
+			date: string | null;
+		}) => Promise<void>;
 		onDelete: () => void;
 		onClose: () => void;
 	} = $props();
 
 	const nameId = $props.id();
 	const descriptionId = `${nameId}-description`;
+	const dateId = `${nameId}-date`;
 	// `untrack`: start with the values at opening; live changes by someone
 	// else do not overwrite what is being typed.
 	let name = $state(untrack(() => item.name));
 	let description = $state(untrack(() => item.description));
 	let quantity = $state(untrack(() => item.quantity));
+	// '' means no date; the save sends null for it.
+	let date = $state(untrack(() => item.date ?? ''));
 </script>
 
 <FormDialog
@@ -42,7 +51,7 @@
 	submitLabel="Save"
 	submitDisabled={!canEdit}
 	focusBox
-	onSubmit={() => onSave({ name, description, quantity })}
+	onSubmit={() => onSave({ name, description, quantity, date: date || null })}
 	{onClose}
 >
 	<label for={nameId}>Item Name</label>
@@ -77,6 +86,11 @@
 				<Icon name="add" />
 			</button>
 		</div>
+	</div>
+	<label for={dateId}>Date</label>
+	<div class="date-row">
+		<input id={dateId} type="date" bind:value={date} />
+		<button type="button" disabled={!canEdit || !date} onclick={() => (date = '')}> Clear </button>
 	</div>
 	{#snippet leading()}
 		<button
@@ -119,6 +133,23 @@
 		min-width: 2rem;
 		text-align: center;
 		font-weight: 700;
+	}
+
+	.date-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.date-row input {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.date-row button {
+		min-height: var(--touch);
+		padding: 0 0.5rem;
+		color: var(--primary);
 	}
 
 	.spacer {

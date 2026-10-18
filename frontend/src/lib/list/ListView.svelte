@@ -164,7 +164,7 @@
 
 	async function saveItem(
 		item: Item,
-		changes: { name: string; description: string; quantity: number }
+		changes: { name: string; description: string; quantity: number; date: string | null }
 	) {
 		const result = await room.editItem(item, changes);
 		// A blank or duplicate name keeps the dialog open to fix it (the store

@@ -7,9 +7,11 @@ Rejected ops change nothing, but their response is stored like an applied
 one, so a retry gets the same answer.
 """
 
+import re
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
+from datetime import date as calendar_date
 from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import APIRouter, Request
@@ -100,6 +102,25 @@ def _completion_time(value: str | None) -> str | None:
 
 # An ISO 8601 time, stored as UTC with Z.
 CompletedAt = Annotated[StrictStr | None, AfterValidator(_completion_time)]
+
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+
+def _item_date(value: str | None) -> str | None:
+    """A real calendar day as `YYYY-MM-DD`; None for no date."""
+    if value is None:
+        return None
+    if not _ISO_DATE.fullmatch(value):
+        raise ValueError("date must be YYYY-MM-DD")
+    try:
+        calendar_date.fromisoformat(value)
+    except ValueError:
+        raise ValueError("date is not a real day") from None
+    return value
+
+
+# An item's optional date. Null clears it; a missing field keeps it.
+ItemDate = Annotated[StrictStr | None, AfterValidator(_item_date)]
 
 
 class Op(StrictBody):
@@ -198,8 +219,12 @@ class ItemEdit(ItemOp):
     name: StrictStr
     description: StrictStr
     quantity: Quantity | None = None
+    # Not sent: kept. Sent as null: cleared. See item_edit.
+    date: ItemDate = None
     # The item's changed_seq the page saw (see _check_base_seq).
     base_seq: BaseSeq
+
+    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset({"date"})
 
 
 class ItemToggleTag(ItemOp):
@@ -225,6 +250,9 @@ class ItemRestore(Op):
     description: StrictStr
     quantity: Quantity
     completed_at: CompletedAt
+    date: ItemDate = None
+
+    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset({"date"})
 
 
 AnyOp = Annotated[
@@ -461,17 +489,28 @@ def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
     name = _item_name(op.name)
     description = _description((op.description or "").strip())
     quantity = None if op.quantity is None else clamp_quantity(op.quantity)
+    # A date that was not sent is kept and is not part of what the op wants.
+    date_given = "date" in op.model_fields_set
     stored = get_item_state_locked(item_id)
     # A quantity that was not sent is not part of what the op wants.
     wanted_already_stored = (
         stored["name"] == name
         and stored["description"] == description
         and (quantity is None or stored["quantity"] == quantity)
+        and (not date_given or stored["date"] == op.date)
     )
     _check_base_seq(
         op.base_seq, stored["changed_seq"], wanted_already_stored=wanted_already_stored
     )
-    status = update_item_details_locked(item_id, list_id, name, description, quantity)
+    status = update_item_details_locked(
+        item_id,
+        list_id,
+        name,
+        description,
+        quantity,
+        date_given=date_given,
+        date=op.date,
+    )
     if status == "duplicate":
         raise OpRejected("duplicate_name", f"'{name}' already exists")
     _item_found(status == "saved")
@@ -508,6 +547,7 @@ def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
         clamp_quantity(op.quantity),
         completed_at=op.completed_at,
         uid=uid,
+        date=op.date,
     )
     if item_id is None:
         raise OpRejected("undo_name_taken", UNDO_NAME_TAKEN)
