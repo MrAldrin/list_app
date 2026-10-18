@@ -297,7 +297,8 @@ Anyone with the link (no sign-in):
     "uid": "c39f…", "list_uid": "7c0e…", "name": "milk",
     "done": true, "completed_at": "2026-10-03T09:12:44.123456Z",
     "quantity": 2, "description": "lactose free", "date": "2026-10-18",
-    "tags": ["Lidl"], "changed_seq": 44
+    "tags": ["Lidl"], "add_count": 2, "added_at": "2026-10-18T08:30:00.000Z",
+    "changed_seq": 44
   }
 }
 ```
@@ -339,6 +340,8 @@ Each room has a counter `seq`; every write in the room increases it.
 - Stored values are read leniently: a missing quantity is 1,
   a missing description is `""`, unreadable tags are `[]`, and an unreadable
   `completed_at` is `null`. `date` is `YYYY-MM-DD` or `null` (no date).
+  `add_count` is at least 1 (a missing one reads as 1); `added_at` is a UTC
+  time or `null` for items from before counting.
 - Otherwise (`full: false`) the client upserts `lists` and `items` by `uid` and
   removes each `uid` in `deletions`.
 - A deleted list means its items are gone too. The client drops them, whether or
@@ -394,19 +397,20 @@ names are lowercased.
 | `list.tag_add` | `list_uid`, `tag` | Adds one tag (trimmed); no change if it exists. Tags match exactly, case included. Also used to undo a tag delete. |
 | `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list; no change if it is not there. Item tags are not changed. |
 | `list.visibility` | `list_uid`, `mode`?, `age_days`?, `recent_count`? | Sends only the changed fields (at least one); the server keeps the others. Out-of-range values give 422. |
-| `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). |
-| `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
+| `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). Either one counts as an add: `add_count` +1 (a new item starts at 1) and `added_at` is now. |
+| `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Unchecking a checked item counts as an add (`add_count` +1, `added_at` now); checking, or unchecking an unchecked item, does not. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
 | `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `date`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. `date` absent keeps it; `null` clears it. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
 | `item.toggle_tag` | `list_uid`, `item_uid`, `tag`, `active`? | Toggles one tag on the stored item tags. With `active`, sets the tag on (`true`) or off (`false`); already in that state changes nothing, so the op is safe to send twice. |
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
-| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at`, `date`? | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. `date` is kept as sent (absent is no date). |
+| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at`, `date`?, `add_count`?, `added_at`? | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. `date` is kept as sent (absent is no date). `add_count` and `added_at` are kept as sent (absent: 1 and no time); an undo is not an add. |
 
 `?` means optional. A client `uid` must be a UUID that was never used by any
 list or item, in any room, even a deleted one; if it was, the server answers
 422. `quantity` and `delta` are whole numbers from −1,000,000 to 1,000,000.
 `completed_at` is an ISO 8601 time; without a time zone it counts as UTC.
 `date` is a real calendar day as `YYYY-MM-DD`; anything else is a 422.
+`add_count` is a whole number from 1 up; `added_at` is a readable time.
 
 ### Conflicts
 
