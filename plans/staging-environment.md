@@ -5,8 +5,10 @@ Lifecycle: tracked
 Goal: test a change on a real phone against a real Railway deployment before
 it reaches production.
 
-Status: proposed and deferred. Nothing is implemented. For now, test on a
-phone over Tailscale; see [phone testing](../docs/local-network-testing.md).
+Status: not planned (2026-10-18). With about five users we push straight to
+production and fix forward; see the
+[risk level](../AGENTS.md#risk-level-ship-and-fix-forward). Kept for reference
+only.
 
 ## Decisions so far
 

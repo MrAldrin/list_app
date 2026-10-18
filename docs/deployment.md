@@ -137,34 +137,27 @@ production cookie behavior. See the
 
 ## Deployment checklist
 
+The app has about five users and every push takes a backup, so deploys are
+light. The automated tests are the main check; see the
+[risk level](../AGENTS.md#risk-level-ship-and-fix-forward). If something
+breaks live, fix forward or [restore](#restoration-and-rollback).
+
 Before deploying:
 
-- [ ] `APP_PASSWORD` set, `DB_PATH` absolute, volume mounted, one instance.
-- [ ] Railway build and start command fields are empty (the `Dockerfile`
-  decides). See [Railway settings](#railway-settings-to-check).
-- [ ] Note the currently deployed revision.
-- [ ] For schema changes: take a backup with
-  [`--backup-only`](#backup-before-deploying) and start the new version against
-  a **copy** of it in an isolated environment first. Never point it at
-  production's path.
+- [ ] The automated tests pass (pytest, plus the browser and Android suites
+  when the change touches them).
 - [ ] Push with the [deploy backup script](#backup-before-deploying), not by
-  hand. It takes a fresh backup first.
+  hand. It takes a fresh backup and shows the revision being replaced.
+- [ ] For schema changes: the migration tests pass. The app also keeps its own
+  pre-migration copy.
 
 After deploying:
 
-- [ ] Startup logs have no errors. Run the [database checks](#read-only-database-checks).
-- [ ] Existing rooms, lists and items are still there.
-- [ ] Admin login, room login, and add/edit/toggle/delete work (use disposable
-  data). Live updates work across two browsers. Public share links work.
-  Old addresses (`/room/…`, `/list/…`, `/share/…`, `/app/…`) open the new app.
-- [ ] After a restart, a disposable item is still saved, remembered room access
-  still works, and a room password reset logs out the old session.
-- [ ] Real-device cookie and home-screen checks from the
-  [device checklist](home-screen-installation.md).
+- [ ] The Railway startup log has no errors.
+- [ ] The app opens and an existing list still shows its items.
 
-Feature-specific checks, such as [public sharing](public-sharing.md#rollout-and-verification),
-are listed in their own docs. Checks not yet done on production are tracked in
-the [backlog](../plans/backlog.md#manual-checks).
+The owner uses the live app as normal. Device checks are only for very
+high-risk changes.
 
 ## Backup before deploying
 
@@ -288,6 +281,3 @@ steps, in this order:
 
 Restoring alone leaves the new code on an old database: it would migrate again.
 Redeploying alone fails at startup on the newer database.
-
-This procedure has not yet been rehearsed on a hosted copy; that drill is
-tracked in the [backlog](../plans/backlog.md#later).

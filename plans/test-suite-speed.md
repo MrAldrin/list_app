@@ -24,16 +24,13 @@ remaining decisions and checks, in order, are:
    time, retain device-specific behavior and safe cleanup, then repeat and
    compare clean runs. See [Priority 3](#priority-3--simplify-and-measure-android-checks)
    and [Android setup](../docs/android-emulator-testing.md).
-3. **Owner/device decision:** agree a small real-iPhone acceptance subset and
-   record device/browser versions and results when a phone is available.
-   Decide separately whether a small Linux WebKit check adds value; it cannot
-   replace iPhone testing. See [iPhone acceptance](#iphone-relevance-and-remaining-acceptance).
+3. **Decided (2026-10-18):** no real-iPhone acceptance subset. The WebKit
+   browser tests are the Safari evidence. See [iPhone acceptance](#iphone-relevance-and-remaining-acceptance).
 4. **Verification, not an optimization:** repeat the four-worker desktop suite
    on other machines or CI when available, and observe longer-term flakes.
    The ~59s local result is not a cross-machine guarantee.
 
-No Android benchmarks or Android scenario removals, real-iPhone checks, or
-other-machine browser checks have been performed for these remaining items. The
+No Android benchmarks or Android scenario removals, or other-machine browser checks have been performed for these remaining items. The
 [progress checklist](#progress) below tracks completion; do not infer approval
 from a proposed step.
 
@@ -57,7 +54,7 @@ Proposed execution tiers:
 1. During editing: affected Python tests; targeted Chromium cases for UI changes.
 2. Task completion: full Python suite, preserving the repository's required Python quality checks.
 3. Relevant integration changes and releases: full desktop browser suite across Chromium and Firefox.
-4. Installation, storage, lifecycle, or network changes, plus applicable releases: Android checks and appropriate iPhone acceptance.
+4. Installation, storage, lifecycle, or network changes: Android checks and the WebKit browser tests.
 
 The current serial desktop browser command is documented in `docs/browser-testing.md`. Update Android guidance and broader execution-tier guidance only after the corresponding coverage/tier decisions are approved. Keep the default Python command free of browser/device requirements.
 
@@ -89,7 +86,7 @@ The default suite is already about nine seconds, so optimize after the expensive
 
 Android tests can expose shared application bugs in authorization, saved-data handling, and reconnection flows. They cannot establish iPhone correctness: Safari/WebKit, installed-app storage, installation, and background/cold-launch behavior differ from Android Chrome.
 
-Because primary users are on iPhone, prioritize a short real-iPhone acceptance checklist for critical installed-app journeys, especially early in future offline work. Linux Playwright WebKit can add useful engine-level coverage but is not installed iOS Safari; evaluate a small subset rather than multiplying every browser test automatically. Do not make Android the main evidence for iPhone readiness. See [installation acceptance](../docs/home-screen-installation.md#real-device-acceptance-checklist) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
+With about five users, we accept that gap. Linux Playwright WebKit is the iPhone evidence; the owner sees iPhone behavior live after deploys, and we fix problems then. Real-iPhone checks are only for very high-risk changes. See the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
 
 ## Progress
 
@@ -97,5 +94,5 @@ Completed steps and all measurements are in [background](../docs/background/test
 
 - [ ] Owner decides baseline Android coverage (including the password-prompt smoke case) and execution tiers; map device-specific assertions to retained coverage before removing scenarios. Do not import offline-only tests.
 - [ ] After coverage approval, profile and benchmark the approved Android scenarios serially on the dedicated emulator; retain installation/lifecycle checks and safe cleanup, repeat clean runs, and record the runtime comparison. Android remains unmeasured.
-- [ ] Agree a small real-iPhone acceptance subset and record versions/results on a real device; decide separately whether optional Linux WebKit coverage is useful.
+- [x] Decide on real-iPhone acceptance: none; WebKit tests are the Safari evidence (2026-10-18).
 - [ ] Verify four-worker desktop browser stability on other machines/CI when available and observe longer-term flakes; local runs alone are not cross-machine acceptance.

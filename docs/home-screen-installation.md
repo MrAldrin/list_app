@@ -78,9 +78,11 @@ Design reasoning, implementation details and past test results are in
 
 ## Real-device acceptance checklist
 
-Use HTTPS and disposable rooms, preferably on a spare device or profile. Record
-OS and browser versions with the results. Do not remove a working icon just to
-test.
+Use this only for very high-risk changes to installation or remembered access;
+normally the automated tests are enough (see the
+[risk level](../AGENTS.md#risk-level-ship-and-fix-forward)). Pick the steps
+that the change affects. Use HTTPS and disposable rooms. Do not remove a
+working icon just to test.
 
 1. **Fresh iPhone install:** in Safari, sign in to room A, then Add to Home
    Screen. The icon should open room A without a second sign-in; a password
@@ -103,6 +105,3 @@ test.
    Expect "Room not found".
 8. **Android Chrome:** repeat fresh install, restart, old icon, multiple rooms
    and password revocation. Try both "Install" and "Add shortcut" if offered.
-
-Results are tracked in the
-[backlog](../plans/backlog.md#manual-checks).

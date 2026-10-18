@@ -45,8 +45,7 @@ The application remains single-instance; see [deployment](deployment.md).
 
 ## Rollout and verification
 
-Before deploying, take a SQLite-consistent backup as described in the
-[deployment guide](deployment.md). Startup adds/backfills tokens automatically.
+The [deploy script](deployment.md#backup-before-deploying) takes a backup. Startup adds/backfills tokens automatically.
 Existing room URLs/passwords, manifest addresses, and remembered-access mechanisms
 are unchanged. Replace any previously saved/shared public list URLs with new
 Share links. Rolling back to older application code re-exposes the old public
@@ -57,12 +56,4 @@ Automated coverage: `tests/test_public_share_tokens.py`,
 (`test_public_sharing.py`, `test_svelte_share.py`). All run locally over HTTP
 only.
 
-**Manual deployment checks:**
-
-- Open a room and list using remembered access on the deployed app.
-- Share to another browser without room access; verify view and item editing.
-- Reset from the room-authorized browser; immediately attempt edits and undo
-  in the old public tab, then reload the old link. Verify the new link works.
-- Verify unauthorized old slug URLs reveal no contents or new tokens.
-- Restart and verify room access and current public links still work.
-- Check installed-app launch and navigation on iPhone and Android.
+These automated tests are the verification; there are no extra manual checks.

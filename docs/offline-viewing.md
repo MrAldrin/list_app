@@ -4,7 +4,6 @@ Saved data opens without a network. Edits made offline are kept on the phone
 and sent when the connection is back.
 
 Rules and mechanics: [offline editing details](background/offline-editing-details.md).
-Pending checks: [backlog](../plans/backlog.md).
 
 ## What works offline
 

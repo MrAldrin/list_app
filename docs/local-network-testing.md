@@ -1,7 +1,9 @@
 # Testing on a Phone before Deployment
 
-Run the app on your laptop and open it on your phone. This is free and catches
-most layout and touch problems before deployment.
+Run the app on your laptop and open it on your phone. This is optional and
+rarely needed: normally the automated tests are enough and the owner sees
+changes live after the push. Use it for very high-risk changes or to debug a
+phone-only problem. See the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
 
 ## How it works
 
@@ -107,5 +109,4 @@ Guest Wi-Fi often blocks devices from reaching each other.
 - It uses an empty test database. Changes to the database structure may still
   fail on production's older data.
 - It uses local `.env` settings, not Railway's settings, volume or build.
-  Railway-specific problems need a real deployment; see the
-  [staging environment plan](../plans/staging-environment.md).
+  Railway-specific problems show up after the real deployment.

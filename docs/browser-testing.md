@@ -19,7 +19,8 @@ uv run pytest browser_tests -q -n 4
   be installed with `uv run playwright install --with-deps chromium firefox webkit`.
   On this laptop WebKit needed `sudo apt-get install libavif16`.
 - WebKit is the engine of every iPhone browser. Playwright's Linux WebKit is
-  close to Safari but not identical, so real iPhone checks are still needed.
+  close to Safari but not identical. It is our Safari check; real iPhone
+  checks are only for very high-risk changes.
 - The plain `uv run pytest -q` does not run these tests.
 
 Smaller runs while debugging:
@@ -94,8 +95,7 @@ stale page then tries add, edit, toggle, quantity, tag or undo.
 - Room deletion removes room navigation from both.
 
 Each action runs in both engines, with room and public pages split between
-them. Manual multi-user checks on real devices are tracked in the
-[backlog](../plans/backlog.md#manual-checks).
+them.
 
 ## Limits
 

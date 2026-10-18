@@ -1,8 +1,9 @@
 # Opt-in Android emulator checks
 
 These checks use a **disposable Android virtual phone**, not production or the
-local `list.db`. They do not run in `uv run pytest -q` and do not replace iPhone
-or physical Android acceptance. See the [device checklist](home-screen-installation.md#real-device-acceptance-checklist).
+local `list.db`. They do not run in `uv run pytest -q`. Together with the
+[browser suite](browser-testing.md) they are our phone evidence; real-device
+checks are only for very high-risk changes.
 
 ## Local setup
 

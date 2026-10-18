@@ -20,5 +20,3 @@ The server stores completion times in UTC. Unchecking an item clears its complet
 Existing zero counters are reset to the defaults (7 days / 10 items). A list using zero in its active mode switches to **All**, preserving which items are hidden.
 
 Items already checked before this feature have no known completion time. They hide in immediate mode; in day mode they remain visible until unchecked and checked again. In last-X mode, known check-off times rank first; older items without times are approximated by newest item creation ID, not an invented check-off date. Deleting and undoing an item preserves its check-off time.
-
-Production and real-device checks are tracked in the [backlog](../plans/backlog.md#manual-checks).

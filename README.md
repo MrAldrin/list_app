@@ -53,7 +53,7 @@ A jj workspace gets its own copy of tracked files only. Ignored files such as
 - `list.db`: the app creates an empty database on first start. Each workspace
   keeps its own test data; do not symlink the main workspace's database.
 
-To test on a phone before deploying, see
+Testing on a phone before deploying is optional and rarely needed; see
 [phone testing](docs/local-network-testing.md).
 
 ## Start the app

@@ -12,6 +12,13 @@
 
 - When working in a new jj workspace, remind me of the [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
 
+## Risk level: ship and fix forward
+- The app has about five users and the list data is not critical. Every deploy takes a backup first. If a deploy breaks something, even the database, we fix it or restore the backup.
+- Work end to end: implement, run the automated tests, then propose the push. Do not add extra safety steps, rehearsals or staging.
+- Automated tests are the evidence: pytest, the browser suite (Chromium, Firefox, WebKit for Safari) and the Android emulator suite where relevant. Keep running them.
+- Keep manual checks to a minimum. Do not ask the user to test on a phone, over Tailscale or in a staging environment before deploying. The user sees changes live after the push.
+- Ask for a manual device check only for very high-risk changes, such as a migration that could lose data or a change that could lock everyone out. Say why in one line.
+
 ## Technical Stack ideas
 The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
 
@@ -37,7 +44,7 @@ We also have these extra files and folders:
 - `plans/`: Proposed work, decisions, implementation steps, and progress tracking at the bottom. Clearly distinguish planned, implemented, and verified work; a plan is not evidence that a feature exists.
   - Every plan starts with a lifecycle line under its title: `Lifecycle: temporary` (a checklist for approved start-to-finish work, deleted when done) or `Lifecycle: tracked` (open-ended or multi-session work, kept until retired with approval). Choose the label when writing the plan and tell the user which one. A plan without a label counts as `tracked`. `plans/backlog.md` has no label.
 - `plans/backlog.md`: Unfinished or deferred work, with links to detailed plans where useful. Do not use it as an operational reference or a permanent completed-work log.
-  - Sections: **Next** (committed, in order, top first, no size limit), **Later** (agreed, no date), **Ideas** (no promise), **Manual checks** (production and device checks for the user).
+  - Sections: **Next** (committed, in order, top first, no size limit), **Later** (agreed, no date), **Ideas** (no promise), **Manual checks** (rare: only for very high-risk changes, see [risk level](#risk-level-ship-and-fix-forward)).
   - Each item starts with a tag listed at the top of the backlog, then a short description and a link. Keep details in the linked plan or doc.
   - "Do this next" goes at the top of Next. For any other request to add an item, ask which section it goes in, and where in Next if chosen.
   - Mark an item being worked on across sessions with `(in progress)`. Move items between sections only when the user decides.
