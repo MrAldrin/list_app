@@ -49,8 +49,8 @@ describe('addFeedback', () => {
 });
 
 describe('checkFeedback', () => {
-	it('names the item, green for checked', () => {
-		expect(checkFeedback('milk', true)).toEqual({ message: 'Checked milk', kind: 'success' });
+	it('names the item, neutral for both', () => {
+		expect(checkFeedback('milk', true)).toEqual({ message: 'Checked milk', kind: 'info' });
 		expect(checkFeedback('milk', false)).toEqual({ message: 'Unchecked milk', kind: 'info' });
 	});
 });

@@ -47,11 +47,9 @@ export function addFeedback(
 		: { message: `Added ${name}`, kind: 'success' };
 }
 
-/** The toast after checking or unchecking an item: "Checked milk" or "Unchecked milk". */
+/** The toast after checking or unchecking an item: "Checked milk" or "Unchecked milk", both neutral. */
 export function checkFeedback(name: string, done: boolean): { message: string; kind: ToastKind } {
-	return done
-		? { message: `Checked ${name}`, kind: 'success' }
-		: { message: `Unchecked ${name}`, kind: 'info' };
+	return { message: `${done ? 'Checked' : 'Unchecked'} ${name}`, kind: 'info' };
 }
 
 /** How long "Undo" stays after deleting an item, as NiceGUI's undo bar (5 s). */
