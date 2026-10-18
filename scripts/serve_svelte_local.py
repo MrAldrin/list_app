@@ -13,7 +13,9 @@ import argparse
 import ipaddress
 import json
 import os
+import re
 import shutil
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -85,6 +87,65 @@ def tailscale_serve_status() -> dict:
         return {}
 
 
+def port_is_free(port: int) -> bool:
+    """True when nothing is listening on this port (same bind as uvicorn)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind(("0.0.0.0", port))
+        except OSError:
+            return False
+    return True
+
+
+def port_owner_pids(ss_output: str) -> list[int]:
+    """Process ids from `ss -Hltnp` output, unique, in order."""
+    pids: list[int] = []
+    for match in re.finditer(r"pid=(\d+)", ss_output):
+        pid = int(match.group(1))
+        if pid not in pids:
+            pids.append(pid)
+    return pids
+
+
+def port_owner(port: int) -> tuple[int, str] | None:
+    """(pid, command) of the process listening on this port, or None."""
+    try:
+        output = subprocess.run(
+            ["ss", "-Hltnp", f"sport = :{port}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    pids = port_owner_pids(output)
+    if not pids:
+        return None
+    pid = pids[0]
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return pid, "unknown command"
+    parts = [part.decode(errors="replace") for part in raw.split(b"\0") if part]
+    return pid, " ".join(parts)
+
+
+def port_in_use_message(port: int, owner: tuple[int, str] | None) -> str:
+    """Why the port is busy, who holds it, and what to do next."""
+    advice = "or use --port for laptop-only testing."
+    if owner is None:
+        return (
+            f"Port {port} is already in use.\n"
+            f"Stop that server first (Ctrl+C in its terminal), {advice}"
+        )
+    pid, command = owner
+    return (
+        f"Port {port} is already in use by pid {pid}: {command}\n"
+        f"Stop that server first (Ctrl+C in its terminal, or kill {pid}), {advice}"
+    )
+
+
 def server_env(database: Path, base: dict[str, str]) -> dict[str, str]:
     """The app's environment: test database, no auto-reload."""
     return {
@@ -139,6 +200,8 @@ def main() -> None:
     database = args.db.expanduser().resolve()
     if database == (ROOT / "list.db").resolve():
         sys.exit("Use a separate test database, not the repository's list.db.")
+    if not port_is_free(args.port):
+        sys.exit(port_in_use_message(args.port, port_owner(args.port)))
 
     if not args.skip_build:
         build_frontend()

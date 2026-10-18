@@ -46,7 +46,8 @@ uv run python scripts/serve_svelte_local.py
 ```
 
 - Stop the normal app first: both use port `8080`, the only port the firewall
-  rules allow.
+  rules allow. If another workspace holds the port, the script stops and names
+  its process and workspace.
 - It prints the [HTTPS address](#https-on-the-phone) for the phone, or plain
   HTTP addresses if Tailscale Serve is not set up. Old `/app/...` addresses
   redirect to the same address at `/`.

@@ -10,8 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [infra] Phone testing clashes between agents: Tailscale Serve and the firewall only forward port 8080, so only one workspace can run `serve_svelte_local.py` for the phone at a time. A second agent's server fails to start, or the phone silently tests the other agent's code. Decide how agents share or split this (for example a lock or ownership note, or one Serve port per workspace), then update the [phone testing guide](../docs/local-network-testing.md) and the workspace rules in [`AGENTS.md`](../AGENTS.md#workspace-coordination-trial).
-
 ## Later
 
 Agreed as worth doing; no date.
