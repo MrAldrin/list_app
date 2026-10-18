@@ -7,10 +7,12 @@
 <script lang="ts">
 	import {
 		countHiddenChecked,
+		itemSortChoice,
 		type HideDone,
 		type Item,
 		type List,
-		type RoomHandle
+		type RoomHandle,
+		sortItems
 	} from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
@@ -25,7 +27,9 @@
 	import {
 		addFeedback,
 		checkFeedback,
+		loadItemSort,
 		loadShowQuantities,
+		saveItemSort,
 		saveShowQuantities,
 		UNDO_DURATION
 	} from './items.ts';
@@ -62,6 +66,14 @@
 		showQuantities = on;
 		saveShowQuantities(listUid, on);
 	}
+	// "Sort": personal too, saved per list in this browser (name A–Z by default).
+	let itemSort = $derived(loadItemSort(listUid));
+	function setItemSort(choiceId: string) {
+		const choice = itemSortChoice(choiceId);
+		if (!choice) return;
+		itemSort = choice;
+		saveItemSort(listUid, choice.id);
+	}
 	/** The item in the edit dialog, as it was when the dialog opened. */
 	let editing = $state.raw<Item | null>(null);
 	/** The tag chip the items are filtered by (page state, as in NiceGUI). */
@@ -74,7 +86,8 @@
 		const items = searching
 			? searchItems(room.store.itemsOf(list.uid), searchText)
 			: room.store.visibleItemsOf(list.uid, now);
-		return filterByTag(items, filterTag);
+		// Sorted last, after the search and the tag filter (open items still first).
+		return sortItems(filterByTag(items, filterTag), itemSort);
 	});
 
 	// "Hide after N days" depends on the clock, so the visible items are
@@ -216,6 +229,8 @@
 {#if optionsOpen}
 	<ListOptions
 		bind:showQuantities={() => showQuantities, setShowQuantities}
+		sort={itemSort}
+		onSort={setItemSort}
 		hideDone={list.hide_done}
 		{canEdit}
 		onHideDone={(changes) => setHideDone(list, changes)}

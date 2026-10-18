@@ -93,7 +93,16 @@ export {
 	DEFAULT_HIDE_DONE,
 	MAX_HIDE_DONE_COUNT
 } from './visibility';
-export { sortItems, sortLists, sortTags } from './order';
+export {
+	ITEM_SORTS,
+	itemSortChoice,
+	sortItems,
+	sortLists,
+	sortTags,
+	type ItemSort,
+	type ItemSortChoice,
+	type ItemSortKey
+} from './order';
 export {
 	cantBeSentText,
 	describeChange,

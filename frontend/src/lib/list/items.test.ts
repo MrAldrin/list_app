@@ -7,8 +7,10 @@ import {
 	itemSuggestions,
 	lastAddedLabel,
 	normalizeItemName,
+	loadItemSort,
 	loadShowQuantities,
 	quantityBadge,
+	saveItemSort,
 	saveShowQuantities,
 	stepQuantity
 } from './items';
@@ -103,6 +105,34 @@ describe('show quantities setting', () => {
 		expect(loadShowQuantities('a', blocked)).toBe(false);
 		expect(() => saveShowQuantities('a', true, blocked)).not.toThrow();
 		expect(loadShowQuantities('a', null)).toBe(false);
+	});
+
+	it('keeps the item sort per list, and name A–Z when none or an unknown one is saved', () => {
+		const storage = memoryStorage();
+		expect(loadItemSort('a', storage)).toMatchObject({ id: 'name-asc', key: 'name' });
+		saveItemSort('a', 'added-asc', storage);
+		expect(loadItemSort('a', storage)).toMatchObject({
+			id: 'added-asc',
+			key: 'added',
+			reverse: true
+		});
+		expect(loadItemSort('b', storage)).toMatchObject({ id: 'name-asc' });
+		storage.setItem('list-app:sort:a', 'by-colour');
+		expect(loadItemSort('a', storage)).toMatchObject({ id: 'name-asc' });
+		storage.setItem('list-app:sort:a', '');
+		expect(loadItemSort('a', storage)).toMatchObject({ id: 'name-asc' });
+	});
+
+	it('works without storage for the item sort', () => {
+		const blocked = memoryStorage();
+		blocked.getItem = () => {
+			throw new Error('blocked');
+		};
+		blocked.setItem = blocked.getItem;
+		expect(loadItemSort('a', blocked)).toMatchObject({ id: 'name-asc' });
+		expect(() => saveItemSort('a', 'date-asc', blocked)).not.toThrow();
+		expect(loadItemSort('a', null)).toMatchObject({ id: 'name-asc' });
+		expect(() => saveItemSort('a', 'date-asc', null)).not.toThrow();
 	});
 });
 

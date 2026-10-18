@@ -1,7 +1,12 @@
 // Small rules of the list page, kept out of the components so Vitest can
 // test them. They copy what NiceGUI's list page does (`src/main.py`).
 
-import { compareCodePoints } from '#lib/data/order.ts';
+import {
+	compareCodePoints,
+	ITEM_SORTS,
+	itemSortChoice,
+	type ItemSortChoice
+} from '#lib/data/order.ts';
 import type { Item } from '#lib/data/index.ts';
 import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 
@@ -128,6 +133,29 @@ export function lastAddedLabel(addedAt: string | null): string | null {
 	const day = [when.getFullYear(), pad(when.getMonth() + 1), pad(when.getDate())].join('-');
 	const time = `${pad(when.getHours())}:${pad(when.getMinutes())}`;
 	return `Last added ${day} ${time}`;
+}
+
+const SORT_KEY = 'list-app:sort:';
+
+/**
+ * The item sort of one list (a choice of `ITEM_SORTS`). A personal setting,
+ * saved in this browser only. Name A–Z when nothing valid is saved.
+ */
+export function loadItemSort(listUid: string, storage = browserStorage()): ItemSortChoice {
+	try {
+		return itemSortChoice(storage?.getItem(SORT_KEY + listUid)) ?? ITEM_SORTS[0];
+	} catch {
+		return ITEM_SORTS[0];
+	}
+}
+
+/** Saves the item sort of one list by its choice id; does nothing where storage is blocked. */
+export function saveItemSort(listUid: string, choiceId: string, storage = browserStorage()): void {
+	try {
+		storage?.setItem(SORT_KEY + listUid, choiceId);
+	} catch {
+		// Storage full or blocked: the sort still works until the page is left.
+	}
 }
 
 /** A quantity after − or +; never below 1, like the server. */
