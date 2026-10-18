@@ -74,7 +74,7 @@ def _manifest_response(start_url: str) -> JSONResponse:
 def register_pwa_routes(app: FastAPI) -> None:
     """Add the old install, icon and service worker routes."""
 
-    @app.get("/sw.js", include_in_schema=False)
+    @app.api_route("/sw.js", methods=["GET", "HEAD"], include_in_schema=False)
     def serve_service_worker_kill_switch() -> Response:
         return Response(
             KILL_SWITCH_SCRIPT,
