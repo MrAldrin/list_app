@@ -23,11 +23,10 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   `Dockerfile`. Deployment configuration, process limits, and recovery
   procedures belong in the [deployment guide](docs/deployment.md).
 - **Offline:** saved data can be viewed and edited without a network. Edits are
-  kept on the device (IndexedDB) and sent when the connection is back. Offline
-  editing is built locally and awaits owner review (Gate C); it is not deployed.
-  See [offline use](docs/offline-viewing.md) and the
-  [offline editing plan](plans/offline-editing.md). Discuss other stack changes
-  before implementation.
+  kept on the device (IndexedDB) and sent when the connection is back. See
+  [offline use](docs/offline-viewing.md) and the
+  [conflict rules](docs/background/offline-editing-details.md#conflict-rules).
+  Discuss other stack changes before implementation.
 
 ## Domain and security boundaries
 

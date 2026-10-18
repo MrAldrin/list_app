@@ -16,7 +16,7 @@ None.
 
 Agreed as worth doing; no date.
 
-- [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline editing](offline-editing.md#what-can-be-done-offline).
+- [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline use](../docs/offline-viewing.md#what-works-offline).
 - [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing. See the [offline viewing scope](../docs/background/svelte-frontend-rewrite.md#offline-viewing-scope).
 
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
@@ -56,4 +56,4 @@ real-device evidence. Follow the
 [deployment checklist](../docs/deployment.md#deployment-checklist) and record
 results (with OS/browser versions for devices) in the linked doc.
 
-- [ ] [test] After deployment, check offline editing on an iPhone, including two devices, sign-out holds and persistent rejections. Follow [offline editing](offline-editing.md#owner-review-decision-log) and the [offline-use guide](../docs/offline-viewing.md).
+- [ ] [test] After deployment, check offline editing on an iPhone, including two devices, sign-out holds and persistent rejections. Follow the [offline-use guide](../docs/offline-viewing.md).

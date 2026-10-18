@@ -1,5 +1,5 @@
 // Changes the user is told about after the server refused them, or failed them
-// (plans/offline-editing.md, 6.3). Pure functions: room-store.svelte.ts keeps
+// (docs/background/offline-editing-details.md, "Not saved"). Pure functions: room-store.svelte.ts keeps
 // the list, the components show it.
 
 import type { SentOp } from './types';

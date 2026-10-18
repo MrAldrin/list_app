@@ -1,4 +1,4 @@
-// Where a room's queued ops wait on this device (plans/offline-editing.md, 6.2c).
+// Where a room's queued ops wait on this device (docs/background/offline-editing-details.md, "Queue storage").
 //
 // One IndexedDB object store ("queue"), one record per room or share link:
 //   key: "room:<slug>" or "share:<token>"   (rooms and share links never mix)

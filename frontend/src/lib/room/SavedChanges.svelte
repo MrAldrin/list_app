@@ -1,5 +1,5 @@
 <!--
-	Changes that did not reach the server (plans/offline-editing.md, 6.3). A
+	Changes that did not reach the server (docs/background/offline-editing-details.md, "Not saved"). A
 	banner shows the count; "Review" opens a sheet with what and why:
 
 	- Not saved: a change refused or failed after it waited (made offline, or

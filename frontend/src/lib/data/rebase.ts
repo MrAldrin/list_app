@@ -1,5 +1,5 @@
 // Rewrites of queued ops after the server answered an earlier op
-// (plans/offline-editing.md, R3 and R6). Pure functions: the write queue applies
+// (docs/background/offline-editing-details.md, R3 and R6). Pure functions: the write queue applies
 // the result to memory and storage, and the room store to its projection.
 //
 // Rule for a body rewrite: only ops that were never sent are rewritten. An op

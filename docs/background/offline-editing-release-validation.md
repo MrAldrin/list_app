@@ -1,7 +1,7 @@
 # Offline editing release validation
 
 Current behaviour: [Offline use](../offline-viewing.md).
-Approved scope and decisions: [Offline editing plan](../../plans/offline-editing.md).
+Approved scope and decisions: [offline editing details](offline-editing-details.md#decisions).
 Deployment procedure: [Deployment checklist](../deployment.md#deployment-checklist).
 
 ## Candidate

@@ -1,6 +1,6 @@
 """Two devices, one list, offline: the merge and conflict rules R1-R7.
 
-plans/offline-editing.md, "Conflict rules". Each browser context is its own
+docs/background/offline-editing-details.md, "Conflict rules". Each browser context is its own
 device, so each one can be offline on its own. Offline is simulated by failing
 every API call (`go_offline`). The rules that a single device does not hit
 (revoked access, a list rename, storage loss, a new version) are covered here

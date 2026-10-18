@@ -3,9 +3,7 @@
 Saved data opens without a network. Edits made offline are kept on the phone
 and sent when the connection is back.
 
-Offline editing is implemented and approved for automated release checks, but
-this version is not deployed. Plan: [offline editing](../plans/offline-editing.md).
-Mechanics: [offline editing details](background/offline-editing-details.md).
+Rules and mechanics: [offline editing details](background/offline-editing-details.md).
 Pending checks: [backlog](../plans/backlog.md).
 
 ## What works offline

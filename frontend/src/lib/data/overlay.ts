@@ -3,7 +3,7 @@
 // Server state stays exactly as the changes feed sent it. Views read
 // "server state + pending ops", so a change shows at once and settles when the
 // server answers. Every op type the app can queue is projected, so the user sees
-// it at once, also offline (plans/offline-editing.md, "The overlay").
+// it at once, also offline (docs/offline-viewing.md, "What works offline").
 
 import { sortTags } from './order';
 import { NEW_ROW_SEQ } from './rebase';

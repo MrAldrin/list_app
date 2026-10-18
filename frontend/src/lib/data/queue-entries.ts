@@ -1,5 +1,5 @@
 // One stored write-queue entry: what the device keeps for an op until the
-// server answers it (plans/offline-editing.md, R10 and R13). Pure functions only;
+// server answers it (docs/background/offline-editing-details.md, R10 and R13). Pure functions only;
 // storage lives in queue-storage.ts and the queue in write-queue.ts.
 
 import { isRecord } from './snapshot-validate';

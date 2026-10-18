@@ -1,9 +1,33 @@
 # Offline editing: details
 
 Supporting detail for [offline use](../offline-viewing.md), which gives the
-current behavior. Rules R1-R13 and the decisions are in the
-[offline editing plan](../../plans/offline-editing.md). This page explains the
-mechanics behind them.
+current behavior. This page holds the conflict rules (R1-R13), the mechanics
+behind them and the decisions. Code comments refer to the rule numbers.
+
+## Conflict rules
+
+Plain idea: **merge what can be merged; refuse a stale overwrite and tell the
+user.** Built in steps 6.1-6.4 of Milestone 6 (see the
+[Svelte rewrite record](svelte-frontend-rewrite.md)); live since 2026-10-17.
+
+| # | Situation | Rule |
+|---|---|---|
+| R1 | Two devices change a quantity | Both deltas count (+1 and +1 give +2). |
+| R2 | Two devices tick, edit or rename the same row | A set op carries `base_seq`. If the row changed since and the stored value differs, it is rejected (`changed_meanwhile`). If the value already matches, it is applied. |
+| R3 | The user's own queued ops on one row | After one is applied, later queued ops on that row move to its new `changed_seq`. |
+| R4 | Tag on an item | The op says the wanted state (`active`), so sending it twice is safe. |
+| R5 | Edit vs delete | Delete wins. The edit is rejected and shown as not saved. |
+| R6 | Add an item someone else added | One item. The answer names it, and later ops on the new item go to it. |
+| R7 | Rename a list to a taken name | Rejected (`duplicate_name`). |
+| R8 | Hide-done setting, room name | Last write wins. |
+| R9 | Access gone while offline | Changes are kept as "can't be sent". Sign in again, or discard. Reset share link: discard only. |
+| R10 | Changes older than 30 days | Not sent automatically; the user chooses Send or Discard. The server forgets answers after 30 days. |
+| R11 | Browser clears site data | Unsent changes are lost. The app asks for persistent storage. |
+| R12 | Two tabs on one device | One tab sends a room's queue (Web Locks). The `op_id` keeps a double send harmless. |
+| R13 | New app version while changes wait | Entries have a format number. One the app cannot read stays, discard only. |
+
+A rejection the user just caused online is a toast. One that waited goes to
+the Not saved list.
 
 ## Saved views
 
@@ -143,3 +167,39 @@ Other devices' edits, deletes and password resets then show up.
   discarded after the room is deleted.
 - Logout in one tab clears the others. Without Web Locks (plain HTTP on a LAN),
   logout is local only; use HTTPS or localhost.
+
+## Decisions
+
+The owner reviewed the rules on 2026-10-17 and kept them all:
+
+- Row-level conflicts, no field-by-field merge. An edit compares every sent
+  field, so a +/− on another device conflicts with an open edit dialog.
+  "Save mine anyway" resends on the current version.
+- Changes stay held after sign-out until the user chooses Send or Discard.
+- Not saved entries persist on the device until dismissed or retried. Never
+  retried automatically.
+- Creating a list stays online-only (see the backlog).
+- A held or unreadable entry blocks later entries of the same room on this
+  device. Ordinary rejections do not block.
+- A tab with waiting changes keeps the old app version until they are sent.
+  Offline for days means the old version for days.
+- Closing the app within a few milliseconds of a tap can lose that change
+  (written to IndexedDB just after). Accepted.
+- Sending waits about 10-15 ms for the Web Lock and IndexedDB. A "send first"
+  fast path was rejected as too complex.
+- Old stored answers keep their shape: a null new field is left out of the
+  request hash, so retries from before the deploy still match.
+- Deletions are pruned after 90 days (migration 7). A share link's `seq` never
+  goes down after pruning (migration 8, `share_seq_floors`). See
+  [change tracking](../change-tracking.md).
+- Pre-release iPhone tests were waived; automated checks were accepted. Results:
+  [release validation](offline-editing-release-validation.md).
+
+## Why a new version switches on open
+
+Found on the iPhone on 2026-10-12. A new service worker took over only after
+every copy of the app closed, including Safari tabs. People could stay on the
+old version for a long time, and Reload in the update banner could load the old
+copy again. That matters most after an API version bump, which blocks writes
+until the phone switches. The owner chose to switch on open and on return to
+the screen, when no changes wait (2026-10-13).
