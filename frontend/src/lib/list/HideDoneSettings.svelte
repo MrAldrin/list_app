@@ -45,7 +45,7 @@
 	}
 </script>
 
-<label class="row">
+<label class="row main">
 	<span>Hide checked-off items</span>
 	<input
 		type="checkbox"
@@ -111,6 +111,11 @@
 		border-top: 1px solid var(--border);
 		font-weight: 500;
 		cursor: pointer;
+	}
+
+	/* Sits right under "Show quantities" with no line: they belong together. */
+	.main {
+		border-top: none;
 	}
 
 	fieldset {

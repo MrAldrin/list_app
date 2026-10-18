@@ -1,7 +1,8 @@
 <!--
-	The "Options" panel of the list page. "Show quantities" and "Sort" are
-	personal and saved in this browser; the hide-done settings below them are
-	saved for the list, for everyone.
+	The "Options" panel of the list page. "Sort" comes first, as the option
+	changed most often.
+	"Sort" and "Show quantities" are personal and saved in this browser; the
+	hide-done settings are saved for the list, for everyone.
 -->
 <script lang="ts">
 	import { ITEM_SORTS, type HideDone, type ItemSortChoice } from '#lib/data/index.ts';
@@ -29,10 +30,6 @@
 </script>
 
 <section class="card" aria-label="Options">
-	<label class="switch">
-		<span>Show quantities</span>
-		<input type="checkbox" role="switch" bind:checked={showQuantities} />
-	</label>
 	<label class="switch" for={sortId}>
 		<span>Sort</span>
 		<select id={sortId} value={sort.id} onchange={(event) => onSort(event.currentTarget.value)}>
@@ -40,6 +37,10 @@
 				<option value={choice.id}>{choice.label}</option>
 			{/each}
 		</select>
+	</label>
+	<label class="switch">
+		<span>Show quantities</span>
+		<input type="checkbox" role="switch" bind:checked={showQuantities} />
 	</label>
 	<HideDoneSettings settings={hideDone} disabled={!canEdit} onChange={onHideDone} />
 </section>
