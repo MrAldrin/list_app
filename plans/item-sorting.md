@@ -75,9 +75,9 @@ Each step is small and tested on its own.
 
 ## Progress
 
-- [ ] Before we start: `item-date` in `integration`
+- [x] Before we start: `item-date` in `integration`
 - [ ] Before we start: times-added counter in `integration`
-- [ ] Step 1: `added_at` (skip if the counter work added it)
+- [ ] Step 1: `added_at` (skip: the counter work adds it in migration 10)
 - [ ] Step 2: sort logic
 - [ ] Step 3: saved choice
 - [ ] Step 4: menu
