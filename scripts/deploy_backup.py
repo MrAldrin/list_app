@@ -33,8 +33,8 @@ KEEP_BACKUPS = 2
 # A sleeping Railway app starts on the first web request.
 APP_URL = "https://listapp-production-d627.up.railway.app/"
 # It can take a little longer before railway ssh reaches the container.
-SSH_TRIES = 4
-SSH_RETRY_WAIT_SECONDS = 15
+SSH_TRIES = 3
+SSH_RETRY_WAIT_SECONDS = 5
 RESULT_PREFIX = "BACKUP_RESULT "
 DATA_BEGIN = "BACKUP_DATA_BEGIN"
 DATA_END = "BACKUP_DATA_END"
