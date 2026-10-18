@@ -922,8 +922,8 @@ Milestone 5: offline viewing
   local tests. Logout stores the sign-out marker before the password prompt,
   stops the live feed first, and falls back to `local_clear_unconfirmed` after a
   5 s local timeout. Other-device edits, deletes, password-reset revocation and
-  invalid share links behave correctly. Real-device privacy checks are in
-  [Gate V](offline-viewing-gate-v.md).
+  invalid share links behave correctly. Real-device privacy checks were
+  left untested (owner's choice).
 - [x] 5.5 Acceptance matrix, final local checks and docs: browser suite 216
   passed (`-n 4`, three engines), Vitest 365, Python 1205, lint/format/check/
   build/worker `tsc` clean. Current behavior is in
@@ -939,7 +939,7 @@ Milestone 5: offline viewing
   Reload. A missing header counts as compatible. See
   [offline viewing](../docs/offline-viewing.md#after-a-deploy) and
   [API version](../docs/api.md#api-version). Real-device check is in the backlog.
-- [x] **Gate V: owner offline-viewing review** (no deployment approval implied). Owner guide and iPhone checklist: [offline-viewing-gate-v.md](offline-viewing-gate-v.md). Accepted 2026-10-14 after daily use; three iPhone checks left untested.
+- [x] **Gate V: owner offline-viewing review** (no deployment approval implied). Accepted 2026-10-14 after daily use; three iPhone checks left untested.
 
 Milestone 6: offline editing
 - [x] 6.1 Conflict rules design: see [offline editing](offline-editing.md); steps 6.2-6.4 are tracked there. Include late writes: today a change made

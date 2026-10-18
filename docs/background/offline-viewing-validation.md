@@ -150,5 +150,5 @@ first-rollout safety on real devices.
 ## Remaining verification
 
 Real iPhone Safari and home-screen behavior, OS and browser versions, and
-production upgrade behavior have not been verified. See the
-[Gate V guide](../../plans/offline-viewing-gate-v.md).
+production upgrade behavior have not been verified. The owner chose not to
+check them.
