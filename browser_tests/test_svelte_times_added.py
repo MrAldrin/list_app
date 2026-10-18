@@ -19,6 +19,9 @@ def test_item_dialog_counts_adds_and_unchecks(svelte_server, open_session):
     # A new item was added once. The line is not on the list row.
     milk.click()
     expect(dialog.get_by_text("Added once")).to_be_visible()
+    expect(
+        dialog.get_by_text(re.compile(r"^Last added \d{4}-\d{2}-\d{2} \d{2}:\d{2}$"))
+    ).to_be_visible()
     dialog.get_by_role("button", name="Cancel").click()
     expect(dialog).to_be_hidden()
     expect(page.locator("ul.items")).not_to_contain_text("Added once")

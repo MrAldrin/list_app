@@ -5,6 +5,7 @@ import {
 	checkFeedback,
 	formatItemDate,
 	itemSuggestions,
+	lastAddedLabel,
 	normalizeItemName,
 	loadShowQuantities,
 	quantityBadge,
@@ -127,5 +128,28 @@ describe('addedLabel', () => {
 		expect(addedLabel(1)).toBe('Added once');
 		expect(addedLabel(2)).toBe('Added 2 times');
 		expect(addedLabel(5)).toBe('Added 5 times');
+	});
+});
+
+describe('lastAddedLabel', () => {
+	// The expected text is built from local time, so the test passes in any time zone.
+	it('shows the local date and 24-hour time of the last add', () => {
+		const at = new Date(2026, 9, 18, 14, 8, 30);
+		expect(lastAddedLabel(at.toISOString())).toBe('Last added 2026-10-18 14:08');
+	});
+
+	it('pads single-digit months, days, hours and minutes', () => {
+		const at = new Date(2026, 0, 5, 9, 4, 0);
+		expect(lastAddedLabel(at.toISOString())).toBe('Last added 2026-01-05 09:04');
+	});
+
+	it('shows midnight as 00:00', () => {
+		const at = new Date(2026, 9, 18, 0, 0, 0);
+		expect(lastAddedLabel(at.toISOString())).toBe('Last added 2026-10-18 00:00');
+	});
+
+	it('shows nothing for an item with no time, or a time that is not one', () => {
+		expect(lastAddedLabel(null)).toBeNull();
+		expect(lastAddedLabel('yesterday')).toBeNull();
 	});
 });

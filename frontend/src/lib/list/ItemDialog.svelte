@@ -1,7 +1,8 @@
 <!--
 	"Edit Item": name, description, quantity and date, saved together (or not at all).
 	The date is optional: "Clear" removes it. Enter in the name field saves.
-	A muted line shows how often the item was added (it is not editable).
+	A muted line shows how often the item was added and when it was last added
+	(it is not editable).
 	The delete button deletes the item (with undo).
 	It starts with the item as it was when the dialog opened; the save sends
 	that version as `base_seq`.
@@ -12,7 +13,7 @@
 	import type { Item } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
-	import { addedLabel, stepQuantity } from './items';
+	import { addedLabel, lastAddedLabel, stepQuantity } from './items';
 
 	let {
 		item,
@@ -34,6 +35,8 @@
 		onDelete: () => void;
 		onClose: () => void;
 	} = $props();
+
+	const lastAdded = $derived(lastAddedLabel(item.added_at));
 
 	const nameId = $props.id();
 	const descriptionId = `${nameId}-description`;
@@ -94,6 +97,9 @@
 		<button type="button" disabled={!canEdit || !date} onclick={() => (date = '')}> Clear </button>
 	</div>
 	<p class="added">{addedLabel(item.add_count)}</p>
+	{#if lastAdded}
+		<p class="added">{lastAdded}</p>
+	{/if}
 	{#snippet leading()}
 		<button
 			class="delete"

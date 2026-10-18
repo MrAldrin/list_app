@@ -115,6 +115,21 @@ export function addedLabel(count: number): string {
 	return count === 1 ? 'Added once' : `Added ${count} times`;
 }
 
+/**
+ * The dialog's line on when an item was last added, in the browser's local
+ * time: "Last added 2026-10-18 14:08". Null when there is no time (items from
+ * before the counter) or it is not a valid time.
+ */
+export function lastAddedLabel(addedAt: string | null): string | null {
+	if (addedAt === null) return null;
+	const when = new Date(addedAt);
+	if (Number.isNaN(when.getTime())) return null;
+	const pad = (part: number) => String(part).padStart(2, '0');
+	const day = [when.getFullYear(), pad(when.getMonth() + 1), pad(when.getDate())].join('-');
+	const time = `${pad(when.getHours())}:${pad(when.getMinutes())}`;
+	return `Last added ${day} ${time}`;
+}
+
 /** A quantity after − or +; never below 1, like the server. */
 export function stepQuantity(quantity: number, delta: number): number {
 	return Math.max(1, quantity + delta);
