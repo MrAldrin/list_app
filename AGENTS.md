@@ -58,12 +58,13 @@ Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 
 ## Jujutsu development baseline
 
-- `integration` marks the accepted development baseline. It means “keep this work”, not “production-tested”. Start new independent work from this bookmark (`jj new integration`); continue existing work on its own line.
-- `main` is the production deployment line. `main-staging` marks a tested deployment candidate. Feature bookmarks mark work not yet integrated. Do not repurpose these bookmarks.
+- `integration` marks accepted work: "keep this, build on it". It is not a promise that the work is deployed or production-tested. Start new independent work from it (`jj new integration`); continue existing work on its own line.
+- `main` is the production line. Feature bookmarks mark work not yet accepted. There are no other shared bookmarks. Do not repurpose these.
+- `integration` may be ahead of `main`. That is normal, not a to-do. Docs-only work (`docs/`, `plans/`, `AGENTS.md`) does not need a push; it goes out with the next code push. To see what a push would deploy: `jj diff -r main..integration --stat`.
 - Before starting work, inspect `jj status`, `jj bookmark list`, and the graph. Preserve existing workspace edits. If `integration` is missing or conflicted, ask rather than choosing another baseline silently.
-- Move `integration` only with explicit user approval to accept completed work. Point it at the completed change, not an empty working-copy child. Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
-- Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent’s active work merely to tidy the graph.
-- Updating `integration` does not authorize moving `main` or `main-staging`, pushing, or deploying. Existing deployment approval rules still apply.
+- Move `integration` only with explicit user approval to accept completed work. Point it at the completed change, not the empty working-copy child (`jj bookmark set integration -r @-` when `@` is empty). Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
+- Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent's active work merely to tidy the graph.
+- Updating `integration` does not authorize moving `main`, pushing, or deploying. Existing deployment approval rules still apply.
 
 ## Tools:
 - Packages: Use uv (use the dev group if only for development).
