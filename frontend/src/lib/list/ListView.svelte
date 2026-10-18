@@ -34,7 +34,7 @@
 		UNDO_DURATION
 	} from './items.ts';
 	import { searchItems } from './search.ts';
-	import { activeFilter, filterByTag } from './tags.ts';
+	import { activeFilters, filterByTags } from './tags.ts';
 
 	let {
 		room,
@@ -76,9 +76,9 @@
 	}
 	/** The item in the edit dialog, as it was when the dialog opened. */
 	let editing = $state.raw<Item | null>(null);
-	/** The tag chip the items are filtered by (page state, as in NiceGUI). */
-	let chosenTag = $state<string | null>(null);
-	const filterTag = $derived(activeFilter(chosenTag, list.tags));
+	/** The tag chips the items are filtered by, all must match (page state, as in NiceGUI). */
+	let chosenTags = $state<string[]>([]);
+	const filterTags = $derived(activeFilters(chosenTags, list.tags));
 	const visibleItems = $derived.by(() => {
 		// Typing filters the list only for a saved or unconfirmed view; online it
 		// only suggests (also while access is briefly being revalidated).
@@ -87,7 +87,7 @@
 			? searchItems(room.store.itemsOf(list.uid), searchText)
 			: room.store.visibleItemsOf(list.uid, now);
 		// Sorted last, after the search and the tag filter (open items still first).
-		return sortItems(filterByTag(items, filterTag), itemSort);
+		return sortItems(filterByTags(items, filterTags), itemSort);
 	});
 
 	// "Hide after N days" depends on the clock, so the visible items are
@@ -147,6 +147,13 @@
 		void room.toggleItemTag(item, tag);
 	}
 
+	/** Adds the tag to the filter, or removes it when it is already there. */
+	function toggleFilter(tag: string) {
+		chosenTags = chosenTags.includes(tag)
+			? chosenTags.filter((chosen) => chosen !== tag)
+			: [...chosenTags, tag];
+	}
+
 	async function addTag(target: List, tag: string): Promise<boolean> {
 		// The chip shows at once; a rejection is shown by the store as a toast.
 		const result = await room.addListTag(target, tag);
@@ -155,7 +162,7 @@
 
 	/** Deletes at once and offers "Undo" for a few seconds, like item deletes. */
 	function deleteTag(target: List, tag: string) {
-		if (chosenTag === tag) chosenTag = null;
+		chosenTags = chosenTags.filter((chosen) => chosen !== tag);
 		const handle = room;
 		showUndoToast({
 			message: `Deleted tag ${tag}`,
@@ -238,10 +245,10 @@
 {/if}
 <ListTags
 	tags={list.tags}
-	filter={filterTag}
+	filter={filterTags}
 	editing={optionsOpen}
 	{canEdit}
-	onFilter={(tag) => (chosenTag = tag)}
+	onToggleFilter={toggleFilter}
 	onAdd={(tag) => addTag(list, tag)}
 	onDelete={(tag) => deleteTag(list, tag)}
 />
@@ -271,6 +278,9 @@
 </ul>
 {#if hiddenChecked > 0}
 	<p class="hidden-count">{hiddenText}</p>
+{/if}
+{#if filterTags.length > 0 && visibleItems.length === 0}
+	<p class="hidden-count">No items match all selected tags.</p>
 {/if}
 {#if editing}
 	{@const item = editing}

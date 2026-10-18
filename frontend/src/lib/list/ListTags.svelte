@@ -1,7 +1,7 @@
 <!--
-	The list's tags. A tap on a tag chip shows only the items with that tag
-	(tap again to show all). In Options mode there is an "Add Tag" field, and
-	each chip gets a × to delete the tag from the list.
+	The list's tags. A tap on a tag chip adds it to the filter, and a tap again
+	removes it; the items must have every chosen tag. In Options mode there is
+	an "Add Tag" field, and each chip gets a × to delete the tag from the list.
 -->
 <script lang="ts">
 	import { MAX_TAG_LENGTH } from '#lib/ui/field-limits.ts';
@@ -15,7 +15,7 @@
 		filter,
 		editing,
 		canEdit,
-		onFilter,
+		onToggleFilter,
 		onAdd,
 		onDelete
 	}: {
@@ -23,11 +23,12 @@
 		tags: readonly string[];
 		/** Whether shared-data tag mutations are authorized. */
 		canEdit: boolean;
-		/** The tag the items are filtered by, or null. */
-		filter: string | null;
+		/** The tags the items are filtered by: an item must have all of them. */
+		filter: readonly string[];
 		/** Options mode: adding and deleting tags. */
 		editing: boolean;
-		onFilter: (tag: string | null) => void;
+		/** Adds the tag to the filter, or removes it when it is in the filter. */
+		onToggleFilter: (tag: string) => void;
 		/** Adds a tag; true when the field should be cleared. */
 		onAdd: (tag: string) => Promise<boolean>;
 		onDelete: (tag: string) => void;
@@ -85,10 +86,10 @@
 			<li style:--tag={tagColor(index)}>
 				<button
 					class="chip"
-					class:on={filter === tag}
+					class:on={filter.includes(tag)}
 					type="button"
-					aria-pressed={filter === tag}
-					onclick={() => onFilter(filter === tag ? null : tag)}
+					aria-pressed={filter.includes(tag)}
+					onclick={() => onToggleFilter(tag)}
 				>
 					{tag}
 				</button>

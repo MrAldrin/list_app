@@ -18,19 +18,22 @@ export function tagLetter(tag: string): string {
 }
 
 /**
- * The filter in use: the chosen tag while the list still has it. A tag that
- * someone deleted (here or on another device) stops filtering.
+ * The filters in use: the chosen tags the list still has, in the list's order.
+ * A tag that someone deleted (here or on another device) stops filtering.
  */
-export function activeFilter(chosen: string | null, listTags: readonly string[]): string | null {
-	return chosen !== null && listTags.includes(chosen) ? chosen : null;
+export function activeFilters(chosen: readonly string[], listTags: readonly string[]): string[] {
+	return listTags.filter((tag) => chosen.includes(tag));
 }
 
-/** Filters by one tag (exact match). Run it after hiding checked items. */
-export function filterByTag<T extends Pick<Item, 'tags'>>(
+/**
+ * Filters by tags (exact match): keeps the items that have every tag. No tags
+ * keeps all. Run it after hiding checked items.
+ */
+export function filterByTags<T extends Pick<Item, 'tags'>>(
 	items: readonly T[],
-	tag: string | null
+	tags: readonly string[]
 ): T[] {
-	return tag === null ? [...items] : items.filter((item) => item.tags.includes(tag));
+	return items.filter((item) => tags.every((tag) => item.tags.includes(tag)));
 }
 
 /**

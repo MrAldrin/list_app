@@ -197,14 +197,39 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     expect(page.get_by_role("button", name="Lidl tag for eggs")).to_have_attribute(
         "aria-pressed", "true"
     )
+    # A third tag, on bread only: no item has both Lidl and Bakery.
+    tag_field.fill("Bakery")
+    page.get_by_role("button", name="Add new tag").click()
+    expect(chips.get_by_role("button", name="Bakery", exact=True)).to_be_visible()
+    page.get_by_role("button", name="Market tag for milk").click()
+    page.get_by_role("button", name="Market tag for bread").click()
+    page.get_by_role("button", name="Bakery tag for bread").click()
 
-    # Filter by a tag, then tap it again to show everything.
+    # Several chips filter together: an item needs every chosen tag.
     page.get_by_role("button", name="Done").click()
     lidl = chips.get_by_role("button", name="Lidl", exact=True)
+    market = chips.get_by_role("button", name="Market", exact=True)
+    bakery = chips.get_by_role("button", name="Bakery", exact=True)
+    no_match = page.get_by_text("No items match all selected tags.")
     lidl.click()
     expect(lidl).to_have_attribute("aria-pressed", "true")
     expect(item_names(page)).to_have_text(["eggs", "milk"])
+    # Lidl and Bakery: no item has both, so a message shows under the list.
+    bakery.click()
+    expect(item_names(page)).to_have_count(0)
+    expect(no_match).to_be_visible()
+    bakery.click()
+    expect(no_match).to_have_count(0)
+    # Lidl and Market: only milk has both.
+    market.click()
+    expect(market).to_have_attribute("aria-pressed", "true")
+    expect(item_names(page)).to_have_text(["milk"])
+    # Tap Lidl off: the items with Market stay.
     lidl.click()
+    expect(lidl).to_have_attribute("aria-pressed", "false")
+    expect(item_names(page)).to_have_text(["bread", "milk"])
+    # Tap Market off: show everything.
+    market.click()
     expect(item_names(page)).to_have_count(4)
 
     # Delete a tag with Undo; item tags come back with it.
@@ -239,6 +264,8 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
         hide.check()
     expect(page.get_by_role("radio", name="All")).to_be_checked()
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
+    # The reload can cancel the live changes poll; WebKit reports that.
+    page.expects_reload_cancel = True
     page.reload()
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
     page.get_by_role("button", name="Options").click()
@@ -252,5 +279,5 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
         "hide-done mode not saved",
     )
     [(tags, mode)] = server.query("SELECT list_tags, hide_done_mode FROM lists")
-    assert sorted(json.loads(tags)) == ["Lidl", "Market", "lidl"]
+    assert sorted(json.loads(tags)) == ["Bakery", "Lidl", "Market", "lidl"]
     assert mode == "off"
