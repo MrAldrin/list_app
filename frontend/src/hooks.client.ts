@@ -3,3 +3,8 @@
 import { startStaleBuildReload } from '#lib/stale-build.ts';
 
 startStaleBuildReload();
+
+// Safari on the iPhone only applies the CSS `:active` (pressed) style when the
+// page listens for touches. This empty listener turns it on, for example for
+// the pressed list cards in app.css.
+document.addEventListener('touchstart', () => {}, { passive: true });

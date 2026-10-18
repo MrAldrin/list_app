@@ -285,6 +285,25 @@ input[role='switch']:checked::before {
 	color: var(--text);
 	font-size: 1.1rem;
 	text-decoration: none;
+	/* No tap flash on the link alone; the whole card darkens instead (below). */
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Pressing the name darkens the whole card, buttons included. `:has()` styles
+   the card when the link inside it is pressed. */
+.list-row:has(.list-row-link:active) {
+	background: color-mix(in srgb, var(--text) 12%, var(--surface));
+}
+
+/* The keyboard focus ring goes around the whole card, not a square box
+   around the link inside it. */
+.list-row-link:focus-visible {
+	outline: none;
+}
+
+.list-row:has(.list-row-link:focus-visible) {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
 }
 
 /* Long names stay on one line and end with "…". */
