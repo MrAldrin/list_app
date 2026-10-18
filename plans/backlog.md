@@ -10,7 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [feature] Count how many times each item is added, for a "most added" sort. Also store when it was last added; see [before we start](item-sorting.md#before-we-start).
 
 ## Later
 
@@ -24,7 +23,6 @@ Agreed as worth doing; no date.
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] Optional date on items (no time), shown on the item. No calendar view. (in progress, `item-date` workspace)
-- [ ] [feature] Sort menu on each list: name, date, added and most added, both directions, saved per browser. Waits for item dates and the times-added counter. See the [item sorting plan](item-sorting.md).
 - [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 
 ## Ideas

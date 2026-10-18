@@ -2,8 +2,8 @@
 
 Lifecycle: tracked
 
-A small sort menu on each list page. Waiting for two other pieces of work (see
-[before we start](#before-we-start)); the [backlog](backlog.md) tracks when.
+A small sort menu on each list page. Implemented; current behavior is in
+[docs/item-sorting.md](../docs/item-sorting.md).
 
 ## What the user gets
 
@@ -76,9 +76,9 @@ Each step is small and tested on its own.
 ## Progress
 
 - [x] Before we start: `item-date` in `integration`
-- [ ] Before we start: times-added counter in `integration`
-- [ ] Step 1: `added_at` (skip: the counter work adds it in migration 10)
-- [ ] Step 2: sort logic
-- [ ] Step 3: saved choice
-- [ ] Step 4: menu
-- [ ] Step 5: docs and backlog
+- [x] Before we start: times-added counter in `integration`
+- [x] Step 1: `added_at` (not needed: the counter work added it in migration 10)
+- [x] Step 2: sort logic
+- [x] Step 3: saved choice
+- [x] Step 4: menu
+- [x] Step 5: docs and backlog
