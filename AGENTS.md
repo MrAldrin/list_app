@@ -73,6 +73,20 @@ Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 - Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent's active work merely to tidy the graph.
 - Updating `integration` does not authorize moving `main`, pushing, or deploying. Existing deployment approval rules still apply.
 
+## Workspace coordination (trial)
+
+This is a trial, not a permanent workflow. Keep it lightweight; discuss relaxing these guardrails after we have tried them. Do not remove them automatically.
+
+- At the start of a new task or session, briefly confirm the target repo, scope, workspace, and any known concurrent work with the user before editing. If the user or handoff already makes these clear, acknowledge them rather than asking again.
+- Treat `/home/hsa/projects/list_app` as the coordination workspace, not the `main` production line. Shared backlog and planning updates happen there. Multiple agents may coordinate there, but agree who is writing each shared file before editing it. Documentation-only work can still conflict.
+- Every agent creates its own new jj workspace for each new task, based on `integration`, and does all implementation there. Never share an implementation workspace with another agent, even one using the same tool. Keep feature-specific docs and tests with the feature.
+- When the task's work is integrated, the agent that created the workspace removes it (`jj workspace forget <name>`, then delete its folder). The user should never need to clean up after an agent.
+- Leave workspaces that existed before this rule alone; the user handles them manually.
+- Workers report shared backlog/planning updates to the coordinating agent instead of editing divergent copies. Before changing shared tracking, check current ownership and status. If coordination is unavailable, ask the user rather than assume another agent is idle.
+- Pi agents can use Pi Intercom to coordinate. Do not assume Claude Code is reachable through it. Use a user relay or an explicitly agreed shared handoff for cross-tool coordination; record the task owner, workspace, and status in existing task tracking when useful. No new coordination service is required.
+- Ask before integration, rebasing, or workspace cleanup. Coordinate an exclusive window before changing a workspace's revision, and never rewrite another agent's active work. The existing `integration` and deployment approval rules still apply.
+- Push back when task ownership, overlapping edits, or the integration baseline is unclear. Explain the concrete risk and propose the smallest safe next step. Keep unrelated work untouched.
+
 ## Tools:
 - Packages: Use uv (use the dev group if only for development).
 - Formatting: Use ruff.
