@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	addedLabel,
 	addFeedback,
 	checkFeedback,
 	formatItemDate,
@@ -118,5 +119,13 @@ describe('formatItemDate', () => {
 		expect(formatItemDate('2026-01-05')).toBe('5 Jan');
 		// The day must not shift with the time zone.
 		expect(formatItemDate('2027-03-01')).toBe('1 Mar');
+	});
+});
+
+describe('addedLabel', () => {
+	it('says once for 1 and the count otherwise', () => {
+		expect(addedLabel(1)).toBe('Added once');
+		expect(addedLabel(2)).toBe('Added 2 times');
+		expect(addedLabel(5)).toBe('Added 5 times');
 	});
 });

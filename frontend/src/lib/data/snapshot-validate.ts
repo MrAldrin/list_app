@@ -82,6 +82,18 @@ function validItem(value: unknown, seq: number): value is Item {
 	if (!value.done && value.completed_at !== null) return false;
 	// Saved before items had dates: a missing date means none.
 	if (value.date !== undefined && value.date !== null && !isItemDate(value.date)) return false;
+	// Saved before items were counted: a missing count is 1 and a missing time is none.
+	if (
+		value.add_count !== undefined &&
+		!(Number.isSafeInteger(value.add_count) && (value.add_count as number) >= 1)
+	)
+		return false;
+	if (
+		value.added_at !== undefined &&
+		value.added_at !== null &&
+		(typeof value.added_at !== 'string' || !Number.isFinite(Date.parse(value.added_at)))
+	)
+		return false;
 	return validTags(value.tags) && isSequence(value.changed_seq) && value.changed_seq <= seq;
 }
 
@@ -111,6 +123,8 @@ function copyItem(item: Item): Item {
 		description: item.description,
 		date: item.date ?? null,
 		tags: [...item.tags],
+		add_count: item.add_count ?? 1,
+		added_at: item.added_at ?? null,
 		changed_seq: item.changed_seq
 	};
 }

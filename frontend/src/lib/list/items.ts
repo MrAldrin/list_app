@@ -110,6 +110,11 @@ export function formatItemDate(date: string): string {
 	return DAY_FORMAT.format(when);
 }
 
+/** The dialog's line on how often an item was added: "Added once", "Added 5 times". */
+export function addedLabel(count: number): string {
+	return count === 1 ? 'Added once' : `Added ${count} times`;
+}
+
 /** A quantity after − or +; never below 1, like the server. */
 export function stepQuantity(quantity: number, delta: number): number {
 	return Math.max(1, quantity + delta);

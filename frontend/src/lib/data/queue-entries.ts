@@ -90,7 +90,9 @@ const FIELDS: Record<Op['type'], Checks> = {
 		description: str,
 		quantity: num,
 		completed_at: nullable(str),
-		date: optional(nullable(str))
+		date: optional(nullable(str)),
+		add_count: optional(num),
+		added_at: optional(nullable(str))
 	}
 };
 

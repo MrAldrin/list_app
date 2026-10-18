@@ -38,6 +38,10 @@ export interface Item {
 	date: string | null;
 	/** Keep their order. */
 	tags: string[];
+	/** How often the item was added: adds, restores and unchecks. At least 1. */
+	add_count: number;
+	/** When it was last added (UTC ISO time); null for items from before counting. */
+	added_at: string | null;
 	changed_seq: number;
 }
 
@@ -153,6 +157,9 @@ export interface ItemRestoreOp {
 	quantity: number;
 	completed_at: string | null;
 	date?: string | null;
+	/** Kept from the deleted item; absent counts as 1 with no time. */
+	add_count?: number;
+	added_at?: string | null;
 }
 
 export type Op =

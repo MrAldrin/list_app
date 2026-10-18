@@ -35,6 +35,8 @@ export function makeItem(listUid: string, overrides: Partial<Item> = {}): Item {
 		description: '',
 		date: null,
 		tags: [],
+		add_count: 1,
+		added_at: null,
 		changed_seq: 1,
 		...overrides
 	};

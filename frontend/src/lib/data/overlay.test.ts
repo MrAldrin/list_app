@@ -79,6 +79,8 @@ describe('overlay: item ops', () => {
 			description: '',
 			date: null,
 			tags: [],
+			add_count: 1,
+			added_at: AT,
 			changed_seq: NEW_ROW_SEQ
 		});
 	});

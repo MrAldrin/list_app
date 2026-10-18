@@ -110,7 +110,7 @@ export function project(
 				break;
 			}
 			case 'item.add':
-				projectAdd(lists, items, op.list_uid, op.name, op.uid);
+				projectAdd(lists, items, op.list_uid, op.name, op.uid, at);
 				break;
 			case 'item.restore':
 				projectRestore(lists, items, op);
@@ -156,14 +156,16 @@ export function projectRoom(room: Room | null, pending: readonly PendingOp[]): R
 
 /**
  * Add-or-restore, as the server does it: an active item with the name means no
- * change; a checked one is unchecked; otherwise a new row with the client uid.
+ * change; a checked one is unchecked and counted; otherwise a new row with the
+ * client uid. `at` is when the user added it.
  */
 function projectAdd(
 	lists: Map<string, List>,
 	items: Map<string, Item>,
 	listUid: string,
 	rawName: string,
-	uid: string | undefined
+	uid: string | undefined,
+	at: string
 ): void {
 	const name = itemName(rawName);
 	const same = [...items.values()].filter(
@@ -172,11 +174,20 @@ function projectAdd(
 	if (same.some((item) => !item.done)) return;
 	const checked = same[0];
 	if (checked) {
-		items.set(checked.uid, { ...checked, done: false, completed_at: null });
+		items.set(checked.uid, {
+			...checked,
+			done: false,
+			completed_at: null,
+			add_count: checked.add_count + 1,
+			added_at: at
+		});
 		return;
 	}
 	if (uid === undefined || !lists.has(listUid) || items.has(uid)) return;
-	items.set(uid, newRow(uid, listUid, name, { done: false, completed_at: null }));
+	items.set(uid, {
+		...newRow(uid, listUid, name, { done: false, completed_at: null }),
+		added_at: at
+	});
 }
 
 /** Undo of a delete: a new row with the kept data, unless the name is taken. */
@@ -197,7 +208,9 @@ function projectRestore(
 		tags: op.tags,
 		description: op.description.trim(),
 		quantity: op.quantity,
-		date: op.date ?? null
+		date: op.date ?? null,
+		add_count: op.add_count ?? 1,
+		added_at: op.added_at ?? null
 	});
 }
 
@@ -218,6 +231,8 @@ function newRow(
 		description: '',
 		date: null,
 		tags: [],
+		add_count: 1,
+		added_at: null,
 		changed_seq: NEW_ROW_SEQ
 	};
 }
@@ -225,7 +240,17 @@ function newRow(
 function applyItemOp(item: Item, op: SentOp, at: string): Item {
 	switch (op.type) {
 		case 'item.set_done':
-			if (!op.done) return { ...item, done: false, completed_at: null };
+			if (!op.done) {
+				if (!item.done) return { ...item, done: false, completed_at: null };
+				// Unchecking is an add (see docs/api.md).
+				return {
+					...item,
+					done: false,
+					completed_at: null,
+					add_count: item.add_count + 1,
+					added_at: at
+				};
+			}
 			// Checking an already checked item keeps its time.
 			return item.done ? item : { ...item, done: true, completed_at: at };
 		case 'item.quantity_delta':

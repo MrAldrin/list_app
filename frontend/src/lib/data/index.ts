@@ -559,7 +559,9 @@ export class RoomHandle {
 			description: item.description,
 			quantity: item.quantity,
 			completed_at: item.completed_at,
-			date: item.date
+			date: item.date,
+			add_count: item.add_count,
+			added_at: item.added_at
 		});
 		if (result.ok) this.#deleted.delete(itemUid);
 		return result;
