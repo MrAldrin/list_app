@@ -1,6 +1,6 @@
 # Deploy rehearsal, 2026-10-06
 
-Step 4.5 of the [Svelte rewrite plan](../../plans/svelte-frontend-rewrite.md). Run on
+Step 4.5 of the [Svelte rewrite record](svelte-frontend-rewrite.md). Run on
 the final tree (after 4.4) with the Dockerfile image and a copy of the newest local
 production backup (taken 2026-10-04, schema version 2). Nothing touched Railway or
 `main`. Counts only; no names, passwords or tokens. The rehearsal scripts were kept

@@ -1,6 +1,6 @@
 # NiceGUI test retirement (step 4.3)
 
-Supporting detail for the [Svelte rewrite plan](../../plans/svelte-frontend-rewrite.md)
+Supporting detail for the [Svelte rewrite record](svelte-frontend-rewrite.md)
 (decision 161). Step 4.3 removed NiceGUI, so the tests that drove its pages
 were deleted. Before each deletion, the business rules it checked were looked up
 in the API and unit tests; the few that were only checked through the NiceGUI

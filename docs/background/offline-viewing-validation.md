@@ -1,7 +1,7 @@
 # Offline viewing: local implementation evidence
 
 Current behavior is in [offline viewing](../offline-viewing.md). The implementation contract and remaining work are in
-[Milestone 5](../../plans/svelte-frontend-rewrite.md#milestone-5-offline-viewing).
+[Milestone 5](svelte-frontend-rewrite.md#offline-viewing-scope).
 This record is local evidence, not production or iPhone verification.
 
 ## Scope and source

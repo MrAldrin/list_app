@@ -50,5 +50,5 @@ For example, inspect them with
   Desktop and emulator passes are useful but not substitutes for that acceptance.
 
 The staged work and unresolved choices live in the
-[migration plan](../../plans/offline-frontend-migration.md). The existing experiment
+[Svelte rewrite record](svelte-frontend-rewrite.md). The existing experiment
 is retained as evidence, not scheduled for production integration.

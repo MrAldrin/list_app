@@ -1,670 +1,75 @@
 # Svelte frontend rewrite
 
-Lifecycle: tracked
+History of the move from NiceGUI to a Svelte app that works offline. Done. The
+current picture is in [ARCHITECTURE.md](../../ARCHITECTURE.md), the
+[API doc](../api.md) and [offline use](../offline-viewing.md). This page keeps
+why we chose it, how it went, and the numbered decisions log.
 
-The step-by-step implementation plan for replacing the NiceGUI frontend with
-Svelte. The direction and the reasons for it are in the
-[migration plan](offline-frontend-migration.md). This file is the "how".
+## Why Svelte
 
-Status: approved by the owner on 2026-10-03 as the working plan. Reviewed on
-2026-10-03 before Milestone 0; the small changes from that review are in the
-[decisions log](#decisions-log) (rows 8–13).
+- NiceGUI has no offline support. The app needed a browser-side frontend that
+  runs without the server.
+- Owner decision (2026-09-29): Svelte 5 with SvelteKit in static/SPA mode
+  (`adapter-static`), in TypeScript. Chosen for compact, readable code and
+  built-in service worker support.
+- Considered: React and Vue (their advantages did not apply) and Rust/WASM
+  frameworks (a third language for little gain).
+- Python keeps the business rules, authorization and the JSON API. SQLite and
+  Railway stay.
+- The rollback of an earlier offline experiment is in
+  [offline findings](offline-findings.md).
 
-## Read this first (for every agent session)
+## How it went
 
-1. Read this whole file, then [`AGENTS.md`](../AGENTS.md) and
-   [`ARCHITECTURE.md`](../ARCHITECTURE.md).
-2. Find the first unchecked step in [Progress](#progress). For Milestone 5,
-   get the fresh-session approval first, then continue the approved steps to
-   Gate V. Outside that milestone, do one step unless the owner asks for more.
-3. Follow [Branches](#branches).
-4. Run all [checks](#checks-for-every-step) before you call a step done.
-5. Tick the step in [Progress](#progress) and add a short note if useful.
-6. If you hit a decision, follow [Decisions without the owner](#decisions-without-the-owner).
-7. Stop only at a [gate](#gates) or a [hard stop](#hard-stops).
+Owner decision (2026-10-03): build an online prototype first, then the rest,
+then offline viewing, then offline editing. Offline was built last but designed
+for from the start, so no part needed a second rewrite.
 
-Once the fresh-session implementation approval is given, the owner does
-**not** review between steps. Tests and supervisor review are the review.
-Continue through Milestone 5's steps, then stop at its owner-review gate.
-Make every accepted step leave the app working, with its required checks green.
-
-## Branches
-
-The online rewrite has shipped. The old `svelte-frontend` and
-`svelte-learning` bookmarks were deleted on 2026-10-13.
-
-- For Milestone 5, continue the existing documentation/planning line above
-  deployed `main`, containing the approved offline decisions. Inspect
-  `jj status`, bookmarks, graph and diff first; preserve edits. Do not create
-  independent work from an older commit and lose the subsequent fixes/plan.
-- This is continuation of an existing line, not permission to move bookmarks.
-  Do not move `integration`, `main-staging` or `main` without
-  explicit approval. If the graph has changed, ask rather than guessing.
-- One reviewable jj change per logical step (behavior and tests together).
-  For Milestone 5 use the stable task prefix `offline - viewing`, for example
-  `offline - viewing: cache complete app versions`. Leave an empty working
-  child when done; do not manufacture a summary merge.
-- Rebase only with explicit approval and coordination with agents using the
-  affected line. Never rewrite another agent's active work to tidy the graph.
-- The original production switch (Gate B) is complete. Offline work still
-  needs separate approval before moving/pushing `main`; no automated deploy.
-- The deployed schema is version 6 after the field rules. Any new migration
-  must follow the current migration list; never renumber an already-deployed
-  migration.
-
-## Goal and scope
-
-Final goal: the Svelte app replaces NiceGUI and works offline on the iPhone,
-including editing. We get there in milestones. Offline is **built** last, but
-**designed** for from the first step, so nothing needs a second rewrite.
-
-- **Prototype (Milestones 0–2):** the full everyday list experience in Svelte:
-  room login, lists, items, tags, hide-done settings, undo and live updates.
-- **Migration (Milestones 3–4):** everything else, then the switch.
-- **Offline (Milestones 5–6):** viewing, then editing.
-- **Not in this plan:** new features. Improvements come after the switch, in
-  their own plans.
-
-## Gates
-
-A gate is a planned stop where the owner reviews. Between gates, agents keep
-going. The viewing milestone has its own gate before offline editing.
-
-| Gate | When | Owner does |
+| Milestone | Outcome | Gate |
 |---|---|---|
-| **A: prototype review** | After Milestone 2 | Tests on this laptop and the iPhone (local network). Reviews the [decisions log](#decisions-log). Decides: continue the migration, adjust, or stop. |
-| **B: production switch** | After Milestone 4 | Approves the push to `main` (a production deploy), using the deployment checklist. |
-| **V: offline viewing review** | After Milestone 5 | Tests cold launch, read-only viewing and reconnect on the iPhone. Accepts or asks for changes. Stops work before Milestone 6; deployment needs separate approval. |
-| **C: offline review** | After Milestone 6 | Tests offline viewing and editing on the iPhone, including two devices. Accepts or asks for changes. |
-
-## Hard stops
-
-Stop and ask the owner, even mid-milestone, before:
-
-- pushing or moving `main`, or touching production or Railway settings;
-- deleting or rewriting user data, or a migration that cannot be rolled back;
-- weakening security: authorization, password handling, tokens, cookies;
-- adding a new language, framework or hosted service (small npm or Python
-  libraries are fine, see [Decisions without the owner](#decisions-without-the-owner));
-- deleting existing tests, or skipping a failing test to get green.
-
-## Decisions without the owner
-
-Most decisions should not wait for a gate.
-
-- If there is an obvious first choice, **take it, log it, keep going.**
-- Prefer choices that are cheap to undo.
-- Add each one to the [decisions log](#decisions-log): what, why, the
-  alternative, and the cost of changing it later.
-- Only stop if the decision is a [hard stop](#hard-stops), or if both options
-  are expensive to undo and no option is clearly better.
-
-## Architecture during the migration
-
-**The switch is done (Milestone 4, steps 4.2-4.3):** one plain FastAPI process
-(uvicorn) serves the built Svelte files at `/`, the JSON API at `/api/v1`, and
-the old install routes. NiceGUI is gone. The current picture is in
-[ARCHITECTURE.md](../ARCHITECTURE.md). Until then both frontends ran side by
-side; the rules below still hold.
-
-```
-browser ── /            built Svelte files (static, SPA fallback)
-        ── /api/v1/…    JSON API + live-update stream
-                         │
-                    Python (FastAPI on uvicorn) ── SQLite
-```
-
-- **One process.** The API is a router in `src/api/`. No second server.
-- **Svelte is static files.** SvelteKit with `adapter-static` in SPA mode, built
-  to `frontend/build/` and served by Python at `/`.
-- **Local development:** run Python on 8080 and `npm run dev` on 5173. Vite
-  proxies `/api` to 8080, so the browser sees one origin and cookies work.
-- **Reuse the business rules.** API endpoints call `item_service.py` and
-  `database_crud.py`. Do not copy rules into the API or into Svelte. The
-  [item write rules](../docs/item-writes.md) apply to the API too.
-- **Tooling:** Node 24 via `fnm`, npm (not bun), no global installs. Run
-  `npm`/`npx` from `frontend/`. Write Svelte 5 code only (runes: `$state`,
-  `$derived`, `$props`, `$effect`); no Svelte 4 patterns such as `export let`
-  or `$:`.
-
-## Offline-ready design (applies from Milestone 0)
-
-These rules exist so offline editing later is an addition, not a rewrite.
-
-- **Stable public IDs.** Lists and items get a `uid` column: a UUID string,
-  unique, never reused. The API only exposes `uid`, never the integer `id`.
-  The client may create the `uid` itself, which is needed to create items
-  offline. A trigger fills `uid` for rows inserted without one (NiceGUI).
-  Undo of a delete creates a new row with a new `uid`.
-- **Change sequence.** Each room has a `change_seq` counter. Every write in the
-  room increases it and stamps the changed row with `changed_seq`. SQLite
-  triggers do this, so no write path (NiceGUI, API, share, admin) can forget it.
-  A room rename also bumps it, so the feed can carry the room name.
-- **Deletions are recorded.** A `deletions` table stores `(room_id, kind, uid,
-  changed_seq)`. Clients learn about deletions from it, so a stale device
-  cannot bring a deleted item back.
-- **One read path: the changes feed.**
-  `GET /api/v1/rooms/{slug}/changes?since=N` returns changed lists and items,
-  deletions and the new `seq`. `since=0` returns everything. Online, offline and
-  after reconnect, the client always uses this feed.
-- **Retry-safe writes.** Every write carries a client-made `op_id` (UUID). The
-  server stores processed `op_id`s with their result for at least 30 days, and
-  returns the same result if the same `op_id` arrives again. Old entries are
-  pruned at startup.
-- **Intent, not values.** Writes say what the user did ("toggle done", "add 1
-  to quantity"), as the current NiceGUI app already does.
-- **Edits carry a base version.** Rename and edit send the `changed_seq` they
-  were based on. The server decides conflicts and answers with a clear result.
-  Exact conflict rules are designed in Milestone 6; the fields exist from the
-  start.
-- **A client data layer.** All Svelte data access goes through one module
-  (`frontend/src/lib/data/`): it applies the changes feed and sends write
-  operations through a queue. Components never call `fetch` directly. In the
-  prototype it keeps data in memory; Milestone 5 makes it store data in
-  IndexedDB without changing components.
-
-## Security rules for the API
-
-- Room access works as today: the room password gives a room token, stored in
-  an HTTP-only cookie (secure on HTTPS). The browser never stores passwords.
-  On plain HTTP (local network testing) the cookie is HTTP-only but not secure;
-  the Svelte app does not use the NiceGUI localStorage fallback.
-- Every API request checks room access on the server, in the same transaction
-  as the read or write, like the current pages do.
-- Writes need a same-origin request (reuse the `Origin` check in
-  `src/room_cookies.py`) and a JSON body.
-- Public share links and admin get their own endpoints in Milestone 3, with the
-  same limits as today: a share link never gives room access.
-- Error messages must not reveal whether a room or list exists to someone
-  without access.
-
-## Checks for every step
-
-Python changed:
-
-```bash
-uv run ruff format . && uv run ruff check --fix . && uv run pytest -q
-uv run ruff format --check . && uv run ruff check .
-```
-
-Frontend changed (from `frontend/`):
-
-```bash
-npm run format && npm run lint && npm run check && npm run test && npm run build
-```
-
-From Milestone 2 on, also run the Svelte browser tests:
-`uv run pytest browser_tests -q -k svelte`.
-For Milestone 5, the owner approved batching the long browser suite: use the
-[validation cadence](#milestone-5-validation-cadence) below instead of rerunning
-all browser tests after every tiny edit. Python completion checks above and in
-`AGENTS.md` remain mandatory; this exception is for browser-test cadence.
-
-- **Python API tests** go in `tests/test_api_*.py`.
-- **Frontend unit tests** use Vitest, next to the code (`*.test.ts`), mainly
-  for the data layer.
-- **Browser tests** use the existing Python Playwright setup in
-  `browser_tests/`, in files named `test_svelte_*.py`. One Playwright stack for
-  both frontends.
-- Every behavior that changes data needs a test. A step is not done while a
-  check is red.
-
-## Milestones
-
-### Milestone 0: foundations
-
-Goal: the plumbing exists, NiceGUI is unchanged, all tests pass.
-
-- **0.1** Frontend setup: replace `adapter-auto` with `adapter-static` (SPA
-  fallback `index.html`), `paths.base = '/app'`, Vite proxy for `/api`, Vitest
-  with `npm run test`. SvelteKit 3 keeps this config in `vite.config.ts`.
-  Replace the starter page with a placeholder. Keep `frontend/build/` out of git.
-- **0.2** Python serves `frontend/build/` at `/app/` with SPA fallback, only if
-  the folder exists. Test: `/app/` returns the page, `/` still returns NiceGUI.
-- **0.3** Write [`docs/api.md`](../docs/api.md): endpoint list, request and response shapes,
-  error format, `op_id`, the changes feed. This is the contract for later steps.
-- **0.4** Migration: `uid` on lists and items (backfill existing rows),
-  `change_seq` on rooms, `changed_seq` on lists and items, `deletions` and
-  `processed_ops` tables. Test the migration on a copy of a realistic database,
-  and that NiceGUI still works.
-- **0.5** SQLite triggers on lists, items and rooms bump `change_seq`, stamp
-  `changed_seq`, fill missing `uid`s and record deletions, inside the same
-  transaction as the write. Tests per existing write type.
-- **0.6** Docs: add "Running the Svelte frontend" to the README and the
-  dev-server setup.
-
-### Milestone 1: the API
-
-Goal: everything the prototype needs, as tested JSON endpoints.
-
-- **1.1** API package `src/api/`, router under `/api/v1`, error format, the
-  same-origin check for writes, and an access helper based on `room_access.py`.
-- **1.2** Room session: log in with the password (sets the cookie), log out,
-  "who am I". Tests: wrong password, revoked token, password change revokes.
-- **1.3** Changes feed (`since`), including deletions. Tests: full load, delta,
-  deletion, no access.
-- **1.4** List writes: create, rename, delete. Includes the shared `op_id`
-  helper (store and replay results) that all later writes use.
-- **1.5** Item writes: add-or-restore, toggle done, quantity delta, edit
-  details, delete, undo (restore).
-- **1.6** Tags and hide-done settings writes.
-- **1.7** Idempotency sweep: replaying an `op_id` returns the stored result,
-  for every write type, including failed writes. Pruning of old `op_id`s.
-- **1.8** Live updates: Server-Sent Events at
-  `/api/v1/rooms/{slug}/events`, sending only "new seq N". The client then
-  reads the changes feed. Bridge both ways with NiceGUI's `broadcast_updates`.
-- **1.9** Concurrency tests: two clients, stale writes, a deleted list, a
-  renamed list. Reuse the cases in `docs/item-writes.md`.
-
-### Milestone 2: the prototype UI
-
-Goal: the everyday list experience in Svelte, mobile-first, fast to use.
-Match the current behavior and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
-Copying the current layout is fine; a polished design is not needed.
-
-- **2.1** Data layer: types, API client, changes-feed store, write queue with
-  `op_id`, events subscription with reconnect. Vitest tests.
-- **2.2** Room login page and the "remembered room" start page.
-- **2.3** Room page: lists with create, rename and delete.
-- **2.4** List page: items, add-or-restore with feedback, check off.
-- **2.5** Item details: quantity +/−, edit dialog, delete with undo.
-- **2.6** Tags (list tags, item tags, filter) and the hide-done settings.
-- **2.7** Live updates in the UI and clear error and "unavailable list" states.
-- **2.8** Browser tests: the main flows, plus two browser contexts that see
-  each other's changes. Phone-sized viewport.
-- **2.9** iPhone test prep: a script or README section to build and serve on
-  the local network (see the [local network guide](../docs/local-network-testing.md)),
-  and a short test checklist for the owner. Then stop at **Gate A**.
-
-### Gate A checklist
-
-Resume at Review, in a fresh session. The NiceGUI difference review is done (decision 98).
-
-For the owner, on this laptop and the iPhone. Setup and the script are in the
-[local network guide](../docs/local-network-testing.md#svelte-prototype).
-
-**Setup:** stop the normal app, run
-`uv run python scripts/serve_svelte_local.py`, turn on Tailscale on the phone.
-On the iPhone, open the
-[HTTPS address](../docs/local-network-testing.md#https-on-the-phone) in Safari,
-like production. On the laptop, open <http://localhost:8080/app/>. Room `Home`
-(the script prints its code, like `home-217c10`), password
-`APP_PASSWORD`.
-
-**Separate logins:** the laptop (`localhost`) and the phone (HTTPS address) are
-different sites, so each logs in on its own. On HTTPS, NiceGUI and Svelte share
-the `__Host-` cookie (decisions 12 and 20); on the laptop's plain HTTP they
-need separate logins.
-
-- [x] **Login:** a wrong password says "Wrong room or password."; the right one
-  opens the room. Open `/app/` again: it goes straight to the room. Log out and
-  back in.
-- [x] **Lists:** create, rename, delete (asks first). The same name in other
-  letter case opens the existing list.
-- [x] **Items:** add; add a duplicate (warning); check and uncheck; type a
-  checked item's name to restore it; quantity + and − (Options); edit name,
-  notes and quantity.
-- [x] **Undo:** delete an item, tap Undo within 5 s. Same for a tag.
-- [x] **Tags:** add tags, tag items with the round buttons, filter by a tag.
-  An exact duplicate warns; another letter case is a new tag.
-- [x] **Hide-done:** try All, After X days and Keep last X; a bad number shows
-  a warning.
-- [x] **Live, laptop and phone:** open the same list on both. Changes on one
-  show on the other within about a second, both ways.
-- [x] **NiceGUI side by side:** open the same list in NiceGUI (address without
-  `/app/`). Changes show in both directions. Change the room password in
-  NiceGUI: the Svelte pages ask for the password again.
-  Finding: after a Svelte rename, the open NiceGUI list page keeps the old
-  title until reload (the room page updates). Not fixed: NiceGUI goes in 4.3.
-- [x] **Background and resume:** leave the phone in another app (or locked) for
-  over 30 s, change something on the laptop, come back: the change is there.
-- [x] **Airplane mode:** turn it on for about 10 s, check an item ("Reconnecting…"
-  or "Saving…" shows), turn it off: the change saves and the laptop shows it.
-  Offline use is not built yet, so a reload while offline fails.
-  Fixed: the status pill was hidden behind the sticky top bar.
-- [x] **Feel on the phone:** tap sizes, the keyboard and the add field,
-  scrolling, dark mode.
-  Finding: after a dark mode switch, Safari's bars keep the old color until
-  you scroll. A `theme-color` tag came in 3.6 (decision 138); the iPhone
-  check is in the backlog.
-  Also fixed: dialogs close on a click outside; the edit dialog no longer
-  opens the keyboard; suggestions hide when the add field loses focus.
-- [x] **Review** the [decisions log](#decisions-log) in a fresh session. The
-  agent first sorts the rows into "needs the owner" (product and UX choices),
-  "worth knowing" (security and data) and "technical detail"; the owner then
-  goes through only the first group, one row at a time. Then decide: continue,
-  adjust or stop. Note findings (iOS version) here or tell the agent.
-  Outcome (2026-10-05): **continue**. The owner went through rows 7, 22/78,
-  57, 72/73, 83–89, 91 and 93 and kept them all. Changes, in the
-  [backlog](backlog.md): Next, before Milestone 3: save "Show quantities" and
-  "Only show minimum 2" per list (84; later decided differently, see the row), and an "Opened existing list" info
-  toast (78). Later: longer undo (85, 87). Ideas: a hidden-items count (89).
-  Manual checks: time the reconnect after going offline (67, 92). The
-  testing fixes above get no decision rows; they match NiceGUI.
-
-### Milestone 3: the rest of the app
-
-Goal: Svelte can do everything NiceGUI does. Start after Gate A.
-
-- **3.0** Replace the SSE shutdown workaround (reading uvicorn's internal
-  `should_exit` through the signal handler in `src/api/events.py`) with
-  uvicorn's official `timeout_graceful_shutdown`, passed through `ui.run()`.
-  Test that stopping the server with an open stream is quick. Decided at the
-  Gate A review.
-- **3.1** Room management: rename room, change password, delete room. The
-  owner decided at Gate A (rows 72/73) to keep "Wrong room or password" for an
-  unknown room; so no "Room not found" and no longer room codes.
-- **3.2** Public share links: view and edit by token, reset link. Port the
-  [public sharing](../docs/public-sharing.md) rules and their tests.
-- **3.3** Admin: login, room overview, password reset.
-- **3.4** Creation invitations: issue, revoke, create a room from a link.
-- **3.5** Home-screen install: manifest, icons, launch URL rules from
-  [home-screen installation](../docs/home-screen-installation.md).
-- **3.6** Theme, small UX details and accessibility pass. Include: names stay
-  unique ignoring case. Raised at Gate A.
-- **3.7** Port the remaining NiceGUI browser tests to Svelte versions. Also
-  add a layout check for toasts (small, inside the screen). WebKit runs
-  already, but no test checked the toast size, and only the real iPhone
-  showed the full-height bug. Raised at Gate A.
-
-### Milestone 4: the switch
-
-Goal: Svelte serves `/`; NiceGUI is gone. Start after Milestone 3.
-
-- **4.1** Production build: decide and document how Railway builds the frontend
-  (preferred: Railway builds it; fallback: the deploy script builds it). Test
-  the full build locally.
-- **4.2** Move Svelte from `/app/` to `/`. Keep old URLs working
-  (`/room/{slug}`, `/list/{slug}`, `/share/{token}`, `/admin`).
-- **4.0** Owner decisions after Milestone 3 (decisions 144–146), before 4.3:
-  - Admin sign-in with its own cookie, like the room cookie: `__Host-`,
-    `Secure` on HTTPS, HTTP-only. A changed `APP_PASSWORD` ends all admin
-    sessions. No rate limiting (decision 144).
-  - Toasts work while a dialog is open: tapping a toast's × must not close the
-    dialog (decision 145).
-  - The share page shows "back to room" and "Reset share link" when this
-    browser has access to the list's room, as NiceGUI. Without room access
-    the page reveals nothing about the room (decision 146).
-  - Owner phone test fixes (decision 149):
-    - "Log out" moves into the room's ⋮ menu, as the last item.
-    - "Back to admin" shows on the room page whenever this browser is signed
-      in as admin, not only with `?admin=true` (it got lost after opening a
-      list and going back).
-    - The admin key button gets the text "Reset password". The dialog title
-      says it is an admin reset of the room password and explains what
-      happens (check what really happens to signed-in members first).
-    - List page top bar: the list name sits in the bar between the back arrow
-      and the menus, cut off with "…" when long. Dark mode moves into the ⋮
-      menu. The list options button stays outside, close to ⋮.
-- **4.3** Remove NiceGUI pages, the NiceGUI dependency and the old service
-  worker. Keep the API and business rules.
-- **4.4** Update `ARCHITECTURE.md`, `README.md`, `docs/deployment.md` and the
-  affected docs. Retire NiceGUI-only tests.
-- **4.5** Rehearse the deploy with a production-like database copy. Then stop at
-  **Gate B**.
-
-### Milestone 5: offline viewing
-
-**Implementation status:** the owner approved this session to supervise all
-Milestone 5 steps through local verification and Gate V preparation. Continue
-with bounded subagents without asking between routine steps. Progress below
-records implementation and verification separately; approval is not evidence
-that offline viewing already works. Stop at Gate V, a hard stop, or an unresolved
-material decision. This remains part of this `Lifecycle: tracked` plan.
-
-**Approved scope (2026-10-06):**
-
-- Open and read rooms and lists previously loaded on this device, including
-  after closing/reopening the app while offline.
-- Search and filter saved items locally. No changes to shared data while
-  offline; offline editing belongs to Milestone 6.
-- New rooms or links without saved data require a connection.
-- Admin tools and sign-in remain online-only.
-- Clearly label saved data as potentially outdated.
-- Automatically save successfully loaded list data on this device; no
-  "Make available offline" button. The owner accepts local storage of list
-  contents. This does not authorize storing passwords or caching admin data.
-  Save signed-in room data and lists successfully opened through public share
-  links. A share-link cache is scoped to that link and list: it must not grant
-  room navigation, management rights or access to other lists. Keep room and
-  share authorization/cache identities separate; never restore room privileges
-  from metadata previously returned to an authorized member's share view.
-- Clear the room's saved data on logout. Clear affected saved data when the
-  server confirms revoked access or an invalidated share link. Keep saved data
-  otherwise; network failures alone must not erase it. Clear both the visible
-  in-memory data and the persisted copy, preventing late requests from saving
-  it again after clearing.
-- Remote revocation cannot be detected while offline: saved data can remain
-  readable until the device reconnects and learns access was revoked. The owner
-  accepts this limitation. Browser storage can be cleared by the device;
-  offline copies are a convenience, not backups.
-- On reconnect, automatically revalidate access and refresh saved data through
-  the changes feed, without a manual reload. Keep cached views read-only until
-  both succeed; a browser's online signal alone does not enable writes. Retry
-  temporary failures while keeping the saved view labeled as outdated. Once
-  refreshed and authorized, normal online editing becomes available again.
-  Confirmed revocation clears affected data and shows the sign-in or
-  unavailable-link screen.
-- Download app updates automatically when connected; no update button or
-  forced reload. An already-open page keeps its running version. Adopt the
-  fully downloaded new version on a safe subsequent opening/reload; do not
-  mix old page scripts with incompatible new assets or discard files still
-  needed by open pages. Keep the last complete version usable offline if an
-  update download fails. An iPhone app resume is not necessarily a new page
-  load; background work is best-effort, not guaranteed while the app is closed.
-- Keep backend/API updates compatible with already-open frontend versions
-  where practical. A database migration is not itself a reason to erase
-  browser data; the API boundary and local storage schema determine
-  compatibility. Do not infer incompatibility from an ordinary validation
-  error or server failure. Prefer additive API changes; introduce an explicit
-  compatibility signal only if the implementation actually needs one.
-- Version saved data. Upgrade compatible caches safely; an incompatible or
-  corrupt read-only snapshot may be discarded and downloaded again online.
-  If offline, show "Connect to refresh saved data" rather than crash or show
-  invalid data. Do not treat ordinary network failures as incompatibility.
-- If an open frontend is known to be incompatible with the backend, stop new
-  writes and request a reload instead of crashing. Do not silently discard
-  unsaved edits or unanswered in-flight operations. Before reload, settle or
-  explicitly account for pending operations; do not clear the current queue
-  just to install an update. Milestone 6 must preserve persisted pending edits
-  until saved or explicitly discarded by the user. The exact compatibility
-  detection and safe reload mechanism are implementation design work, not
-  permission to add an elaborate recovery system.
-
-#### Implementation defaults and boundaries
-
-These are the supervisor's technical defaults, not extra product scope:
-
-- Keep the service worker responsible only for the app shell/assets. Do not
-  cache API answers, session endpoints, live streams, passwords or admin data
-  with Cache Storage. Save validated list snapshots in IndexedDB through the
-  existing data layer, with explicit room/share identities and a schema version.
-- Save committed server state and its sequence together in one transaction,
-  not optimistic overlays, unanswered writes or authentication claims. A room
-  feed already loads all its lists/items; these count as successfully loaded
-  data. Share snapshots contain only their list and no room privileges.
-- Persist last-room routing metadata only after successful loading. It is not
-  authorization. Offline `/` can open the last saved room; direct room/list/share
-  URLs must also work. Do not add a multi-room chooser in this milestone.
-- A lost/corrupt/unavailable cache must not break online use. Discard only the
-  affected read-only snapshot, explain when offline viewing is unavailable,
-  and recover on the next successful authorized load. Handle quota failures
-  and version upgrades without a crash; do not promise permanent storage.
-- Local logout clears that room's visible/persisted data immediately, even
-  offline. A persisted local sign-out marker blocks automatic reopening or
-  re-saving through a still-valid HTTP-only cookie until server logout succeeds
-  or the user explicitly signs in online. Do not claim offline logout revokes
-  the server cookie. Retry only the pending server logout, not new offline edits.
-- A room logout/revocation does not revoke independently held public links.
-  Keep share-only snapshots separate and strip room metadata/privileges; clear
-  a share snapshot when that link is confirmed invalid. Coordinate clearing
-  across tabs and reject late fetch/save results after logout or revocation.
-- Gate shared-data writes centrally as well as in the UI. No offline creates,
-  checking, quantity changes, edits, deletion/undo, tag changes, hide-done saves,
-  room management or share-link reset. Local search/filter/theme are allowed.
-  Preserve existing uncertain online operations and retry-safe `op_id`s; do not
-  persist an offline write queue or invent conflict rules in Milestone 5.
-- Use `/service-worker.js` (or another distinct new URL); keep `/sw.js` and its
-  legacy removal behavior until at least 2027-04-06. Test takeover from the old
-  worker: its broad cache deletion and forced navigation must not race the new
-  cache into an unusable state. The new worker must be JavaScript, never the SPA
-  HTML fallback. Partial installs cannot replace the last complete app version.
-- Handle old/new tabs and lazy route assets across deploys. Do not blindly
-  `skipWaiting`, claim clients, delete old caches, or reload every tab. Prefer
-  the smallest tested lifecycle that preserves complete versions and applies
-  the update at a safe subsequent navigation/load. A necessary compatibility
-  refresh must first account for in-flight operations.
-- Per-list share change tracking remains agreed work (decision 147), but its
-  design/implementation moves to Milestone 6. Do not turn read-only viewing
-  into an unrelated API/schema redesign. Ask if safe viewing requires it earlier.
-
-- **5.0** HTTPS for phone testing through background Tailscale Serve. See the
-  [local network guide](../docs/local-network-testing.md#https-on-the-phone).
-  The script still prints direct HTTP addresses; use `tailscale serve status`
-  to find the HTTPS address. Updating script output is not an offline blocker.
-- **5.1 App shell:** use SvelteKit service-worker support to save a complete
-  version of the shell, CSS, scripts and lazy-route assets. Add server routing
-  only if needed. Prove offline shell launch, failed installs and legacy-worker
-  takeover before accepting this step. No API/data caching here.
-- **5.2 Snapshot storage:** add a small versioned IndexedDB adapter with an
-  injectable test boundary; atomic server snapshots, namespaced room/share
-  identities, clear/read/save and stale-response invalidation. Unit-test
-  round trips, deletion, schema mismatch, quota errors and races. Define the
-  hydration/persistence contract before UI integration; do not expose snapshots
-  to users until read-only and clearing guards are ready.
-- **5.3 Offline integration:** hydrate room/share handles and offline routes,
-  including `/`, deep links and previously loaded lists. Clearly show a saved,
-  potentially outdated view and optionally last successful refresh time.
-  Central write gates, disabled mutation controls, local search/filter, unknown
-  room/link states and automatic revalidation/refresh must work together.
-  Accept storage and integration as a wave only with the 5.4 guards below.
-- **5.4 Privacy/lifecycle:** complete logout markers, cross-tab clearing,
-  confirmed revocation, invalid links, room/list deletion, storage loss and
-  save-after-clear protection. Settle/account for existing in-flight writes;
-  use no persisted edit queue. Test reconnect and foreground resume without
-  granting editing before an authorized successful refresh.
-- **5.5 Acceptance/review:** complete deployment-update and offline browser
-  scenarios, run final gates, update current docs to describe implemented
-  behavior and prepare the iPhone checklist. Capture evidence separately in
-  `docs/background/`, tick only verified work, then stop at Gate V. No deploy
-  or Milestone 6 implementation from this approval.
-
-#### Milestone 5 subagent execution
-
-The next main agent is the supervisor. The owner authorizes delegation after
-fresh-session implementation approval, preferably parallel where independent
-and sequential where dependent.
-
-- Follow the global model policy: start children on GPT-6 Luna at xhigh;
-  escalate substantive failures to GPT-6 Sol at medium. Discover available
-  agents/models with `subagent` and use exact provider/id strings. Do not
-  silently replace unavailable requested models or change execution protocols.
-- Start with a small parallel read-only recon wave: (A) worker/cache/update
-  lifecycle and server routes; (B) data-layer hydration, authorization and
-  write-queue races. Each returns file-level findings and a bounded contract.
-  The supervisor reconciles contracts before writers start.
-- This milestone is multi-seam. Assign app-shell and snapshot-storage owners
-  distinct files/contracts; after those handoffs, use an integration owner for
-  data-layer/UI/privacy wiring. Parallel writers need isolated jj workspaces
-  and explicit non-overlapping ownership; otherwise run them sequentially.
-  Use jj-aware lane setup, not unmanaged Git worktrees that bypass the jj graph.
-- Record a lane board: owner, cwd/workspace, revision, claimed files/contract,
-  dependencies, next test gate, report and state. One writer per workspace.
-  Children do not move bookmarks, push, deploy, alter production, delete tests
-  or spawn more children. Supervisor alone accepts and incorporates results.
-- Give each child a cold-start brief: objective, exact repo/ref, edit boundary,
-  approved behavior, tests, expected diff/report and stop conditions. Require
-  durable handoffs with changed files, actual test commands/results and risks.
-  Never commission the entire milestone to a smaller worker as one task.
-- Delegate long tests to one validation owner against a stable integrated
-  revision; do not run formatting/builds in a shared checkout while another
-  writer edits it. Independent read-only review can run in parallel. Keep logs
-  and scratch reports in managed artifacts, not committed source directories.
-- Review integrated security/lifecycle behavior with a fresh-context reviewer.
-  Resolve material findings, rerun affected tests, and continue. Cap repeated
-  repair cycles at three per seam before escalating/reporting the blocker.
-- Maintain progress/evidence after each accepted wave, not just at session end.
-  If context/time runs low, stop writers safely and checkpoint exact revisions,
-  validation, active runs and next action. Long-running does not mean unbounded
-  scope, repeated optional polish or unattended production deployment.
-
-#### Milestone 5 validation cadence
-
-The owner allows batching slow browser tests; never skip a failure or weaken a
-check. Full Python checks remain required before declaring a Python task done.
-
-- Each edit/worker handoff: relevant unit tests and narrow browser regressions
-  for changed behavior; supervisor inspects the diff. Before accepting a step,
-  run frontend format/lint/type checks, all Vitest tests and a production build
-  when frontend files changed. These cheap checks should not be deferred.
-- 5.1 gate: relevant worker-serving Python tests plus built-app worker/offline
-  shell tests in Chromium, Firefox and WebKit, including old `/sw.js` takeover.
-- 5.2 gate: snapshot unit tests; no full browser rerun for an unexposed adapter.
-- 5.3/5.4 integrated gate: offline cold load and reconnect/write-blocking,
-  logout/revocation and deletion tests in all three engines; targeted existing
-  online room/item/share/live tests. Do not declare 5.3 user-ready without 5.4.
-- Final 5.5 gate: `uv run pytest browser_tests -q -n 4` once on the integrated
-  candidate, plus all applicable Python and frontend completion checks. Since
-  this suite includes legacy-worker checks, use the full suite, not just
-  `-k svelte`. Rerun affected tests after fixes; rerun the full browser suite
-  again if the last green candidate changed in core routing/auth/worker/data
-  behavior. Documentation-only edits do not invalidate test evidence.
-- Do not repeat a slow suite merely because a new atomic change was described
-  with no relevant code change. Record revision and commands for every gate;
-  progress must distinguish implemented, locally verified and device-verified.
-
-#### Milestone 5 acceptance matrix
-
-Add tests with each behavior, not only at the final step:
-
-- Online load/save, then offline cold start/reload at `/`, room, private-list
-  (both current and legacy URL shape) and share URLs; navigate saved lists.
-  An app-shell-only/no-data device gives a clear connect message, not a spinner.
-- Search/tag filtering and current hide-done display work on saved items.
-  Each mutation category is blocked in UI and data layer; no new mutation
-  request, queue entry or optimistic overlay is created while read-only.
-- Reconnect/foreground resume revalidate then refresh before editing; other
-  device edits, deletions and password-reset revocation appear correctly.
-  401/confirmed invalid-link results clear; network failures/5xx keep snapshots.
-- Room/share caches cannot cross-authorize; offline member metadata does not
-  grant a share view room privileges. Logout/revocation clears across tabs,
-  late responses cannot repopulate it, and offline logout markers survive reload.
-- Quota/IndexedDB denial, cleared storage, corruption and version mismatch do
-  not crash online use; offline cache misses explain how to recover.
-- Existing online in-flight operations at disconnect/update remain accounted
-  for and use the same `op_id` on retry. Cache snapshots contain server state,
-  not pending projections. An update cannot silently clear an unsaved draft.
-- Deploy A to B with an old tab and lazy navigation; complete update installs,
-  incomplete downloads, reopening offline and legacy-worker takeover preserve
-  a usable complete app. Compatibility mismatch blocks writes and offers a
-  safe reload; never fake an API success from cache.
-- Real iPhone (owner gate): load a room and share list online over HTTPS; close
-  and reopen from Safari and a home-screen icon in airplane mode; navigate,
-  search/filter, confirm edits are unavailable; reconnect without reload and
-  verify another device's change; test logout and a revoked link; deploy-update
-  behavior when practical. Record iOS/browser version. Local WebKit is not proof
-  of real iPhone behavior.
-
-
-### Milestone 6: offline editing
-
-- Per-list change tracking for share links is decided and gets built in
-  Milestone 5 or 6; 6.1 only designs how (decision 147).
-
-- **6.1** Design note in `docs/`: conflict rules for edits, deletes, duplicate
-  names and multiple devices. Pick the simplest safe rules; log them. Also
-  decide how long `deletions` rows are kept and prune them; the changes feed
-  then sends a full snapshot when `since` is older than the oldest kept
-  record (not built yet: deletions are never pruned before this step).
-- **6.2** Persist the write queue in IndexedDB; sync on reconnect and on app
-  open. No reliance on iPhone background sync.
-- **6.3** UI for pending, failed and conflicting changes.
-- **6.4** Tests: two devices offline editing the same list, storage loss,
-  revoked access while offline. Then stop at **Gate C**.
+| 0 Foundations | SvelteKit setup, API contract, `uid`s, `change_seq` triggers, `deletions` table | |
+| 1 API | `/api/v1` with session, changes feed, one retry-safe `ops` endpoint, live updates (SSE) | |
+| 2 Prototype UI | Everyday list use in Svelte | A: continue (2026-10-05) |
+| 3 Rest of the app | Management, sharing, admin, install | |
+| 4 Switch | Svelte served at `/`, NiceGUI removed | B: live ([deploy](fixes-deployment-2026-10-06.md)) |
+| 5 Offline viewing | Service worker, saved snapshots, update banner | V: accepted 2026-10-14; three iPhone checks never run |
+| 6 Offline editing | Stored write queue, conflict rules, Not saved list | C: iPhone tests waived; live since 2026-10-17 ([details](offline-editing-details.md)) |
+
+The agents worked between gates without owner review. Tests and supervisor
+review stood in for it. Decisions taken without the owner went into the log
+below.
+
+## Offline-ready design
+
+These rules came first, so offline editing could be added rather than rebuilt:
+
+- Stable public IDs (`uid`), never reused; the client can make them.
+- A `change_seq` per room, stamped on each changed row by SQLite triggers.
+- Deletions recorded in their own table, so a stale device cannot bring an
+  item back.
+- One read path: the changes feed (`?since=N`).
+- Retry-safe writes: each carries an `op_id`; the server stores the answer.
+- Writes say the intent ("add 1"), not the new value.
+- Edits carry a base version for later conflict rules.
+- All data access goes through one client data layer.
+
+## Offline viewing scope
+
+Owner choices for Milestone 5 that still hold:
+
+- Only data that was opened online can be opened offline. New rooms and links
+  need a connection.
+- Admin tools and sign-in stay online-only. No passwords or admin data are
+  stored on the device.
+- Loaded list data is saved automatically; there is no "Make available
+  offline" button.
+- A share-link copy is scoped to that link and list. It never grants room
+  access, and room and share copies stay separate.
 
 ## Decisions log
 
-Decisions taken without the owner, for review at the next gate. Newest last.
+Decisions taken without the owner, reviewed at the gates. Newest last. File
+names and steps are as they were when each was written; NiceGUI is gone.
 
 | # | Decision | Why | Alternative | Cost to change |
 |---|---|---|---|---|
@@ -828,125 +233,10 @@ Decisions taken without the owner, for review at the next gate. Newest last.
 | 158 | Step 4.2, browser tests: base `/app` removed from helpers and tests. Retired with a skip reason (they test NiceGUI pages that are no longer reachable; 4.3 or 4.4 deletes them): all NiceGUI browser test files (`test_deleted_lists.py`, `test_public_sharing.py`, `test_theme.py`, `test_visibility_settings.py`, module-level skip; checked that they fail because the pages are gone) and three NiceGUI-only tests in Svelte files: `test_svelte_live.py::test_nicegui_and_svelte_see_each_others_changes`, `test_svelte_theme.py::test_choice_is_shared_with_nicegui`, `test_svelte_admin.py::test_nicegui_admin_sign_in_does_not_carry_over_and_never_opens_a_room`. One Svelte test changed: the admin test's check that NiceGUI's `/admin` does not share the sign-in now checks that `/admin/login` leads to the signed-in `/admin`. New: `browser_tests/test_svelte_old_urls.py` | The plan retires NiceGUI-only tests; a Svelte test must keep testing Svelte | Delete them now | Low |
 | 159 | Step 4.3, the old service worker: `/sw.js` (before the SPA catch-all, in `src/pwa_routes.py`) serves a self-removing script: `Content-Type: application/javascript`, `Cache-Control: no-store`; on install `skipWaiting`; on activate it deletes every cache, unregisters, then reloads open window clients (`client.navigate(client.url)`); no fetch handler. `src/static/sw.js` and the page code that registered it are gone. Tests: `tests/test_pwa_routes.py` (content, headers, order, no fetch handler) and `browser_tests/test_old_service_worker.py` (a stand-in server plays the old app and registers the OLD worker, the real server then starts on the same address, the old worker updates and the registration, its cache and the controller are gone; Chromium, Firefox, WebKit; fails if `unregister()` is removed). Keep the route until at least 2027-04-06 (six months): a phone that does not open the app for months still holds the old worker, and if `/sw.js` 404s or returns HTML the old worker stays active (decision 125's cookie-less page loads in WebKit). Step 5.1 must use a different worker URL (SvelteKit's default is `/service-worker.js`) or replace this route carefully, never leave `/sw.js` without a script. Backlog (Later) | A 404 or the app page at `/sw.js` would leave the old worker (network-first for page loads, cache fallback) active on installed phones; a killer that removes itself is the standard safe answer | Delete the route and rely on 404 (old workers stay forever); unregister only from the page (needs the page code to load first) | Low |
 | 160 | Step 4.3, plain FastAPI server: `src/server.py` builds the app (`create_app()`: lifespan prunes processed ops, `register_api`, `register_pwa_routes`, `/static`, Svelte last), `src/main.py` is the entry point and runs `uvicorn.run` (host `0.0.0.0`, port from `--port`, `$PORT` or 8080, `timeout_graceful_shutdown=1` as decision 99, `log_level="warning"` as NiceGUI had, so request logs do not hold share links; reload by import string `main:app` with `reload_dirs=src/` when `APP_RELOAD=true`). `python src/main.py` still works, so the `Dockerfile` is unchanged. Migrations still run when `database_setup` is imported. `FORWARDED_ALLOW_IPS` handling is uvicorn's default, as before. Dependencies: `nicegui` removed; `fastapi` and `uvicorn[standard]` explicit (reload needs `watchfiles`). `NICEGUI_STORAGE_SECRET` is no longer read or needed (owner may delete it from `.env` and Railway; harmless if left). FastAPI's `/docs`, `/redoc` and `/openapi.json` are off. Removed with the pages: the `/_room-access/{slug}` cookie endpoint (only NiceGUI's page script called it; the API sets the room cookies itself), `same_origin_socket`, `RoomAccess` (`src/room_access.py`), `broadcast_updates`, the NiceGUI live-refresh listener, `src/ui/`, the `replaces=` mechanism and `_nicegui*`/`_room-access` prefixes. `live_updates.py` stays for the API's SSE (API writes still call `notify_room_changed`). The old `/room-manifest/{slug}.json` no longer checks the database: it answers like the `.webmanifest` one (a manifest must not tell whether a room exists). Page shells keep decision 157: `no-store` at `/`, `/room/`, `/list/`, `/create-room/` now set by the page route itself instead of a middleware; other page addresses `no-cache` | One plain app is simpler to run and test than NiceGUI's `ui.run`; an endpoint nobody calls is attack surface | Keep `/_room-access` and `RoomAccess` for later; `uvicorn` without `[standard]` (no reload) | Low |
-| 161 | Step 4.3, tests: the NiceGUI-only Python tests (13 files, 92 tests) and browser tests (4 files, 63 runs, and 4 single tests, 12 runs; all but one were skipped since 4.2) were deleted; rules only the NiceGUI pages checked were ported (`tests/test_room_token_validation.py`, `tests/test_item_undo.py`, `tests/test_list_identity.py`); `browser_tests/conftest.py` starts the server with plain `uvicorn.run`, the unused `sessions` fixture, `nicegui_sign_in` and the service-worker block for WebKit (decision 125) are gone. List and reasons: [NiceGUI test retirement](../docs/background/nicegui-test-retirement.md) | The plan retires NiceGUI-only tests; no rule is lost | Keep skipped tests | Low |
+| 161 | Step 4.3, tests: the NiceGUI-only Python tests (13 files, 92 tests) and browser tests (4 files, 63 runs, and 4 single tests, 12 runs; all but one were skipped since 4.2) were deleted; rules only the NiceGUI pages checked were ported (`tests/test_room_token_validation.py`, `tests/test_item_undo.py`, `tests/test_list_identity.py`); `browser_tests/conftest.py` starts the server with plain `uvicorn.run`, the unused `sessions` fixture, `nicegui_sign_in` and the service-worker block for WebKit (decision 125) are gone. List and reasons: [NiceGUI test retirement](nicegui-test-retirement.md) | The plan retires NiceGUI-only tests; no rule is lost | Keep skipped tests | Low |
 | 162 | Step 4.4, docs: top-level docs describe only the Svelte + FastAPI app. `docs/background/` files that still describe NiceGUI got a one-line history note. `docs/deployment.md` gets a Railway settings list and the two-step rollback (restore the pre-migration copy, then redeploy the old commit) for the first deploy's migrations 2 to 4. The backlog's legacy localStorage cleanup item now asks whether the Svelte start page should do it, because the old code is gone | Docs must not describe code that no longer exists; the cleanup question is real, the old code ran only on NiceGUI visits | Delete the backlog item | Low |
 | 163 | Owner, 2026-10-06 (after Gate B summary): drop the legacy localStorage room-password cleanup item. The Svelte app gets no cleanup | Few users; every browser that visited since 2026-09-18 is clean; Svelte escapes text, so XSS that could read old keys is unlikely | One-time cleanup on the Svelte start page | Low |
 | 164 | Milestone 5.1: worker-controlled navigation uses its complete cached shell, while a downloaded update waits for old controlled tabs to close. Registering on a later load checks for an update; no forced reload or claim. Pre-worker/uncontrolled first-install tabs remain a separate first-rollout deployment prerequisite | Network-first navigation can pair new HTML with an old worker and leave new lazy chunks unavailable offline; complete-version loading implements the approved non-disruptive updates | Network-first shell with a more complex per-client version protocol; retain prior builds for initial rollout (not authorized here) | Low |
 | 165 | Owner delegates the fallback choice: block a new sign-in with a recoverable explanation when pending logout metadata cannot be read. Already-authorized online use continues without snapshot persistence | Unknown earlier logout may interfere with a newly issued cookie; cache failure must not be mistaken for successful cleanup | Allow sign-in despite unknown pending logout, or introduce a second durable coordination system | Low |
 | 166 | Use HTTPS for phone testing and supported same-origin Web Locks for cookie transitions. Where locks are unavailable (notably insecure LAN HTTP), logout may be local-only and safe re-sign-in blocked; report the exact outcome rather than claim server logout. Owner delegates and accepts this safe MVP restriction; localhost remains supported | Uncoordinated delayed logout responses can clear a newer sign-in cookie across tabs | Uncoordinated DELETE (unsafe); a more complex persistent lease/recovery protocol | Medium |
 
-## Progress
-
-Milestone 0: foundations
-- [x] 0.1 Frontend setup (adapter-static, base `/app`, `/api` proxy, Vitest 5 with `npm run test`)
-- [x] 0.2 Python serves `/app/` (`src/svelte_frontend.py`; restart the server after the first build)
-- [x] 0.3 API contract doc ([`docs/api.md`](../docs/api.md); decisions 18–27)
-- [x] 0.4 Offline-ready schema migration (migration 3; tested on a copy of `list.db`: 4 rooms, 4 lists, 46 items kept, 50 unique `uid`s; decisions 28–30)
-- [x] 0.5 Writes bump `change_seq` and record deletions (migration 4; [change tracking](../docs/change-tracking.md); decisions 31–34. NiceGUI needs no code change: the triggers cover its writes and it never selects `*`)
-- [x] 0.6 README dev setup (README section + [frontend guide](../frontend/README.md); decision 35)
-
-Milestone 1: API
-- [x] 1.1 API package and access helper (`src/api/`, [`tests/test_api_basics.py`](../tests/test_api_basics.py); decisions 36–39)
-- [x] 1.2 Room session (`src/api/session.py`, [`tests/test_api_session.py`](../tests/test_api_session.py); decisions 40–42)
-- [x] 1.3 Changes feed (`src/api/changes.py`, [`tests/test_api_changes.py`](../tests/test_api_changes.py); decisions 43–45)
-- [x] 1.4 List writes (`src/api/ops.py`, `src/api/idempotency.py`, `src/live_updates.py`, [`tests/test_api_list_ops.py`](../tests/test_api_list_ops.py); decisions 46–52)
-- [x] 1.5 Item writes (`src/api/ops.py`, [`tests/test_api_item_ops.py`](../tests/test_api_item_ops.py), shared `tests/api_helpers.py`; decisions 53–56)
-- [x] 1.6 Tags and hide-done writes (`src/api/ops.py`, [`tests/test_api_tag_ops.py`](../tests/test_api_tag_ops.py); decisions 57–58)
-- [x] 1.7 Idempotent `op_id` ([`tests/test_api_idempotency.py`](../tests/test_api_idempotency.py): applied and rejected case per op type; no code change needed; `docs/api.md` checked against every op)
-- [x] 1.8 Live updates (SSE + NiceGUI bridge) (`src/api/events.py`, `src/live_updates.py`, [`tests/test_api_events.py`](../tests/test_api_events.py); decisions 59–62)
-- [x] 1.9 Concurrency tests ([`tests/test_api_concurrency.py`](../tests/test_api_concurrency.py): two clients, stale item and list writes, renames (the `uid` and the slug stay), add race, quantity sums, undo after re-add, NiceGUI writes interleaved, parallel threads; no bug found, no code change)
-
-Milestone 2: prototype UI
-- [x] 2.1 Data layer (`frontend/src/lib/data/`, entry point `index.ts`: `openRoom(slug)` returns `store` + actions; Vitest next to each module; decisions 63–70)
-  - Fix after review: feeds are held while a write's answer is open, so a write never shows twice or flickers (decision 71; race tests in `room-store.test.ts` and `index.test.ts`).
-- [x] 2.2 Room login and start page (`frontend/src/routes/+page.svelte`, `routes/room/[slug]/`, `lib/room/`, `lib/room-link.ts`, global `src/app.css`; decisions 72–75)
-- [x] 2.3 Room page (`frontend/src/lib/room/RoomLists.svelte`, toasts and dialogs in `lib/ui/`, list page placeholder; fix: room stores outlive the page that opened them, `room-lifetime.svelte.test.ts`; decisions 76–80)
-- [x] 2.4 List page: items, add, check (`frontend/src/routes/room/[slug]/list/[list]/`, `lib/list/`, old link shape `routes/list/[slug]`; notice toasts shared in `lib/ui/notice-toasts.svelte.ts`; decisions 81–83)
-- [x] 2.5 Quantity, edit, delete with undo (`lib/list/ItemRow.svelte`, `ItemDialog.svelte`, `ListOptions.svelte`; toast actions in `lib/ui/toasts.svelte.ts`; decisions 84–86)
-- [x] 2.6 Tags and hide-done settings (`lib/list/ListTags.svelte`, `HideDoneSettings.svelte`, `tags.ts`, `hide-done.ts`, tag buttons in `ItemRow.svelte`, colors in `app.css`; decisions 87–90)
-- [x] 2.7 Live updates and error states (`lib/ui/ConnectionStatus.svelte`, `LoadError.svelte`, `routes/+error.svelte`, `lib/data/status.ts`, stream state in `events.ts` and the store; checked by hand with two browsers, NiceGUI, a server restart, a revoked password and faked 503s; decisions 91–93)
-- [x] 2.8 Browser tests (`browser_tests/test_svelte_{rooms,items,live}.py`, helpers `svelte_app.py`, fixtures `svelte_build`, `svelte_server`, `open_session` in `conftest.py`; 8 tests × 2 engines, about 15 s with the default workers; stable over repeated runs; decisions 94–96)
-- [x] 2.9 iPhone test prep (`scripts/serve_svelte_local.py`, test `tests/test_serve_svelte_local.py`, [local network guide](../docs/local-network-testing.md#svelte-prototype), [Gate A checklist](#gate-a-checklist), backlog Manual checks entry; decision 97)
-- [x] **Gate A: owner prototype review** (2026-10-05: continue; see the [Gate A checklist](#gate-a-checklist))
-
-Milestone 3: rest of the app
-- [x] 3.0 Official shutdown timeout for SSE (`src/main.py`, `src/api/events.py`, [`tests/test_server_shutdown.py`](../tests/test_server_shutdown.py), browser test server in `browser_tests/conftest.py`; decision 99, replaces 61)
-- [x] 3.1 Room management (`room.rename` in `src/api/ops.py`, `src/api/room.py`, `_locked` helpers in `src/database_crud.py`, `frontend/src/lib/room/{RoomMenu,ChangePasswordDialog,DeleteRoomDialog}.svelte`, data layer `index.ts`/`api.ts`; [`tests/test_api_room.py`](../tests/test_api_room.py), `browser_tests/test_svelte_room_management.py`; decisions 100–106)
-- [x] 3.2 Public share links (`src/api/share.py`, share access in `src/api/access.py`, `OpScope` in `src/api/ops.py`, share stream in `src/api/events.py`, helpers in `src/database_crud.py`; data layer `share.ts`, `openShare`; `lib/list/{ListView,ListMenu}.svelte`, `lib/ui/{MenuButton,ShareDialog}.svelte`, `lib/ui/share.ts`, `routes/share/[token]/`; [`tests/test_api_share.py`](../tests/test_api_share.py), `browser_tests/test_svelte_share.py`; decisions 107–116)
-- [x] 3.3 Admin (`src/api/admin.py`, `src/admin_access.py` (password check shared with NiceGUI), `reset_room_password_by_slug` / `check_password_length` in `src/database_crud.py`; data layer `admin.ts`, `result.ts`; `lib/admin/`, `routes/admin/`, "Admin" on the start page, "Back to admin" on the room page; [`tests/test_api_admin.py`](../tests/test_api_admin.py), `browser_tests/test_svelte_admin.py`; decisions 117–125. Includes NiceGUI's "Create New Room"; creation invitations on the same NiceGUI page are left to 3.4)
-- [x] 3.4 Creation invitations (`src/api/invitations.py`, `invitation_status` in `src/room_invitations.py` (shared with NiceGUI); data layer `invitation.ts` and invitation calls in `admin.ts`; `lib/admin/{AdminInvitations,InvitationDialog}.svelte`, `invitations.ts`, `lib/invitation/CreateRoomForm.svelte`, `routes/create-room/[token]/`; [`tests/test_api_invitations.py`](../tests/test_api_invitations.py), `browser_tests/test_svelte_invitations.py`; decisions 126–130)
-- [x] 3.5 Home-screen install (manifest routes in `src/svelte_frontend.py`, shared `src/install_manifest.py`; `lib/install/{manifest.ts,InstallHelpDialog.svelte}`, manifest link in `routes/+layout.svelte`, icons in `app.html`, "Add to Home Screen" in `RoomMenu.svelte`; [`tests/test_svelte_install.py`](../tests/test_svelte_install.py), `browser_tests/test_svelte_install.py`; no service worker (5.1); iPhone check in the backlog; decisions 131–135)
-- [x] 3.6 Theme, UX and accessibility (dark mode button in `lib/ui/{theme.ts,theme.svelte.ts,ThemeToggle.svelte}`, `app.html`, `app.css`; combobox in `AddItem.svelte`, focus return in `Dialog.svelte`; tests `tests/test_api_name_case.py`, `src/app-colors.test.ts`, `browser_tests/test_svelte_{theme,accessibility}.py`; names already unique ignoring case, no code change; decisions 136–140)
-- [x] 3.7 Port remaining browser tests (incl. toast layout check) (`browser_tests/test_svelte_{toasts,deleted_lists,restart,hide_done}.py`, new tests in `test_svelte_share.py` and `test_svelte_live.py`; [port map](../docs/background/browser-test-port-map.md): 8 NiceGUI tests ported, 6 already covered, the service worker checks not applicable; no Svelte bug found; decisions 141–143)
-
-Milestone 4: switch
-- [x] 4.0 Owner decisions after Milestone 3: admin cookie (`src/admin_access.py`, `src/api/admin.py`, decision 150), toasts over a dialog (`lib/ui/{Dialog,Toast}.svelte`, 151), share page room links (`src/api/share.py`, `routes/share/[token]/`, 152), phone test fixes (153: room menu "Log out", "Back to admin" by admin sign-in, "Reset password" button and dialog text, list top bar with the name, dark mode in the list menu; `lib/room/{RoomHeader,RoomMenu}.svelte`, `lib/list/{ListHeader,ListMenu}.svelte`, `lib/ui/ThemeMenuItem.svelte`, `lib/admin/{AdminRooms,ResetPasswordDialog}.svelte`, `browser_tests/test_svelte_phone_fixes.py`). Tests: `tests/test_api_admin_session.py`, `tests/test_api_share.py`, `browser_tests/test_svelte_{admin,toasts,share,theme,rooms}.py`. Docs: `docs/api.md`, `docs/public-sharing.md`
-- [x] 4.1 Production build (`Dockerfile`, `railway.json`, `.dockerignore`, `Procfile` removed, `REQUIRE_FRONTEND_BUILD` check in `src/svelte_frontend.py` with tests in `tests/test_svelte_frontend_routes.py`; [production image](../docs/deployment.md#production-image); built and run locally with podman; decision 154; owner check of the Railway service is in the backlog Manual checks)
-- [x] 4.2 Svelte at `/`, old URLs kept (`frontend/vite.config.ts` without `paths.base`; `src/svelte_frontend.py` serves the root, redirects `/app/...` and `/admin/login`, `main.py` registers it last and drops NiceGUI's page routes; `browser_tests/test_svelte_old_urls.py`, `tests/test_svelte_frontend_routes.py`; docs and `scripts/serve_svelte_local.py` updated; NiceGUI browser tests skipped for 4.3/4.4; decisions 155–158)
-- [x] 4.3 Remove NiceGUI (`src/main.py` slim entry, `src/server.py` app factory with lifespan, `src/pwa_routes.py` old install routes and the `/sw.js` kill switch, `src/svelte_frontend.py` without `replaces=`; `pyproject.toml` has `fastapi` and `uvicorn[standard]`, no `nicegui`; `src/ui/`, `src/room_access.py`, `src/static/sw.js` deleted; `NICEGUI_STORAGE_SECRET` removed from code, `.env.example`, `scripts/serve_svelte_local.py`, test conftest, README and `docs/deployment.md`; tests: [retirement list](../docs/background/nicegui-test-retirement.md), `tests/test_pwa_routes.py`, `tests/test_room_token_validation.py`, `browser_tests/test_old_service_worker.py`; decisions 159-161)
-- [x] 4.4 Docs update (`ARCHITECTURE.md` new stack, SSE, cookies, kill switch; `README.md`, `docs/deployment.md` with Railway settings and the 2 to 4 rollback; `docs/api.md`, `docs/home-screen-installation.md` and other docs lose NiceGUI statements; history notes on `docs/background/` files; backlog items fixed; code comments updated. Test retirement was done in 4.3 and confirmed: no NiceGUI-only tests remain. Decision 162)
-- [x] 4.5 Deploy rehearsal (podman image on a copy of the 2026-10-04 backup, 11 rooms, 22 lists, 314 items: migration 2 to 4 ok with ids and uids intact, pages, old URLs, kill switch, API writes, op retry, share, stream, restart, real Chromium run all pass; an old `main` room cookie still grants access in the new code; `main` code refuses the migrated database and starts on the pre-migration copy; all checks green (pytest 1188, vitest 294, browser 165); details in [the rehearsal note](../docs/background/deploy-rehearsal-2026-10-06.md); open risk: `FORWARDED_ALLOW_IPS` on Railway, see the backlog check)
-- [x] **Gate B: owner approves production switch** (online Svelte app is live;
-  subsequent fixes deployed at `b7c411bc`; [deployment evidence](../docs/background/fixes-deployment-2026-10-06.md).
-  Owner reports the app looks correct; specific pending device/production checks
-  remain in the backlog, not implied complete.)
-
-Milestone 5: offline viewing
-- [x] 5.0 HTTPS for phone testing: owner enabled background Tailscale Serve
-  without Funnel, opened the Svelte room on iPhone over HTTPS, and confirmed
-  sign-in survived a refresh. HTTP port 8080 access remains allowed by choice.
-  Script output is unchanged; the guide explains how to find the HTTPS URL.
-  This verifies phone access and refresh persistence, not offline support.
-- [x] Offline-viewing behavior decisions and execution/test plan prepared.
-- [x] Fresh-session owner approval to begin all Milestone 5 implementation
-  through local verification and the owner checklist; no deployment or Milestone 6.
-- [x] 5.1 App-shell worker and legacy takeover, implemented and locally verified.
-  Parent reviewed recovered candidate `wrzvvvxv` / `866d8bd6`; all three browser
-  engines pass the shell/update/takeover gate. [Local evidence and rollout limit](../docs/background/offline-viewing-validation.md).
-  This is not iPhone or production verification.
-- [x] 5.2 Versioned snapshot adapter, implemented and locally verified.
-  Reviewed storage component incorporated as a separate change; parent reran
-  the frontend gate and worker typecheck on the combined shell/storage source.
-  Adapter remains unexposed pending 5.3/5.4. [Evidence](../docs/background/offline-viewing-validation.md).
-- [x] 5.3 Read-only views, routing and reconnect: implemented and verified by
-  local tests (not on a real device). Room, room list, private list (current and
-  legacy URL) and share pages show saved data with a notice and disabled
-  controls; the data layer also blocks writes. Typing in Add filters the list
-  only in read-only views. Offline `lastRoom` routing fallback. Reconnect and
-  resume (`visibilitychange`, persisted `pageshow`, one at a time) revalidate
-  before editing. Error wording: "Connect to load..." only for network failures
-  with no snapshot. Worker fix: `/admin` and `/app` navigations are
-  network-only (5.1 had served them from the cached shell). Evidence:
-  [validation record](../docs/background/offline-viewing-validation.md).
-- [x] 5.4 Privacy, logout and revocation lifecycle: implemented and verified by
-  local tests. Logout stores the sign-out marker before the password prompt,
-  stops the live feed first, and falls back to `local_clear_unconfirmed` after a
-  5 s local timeout. Other-device edits, deletes, password-reset revocation and
-  invalid share links behave correctly. Real-device privacy checks were
-  left untested (owner's choice).
-- [x] 5.5 Acceptance matrix, final local checks and docs: browser suite 216
-  passed (`-n 4`, three engines), Vitest 365, Python 1205, lint/format/check/
-  build/worker `tsc` clean. Current behavior is in
-  [offline viewing](../docs/offline-viewing.md). Not covered locally: a
-  mid-DELETE reload test and any real iPhone (the two launch blockers are
-  built, see the next item).
-- [x] Launch blockers built and checked locally (the browser suite failures
-  seen were load flakes that the base commit shows too). Old lazy chunks: SvelteKit's
-  version check reloads link clicks and first loads; `stale-build.ts` reloads
-  once on `vite:preloadError` with a 60 s loop guard. Compatibility: the server
-  sends `X-Api-Version` (`src/api/version.py`), the data layer blocks writes
-  (reason `incompatible_version`), keeps queued ops, and a banner offers
-  Reload. A missing header counts as compatible. See
-  [offline viewing](../docs/offline-viewing.md#after-a-deploy) and
-  [API version](../docs/api.md#api-version). Real-device check is in the backlog.
-- [x] **Gate V: owner offline-viewing review** (no deployment approval implied). Accepted 2026-10-14 after daily use; three iPhone checks left untested.
-
-Milestone 6: offline editing
-- [x] 6.1 Conflict rules design: see [offline editing](offline-editing.md); steps 6.2-6.4 are tracked there. Include late writes: today a change made
-  just before the page turns read-only waits in memory and is sent on
-  reconnect, so it can overwrite a newer change by someone else (for example,
-  a late tick re-ticks an item another person unticked).
-- [ ] 6.2 Persistent write queue and sync
-- [ ] 6.3 Pending/failed/conflict UI
-- [ ] 6.4 Multi-device offline tests
-- [ ] **Gate C: owner offline review**

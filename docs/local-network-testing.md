@@ -54,8 +54,6 @@ uv run python scripts/serve_svelte_local.py
   the start page asks for. `--db` picks another file.
 - `--skip-build` reuses the last build; `--port` changes the port.
 
-What to check is in the [Gate A checklist](../plans/svelte-frontend-rewrite.md#gate-a-checklist).
-
 ## HTTPS on the phone
 
 Tailscale Serve forwards private HTTPS traffic to the app on local port `8080`.

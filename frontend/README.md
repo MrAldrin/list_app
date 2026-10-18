@@ -1,7 +1,7 @@
 # Svelte frontend
 
 The new browser-side frontend (SvelteKit in SPA mode, Svelte 5). It is built
-step by step following the [rewrite plan](../plans/svelte-frontend-rewrite.md)
+step by step following the [rewrite record](../docs/background/svelte-frontend-rewrite.md)
 and talks to Python through the [JSON API](../docs/api.md). It is the live app:
 Python serves the built files at `/`. The stack is in
 [ARCHITECTURE.md](../ARCHITECTURE.md).
