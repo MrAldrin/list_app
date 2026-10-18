@@ -54,6 +54,8 @@ uv run python scripts/serve_svelte_local.py
   `list.db` or production. A new one has one room, `Home`, with
   `APP_PASSWORD` as its password. The script prints each room's code, which
   the start page asks for. `--db` picks another file.
+- `--seed` adds sample data: lists in `Home` and a second room, `Cabin`,
+  with the password `cabin`. It does nothing if `Cabin` already exists.
 - `--skip-build` reuses the last build; `--port` changes the port.
 
 ## HTTPS on the phone

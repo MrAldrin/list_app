@@ -3,6 +3,7 @@
 Usage:
     uv run python scripts/serve_svelte_local.py
     uv run python scripts/serve_svelte_local.py --port 8081 --skip-build
+    uv run python scripts/serve_svelte_local.py --seed
 
 Uses a separate test database (never list.db or production) and prints the
 addresses to open on the phone. Guide: docs/local-network-testing.md.
@@ -102,6 +103,13 @@ def prepare_database(env: dict[str, str]) -> None:
         sys.exit("Could not set up the test database.")
 
 
+def seed_database(env: dict[str, str]) -> None:
+    """Add the sample rooms, lists and items (scripts/seed_test_data.py)."""
+    seed_script = str(ROOT / "scripts" / "seed_test_data.py")
+    if subprocess.run([sys.executable, seed_script], env=env, check=False).returncode:
+        sys.exit("Could not add the sample data.")
+
+
 def room_codes(database: Path) -> list[tuple[str, str]]:
     """(name, code) for each room, to type on the start page."""
     with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as db:
@@ -124,6 +132,9 @@ def main() -> None:
         "--db", type=Path, default=DEFAULT_DB, help=f"default: {DEFAULT_DB}"
     )
     parser.add_argument("--skip-build", action="store_true")
+    parser.add_argument(
+        "--seed", action="store_true", help="add sample rooms, lists and items"
+    )
     args = parser.parse_args()
     database = args.db.expanduser().resolve()
     if database == (ROOT / "list.db").resolve():
@@ -139,8 +150,10 @@ def main() -> None:
     database.parent.mkdir(parents=True, exist_ok=True)
     env = server_env(database, dict(os.environ))
     prepare_database(env)
+    if args.seed:
+        seed_database(env)
     print(f"\nTest database: {database}")
-    print("Rooms (a new test database has Home; its password is APP_PASSWORD):")
+    print("Rooms (Home: APP_PASSWORD; Cabin from --seed: cabin):")
     for name, code in room_codes(database):
         print(f"  {name}: room code {code}")
     https_urls = serve_https_urls(tailscale_serve_status(), args.port)
