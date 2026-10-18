@@ -118,7 +118,7 @@ uv run pytest browser_tests -q -n 4
 ```
 
 Setup, coverage, and diagnostics: [browser testing](docs/browser-testing.md).
-Why eight workers and real password hashing: [test speed decision](docs/background/test-speed.md).
+Why eight workers and real password hashing: [test speed decision](docs/background/test-suite-speed.md#worker-and-hashing-decision).
 
 ## Allium pilot (optional)
 

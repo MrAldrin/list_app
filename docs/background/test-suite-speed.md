@@ -4,6 +4,20 @@
 
 Evidence behind the [test-suite speed plan](../../plans/test-suite-speed.md), which holds the remaining work. Current commands are in [real-browser tests](../browser-testing.md) and the README. All numbers are from one local machine.
 
+## Worker and hashing decision
+
+- Run pytest with **8 workers** by default and unchanged production-cost bcrypt.
+- Use `-n 0` for serial debugging; smaller machines can use fewer workers.
+- Do not use cheaper or hybrid hashing by default: they are faster but reduce
+  confidence that tests match production password-hashing cost.
+
+The recorded benchmark reduced the suite from about 31 seconds to about 6
+seconds with 8 workers and unchanged hashing. All 192 tests passed, and the
+representative coverage runs matched. Sixteen workers added little benefit.
+
+Commands: `uv run pytest -q` (default, 8 workers), `-n 2` on a smaller
+machine, `-n 0` for serial debugging.
+
 ## Measured baseline
 
 Local measurements on the current main-staging-based working copy:
