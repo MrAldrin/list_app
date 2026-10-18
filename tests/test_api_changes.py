@@ -38,6 +38,8 @@ ITEM_KEYS = {
     "date",
     "tags",
     "changed_seq",
+    "add_count",
+    "added_at",
 }
 
 

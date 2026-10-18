@@ -109,8 +109,9 @@ def test_upgrade_from_version_two_keeps_data_and_backfills_uids(tmp_path, monkey
     for table in ("lists", "items"):
         rows = db.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()
         # New columns are appended, so the old ones keep their order. Items also
-        # got `date` (migration 9), NULL for these rows, after changed_seq.
-        width = 3 if table == "items" else 2
+        # got `date` (migration 9), NULL for these rows, and `add_count` and
+        # `added_at` (migration 10): 1 and NULL. All come after changed_seq.
+        width = 5 if table == "items" else 2
         assert [row[:-width] for row in rows] == before[table]
         uids = [row[-width] for row in rows]
         for uid in uids:
@@ -118,6 +119,8 @@ def test_upgrade_from_version_two_keeps_data_and_backfills_uids(tmp_path, monkey
         assert len(set(uids)) == len(uids)
         assert {row[-width + 1] for row in rows} == {0}
         if table == "items":
+            assert {row[-3] for row in rows} == {None}
+            assert {row[-2] for row in rows} == {1}
             assert {row[-1] for row in rows} == {None}
     assert db.execute("SELECT DISTINCT change_seq FROM rooms").fetchall() == [(0,)]
     assert db.execute("PRAGMA foreign_key_check").fetchall() == []

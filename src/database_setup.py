@@ -573,6 +573,25 @@ def _migration_9_item_date(db: sqlite3.Connection) -> None:
         """)
 
 
+def _migration_10_times_added(db: sqlite3.Connection) -> None:
+    """Count how often an item was added, and when it was last added.
+
+    `add_count` starts at 1 for every item, existing ones included. `added_at`
+    is the time of the last count (the same text format as created_at); NULL
+    for items from before this migration. Plain ADD COLUMN keeps the change
+    tracking triggers. The count is kept at 1 or more (see database_crud).
+    """
+    db.execute("ALTER TABLE items ADD COLUMN add_count INTEGER NOT NULL DEFAULT 1")
+    db.execute("ALTER TABLE items ADD COLUMN added_at TEXT")
+    for name, action in (("insert", "INSERT"), ("update", "UPDATE OF add_count")):
+        db.execute(f"""
+            CREATE TRIGGER items_add_count_{name}
+            BEFORE {action} ON items
+            WHEN NEW.add_count < 1
+            BEGIN SELECT RAISE(ABORT, 'items: add_count must be 1 or more'); END
+        """)
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -585,6 +604,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_7_deletion_pruning,
         _migration_8_share_list_tracking,
         _migration_9_item_date,
+        _migration_10_times_added,
     ]
 
 

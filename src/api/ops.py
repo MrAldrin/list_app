@@ -72,6 +72,7 @@ from item_visibility import (
     DEFAULT_HIDE_DONE_AGE_DAYS,
     DEFAULT_HIDE_DONE_MODE,
     DEFAULT_HIDE_DONE_RECENT_COUNT,
+    parse_completion_time,
     validate_visibility_settings,
 )
 from live_updates import notify_room_changed
@@ -122,6 +123,21 @@ def _item_date(value: str | None) -> str | None:
 
 # An item's optional date. Null clears it; a missing field keeps it.
 ItemDate = Annotated[StrictStr | None, AfterValidator(_item_date)]
+
+
+def _added_time(value: str | None) -> str | None:
+    """An add time as stored: UTC with milliseconds and Z, like created_at."""
+    if value is None:
+        return None
+    parsed = parse_completion_time(value)
+    if parsed is None:
+        raise ValueError("added_at is not a readable time")
+    return parsed.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+# How often an item was added, and when it was last added (see database_crud).
+AddCount = Annotated[StrictInt, Field(ge=1)]
+AddedAt = Annotated[StrictStr | None, AfterValidator(_added_time)]
 
 
 class Op(StrictBody):
@@ -252,8 +268,13 @@ class ItemRestore(Op):
     quantity: Quantity
     completed_at: CompletedAt
     date: ItemDate = None
+    # Kept from the deleted item. Not sent (an older page): 1 and no time.
+    add_count: AddCount | None = None
+    added_at: AddedAt = None
 
-    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset({"date"})
+    hash_omit_if_null: ClassVar[frozenset[str]] = frozenset(
+        {"date", "add_count", "added_at"}
+    )
 
 
 AnyOp = Annotated[
@@ -549,6 +570,8 @@ def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
         completed_at=op.completed_at,
         uid=uid,
         date=op.date,
+        add_count=1 if op.add_count is None else op.add_count,
+        added_at=op.added_at,
     )
     if item_id is None:
         raise OpRejected("undo_name_taken", UNDO_NAME_TAKEN)

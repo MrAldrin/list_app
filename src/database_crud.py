@@ -72,6 +72,10 @@ def _decode_tags(raw: str | None) -> list[str]:
     return [tag for tag in tags if isinstance(tag, str)]
 
 
+# The text format of the schema's created_at defaults (database_setup.py).
+_NOW_SQL = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+
+
 def _completion_timestamp(now: datetime | None = None) -> str:
     timestamp = datetime.now(UTC) if now is None else now
     if timestamp.tzinfo is None:
@@ -310,7 +314,8 @@ def add_or_restore_item_locked(
 
     Returns (status, item ID): "added", "restored" or "duplicate_active"
     (nothing written). Names match ignoring case and outer spaces. `uid` is
-    the client's public ID for a new item; it is not used otherwise. A new item
+    the client's public ID for a new item; it is not used otherwise. Adding
+    and restoring both count as an add (`add_count`, `added_at`). A new item
     in a full list raises CountLimitReached. Call inside a write transaction
     with a normalized, nonempty name.
     """
@@ -323,13 +328,15 @@ def add_or_restore_item_locked(
         if not existing[1]:
             return "duplicate_active", existing[0]
         db.execute(
-            "UPDATE items SET done = 0, completed_at = NULL WHERE id = ?",
+            "UPDATE items SET done = 0, completed_at = NULL, "
+            f"add_count = add_count + 1, added_at = {_NOW_SQL} WHERE id = ?",
             (existing[0],),
         )
         return "restored", existing[0]
     _check_item_count_locked(list_id)
     result = db.execute(
-        "INSERT INTO items (name, done, list_id, uid) VALUES (?, 0, ?, ?)",
+        f"INSERT INTO items (name, done, list_id, uid, added_at) "
+        f"VALUES (?, 0, ?, ?, {_NOW_SQL})",
         (item_name, list_id, uid),
     )
     return "added", result.lastrowid
@@ -346,12 +353,15 @@ def restore_deleted_item_locked(
     completed_at: str | None = None,
     uid: str | None = None,
     date: str | None = None,
+    add_count: int = 1,
+    added_at: str | None = None,
 ) -> int | None:
     """Insert a deleted item again as a new row; return its ID.
 
     None (nothing written) when an item with that name exists, ignoring case
-    and outer spaces. `completed_at` is kept only when `done`. In a full list
-    it raises CountLimitReached. Call inside a write transaction.
+    and outer spaces. `completed_at` is kept only when `done`. The add count
+    and time are kept as given: an undo is not an add. In a full list it
+    raises CountLimitReached. Call inside a write transaction.
     """
     if db.execute(
         "SELECT 1 FROM items WHERE list_id = ? AND trim(name) = ? COLLATE NOCASE",
@@ -363,8 +373,8 @@ def restore_deleted_item_locked(
         """
         INSERT INTO items (
             name, done, list_id, active_tags, description, quantity,
-            completed_at, uid, date
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            completed_at, uid, date, add_count, added_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             name,
@@ -376,6 +386,8 @@ def restore_deleted_item_locked(
             completed_at if done else None,
             uid,
             date,
+            add_count,
+            added_at,
         ),
     )
     return result.lastrowid
@@ -425,7 +437,7 @@ def update_item_done_locked(
     """Set the done state; False if no such item. Call in a write transaction.
 
     Checking sets `completed_at` unless the item is already checked;
-    unchecking clears it.
+    unchecking clears it and counts as an add (see add_or_restore_item_locked).
     """
     if done:
         result = db.execute(
@@ -435,8 +447,14 @@ def update_item_done_locked(
             (_completion_timestamp(now), item_id, list_id),
         )
     else:
+        # Unchecking puts the item back on the list: an add. Unchecking an
+        # unchecked item changes nothing here.
         result = db.execute(
-            "UPDATE items SET done = 0, completed_at = NULL "
+            "UPDATE items SET done = 0, completed_at = NULL, "
+            "add_count = CASE WHEN COALESCE(done, 0) != 0 "
+            "THEN add_count + 1 ELSE add_count END, "
+            "added_at = CASE WHEN COALESCE(done, 0) != 0 "
+            f"THEN {_NOW_SQL} ELSE added_at END "
             "WHERE id = ? AND list_id = ?",
             (item_id, list_id),
         )
@@ -694,7 +712,8 @@ def get_item_changes_locked(
     rows = db.execute(
         """
         SELECT i.uid, l.uid, i.name, i.done, i.completed_at, i.quantity,
-               i.description, i.active_tags, i.changed_seq, i.date
+               i.description, i.active_tags, i.changed_seq, i.date,
+               i.add_count, i.added_at
         FROM items AS i
         JOIN lists AS l ON l.id = i.list_id
         WHERE l.room_id = :room_id AND i.changed_seq > :since
@@ -719,6 +738,8 @@ def get_item_changes_locked(
                 "tags": _decode_tags(row[7]),
                 "changed_seq": row[8],
                 "date": row[9],
+                "add_count": row[10],
+                "added_at": row[11],
             }
         )
     return items

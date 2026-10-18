@@ -82,7 +82,9 @@ def test_add_item(room, notified):
         },
         "seq": before + 1,
     }
-    assert feed_item(client, slug, before, item_uid) == {
+    item = feed_item(client, slug, before, item_uid)
+    assert item.pop("added_at").endswith("Z")
+    assert item == {
         "uid": item_uid,
         "list_uid": list_uid,
         "name": "milk",
@@ -92,6 +94,7 @@ def test_add_item(room, notified):
         "description": "",
         "date": None,
         "tags": [],
+        "add_count": 1,
         "changed_seq": before + 1,
     }
     assert notified == [room_id]
@@ -477,6 +480,9 @@ def test_restore_creates_a_new_item(room, notified):
         "description": "lactose free",
         "date": None,
         "tags": ["Lidl", "Market"],
+        # Not sent by this page: an undo of a delete is no add, so the count is 1.
+        "add_count": 1,
+        "added_at": None,
         "changed_seq": before + 1,
     }
     assert notified == [room_id, room_id]
