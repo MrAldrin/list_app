@@ -69,7 +69,7 @@ Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 - `main` is the production line. Feature bookmarks mark work not yet accepted. There are no other shared bookmarks. Do not repurpose these.
 - `integration` may be ahead of `main`. That is normal, not a to-do. Docs-only work (`docs/`, `plans/`, `AGENTS.md`) does not need a push; it goes out with the next code push. To see what a push would deploy: `jj diff -r main..integration --stat`.
 - Before starting work, inspect `jj status`, `jj bookmark list`, and the graph. Preserve existing workspace edits. If `integration` is missing or conflicted, ask rather than choosing another baseline silently.
-- Move `integration` only with explicit user approval to accept completed work. Point it at the completed change, not the empty working-copy child (`jj bookmark set integration -r @-` when `@` is empty). Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
+- Move `integration` only with explicit user approval to accept completed work (exception: committed shared-docs changes, see [the docs desk](#workspace-coordination-trial)). Point it at the completed change, not the empty working-copy child (`jj bookmark set integration -r @-` when `@` is empty). Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
 - Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent's active work merely to tidy the graph.
 - Updating `integration` does not authorize moving `main`, pushing, or deploying. Existing deployment approval rules still apply.
 
@@ -83,9 +83,14 @@ This is a trial, not a permanent workflow. Keep it lightweight; discuss relaxing
 - When the task's work is integrated, the agent that created the workspace removes it (`jj workspace forget <name>`, then delete its folder). The user should never need to clean up after an agent.
 - Leave workspaces that existed before this rule alone; the user handles them manually.
 - Phone testing uses port 8080, one workspace at a time. Stop your `serve_svelte_local.py` server when you are done; if the script says the port is in use, ask the user rather than stopping another agent's server.
-- Workers report shared backlog/planning updates to the coordinating agent instead of editing divergent copies. Before changing shared tracking, check current ownership and status. If coordination is unavailable, ask the user rather than assume another agent is idle.
+- The default workspace is the shared docs desk. It always sits on top of `integration`, so the graph stays one line: `main`, accepted work, `integration`, open work.
+  - Edit shared backlog and plan files there, never divergent copies in a feature workspace. Before changing shared tracking, check current ownership and status.
+  - Commit your own docs edits right away, naming only your files (`jj commit plans/x.md -m "..."`), so two agents' edits never share a change.
+  - A committed shared-docs change is accepted: move `integration` up to it without asking. Docs-only changes need no push.
+  - After `integration` moves for any reason, rebase the desk's open changes onto it (`jj rebase -s <first open change> -d integration`).
+  - A finished feature is rebased onto `integration` from its own workspace; then `integration` moves to its tip with user approval.
 - Pi agents can use Pi Intercom to coordinate. Do not assume Claude Code is reachable through it. Use a user relay or an explicitly agreed shared handoff for cross-tool coordination; record the task owner, workspace, and status in existing task tracking when useful. No new coordination service is required.
-- Ask before integration, rebasing, or workspace cleanup. Coordinate an exclusive window before changing a workspace's revision, and never rewrite another agent's active work. The existing `integration` and deployment approval rules still apply.
+- Ask before integration, rebasing, or workspace cleanup, except as the docs desk rules allow. Coordinate an exclusive window before changing a workspace's revision, and never rewrite another agent's active work. The existing `integration` and deployment approval rules still apply.
 - Push back when task ownership, overlapping edits, or the integration baseline is unclear. Explain the concrete risk and propose the smallest safe next step. Keep unrelated work untouched.
 
 ## Tools:
