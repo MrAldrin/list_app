@@ -2,7 +2,16 @@
 
 > Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
 
-Per-candidate findings and test evidence for the [write atomicity audit](../../plans/write-atomicity-audit.md), which holds the method and remaining work. Current behavior is in [item writes](../item-writes.md).
+Findings and test evidence from the write atomicity audit (done). Current behavior is in [item writes](../item-writes.md).
+
+## Method
+
+Goal: no stale decisions or partial writes in the single-process Python + SQLite app.
+
+- Prove each risk with a deterministic test: two calls coordinated with events and separate SQLite connections, or an SQL failure injected with a temporary trigger. No timing-only race tests.
+- Smallest fix: put the decision and the write in one `BEGIN IMMEDIATE` transaction under `_DB_LOCK`, or use a conditional write plus a row-count check.
+- Roll back every failure. Check that no transaction stays open and the next write works.
+- Covered: item rename, list rename, navigation after delete (no bug: the caller drops the result), item and list tags, admin password reset and ID-based writes. Item IDs are no longer reused (migration 2).
 
 ## Findings
 

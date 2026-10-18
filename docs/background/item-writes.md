@@ -4,7 +4,7 @@
 
 Supporting detail for [item writes and stale pages](../item-writes.md). That
 page is the source for current behavior. The audit that produced these fixes is
-the [write atomicity audit](../../plans/write-atomicity-audit.md).
+the [write atomicity audit](write-atomicity-findings.md).
 
 ## Implementation notes
 
