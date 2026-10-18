@@ -10,8 +10,6 @@ Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
 
 In order: the top item is done first.
 
-- [ ] [test] Fix the flaky browser test `test_stale_page_cannot_write_after_list_deletion[undo]` in `browser_tests/test_svelte_deleted_lists.py`. It fails about 1 run in 3 (Chromium and WebKit) with a Playwright route `CancelledError`, and passes on rerun. Find and fix the cause; do not add retries or longer waits. Prove the fix by running the test many times in a row (for example 20 runs in a shell loop) with no failures.
-
 ## Later
 
 Agreed as worth doing; no date.

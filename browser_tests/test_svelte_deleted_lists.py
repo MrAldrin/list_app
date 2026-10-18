@@ -21,6 +21,7 @@ from svelte_app import (
 from test_svelte_share import RESET_MESSAGE, without_share_sheet
 
 OPS = re.compile(r"/api/v1/(rooms|share)/[^/]+/ops$")
+CHANGES = re.compile(r"/api/v1/(rooms|share)/[^/]+/changes")
 
 
 def prepare_action(page: Page, action: str):
@@ -44,8 +45,14 @@ def prepare_action(page: Page, action: str):
         page.get_by_label("Add Tag").fill("forbidden")
         return lambda: page.get_by_label("Add Tag").press("Enter")
     if action == "undo":
+        # This page's own delete is answered with a new seq, so the page then
+        # reads the changes. The member's delete must wait for that read: once
+        # the list is gone, the read gets 401 and the page stops editing, so
+        # Undo would be disabled. The live stream is held, so this read is the
+        # page's only chance to learn of the delete.
         page.get_by_role("button", name="Options").click()
-        page.get_by_role("button", name="Delete milk").click()
+        with page.expect_response(CHANGES), page.expect_response(OPS):
+            page.get_by_role("button", name="Delete milk").click()
         expect(page.get_by_role("button", name="Undo")).to_be_visible()
         return page.get_by_role("button", name="Undo").click
     raise AssertionError(action)
