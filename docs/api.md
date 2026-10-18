@@ -120,7 +120,8 @@ Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
   without `Secure`. No localStorage fallback.
 
 `GET …/session` with a revoked token returns 401 and clears the cookie. A
-password change revokes all tokens of the room. If `DELETE …/session` cannot
+password change revokes all tokens of the room. A room keeps its 200 newest
+tokens; a new sign-in drops the oldest. If `DELETE …/session` cannot
 revoke the token (503), it keeps the cookie so the client can retry. `last-room` is routing only: it
 names the last room this browser signed in to, not whether access still works.
 
@@ -436,6 +437,7 @@ row. Answers stored before this was added have no `changed_seq`.
 |---|---|---|
 | `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
 | `too_long` | the same, after trimming: names 100 characters, `list.tag_add` tags 30, `item.edit` and `item.restore` descriptions 1000 | Name (Tag, Description) can be at most N characters |
+| `too_many` | `item.add`, `item.restore` (1000 items per list); `list.create` (100 lists per room); `list.tag_add` (50 tags per list) | A list can have at most 1000 items; A room can have at most 100 lists; A list can have at most 50 tags |
 | `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
 | `duplicate_active` | `item.add` | 'x' is already on the list. Also has `item_uid`: the uid of the existing item. |
 | `changed_meanwhile` | `list.rename`, `item.set_done`, `item.edit` | Someone else changed this meanwhile. |

@@ -138,7 +138,8 @@ def test_get_lists_sorting(room_id):
 def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
     # Regression test: concurrent CRUD calls should not fail with shared-cursor errors.
     worker_count = 6
-    operations_per_worker = 20
+    # 6 x 15 new lists stay under MAX_LISTS_PER_ROOM (100) in this room.
+    operations_per_worker = 15
 
     def worker(worker_id: int):
         local_errors = []

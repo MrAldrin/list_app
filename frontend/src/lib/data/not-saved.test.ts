@@ -114,6 +114,18 @@ describe('notSavedMessage', () => {
 		);
 	});
 
+	it('uses the server message for a count limit, which names the limit', () => {
+		const add: SentOp = { ...base, type: 'item.add', list_uid: 'l1', name: 'eggs' };
+		expect(
+			notSavedMessage({
+				op: add,
+				code: 'too_many',
+				message: 'A list can have at most 1000 items',
+				name: null
+			})
+		).toBe("Add 'eggs': A list can have at most 1000 items.");
+	});
+
 	it('uses the server message for other codes, with a full stop', () => {
 		const add: SentOp = { ...base, type: 'item.add', list_uid: 'l1', name: 'eggs' };
 		expect(

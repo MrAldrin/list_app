@@ -31,6 +31,7 @@ from api.errors import ApiError
 from api.idempotency import Response, request_hash, run_once_locked
 from api.requests import JsonBody, StrictBody
 from database_crud import (
+    CountLimitReached,
     add_or_restore_item_locked,
     adjust_item_quantity_locked,
     change_list_tag_locked,
@@ -600,19 +601,26 @@ def _answer_seq(scope: OpScope) -> int:
     return get_room_seq_locked(scope.room_id)
 
 
+def _rejected(scope: OpScope, op: Any, rejection: OpRejected) -> Response:
+    return {
+        "op_id": op.op_id,
+        "status": "rejected",
+        "code": rejection.code,
+        "message": rejection.message,
+        **rejection.fields,
+        "seq": _answer_seq(scope),
+    }
+
+
 def _apply_locked(scope: OpScope, op: Any) -> Response:
     try:
         with savepoint_locked():
             result = HANDLERS[op.type](scope, op)
     except OpRejected as rejection:
-        return {
-            "op_id": op.op_id,
-            "status": "rejected",
-            "code": rejection.code,
-            "message": rejection.message,
-            **rejection.fields,
-            "seq": _answer_seq(scope),
-        }
+        return _rejected(scope, op, rejection)
+    except CountLimitReached as limit:
+        # A count limit is reached (nothing was written: the savepoint rolled back).
+        return _rejected(scope, op, OpRejected("too_many", str(limit)))
     return {
         "op_id": op.op_id,
         "status": "applied",

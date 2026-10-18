@@ -10,12 +10,28 @@ from typing import Any, Literal
 import bcrypt
 
 from database_setup import db
-from field_limits import MAX_NAME_LENGTH, MIN_PASSWORD_LENGTH, too_long_message
+from field_limits import (
+    MAX_ITEMS_PER_LIST,
+    MAX_LISTS_PER_ROOM,
+    MAX_NAME_LENGTH,
+    MAX_SESSIONS_PER_ROOM,
+    MAX_TAGS_PER_LIST,
+    MIN_PASSWORD_LENGTH,
+    count_limit_message,
+    too_long_message,
+)
 from identifiers import make_slug, token_hash
 from item_visibility import parse_completion_time, validate_visibility_settings
 from password_hashing import hash_password
 
 _DB_LOCK = threading.RLock()
+
+
+class CountLimitReached(Exception):
+    """A new row would go over a count limit (field_limits). Nothing is written.
+
+    The message is for the user. The ops API turns it into the `too_many` code.
+    """
 
 
 @contextmanager
@@ -158,13 +174,18 @@ def update_list_visibility_settings_locked(
 def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
     """Add or remove one list tag on the stored tags; no write if unchanged.
 
-    Call inside a write transaction; the list must exist.
+    Call inside a write transaction; the list must exist. Adding a new tag to a
+    list with MAX_TAGS_PER_LIST tags raises CountLimitReached.
     """
     row = db.execute("SELECT list_tags FROM lists WHERE id = ?", (list_id,)).fetchone()
     list_tags = _decode_tags(row[0])
 
     if add:
         if tag not in list_tags:
+            if len(list_tags) >= MAX_TAGS_PER_LIST:
+                raise CountLimitReached(
+                    count_limit_message("A list", MAX_TAGS_PER_LIST, "tags")
+                )
             list_tags = sorted([*list_tags, tag], key=str.lower)
             db.execute(
                 "UPDATE lists SET list_tags = ? WHERE id = ?",
@@ -229,7 +250,8 @@ def create_or_find_list_locked(
     """Create a list, or return the one with that name (ignoring case).
 
     Returns (list ID, slug, created). `uid` is the client's new public ID;
-    None lets the trigger make one. It is not used for an existing list.
+    None lets the trigger make one. It is not used for an existing list. A new
+    list in a full room raises CountLimitReached.
     """
     normalized_name = normalize_display_name(name)
     if not normalized_name:
@@ -238,6 +260,14 @@ def create_or_find_list_locked(
     existing = _find_list_by_name_locked(normalized_name, room_id)
     if existing:
         return existing[0], existing[1], False
+
+    list_count = db.execute(
+        "SELECT COUNT(*) FROM lists WHERE room_id = ?", (room_id,)
+    ).fetchone()[0]
+    if list_count >= MAX_LISTS_PER_ROOM:
+        raise CountLimitReached(
+            count_limit_message("A room", MAX_LISTS_PER_ROOM, "lists")
+        )
 
     slug = make_slug(name)
     result = db.execute(
@@ -262,6 +292,17 @@ def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> b
     return True
 
 
+def _check_item_count_locked(list_id: int) -> None:
+    """Raise CountLimitReached when the list is full. Call before an insert."""
+    item_count = db.execute(
+        "SELECT COUNT(*) FROM items WHERE list_id = ?", (list_id,)
+    ).fetchone()[0]
+    if item_count >= MAX_ITEMS_PER_LIST:
+        raise CountLimitReached(
+            count_limit_message("A list", MAX_ITEMS_PER_LIST, "items")
+        )
+
+
 def add_or_restore_item_locked(
     item_name: str, list_id: int, *, uid: str | None = None
 ) -> tuple[str, int]:
@@ -269,8 +310,9 @@ def add_or_restore_item_locked(
 
     Returns (status, item ID): "added", "restored" or "duplicate_active"
     (nothing written). Names match ignoring case and outer spaces. `uid` is
-    the client's public ID for a new item; it is not used otherwise. Call
-    inside a write transaction with a normalized, nonempty name.
+    the client's public ID for a new item; it is not used otherwise. A new item
+    in a full list raises CountLimitReached. Call inside a write transaction
+    with a normalized, nonempty name.
     """
     existing = db.execute(
         "SELECT id, done FROM items WHERE list_id = ? "
@@ -285,6 +327,7 @@ def add_or_restore_item_locked(
             (existing[0],),
         )
         return "restored", existing[0]
+    _check_item_count_locked(list_id)
     result = db.execute(
         "INSERT INTO items (name, done, list_id, uid) VALUES (?, 0, ?, ?)",
         (item_name, list_id, uid),
@@ -307,14 +350,15 @@ def restore_deleted_item_locked(
     """Insert a deleted item again as a new row; return its ID.
 
     None (nothing written) when an item with that name exists, ignoring case
-    and outer spaces. `completed_at` is kept only when `done`. Call inside a
-    write transaction.
+    and outer spaces. `completed_at` is kept only when `done`. In a full list
+    it raises CountLimitReached. Call inside a write transaction.
     """
     if db.execute(
         "SELECT 1 FROM items WHERE list_id = ? AND trim(name) = ? COLLATE NOCASE",
         (list_id, name.strip()),
     ).fetchone():
         return None
+    _check_item_count_locked(list_id)
     result = db.execute(
         """
         INSERT INTO items (
@@ -834,6 +878,14 @@ def _insert_room_access_token_locked(room_id: int, authorization_version: int) -
         VALUES (?, ?, ?)
         """,
         (token_hash(token), room_id, authorization_version),
+    )
+    # Keep the newest sessions of the room. Ids grow with each insert, so the
+    # highest ids are the newest; the rest (the oldest) go.
+    db.execute(
+        "DELETE FROM room_access_tokens WHERE room_id = ? AND id NOT IN ("
+        "SELECT id FROM room_access_tokens WHERE room_id = ? "
+        "ORDER BY id DESC LIMIT ?)",
+        (room_id, room_id, MAX_SESSIONS_PER_ROOM),
     )
     return token
 

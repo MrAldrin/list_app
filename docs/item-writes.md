@@ -43,6 +43,11 @@ list tags 30 and descriptions 1000. Item names are lowercase. The API rejects
 longer text with `too_long` ([rejection codes](api.md#rejection-codes)), and
 the Svelte inputs stop at the same limits (`maxlength`).
 
+Counts are limited too: a list holds 1000 items (checked and unchecked), a room
+100 lists and a list 50 tags. A write that would go over is refused with
+`too_many`. Unchecking an item, or adding a tag the list already has, still works
+when full.
+
 The database guards the same rules as a safety net (migration 6): `BEFORE
 INSERT` and `BEFORE UPDATE` triggers reject blank or untrimmed names, missing
 slugs, quantities below 1, `done` other than 0 or 1, a completion time on an

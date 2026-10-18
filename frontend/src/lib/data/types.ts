@@ -195,7 +195,8 @@ export type RejectionCode =
 	| 'changed_meanwhile'
 	| 'list_unavailable'
 	| 'item_not_found'
-	| 'too_long';
+	| 'too_long'
+	| 'too_many';
 
 export interface OpApplied {
 	op_id: string;
