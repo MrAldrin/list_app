@@ -141,6 +141,7 @@ question before treating it as intended behavior. Do not run an autonomous
 - [Public list sharing](docs/public-sharing.md)
 - [Room invitations](docs/room-invitations.md)
 - [Hiding checked-off items](docs/checked-item-visibility.md)
+- [Sorting items](docs/item-sorting.md)
 - [Home-screen installation and device checks](docs/home-screen-installation.md)
 - [Item writes and stale pages](docs/item-writes.md)
 - [JSON API](docs/api.md)
