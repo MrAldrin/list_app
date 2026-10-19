@@ -6,22 +6,14 @@
 
 import { flushSync } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import { RoomHandle, type RoomApi } from './index';
-import { FakeEventSource, makeFeed, makeList, ROOM } from './test-helpers';
+import { RoomHandle } from './index';
+import { FakeEventSource, fakeRoomApi, makeFeed, makeList, ROOM } from './test-helpers';
 
-function fakeApi(): RoomApi {
-	return {
+function fakeApi() {
+	return fakeRoomApi({
 		changes: vi.fn(async () => makeFeed({ seq: 0, full: true })),
-		sendOp: vi.fn(),
-		login: vi.fn(async () => ROOM),
-		logout: vi.fn(async () => undefined),
-		whoAmI: vi.fn(async () => ROOM),
-		changePassword: vi.fn(async () => ROOM),
-		deleteRoom: vi.fn(async () => undefined),
-		shareLink: vi.fn(async () => ({ token: 'token' })),
-		resetShareLink: vi.fn(async () => ({ token: 'token' })),
-		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
-	};
+		sendOp: vi.fn()
+	});
 }
 
 describe('room store lifetime', () => {

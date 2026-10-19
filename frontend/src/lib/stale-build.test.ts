@@ -1,13 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { installStaleBuildReload, mayReloadOnce, RELOAD_WINDOW_MS } from './stale-build';
-
-function memoryStorage() {
-	const data = new Map<string, string>();
-	return {
-		getItem: (key: string) => data.get(key) ?? null,
-		setItem: (key: string, value: string) => void data.set(key, value)
-	};
-}
+import { memoryStorage } from './data/test-helpers';
 
 describe('mayReloadOnce', () => {
 	it('allows the first reload and blocks a second one soon after', () => {

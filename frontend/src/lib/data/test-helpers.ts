@@ -2,7 +2,11 @@
 
 import { vi } from 'vitest';
 import type { EventSourceLike } from './events';
+import type { RoomApi } from './index';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
+
+/** Deadline for polling waits. Long enough for a loaded machine, short enough to fail fast. */
+export const WAIT_TIMEOUT_MS = 5_000;
 
 export const ROOM: Room = { slug: 'home-ab12cd', name: 'Home' };
 
@@ -171,4 +175,65 @@ export function fakeFetch(...responses: (Response | Error)[]) {
 		if (next instanceof Error) throw next;
 		return next;
 	});
+}
+
+/** An in-memory `Storage`, for the localStorage helpers. */
+export function memoryStorage(initial: Record<string, string> = {}): Storage {
+	const data = new Map(Object.entries(initial));
+	return {
+		getItem: (key: string) => data.get(key) ?? null,
+		setItem: (key: string, value: string) => void data.set(key, value),
+		removeItem: (key: string) => void data.delete(key),
+		clear: () => data.clear(),
+		key: (index: number) => [...data.keys()][index] ?? null,
+		get length() {
+			return data.size;
+		}
+	};
+}
+
+/**
+ * A scripted room API. Tests override only the methods they answer; the rest
+ * return harmless defaults. Mock methods stay typed, so tests can call
+ * `.mockRejectedValue(...)` on them.
+ */
+export function fakeRoomApi<T extends Partial<RoomApi>>(overrides: T = {} as T) {
+	const defaults = {
+		changes: vi.fn(async (...args: Parameters<RoomApi['changes']>): Promise<Feed> =>
+			makeFeed({ seq: args[1] })
+		),
+		sendOp: vi.fn<RoomApi['sendOp']>(async () => ({
+			op_id: 'unexpected',
+			status: 'applied',
+			result: {},
+			seq: 6
+		})),
+		login: vi.fn(async () => ROOM),
+		logout: vi.fn(async () => undefined),
+		whoAmI: vi.fn(async () => ROOM),
+		changePassword: vi.fn(async () => ROOM),
+		deleteRoom: vi.fn(async () => undefined),
+		shareLink: vi.fn(async () => ({ token: 'share-token' })),
+		resetShareLink: vi.fn(async () => ({ token: 'new-token' })),
+		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
+	} satisfies RoomApi;
+	return { ...defaults, ...overrides };
+}
+
+/** Polls until `check` is true. IndexedDB runs on timers, so tests wait for a state. */
+export async function waitUntil(check: () => boolean, label: string): Promise<void> {
+	await vi.waitFor(
+		() => {
+			if (!check()) throw new Error(`Timed out waiting for ${label}`);
+		},
+		{ timeout: WAIT_TIMEOUT_MS }
+	);
+}
+
+/**
+ * Polls an assertion until it passes. The deadline is explicit: vitest's default
+ * of 1 s is too short when the suite runs in parallel with other work.
+ */
+export function waitFor<T>(callback: () => T | Promise<T>): Promise<T> {
+	return vi.waitFor(callback, { timeout: WAIT_TIMEOUT_MS });
 }

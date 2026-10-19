@@ -10,13 +10,17 @@ import {
 import { ShareApi } from './share';
 import { browserSnapshots } from './standalone-session';
 import {
+	applied,
+	deferred,
 	FakeEventSource,
+	fakeRoomApi,
 	makeFeed,
 	makeItem,
 	makeList,
 	ROOM,
 	settle,
-	type Deferred
+	type Deferred,
+	waitFor
 } from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Item, OpResponse, SentOp } from './types';
@@ -29,20 +33,6 @@ const list = makeList({ uid: 'saved-list' });
 const item = makeItem(list.uid, { uid: 'saved-item', name: 'milk' });
 const feed = makeFeed({ seq: 5, full: true, lists: [list], items: [item] });
 let databaseCounter = 0;
-
-function deferred<T>() {
-	let resolve!: (value: T) => void;
-	let reject!: (reason: unknown) => void;
-	const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-		resolve = resolvePromise;
-		reject = rejectPromise;
-	});
-	return { promise, resolve, reject };
-}
-
-function applied(op: SentOp, seq: number): OpResponse {
-	return { op_id: op.op_id, status: 'applied', result: {}, seq };
-}
 
 function snapshots(): SnapshotStore {
 	databaseCounter += 1;
@@ -92,26 +82,7 @@ function sharedMemorySnapshots(): SnapshotStore {
 }
 
 function fakeApi(changes: () => Promise<Feed> = async () => feed) {
-	return {
-		changes: vi.fn(changes),
-		sendOp: vi.fn(async (...args: Parameters<RoomApi['sendOp']>): Promise<OpResponse> => {
-			void args;
-			return {
-				op_id: 'unexpected',
-				status: 'applied',
-				result: {},
-				seq: 6
-			};
-		}),
-		login: vi.fn(async () => ROOM),
-		logout: vi.fn(async () => undefined),
-		whoAmI: vi.fn(async () => ROOM),
-		changePassword: vi.fn(async () => ROOM),
-		deleteRoom: vi.fn(async () => undefined),
-		shareLink: vi.fn(async () => ({ token: 'share-token' })),
-		resetShareLink: vi.fn(async () => ({ token: 'new-token' })),
-		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
-	} satisfies RoomApi;
+	return fakeRoomApi({ changes: vi.fn<RoomApi['changes']>(changes) });
 }
 
 function handle(
@@ -182,11 +153,11 @@ describe('saved room data integration', () => {
 		const onlineApi = fakeApi();
 		const online = handle(onlineApi, storage);
 		await settle();
-		await vi.waitFor(async () => {
+		await waitFor(async () => {
 			const saved = await storage.read({ kind: 'room', slug: ROOM.slug });
 			expect(saved.ok && saved.value?.seq).toBe(5);
 		});
-		expect(online.store.canWrite).toBe(true);
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
 		online.release();
 
 		const offlineApi = fakeApi(async () => {
@@ -194,7 +165,7 @@ describe('saved room data integration', () => {
 		});
 		offlineApi.whoAmI.mockRejectedValue(new NetworkError());
 		const offline = handle(offlineApi, storage, { hydrateSavedView: true });
-		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
 		await settle();
 		expect(offline.store.lists).toEqual([list]);
 		expect(offline.store.itemsOf(list.uid)).toEqual([item]);
@@ -248,9 +219,9 @@ describe('saved room data integration', () => {
 			return answer.promise;
 		});
 		const room = handle(api, storage);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		const change = room.setDone(item, true);
-		await vi.waitFor(() => expect(sent).toHaveLength(1));
+		await waitFor(() => expect(sent).toHaveLength(1));
 		expect(room.store.item(item.uid)?.done).toBe(true);
 		const beforeAnswer = await storage.read({ kind: 'room', slug: ROOM.slug });
 		expect(beforeAnswer).toMatchObject({
@@ -269,7 +240,7 @@ describe('saved room data integration', () => {
 		);
 		answer.resolve(applied(sent[0], 6));
 		await change;
-		await vi.waitFor(async () => {
+		await waitFor(async () => {
 			const saved = await storage.read({ kind: 'room', slug: ROOM.slug });
 			expect(saved.ok && saved.value?.seq).toBe(6);
 		});
@@ -281,7 +252,7 @@ describe('saved room data integration', () => {
 		const storage = snapshots();
 		const online = handle(fakeApi(), storage);
 		await settle();
-		await vi.waitFor(async () => {
+		await waitFor(async () => {
 			const saved = await storage.read({ kind: 'room', slug: ROOM.slug });
 			expect(saved.ok && saved.value).toBeTruthy();
 		});
@@ -292,7 +263,7 @@ describe('saved room data integration', () => {
 		});
 		defaultApi.whoAmI.mockRejectedValue(new NetworkError());
 		const defaultView = handle(defaultApi, storage);
-		await vi.waitFor(() => expect(defaultApi.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(defaultApi.whoAmI).toHaveBeenCalledTimes(1));
 		expect(defaultView.store.lists).toEqual([]);
 		expect(defaultView.store.canWrite).toBe(false);
 		defaultView.release();
@@ -302,10 +273,10 @@ describe('saved room data integration', () => {
 			new ApiError(401, 'not_authenticated', 'Sign in to this room.')
 		);
 		const revoked = handle(revokedApi, storage, { hydrateSavedView: true });
-		await vi.waitFor(() => expect(revokedApi.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(revokedApi.whoAmI).toHaveBeenCalledTimes(1));
 		await settle();
 		expect(revoked.store.lists).toEqual([]);
-		await vi.waitFor(async () => {
+		await waitFor(async () => {
 			const saved = await storage.read({ kind: 'room', slug: ROOM.slug });
 			expect(saved.ok && saved.value).toBeNull();
 		});
@@ -319,7 +290,7 @@ describe('saved room data integration', () => {
 		const pendingFeed = new Promise<Feed>((resolve) => (resolveFeed = resolve));
 		const api = fakeApi(() => pendingFeed);
 		const room = handle(api, storage, { sessionLocks: null });
-		await vi.waitFor(() => expect(api.changes).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(api.changes).toHaveBeenCalledTimes(1));
 
 		expect(await room.logout()).toMatchObject({ ok: false, code: 'server_logout_pending' });
 		resolveFeed(feed);
@@ -340,10 +311,10 @@ describe('clear and session boundaries', () => {
 		const marker = deferred<{ ok: true; value: undefined }>();
 		storage.localSignOut = vi.fn(() => marker.promise) as unknown as SnapshotStore['localSignOut'];
 		const room = handle(api, storage);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 
 		const logout = room.logout();
-		await vi.waitFor(() => expect(storage.localSignOut).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(storage.localSignOut).toHaveBeenCalledTimes(1));
 		expect(room.store.status).toBe('ready');
 		expect(room.store.canWrite).toBe(false);
 
@@ -360,12 +331,12 @@ describe('clear and session boundaries', () => {
 		const marker = deferred<{ ok: true; value: undefined }>();
 		storage.localSignOut = vi.fn(() => marker.promise) as unknown as SnapshotStore['localSignOut'];
 		const room = handle(api, storage);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 
 		const refreshing = room.store.refresh();
-		await vi.waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
 		const logout = room.logout();
-		await vi.waitFor(() => expect(storage.localSignOut).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(storage.localSignOut).toHaveBeenCalledTimes(1));
 		second.resolve(feed);
 		await refreshing;
 		await settle();
@@ -388,7 +359,7 @@ describe('clear and session boundaries', () => {
 				() => marker.promise
 			) as unknown as SnapshotStore['localSignOut'];
 			const room = handle(api, storage);
-			await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+			await waitFor(() => expect(room.store.canWrite).toBe(true));
 
 			const logout = room.logout();
 			await vi.advanceTimersByTimeAsync(LOCAL_SIGNOUT_TIMEOUT_MS - 1);
@@ -422,21 +393,25 @@ describe('clear and session boundaries', () => {
 			return onClear(listener);
 		}) as unknown as SnapshotStore['onClear'];
 		const originalSignOut = storage.localSignOut.bind(storage);
+		const hintDelivered = deferred<void>();
 		storage.localSignOut = (async (identity: Parameters<SnapshotStore['localSignOut']>[0]) => {
 			const result = await originalSignOut(identity);
 			// The clear hint reaches this tab only after the call has returned.
-			setTimeout(() => hint?.({ identity, generation: 1 }), 0);
+			setTimeout(() => {
+				hint?.({ identity, generation: 1 });
+				hintDelivered.resolve();
+			}, 0);
 			return result;
 		}) as SnapshotStore['localSignOut'];
-		// The first lock request (logout's own) is slow, so the hint's retry
-		// would win the lock if it were allowed to start.
+		// The first lock request (logout's own) waits until the hint has been
+		// delivered, so the hint's retry would win the lock if it were allowed to start.
 		const inner = serialLocks();
 		let armed = false;
 		const locks = {
 			request: async (name: string, options: LockOptions, callback: () => Promise<unknown>) => {
 				if (armed) {
 					armed = false;
-					await new Promise((resolve) => setTimeout(resolve, 30));
+					await hintDelivered.promise;
 				}
 				return (inner as never as { request: SessionLockManager['request'] }).request(
 					name,
@@ -446,12 +421,13 @@ describe('clear and session boundaries', () => {
 			}
 		} as unknown as SessionLockManager;
 		const room = handle(api, storage, { sessionLocks: locks });
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 
 		armed = true;
 		const logout = room.logout();
-		await vi.waitFor(() => expect(api.logout).toHaveBeenCalledTimes(1));
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		await waitFor(() => expect(api.logout).toHaveBeenCalledTimes(1));
+		// Let any retry the hint started reach the session lock before the answer.
+		await settle();
 		answer.resolve(undefined);
 		expect(await logout).toEqual({ ok: true, result: {} });
 		expect(api.logout).toHaveBeenCalledTimes(1);
@@ -466,7 +442,7 @@ describe('clear and session boundaries', () => {
 			const api = fakeApi();
 			api.logout.mockRejectedValue(error);
 			const room = handle(api, storage);
-			await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+			await waitFor(() => expect(room.store.canWrite).toBe(true));
 			expect(await room.logout()).toMatchObject({ ok: false, code: 'server_logout_pending' });
 			expect(room.store.status).toBe('auth_required');
 			room.release();
@@ -482,10 +458,10 @@ describe('clear and session boundaries', () => {
 			const answer = deferred<OpResponse>();
 			api.sendOp.mockImplementation(() => answer.promise);
 			const room = handle(api, storage);
-			await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+			await waitFor(() => expect(room.store.canWrite).toBe(true));
 			room.store.notify('old', 'Old item text');
 			const action = room.addItem(list, 'private milk');
-			await vi.waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
+			await waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
 			const original = room.queuedOps[0];
 			expect(await room.logout()).toEqual({ ok: true, result: {} });
 			expect(room.store.notice).toBeNull();
@@ -524,10 +500,10 @@ describe('clear and session boundaries', () => {
 		api.sendOp.mockImplementation(() => answer.promise);
 		const queue = new MemoryQueueStorage();
 		const room = handle(api, snapshotsStore, { queueStorage: queue });
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 
 		const action = room.setDone(item, true);
-		await vi.waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
 		const sent = api.sendOp.mock.calls[0][1];
 		expect(await room.logout()).toEqual({ ok: true, result: {} });
 		answer.resolve({
@@ -539,8 +515,8 @@ describe('clear and session boundaries', () => {
 		});
 
 		await expect(action).resolves.toMatchObject({ ok: false, code: 'session_changed' });
-		await vi.waitFor(() => expect(room.store.notSaved).toHaveLength(1));
-		await vi.waitFor(async () => expect(await queue.readNotSaved()).toHaveLength(1));
+		await waitFor(() => expect(room.store.notSaved).toHaveLength(1));
+		await waitFor(async () => expect(await queue.readNotSaved()).toHaveLength(1));
 		expect(room.store.notSaved[0]).toMatchObject({ code: 'changed_meanwhile' });
 		room.release();
 		snapshotsStore.close();
@@ -553,7 +529,7 @@ describe('clear and session boundaries', () => {
 			...storage,
 			localSignOut: async () => ({ ok: false as const, reason: 'unavailable' as const })
 		});
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		const result = await room.logout();
 		expect(result).toMatchObject({ ok: false, code: 'local_clear_unconfirmed' });
 		if (!result.ok) {
@@ -573,7 +549,7 @@ describe('clear and session boundaries', () => {
 			...storage,
 			acknowledgeServerLogout: async () => ({ ok: false as const, reason: 'unavailable' as const })
 		});
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		const result = await room.logout();
 		expect(result).toMatchObject({ ok: false, code: 'logout_marker_unacknowledged' });
 		if (!result.ok) {
@@ -593,7 +569,7 @@ describe('clear and session boundaries', () => {
 		const storage = snapshots();
 		const api = fakeApi();
 		const room = handle(api, storage, { sessionLocks: null });
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		const result = await room.logout();
 		expect(result).toMatchObject({ ok: false, code: 'server_logout_pending' });
 		expect(api.logout).not.toHaveBeenCalled();
@@ -622,13 +598,13 @@ describe('clear and session boundaries', () => {
 			}
 		};
 		const room = handle(fakeApi(), wrapped);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		await storage.clear({ kind: 'room', slug: ROOM.slug });
 		expect(hint.generation).toBe(1);
 		expect(await room.login('password')).toMatchObject({ ok: true });
 		receive(hint);
 		await settle();
-		expect(room.store.canWrite).toBe(true);
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		expect(room.store.lists).toEqual([list]);
 		room.release();
 		storage.close();
@@ -650,7 +626,7 @@ describe('clear and session boundaries', () => {
 		};
 		const api = fakeApi();
 		const room = handle(api, wrapped);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		expect(await room.logout()).toMatchObject({ ok: false, code: 'server_logout_pending' });
 		expect(api.logout).not.toHaveBeenCalled();
 		room.release();
@@ -665,7 +641,7 @@ describe('clear and session boundaries', () => {
 			...storage,
 			pendingServerLogouts: async () => ({ ok: false as const, reason: 'unavailable' as const })
 		});
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		expect(await room.logout()).toMatchObject({ ok: false, code: 'server_logout_pending' });
 		expect(api.logout).not.toHaveBeenCalled();
 		expect((await pending()).ok).toBe(true);
@@ -701,7 +677,7 @@ describe('standalone sign-out', () => {
 			return ROOM;
 		});
 		const logout = standaloneLogout('plain-http-room', api as never);
-		await vi.waitFor(() => expect(order).toEqual(['DELETE']));
+		await waitFor(() => expect(order).toEqual(['DELETE']));
 		const signin = standaloneLogin('plain-http-room', 'password', api as never);
 		await settle();
 		expect(api.login).not.toHaveBeenCalled();
@@ -948,13 +924,13 @@ describe('reconnect write gate', () => {
 		const api = fakeApi();
 		const connectivity = fakeConnectivity();
 		const room = handle(api, storage, { connectivity: connectivity.target });
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 
 		api.whoAmI.mockRejectedValueOnce(new NetworkError());
 		connectivity.emit('offline');
 		expect(room.store.canWrite).toBe(false);
 		// The offline signal itself runs the check, which fails.
-		await vi.waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(2));
 		await settle();
 		expect(room.store.canWrite).toBe(false);
 		expect(api.changes).toHaveBeenCalledTimes(1);
@@ -962,13 +938,13 @@ describe('reconnect write gate', () => {
 		// An online signal is only a hint: a failing check keeps writes blocked.
 		api.whoAmI.mockRejectedValueOnce(new NetworkError());
 		connectivity.emit('online');
-		await vi.waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(3));
+		await waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(3));
 		await settle();
 		expect(room.store.canWrite).toBe(false);
 
 		connectivity.emit('online');
-		await vi.waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
-		expect(room.store.canWrite).toBe(true);
+		await waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		room.release();
 		storage.close();
 	});
@@ -978,7 +954,7 @@ describe('reconnect write gate', () => {
 		const storage = snapshots();
 		const api = fakeApi();
 		const room = handle(api, storage);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		const stream = FakeEventSource.last;
 		stream.open();
 
@@ -986,15 +962,15 @@ describe('reconnect write gate', () => {
 		stream.fail(true);
 		expect(room.store.canWrite).toBe(false);
 		stream.open();
-		await vi.waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(2));
 		await settle();
 		expect(room.store.canWrite).toBe(false);
 		expect(api.changes).toHaveBeenCalledTimes(1);
 
 		stream.fail(true);
 		stream.open();
-		await vi.waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
-		expect(room.store.canWrite).toBe(true);
+		await waitFor(() => expect(api.changes).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		room.release();
 		storage.close();
 	});
@@ -1036,7 +1012,7 @@ describe('share snapshot privacy', () => {
 			online: null
 		});
 		online.retain();
-		await vi.waitFor(() => expect(online.store.canWrite).toBe(true));
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
 		expect(online.store.room).toEqual(ROOM);
 		const saved = await storage.read({ kind: 'share', token });
 		expect(saved).toMatchObject({ ok: true, value: { room: null, lists: [sharedList] } });
@@ -1061,7 +1037,7 @@ describe('share snapshot privacy', () => {
 			online: null
 		});
 		offline.retain();
-		await vi.waitFor(() => expect(offlineChanges).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offlineChanges).toHaveBeenCalledTimes(1));
 		await settle();
 		expect(offline.store.lists).toEqual([sharedList]);
 		expect(offline.store.itemsOf(sharedList.uid)).toEqual([sharedItem]);
@@ -1101,16 +1077,16 @@ describe('room membership versus share access', () => {
 			online: null
 		});
 		share.retain();
-		await vi.waitFor(() => expect(share.store.canWrite).toBe(true));
+		await waitFor(() => expect(share.store.canWrite).toBe(true));
 		const refreshing = share.store.refresh();
-		await vi.waitFor(() => expect(changes).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(changes).toHaveBeenCalledTimes(2));
 		expect(await share.resetShareLink(sharedList)).toMatchObject({
 			ok: false,
 			code: 'not_authenticated'
 		});
 		oldFeed.resolve({ ...memberFeed, seq: 9 });
 		expect(await refreshing).toBe(false);
-		await vi.waitFor(() => expect(share.store.canWrite).toBe(true));
+		await waitFor(() => expect(share.store.canWrite).toBe(true));
 		expect(share.store.room).toBeNull();
 		expect(await storage.read({ kind: 'share', token })).toMatchObject({
 			ok: true,
@@ -1161,9 +1137,9 @@ describe('room membership versus share access', () => {
 			online: null
 		});
 		share.retain();
-		await vi.waitFor(() => expect(share.store.canWrite).toBe(true));
+		await waitFor(() => expect(share.store.canWrite).toBe(true));
 		const action = share.setDone(sharedItem, true);
-		await vi.waitFor(() => expect(sendShareOp).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(sendShareOp).toHaveBeenCalledTimes(1));
 		expect(share.store.queued).toBe(1);
 		expect(await share.resetShareLink(sharedList)).toMatchObject({
 			ok: false,
@@ -1176,7 +1152,7 @@ describe('room membership versus share access', () => {
 		expect(share.store.canWrite).toBe(false);
 		answer.resolve(applied(sendShareOp.mock.calls[0][1], 9));
 		expect(await action).toMatchObject({ ok: true });
-		await vi.waitFor(() => expect(share.store.canWrite).toBe(true));
+		await waitFor(() => expect(share.store.canWrite).toBe(true));
 		expect(share.store.queued).toBe(0);
 		expect(share.store.pendingOps).toEqual([]);
 		expect(share.store.room).toBeNull();
@@ -1214,7 +1190,7 @@ describe('room membership versus share access', () => {
 			online: null
 		});
 		share.retain();
-		await vi.waitFor(() => expect(share.store.canWrite).toBe(true));
+		await waitFor(() => expect(share.store.canWrite).toBe(true));
 		expect(share.store.room).toEqual(ROOM);
 		expect(await share.resetShareLink(sharedList)).toMatchObject({
 			ok: false,
@@ -1222,8 +1198,8 @@ describe('room membership versus share access', () => {
 		});
 		expect(share.store.room).toBeNull();
 		expect(share.store.lists).toEqual([sharedList]);
-		await vi.waitFor(() => expect(changes.mock.calls.length).toBeGreaterThan(1));
-		await vi.waitFor(() => expect(share.store.canWrite).toBe(true));
+		await waitFor(() => expect(changes.mock.calls.length).toBeGreaterThan(1));
+		await waitFor(() => expect(share.store.canWrite).toBe(true));
 		expect(await storage.read({ kind: 'share', token })).toMatchObject({
 			ok: true,
 			value: { room: null, lists: [sharedList] }
@@ -1247,17 +1223,17 @@ describe('cross-handle revocation', () => {
 		const storage = sharedMemorySnapshots();
 		const firstApi = fakeApi();
 		const first = handle(firstApi, storage);
-		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		await waitFor(() => expect(first.store.canWrite).toBe(true));
 		const secondApi = fakeApi();
 		const second = handle(secondApi, storage);
-		await vi.waitFor(() => expect(second.store.canWrite).toBe(true));
+		await waitFor(() => expect(second.store.canWrite).toBe(true));
 		secondApi.sendOp.mockRejectedValueOnce(
 			new ApiError(401, 'not_authenticated', 'Sign in to this room.')
 		);
 		const result = second.addListTag(list, 'denied');
 		let settled = false;
 		void result.then(() => (settled = true));
-		await vi.waitFor(() => expect(secondApi.sendOp).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(secondApi.sendOp).toHaveBeenCalledTimes(1));
 		await settle();
 		expect(first.store.lists).toEqual([]);
 		expect(second.store.lists).toEqual([]);
@@ -1291,11 +1267,11 @@ describe('unavailable snapshot state', () => {
 			online: null
 		});
 		room.retain();
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		const write = room.addListTag(list, 'online');
-		await vi.waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
 		await write;
-		expect(room.store.canWrite).toBe(true);
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		expect(room.store.snapshotWarning).toBeTruthy();
 
 		const signin = await room.login('secret');
@@ -1349,7 +1325,7 @@ describe('room session transition serialization', () => {
 		expect(secondApi.login).toHaveBeenCalledTimes(1);
 		expect(secondApi.whoAmI).toHaveBeenCalledTimes(1);
 		expect(secondApi.changes).toHaveBeenCalledTimes(1);
-		expect(second.store.canWrite).toBe(true);
+		await waitFor(() => expect(second.store.canWrite).toBe(true));
 		first.release();
 		second.release();
 		storage.close();
@@ -1403,18 +1379,18 @@ describe('room session transition serialization', () => {
 			online: null
 		});
 		room.retain();
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
-		await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
 		const action = room.addListTag(list, 'Shared');
-		await vi.waitFor(() => expect(sends).toHaveLength(1));
+		await waitFor(() => expect(sends).toHaveLength(1));
 		const opId = sends[0].op_id;
 
 		expect(await room.logout()).toEqual({ ok: true, result: {} });
 		expect(room.queuedOps[0].op_id).toBe(opId);
 		expect(FakeEventSource.instances[0].closed).toBe(true);
 		expect(await room.login('secret')).toEqual({ ok: true, result: ROOM });
-		expect(room.store.canWrite).toBe(true);
-		await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
 
 		firstAnswer.reject(new ApiError(401, 'not_authenticated', 'Sign in to this room.'));
 		await settle();
@@ -1423,13 +1399,13 @@ describe('room session transition serialization', () => {
 		// Access confirmation alone does not release changes held after sign-out.
 		expect(room.store.pendingOps.map((pending) => pending.op.op_id)).toEqual([opId]);
 		room.sendAfterSignIn();
-		await vi.waitFor(() => expect(sends).toHaveLength(2));
+		await waitFor(() => expect(sends).toHaveLength(2));
 		expect(sends[1]).toEqual(sends[0]);
 		expect(room.store.queued).toBe(1);
 		retryAnswer.resolve(applied(sends[1], 6));
 		await action;
 		expect(room.store.queued).toBe(0);
-		expect(room.store.canWrite).toBe(true);
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		room.release();
 		storage.close();
 	});
@@ -1437,9 +1413,10 @@ describe('room session transition serialization', () => {
 
 describe('offline editing (6.2d)', () => {
 	/** A server that answers what the device sends, with the rows it changed. */
-	function answering(api: ReturnType<typeof fakeApi>, sent: SentOp[]) {
+	function answering(api: ReturnType<typeof fakeApi>, sent: SentOp[], onSent?: () => void) {
 		api.sendOp.mockImplementation(async (_slug, op) => {
 			sent.push(op);
+			onSent?.();
 			const result =
 				op.type === 'item.add'
 					? { item_uid: op.uid, outcome: 'added', changed_seq: 3 }
@@ -1453,7 +1430,7 @@ describe('offline editing (6.2d)', () => {
 		const queue = new MemoryQueueStorage();
 		const online = fakeApi();
 		const first = handle(online, storage);
-		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		await waitFor(() => expect(first.store.canWrite).toBe(true));
 		first.release();
 
 		const connectivity = fakeConnectivity();
@@ -1465,7 +1442,7 @@ describe('offline editing (6.2d)', () => {
 			queueStorage: queue,
 			connectivity: connectivity.target
 		});
-		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
 		await settle();
 		expect(offline.store.canEdit).toBe(true);
 		expect(offline.store.canWrite).toBe(false);
@@ -1475,12 +1452,12 @@ describe('offline editing (6.2d)', () => {
 		void offline.addItem(list, 'bread');
 		expect(offlineApi.sendOp).not.toHaveBeenCalled();
 		// The three ops are written to storage before the page is closed.
-		await vi.waitFor(async () => expect(await queue.read()).toHaveLength(3));
+		await waitFor(async () => expect(await queue.read()).toHaveLength(3));
 		offline.release();
 
 		// A reload while still offline: the stored ops are projected at once.
 		const reloaded = handle(offlineApi, storage, { hydrateSavedView: true, queueStorage: queue });
-		await vi.waitFor(() => expect(reloaded.store.itemsOf(list.uid)).toHaveLength(2));
+		await waitFor(() => expect(reloaded.store.itemsOf(list.uid)).toHaveLength(2));
 		expect(reloaded.queuedOps.map((sent) => sent.type)).toEqual([
 			'item.set_done',
 			'item.edit',
@@ -1491,7 +1468,10 @@ describe('offline editing (6.2d)', () => {
 
 		// Back online: the 'online' signal revalidates, and the queue goes out in order.
 		const sent: SentOp[] = [];
-		answering(offlineApi, sent);
+		const flushed = deferred<void>();
+		answering(offlineApi, sent, () => {
+			if (sent.length === 3) flushed.resolve();
+		});
 		offlineApi.whoAmI.mockResolvedValue(ROOM);
 		offlineApi.changes.mockResolvedValue(
 			makeFeed({
@@ -1502,12 +1482,14 @@ describe('offline editing (6.2d)', () => {
 			})
 		);
 		connectivity.emit('online');
-		await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(3));
+		// Wait for the third send itself, not for a polled count.
+		await flushed.promise;
+		expect(offlineApi.sendOp).toHaveBeenCalledTimes(3);
 		expect(sent.map((op) => op.type)).toEqual(['item.set_done', 'item.edit', 'item.add']);
 		expect(sent[0]).toMatchObject({ item_uid: item.uid, done: true, base_seq: 1 });
 		// The edit was based on the same view: its base moved to the seq the tick got.
 		expect(sent[1]).toMatchObject({ base_seq: 2, name: 'milk', description: 'cold' });
-		await vi.waitFor(() => expect(reloaded.waitingCount).toBe(0));
+		await waitFor(() => expect(reloaded.waitingCount).toBe(0));
 		expect(reloaded.queuedOps).toEqual([]);
 		reloaded.release();
 		storage.close();
@@ -1518,7 +1500,7 @@ describe('offline editing (6.2d)', () => {
 		const queue = new MemoryQueueStorage();
 		const online = fakeApi();
 		const first = handle(online, storage);
-		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		await waitFor(() => expect(first.store.canWrite).toBe(true));
 		first.release();
 
 		const connectivity = fakeConnectivity();
@@ -1530,7 +1512,7 @@ describe('offline editing (6.2d)', () => {
 			queueStorage: queue,
 			connectivity: connectivity.target
 		});
-		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
 		await settle();
 
 		const added = await offline.addItem(list, 'eggs');
@@ -1567,7 +1549,7 @@ describe('offline editing (6.2d)', () => {
 			queueStorage: queue,
 			connectivity: connectivity.target
 		});
-		await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
 		expect(sent[1]).toMatchObject({ type: 'item.set_done', item_uid: 'kept-eggs', done: true });
 		// The waited add is not an error (R6): no toast and no Not saved entry.
 		await settle();
@@ -1589,24 +1571,24 @@ describe('offline editing (6.2d)', () => {
 			return answer.promise;
 		});
 		const room = handle(api, storage);
-		await vi.waitFor(() => expect(room.store.canWrite).toBe(true));
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
 		// From now on the feed does not answer: the device only has its own answers.
 		api.changes.mockImplementation(() => new Promise<Feed>(() => undefined));
 
 		void room.toggleItemTag(item, 'Market');
-		await vi.waitFor(() => expect(sent).toHaveLength(1));
+		await waitFor(() => expect(sent).toHaveLength(1));
 		answers[0].resolve({
 			op_id: sent[0].op_id,
 			status: 'applied',
 			result: { changed_seq: 2 },
 			seq: 6
 		});
-		await vi.waitFor(() => expect(room.store.item(item.uid)?.changed_seq).toBe(2));
+		await waitFor(() => expect(room.store.item(item.uid)?.changed_seq).toBe(2));
 
 		const row = room.store.item(item.uid);
 		if (!row) throw new Error('the item is not shown');
 		void room.setDone(row, true);
-		await vi.waitFor(() => expect(sent).toHaveLength(2));
+		await waitFor(() => expect(sent).toHaveLength(2));
 		expect(sent[1]).toMatchObject({ type: 'item.set_done', base_seq: 2 });
 		room.release();
 		storage.close();
@@ -1619,7 +1601,7 @@ describe('not-saved changes (6.3)', () => {
 		const storage = snapshots();
 		const online = fakeApi();
 		const first = handle(online, storage);
-		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		await waitFor(() => expect(first.store.canWrite).toBe(true));
 		first.release();
 		const connectivity = fakeConnectivity();
 		const offlineApi = fakeApi();
@@ -1630,7 +1612,7 @@ describe('not-saved changes (6.3)', () => {
 			queueStorage: queue,
 			connectivity: connectivity.target
 		});
-		await vi.waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offlineApi.whoAmI).toHaveBeenCalledTimes(1));
 		await settle();
 		return { storage, offline, offlineApi, connectivity };
 	}
@@ -1660,7 +1642,7 @@ describe('not-saved changes (6.3)', () => {
 			seq: 8
 		}));
 
-		await vi.waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
+		await waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
 		expect(offline.store.notSaved[0]).toMatchObject({
 			code: 'changed_meanwhile',
 			text: "Tick 'milk': someone else changed it meanwhile."
@@ -1685,8 +1667,8 @@ describe('not-saved changes (6.3)', () => {
 			message: 'Someone else changed this meanwhile.',
 			seq: 8
 		}));
-		await vi.waitFor(() => expect(device.offline.store.notSaved).toHaveLength(1));
-		await vi.waitFor(async () => expect(await queue.readNotSaved()).toHaveLength(1));
+		await waitFor(() => expect(device.offline.store.notSaved).toHaveLength(1));
+		await waitFor(async () => expect(await queue.readNotSaved()).toHaveLength(1));
 		device.offline.release();
 
 		const api = fakeApi();
@@ -1694,8 +1676,8 @@ describe('not-saved changes (6.3)', () => {
 			hydrateSavedView: true,
 			queueStorage: queue
 		});
-		await vi.waitFor(() => expect(reopened.store.notSaved).toHaveLength(1));
-		await vi.waitFor(() => expect(reopened.store.canWrite).toBe(true));
+		await waitFor(() => expect(reopened.store.notSaved).toHaveLength(1));
+		await waitFor(() => expect(reopened.store.canWrite).toBe(true));
 		expect(reopened.store.notSaved[0]).toMatchObject({
 			code: 'changed_meanwhile',
 			text: "Tick 'milk': someone else changed it meanwhile."
@@ -1703,7 +1685,7 @@ describe('not-saved changes (6.3)', () => {
 		expect(api.sendOp).not.toHaveBeenCalled();
 
 		reopened.store.dismissNotSaved(reopened.store.notSaved[0].id);
-		await vi.waitFor(async () => expect(await queue.readNotSaved()).toEqual([]));
+		await waitFor(async () => expect(await queue.readNotSaved()).toEqual([]));
 		reopened.release();
 		device.storage.close();
 	});
@@ -1723,8 +1705,8 @@ describe('not-saved changes (6.3)', () => {
 				seq: 8
 			};
 		});
-		await vi.waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
-		await vi.waitFor(() => expect(offline.store.canWrite).toBe(true));
+		await waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
+		await waitFor(() => expect(offline.store.canWrite).toBe(true));
 
 		// Someone changed the row again: the device now knows changed_seq 9.
 		const again: SentOp[] = [];
@@ -1744,7 +1726,7 @@ describe('not-saved changes (6.3)', () => {
 		await offline.store.refresh();
 
 		const retrying = offline.saveMineAnyway(offline.store.notSaved[0].id);
-		await vi.waitFor(() => expect(again).toHaveLength(1));
+		await waitFor(() => expect(again).toHaveLength(1));
 		expect(offline.store.notSaved).toHaveLength(1);
 		retryAnswer.resolve({
 			op_id: again[0].op_id,
@@ -1781,18 +1763,18 @@ describe('not-saved changes (6.3)', () => {
 				message: 'Changed.',
 				seq: 8
 			}));
-			await vi.waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
-			await vi.waitFor(() => expect(offline.store.canWrite).toBe(true));
+			await waitFor(() => expect(offline.store.notSaved).toHaveLength(1));
+			await waitFor(() => expect(offline.store.canWrite).toBe(true));
 			const retryAnswer = deferred<OpResponse>();
 			offlineApi.sendOp.mockImplementation(async () => retryAnswer.promise);
 			const retry = offline.saveMineAnyway(offline.store.notSaved[0].id);
-			await vi.waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
+			await waitFor(() => expect(offlineApi.sendOp).toHaveBeenCalledTimes(2));
 			const sent = offlineApi.sendOp.mock.calls[1][1];
-			await vi.waitFor(async () =>
+			await waitFor(async () =>
 				expect(await queue.readNotSaved()).toMatchObject([{ retryOpId: sent.op_id }])
 			);
 			const logout = offline.logout();
-			await vi.waitFor(() => expect(offline.store.status).toBe('auth_required'));
+			await waitFor(() => expect(offline.store.status).toBe('auth_required'));
 			retryAnswer.resolve(
 				status === 'applied'
 					? applied(sent, 9)
@@ -1806,7 +1788,7 @@ describe('not-saved changes (6.3)', () => {
 			);
 			await retry;
 			await logout;
-			await vi.waitFor(async () =>
+			await waitFor(async () =>
 				expect(await queue.readNotSaved()).toHaveLength(status === 'applied' ? 0 : 1)
 			);
 			if (status === 'rejected') {
@@ -1828,7 +1810,7 @@ describe('not-saved changes (6.3)', () => {
 		const storage = snapshots();
 		const online = fakeApi();
 		const first = handle(online, storage);
-		await vi.waitFor(() => expect(first.store.canWrite).toBe(true));
+		await waitFor(() => expect(first.store.canWrite).toBe(true));
 		first.release();
 		const queue = new MemoryQueueStorage();
 		const sent: SentOp = {
@@ -1848,7 +1830,7 @@ describe('not-saved changes (6.3)', () => {
 			queueStorage: queue,
 			connectivity: connectivity.target
 		});
-		await vi.waitFor(() => expect(offline.waitingCount).toBe(1));
+		await waitFor(() => expect(offline.waitingCount).toBe(1));
 		await settle();
 		// The server may already have the +1: the saved quantity is shown, not one more.
 		expect(offline.store.item(item.uid)?.quantity).toBe(item.quantity);

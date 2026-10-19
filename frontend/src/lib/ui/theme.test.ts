@@ -1,20 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { memoryStorage } from '../data/test-helpers';
 import { effectiveTheme, otherTheme, savedTheme, saveTheme, THEME_KEY } from './theme';
-
-/** A tiny in-memory Storage, enough for these helpers. */
-function memoryStorage(initial: Record<string, string> = {}): Storage {
-	const data = new Map(Object.entries(initial));
-	return {
-		getItem: (key: string) => data.get(key) ?? null,
-		setItem: (key: string, value: string) => void data.set(key, value),
-		removeItem: (key: string) => void data.delete(key),
-		clear: () => data.clear(),
-		key: () => null,
-		get length() {
-			return data.size;
-		}
-	};
-}
 
 const blocked = {
 	getItem: () => {
