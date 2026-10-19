@@ -168,6 +168,8 @@ def update_list_visibility_settings_locked(
     age_days = stored[1] if age_days is None else age_days
     recent_count = stored[2] if recent_count is None else recent_count
     validate_visibility_settings(mode, age_days, recent_count)
+    if (mode, age_days, recent_count) == (stored[0], stored[1], stored[2]):
+        return  # Already stored: no write, so no change seq bump.
     db.execute(
         "UPDATE lists SET hide_done_mode = ?, hide_done_age_days = ?, "
         "hide_done_recent_count = ? WHERE id = ?",
@@ -289,6 +291,11 @@ def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> b
     """
     if _find_list_by_name_locked(new_name, room_id, exclude_id=list_id):
         return False
+    stored = db.execute(
+        "SELECT name FROM lists WHERE id = ? AND room_id = ?", (list_id, room_id)
+    ).fetchone()
+    if stored is not None and stored[0] == new_name:
+        return True  # Already has the name: no write, so no change seq bump.
     db.execute(
         "UPDATE lists SET name = ? WHERE id = ? AND room_id = ?",
         (new_name, list_id, room_id),
@@ -438,18 +445,26 @@ def update_item_done_locked(
 
     Checking sets `completed_at` unless the item is already checked;
     unchecking clears it and counts as an add (see add_or_restore_item_locked).
+    A state the item already has is not written, so the change seq stays.
     """
+    row = db.execute(
+        "SELECT COALESCE(done, 0) FROM items WHERE id = ? AND list_id = ?",
+        (item_id, list_id),
+    ).fetchone()
+    if row is None:
+        return False
+    if bool(row[0]) == done:
+        return True
     if done:
-        result = db.execute(
+        db.execute(
             "UPDATE items SET completed_at = CASE WHEN COALESCE(done, 0) = 0 "
             "THEN ? ELSE completed_at END, done = 1 "
             "WHERE id = ? AND list_id = ?",
             (_completion_timestamp(now), item_id, list_id),
         )
     else:
-        # Unchecking puts the item back on the list: an add. Unchecking an
-        # unchecked item changes nothing here.
-        result = db.execute(
+        # Unchecking puts the item back on the list: an add.
+        db.execute(
             "UPDATE items SET done = 0, completed_at = NULL, "
             "add_count = CASE WHEN COALESCE(done, 0) != 0 "
             "THEN add_count + 1 ELSE add_count END, "
@@ -458,7 +473,7 @@ def update_item_done_locked(
             "WHERE id = ? AND list_id = ?",
             (item_id, list_id),
         )
-    return result.rowcount > 0
+    return True
 
 
 def update_item_details_locked(
@@ -485,13 +500,27 @@ def update_item_details_locked(
     ).fetchone()
     if duplicate:
         return "duplicate"
-    result = db.execute(
+    stored = db.execute(
+        "SELECT name, description, quantity, date FROM items WHERE id = ? AND list_id = ?",
+        (item_id, list_id),
+    ).fetchone()
+    if stored is None:
+        return "missing"
+    unchanged = (
+        stored[0] == name
+        and (stored[1] or "") == description
+        and (quantity is None or stored[2] == quantity)
+        and (not date_given or stored[3] == date)
+    )
+    if unchanged:
+        return "saved"  # Already stored: no write, so no change seq bump.
+    db.execute(
         "UPDATE items SET name = ?, description = ?, "
         "quantity = COALESCE(?, quantity), "
         "date = CASE WHEN ? THEN ? ELSE date END WHERE id = ? AND list_id = ?",
         (name, description, quantity, date_given, date, item_id, list_id),
     )
-    return "saved" if result.rowcount > 0 else "missing"
+    return "saved"
 
 
 def adjust_item_quantity_locked(item_id: int, list_id: int, delta: int) -> bool:
@@ -499,12 +528,19 @@ def adjust_item_quantity_locked(item_id: int, list_id: int, delta: int) -> bool:
 
     Call inside a write transaction.
     """
-    result = db.execute(
-        "UPDATE items SET quantity = MAX(1, COALESCE(quantity, 1) + ?) "
-        "WHERE id = ? AND list_id = ?",
-        (delta, item_id, list_id),
+    row = db.execute(
+        "SELECT quantity FROM items WHERE id = ? AND list_id = ?", (item_id, list_id)
+    ).fetchone()
+    if row is None:
+        return False
+    new_quantity = max(1, (row[0] if row[0] is not None else 1) + delta)
+    if row[0] == new_quantity:
+        return True  # Already stored (e.g. at 1 and going down): no write.
+    db.execute(
+        "UPDATE items SET quantity = ? WHERE id = ? AND list_id = ?",
+        (new_quantity, item_id, list_id),
     )
-    return result.rowcount > 0
+    return True
 
 
 def delete_item_locked(item_id: int, list_id: int) -> bool:
@@ -1095,4 +1131,7 @@ def rename_room_locked(room_id: int, new_name: str) -> None:
     new_name = normalize_display_name(new_name)
     if not new_name:
         raise ValueError("Room name cannot be empty")
+    stored = db.execute("SELECT name FROM rooms WHERE id = ?", (room_id,)).fetchone()
+    if stored is not None and stored[0] == new_name:
+        return  # Same name: no write, so no change seq bump.
     db.execute("UPDATE rooms SET name = ? WHERE id = ?", (new_name, room_id))

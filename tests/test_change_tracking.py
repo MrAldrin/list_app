@@ -262,6 +262,95 @@ def test_item_writes_stamp_and_keep_uid(room_id, shop, item_id, write):
     assert _row("items", item_id)[0] == uid
 
 
+def _details(lid: int, iid: int, quantity: int) -> str:
+    return write_locked(crud.update_item_details_locked, iid, lid, "milk", "", quantity)
+
+
+@pytest.mark.parametrize(
+    "setup, again",
+    [
+        (
+            lambda rid, lid, iid: write_locked(
+                crud.update_item_done_locked, iid, lid, True
+            ),
+            lambda rid, lid, iid: write_locked(
+                crud.update_item_done_locked, iid, lid, True
+            ),
+        ),
+        (
+            lambda rid, lid, iid: None,
+            lambda rid, lid, iid: write_locked(
+                crud.update_item_done_locked, iid, lid, False
+            ),
+        ),
+        (
+            lambda rid, lid, iid: _details(lid, iid, 1),
+            lambda rid, lid, iid: write_locked(
+                crud.adjust_item_quantity_locked, iid, lid, -1
+            ),
+        ),
+        (
+            lambda rid, lid, iid: write_locked(
+                crud.update_item_details_locked,
+                iid,
+                lid,
+                "milk",
+                "cold",
+                2,
+                date_given=True,
+                date="2026-10-20",
+            ),
+            lambda rid, lid, iid: write_locked(
+                crud.update_item_details_locked,
+                iid,
+                lid,
+                "milk",
+                "cold",
+                2,
+                date_given=True,
+                date="2026-10-20",
+            ),
+        ),
+        (
+            lambda rid, lid, iid: update_list_visibility_settings(
+                lid, mode="age", age_days=3, recent_count=5
+            ),
+            lambda rid, lid, iid: update_list_visibility_settings(
+                lid, mode="age", age_days=3, recent_count=5
+            ),
+        ),
+        (
+            lambda rid, lid, iid: None,
+            lambda rid, lid, iid: write_locked(
+                crud.rename_list_if_unique_locked, lid, rid, "Shop"
+            ),
+        ),
+        (
+            lambda rid, lid, iid: None,
+            lambda rid, lid, iid: rename_room(rid, "Home"),
+        ),
+    ],
+    ids=[
+        "check_again",
+        "uncheck_again",
+        "quantity_clamped_at_one",
+        "same_details_and_date",
+        "same_visibility",
+        "same_list_name",
+        "same_room_name",
+    ],
+)
+def test_no_op_writes_do_not_bump_the_seq(room_id, shop, item_id, setup, again):
+    setup(room_id, shop[0], item_id)
+    before = _seq(room_id)
+    item_before = _row("items", item_id)
+
+    again(room_id, shop[0], item_id)
+
+    assert _seq(room_id) == before
+    assert _row("items", item_id) == item_before
+
+
 def test_write_to_missing_item_changes_nothing(room_id, shop, item_id):
     before = _seq(room_id)
 

@@ -122,6 +122,23 @@ def test_untick_when_the_row_is_unchanged_is_applied(milk):
     assert response["result"] == {"changed_seq": item_changed_seq(milk_uid)}
 
 
+def test_rechecking_a_checked_item_does_not_reject_a_stale_untick(milk):
+    room_id, slug, client, list_uid, milk_uid, _base = milk
+    assert op(client, slug, set_done(list_uid, milk_uid, True))["status"] == "applied"
+    # Page A reads the item now, while it is checked.
+    seen = item_changed_seq(milk_uid)
+    room_seq = seq_of(room_id)
+    # Device B checks it again. Nothing changes, so nothing is stamped.
+    assert op(client, slug, set_done(list_uid, milk_uid, True))["status"] == "applied"
+    assert item_changed_seq(milk_uid) == seen
+    assert seq_of(room_id) == room_seq
+    # Page A unticks with the base it saw: applied, not changed_meanwhile.
+    response = op(client, slug, set_done(list_uid, milk_uid, False, base_seq=seen))
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": item_changed_seq(milk_uid)}
+    assert not done_of(milk_uid)
+
+
 def test_set_done_without_base_seq_is_last_write_wins(milk):
     _room_id, slug, client, list_uid, milk_uid, _base = milk
     op(client, slug, set_done(list_uid, milk_uid, True))
