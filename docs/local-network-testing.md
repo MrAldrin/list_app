@@ -36,7 +36,7 @@ Access is limited in two places. Direct HTTP access uses port `8080`:
 3. Open `http://100.121.200.49:8080`. Include `http://`; `https` does not work.
 4. Stop the app with `Ctrl+C` when done.
 
-## Svelte prototype
+## Svelte app
 
 The Svelte app is served at `/`. One command builds it
 and starts the app with a separate test database:

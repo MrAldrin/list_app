@@ -53,10 +53,8 @@ The Svelte app is served at `/`. The same rules apply:
 - Signing in to a room issues a random access token. The database stores only
   its hash, tied to the room's authorization version.
 - On HTTPS the token lives in a `__Host-` cookie: Secure, HttpOnly,
-  SameSite=Lax, one year. On plain HTTP (local development) it falls back to
-  localStorage.
-- Old localStorage tokens move to the cookie on the next visit, and are removed
-  only after the cookie is confirmed.
+  SameSite=Lax, one year. Plain HTTP (local development) uses the same cookies
+  without `Secure`; see [API: Sign-in limit](api.md#sign-in-limit).
 - Changing or resetting a room password revokes every existing token for that
   room.
 - The admin password does not grant room access. Public share links do not

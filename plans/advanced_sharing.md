@@ -49,3 +49,7 @@ be pinned more than once before implementation.
 - What happens when the public token is rotated or the source list is deleted?
 - What dashboard and real-time refresh behavior is useful enough to justify
   this feature?
+
+## Progress
+
+- [ ] No work started. Deferred; the owner decides when to start.

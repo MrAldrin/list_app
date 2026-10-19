@@ -76,7 +76,6 @@ Acceptance: deterministic repeated passes, intact installation/lifecycle asserti
 
 The default suite is already about nine seconds, so optimize after the expensive layers.
 
-- Remove unnecessary valid-hash creation immediately overwritten by invalid hashes in `tests/test_password_hashes.py`; preserve invalid-hash rejection and admin-repair coverage.
 - Look for reusable immutable production-cost hashes in other setup paths, never shared mutable database state.
 - Profile subprocess startup and worker scheduling before further changes.
 - Preserve the existing [production-cost hashing decision](../docs/background/test-suite-speed.md#worker-and-hashing-decision). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.

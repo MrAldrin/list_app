@@ -12,7 +12,7 @@ Anyone receiving or being forwarded an invitation can create a room. The invitat
 
 ## Invitation history
 
-Revoked and expired invitations remain visible for seven days after they first become inactive (revocation or expiry, whichever happens first). Opening or refreshing the admin invitation list automatically deletes older invitation records. There is no background scheduler, so records may stay in the database longer if nobody opens the admin page. Deleted invitation links remain invalid; existing rooms and their access tokens are unaffected. No additional database migration is needed for this cleanup.
+Revoked and expired invitations remain visible for seven days after they first become inactive (revocation or expiry, whichever happens first). Opening or refreshing the admin invitation list automatically deletes older invitation records. There is no background scheduler, so records may stay in the database longer if nobody opens the admin page. Deleted invitation links remain invalid; existing rooms and their access tokens are unaffected.
 
 ## Implementation boundaries
 

@@ -110,7 +110,7 @@ uv run pytest -q -n 2  # Two workers
 uv run pytest -q -n 0  # Serial (also use this with --pdb)
 ```
 
-Real-browser sharing tests (Chromium, Firefox and WebKit, disposable data):
+Real-browser tests (Chromium, Firefox and WebKit, disposable data):
 
 ```bash
 uv run playwright install chromium firefox webkit
@@ -144,8 +144,11 @@ question before treating it as intended behavior. Do not run an autonomous
 - [Sorting items](docs/item-sorting.md)
 - [Home-screen installation and device checks](docs/home-screen-installation.md)
 - [Item writes and stale pages](docs/item-writes.md)
+- [Offline viewing](docs/offline-viewing.md)
+- [Change tracking](docs/change-tracking.md)
 - [JSON API](docs/api.md)
 - Testing: [real browsers](docs/browser-testing.md), [Android emulator](docs/android-emulator-testing.md), [phone over the network](docs/local-network-testing.md)
+- [Agent and project rules](AGENTS.md)
 - [Remaining work](plans/backlog.md)
 
 Background material (investigations, measurements, evidence) is in

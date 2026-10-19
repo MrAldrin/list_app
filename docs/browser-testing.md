@@ -17,7 +17,6 @@ uv run pytest browser_tests -q -n 4
   suite.
 - Playwright downloads its own browsers. On Linux, missing system libraries can
   be installed with `uv run playwright install --with-deps chromium firefox webkit`.
-  On this laptop WebKit needed `sudo apt-get install libavif16`.
 - WebKit is the engine of every iPhone browser. Playwright's Linux WebKit is
   close to Safari but not identical. It is our Safari check; real iPhone
   checks are only for very high-risk changes.
@@ -72,8 +71,8 @@ Traces hold test data only. Never point this harness at production.
   edit, delete and undo; tags, filter and hide-done; live updates between two
   phones; a list deleted while open; a password change that
   revokes open pages; light and dark mode; names for
-  every control and keyboard focus. Also share links, restart, stale actions, hide-done), and toasts that stay
-  small and inside the screen. The mapping is in the
+  every control and keyboard focus. Toasts stay small and inside the screen.
+  The mapping is in the
   [port map](background/browser-test-port-map.md).
 
 ## Svelte build

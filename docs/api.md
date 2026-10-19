@@ -146,7 +146,9 @@ unknown room. The password is checked in the same transaction.
 - **Delete room:** a wrong password is 403 `wrong_password` ("Incorrect
   password"). Deletes the room and all its lists and items; this cannot be
   undone. Clears the room cookie, and `last-room` when it names this room.
-- Passwords are at most 1,024 characters (else 422).
+- Request password fields are at most 1,024 characters (else 422). This is the
+  request-field limit. The 4-character minimum and 72-byte maximum in the
+  [room password rule](#room-password-rule) apply only when setting a password.
 - Open streams of the room are woken after the answer is sent: they send
   `revoked` to signed-out devices (live updates, below).
 

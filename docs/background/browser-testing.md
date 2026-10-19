@@ -69,3 +69,9 @@ a dropped role/engine pair could be missed. Coverage map and benchmark:
   [measurements](test-suite-speed.md#follow-up-public-sharing-setup-2026-09-28).
 
 Parallel stability on other machines has not been measured.
+
+## Linux WebKit system library
+
+On one laptop, WebKit needed `sudo apt-get install libavif16` before the
+browser tests ran. Current install steps are in
+[browser testing](../browser-testing.md).

@@ -53,7 +53,7 @@ slug routes; do not treat that as a security-preserving rollback.
 
 Automated coverage: `tests/test_public_share_tokens.py`,
 `tests/test_api_share.py` and the [real-browser suite](browser-testing.md)
-(`test_public_sharing.py`, `test_svelte_share.py`). All run locally over HTTP
+(`test_svelte_share.py`). All run locally over HTTP
 only.
 
 These automated tests are the verification; there are no extra manual checks.

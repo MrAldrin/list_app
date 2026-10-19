@@ -82,8 +82,9 @@ decides both.
 Railway must not override the repository. In the service settings:
 
 - The builder shows "Dockerfile — Automatically Detected"; do not change it.
-  Leave "Config file path" empty. The build log shows the `npm ci` step. A rollback to a commit from before the Svelte switch has no
-  `Dockerfile`, so it builds with the dashboard builder setting.
+  Leave "Config file path" empty. The build log shows the `npm ci` step.
+  A rollback to a commit from before the Svelte switch has no `Dockerfile`, so
+  it builds with the dashboard builder setting.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
 - `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`. `NICEGUI_STORAGE_SECRET`
@@ -131,7 +132,7 @@ host, remembered room access breaks, because API writes check the origin. Only
 trust forwarded headers from the real proxy.
 
 On HTTPS, remembered-room cookies are Secure, HttpOnly and SameSite=Lax. Local
-HTTP uses a localStorage fallback instead, so local testing does not prove
+HTTP uses the same cookies without `Secure`, so local testing does not prove
 production cookie behavior. See the
 [home-screen device checks](home-screen-installation.md).
 
@@ -276,8 +277,8 @@ steps, in this order:
    from the [deploy script](#backup-before-deploying)) to `DB_PATH`, as in the
    steps above. Changes made since the deploy are lost.
 2. Redeploy the previous commit (the revision you noted before deploying). It
-   needs `NICEGUI_STORAGE_SECRET` (set a new random value first) and builds with the dashboard builder setting
-   (see [Railway settings](#railway-settings-to-check)).
+   needs `NICEGUI_STORAGE_SECRET` (set a new random value first) and builds
+   with the dashboard builder setting (see [Railway settings](#railway-settings-to-check)).
 
 Restoring alone leaves the new code on an old database: it would migrate again.
 Redeploying alone fails at startup on the newer database.
