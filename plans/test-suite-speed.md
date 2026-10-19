@@ -85,7 +85,7 @@ The default suite is already about nine seconds, so optimize after the expensive
 
 Android tests can expose shared application bugs in authorization, saved-data handling, and reconnection flows. They cannot establish iPhone correctness: Safari/WebKit, installed-app storage, installation, and background/cold-launch behavior differ from Android Chrome.
 
-With about five users, we accept that gap. Linux Playwright WebKit is the iPhone evidence; the owner sees iPhone behavior live after deploys, and we fix problems then. Real-iPhone checks are only for very high-risk changes. See the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
+With about five users, we accept that gap. Linux Playwright WebKit is the iPhone evidence; the owner sees iPhone behavior live after deploys, and we fix problems then. Real-iPhone checks: see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
 
 ## Progress
 

@@ -83,12 +83,9 @@ Railway must not override the repository. In the service settings:
 
 - The builder shows "Dockerfile — Automatically Detected"; do not change it.
   Leave "Config file path" empty. The build log shows the `npm ci` step.
-  A rollback to a commit from before the Svelte switch has no `Dockerfile`, so
-  it builds with the dashboard builder setting.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
-- `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`. `NICEGUI_STORAGE_SECRET`
-  was deleted; only the old NiceGUI code needs it.
+- `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`.
 
 ### Schema migrations
 
@@ -104,9 +101,6 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
 - The log shows `Database migrated from version X to Y` when anything ran.
 - The app refuses a database newer than its code. Restore a matching backup
   instead of rolling back code alone.
-- The first deploy of the Svelte version moves a production database from
-  version 2 to 4 (offline-ready ids and change tracking). It takes the
-  pre-migration copy first. See the rollback below.
 - Add changes as a new migration at the end of the list in
   `src/database_setup.py`. Never edit a deployed one.
 - Rebuild a table in SQLite's documented order: create the new table, copy,
@@ -157,8 +151,7 @@ After deploying:
 - [ ] The Railway startup log has no errors.
 - [ ] The app opens and an existing list still shows its items.
 
-The owner uses the live app as normal. Device checks are only for very
-high-risk changes.
+Device checks: see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
 
 ## Backup before deploying
 
@@ -268,17 +261,5 @@ structure, not that your data is complete; also compare a few rooms and lists.
 understand the newer database. Restore a matching backup instead of starting
 incompatible code against your only copy.
 
-### Rolling back the Svelte deploy (database version 2 to 4)
-
-The old NiceGUI code refuses the version 4 database, so a rollback is two
-steps, in this order:
-
-1. Restore the pre-migration copy (`/data/list-pre-migration.db`, or the backup
-   from the [deploy script](#backup-before-deploying)) to `DB_PATH`, as in the
-   steps above. Changes made since the deploy are lost.
-2. Redeploy the previous commit (the revision you noted before deploying). It
-   needs `NICEGUI_STORAGE_SECRET` (set a new random value first) and builds
-   with the dashboard builder setting (see [Railway settings](#railway-settings-to-check)).
-
-Restoring alone leaves the new code on an old database: it would migrate again.
-Redeploying alone fails at startup on the newer database.
+The one-time rollback steps for the Svelte deploy are history: see the
+[Svelte deploy record](background/svelte-rollback.md).

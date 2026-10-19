@@ -76,16 +76,15 @@ Design reasoning, implementation details and past test results are in
 
 ## Real-device acceptance checklist
 
-Use this only for very high-risk changes to installation or remembered access;
-normally the automated tests are enough (see the
-[risk level](../AGENTS.md#risk-level-ship-and-fix-forward)). Pick the steps
-that the change affects. Use HTTPS and disposable rooms. Do not remove a
+Use this only when the
+[risk level](../AGENTS.md#risk-level-ship-and-fix-forward) calls for a device
+check of installation or remembered access. Pick the steps that the change
+affects. Use HTTPS and disposable rooms. Do not remove a
 working icon just to test.
 
 1. **Fresh iPhone install:** in Safari, sign in to room A, then Add to Home
    Screen. The icon should open room A without a second sign-in; a password
-   prompt counts as a failure. Repeat starting from an old localStorage login,
-   and with browser storage disabled.
+   prompt counts as a failure. Repeat with browser storage disabled.
 2. **Install from password page:** the icon opens room A but asks for the
    password.
 3. **Restart:** close and reopen the app, and restart the server. Access still

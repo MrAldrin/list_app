@@ -18,8 +18,8 @@ uv run pytest browser_tests -q -n 4
 - Playwright downloads its own browsers. On Linux, missing system libraries can
   be installed with `uv run playwright install --with-deps chromium firefox webkit`.
 - WebKit is the engine of every iPhone browser. Playwright's Linux WebKit is
-  close to Safari but not identical. It is our Safari check; real iPhone
-  checks are only for very high-risk changes.
+  close to Safari but not identical. It is our Safari check. For device checks, see the
+  [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
 - The plain `uv run pytest -q` does not run these tests.
 
 Smaller runs while debugging:

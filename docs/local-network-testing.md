@@ -1,9 +1,7 @@
 # Testing on a Phone before Deployment
 
-Run the app on your laptop and open it on your phone. This is optional and
-rarely needed: normally the automated tests are enough and the owner sees
-changes live after the push. Use it for very high-risk changes or to debug a
-phone-only problem. See the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
+Run the app on your laptop and open it on your phone. Use it to debug a
+phone-only problem. For device checks, see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
 
 ## How it works
 

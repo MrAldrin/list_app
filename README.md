@@ -95,9 +95,9 @@ To try the built app on a phone with a test database, run
 
 ```bash
 uv run pytest -q
-uv run ruff format --check .
-uv run ruff check .
 ```
+
+Before a change is done, run the full [Python quality checks](AGENTS.md#python-quality-checks).
 
 Tests provide their own credentials and databases; they do not need your real
 passwords. Tests run across 8 worker processes by default. Production
@@ -110,29 +110,13 @@ uv run pytest -q -n 2  # Two workers
 uv run pytest -q -n 0  # Serial (also use this with --pdb)
 ```
 
-Real-browser tests (Chromium, Firefox and WebKit, disposable data):
-
-```bash
-uv run playwright install chromium firefox webkit
-uv run pytest browser_tests -q -n 4
-```
-
-Setup, coverage, and diagnostics: [browser testing](docs/browser-testing.md).
+Real-browser tests (Chromium, Firefox and WebKit) are a separate suite. Setup,
+commands, coverage and diagnostics: [browser testing](docs/browser-testing.md).
 Why eight workers and real password hashing: [test speed decision](docs/background/test-suite-speed.md#worker-and-hashing-decision).
 
 ## Allium pilot (optional)
 
-A [draft sharing behavior spec](docs/allium/public-sharing.allium) is available for
-review alongside the [public-sharing guide](docs/public-sharing.md). It is a
-small trial, not a replacement for the guide or pytest tests. The Pi skills are
-installed locally under `.pi/skills/` (ignored by the current `.gitignore`);
-`skills-lock.json` records their source. To set up another checkout, run
-`npx skills add juxt/allium -a pi -s allium distill elicit propagate tend weed witness -y`,
-then reload Pi. Install the optional CLI separately with
-`cargo install allium-cli --locked`; validate the draft with
-`allium check docs/allium/public-sharing.allium`. Review the draft's open
-question before treating it as intended behavior. Do not run an autonomous
-`/skill:allium` implementation loop without agreeing on the next step.
+A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 
 ## Documentation
 

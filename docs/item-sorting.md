@@ -18,7 +18,7 @@ Each list has a **Sort** choice under **Options**. It only changes the order of 
 - Open items come first, checked items below. Both groups use the chosen order.
 - Ties are broken by name A–Z, so rows do not jump around.
 - **Date** is the optional date on an item. Items with a date come first in both directions. Items without a date come last, by name.
-- **Added** counts from the last add. Re-adding a checked item counts as an add. Undo after delete does not. An item with no time (added before the counter existed) counts as the oldest.
+- **Added** counts from the last add. What counts as an add is in the [JSON API](api.md#operation-types). An item with no time (added before the counter existed) counts as the oldest.
 - **Most added** uses the count that is shown in the item dialog. Adds, re-adds and unchecks count (see [JSON API](api.md)).
 
 ## Saved choice
