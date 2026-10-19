@@ -16,7 +16,6 @@ In order: the top item is done first.
 Agreed as worth doing; no date.
 
 - [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline use](../docs/offline-viewing.md#what-works-offline).
-- [ ] [feature] Make Admin reachable from inside the app, including the installed room view, without copying or editing a URL. Keep admin password protection. Plan navigation before implementing. See the [offline viewing scope](../docs/background/svelte-frontend-rewrite.md#offline-viewing-scope).
 
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
@@ -37,7 +36,8 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [security] Raise the four-character password minimum in the future for newly created or changed passwords only. Keep existing passwords valid. Do not redesign login as part of this work. See [password rules](../docs/api.md).
 - [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
 - [infra] Scheduled local backup job that pulls a verified SQLite copy from Railway to this machine or an always-on home machine. Railway snapshots are not available on the current plan. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
-- [infra] Add CI for format, lint and tests. First replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups and secrets out of git.
+- [infra] Add CI for format, lint and tests. First replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups and secrets out of git. A ready GitHub Actions workflow (Python, frontend and browser jobs, pinned actions) was built and dropped in the [October review](improvement-ideas.md#tests-and-tooling); the deploy script now runs the same checks locally. Railway deploys regardless unless "Wait for CI" is on.
+- [feature] Gzip large JSON responses (a 1,000-item feed drops from 283 KB to 35 KB). Server-Sent Events must stay uncompressed. Built and dropped in the [October review](improvement-ideas.md#performance); low gain at today's list sizes.
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
 - [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.

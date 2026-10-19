@@ -9,32 +9,28 @@ is the menu to choose from. Nothing here is accepted until you pick it.
 
 How to read it:
 
-- **Part 1** lists work already built on review lines (jj workspaces). Each
-  line is a chain: keep all of it, the first few changes, or none.
+- **Part 1** lists the work that was built and integrated.
 - **Part 2** is the idea catalog by area, with evidence, effort and my view.
 - **Part 3** lists the decisions only you can make.
 
 Effort: S = under a day, M = a few days, L = one to two weeks, XL = more.
 
-## Part 1: Built and waiting for review
+## Part 1: Built and integrated
 
-Each line starts from `integration` and has its own workspace in
-`~/projects/<workspace>`. Nothing is integrated or pushed. Review a line with
-`jj log -r 'integration..<tip>'` and `jj diff -r <change>`.
+Decided on 2026-10-19. All of this is in `integration`; it goes live with the
+next deploy.
 
-Each line passed `pytest`, Ruff, `ty`, `vitest` and the full browser suite
-(`-n 4`). The few browser failures did not repeat on rerun and also appear on
-the base. All five lines merge with no code conflicts; only
-`ARCHITECTURE.md`, `docs/browser-testing.md` and `docs/deployment.md` need a
-manual merge when several lines are combined.
-
-| Line (workspace) | Changes, oldest first | Notes for review |
-|---|---|---|
-| **Backend fixes** (`list_app-ws-backend-fixes`) | `yxosmznt` no-op writes no longer bump the change counter (fixes false "changed meanwhile" conflicts) → `tlulqlqt` bcrypt runs outside the database lock; new all-rooms sign-in limit (30 failures a minute) | A flood of wrong passwords now blocks sign-in for every room for one minute; signed-in devices keep working. Before, it froze the whole app. |
-| **Phone UX** (`list_app-ws-phone-ux`) | `xkxonysv` 44 px tap areas → `ykxlvtkz` stable tag colors and distinct letters ("Da", "Dr") → `mknzskoo` checked rows wait 1.5 s, then slide → `uuylrpmn` empty-list hint and a "Clear" chip | Rows grow from 36 to 44 px, so fewer items fit on screen. Two tags can still share a color (7 colors). |
-| **Rooms** (`list_app-ws-room-switcher`) | `znrklzkw` Admin in the room menu, shown after an admin sign-in on this device → `ontqompz` "Rooms" list in the room menu to switch rooms | Both new cookies hold no secrets. A room deleted on another device stays in the list until you remove it; decide if you want a remove button. Admin is not in the list ⋮ menu yet. |
-| **Ops hardening** (`list_app-ws-ops-hardening`) | `lnttrrtr` frame and sniffing headers → `owprwkyn` `/healthz` → `twnkqukk` deploy script runs all checks before the push (`--browser`, `--skip-checks`) → `zpxvqvlu` GitHub Actions CI → `zvskttol` gzip large JSON responses | Manual steps after deploy: set the Railway healthcheck path to `/healthz`; decide on Railway's "Wait for CI". The first CI run is untested. |
-| **Docs cleanup** (`list_app-ws-docs-cleanup`) | `pkzyyxsw` wrong facts and small errors → `svkmropw` one home for each fact; rollback history and the Allium section moved out | Docs only. The user count and the backlog were left for you. |
+- **Docs cleanup:** wrong facts fixed; one home for each fact.
+- **Backend fixes:** no-op writes no longer cause false conflicts; password
+  checks run outside the database lock, with an all-rooms sign-in limit
+  (30 failures a minute).
+- **Phone UX:** 44 px tap areas, stable tag colors and letters, checked rows
+  wait 1.5 s, empty-list hint and a "Clear" tag chip.
+- **Rooms (option B):** tap the room name to switch between remembered rooms,
+  add a room, or reach admin. The ⋮ menu is unchanged. An admin-hint cookie
+  and a Rooms section in the ⋮ menu were tried and dropped.
+- **Ops:** frame and sniffing headers, `/healthz`, and the deploy script runs
+  the checks before pushing. CI and gzip went to the backlog's Ideas.
 
 ## Part 2: Idea catalog
 
@@ -196,7 +192,7 @@ B on top of it.
 
 ## Part 3: Decisions for you
 
-1. Which review lines to keep, partly or fully (Part 1).
+1. ~~Which review lines to keep~~ (decided: Part 1).
 2. Add field: should Enter pick the matching suggestion instead of adding
    half-typed text? This changes an `ARCHITECTURE.md` UX decision.
 3. Toasts: drop the toast on every check and keep one undo bar?
