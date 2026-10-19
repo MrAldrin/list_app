@@ -12,7 +12,7 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import UnsentMark from '#lib/ui/UnsentMark.svelte';
 	import { formatItemDate, quantityBadge } from './items';
-	import { tagColor, tagLetter } from './tags';
+	import { tagColor, tagLetters } from './tags';
 
 	let {
 		item,
@@ -44,6 +44,8 @@
 	} = $props();
 
 	const badge = $derived(quantityBadge(item.quantity, showQuantity));
+	/** One letter (or two or three, where tags look alike) per list tag, in the same order. */
+	const letters = $derived(tagLetters(listTags));
 </script>
 
 <li class:done={item.done}>
@@ -103,7 +105,7 @@
 				<button
 					class="tag"
 					class:on
-					style:--tag={tagColor(index)}
+					style:--tag={tagColor(tag)}
 					type="button"
 					aria-label="{tag} tag for {item.name}"
 					aria-pressed={on}
@@ -111,7 +113,7 @@
 					title={tag}
 					onclick={() => onTag(tag)}
 				>
-					<span class="letter">{tagLetter(tag)}</span>
+					<span class="letter">{letters[index]}</span>
 				</button>
 			{/each}
 		</div>

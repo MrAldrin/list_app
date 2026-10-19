@@ -82,8 +82,8 @@
 
 {#if tags.length > 0}
 	<ul class="chips" aria-label="Tags">
-		{#each tags as tag, index (tag)}
-			<li style:--tag={tagColor(index)}>
+		{#each tags as tag (tag)}
+			<li style:--tag={tagColor(tag)}>
 				<button
 					class="chip"
 					class:on={filter.includes(tag)}

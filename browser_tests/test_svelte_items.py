@@ -281,3 +281,30 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     [(tags, mode)] = server.query("SELECT list_tags, hide_done_mode FROM lists")
     assert sorted(json.loads(tags)) == ["Bakery", "Lidl", "Market", "lidl"]
     assert mode == "off"
+
+
+def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
+    page = open_session("phone", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    add_item(page, "milk")
+
+    page.get_by_role("button", name="Options").click()
+    tag_field = page.get_by_label("Add Tag")
+    for tag in ("Dairy", "Dry goods"):
+        tag_field.fill(tag)
+        page.get_by_role("button", name="Add new tag").click()
+        expect(tag_field).to_have_value("")
+    dairy = page.get_by_role("button", name="Dairy tag for milk")
+    dry = page.get_by_role("button", name="Dry goods tag for milk")
+    # Both start with "D": each shows two letters, so they tell apart.
+    expect(dairy).to_have_text("Da")
+    expect(dry).to_have_text("Dr")
+    color = dairy.evaluate("el => el.style.getPropertyValue('--tag')")
+
+    # A new tag does not recolor the others (the color depends on the name).
+    tag_field.fill("Aisle")
+    page.get_by_role("button", name="Add new tag").click()
+    expect(page.get_by_role("button", name="Aisle tag for milk")).to_be_visible()
+    expect(dairy).to_have_text("Da")
+    assert dairy.evaluate("el => el.style.getPropertyValue('--tag')") == color
