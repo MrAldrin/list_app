@@ -1,12 +1,18 @@
 import hashlib
 import sqlite3
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from api_helpers import validate_room_access_token, verify_room
+from migration_helpers import migrate_to
 
+import database_crud
 import room_invitations as invitations
 from database_crud import authenticate_room_and_issue_token, get_rooms
 from database_setup import db
+from field_limits import MAX_ROOMS_PER_INVITATION
+from identifiers import token_hash
 
 
 def test_invitation_is_random_hashed_and_valid_for_seven_days(monkeypatch):
@@ -146,3 +152,67 @@ def test_cleanup_at_seven_day_boundary_preserves_rooms(monkeypatch, reason):
     # Repeated cleanup is harmless and never reuses a deleted invitation ID.
     assert [row["id"] for row in invitations.get_invitations()] == [active_id]
     assert active_id > invitation_id
+
+
+# Room limit per invitation
+
+
+def room_count() -> int:
+    return db.execute("SELECT COUNT(*) FROM rooms").fetchone()[0]
+
+
+def test_an_invitation_creates_five_rooms_and_refuses_the_sixth():
+    _, token = invitations.create_invitation()
+    for number in range(MAX_ROOMS_PER_INVITATION):
+        invitations.create_room_from_invitation(token, f"Room {number}", "pass")
+    before = room_count()
+    with pytest.raises(invitations.InvitationUnavailable):
+        invitations.create_room_from_invitation(token, "Sixth", "pass")
+    assert room_count() == before
+    assert not invitations.invitation_is_active(token)
+
+
+def test_concurrent_creates_cannot_exceed_the_room_limit():
+    _, token = invitations.create_invitation()
+    before = room_count()
+
+    def attempt(number: int) -> bool:
+        try:
+            invitations.create_room_from_invitation(token, f"Race {number}", "pass")
+        except invitations.InvitationUnavailable:
+            return False
+        return True
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        results = list(pool.map(attempt, range(12)))
+    assert results.count(True) == MAX_ROOMS_PER_INVITATION
+    assert room_count() - before == MAX_ROOMS_PER_INVITATION
+    assert not db.in_transaction
+
+
+def test_migration_keeps_existing_invitations_working(monkeypatch):
+    # Build the database as it was before migration 11, with one invitation.
+    existing = "existing-invitation-token"
+    expires = int(time.time()) + invitations.INVITATION_LIFETIME
+    with sqlite3.connect(":memory:") as old:
+        migrate_to(old, version=10)
+        old.execute(
+            "INSERT INTO room_invitations (token_hash, created_at, expires_at) "
+            "VALUES (?, ?, ?)",
+            (token_hash(existing), int(time.time()), expires),
+        )
+        old.commit()
+        migrate_to(old)  # Migration 11 adds the counter; existing rows keep working.
+        assert old.execute("SELECT rooms_created FROM room_invitations").fetchone() == (
+            0,
+        )
+        # The app's code now uses this migrated connection.
+        monkeypatch.setattr(invitations, "db", old)
+        monkeypatch.setattr(database_crud, "db", old)
+        for number in range(MAX_ROOMS_PER_INVITATION):
+            invitations.create_room_from_invitation(existing, f"Old {number}", "pass")
+        with pytest.raises(invitations.InvitationUnavailable):
+            invitations.create_room_from_invitation(existing, "Old sixth", "pass")
+        assert old.execute("SELECT rooms_created FROM room_invitations").fetchone() == (
+            MAX_ROOMS_PER_INVITATION,
+        )

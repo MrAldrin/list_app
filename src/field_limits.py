@@ -17,6 +17,8 @@ MAX_LISTS_PER_ROOM = 100
 MAX_TAGS_PER_LIST = 50
 # Sign-in sessions kept per room. A new sign-in drops the oldest ones.
 MAX_SESSIONS_PER_ROOM = 200
+# Rooms one creation invitation link may create (docs/room-invitations.md).
+MAX_ROOMS_PER_INVITATION = 5
 
 
 def too_long_message(what: str, text: str, limit: int) -> str | None:

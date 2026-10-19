@@ -14,7 +14,7 @@ from database_crud import (
     transaction,
 )
 from database_setup import db, inserted_row_id
-from field_limits import MAX_NAME_LENGTH
+from field_limits import MAX_NAME_LENGTH, MAX_ROOMS_PER_INVITATION
 from identifiers import token_hash
 from password_hashing import hash_password
 
@@ -83,12 +83,15 @@ def revoke_invitation(invitation_id: int) -> None:
 
 
 def _is_active_locked(token: str) -> bool:
+    """True when the invitation can create a room now: not revoked, not expired,
+    and under its room limit. An invitation at its limit counts as unavailable."""
     return bool(
         token
         and db.execute(
             "SELECT 1 FROM room_invitations "
-            "WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?",
-            (token_hash(token), int(time.time())),
+            "WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ? "
+            "AND rooms_created < ?",
+            (token_hash(token), int(time.time()), MAX_ROOMS_PER_INVITATION),
         ).fetchone()
     )
 
@@ -99,7 +102,8 @@ def invitation_is_active(token: str) -> bool:
 
 
 def create_room_from_invitation(token: str, name: str, password: str) -> str:
-    # Reject invalid links before spending CPU on bcrypt, then recheck at write time.
+    # Reject invalid or used-up links before spending CPU on bcrypt, then recheck
+    # and count the room in the same write transaction (BEGIN IMMEDIATE).
     if not invitation_is_active(token):
         raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
     name = normalize_display_name(name)
@@ -111,6 +115,11 @@ def create_room_from_invitation(token: str, name: str, password: str) -> str:
     with transaction(write=True):
         if not _is_active_locked(token):
             raise InvitationUnavailable(UNAVAILABLE_MESSAGE)
+        db.execute(
+            "UPDATE room_invitations SET rooms_created = rooms_created + 1 "
+            "WHERE token_hash = ?",
+            (token_hash(token),),
+        )
         db.execute(
             "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
             (name, slug, password_hash),

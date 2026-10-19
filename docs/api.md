@@ -87,7 +87,7 @@ HTTP errors use one shape:
 | 404 | `not_found` | Unknown API path |
 | 404 | `list_unavailable` | Share-link endpoints: the list is gone or in another room |
 | 404 | `room_unavailable` | Admin password reset or delete: no room has this slug |
-| 404 | `invitation_unavailable` | Creation invitation: unknown, expired, revoked or deleted (identical) |
+| 404 | `invitation_unavailable` | Creation invitation: unknown, expired, revoked, deleted or at its 5-room limit (identical) |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
 | 429 | `too_many_attempts` | Too many failed sign-ins; `Retry-After` gives the seconds (see [sign-in limit](api-rooms.md#sign-in-limit)) |

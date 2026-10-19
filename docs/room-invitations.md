@@ -6,7 +6,7 @@
 4. Share it with your group. Each person can choose a room name and password, then sign into their new room. They should keep the room URL and password.
 5. Use **Revoke** beside an active invitation to stop further room creation immediately.
 
-An invitation is reusable until seven days after generation (creation and expiry times are displayed in UTC). If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
+An invitation is reusable until seven days after generation, and it can create up to 5 rooms. After the fifth room the link stops working, like an expired one. (Creation and expiry times are displayed in UTC.) If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
 
 Anyone receiving or being forwarded an invitation can create a room. The invitation does not grant access to existing rooms. Room passwords grant management rights to everyone holding them; individual list URLs remain public-by-link. Admin login alone does not grant room access: admins must also use the room password or a valid room-access token. Admins can still view the room overview and reset room passwords, so this is not privacy from the server administrator.
 
@@ -30,7 +30,7 @@ apps share the invitations: a link from either one works in both.
 
 ## Deployment and migration
 
-The `room_invitations` table is created by the schema migrations (`src/database_setup.py`); no manual SQL is needed.
+The `room_invitations` table is created by the schema migrations (`src/database_setup.py`); no manual SQL is needed. Migration 11 adds a `rooms_created` counter to each invitation. Rooms do not record their invitation, so invitations that existed before this migration start at 0: rooms they made earlier are not counted.
 
 There is no abuse throttling, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
 

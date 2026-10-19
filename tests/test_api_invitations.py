@@ -16,6 +16,7 @@ from api_helpers import HTTPS, admin, assert_error, browser, client_for, verify_
 import room_invitations as invitations
 from database_crud import get_rooms
 from database_setup import db
+from field_limits import MAX_ROOMS_PER_INVITATION
 
 INVALID = "This invitation is invalid or no longer active."
 
@@ -455,3 +456,17 @@ def test_shared_status_rule():
     assert status({"revoked_at": None, "expires_at": now - 1}) == "expired"
     assert status({"revoked_at": 1, "expires_at": now + 60}) == "revoked"
     assert status({"revoked_at": 1, "expires_at": now - 1}) == "revoked"
+
+
+def test_a_link_stops_at_the_room_limit_like_an_expired_one(admin_app):
+    public = client_for()
+    token = issue(admin(admin_app)).json()["token"]
+    for number in range(MAX_ROOMS_PER_INVITATION):
+        assert create_room(public, token, f"Room {number}").status_code == 200
+    before = room_count()
+
+    assert_error(create_room(public, token, "Sixth"), 404, "invitation_unavailable")
+    assert_error(
+        public.get(f"/api/v1/invitations/{token}"), 404, "invitation_unavailable"
+    )
+    assert room_count() == before

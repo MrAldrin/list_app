@@ -69,7 +69,7 @@ Admins (need admin sign-in; 401 `admin_required` first, as in [admin](api-admin.
 ```
 
 - `status` is `active`, `revoked` or `expired` (revoked wins). Times are UTC.
-- An invitation is valid for 7 days and can be used many times.
+- An invitation is valid for 7 days and can create up to 5 rooms.
 - The token is only in the answer that issues it; only its sha256 is stored.
 - Listing deletes invitations that have been inactive for 7 days.
 - Revoking an unknown or already revoked invitation changes nothing. Rooms
@@ -83,7 +83,8 @@ Anyone with the link (no sign-in):
 | `POST /api/v1/invitations/{token}/rooms` | `{"name", "password"}` | 200 `{"room": {"slug", "name"}}` |
 
 - A link that cannot create a room is 404 `invitation_unavailable`, the same
-  for every reason. The invitation is checked again in the write transaction.
+  for every reason (including the 5-room limit). The invitation is checked
+  again in the write transaction, which also counts the new room.
 - The name is trimmed and must have 1–100 characters. The password follows
   the [room password rule](api-rooms.md#room-password-rule). Both give 422 with a message.
   Passwords are at most 1,024 characters in the body.

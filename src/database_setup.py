@@ -602,6 +602,17 @@ def _migration_10_times_added(db: sqlite3.Connection) -> None:
         """)
 
 
+def _migration_11_invitation_room_counts(db: sqlite3.Connection) -> None:
+    """Count the rooms each creation invitation has made (field_limits).
+
+    Rooms do not record their invitation, so existing invitations start at 0:
+    rooms they made before this migration are not counted.
+    """
+    db.execute(
+        "ALTER TABLE room_invitations ADD COLUMN rooms_created INTEGER NOT NULL DEFAULT 0"
+    )
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -615,6 +626,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_8_share_list_tracking,
         _migration_9_item_date,
         _migration_10_times_added,
+        _migration_11_invitation_room_counts,
     ]
 
 
