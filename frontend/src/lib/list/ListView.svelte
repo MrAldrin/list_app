@@ -11,11 +11,11 @@
 		type HideDone,
 		type Item,
 		type List,
-		type RoomHandle,
-		sortItems
+		type RoomHandle
 	} from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
+	import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import AddItem from './AddItem.svelte';
 	import ItemDialog from './ItemDialog.svelte';
@@ -33,9 +33,9 @@
 		saveShowQuantities,
 		UNDO_DURATION
 	} from './items.ts';
-	import { searchItems } from './search.ts';
-	import { activeFilters, filterByTags } from './tags.ts';
-	import { HOLD_MS, holdRowOrder } from './hold-order.ts';
+	import { activeFilters } from './tags.ts';
+	import { HOLD_MS } from './hold-order.ts';
+	import { visibleItems as rowsToShow } from './visible-items.ts';
 	import { flip } from 'svelte/animate';
 
 	let {
@@ -90,17 +90,6 @@
 	let hold = $state.raw<{ listUid: string; shown: string[]; uids: Set<string> } | null>(null);
 	let settleTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => () => clearTimeout(settleTimer));
-	const visibleItems = $derived.by(() => {
-		// Typing filters the list only for a saved or unconfirmed view; online it
-		// only suggests (also while access is briefly being revalidated).
-		const searching = room.store.unconfirmedView && searchText.trim() !== '';
-		const items = searching
-			? searchItems(room.store.itemsOf(list.uid), searchText)
-			: room.store.visibleItemsOf(list.uid, now);
-		// Sorted last, after the search and the tag filter (open items still first).
-		const sorted = sortItems(filterByTags(items, filterTags), itemSort);
-		return hold?.listUid === list.uid ? holdRowOrder(sorted, hold.shown, hold.uids) : sorted;
-	});
 
 	/** Keeps a checked or unchecked row in place, and waits for the taps to settle. */
 	function holdRow(uid: string) {
@@ -137,6 +126,21 @@
 		`${hiddenChecked} ${hiddenChecked === 1 ? 'checked item' : 'checked items'} hidden`
 	);
 
+	/** The rows on screen; the rules are in visible-items.ts. */
+	const visibleItems = $derived(
+		rowsToShow({
+			all: room.store.itemsOf(list.uid),
+			notHidden: () => room.store.visibleItemsOf(list.uid, now),
+			searchText,
+			// Typing filters the list only for a saved or unconfirmed view; online it
+			// only suggests (also while access is briefly being revalidated).
+			filtersBySearch: room.store.unconfirmedView,
+			tags: filterTags,
+			sort: itemSort,
+			hold: hold?.listUid === list.uid ? hold : null
+		})
+	);
+
 	async function addItem(target: List, name: string): Promise<boolean> {
 		const result = await room.addItem(target, name);
 		if (result.ok) {
@@ -157,12 +161,28 @@
 	function toggle(item: Item, done: boolean) {
 		holdRow(item.uid);
 		const handle = room;
+		offerUndo(handle, checkFeedback(item.name, done), handle.setDone(item, done), () =>
+			undoToggle(handle, item, done)
+		);
+	}
+
+	/**
+	 * Shows a change that already started, with "Undo" for `UNDO_DURATION`. The
+	 * toast goes away when the change fails; "Undo" works only while the room
+	 * can be edited.
+	 */
+	function offerUndo(
+		handle: RoomHandle,
+		toast: { message: string; kind?: ToastKind },
+		change: Promise<{ ok: boolean }>,
+		undo: () => unknown
+	) {
 		showUndoToast({
-			...checkFeedback(item.name, done),
-			request: handle.setDone(item, done),
+			...toast,
+			request: change,
 			duration: UNDO_DURATION,
 			canUndo: () => handle.store.canEdit,
-			undo: () => undoToggle(handle, item, done)
+			undo
 		});
 	}
 
@@ -183,13 +203,13 @@
 		void room.toggleItemTag(item, tag);
 	}
 
-	/** Adds the tag to the filter, or removes it when it is already there. */
 	/** Removes every tag from the filter, so all items show again. */
 	function clearFilter() {
 		releaseRows();
 		chosenTags = [];
 	}
 
+	/** Adds the tag to the filter, or removes it when it is already there. */
 	function toggleFilter(tag: string) {
 		releaseRows();
 		chosenTags = chosenTags.includes(tag)
@@ -207,13 +227,9 @@
 	function deleteTag(target: List, tag: string) {
 		chosenTags = chosenTags.filter((chosen) => chosen !== tag);
 		const handle = room;
-		showUndoToast({
-			message: `Deleted tag ${tag}`,
-			request: handle.removeListTag(target, tag),
-			duration: UNDO_DURATION,
-			canUndo: () => handle.store.canEdit,
-			undo: () => undoDeleteTag(handle, target, tag)
-		});
+		offerUndo(handle, { message: `Deleted tag ${tag}` }, handle.removeListTag(target, tag), () =>
+			undoDeleteTag(handle, target, tag)
+		);
 	}
 
 	async function undoDeleteTag(handle: RoomHandle, target: List, tag: string) {
@@ -241,13 +257,9 @@
 	function deleteItem(item: Item) {
 		editing = null;
 		const handle = room;
-		showUndoToast({
-			message: `Deleted ${item.name}`,
-			request: handle.deleteItem(item),
-			duration: UNDO_DURATION,
-			canUndo: () => handle.store.canEdit,
-			undo: () => undoDelete(handle, item)
-		});
+		offerUndo(handle, { message: `Deleted ${item.name}` }, handle.deleteItem(item), () =>
+			undoDelete(handle, item)
+		);
 	}
 
 	async function undoDelete(handle: RoomHandle, item: Item) {
