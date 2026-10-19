@@ -2,7 +2,7 @@
 // components never call `fetch` themselves.
 
 import { checkApiVersion, compat, INCOMPATIBLE_CODE, INCOMPATIBLE_MESSAGE } from './compat.svelte';
-import { ApiError, NetworkError } from './types';
+import { ApiError, NetworkError, isApiErrorCode } from './types';
 import type {
 	Feed,
 	Invitation,
@@ -249,7 +249,9 @@ export class Api {
 function toApiError(status: number, data: unknown): ApiError {
 	const error = (data as { error?: { code?: unknown; message?: unknown } } | undefined)?.error;
 	if (error && typeof error.code === 'string' && typeof error.message === 'string') {
-		return new ApiError(status, error.code, error.message);
+		// A code this build does not know (a newer server) is kept as `unknown`.
+		const code = isApiErrorCode(error.code) ? error.code : 'unknown';
+		return new ApiError(status, code, error.message);
 	}
 	// Not our JSON shape, for example a proxy's error page during a deploy.
 	if (status >= 500) {

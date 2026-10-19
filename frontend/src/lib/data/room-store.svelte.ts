@@ -4,6 +4,7 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { compat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
+import { failed, isActionCode, type ActionCode } from './result';
 import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
 import {
 	isProjected,
@@ -30,7 +31,7 @@ export type RoomStatus = 'loading' | 'ready' | 'auth_required' | 'error';
 /** A message for the user, such as a rejected change. A new `id` means a new message. */
 export interface Notice {
 	id: number;
-	code: string;
+	code: ActionCode;
 	message: string;
 }
 
@@ -44,7 +45,7 @@ export interface NotSavedChange {
 	key: string;
 	/** The op as it was sent; "Save mine anyway" sends its body again. */
 	op: SentOp;
-	code: string;
+	code: ActionCode;
 	message: string;
 	name: string | null;
 	/** The active explicit retry, if one is waiting for its answer. */
@@ -419,7 +420,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	}
 
 	/** Shows a message to the user (see `notice`). */
-	notify(code: string, message: string): void {
+	notify(code: ActionCode, message: string): void {
 		this.#noticeId += 1;
 		this.notice = { id: this.#noticeId, code, message };
 	}
@@ -577,15 +578,17 @@ export class RoomStore implements QueueHost, LiveHost {
 			const key = typeof value.key === 'string' ? value.key : op.op_id;
 			if (seen.has(key)) continue;
 			seen.add(key);
+			// A code this build does not know reads as unknown; its message still shows.
+			const known = isActionCode(code) ? code : 'unknown';
 			const parsed: NotSavedChange = {
 				id: ++this.#notSavedId,
 				key,
 				op,
-				code,
+				code: known,
 				message,
 				name,
 				...(typeof retryOpId === 'string' ? { retryOpId } : {}),
-				text: notSavedMessage({ op, code, message, name })
+				text: notSavedMessage({ op, code: known, message, name })
 			};
 			restored.push(parsed);
 		}
@@ -602,7 +605,7 @@ export class RoomStore implements QueueHost, LiveHost {
 	}
 
 	/** Puts a refused or failed change on the Not saved list. */
-	#collect(op: SentOp, code: string, message: string, name: string | null): void {
+	#collect(op: SentOp, code: ActionCode, message: string, name: string | null): void {
 		this.#notSavedId += 1;
 		const text = notSavedMessage({ op, code, message, name });
 		const change = { id: this.#notSavedId, key: op.op_id, op, code, message, name, text };
@@ -622,7 +625,7 @@ export class RoomStore implements QueueHost, LiveHost {
 		return this.notSaved.find((change) => change.retryOpId === op.op_id);
 	}
 
-	#retryFailed(change: NotSavedChange, op: SentOp, code: string, message: string): void {
+	#retryFailed(change: NotSavedChange, op: SentOp, code: ActionCode, message: string): void {
 		const text = notSavedMessage({ op, code, message, name: change.name });
 		this.notSaved = this.notSaved.map((item) =>
 			item.id === change.id ? { ...item, op, code, message, text, retryOpId: undefined } : item
@@ -752,13 +755,12 @@ export class RoomStore implements QueueHost, LiveHost {
 	}
 
 	opFailed(op: SentOp, error: unknown): void {
+		const { code, message } = failed(error);
 		if (!this.#currentOp(op)) {
 			if (!this.#signoutHeld.has(op.op_id)) return;
 			const retry = this.#retryChange(op);
 			const name = this.#signoutHeld.get(op.op_id) ?? null;
 			this.#signoutHeld.delete(op.op_id);
-			const code = error instanceof ApiError ? error.code : 'unknown';
-			const message = error instanceof ApiError ? error.message : 'The change could not be saved.';
 			if (retry) this.#retryFailed(retry, op, code, message);
 			else this.#collect(op, code, message, name);
 			return;
@@ -770,8 +772,6 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#sentAuthorization.delete(op.op_id);
 		this.#drop(op.op_id);
 		const retry = this.#retryChange(op);
-		const code = error instanceof ApiError ? error.code : 'unknown';
-		const message = error instanceof ApiError ? error.message : 'The change could not be saved.';
 		if (retry) {
 			if (waited) this.#retryFailed(retry, op, code, message);
 			else this.#retryStopped(retry);

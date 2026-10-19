@@ -459,7 +459,7 @@ describe('clear and session boundaries', () => {
 			api.sendOp.mockImplementation(() => answer.promise);
 			const room = handle(api, storage);
 			await waitFor(() => expect(room.store.canWrite).toBe(true));
-			room.store.notify('old', 'Old item text');
+			room.store.notify('unknown', 'Old item text');
 			const action = room.addItem(list, 'private milk');
 			await waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
 			const original = room.queuedOps[0];
@@ -474,7 +474,7 @@ describe('clear and session boundaries', () => {
 					seq: 5
 				});
 			else if (outcome === 'failed')
-				answer.reject(new ApiError(409, 'conflict', 'private milk conflict'));
+				answer.reject(new ApiError(409, 'op_id_reused', 'private milk conflict'));
 			else answer.reject(new NetworkError());
 			await settle();
 			expect(room.store.notice).toBeNull();
@@ -763,10 +763,10 @@ describe('standalone sign-in', () => {
 		vi.stubGlobal('indexedDB', new IDBFactory());
 		vi.stubGlobal('navigator', { locks: serialLocks() });
 		const api = fakeApi();
-		api.login.mockRejectedValueOnce(new ApiError(401, 'invalid_credentials', 'Wrong password.'));
+		api.login.mockRejectedValueOnce(new ApiError(401, 'invalid_password', 'Wrong password.'));
 		expect(await standaloneLogin('standalone-in-password', 'bad', api as never)).toEqual({
 			ok: false,
-			code: 'invalid_credentials',
+			code: 'invalid_password',
 			message: 'Wrong password.'
 		});
 		vi.unstubAllGlobals();

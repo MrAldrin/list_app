@@ -194,16 +194,18 @@ export interface ItemRestoreResult {
 	item_uid: string;
 }
 
-export type RejectionCode =
-	| 'invalid_name'
-	| 'duplicate_name'
-	| 'duplicate_active'
-	| 'undo_name_taken'
-	| 'changed_meanwhile'
-	| 'list_unavailable'
-	| 'item_not_found'
-	| 'too_long'
-	| 'too_many';
+export const REJECTION_CODES = [
+	'invalid_name',
+	'duplicate_name',
+	'duplicate_active',
+	'undo_name_taken',
+	'changed_meanwhile',
+	'list_unavailable',
+	'item_not_found',
+	'too_long',
+	'too_many'
+] as const;
+export type RejectionCode = (typeof REJECTION_CODES)[number];
 
 export interface OpApplied {
 	op_id: string;
@@ -222,26 +224,61 @@ export interface OpRejected {
 }
 export type OpResponse = OpApplied | OpRejected;
 
-export type ErrorCode =
-	| 'invalid_request'
-	| 'invalid_password'
-	| 'too_many_attempts'
-	| 'not_authenticated'
-	| 'share_unavailable'
-	| 'list_unavailable'
-	| 'wrong_password'
-	| 'forbidden_origin'
-	| 'not_found'
-	| 'op_id_reused'
-	| 'internal_error'
-	| 'unavailable';
+/** The codes the API sends in `{"error": {"code"}}` (docs/api.md, src/api/errors.py). */
+export const API_ERROR_CODES = [
+	'invalid_request',
+	'invalid_password',
+	'too_many_attempts',
+	'not_authenticated',
+	'admin_required',
+	'share_unavailable',
+	'list_unavailable',
+	'wrong_password',
+	'forbidden_origin',
+	'not_found',
+	'room_unavailable',
+	'invitation_unavailable',
+	'op_id_reused',
+	'internal_error',
+	'unavailable'
+] as const;
+export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
+
+/** Codes the app makes itself, for failures the API does not name. */
+export const APP_ERROR_CODES = [
+	'network',
+	'unknown',
+	'incompatible_version',
+	'read_only',
+	'signed_out',
+	'session_changed',
+	'session_refresh_failed',
+	'session_transition_unavailable',
+	'logout_pending',
+	'logout_marker_unacknowledged',
+	'server_logout_pending',
+	'local_clear_unconfirmed',
+	'undo_unavailable',
+	'retry_pending',
+	'room_deleted'
+] as const;
+export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
+
+export function isAppErrorCode(code: unknown): code is AppErrorCode {
+	return (APP_ERROR_CODES as readonly unknown[]).includes(code);
+}
+
+export function isApiErrorCode(code: unknown): code is ApiErrorCode {
+	return (API_ERROR_CODES as readonly unknown[]).includes(code);
+}
 
 /** An HTTP error answer from the API (`{"error": {"code", "message"}}`). */
 export class ApiError extends Error {
 	readonly status: number;
-	readonly code: ErrorCode | string;
+	/** Some codes are made by the app, not sent by the API (see `AppErrorCode`). */
+	readonly code: ApiErrorCode | AppErrorCode;
 
-	constructor(status: number, code: ErrorCode | string, message: string) {
+	constructor(status: number, code: ApiErrorCode | AppErrorCode, message: string) {
 		super(message);
 		this.name = 'ApiError';
 		this.status = status;

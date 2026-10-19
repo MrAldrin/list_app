@@ -2,6 +2,7 @@
 // message and, when admin sign-in is gone, the sign-in prompt.
 
 import { admin } from '#lib/data/index.ts';
+import type { Failure } from '#lib/data/result.ts';
 import { toasts } from '#lib/ui/toasts.svelte.ts';
 
 /**
@@ -10,7 +11,7 @@ import { toasts } from '#lib/ui/toasts.svelte.ts';
  * `onSignedOut` shows the sign-in prompt.
  */
 export function showAdminFailure(
-	failure: { ok: false; code: string; message: string },
+	failure: Failure,
 	onSignedOut: () => void,
 	clear?: () => void
 ): void {

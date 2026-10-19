@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import { admin, type Invitation, type IssuedInvitation } from '#lib/data/index.ts';
+	import type { Failure } from '#lib/data/result.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import InvitationDialog from './InvitationDialog.svelte';
 	import { formatUtc, statusLabel } from './invitations.ts';
@@ -19,7 +20,7 @@
 	let issued = $state.raw<IssuedInvitation | null>(null);
 
 	/** Shows a failed answer as a toast; a lost admin sign-in shows the sign-in prompt. */
-	function handleFailure(result: { ok: false; code: string; message: string }) {
+	function handleFailure(result: Failure) {
 		showAdminFailure(result, onSignedOut, () => (issued = null));
 	}
 

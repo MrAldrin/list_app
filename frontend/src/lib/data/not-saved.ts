@@ -2,6 +2,7 @@
 // (docs/background/offline-editing-details.md, "Not saved"). Pure functions: room-store.svelte.ts keeps
 // the list, the components show it.
 
+import type { ActionCode } from './result';
 import type { SentOp } from './types';
 
 /** An op answered after this long (queued that long before) counts as waited. */
@@ -30,7 +31,7 @@ export function countsAsWaited({ offline, loaded, queuedAt, answeredAt }: WaitIn
 export interface NotSavedInput {
 	op: SentOp;
 	/** The rejection code, or a code the app made for a failure. */
-	code: string;
+	code: ActionCode;
 	/** The server's message, used when the code has no text of its own. */
 	message: string;
 	/** The item or list name the user saw, or null when it is not known. */

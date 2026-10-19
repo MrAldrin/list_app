@@ -28,7 +28,7 @@ import {
 	hasPendingServerLogout,
 	retryPendingServerLogout
 } from './pending-logout';
-import { failed, type ActionResult } from './result';
+import { failed, type ActionResult, type Failure } from './result';
 import { itemName } from './overlay';
 import { rowOf } from './rebase';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
@@ -153,13 +153,13 @@ export interface RoomOptions {
 	queueStorage?: QueueStorage;
 }
 
-const READ_ONLY = {
-	ok: false as const,
+const READ_ONLY: Failure = {
+	ok: false,
 	code: 'read_only',
 	message: 'Saved data is read-only until room access is refreshed.'
 };
-const INCOMPATIBLE = {
-	ok: false as const,
+const INCOMPATIBLE: Failure = {
+	ok: false,
 	code: INCOMPATIBLE_CODE,
 	message: INCOMPATIBLE_MESSAGE
 };
@@ -282,7 +282,7 @@ export class RoomHandle {
 	}
 
 	/** Why a write cannot start now, or null when it may. A new server version wins. */
-	#guardWrite(): typeof READ_ONLY | typeof INCOMPATIBLE | null {
+	#guardWrite(): Failure | null {
 		if (compat.incompatible) return INCOMPATIBLE;
 		return this.store.canWrite ? null : READ_ONLY;
 	}
@@ -291,7 +291,7 @@ export class RoomHandle {
 	 * Why an edit cannot start now, or null when it may. Edits also start
 	 * offline: they are queued (see `#run`).
 	 */
-	#guardEdit(): typeof READ_ONLY | typeof INCOMPATIBLE | null {
+	#guardEdit(): Failure | null {
 		if (compat.incompatible) return INCOMPATIBLE;
 		return this.store.canEdit ? null : READ_ONLY;
 	}
@@ -1055,7 +1055,7 @@ export class RoomHandle {
 		}
 	}
 
-	#clearedAction(): { ok: false; code: string; message: string } {
+	#clearedAction(): Failure {
 		return {
 			ok: false,
 			code: 'session_changed',
