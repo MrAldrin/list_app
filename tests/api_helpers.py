@@ -16,7 +16,6 @@ from database_crud import (
     _decode_tags,
     _find_list_by_name_locked,
     _list_for_share_token_locked,
-    _password_matches,
     _replace_room_password_locked,
     _valid_room_id_for_token_locked,
     change_list_tag_locked,
@@ -26,6 +25,7 @@ from database_crud import (
     normalize_item_name,
     rename_room_locked,
     restore_deleted_item_locked,
+    room_password_matches,
     rotate_share_token_locked,
     toggle_item_active_tag_locked,
     transaction,
@@ -33,6 +33,7 @@ from database_crud import (
 )
 from database_setup import db
 from item_visibility import validate_visibility_settings
+from password_hashing import hash_password
 
 HTTPS = "https://testserver"
 
@@ -387,7 +388,7 @@ def verify_room(room_slug: str, plain_password: str) -> int | None:
     if not row:
         return None
     room_id, pw_hash = row
-    return room_id if _password_matches(plain_password, pw_hash) else None
+    return room_id if room_password_matches(plain_password, pw_hash) else None
 
 
 def validate_room_access_token(room_slug: str, token: str | None) -> int | None:
@@ -409,11 +410,17 @@ def change_room_password_and_issue_token(
     room_slug: str, current_plain_password: str, new_plain_password: str
 ) -> tuple[int, str] | None:
     with _DB_LOCK:
-        row = db.execute("SELECT id FROM rooms WHERE slug = ?", (room_slug,)).fetchone()
-    if not row:
+        row = db.execute(
+            "SELECT id, password_hash, authorization_version FROM rooms WHERE slug = ?",
+            (room_slug,),
+        ).fetchone()
+    if not row or not room_password_matches(current_plain_password, row[1]):
         return None
     token = write_locked(
-        change_room_password_locked, row[0], current_plain_password, new_plain_password
+        change_room_password_locked,
+        row[0],
+        tuple(row),
+        hash_password(new_plain_password),
     )
     return (row[0], token) if token else None
 
@@ -432,10 +439,13 @@ def delete_room(room_id: int) -> None:
 
 def delete_room_with_password(room_slug: str, plain_password: str) -> bool:
     with _DB_LOCK:
-        row = db.execute("SELECT id FROM rooms WHERE slug = ?", (room_slug,)).fetchone()
-    if not row:
+        row = db.execute(
+            "SELECT id, password_hash, authorization_version FROM rooms WHERE slug = ?",
+            (room_slug,),
+        ).fetchone()
+    if not row or not room_password_matches(plain_password, row[1]):
         return False
-    return write_locked(delete_room_with_password_locked, row[0], plain_password)
+    return write_locked(delete_room_with_password_locked, row[0], tuple(row))
 
 
 def rename_room(room_id: int, new_name: str) -> None:

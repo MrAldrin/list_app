@@ -103,7 +103,8 @@ older, shorter passwords still open their rooms.
 ### Sign-in limit
 
 Failed sign-ins are counted in memory, in this one process, for one minute.
-Limits: 10 failures per room and 10 failed admin sign-ins for all clients.
+Limits: 10 failures per room, 30 failures for all rooms together, and 10 failed
+admin sign-ins for all clients. A room sign-in uses both room limits.
 There is no per-client-address limit: Railway does not document a trustworthy
 client address. A successful sign-in does not count. A full limit answers 429
 `too_many_attempts` with `Retry-After` (seconds) before any password is checked.
@@ -131,7 +132,8 @@ Rename is an op (`room.rename`, below). Changing the password and deleting
 the room need the room password, so they have their own endpoints: they are
 not ops, are never stored and are not retry-safe. Both need room access (the
 cookie) first; without it the answer is 401 `not_authenticated`, as for an
-unknown room. The password is checked in the same transaction.
+unknown room. The password is checked outside the database lock; the change is
+then written only if the room has not changed meanwhile.
 
 | Request | Body | Success |
 |---|---|---|

@@ -174,3 +174,39 @@ def test_admin_limit_is_shared_by_all_clients(clock, admin_app):
     )
     assert sign_in(other, "wrong").status_code == 429
     assert sign_in(other, APP_PASSWORD).status_code == 429
+
+
+def test_failures_for_many_slugs_share_one_all_rooms_limit(clock):
+    _, slug = home()
+    client = app_client()
+    for index in range(30):
+        assert try_room(client, f"unknown-{index}", "wrong-one").status_code == 401
+
+    # A new slug gets no fresh limit, and neither does a known room.
+    assert try_room(client, "unknown-new", "wrong-one").status_code == 429
+    response = try_room(client, slug, "pw")
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "60"
+    assert response.json() == LIMITED
+
+
+def test_the_all_rooms_limit_opens_again_after_a_minute(clock):
+    _, slug = home()
+    client = app_client()
+    for index in range(30):
+        try_room(client, f"unknown-{index}", "wrong-one")
+
+    clock.now += 60
+    assert try_room(client, slug, "pw").status_code == 200
+
+
+def test_a_successful_sign_in_gives_back_its_all_rooms_slot(clock):
+    _, slug = home()
+    client = app_client()
+    for index in range(29):
+        assert try_room(client, f"unknown-{index}", "wrong-one").status_code == 401
+    assert try_room(client, slug, "pw").status_code == 200
+
+    # 29 failures plus one success: one more failure is allowed.
+    assert try_room(client, "unknown-last", "wrong-one").status_code == 401
+    assert try_room(client, "unknown-after", "wrong-one").status_code == 429

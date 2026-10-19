@@ -947,8 +947,12 @@ def _insert_room_access_token_locked(room_id: int, authorization_version: int) -
     return token
 
 
-def _password_matches(plain_password: str, stored_hash: object) -> bool:
-    """Reject malformed/unsupported stored hashes without hiding database errors."""
+def room_password_matches(plain_password: str, stored_hash: object) -> bool:
+    """Check a room password against its stored hash (bcrypt, slow).
+
+    Call it outside the database lock. Rejects malformed/unsupported stored
+    hashes without hiding database errors.
+    """
     if not isinstance(stored_hash, str):
         return False
     try:
@@ -966,29 +970,53 @@ def _dummy_password_hash() -> str:
     return hash_password("no-such-room")
 
 
+# A room's (id, password hash, authorization version) as one password check saw it.
+RoomPasswordState = tuple[int, str, int]
+
+
+def room_password_state_locked(room_id: int) -> RoomPasswordState | None:
+    """The room's password state, or None if there is no such room.
+
+    Call inside a transaction. Compare it with the state a password was checked
+    against: if they differ, the password was changed or the room was deleted.
+    """
+    row = db.execute(
+        "SELECT id, password_hash, authorization_version FROM rooms WHERE id = ?",
+        (room_id,),
+    ).fetchone()
+    return (row[0], row[1], row[2]) if row else None
+
+
 def authenticate_room_and_issue_token(
     room_slug: str, plain_password: str
 ) -> tuple[int, str] | None:
-    """Check a password and atomically create a token for the current room version."""
-    # Early "return None" paths only read, so the commit at block end changes nothing.
-    with transaction(write=True):
+    """Check a password and create a token for the room version it was checked against.
+
+    The bcrypt check runs outside the database lock. The lock is held only by
+    the two short transactions around it.
+    """
+    with transaction():
         row = db.execute(
-            """
-            SELECT id, password_hash, authorization_version
-            FROM rooms
-            WHERE slug = ?
-            """,
+            "SELECT id, password_hash, authorization_version FROM rooms WHERE slug = ?",
             (room_slug,),
         ).fetchone()
-        if not row:
-            # Spend the same bcrypt time as a wrong password, so response
-            # timing does not reveal which room slugs exist.
-            _password_matches(plain_password, _dummy_password_hash())
-            return None
-        if not _password_matches(plain_password, row[1]):
-            return None
-        token = _insert_room_access_token_locked(row[0], row[2])
-        return row[0], token
+    if not row:
+        # Spend the same bcrypt time as a wrong password, so response
+        # timing does not reveal which room slugs exist.
+        room_password_matches(plain_password, _dummy_password_hash())
+        return None
+    room_id, stored_hash, authorization_version = row
+    if not room_password_matches(plain_password, stored_hash):
+        return None
+    with transaction(write=True):
+        if room_password_state_locked(room_id) is None:
+            return None  # The room was deleted meanwhile.
+        # A password change in between moved the room to a newer version. The
+        # token keeps the version the password was checked against, so it never
+        # validates (see the token check). That matches a sign-in that finished
+        # just before the change.
+        token = _insert_room_access_token_locked(room_id, authorization_version)
+        return room_id, token
 
 
 def revoke_room_access_token(room_slug: str, token: str) -> None:
@@ -1067,35 +1095,31 @@ def check_new_room_password(new_plain_password: str) -> None:
 
 
 def change_room_password_locked(
-    room_id: int, current_plain_password: str, new_plain_password: str
+    room_id: int, checked: RoomPasswordState, new_password_hash: str
 ) -> str | None:
-    """Check the current password, set the new one, revoke every token.
+    """Set the new password hash, revoke every token, return a token for this device.
 
-    Returns a fresh token for the changing device, or None for a wrong current
-    password (nothing changed). Call inside a write transaction.
+    `checked` is the state the current password was checked against, outside
+    the lock. If the room changed since, nothing is written and None is
+    returned. Call inside a write transaction. The new hash is made outside the
+    lock too.
     """
-    row = db.execute(
-        "SELECT password_hash FROM rooms WHERE id = ?", (room_id,)
-    ).fetchone()
-    if not row or not _password_matches(current_plain_password, row[0]):
+    if room_password_state_locked(room_id) != checked:
         return None
-    new_hash = hash_password(new_plain_password)
-    authorization_version = _replace_room_password_locked(room_id, new_hash)
+    authorization_version = _replace_room_password_locked(room_id, new_password_hash)
     if authorization_version is None:
         return None
     return _insert_room_access_token_locked(room_id, authorization_version)
 
 
-def delete_room_with_password_locked(room_id: int, plain_password: str) -> bool:
-    """Delete the room and all its lists and items if the password matches.
+def delete_room_with_password_locked(room_id: int, checked: RoomPasswordState) -> bool:
+    """Delete the room and all its lists and items, if it is still as checked.
 
-    False for a wrong password (nothing changed). Call inside a write
-    transaction. Tokens, deletion records and stored ops go by cascade.
+    False (nothing changed) when the room changed since the password was
+    checked. Call inside a write transaction. Tokens, deletion records and
+    stored ops go by cascade.
     """
-    row = db.execute(
-        "SELECT password_hash FROM rooms WHERE id = ?", (room_id,)
-    ).fetchone()
-    if not row or not _password_matches(plain_password, row[0]):
+    if room_password_state_locked(room_id) != checked:
         return False
     _delete_room_rows_locked(room_id)
     return True

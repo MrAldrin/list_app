@@ -3,7 +3,9 @@
 These are not ops (`POST …/ops`): ops store their request hash and result
 for retries, and a password must never be stored, not even hashed that way.
 They are online-only actions. Each one needs room access (the cookie) and the
-current password, checked in the same write transaction.Rename is an op (`room.rename` in `api/ops.py`).
+current password. The password check (bcrypt, slow) runs outside the database
+lock. The room is then written only if it has not changed in the meantime.
+Rename is an op (`room.rename` in `api/ops.py`).
 """
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -18,8 +20,11 @@ from database_crud import (
     check_new_room_password,
     delete_room_with_password_locked,
     get_room_details_locked,
+    room_password_matches,
+    room_password_state_locked,
 )
 from live_updates import wake_streams
+from password_hashing import hash_password
 
 router = APIRouter()
 
@@ -49,10 +54,13 @@ def change_password(
         check_new_room_password(data.new_password)
     except ValueError as error:
         raise ApiError(422, "invalid_request", str(error)) from None
+    with room_access(request, slug) as room:
+        checked = room_password_state_locked(room.room_id)
+    if checked is None or not room_password_matches(data.current_password, checked[1]):
+        raise ApiError(403, "wrong_password", WRONG_CURRENT_PASSWORD)
+    new_hash = hash_password(data.new_password)
     with room_access(request, slug, write=True) as room:
-        token = change_room_password_locked(
-            room.room_id, data.current_password, data.new_password
-        )
+        token = change_room_password_locked(room.room_id, checked, new_hash)
         if token is None:
             raise ApiError(403, "wrong_password", WRONG_CURRENT_PASSWORD)
         details = get_room_details_locked(room.room_id)
@@ -73,8 +81,12 @@ def delete_room(
     body: JsonBody,
 ) -> Response:
     password = parse_body(DeleteRoomBody, body).password
+    with room_access(request, slug) as room:
+        checked = room_password_state_locked(room.room_id)
+    if checked is None or not room_password_matches(password, checked[1]):
+        raise ApiError(403, "wrong_password", WRONG_PASSWORD)
     with room_access(request, slug, write=True) as room:
-        if not delete_room_with_password_locked(room.room_id, password):
+        if not delete_room_with_password_locked(room.room_id, checked):
             raise ApiError(403, "wrong_password", WRONG_PASSWORD)
     response = Response(status_code=204)
     clear_cookie(response, request, room_cookie_name(request, slug))

@@ -11,6 +11,7 @@ from fastapi.responses import Response
 from api.errors import error_response
 from sign_in_limiter import (
     ADMIN_LIMIT,
+    ALL_ROOMS_LIMIT,
     ROOM_LIMIT,
     Reservation,
     SignInLimiter,
@@ -20,8 +21,11 @@ sign_in_limiter = SignInLimiter()
 
 
 def reserve_room_sign_in(slug: str) -> Reservation | Response:
-    """One slot for a room sign-in attempt, or the 429 answer."""
-    return _reserve([(("room", slug), ROOM_LIMIT)])
+    """One slot in this room's bucket and one in the all-rooms bucket, or the 429 answer.
+
+    The all-rooms bucket stops random slugs from each getting a fresh limit.
+    """
+    return _reserve([(("room", slug), ROOM_LIMIT), (("all rooms",), ALL_ROOMS_LIMIT)])
 
 
 def reserve_admin_sign_in() -> Reservation | Response:
