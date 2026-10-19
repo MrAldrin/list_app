@@ -85,6 +85,8 @@ Railway must not override the repository. In the service settings:
   Leave "Config file path" empty. The build log shows the `npm ci` step.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
+- Healthcheck path is `/healthz` (set it in the service's Deploy settings).
+  It answers 200 while the database answers.
 - `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`.
 
 ### Schema migrations

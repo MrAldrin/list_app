@@ -18,6 +18,7 @@ from api import register_api
 from config import require_app_password
 from database_crud import prune_deletions, prune_processed_ops
 from database_setup import open_database
+from health import register_health_route
 from pwa_routes import STATIC_DIR, register_pwa_routes
 from security_headers import SecurityHeadersMiddleware
 from svelte_frontend import register_svelte_frontend
@@ -71,6 +72,7 @@ def create_app(build_dir: Path | None = None) -> FastAPI:
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     register_api(app)
     app.add_middleware(SecurityHeadersMiddleware)
+    register_health_route(app)
     register_pwa_routes(app)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     # Answers every address no route above matched, so it must come last.
