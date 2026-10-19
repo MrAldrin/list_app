@@ -54,7 +54,8 @@ Nothing selected.
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
 - [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
 - [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
-- [feature] Bottom toolbar on the list page for thumb reach (for example back, list options, ⋮ menu). The add field stays where it is. Sketch a few layouts and test on the iPhone (Safari's bar, keyboard, home swipe area). After the Svelte switch.
+- [feature] [human] Visual refresh: pick a direction from the [mockups and feedback](visual-refresh.md). The owner wants add and search at the bottom for the thumb (toasts move to the top), and colorful list cards.
+- [feature] [human] Item categories (dairy, dry goods, fruit and veg) that group a list into sections, as in the Aisles mockup. Tags only filter today, so this needs its own design. See [visual refresh](visual-refresh.md#owner-feedback-2026-10-19).
 - [refactor] Move `src/` into a proper Python package. (Splitting `src/main.py` is done: since step 4.3 it is only the entry point, and `src/server.py` and `src/api/` hold the rest.)
 - [refactor] Replace the global SQLite connection with a connection/context-manager layer.
 - [data] Add timestamps and change versions for debugging, conflict detection or audit history.
