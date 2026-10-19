@@ -2,9 +2,11 @@
 
 Usage:
     uv run python scripts/deploy_backup.py --backup-only
-    uv run python scripts/deploy_backup.py --rev <revision>
+    uv run python scripts/deploy_backup.py --rev <revision> [--browser]
+    uv run python scripts/deploy_backup.py --rev <revision> --skip-checks
 
-The push only happens after a verified local backup and a typed "y".
+With --rev, the checks run first. The push only happens after a verified
+local backup and a typed "y".
 Procedure and reasoning: docs/deployment.md#backup-before-deploying.
 """
 
@@ -65,6 +67,22 @@ print('BACKUP_DATA_BEGIN')
 sys.stdout.write(base64.encodebytes(data).decode())
 print('BACKUP_DATA_END')
 """
+
+# Checks before a push, cheapest first. They run on the files on disk, so
+# check_tested_tree makes sure those are the files being pushed.
+CHECKS: list[tuple[str, list[str]]] = [
+    ("Python format", ["uv", "run", "ruff", "format", "--check", "."]),
+    ("Python lint", ["uv", "run", "ruff", "check", "."]),
+    ("Python types", ["uv", "run", "ty", "check"]),
+    ("Python tests", ["uv", "run", "pytest", "-q"]),
+    ("Frontend lint", ["npm", "--prefix", "frontend", "run", "lint"]),
+    ("Frontend types", ["npm", "--prefix", "frontend", "run", "check"]),
+    ("Frontend tests", ["npm", "--prefix", "frontend", "run", "test"]),
+]
+BROWSER_CHECK = (
+    "Browser tests",
+    ["uv", "run", "pytest", "browser_tests", "-q", "-n", "8"],
+)
 
 Runner = Callable[[list[str]], str]
 
@@ -267,6 +285,39 @@ def offer_cleanup(backup_dir: Path, ask: Callable[[str], str]) -> None:
         print("Kept.")
 
 
+def check_tested_tree(run: Runner, rev: str) -> None:
+    """Refuse when the files on disk are not the files of rev.
+
+    The checks test the working copy. A difference would mean they test code
+    that is not pushed, or miss code that is. Markdown files are ignored: open
+    doc edits on the docs desk do not change what the checks test.
+    """
+    summary = run(["jj", "diff", "--summary", "--from", rev, "--to", "@"])
+    differences = "\n".join(
+        line
+        for line in summary.splitlines()
+        if line.strip() and not line.endswith(".md")
+    )
+    if differences:
+        raise DeployError(
+            f"The working copy differs from {rev}, so the checks would not test "
+            f"what gets pushed. Move or commit the changes first:\n{differences}"
+        )
+
+
+def run_checks(run: Runner, browser: bool = False) -> None:
+    """Run the checks in order; the first failure stops the deploy."""
+    checks = [*CHECKS, *([BROWSER_CHECK] if browser else [])]
+    for label, command in checks:
+        print(f"Check: {label}")
+        try:
+            run(command)
+        except DeployError as error:
+            raise DeployError(
+                f"{label} failed. Nothing was backed up or pushed.\n{error}"
+            ) from None
+
+
 def check_push_ready(run: Runner, rev: str) -> str:
     """Return the change list that would ship, or raise if pushing is unsafe."""
     template = 'change_id.short() ++ " " ++ description.first_line() ++ "\\n"'
@@ -291,11 +342,29 @@ def main(
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--backup-only", action="store_true", help="never push")
     mode.add_argument("--rev", help="jj revision to move main to and push")
+    parser.add_argument(
+        "--skip-checks",
+        action="store_true",
+        help="push without the checks (emergencies only)",
+    )
+    parser.add_argument(
+        "--browser", action="store_true", help="also run the browser test suite"
+    )
     args = parser.parse_args(argv)
+    if args.browser and not args.rev:
+        parser.error("--browser only applies with --rev")
 
     try:
         if args.rev:
+            # Checks come before the backup: they cost nothing, and a failing
+            # check should not wake the production app or copy its database.
+            # check_push_ready only reads jj, so it runs first.
             check_push_ready(run, args.rev)
+            if args.skip_checks:
+                print("WARNING: checks skipped (--skip-checks).")
+            else:
+                check_tested_tree(run, args.rev)
+                run_checks(run, browser=args.browser)
 
         take_backup(run, now(), backup_dir, sleep)
         offer_cleanup(backup_dir, ask)

@@ -55,6 +55,7 @@ class FakeRailwayAndJj:
         self.shipping = shipping
         self.fail_on: str | None = None
         self.not_ready_replies = 0
+        self.diff = ""  # What `jj diff` between rev and the working copy says.
 
     def __call__(self, command: list[str]) -> str:
         self.calls.append(command)
@@ -69,6 +70,8 @@ class FakeRailwayAndJj:
             return self.remote_output
         if command[:2] == ["jj", "log"]:
             return self.shipping if "main.." in command[4] else ""
+        if command[:2] == ["jj", "diff"]:
+            return self.diff
         return ""
 
     def names(self) -> list[str]:
@@ -79,7 +82,10 @@ class FakeRailwayAndJj:
             if command[0] == "jj":
                 names.append(f"jj {command[1]}")
             else:
-                names.append(next(short[w] for w in command if w in short))
+                # Checks have no short name: they show as their program.
+                names.append(
+                    next((short[w] for w in command if w in short), command[0])
+                )
         return names
 
 
@@ -241,6 +247,11 @@ def test_push_happens_only_after_backup_and_yes(tmp_path):
     assert fake.names() == [
         "jj log",
         "jj log",
+        "jj diff",
+        *["uv"] * 4,
+        "npm",
+        "npm",
+        "npm",
         "volumes",
         "wake",
         "remote-backup",
@@ -368,3 +379,106 @@ def test_no_input_at_a_question_means_no(tmp_path, monkeypatch):
 
     deploy_backup.offer_cleanup(tmp_path, deploy_backup.ask_user)
     assert old.exists()
+
+
+def check_commands() -> list[list[str]]:
+    return [command for _, command in deploy_backup.CHECKS]
+
+
+def test_checks_run_in_order_before_backup_and_push(tmp_path):
+    fake = FakeRailwayAndJj(tmp_path)
+
+    assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 0
+
+    ran = [command for command in fake.calls if command in check_commands()]
+    assert ran == check_commands()
+    first_ssh = next(i for i, c in enumerate(fake.calls) if c[:2] == ["railway", "ssh"])
+    last_check = max(i for i, c in enumerate(fake.calls) if c in check_commands())
+    assert last_check < first_ssh
+
+
+def test_failed_check_stops_before_backup_and_push(tmp_path, capsys):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.fail_on = "pytest"
+
+    assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 1
+
+    assert "remote-backup" not in fake.names()
+    assert "jj bookmark" not in fake.names()
+    assert list((tmp_path / "backups").glob("*.db")) == []
+    err = capsys.readouterr().err
+    assert "Python tests failed. Nothing was backed up or pushed." in err
+
+
+def test_first_failing_check_stops_the_rest(tmp_path):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.fail_on = "ruff"  # Ruff format is the first check that fails.
+
+    assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 1
+
+    assert [c for c in fake.calls if c in check_commands()] == check_commands()[:1]
+
+
+def test_frontend_check_failure_stops_before_backup(tmp_path, capsys):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.fail_on = "test"  # The frontend test command is `npm ... run test`.
+
+    assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 1
+
+    assert "Frontend tests failed" in capsys.readouterr().err
+    assert "remote-backup" not in fake.names()
+
+
+def test_skip_checks_runs_no_checks(tmp_path):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.fail_on = "pytest"  # Would fail if it ran.
+
+    assert (
+        run_main(tmp_path, fake, ["--rev", "feature", "--skip-checks"], answers=["y"])
+        == 0
+    )
+
+    assert not [c for c in fake.calls if c in check_commands()]
+    assert fake.calls[-1] == ["jj", "git", "push", "-b", "main"]
+
+
+def test_browser_flag_adds_browser_suite_last(tmp_path):
+    fake = FakeRailwayAndJj(tmp_path)
+
+    assert (
+        run_main(tmp_path, fake, ["--rev", "feature", "--browser"], answers=["y"]) == 0
+    )
+
+    browser = ["uv", "run", "pytest", "browser_tests", "-q", "-n", "8"]
+    ran = [c for c in fake.calls if c in [*check_commands(), browser]]
+    assert ran == [*check_commands(), browser]
+
+
+def test_browser_flag_needs_rev(tmp_path):
+    with pytest.raises(SystemExit):
+        run_main(tmp_path, FakeRailwayAndJj(tmp_path), ["--backup-only", "--browser"])
+
+
+def test_backup_only_runs_no_checks(tmp_path):
+    fake = FakeRailwayAndJj(tmp_path)
+
+    assert run_main(tmp_path, fake, ["--backup-only"]) == 0
+
+    assert not [c for c in fake.calls if c in check_commands()]
+
+
+def test_working_copy_that_differs_from_rev_stops_before_checks(tmp_path, capsys):
+    fake = FakeRailwayAndJj(tmp_path)
+    fake.diff = "M src/server.py\n"
+
+    assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 1
+
+    assert not [c for c in fake.calls if c in check_commands()]
+    assert "The working copy differs from feature" in capsys.readouterr().err
+
+
+def test_markdown_only_differences_do_not_stop_the_checks():
+    def run(command: list[str]) -> str:
+        return "M plans/backlog.md\nA docs/new.md\n"
+
+    deploy_backup.check_tested_tree(run, "integration")

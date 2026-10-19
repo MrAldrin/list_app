@@ -144,7 +144,8 @@ Before deploying:
 - [ ] The automated tests pass (pytest, plus the browser and Android suites
   when the change touches them).
 - [ ] Push with the [deploy backup script](#backup-before-deploying), not by
-  hand. It takes a fresh backup and shows the revision being replaced.
+  hand. It runs the checks, takes a fresh backup and shows the revision being
+  replaced.
 - [ ] For schema changes: the migration tests pass. The app also keeps its own
   pre-migration copy.
 
@@ -164,20 +165,25 @@ repository with Railway linked to production; it stops for any other
 environment:
 
 ```bash
-uv run python scripts/deploy_backup.py --rev <revision>   # backup, then push
+uv run python scripts/deploy_backup.py --rev <revision>   # checks, backup, push
+uv run python scripts/deploy_backup.py --rev <revision> --browser  # also browser tests
 uv run python scripts/deploy_backup.py --backup-only      # backup, never push
 ```
 
-1. Pushing only works if `main` is an ancestor of the revision.
-2. It wakes the app with a web request. A sleeping Railway app does not
+1. Pushing only works if `main` is an ancestor of the revision, and the
+   working copy must match the revision (no uncommitted changes).
+2. It runs the checks first (format, lint, types, pytest, frontend lint,
+   check and vitest; `--browser` adds the browser suite). It stops on the first
+   failure, before any backup. `--skip-checks` is for emergencies only.
+3. It wakes the app with a web request. A sleeping Railway app does not
    answer `railway ssh`. If ssh still reaches Railway's account service
    instead of the app, it waits and tries again a few times.
-3. Over `railway ssh`, it makes a backup-API copy in the container's temp
+4. Over `railway ssh`, it makes a backup-API copy in the container's temp
    folder (not the volume), checks it, and streams it here as text.
-4. It saves the copy to `~/.local/share/list_app/backups/` and checks the size,
+5. It saves the copy to `~/.local/share/list_app/backups/` and checks the size,
    checksum and integrity. Nothing is left in the container.
-5. It offers to delete local copies beyond the two newest.
-6. It shows the changes that will go live and pushes only after you type `y`.
+6. It offers to delete local copies beyond the two newest.
+7. It shows the changes that will go live and pushes only after you type `y`.
 
 Any failure stops the script before the push. A copy that fails the local
 checks is kept as `*.db.unverified` for inspection.
