@@ -12,6 +12,9 @@ protect room controls, not public list links.
 Switch between light and dark mode with the moon button, or from the ⋮ menu
 on a list page. The choice is saved in that device's browser, not shared with other devices.
 
+Scope and approval rules: [scope](docs/scope.md). Work starts from the
+[backlog's current focus](plans/backlog.md#current-focus).
+
 ## Local setup
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and use
@@ -118,8 +121,21 @@ Why eight workers and real password hashing: [test speed decision](docs/backgrou
 
 A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| `src/` | Python server. `main.py` is the entry point. |
+| `frontend/` | Svelte app, built to `frontend/build/`. |
+| `tests/` | Pytest suite. |
+| `browser_tests/`, `android_tests/` | Real-browser and Android emulator suites. |
+| `scripts/` | Helpers: deploy with backup, phone serving, test data, icons. |
+| `docs/` | Current behavior, contracts and guides. Evidence in `docs/background/`. |
+| `plans/` | The [backlog](plans/backlog.md), the one work agenda, and detail for larger items. |
+
 ## Documentation
 
+- [Scope, risk level and approval gates](docs/scope.md)
 - [Architecture and security boundaries](ARCHITECTURE.md)
 - [Deployment, backups, and recovery](docs/deployment.md)
 - [Public list sharing](docs/public-sharing.md)
@@ -132,8 +148,8 @@ A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 - [Change tracking](docs/change-tracking.md)
 - [JSON API](docs/api.md)
 - Testing: [real browsers](docs/browser-testing.md), [Android emulator](docs/android-emulator-testing.md), [phone over the network](docs/local-network-testing.md)
-- [Agent and project rules](AGENTS.md)
-- [Remaining work](plans/backlog.md)
+- [Agent rules](AGENTS.md)
+- [Backlog](plans/backlog.md)
 
 Background material (investigations, measurements, evidence) is in
 [`docs/background/`](docs/background/).

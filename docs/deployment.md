@@ -136,7 +136,7 @@ production cookie behavior. See the
 
 The app has about five users and every push takes a backup, so deploys are
 light. The automated tests are the main check; see the
-[risk level](../AGENTS.md#risk-level-ship-and-fix-forward). If something
+[risk level](scope.md#risk-level). If something
 breaks live, fix forward or [restore](#restoration-and-rollback).
 
 Before deploying:
@@ -154,7 +154,7 @@ After deploying:
 - [ ] The Railway startup log has no errors.
 - [ ] The app opens and an existing list still shows its items.
 
-Device checks: see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
+Device checks: see the [risk level](scope.md#risk-level).
 
 ## Backup before deploying
 

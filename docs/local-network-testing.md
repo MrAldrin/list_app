@@ -1,7 +1,7 @@
 # Testing on a Phone before Deployment
 
 Run the app on your laptop and open it on your phone. Use it to debug a
-phone-only problem. For device checks, see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
+phone-only problem. For device checks, see the [risk level](scope.md#risk-level).
 
 ## How it works
 

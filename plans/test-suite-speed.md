@@ -76,7 +76,7 @@ Acceptance: deterministic repeated passes, intact installation/lifecycle asserti
 
 The default suite is already about nine seconds, so optimize after the expensive layers.
 
-- Look for reusable immutable production-cost hashes in other setup paths, never shared mutable database state.
+- Done for the default `Home` room (`home_password_hash` in `tests/conftest.py`). Look for other setup paths that could reuse an immutable hash, never shared mutable database state.
 - Profile subprocess startup and worker scheduling before further changes.
 - Preserve the existing [production-cost hashing decision](../docs/background/test-suite-speed.md#worker-and-hashing-decision). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.
 - Run all required Ruff and pytest checks after Python changes; compare runtime and coverage rather than only test counts.
@@ -85,7 +85,7 @@ The default suite is already about nine seconds, so optimize after the expensive
 
 Android tests can expose shared application bugs in authorization, saved-data handling, and reconnection flows. They cannot establish iPhone correctness: Safari/WebKit, installed-app storage, installation, and background/cold-launch behavior differ from Android Chrome.
 
-With about five users, we accept that gap. Linux Playwright WebKit is the iPhone evidence; the owner sees iPhone behavior live after deploys, and we fix problems then. Real-iPhone checks: see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
+With about five users, we accept that gap. Linux Playwright WebKit is the iPhone evidence; the owner sees iPhone behavior live after deploys, and we fix problems then. Real-iPhone checks: see the [risk level](../docs/scope.md#risk-level) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
 
 ## Progress
 

@@ -3,7 +3,7 @@
 These checks use a **disposable Android virtual phone**, not production or the
 local `list.db`. They do not run in `uv run pytest -q`. Together with the
 [browser suite](browser-testing.md) they are our phone evidence; real-device
-checks: see the [risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
+checks: see the [risk level](scope.md#risk-level).
 
 ## Local setup
 

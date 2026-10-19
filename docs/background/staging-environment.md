@@ -1,14 +1,12 @@
-# Staging Environment Plan
+# Staging environment (not planned)
 
-Lifecycle: tracked
+A record of the staging design, kept for its reasoning. It was retired as a
+plan on 2026-10-19. We push straight to production and fix forward; see the
+[risk level](../scope.md#risk-level). The `staging` bookmark below is not in
+use and would need a change to the [bookmark rules](../../AGENTS.md#jujutsu-development-baseline).
 
-Goal: test a change on a real phone against a real Railway deployment before
-it reaches production.
-
-Status: not planned (2026-10-18). With about five users we push straight to
-production and fix forward; see the
-[risk level](../AGENTS.md#risk-level-ship-and-fix-forward). Kept for reference
-only.
+Goal it served: test a change on a real phone against a real Railway deployment
+before it reaches production.
 
 ## Decisions so far
 
@@ -23,17 +21,17 @@ only.
 - **Start when** paying for Railway, or sooner if the free allowance covers a
   second environment. Check current plan limits on the Railway dashboard first.
 
-## Planned workflow
+## Workflow as designed
 
 1. Move the `staging` bookmark to the change and push it:
    `jj bookmark set staging -r <rev>` then `jj git push --bookmark staging`.
 2. Wait for Railway to deploy staging.
 3. Test on a phone at the staging URL.
 4. If it works, move `main` to the same commit and push, following the
-   [deployment checklist](../docs/deployment.md#deployment-checklist).
+   [deployment checklist](../deployment.md#deployment-checklist).
    Production then runs exactly the code that was tested.
 
-## Setup steps (when ready)
+## Setup steps (if revived)
 
 - [ ] Check Railway pricing and usage limits for a second environment.
 - [ ] In Railway, create a `staging` environment in the existing project.
@@ -43,7 +41,7 @@ only.
 - [ ] Use test data only; never copy production data without a separate
       decision.
 - [ ] Do a first staging deploy and phone test.
-- [ ] Update [`docs/deployment.md`](../docs/deployment.md) with the staging
+- [ ] Update [`docs/deployment.md`](../deployment.md) with the staging
       workflow once it is verified.
 
 ## Open questions

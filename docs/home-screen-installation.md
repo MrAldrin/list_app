@@ -87,7 +87,7 @@ Design reasoning, implementation details and past test results are in
 ## Real-device acceptance checklist
 
 Use this only when the
-[risk level](../AGENTS.md#risk-level-ship-and-fix-forward) calls for a device
+[risk level](scope.md#risk-level) calls for a device
 check of installation or remembered access. Pick the steps that the change
 affects. Use HTTPS and disposable rooms. Do not remove a
 working icon just to test.

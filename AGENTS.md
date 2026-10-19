@@ -1,104 +1,142 @@
-# AI Agent Configuration: List app
+# Agent instructions: List app
 
-- This project should create a MVP of a list app for the web. 
-- It should be simple, and slowly add more features.
-- This is my first web app. So explain the ways of web development in simple terms for me to learn.
-- Don't implement while we are only discussing. Start work when:
-  - the user asks for it directly;
-  - a handoff document says the user approved starting it; or
-  - you are a subagent, and the agent that briefed you passes on the user's approval.
-- Modular Implementation: Split large tasks into small, testable chunks.
-- GitHub `main` deploys the live Railway app when pushed. Get explicit approval before moving or pushing `main`; treat a push as a production deployment and follow the [deployment checklist](docs/deployment.md#deployment-checklist).
+## Startup
 
-- When working in a new jj workspace, remind me of the [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
+- A small web list app, built as an MVP that grows slowly. It is the owner's
+  first web app: explain the ways of web development in simple terms.
+- Read the [backlog's current focus](plans/backlog.md#current-focus) before
+  choosing work. Placement is not permission; a direct request is.
+- [`docs/scope.md`](docs/scope.md) owns the risk level, the gates that need
+  approval and the standing permissions. Do not restate them here.
+- [`README.md`](README.md) owns the repo map and quick start.
+  [`ARCHITECTURE.md`](ARCHITECTURE.md) owns the stack and its boundaries; if
+  code deviates from it, tell the owner and agree which one changes.
+- Follow best practice for Python web development. Split large tasks into
+  small, testable chunks.
+- When working in a new jj workspace, remind the owner of the
+  [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
 
-## Risk level: ship and fix forward
-- The app has about five users and the list data is not critical. Every deploy takes a backup first. If a deploy breaks something, even the database, we fix it or restore the backup.
-- Work end to end: implement, run the automated tests, then propose the push. Do not add extra safety steps, rehearsals or staging.
-- Automated tests are the evidence: pytest, the browser suite (Chromium, Firefox, WebKit for Safari) and the Android emulator suite where relevant. Keep running them.
-- Keep manual checks to a minimum. Do not ask the user to test on a phone, over Tailscale or in a staging environment before deploying. The user sees changes live after the push.
-- Ask for a manual device check only for very high-risk changes, such as a migration that could lose data or a change that could lock everyone out. Say why in one line.
+## Documentation and plans
 
-## Technical Stack ideas
-The technologies used can be found in ARCHITECTURE.md under Core Architecture Decisions. But if we need to make changes to this, tell me.
+Each fact has one home. Link to it rather than copying it.
 
+- `README.md`: app introduction, quick start, repo map.
+- `ARCHITECTURE.md`: stack, boundaries, security decisions and major UX
+  decisions. Keep implementation mechanics in linked docs.
+- `docs/`: current behavior, contracts and operational guides. Update affected
+  docs when behavior changes. `docs/scope.md` is the standing scope.
+- `docs/background/`: evidence and reasoning behind current docs: investigations,
+  measurements, audit logs. May be long. Never the primary source for current
+  behavior; current docs link to it.
+- `docs/superpowers/handoffs/`: short-lived notes that carry one task into a new
+  session. The receiving agent deletes the note after reading it.
+- `plans/backlog.md`: the one work agenda. It carries its own maintenance rules.
+- `plans/<item>.md`: detail for one larger item. Not a second queue. Clearly
+  distinguish planned, implemented and verified; a plan is not evidence that a
+  feature exists. Progress tracking goes at the bottom.
 
-## Repo structure ideas:
-Follow best practice for python web development.
-We also have these extra files and folders:
-- src/: the app code. main.py is the entry point
-- ARCHITECTURE.md: A markdown file where we keep the high level architecture. We look back at this document to see if we have deviated from the architecture. If that happens you must tell me, and we have to either change our direction or update the architecture file to match.
-- plans/: 
-    - A special folder that you should use if you make longer plans.
-    - We will often iterate on a .md file together before implementing the plan. 
-    - The bottom of the files should contain tracking of progress for that plan.
+### Plan lifecycle
 
-
-
-## Documentation lifecycle
-- `README.md`: App introduction, quick-start instructions, and links to detailed documentation.
-- `ARCHITECTURE.md`: High-level stack, boundaries, security decisions, and major UX decisions. Keep implementation mechanics in linked reference docs; discuss architectural deviations with the user.
-- `docs/`: Current behavior, technical details, and operational guides. Update affected references when behavior changes. Top-level docs must meet the quality rules below.
-- `docs/background/`: Supporting detail for docs and plans: investigations, measurements, evidence, audit logs, and the reasoning behind decisions. May be long. Never the primary source for current behavior; link to the top-level doc for that.
-- `docs/superpowers/handoffs/`: Short-lived notes that carry one task into a new session. The receiving agent deletes the note after reading it, so the folder is often empty.
-- `plans/`: Proposed work, decisions, implementation steps, and progress tracking at the bottom. Clearly distinguish planned, implemented, and verified work; a plan is not evidence that a feature exists.
-  - Every plan starts with a lifecycle line under its title: `Lifecycle: temporary` (a checklist for approved start-to-finish work, deleted when done) or `Lifecycle: tracked` (open-ended or multi-session work, kept until retired with approval). Choose the label when writing the plan and tell the user which one. A plan without a label counts as `tracked`. `plans/backlog.md` has no label.
-- `plans/backlog.md`: Unfinished or deferred work, with links to detailed plans where useful. Do not use it as an operational reference or a permanent completed-work log.
-  - Sections: **Next** (committed, in order, top first, no size limit), **Later** (agreed, no date), **Ideas** (no promise), **Manual checks** (rare: only for very high-risk changes, see [risk level](#risk-level-ship-and-fix-forward)).
-  - Each item starts with a tag listed at the top of the backlog, then a short description and a link. Keep details in the linked plan or doc.
-  - "Do this next" goes at the top of Next. For any other request to add an item, ask which section it goes in, and where in Next if chosen.
-  - Mark an item being worked on across sessions with `(in progress)`. Move items between sections only when the user decides.
-- Keep each fact in one primary document and link to it rather than copying it across files.
-- When work finishes, update current references, remove or mark the corresponding backlog item complete, and record any remaining work or verification separately. Remove completed backlog entries during an approved cleanup; version control preserves their history.
-- Delete a `temporary` plan in its own final jj change, without asking, only when all of these hold: it says `Lifecycle: temporary`; every progress item is checked; its durable decisions have moved to `AGENTS.md`, `docs/`, or the backlog; and no other file links to it (fix links first). Name the deletion in the final summary.
-- Retire a `tracked` (or unlabeled) completed or superseded plan only after durable decisions have moved to current references, remaining tasks are tracked, and incoming links are updated. Move evidence or reasoning worth keeping to `docs/background/`. Retain plans with unresolved work. When every progress item is checked and the conditions above hold, the agent that finished the work deletes the plan in its own final jj change, without asking, and names the deletion in the final summary. Delete other retired documents (superseded or partly done plans) only with user approval or as part of an explicitly approved cleanup; version control keeps the history.
-- Keep documentation updates scoped to the approved task; this policy does not authorize a repository-wide cleanup.
+- Every plan starts with a lifecycle line under its title: `Lifecycle: temporary`
+  (approved start-to-finish work) or `Lifecycle: tracked` (open-ended or
+  multi-session work). Tell the owner which one. Unlabelled plans count as
+  `tracked`.
+- Before removing a plan, move durable decisions to `AGENTS.md`, `docs/` or the
+  backlog, move evidence worth keeping to `docs/background/`, track unfinished
+  work in the backlog, and fix incoming links.
+- When every progress item is checked and the conditions above hold, the agent
+  that finished the work deletes the plan (temporary or tracked) in its own
+  final jj change, without asking, and names the deletion in the summary.
+- Retiring other documents (superseded or partly done plans) is a
+  [gate](docs/scope.md#gates). Retain plans with unresolved work.
+- Keep documentation updates scoped to the task; this policy does not authorize
+  a repository-wide cleanup.
 
 ### Quality rules for top-level docs
-Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
-- Current behavior and decisions only. No progress logs, test counts, dated evidence, or experiment history; put those in `docs/background/` and link to them.
-- Short: aim for about one screen. Checklists and step-by-step guides may be longer.
-- Plain language and short sentences. State facts once; do not stack caveats.
-- Unverified or pending work belongs in `plans/backlog.md`, not in the doc. A short "Pending checks" link to the backlog is enough.
-- When editing a top-level doc, keep it within these rules. If it has grown past them, split detail out to `docs/background/` rather than adding more.
 
+Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
+
+- Current behavior and decisions only. No progress logs, test counts, dated
+  evidence or experiment history; put those in `docs/background/` and link.
+- Short: aim for about one screen. Checklists and step-by-step guides may be
+  longer.
+- Plain language and short sentences. State facts once; do not stack caveats.
+- Unverified or pending work belongs in the backlog, not in the doc.
+- If a doc has grown past these rules, split detail out to `docs/background/`
+  rather than adding more.
 
 ## Jujutsu development baseline
 
-- `integration` marks accepted work: "keep this, build on it". It is not a promise that the work is deployed or production-tested. Start new independent work from it (`jj new integration`); continue existing work on its own line.
-- `main` is the production line. Feature bookmarks mark work not yet accepted. There are no other shared bookmarks. Do not repurpose these.
-- `integration` may be ahead of `main`. That is normal, not a to-do. Docs-only work (`docs/`, `plans/`, `AGENTS.md`) does not need a push; it goes out with the next code push. To see what a push would deploy: `jj diff -r main..integration --stat`.
-- Before starting work, inspect `jj status`, `jj bookmark list`, and the graph. Preserve existing workspace edits. If `integration` is missing or conflicted, ask rather than choosing another baseline silently.
-- Move `integration` only with explicit user approval to accept completed work (exception: committed shared-docs changes, see [the docs desk](#workspace-coordination-trial)). Point it at the completed change, not the empty working-copy child (`jj bookmark set integration -r @-` when `@` is empty). Do not overwrite unrelated accepted work; inspect the current target and ancestry first.
-- Rebase existing feature lines onto `integration` only with user approval and coordination with any agent using them. Never rebase another agent's active work merely to tidy the graph.
-- Updating `integration` does not authorize moving `main`, pushing, or deploying. Existing deployment approval rules still apply.
+Approval rules for these steps are [gates in the scope](docs/scope.md#gates).
+
+- `integration` marks accepted work: "keep this, build on it". It is not a
+  promise that the work is deployed. Start new independent work from it
+  (`jj new integration`); continue existing work on its own line.
+- `main` is the production line. Pushing it deploys Railway; the owner runs the
+  [deploy script](docs/deployment.md#deployment-checklist), which moves `main`.
+  Feature bookmarks mark work not yet accepted. There are no other shared
+  bookmarks. Do not repurpose these.
+- `integration` may be ahead of `main`. That is normal, not a to-do. Docs-only
+  work goes out with the next code push. To see what a push would deploy:
+  `jj diff -r main..integration --stat`.
+- Before starting work, inspect `jj status`, `jj bookmark list` and the graph.
+  Preserve existing workspace edits. If `integration` is missing or conflicted,
+  ask rather than choosing another baseline silently.
+- When accepting work, point `integration` at the completed change, not the
+  empty working-copy child (`jj bookmark set integration -r @-` when `@` is
+  empty). Inspect the current target and ancestry first; do not overwrite
+  unrelated accepted work.
+- Never rebase another agent's active work merely to tidy the graph.
 
 ## Workspace coordination (trial)
 
-This is a trial, not a permanent workflow. Keep it lightweight; discuss relaxing these guardrails after we have tried them. Do not remove them automatically.
+This is a trial, not a permanent workflow. Keep it lightweight; discuss relaxing
+these guardrails after we have tried them. Do not remove them automatically.
 
-- At the start of a new task or session, briefly confirm the target repo, scope, workspace, and any known concurrent work with the user before editing. If the user or handoff already makes these clear, acknowledge them rather than asking again.
-- Treat `/home/hsa/projects/list_app` as the coordination workspace, not the `main` production line. Shared backlog and planning updates happen there. Multiple agents may coordinate there, but agree who is writing each shared file before editing it. Documentation-only work can still conflict.
-- Every agent creates its own new jj workspace for each new task, based on `integration`, and does all implementation there. Never share an implementation workspace with another agent, even one using the same tool. Keep feature-specific docs and tests with the feature.
-- When the task's work is integrated, the agent that created the workspace removes it (`jj workspace forget <name>`, then delete its folder). The user should never need to clean up after an agent.
-- Leave workspaces that existed before this rule alone; the user handles them manually.
-- Phone testing uses port 8080, one workspace at a time. Stop your `serve_svelte_local.py` server when you are done; if the script says the port is in use, ask the user rather than stopping another agent's server.
-- The default workspace is the shared docs desk. It always sits on top of `integration`, so the graph stays one line: `main`, accepted work, `integration`, open work.
-  - Edit shared backlog and plan files there, never divergent copies in a feature workspace. Before changing shared tracking, check current ownership and status.
-  - Commit your own docs edits right away, naming only your files (`jj commit plans/x.md -m "..."`), so two agents' edits never share a change.
-  - A committed shared-docs change is accepted: move `integration` up to it without asking. Docs-only changes need no push.
-  - After `integration` moves for any reason, rebase the desk's open changes onto it (`jj rebase -s <first open change> -d integration`).
-  - A finished feature is rebased onto `integration` from its own workspace; then `integration` moves to its tip with user approval.
-- Pi agents can use Pi Intercom to coordinate. Do not assume Claude Code is reachable through it. Use a user relay or an explicitly agreed shared handoff for cross-tool coordination; record the task owner, workspace, and status in existing task tracking when useful. No new coordination service is required.
-- Ask before integration, rebasing, or workspace cleanup, except as the docs desk rules allow. Coordinate an exclusive window before changing a workspace's revision, and never rewrite another agent's active work. The existing `integration` and deployment approval rules still apply.
-- Push back when task ownership, overlapping edits, or the integration baseline is unclear. Explain the concrete risk and propose the smallest safe next step. Keep unrelated work untouched.
+- At the start of a new task or session, briefly confirm the target repo,
+  scope, workspace and any known concurrent work with the owner before editing.
+  If the owner or handoff already makes these clear, acknowledge them rather
+  than asking again.
+- Treat `/home/hsa/projects/list_app` as the coordination workspace, not the
+  `main` production line. Multiple agents may coordinate there, but agree who
+  is writing each shared file before editing it.
+- Every agent creates its own new jj workspace for each new task, based on
+  `integration`, and does all implementation there. Never share an
+  implementation workspace with another agent. Keep feature-specific docs and
+  tests with the feature.
+- When the task's work is integrated, the agent that created the workspace
+  removes it (`jj workspace forget <name>`, then delete its folder). Leave
+  workspaces that existed before this rule alone.
+- Phone testing uses port 8080, one workspace at a time. Stop your
+  `serve_svelte_local.py` server when you are done; if the port is in use, ask
+  the owner rather than stopping another agent's server.
+- The default workspace is the shared docs desk. It always sits on top of
+  `integration`, so the graph stays one line: `main`, accepted work,
+  `integration`, open work.
+  - Edit shared backlog and plan files there, never divergent copies in a
+    feature workspace. Check current ownership and status first.
+  - Commit your own docs edits right away, naming only your files
+    (`jj commit plans/x.md -m "..."`), so two agents' edits never share a change.
+  - A committed shared-docs change is accepted: move `integration` up to it
+    (a [standing permission](docs/scope.md#standing-permissions)).
+  - After `integration` moves for any reason, rebase the desk's open changes
+    onto it (`jj rebase -s <first open change> -d integration`).
+  - A finished feature is rebased onto `integration` from its own workspace;
+    then `integration` moves to its tip with approval.
+- Pi agents can use Pi Intercom to coordinate. Do not assume Claude Code is
+  reachable through it. Use an owner relay or an agreed shared handoff for
+  cross-tool coordination.
+- Push back when task ownership, overlapping edits or the integration baseline
+  is unclear. Explain the concrete risk and propose the smallest safe next step.
 
-## Tools:
-- Packages: Use uv (use the dev group if only for development).
-- Formatting: Use ruff.
+## Tools
+
+- Packages: `uv` (use the dev group if only for development).
+- Formatting and linting: `ruff`.
 - Version control: jj with git backend. Prefer jj workflows.
 
 ## Python quality checks
+
 Before reporting a task complete when Python files have changed, run:
 
 ```bash
@@ -107,7 +145,8 @@ uv run ruff check --fix .
 uv run pytest -q
 ```
 
-Then verify that formatting, linting and types are clean (`ty` checks `src/` only):
+Then verify that formatting, linting and types are clean (`ty` checks `src/`
+only):
 
 ```bash
 uv run ruff format --check .

@@ -59,7 +59,7 @@ next deploy.
 
 | Idea | Evidence | Effort | View |
 |---|---|---|---|
-| Gzip large JSON responses | 1,000-item feed: 283 KB raw, 35 KB gzipped | S | **Built** (ops line, last change; Server-Sent Events excluded) |
+| Gzip large JSON responses | 1,000-item feed: 283 KB raw, 35 KB gzipped | S | Built, then dropped: low gain at today's sizes. In the backlog's Ideas |
 | Phone rewrites the whole room to IndexedDB on every refresh | Even when nothing changed (`room-store.svelte.ts:397`) | S | Do next, after deciding what "saved at" means |
 | Build feed rows after releasing the lock | Worst allowed room holds the lock ~410 ms | S | Only if rooms grow |
 | SQLite WAL mode | One connection behind one lock; reads take ~1.5 ms | L | Skip; close the backlog item |
@@ -85,7 +85,7 @@ next deploy.
 | Idea | Evidence | Effort | View |
 |---|---|---|---|
 | Run the checks in the deploy script before pushing | It pushes `main` with no test run today | S | **Built** (ops line) |
-| GitHub Actions CI | None today; `.gitignore` hides `.github/` | S-M | **Built** (ops line). Railway still deploys unless "Wait for CI" is on |
+| GitHub Actions CI | None today; `.gitignore` hides `.github/` | S-M | Built, then dropped; the deploy script runs the checks instead. In the backlog's Ideas |
 | `/healthz` and a Railway healthcheck | No health route | S | **Built** (ops line) |
 | Dependency update bot | A merged bot PR to `main` deploys without a backup | S | Only if it targets `integration` |
 | Flaky frontend test and duplicated test fakes | `offline-integration.test.ts:1505` uses a 1 s wait | S | Do next |
@@ -100,8 +100,8 @@ next deploy.
 | Fix wrong facts and broken references | localStorage claims, a wrong test file name, a garbled sentence | S | **Built** (docs line) |
 | One home per fact; shorter top-level docs | The manual-check rule is copied into 7 files; `deployment.md` is 283 lines | S-M | **Built** (docs line) |
 | User count: "four" or "five" | `ARCHITECTURE.md` vs `AGENTS.md` | S | You pick (Part 3) |
-| Retire the staging plan | Its `staging` bookmark conflicts with the bookmark rules | S | Needs your approval |
-| Move the finished cleanup's "Not now" list to the backlog | `docs/background/codebase-cleanup.md` is 37/37 done | S | Needs your approval |
+| Retire the staging plan | Its `staging` bookmark conflicts with the bookmark rules | S | **Done**: moved to [background](../docs/background/staging-environment.md) |
+| Move the finished cleanup's "Not now" list to the backlog | `docs/background/codebase-cleanup.md` is 37/37 done | S | **Done**: open items are in the backlog's Later |
 | Split `docs/api.md` (486 lines) | Over the one-screen rule | M | Later; split by area (rooms, items, admin) |
 
 ### UX and design

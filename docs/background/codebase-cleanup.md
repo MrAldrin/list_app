@@ -145,6 +145,9 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 ## Not now
 
+The two open items (built-in SSE and WAL) are tracked in the
+[backlog](../../plans/backlog.md#later). The rest is kept as the record.
+
 - FastAPI built-in SSE (`EventSourceResponse`, FastAPI 0.135+): removes our
   keep-alive code. Do it next time `src/api/events.py` changes.
 - SQLite WAL: small gain, since `_DB_LOCK` serializes access anyway.
@@ -153,7 +156,6 @@ lead agent. Line numbers are from that date; re-check before editing.
 - Rejected: STRICT tables (table rebuild on live data), Svelte attachments (no
   actions to replace), SvelteKit remote functions (static SPA), dropping
   `python-dotenv`, Python 3.14.
-- Spotted: `plans/test-suite-speed.md` Priority 4 first bullet is already done.
 
 ## Progress
 

@@ -1,35 +1,48 @@
 # Backlog
 
-Unfinished and deferred work, sorted by commitment. Details live in the linked
-plans and docs. How to add and order items is in
-[`AGENTS.md`](../AGENTS.md#documentation-lifecycle).
+Lifecycle: tracked. The one agenda of unfinished work. Placement is neither
+permission nor strict order. Details live in the linked plans and docs.
 
-Tags: `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
+## How to maintain this backlog
+
+- **Current focus:** selected work. **Next:** ready, in order, top first.
+  **Blocked:** waiting on a named prerequisite. **Later:** agreed, deferred.
+  **Ideas:** needs shaping or a decision; delete freely. **Manual checks:** rare,
+  see the [risk level](../docs/scope.md#risk-level).
+- Each item starts with a tag, then a short description and a link. Tags:
+  `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
+  Add `[human]` when the item needs substantial owner judgment.
+- "Do this next" goes at the top of Next. For any other new item, ask which
+  section it goes in, and where in Next if chosen. Move items between sections
+  only when the owner decides.
+- Mark work that spans sessions `(in progress)`.
+- Link real dependencies both ways with **Blocked by** and **Unblocks**.
+  Unblocking does not select an item.
+- When work finishes, update the owning docs and any dependents, then remove the
+  item. Record leftover work as its own item. Version control keeps history.
+
+## Current focus
+
+Nothing selected.
 
 ## Next
 
-In order: the top item is done first.
-
+## Blocked
 
 ## Later
 
-Agreed as worth doing; no date.
-
 - [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline use](../docs/offline-viewing.md#what-works-offline).
-
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [feature] Due-date reminders (users asked): toast on list open, warning anywhere in the app, or phone push when the app is closed. See the [options sketch](due-date-reminders.md).
+- [ ] [refactor] Switch the live-update stream to FastAPI's built-in Server-Sent Events (`EventSourceResponse`, FastAPI 0.135+) to drop our keep-alive code. Do it next time `src/api/events.py` changes. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 - [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 
 ## Ideas
 
-No promise. Revisit when growth, maintenance or product needs justify them. Delete freely.
-
-- [docs] Review the [improvement ideas and owner decisions](improvement-ideas.md). This is an unaccepted decision packet; record selected work in this backlog.
-
+- [docs] [human] Make the open owner decisions in the [October improvement ideas](improvement-ideas.md#part-3-decisions-for-you), then move chosen work into this backlog. Until then its "Do next" items live only there.
 - [refactor] Evaluate frontend error handling and async workflows: compare [Effect](https://effect.website/) with ordinary TypeScript and, for fetched data/cache management, TanStack Query. Use a small real workflow to compare typed failures, retries, cancellation, debugging and agent maintainability. The Python backend does not block adoption; adopt only if the benefit outweighs added complexity.
 - [infra] Evaluate infrastructure as code, including [Alchemy](https://alchemy.run/) and alternatives, against the current Railway deployment workflow. Check Railway support, secrets, persistent SQLite storage, reproducibility, rollback and maintenance cost before proposing any change.
 - [infra] Review other tooling that could improve implementation and stability as the Svelte frontend matures. Start with concrete gaps in CI, monitoring/error reporting, dependency updates and deployment checks; compare existing tools with new options rather than adding tools for their own sake. See the CI idea below and the [deployment guide](../docs/deployment.md).
@@ -49,8 +62,5 @@ No promise. Revisit when growth, maintenance or product needs justify them. Dele
 - [data] Reconsider the database for multiple replicas, heavy write contention, high availability or multiple regions. Discuss against [`ARCHITECTURE.md`](../ARCHITECTURE.md) first.
 
 ## Manual checks
-
-Rare: only for very high-risk changes. See the
-[risk level](../AGENTS.md#risk-level-ship-and-fix-forward).
 
 None.
