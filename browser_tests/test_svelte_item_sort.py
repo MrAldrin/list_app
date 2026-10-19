@@ -53,11 +53,15 @@ def test_checked_rows_wait_for_the_taps_to_settle(svelte_server, open_session):
 
     # A checked row stays where it is, so the next row does not move under the thumb.
     page.get_by_role("checkbox", name="apple").click()
+    expect(page.get_by_role("checkbox", name="apple")).to_be_checked()
+    # Kept: the rows must not move during the hold, which is HOLD_MS (1.5 s).
+    # The window stays under that, so it checks the hold itself.
     page.wait_for_timeout(500)
     expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
 
     # Another tap restarts the wait, so milk stays too.
     page.get_by_role("checkbox", name="milk").click()
+    expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
     page.wait_for_timeout(500)
     expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
 

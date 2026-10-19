@@ -276,13 +276,14 @@ def test_legacy_private_list_route_opens_from_room_snapshot_offline(
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
     expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     expect(item_names(page)).to_have_text(["milk"])
+    # Kept: nothing on the page shows that the local copy is written, so this
+    # is a short fixed pause before the server stops.
     page.wait_for_timeout(250)
 
     empty.goto(f"{server.url}/list/{list_slug}")
     expect(
         empty.get_by_text("Connect to open this saved list", exact=False)
     ).to_be_visible()
-    empty.wait_for_timeout(250)
 
 
 # Records whether the offline notice was ever put on the page, even briefly.
@@ -318,14 +319,19 @@ def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
         expect(page.get_by_role("button", name="Add New List")).to_be_visible()
         list_links(page).filter(has_text="Groceries").click()
         expect(item_names(page)).to_have_text(["milk"])
+        # Kept: the recorder covers the whole page life, so this window only
+        # gives a late notice time to show before the flag is read.
         page.wait_for_timeout(300)
         assert not page.evaluate("window.__offlineNoticeSeen")
 
     # A fresh start shows the saved view first, then the server's answer.
     for url in (list_url, room_app_url(server)):
-        page.goto(url)
+        # Wait for the server's answer (the revalidation), not a fixed 2 s.
+        with page.expect_response(
+            lambda r: "/api/v1/" in r.url and r.request.method == "GET"
+        ):
+            page.goto(url)
         expect(page.get_by_text("Groceries").first).to_be_visible()
-        page.wait_for_timeout(2_000)
         assert not page.evaluate("window.__offlineNoticeSeen")
 
     # The saved view was there: offline, the same start shows the notice.
@@ -333,7 +339,6 @@ def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
     page.goto(list_url)
     expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     expect(item_names(page)).to_have_text(["milk"])
-    page.wait_for_timeout(250)
 
 
 def test_offline_edits_survive_a_reload_and_reach_the_server(

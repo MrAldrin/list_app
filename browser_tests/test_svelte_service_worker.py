@@ -380,6 +380,8 @@ def test_coming_back_to_the_app_fetches_and_then_switches_version(
     field = page.get_by_label("Room link or code")
     field.fill("half-typed")
     _come_back_to_the_app(page)
+    # Kept: the check is that the page does not reload. Nothing visible marks
+    # a reload that did not happen, so this window is the only check.
     page.wait_for_timeout(500)
     assert page.evaluate("window.__oldPage") is True
     assert page.evaluate("window.__appRegistration.waiting?.state") == "installed"
@@ -604,5 +606,7 @@ def test_chunk_that_stays_missing_shows_the_error_without_a_loop(
     )
     page.goto(f"{built_app_server.url}/list/stale-chunk")
     expect(page.get_by_role("heading", name="Something went wrong")).to_be_visible()
+    # Kept: the check is that no further reload starts. Nothing visible marks
+    # that, so this window is the only check.
     page.wait_for_timeout(1_000)
     assert len(page_loads) == 2  # the load that failed, one reload, no more

@@ -103,6 +103,8 @@ def test_refused_tick_is_listed_and_save_mine_anyway_applies(
     )
     phone.reload()
     expect(phone.get_by_text("1 change was not saved")).to_be_visible(**SLOW)
+    # Kept: the check is that no retry POST starts. Nothing visible marks that,
+    # so this window is the only signal.
     phone.wait_for_timeout(300)
     assert retried_posts == []
     phone.get_by_role("button", name="Review").click()
@@ -309,6 +311,8 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
             "These are in this room's queue on this device and were made more than 30 days ago. The server may no longer remember an earlier answer, so sending could apply them twice. They are sent only when you choose."
         )
     ).to_be_visible()
+    # Kept: proves that nothing is sent before the user chooses. No UI signal
+    # marks an unsent change, so this window is the only check.
     phone.wait_for_timeout(300)
     assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
     dialog.get_by_role("button", name="Send all").click()

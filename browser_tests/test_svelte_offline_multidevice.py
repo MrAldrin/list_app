@@ -366,6 +366,8 @@ def test_cleared_site_data_drops_waiting_changes_and_the_page_still_loads(
     expect(item_names(phone)).to_have_text(["bread", "milk"], **SLOW)
     expect(phone.get_by_role("checkbox", name="milk")).not_to_be_checked()
     expect(not_sent_mark(phone, "milk")).to_have_count(0)
+    # Kept: the check is that the cleared change is never sent. No UI signal
+    # marks an unsent change, so this window is the only check.
     phone.wait_for_timeout(500)
     assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
     expect(phone.get_by_text("was not saved")).to_have_count(0)
@@ -422,6 +424,8 @@ def test_waiting_change_survives_a_reload_onto_a_new_version(
     # The waiting tick is still shown, and still marked as not sent.
     expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
     expect(not_sent_mark(page, "milk")).to_be_visible()
+    # Kept: the check is that the tick is not sent on reload. No UI signal
+    # marks that, so this window is the only check.
     page.wait_for_timeout(300)
     assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
 

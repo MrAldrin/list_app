@@ -60,6 +60,9 @@ def test_new_server_version_blocks_writes_until_reload(svelte_server, open_sessi
     )
     field.fill("eggs")
     field.press("Enter")
+    # Kept: a write that was started would show as a request event, which
+    # Playwright delivers after press() returns. No UI state marks the ignored
+    # Enter, so this window is the only signal that no write happened.
     page.wait_for_timeout(500)
     assert write_requests == []
     assert server.query("SELECT count(*) FROM items") == [(2,)]

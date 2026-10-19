@@ -160,13 +160,16 @@ def test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes(
     blocked = count_requests(page, r"/changes")
     sent = count_requests(page, r"/ops$")
     page.route("**/api/v1/rooms/*/changes*", lambda route: route.abort())
-    with page.expect_request(lambda r: "/changes" in r.url, **SLOW):
+    # Wait until the aborted feed request has failed, not for a fixed time.
+    with page.expect_event("requestfailed", lambda r: "/changes" in r.url, **SLOW):
         go_online(page)
-    page.wait_for_timeout(500)
     assert blocked
     expect(saved_notice(page)).to_be_visible()
     expect(item_names(page)).to_have_text(["bread", "milk"])
     page.get_by_role("checkbox", name="milk").check()
+    expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
+    # Kept: "no send happens" has no UI signal. The window only gives a send,
+    # if one were started, time to reach the server.
     page.wait_for_timeout(500)
     assert not sent
 
@@ -245,7 +248,6 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
     view_offline(page, url)
 
     def stays_saved() -> None:
-        page.wait_for_timeout(500)
         expect(saved_notice(page)).to_be_visible()
         expect(item_names(page)).to_have_text(["bread", "milk"])
         expect(page.get_by_role("button", name="Add")).to_be_enabled()
@@ -253,7 +255,8 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
     # The network is back (the event fires) but every API call still fails.
     go_online(page)
     page.route(API, lambda route: route.abort())
-    nudge(page)
+    with page.expect_event("requestfailed", lambda r: "/api/v1/" in r.url, **SLOW):
+        nudge(page)
     stays_saved()
 
     # The server answers 503 to every API call.
@@ -266,7 +269,9 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
             body=json.dumps({"error": {"code": "unavailable", "message": "busy"}}),
         ),
     )
-    with page.expect_request(lambda r: "/api/v1/" in r.url, **SLOW):
+    with page.expect_response(
+        lambda r: "/api/v1/" in r.url and r.status == 503, **SLOW
+    ):
         nudge(page)
     stays_saved()
 
