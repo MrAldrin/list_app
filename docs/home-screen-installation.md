@@ -64,6 +64,10 @@ The Svelte app is served at `/`. The same rules apply:
   `listapp-rooms`, see [API: Room session](api.md#room-session)). It is a
   routing hint, like the last room. Opening a listed room still asks for its
   password when access is missing.
+- **+ Add room** (last item of the Rooms list) opens the start page at `/?add`
+  to enter another room link or code. The app stays signed in to the current
+  room. A normal visit to `/` still goes to the last room. The start page's
+  **Admin** link is at its foot.
 - Broken password hashes in the database are rejected as a wrong password. An
   admin password reset fixes them.
 

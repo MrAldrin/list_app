@@ -1,8 +1,8 @@
 <!--
 	The room menu (the ⋮ button in the room header): share the room link,
-	home-screen install help, the rooms this browser entered (switch with one
-	tap), rename the room, change its password, delete it, log out. Texts and
-	order match NiceGUI's room menu, except the Rooms entries. Each entry closes
+	home-screen install help, the Rooms section (switch with one tap, or add a
+	room), rename the room, change its password, delete it, log out. Texts and
+	order match NiceGUI's room menu, except the Rooms section. Each entry closes
 	the menu and opens a dialog.
 -->
 <script lang="ts">
@@ -65,6 +65,12 @@
 		void goto(resolve('/room/[slug]', { slug }));
 	}
 
+	/** Opens the start page to enter another room. `?add` skips the jump to the last room. */
+	function addRoom(close: () => void) {
+		close();
+		void goto(`${resolve('/')}?add`);
+	}
+
 	async function deleted() {
 		dialog = null;
 		forgetRoom(room.slug);
@@ -79,17 +85,16 @@
 		<button type="button" onclick={() => share(close)}>Share Room</button>
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
 		<ThemeMenuItem {close} />
-		{#if remembered.length > 0}
-			<hr />
-			<div class="rooms" role="group" aria-label="Rooms">
-				<p class="heading">Rooms</p>
-				{#each remembered as other (other.slug)}
-					<button type="button" onclick={() => switchRoom(close, other.slug)}>
-						{other.name}
-					</button>
-				{/each}
-			</div>
-		{/if}
+		<hr />
+		<div class="rooms" role="group" aria-label="Rooms">
+			<p class="heading">Rooms</p>
+			{#each remembered as other (other.slug)}
+				<button type="button" onclick={() => switchRoom(close, other.slug)}>
+					{other.name}
+				</button>
+			{/each}
+			<button type="button" onclick={() => addRoom(close)}>+ Add room</button>
+		</div>
 		<hr />
 		<button type="button" disabled={!room.store.canEdit} onclick={() => choose(close, 'rename')}>
 			Rename Room

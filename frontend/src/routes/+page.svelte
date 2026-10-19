@@ -1,11 +1,14 @@
 <!--
 	The start page (/). Like NiceGUI's `/`, it is a router: if this browser
 	signed in to a room before, it goes straight to that room. Otherwise it
-	asks for the room link or code, and offers the admin page.
+	asks for the room link or code, and offers the admin page. The room menu's
+	"+ Add room" opens `/?add`, which shows the form without the jump.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import { lastRoom } from '#lib/data/index.ts';
 	import { roomSlugFromInput } from '#lib/room-link.ts';
 
@@ -44,9 +47,13 @@
 		retrying = false;
 	}
 
+	// Read the URL once, without tracking it: a later change must not re-run the jump.
+	const adding = untrack(() => page.url.searchParams.has('add'));
+
 	// `$effect` runs after the page is shown in the browser; here once.
 	$effect(() => {
-		void checkLastRoom();
+		if (adding) checking = false;
+		else void checkLastRoom();
 	});
 
 	function submit(event: SubmitEvent) {
@@ -77,8 +84,13 @@
 	{:else}
 		<!-- A <form> makes Enter in the field submit, with no extra code. -->
 		<form class="card" onsubmit={submit} novalidate>
-			<h1>Open your room link to continue</h1>
-			<p class="muted">Connect to load a saved room, or paste your room link or code.</p>
+			{#if adding}
+				<h1>Add a room</h1>
+				<p class="muted">Paste the room link or code.</p>
+			{:else}
+				<h1>Open your room link to continue</h1>
+				<p class="muted">Connect to load a saved room, or paste your room link or code.</p>
+			{/if}
 			{#if warning}
 				<div class="warning-row">
 					<p class="warning" role="status">{warning}</p>
@@ -102,9 +114,10 @@
 			{/if}
 			<div class="actions">
 				<button class="primary" type="submit">Open Room</button>
-				<button class="outline" type="button" onclick={() => goto(resolve('/admin'))}>
-					Admin
-				</button>
+			</div>
+			<!-- Admin is a small text link: most people only need the room form. -->
+			<div class="admin-row">
+				<button class="quiet" type="button" onclick={() => goto(resolve('/admin'))}> Admin </button>
 			</div>
 		</form>
 	{/if}
@@ -124,5 +137,19 @@
 		display: flex;
 		align-items: center;
 		gap: var(--gap);
+	}
+
+	.admin-row {
+		display: flex;
+		justify-content: center;
+		margin-top: 0.5rem;
+	}
+
+	/* A text link look, with the same 44px tap area as other buttons. */
+	.quiet {
+		padding: 0 0.5rem;
+		color: var(--text-muted);
+		font-size: 0.9rem;
+		text-decoration: underline;
 	}
 </style>
