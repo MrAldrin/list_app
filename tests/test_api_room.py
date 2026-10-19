@@ -14,6 +14,7 @@ from api_helpers import (
     create_list,
     default_list,
     home,
+    lists_in_room,
     new_id,
     op,
     processed_ops_count,
@@ -319,7 +320,7 @@ def test_delete_room_removes_its_lists_items_tokens_and_clears_cookies():
     ).fetchone() == (0,)
     # Other rooms keep everything.
     assert crud.get_room_details_by_slug(cabin)["id"] == cabin_id
-    assert [row[0] for row in crud.get_lists(cabin_id)] == [cabin_list]
+    assert [row[0] for row in lists_in_room(cabin_id)] == [cabin_list]
     # Signed out everywhere; signing in looks like a wrong password.
     assert_error(
         other_device.get(f"/api/v1/rooms/{slug}/session"), 401, "not_authenticated"

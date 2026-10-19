@@ -12,6 +12,7 @@ from api_helpers import (
     get_list_data,
     get_list_details_by_slug,
     insert_item,
+    lists_in_room,
     rename_room,
     validate_room_access_token,
     verify_room,
@@ -22,7 +23,7 @@ from database_crud import (
     authenticate_room_and_issue_token,
     create_room,
     delete_list_locked,
-    get_lists,
+    get_rooms,
     normalize_item_name,
     reset_room_password_by_slug,
     revoke_room_access_token,
@@ -47,7 +48,7 @@ def test_create_list_success(room_id):
     # Verify that a new list can be created and is included in the list of all lists.
     list_id, _ = create_list(name="Groceries", room_id=room_id)
     assert list_id is not None
-    lists = get_lists(room_id)
+    lists = lists_in_room(room_id)
     assert len(lists) == 1
     assert any(entry[1] == "Groceries" for entry in lists)
 
@@ -57,7 +58,7 @@ def test_create_list_duplicate(room_id):
     create_list(name="Groceries", room_id=room_id)
     # This should return the same ID and keep the first spelling
     create_list(name="GROCERIES", room_id=room_id)
-    lists = get_lists(room_id)
+    lists = lists_in_room(room_id)
     assert [entry[1] for entry in lists] == ["Groceries"]
 
 
@@ -124,17 +125,6 @@ def test_failed_list_delete_restores_items(room_id):
         db.execute("DROP TRIGGER fail_list_delete")
 
 
-def test_get_lists_sorting(room_id):
-    # Verify that lists are returned sorted by name (case-insensitive).
-    create_list(name="Zebra", room_id=room_id)
-    create_list(name="Apple", room_id=room_id)
-    create_list(name="banana", room_id=room_id)
-
-    lists = get_lists(room_id)
-    names = [entry[1] for entry in lists if entry[1] != "default"]
-    assert names == ["Apple", "banana", "Zebra"]
-
-
 def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
     # Regression test: concurrent CRUD calls should not fail with shared-cursor errors.
     worker_count = 6
@@ -150,7 +140,7 @@ def test_concurrent_db_operations_do_not_share_cursor_state(room_id):
                 )
                 insert_item(item_name=f"item-{worker_id}-{i}", list_id=list_id)
                 get_list_data(list_id=list_id)
-                get_lists(room_id)
+                get_rooms()
             except Exception as exc:  # noqa: BLE001 - capture worker failures for assertion context
                 local_errors.append(exc)
         return local_errors
@@ -400,7 +390,7 @@ def test_failed_room_delete_restores_all_rows(authorized):
                 delete_room(room_id)
         assert not db.in_transaction
         assert db.execute("SELECT 1 FROM rooms WHERE id = ?", (room_id,)).fetchone()
-        assert get_lists(room_id)[0][0] == list_id
+        assert lists_in_room(room_id)[0][0] == list_id
         assert len(get_list_data(list_id)[0]) == 1
         assert validate_room_access_token(slug, token) == room_id
     finally:

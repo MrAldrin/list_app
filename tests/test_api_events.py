@@ -241,7 +241,7 @@ def test_a_write_outside_the_ops_endpoint_sends_the_new_seq(room):
 
 
 def test_writes_in_another_room_send_nothing(room):
-    _, slug = room
+    room_id, slug = room
     other_id, other_slug = crud.create_room("Other", "pass")
     other_client = client_for(other_slug, "pass")
 
@@ -251,9 +251,9 @@ def test_writes_in_another_room_send_nothing(room):
         await stream.next_event()
         await api_write(other_client, other_slug, {"type": "list.create", "name": "B"})
         await stream.assert_quiet()
-        # A wake for every stream; this one sees no change in its room.
+        # A wake for this room; it sees no change in its room.
         create_list("C", other_id)
-        live_updates.wake_streams()
+        live_updates.wake_streams(room_id)
         await stream.assert_quiet()
         await stream.close()
 
@@ -261,13 +261,13 @@ def test_writes_in_another_room_send_nothing(room):
 
 
 def test_a_wake_without_a_change_sends_nothing(room):
-    _, slug = room
+    room_id, slug = room
 
     async def test() -> None:
         stream = SseConnection(slug, token_for(slug))
         await stream.open()
         await stream.next_event()
-        live_updates.wake_streams()
+        live_updates.wake_streams(room_id)
         await stream.assert_quiet()
         await stream.close()
 
@@ -275,7 +275,7 @@ def test_a_wake_without_a_change_sends_nothing(room):
 
 
 def test_revoked_access_sends_revoked_and_closes(room):
-    _, slug = room
+    room_id, slug = room
     token = token_for(slug)
 
     async def test() -> None:
@@ -283,7 +283,7 @@ def test_revoked_access_sends_revoked_and_closes(room):
         await stream.open()
         await stream.next_event()
         crud.revoke_room_access_token(slug, token)
-        live_updates.wake_streams()
+        live_updates.wake_streams(room_id)
         assert await stream.next_event() == ("revoked", "{}")
         assert await stream.ended()
         assert await stream.next_block() is None
@@ -448,23 +448,20 @@ def test_a_full_stream_limit_answers_503_and_frees_up_again(room, monkeypatch):
     run(test)
 
 
-def test_an_api_write_wakes_the_streams_and_tells_the_listeners_once(room, monkeypatch):
+def test_an_api_write_wakes_the_streams_once(room, monkeypatch):
     room_id, slug = room
     client = client_for(slug)
-    wakes: list[int | None] = []
-    listener_calls: list[int] = []
+    wakes: list[int] = []
     real_wake = live_updates.wake_streams
 
-    def counting_wake(room_id: int | None = None) -> None:
+    def counting_wake(room_id: int) -> None:
         wakes.append(room_id)
         real_wake(room_id)
 
     monkeypatch.setattr(live_updates, "wake_streams", counting_wake)
-    monkeypatch.setattr(live_updates, "_listeners", [listener_calls.append])
 
     api_op(client, slug, {"op_id": new_id(), "type": "list.create", "name": "A"})
     assert wakes == [room_id]
-    assert listener_calls == [room_id]
 
 
 def test_streams_of_both_clients_see_each_others_writes(room):

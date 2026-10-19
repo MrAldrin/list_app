@@ -9,6 +9,7 @@ from api_helpers import (
     delete_room_with_password,
     get_list_data,
     insert_item,
+    lists_in_room,
     rename_room,
     verify_room,
 )
@@ -17,7 +18,6 @@ import room_invitations as invitations
 from database_crud import (
     authenticate_room_and_issue_token,
     create_room,
-    get_lists,
     get_room_details_by_slug,
     get_rooms,
 )
@@ -123,7 +123,7 @@ def test_rename_room_keeps_slug_and_lists():
     rename_room(room_id, "After")
 
     assert get_room_details_by_slug(slug)["name"] == "After"
-    assert [row[0] for row in get_lists(room_id)] == [list_id]
+    assert [row[0] for row in lists_in_room(room_id)] == [list_id]
 
 
 def test_delete_room_removes_only_its_own_data():
@@ -133,10 +133,10 @@ def test_delete_room_removes_only_its_own_data():
     delete_room(room_id)
 
     assert get_room_details_by_slug(slug) is None
-    assert get_lists(room_id) == []
+    assert lists_in_room(room_id) == []
     assert get_list_data(list_id) == ([], [])
     assert get_room_details_by_slug(kept_slug)["id"] == kept_room_id
-    assert [row[0] for row in get_lists(kept_room_id)] == [kept_list_id]
+    assert [row[0] for row in lists_in_room(kept_room_id)] == [kept_list_id]
     assert len(get_list_data(kept_list_id)[0]) == 1
 
 
@@ -147,7 +147,7 @@ def test_delete_room_with_password_removes_room_lists_items_and_tokens():
     assert delete_room_with_password(slug, "password") is True
 
     assert get_room_details_by_slug(slug) is None
-    assert get_lists(room_id) == []
+    assert lists_in_room(room_id) == []
     assert get_list_data(list_id) == ([], [])
     tokens = db.execute(
         "SELECT COUNT(*) FROM room_access_tokens WHERE room_id = ?", (room_id,)
@@ -162,7 +162,7 @@ def test_delete_room_with_wrong_password_keeps_everything():
     assert delete_room_with_password(slug, "wrong-password") is False
 
     assert get_room_details_by_slug(slug)["id"] == room_id
-    assert [row[0] for row in get_lists(room_id)] == [list_id]
+    assert [row[0] for row in lists_in_room(room_id)] == [list_id]
     assert len(get_list_data(list_id)[0]) == 1
     assert not db.in_transaction
 

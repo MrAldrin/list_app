@@ -87,15 +87,6 @@ def _completion_timestamp(now: datetime | None = None) -> str:
     )
 
 
-def get_lists(room_id: int):
-    with _DB_LOCK:
-        rows = db.execute(
-            "SELECT id, name, slug FROM lists WHERE room_id = ? ORDER BY name COLLATE NOCASE ASC",
-            (room_id,),
-        ).fetchall()
-    return [(r[0], r[1], r[2]) for r in rows]
-
-
 # Share tokens are secrets.token_urlsafe(32): always 43 characters.
 SHARE_TOKEN_LENGTH = 43
 

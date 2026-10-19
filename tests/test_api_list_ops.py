@@ -25,7 +25,6 @@ from starlette.testclient import TestClient
 
 import api.ops
 import database_crud as crud
-import live_updates
 import main
 import server
 from database_setup import db
@@ -515,20 +514,6 @@ def test_revoked_access_cannot_write(room):
     body = {"op_id": new_id(), "type": "list.create", "name": "Shop"}
     assert_error(send(client, slug, body), 401, "not_authenticated")
     assert find_list_by_name("Shop", room_id) is None
-
-
-def test_a_failing_listener_does_not_fail_the_write(room, monkeypatch):
-    room_id, slug, client = room
-
-    def broken(room_id: int) -> None:
-        raise RuntimeError("listener bug")
-
-    monkeypatch.setattr(live_updates, "_listeners", [broken])
-    response = op(
-        client, slug, {"op_id": new_id(), "type": "list.create", "name": "Shop"}
-    )
-    assert response["status"] == "applied"
-    assert find_list_by_name("Shop", room_id) is not None
 
 
 # Pruning stored op results

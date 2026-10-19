@@ -7,12 +7,13 @@ from api_helpers import (
     find_list_by_name,
     get_list_data,
     list_uid_of,
+    lists_in_room,
     new_id,
     op,
     write_locked,
 )
 
-from database_crud import create_room, get_lists, rename_list_if_unique_locked
+from database_crud import create_room, rename_list_if_unique_locked
 
 
 @pytest.fixture
@@ -22,7 +23,7 @@ def room():
 
 
 def list_names(room_id):
-    return [row[1] for row in get_lists(room_id)]
+    return sorted(row[1] for row in lists_in_room(room_id))
 
 
 def test_list_names_trim_edges_and_keep_case_and_inner_spaces(room):

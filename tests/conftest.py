@@ -14,7 +14,9 @@ from api_helpers import client_for, home
 from fastapi import FastAPI
 
 import live_updates
+from api import ops as api_ops
 from api import register_api, sign_in_limit
+from api import share as api_share
 from database_setup import db
 from sign_in_limiter import SignInLimiter
 
@@ -67,9 +69,17 @@ def room() -> tuple[int, str, TestClient]:
 
 @pytest.fixture
 def notified(monkeypatch) -> list[int]:
-    """Room IDs passed to live-update listeners (main's listener is replaced)."""
+    """Room IDs of writes that called notify_room_changed. The real call still runs."""
     calls: list[int] = []
-    monkeypatch.setattr(live_updates, "_listeners", [calls.append])
+    real_notify = live_updates.notify_room_changed
+
+    def record(room_id: int) -> None:
+        calls.append(room_id)
+        real_notify(room_id)
+
+    # Both modules import the name, so each one's reference is replaced.
+    monkeypatch.setattr(api_ops, "notify_room_changed", record)
+    monkeypatch.setattr(api_share, "notify_room_changed", record)
     return calls
 
 

@@ -5,8 +5,7 @@ while checking access, and each open stream holds a subscription that wakes up
 when its room may have changed.
 
 - API writes call `notify_room_changed(room_id)` after commit. It wakes the
-  room's streams and calls the registered listeners (none in production;
-  tests use them to see that a write was announced).
+  room's streams.
 - Writes that change a room's state outside the ops endpoint (password
   changes) call `wake_streams(room_id)` directly.
 
@@ -15,30 +14,14 @@ circular import. Wakes may come from any thread.
 """
 
 import asyncio
-import logging
 import threading
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager, suppress
-
-logger = logging.getLogger(__name__)
-
-Listener = Callable[[int], None]
-
-_listeners: list[Listener] = []
 
 
 def notify_room_changed(room_id: int) -> None:
-    """Wake the room's streams and call every listener.
-
-    Call after commit, never while holding the DB lock. The write is already
-    saved, so a failing listener is logged, not raised.
-    """
+    """Wake the room's streams. Call after commit, never while holding the DB lock."""
     wake_streams(room_id)
-    for listener in list(_listeners):
-        try:
-            listener(room_id)
-        except Exception:
-            logger.exception("Live-update listener failed")
 
 
 class Subscription:
@@ -121,16 +104,13 @@ def subscribe(room_id: int, reservation: Reservation) -> Iterator[Subscription]:
             _subscriptions.discard(subscription)
 
 
-def wake_streams(room_id: int | None = None) -> None:
-    """Wake the streams of one room, or of every room when `room_id` is None.
-
-    Without a room, every stream wakes; each stream checks its own room's seq.
-    """
+def wake_streams(room_id: int) -> None:
+    """Wake the streams of one room. Each woken stream checks its room's seq."""
     with _subscriptions_lock:
         targets = [
             subscription
             for subscription in _subscriptions
-            if room_id is None or subscription.room_id == room_id
+            if subscription.room_id == room_id
         ]
     for subscription in targets:
         subscription._wake()

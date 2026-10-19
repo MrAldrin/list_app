@@ -177,6 +177,16 @@ def find_list_by_name(name: str, room_id: int) -> tuple[int] | None:
     return None if found is None else (found[0],)
 
 
+def lists_in_room(room_id: int) -> list[tuple[int, str, str]]:
+    """(id, name, slug) of each list in the room, in creation order."""
+    with _DB_LOCK:
+        rows = db.execute(
+            "SELECT id, name, slug FROM lists WHERE room_id = ? ORDER BY id",
+            (room_id,),
+        ).fetchall()
+    return [(row[0], row[1], row[2]) for row in rows]
+
+
 def rename_list(list_id: int, new_name: str) -> None:
     write_locked(
         db.execute, "UPDATE lists SET name = ? WHERE id = ?", (new_name, list_id)

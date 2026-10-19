@@ -20,6 +20,7 @@ from api_helpers import (
     default_list,
     delete_room,
     home,
+    lists_in_room,
     set_cookies,
     sign_in,
     verify_room,
@@ -487,7 +488,7 @@ def test_admin_delete_removes_only_that_room(admin_app):
     ).fetchone() == (0,)
     # The other room keeps its lists, items, password and tokens.
     assert crud.get_room_details_by_slug(cabin)["id"] == cabin_id
-    assert [row[0] for row in crud.get_lists(cabin_id)] == [cabin_list]
+    assert [row[0] for row in lists_in_room(cabin_id)] == [cabin_list]
     assert db.execute(
         "SELECT COUNT(*) FROM items WHERE list_id = ?", (cabin_list,)
     ).fetchone() == (1,)
