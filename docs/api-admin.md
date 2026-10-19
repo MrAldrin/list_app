@@ -8,9 +8,11 @@ The admin password is `APP_PASSWORD`. Admin sign-in has its own cookie, like
 the room cookie: `__Host-listapp-admin` on HTTPS (`Secure`, Path `/`, no
 Domain), `listapp-admin` on plain HTTP (local network testing). Both are
 HTTP-only and `SameSite=Lax`, and last 14 days. The value is a signed token
-(`v1.<expiry>.<nonce>.<signature>`); the signature uses a key made from the
-current `APP_PASSWORD`, so **changing `APP_PASSWORD` ends every admin
-session**. Nothing is stored on the server, so signing out clears the cookie
+(`v2.<expiry>.<nonce>.<signature>`); the signature uses a key derived from the
+current `APP_PASSWORD` with scrypt (a slow function), so **changing
+`APP_PASSWORD` ends every admin session**. Older `v1` cookies are refused, so
+admins sign in once again after the change. Nothing is stored on the server,
+so signing out clears the cookie
 in this browser only. Admin sign-in never gives room access: the
 room endpoints ignore it, and admin endpoints never set a room cookie.
 

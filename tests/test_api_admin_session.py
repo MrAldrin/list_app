@@ -2,6 +2,10 @@
 sign-out, same-origin writes, and that no admin endpoint works without it.
 """
 
+import hashlib
+import hmac
+import secrets
+
 import pytest
 from api_helpers import APP_PASSWORD, HTTPS, admin, assert_error, browser, home, sign_in
 from starlette.testclient import TestClient
@@ -143,7 +147,7 @@ def tamper(case: str) -> str:
             [version, str(int(expires) + 99999), nonce, signature]
         ),
         "other_nonce": ".".join([version, expires, "0" * 32, signature]),
-        "other_version": ".".join(["v2", expires, nonce, signature]),
+        "other_version": ".".join(["v1", expires, nonce, signature]),
         "negative_expiry": ".".join([version, "-1", nonce, signature]),
         "extra_part": ".".join([version, expires, nonce, signature, "extra"]),
         "empty_expiry": ".".join([version, "", nonce, signature]),
@@ -325,3 +329,65 @@ def test_a_write_without_origin_is_rejected_even_with_the_cookie(admin_app):
     )
     assert_error(bare.delete("/api/v1/admin/session"), 403, "forbidden_origin")
     assert signed_in.get("/api/v1/admin/session").status_code == 200
+
+
+# The signing key (v2 tokens)
+
+
+def v1_token(now: float) -> str:
+    """A token in the old format: v1, signed with the raw APP_PASSWORD."""
+    payload = (
+        f"v1.{int(now + admin_access.ADMIN_SESSION_SECONDS)}.{secrets.token_hex(16)}"
+    )
+    message = b"listapp-admin-session\0" + payload.encode("ascii")
+    signature = hmac.new(APP_PASSWORD.encode(), message, hashlib.sha256).hexdigest()
+    return f"{payload}.{signature}"
+
+
+def test_old_v1_token_is_refused(admin_app):
+    now = 1_000_000.0
+    token = v1_token(now)
+    assert not admin_token_valid(token, now)
+    assert_error(
+        with_cookie(admin_app, token).get("/api/v1/admin/rooms"),
+        401,
+        "admin_required",
+    )
+
+
+def test_v2_token_round_trips():
+    now = 1_000_000.0
+    token = issue_admin_token(now)
+    assert token.startswith("v2.")
+    assert admin_token_valid(token, now)
+
+
+def test_v2_token_signed_with_the_raw_password_is_refused():
+    now = 1_000_000.0
+    payload = (
+        f"v2.{int(now + admin_access.ADMIN_SESSION_SECONDS)}.{secrets.token_hex(16)}"
+    )
+    message = b"listapp-admin-session\0" + payload.encode("ascii")
+    signature = hmac.new(APP_PASSWORD.encode(), message, hashlib.sha256).hexdigest()
+    assert not admin_token_valid(f"{payload}.{signature}", now)
+
+
+def test_signing_key_is_derived_with_scrypt_not_the_raw_password():
+    key = admin_access._signing_key(APP_PASSWORD)
+    assert key != APP_PASSWORD.encode()
+    assert len(key) == 32
+    assert key == hashlib.scrypt(
+        APP_PASSWORD.encode(),
+        salt=b"listr-admin-cookie-v2",
+        n=2**16,
+        r=8,
+        p=1,
+        dklen=32,
+        maxmem=128 * 1024 * 1024,
+    )
+
+
+def test_signing_key_depends_on_the_password():
+    assert admin_access._signing_key("first-password") != admin_access._signing_key(
+        "second-password"
+    )

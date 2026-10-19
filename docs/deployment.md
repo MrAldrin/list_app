@@ -48,7 +48,7 @@ uv run python src/main.py
 
 The app listens on `0.0.0.0` and Railway's `PORT`. There is no session secret
 to set. Room tokens are random and stored hashed; the admin cookie is signed
-with a key made from `APP_PASSWORD`.
+with a key derived from `APP_PASSWORD` by scrypt.
 
 ### Production image
 
