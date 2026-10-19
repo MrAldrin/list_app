@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import { admin, type Room } from '#lib/data/index.ts';
+	import { forgetRoom } from '#lib/room/remembered-rooms.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import { showAdminFailure } from './failure.ts';
@@ -29,9 +30,11 @@
 	async function submit() {
 		const result = await admin.deleteRoom(room.slug);
 		if (result.ok) {
+			forgetRoom(room.slug);
 			toasts.show('Room deleted', 'success');
 			onDone();
 		} else if (result.code === 'room_unavailable') {
+			forgetRoom(room.slug);
 			toasts.show(result.message, 'danger');
 			onDone();
 		} else {

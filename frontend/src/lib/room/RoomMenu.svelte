@@ -1,7 +1,9 @@
 <!--
 	The room menu (the ⋮ button in the room header): share the room link,
-	home-screen install help, rename the room, change its password, delete it, log out. Texts and order match
-	NiceGUI's room menu. Each entry closes the menu and opens a dialog.
+	home-screen install help, the rooms this browser entered (switch with one
+	tap), rename the room, change its password, delete it, log out. Texts and
+	order match NiceGUI's room menu, except the Rooms entries. Each entry closes
+	the menu and opens a dialog.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -17,6 +19,7 @@
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import ChangePasswordDialog from './ChangePasswordDialog.svelte';
 	import DeleteRoomDialog from './DeleteRoomDialog.svelte';
+	import { forgetRoom, readRememberedRooms, type RememberedRoom } from './remembered-rooms.ts';
 
 	let {
 		room,
@@ -29,6 +32,12 @@
 	const hintId = $props.id();
 	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | null>(null);
 	let shareUrl = $state('');
+	/** Read as the menu opens: other rooms may have changed. */
+	let remembered = $state<RememberedRoom[]>([]);
+
+	function menuOpened() {
+		remembered = readRememberedRooms().filter((item) => item.slug !== room.slug);
+	}
 
 	function choose(close: () => void, next: 'install' | 'rename' | 'password' | 'delete') {
 		close();
@@ -50,19 +59,37 @@
 		if (result.ok) dialog = null;
 	}
 
+	/** Opens another remembered room. It asks for its password if access is gone. */
+	function switchRoom(close: () => void, slug: string) {
+		close();
+		void goto(resolve('/room/[slug]', { slug }));
+	}
+
 	async function deleted() {
 		dialog = null;
+		forgetRoom(room.slug);
 		toasts.show('Room deleted', 'danger');
 		// As NiceGUI: back to the admin page when the room was opened from there.
 		await goto(backToAdmin ? resolve('/admin') : resolve('/'));
 	}
 </script>
 
-<MenuButton label="Room menu">
+<MenuButton label="Room menu" onOpen={menuOpened}>
 	{#snippet children(close)}
 		<button type="button" onclick={() => share(close)}>Share Room</button>
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
 		<ThemeMenuItem {close} />
+		{#if remembered.length > 0}
+			<hr />
+			<div class="rooms" role="group" aria-label="Rooms">
+				<p class="heading">Rooms</p>
+				{#each remembered as other (other.slug)}
+					<button type="button" onclick={() => switchRoom(close, other.slug)}>
+						{other.name}
+					</button>
+				{/each}
+			</div>
+		{/if}
 		<hr />
 		<button type="button" disabled={!room.store.canEdit} onclick={() => choose(close, 'rename')}>
 			Rename Room
@@ -117,3 +144,12 @@
 {:else if dialog === 'delete'}
 	<DeleteRoomDialog {room} disabled={!online} onDeleted={deleted} onClose={() => (dialog = null)} />
 {/if}
+
+<style>
+	.heading {
+		margin: 0;
+		padding: 0.25rem 1rem 0;
+		color: var(--text-muted);
+		font-size: 0.85em;
+	}
+</style>

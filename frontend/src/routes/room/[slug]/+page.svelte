@@ -16,6 +16,7 @@
 	import PageShell from '#lib/room/PageShell.svelte';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
+	import { forgetRoom, rememberRoom } from '#lib/room/remembered-rooms.ts';
 	import ConfirmDialog from '#lib/ui/ConfirmDialog.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
@@ -26,6 +27,19 @@
 	let room = $state.raw<RoomHandle | null>(null);
 	/** Bumped after signing out, so the shell opens the room afresh. */
 	let generation = $state(0);
+
+	/** The handle being signed out. Its store still looks confirmed for a moment. */
+	let signingOut = $state.raw<RoomHandle | null>(null);
+
+	// Remember this room for the room menu's Rooms list once the server has
+	// confirmed it (and again when its name changes). Not while signing out:
+	// that would put the room straight back after forgetRoom.
+	$effect(() => {
+		const handle = room;
+		if (handle && handle !== signingOut && handle.store.confirmed && handle.store.room) {
+			rememberRoom(handle.slug, handle.store.room.name);
+		}
+	});
 
 	// A browser signed in as admin gets a way back to the admin page in the
 	// header, also after opening a list and coming back. It never gives room
@@ -55,6 +69,10 @@
 
 	async function signOut() {
 		askingSignOut = false;
+		// Leave the Rooms list at once: it is only a shortcut, and a sign-out
+		// that cannot confirm its local clear still meant to leave the room.
+		signingOut = room;
+		forgetRoom(slug);
 		const result = await logout(slug);
 		if (!result.ok) {
 			toasts.show(result.message, 'warning');

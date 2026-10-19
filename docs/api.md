@@ -120,6 +120,14 @@ Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
   `listapp-last-room`, without `Secure`. Browsers refuse `__Host-` cookies
   without `Secure`. No localStorage fallback.
 
+- **Rooms list (written by the page, not the API):** `listapp-rooms` holds a
+  JSON array of up to 10 `{slug, name}` objects, newest first. It has no
+  `__Host-` prefix and gets `Secure` on HTTPS only. It is not HttpOnly and
+  holds no token. The page writes it when a room loads from the server, removes
+  the room on sign-out or after an admin or own room delete, and deletes the
+  cookie when the list is empty. It only fills the room menu's
+  Rooms list; opening a room still needs its password or token.
+
 `GET …/session` with a revoked token returns 401 and clears the cookie. A
 password change revokes all tokens of the room. A room keeps its 200 newest
 tokens; a new sign-in drops the oldest. If `DELETE …/session` cannot

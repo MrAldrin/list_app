@@ -60,6 +60,10 @@ The Svelte app is served at `/`. The same rules apply:
 - The admin password does not grant room access. Public share links do not
   grant room access either.
 - "Last room" memory only helps routing; it never grants access.
+- The room menu's **Rooms** list shows other rooms this browser entered (cookie
+  `listapp-rooms`, see [API: Room session](api.md#room-session)). It is a
+  routing hint, like the last room. Opening a listed room still asks for its
+  password when access is missing.
 - Broken password hashes in the database are rejected as a wrong password. An
   admin password reset fixes them.
 
