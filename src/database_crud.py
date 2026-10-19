@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 import bcrypt
 
-from database_setup import db
+from database_setup import db, inserted_row_id
 from field_limits import (
     MAX_ITEMS_PER_LIST,
     MAX_LISTS_PER_ROOM,
@@ -281,7 +281,7 @@ def create_or_find_list_locked(
         "VALUES (?, ?, ?, ?, ?)",
         (normalized_name, slug, room_id, secrets.token_urlsafe(32), uid),
     )
-    return result.lastrowid, slug, True
+    return inserted_row_id(result), slug, True
 
 
 def rename_list_if_unique_locked(list_id: int, room_id: int, new_name: str) -> bool:
@@ -346,7 +346,7 @@ def add_or_restore_item_locked(
         f"VALUES (?, 0, ?, ?, {_NOW_SQL})",
         (item_name, list_id, uid),
     )
-    return "added", result.lastrowid
+    return "added", inserted_row_id(result)
 
 
 def restore_deleted_item_locked(
@@ -397,7 +397,7 @@ def restore_deleted_item_locked(
             added_at,
         ),
     )
-    return result.lastrowid
+    return inserted_row_id(result)
 
 
 def get_item_state_locked(item_id: int) -> dict[str, Any]:
@@ -593,7 +593,7 @@ def create_room(name: str, plain_password: str):
             "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
             (normalized_name, slug, pw_hash),
         )
-        return result.lastrowid, slug
+        return inserted_row_id(result), slug
 
 
 class RoomAccessDenied(PermissionError):

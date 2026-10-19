@@ -4,7 +4,7 @@ import threading
 import uuid
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from config import require_app_password
 from identifiers import make_slug
@@ -32,6 +32,18 @@ def _backup_path(database_path: str) -> Path | None:
     return path.with_name(f"{path.stem}-pre-migration{path.suffix}")
 
 
+def inserted_row_id(insert: sqlite3.Cursor) -> int:
+    """The ID of the row that an INSERT just wrote.
+
+    SQLite always sets this for a rowid table, so None is a bug. Fail loudly
+    rather than return a bad ID.
+    """
+    row_id = insert.lastrowid
+    if row_id is None:
+        raise RuntimeError("INSERT returned no row ID")
+    return row_id
+
+
 def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
     existing_room = db.execute("SELECT id FROM rooms WHERE name = 'Home'").fetchone()
     if existing_room:
@@ -42,9 +54,7 @@ def _ensure_default_room(db: sqlite3.Connection, app_password: str) -> int:
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", make_slug("Home"), pw_hash),
     )
-    if insert.lastrowid is None:
-        raise RuntimeError("Default room insert returned no ID")
-    return insert.lastrowid
+    return inserted_row_id(insert)
 
 
 def _create_items_table(db: sqlite3.Connection) -> None:
@@ -647,9 +657,9 @@ class _LazyConnection:
 
 
 _lazy_db = _LazyConnection()
-# A lazy stand-in for a sqlite3.Connection. Typed Any: with the Connection type,
-# ty flags the `lastrowid` returns in the callers (`int | None`).
-db: Any = _lazy_db
+# A lazy proxy that forwards every attribute to the real sqlite3.Connection,
+# which opens on first use. The cast gives it the Connection type for ty.
+db: sqlite3.Connection = cast(sqlite3.Connection, _lazy_db)
 
 
 def open_database() -> sqlite3.Connection:

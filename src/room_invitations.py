@@ -13,7 +13,7 @@ from database_crud import (
     normalize_display_name,
     transaction,
 )
-from database_setup import db
+from database_setup import db, inserted_row_id
 from field_limits import MAX_NAME_LENGTH
 from identifiers import token_hash
 from password_hashing import hash_password
@@ -36,7 +36,7 @@ def create_invitation() -> tuple[int, str]:
             "VALUES (?, ?, ?)",
             (token_hash(token), now, now + INVITATION_LIFETIME),
         )
-        return result.lastrowid, token
+        return inserted_row_id(result), token
 
 
 def get_invitations() -> list[dict]:
