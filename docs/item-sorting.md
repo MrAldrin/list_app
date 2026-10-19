@@ -16,6 +16,7 @@ Each list has a **Sort** choice under **Options**. It only changes the order of 
 ## Rules for every choice
 
 - Open items come first, checked items below. Both groups use the chosen order.
+- A row you check or uncheck stays where it is until 1.5 s after your last tap, then slides to its place. Other rows take the free places in the usual order. A new sort or tag filter applies at once.
 - Ties are broken by name A–Z, so rows do not jump around.
 - **Date** is the optional date on an item. Items with a date come first in both directions. Items without a date come last, by name.
 - **Added** counts from the last add. What counts as an add is in the [JSON API](api.md#operation-types). An item with no time (added before the counter existed) counts as the oldest.

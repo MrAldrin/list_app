@@ -48,7 +48,7 @@
 	const letters = $derived(tagLetters(listTags));
 </script>
 
-<li class:done={item.done}>
+<div class="row" class:done={item.done}>
 	<!-- The label around the checkbox makes the whole 44px square tappable. -->
 	<label class="check">
 		<input
@@ -129,12 +129,12 @@
 			<Icon name="delete" />
 		</button>
 	{/if}
-</li>
+</div>
 
 <style>
 	/* Rows are as tall as the touch size, so every control in a row is 44px
 	   high to tap. */
-	li {
+	.row {
 		--row: var(--touch);
 		display: flex;
 		align-items: center;

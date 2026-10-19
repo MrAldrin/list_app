@@ -41,3 +41,25 @@ def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_sessio
 
     sort.select_option(label=NAME_Z_TO_A)
     expect(item_names(page)).to_have_text(["zucchini", "milk", "apple"])
+
+
+def test_checked_rows_wait_for_the_taps_to_settle(svelte_server, open_session):
+    page = open_session("phone", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    for name in ("apple", "milk", "zucchini"):
+        add_item(page, name)
+    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
+
+    # A checked row stays where it is, so the next row does not move under the thumb.
+    page.get_by_role("checkbox", name="apple").click()
+    page.wait_for_timeout(500)
+    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
+
+    # Another tap restarts the wait, so milk stays too.
+    page.get_by_role("checkbox", name="milk").click()
+    page.wait_for_timeout(500)
+    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
+
+    # Once the taps settle, the checked rows move below the open one.
+    expect(item_names(page)).to_have_text(["zucchini", "apple", "milk"])

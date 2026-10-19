@@ -35,6 +35,8 @@
 	} from './items.ts';
 	import { searchItems } from './search.ts';
 	import { activeFilters, filterByTags } from './tags.ts';
+	import { HOLD_MS, holdRowOrder } from './hold-order.ts';
+	import { flip } from 'svelte/animate';
 
 	let {
 		room,
@@ -71,6 +73,7 @@
 	function setItemSort(choiceId: string) {
 		const choice = itemSortChoice(choiceId);
 		if (!choice) return;
+		releaseRows();
 		itemSort = choice;
 		saveItemSort(listUid, choice.id);
 	}
@@ -79,6 +82,14 @@
 	/** The tag chips the items are filtered by, all must match (page state, as in NiceGUI). */
 	let chosenTags = $state<string[]>([]);
 	const filterTags = $derived(activeFilters(chosenTags, list.tags));
+	/**
+	 * Rows checked or unchecked lately keep their place on screen until the
+	 * taps settle (`HOLD_MS` after the last one). `shown` is the order on
+	 * screen when the hold began, and `uids` are the held rows.
+	 */
+	let hold = $state.raw<{ listUid: string; shown: string[]; uids: Set<string> } | null>(null);
+	let settleTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => () => clearTimeout(settleTimer));
 	const visibleItems = $derived.by(() => {
 		// Typing filters the list only for a saved or unconfirmed view; online it
 		// only suggests (also while access is briefly being revalidated).
@@ -87,8 +98,29 @@
 			? searchItems(room.store.itemsOf(list.uid), searchText)
 			: room.store.visibleItemsOf(list.uid, now);
 		// Sorted last, after the search and the tag filter (open items still first).
-		return sortItems(filterByTags(items, filterTags), itemSort);
+		const sorted = sortItems(filterByTags(items, filterTags), itemSort);
+		return hold?.listUid === list.uid ? holdRowOrder(sorted, hold.shown, hold.uids) : sorted;
 	});
+
+	/** Keeps a checked or unchecked row in place, and waits for the taps to settle. */
+	function holdRow(uid: string) {
+		const current = hold?.listUid === list.uid ? hold : null;
+		const shown = current?.shown ?? visibleItems.map((item) => item.uid);
+		hold = { listUid: list.uid, shown, uids: new Set([...(current?.uids ?? []), uid]) };
+		clearTimeout(settleTimer);
+		settleTimer = setTimeout(() => (hold = null), HOLD_MS);
+	}
+
+	/** Ends the hold at once, for a change the user asked for (sort, filter). */
+	function releaseRows() {
+		clearTimeout(settleTimer);
+		hold = null;
+	}
+
+	/** Rows slide to their new place in 150 ms, or not at all with "Reduce motion" (app.css does not reach this). */
+	const rowFlip = {
+		duration: globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 0 : 150
+	};
 
 	// "Hide after N days" depends on the clock, so the visible items are
 	// worked out again every minute (NiceGUI does the same).
@@ -123,6 +155,7 @@
 	 * the wrong item.
 	 */
 	function toggle(item: Item, done: boolean) {
+		holdRow(item.uid);
 		const handle = room;
 		showUndoToast({
 			...checkFeedback(item.name, done),
@@ -136,7 +169,10 @@
 	/** Sets the item back, unless it is gone or already back (someone else). */
 	function undoToggle(handle: RoomHandle, item: Item, done: boolean) {
 		const current = handle.store.itemsOf(item.list_uid).find((i) => i.uid === item.uid);
-		if (current && current.done === done) void handle.setDone(current, !done);
+		if (current && current.done === done) {
+			holdRow(item.uid);
+			void handle.setDone(current, !done);
+		}
 	}
 
 	function changeQuantity(item: Item, delta: number) {
@@ -149,6 +185,7 @@
 
 	/** Adds the tag to the filter, or removes it when it is already there. */
 	function toggleFilter(tag: string) {
+		releaseRows();
 		chosenTags = chosenTags.includes(tag)
 			? chosenTags.filter((chosen) => chosen !== tag)
 			: [...chosenTags, tag];
@@ -261,19 +298,22 @@
 <ul class="items">
 	<!-- Hide checked items first (on the whole list), then filter by tag. -->
 	{#each visibleItems as item (item.uid)}
-		<ItemRow
-			{item}
-			showQuantity={showQuantities}
-			showDelete={optionsOpen}
-			{canEdit}
-			listTags={list.tags}
-			unsent={room.store.isUnsent(`item:${item.uid}`)}
-			onToggle={(done) => toggle(item, done)}
-			onQuantity={(delta) => changeQuantity(item, delta)}
-			onTag={(tag) => toggleTag(item, tag)}
-			onOpen={() => (editing = item)}
-			onDelete={() => deleteItem(item)}
-		/>
+		<!-- The row's <li> is here, not in ItemRow: Svelte animates only elements. -->
+		<li animate:flip={rowFlip}>
+			<ItemRow
+				{item}
+				showQuantity={showQuantities}
+				showDelete={optionsOpen}
+				{canEdit}
+				listTags={list.tags}
+				unsent={room.store.isUnsent(`item:${item.uid}`)}
+				onToggle={(done) => toggle(item, done)}
+				onQuantity={(delta) => changeQuantity(item, delta)}
+				onTag={(tag) => toggleTag(item, tag)}
+				onOpen={() => (editing = item)}
+				onDelete={() => deleteItem(item)}
+			/>
+		</li>
 	{/each}
 </ul>
 {#if hiddenChecked > 0}
