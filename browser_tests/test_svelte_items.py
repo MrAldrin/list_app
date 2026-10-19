@@ -308,3 +308,31 @@ def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     expect(page.get_by_role("button", name="Aisle tag for milk")).to_be_visible()
     expect(dairy).to_have_text("Da")
     assert dairy.evaluate("el => el.style.getPropertyValue('--tag')") == color
+
+
+def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
+    page = open_session("phone", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    expect(page.get_by_text("No items yet. Type above to add.")).to_be_visible()
+    add_item(page, "milk")
+    add_item(page, "apple")
+    expect(page.get_by_text("No items yet. Type above to add.")).to_have_count(0)
+
+    page.get_by_role("button", name="Options").click()
+    tag_field = page.get_by_label("Add Tag")
+    tag_field.fill("Lidl")
+    page.get_by_role("button", name="Add new tag").click()
+    expect(tag_field).to_have_value("")
+    page.get_by_role("button", name="Lidl tag for milk").click()
+    page.get_by_role("button", name="Done").click()
+
+    # "Clear" appears only while a tag filter is on, and removes it.
+    chips = page.locator("ul.chips")
+    clear = chips.get_by_role("button", name="Clear", exact=True)
+    expect(clear).to_have_count(0)
+    chips.get_by_role("button", name="Lidl", exact=True).click()
+    expect(item_names(page)).to_have_text(["milk"])
+    clear.click()
+    expect(clear).to_have_count(0)
+    expect(item_names(page)).to_have_text(["apple", "milk"])

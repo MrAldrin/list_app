@@ -16,6 +16,7 @@
 		editing,
 		canEdit,
 		onToggleFilter,
+		onClear,
 		onAdd,
 		onDelete
 	}: {
@@ -29,6 +30,8 @@
 		editing: boolean;
 		/** Adds the tag to the filter, or removes it when it is in the filter. */
 		onToggleFilter: (tag: string) => void;
+		/** Removes every tag from the filter. Shown as "Clear" while a filter is on. */
+		onClear: () => void;
 		/** Adds a tag; true when the field should be cleared. */
 		onAdd: (tag: string) => Promise<boolean>;
 		onDelete: (tag: string) => void;
@@ -106,6 +109,11 @@
 				{/if}
 			</li>
 		{/each}
+		{#if filter.length > 0}
+			<li>
+				<button class="chip clear" type="button" onclick={onClear}>Clear</button>
+			</li>
+		{/if}
 	</ul>
 {/if}
 
@@ -167,6 +175,11 @@
 	.chip.on {
 		background: var(--tag);
 		color: var(--tag-text);
+	}
+
+	/* Not a tag: grey, so it does not look like one. */
+	.chip.clear {
+		--tag: var(--text-muted);
 	}
 
 	.remove {

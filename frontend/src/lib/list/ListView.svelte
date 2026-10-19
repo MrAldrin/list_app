@@ -184,6 +184,12 @@
 	}
 
 	/** Adds the tag to the filter, or removes it when it is already there. */
+	/** Removes every tag from the filter, so all items show again. */
+	function clearFilter() {
+		releaseRows();
+		chosenTags = [];
+	}
+
 	function toggleFilter(tag: string) {
 		releaseRows();
 		chosenTags = chosenTags.includes(tag)
@@ -286,6 +292,7 @@
 	editing={optionsOpen}
 	{canEdit}
 	onToggleFilter={toggleFilter}
+	onClear={clearFilter}
 	onAdd={(tag) => addTag(list, tag)}
 	onDelete={(tag) => deleteTag(list, tag)}
 />
@@ -316,6 +323,9 @@
 		</li>
 	{/each}
 </ul>
+{#if room.store.status === 'ready' && room.store.itemsOf(list.uid).length === 0}
+	<p class="empty">No items yet. Type above to add.</p>
+{/if}
 {#if hiddenChecked > 0}
 	<p class="hidden-count">{hiddenText}</p>
 {/if}
@@ -340,7 +350,8 @@
 		padding: 0;
 	}
 
-	.hidden-count {
+	.hidden-count,
+	.empty {
 		margin: var(--gap) 0 0;
 		text-align: center;
 		color: var(--text-muted);
