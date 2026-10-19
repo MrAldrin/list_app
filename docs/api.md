@@ -125,8 +125,8 @@ Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
   `__Host-` prefix and gets `Secure` on HTTPS only. It is not HttpOnly and
   holds no token. The page writes it when a room loads from the server, removes
   the room on sign-out or after an admin or own room delete, and deletes the
-  cookie when the list is empty. It only fills the room menu's
-  Rooms list; opening a room still needs its password or token.
+  cookie when the list is empty. It only fills the Rooms panel under the room
+  name; opening a room still needs its password or token.
 
 `GET …/session` with a revoked token returns 401 and clears the cookie. A
 password change revokes all tokens of the room. A room keeps its 200 newest

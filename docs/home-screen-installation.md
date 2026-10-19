@@ -60,11 +60,13 @@ The Svelte app is served at `/`. The same rules apply:
 - The admin password does not grant room access. Public share links do not
   grant room access either.
 - "Last room" memory only helps routing; it never grants access.
-- The room menu's **Rooms** list shows other rooms this browser entered (cookie
-  `listapp-rooms`, see [API: Room session](api.md#room-session)). It is a
-  routing hint, like the last room. Opening a listed room still asks for its
-  password when access is missing.
-- **+ Add room** (last item of the Rooms list) opens the start page at `/?add`
+- Tapping the room name opens a **Rooms** panel with the rooms this browser
+  entered (cookie `listapp-rooms`, see
+  [API: Room session](api.md#room-session)). The current room has a check
+  mark. The room menu (⋮) has no Rooms list. The room list is a routing hint,
+  like the last room. Opening a listed room still asks for its password when
+  access is missing.
+- **+ Add room** (last item of the Rooms panel) opens the start page at `/?add`
   to enter another room link or code. The app stays signed in to the current
   room. A normal visit to `/` still goes to the last room. The start page's
   **Admin** link is at its foot.

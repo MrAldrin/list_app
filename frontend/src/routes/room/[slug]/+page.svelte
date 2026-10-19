@@ -31,7 +31,7 @@
 	/** The handle being signed out. Its store still looks confirmed for a moment. */
 	let signingOut = $state.raw<RoomHandle | null>(null);
 
-	// Remember this room for the room menu's Rooms list once the server has
+	// Remember this room for the room switcher's Rooms panel once the server has
 	// confirmed it (and again when its name changes). Not while signing out:
 	// that would put the room straight back after forgetRoom.
 	$effect(() => {

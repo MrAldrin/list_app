@@ -1,8 +1,8 @@
 <!--
 	The start page (/). Like NiceGUI's `/`, it is a router: if this browser
 	signed in to a room before, it goes straight to that room. Otherwise it
-	asks for the room link or code, and offers the admin page. The room menu's
-	"+ Add room" opens `/?add`, which shows the form without the jump.
+	asks for the room link or code, and offers the admin page. The room
+	switcher's "+ Add room" opens `/?add`, which shows the form without the jump.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';

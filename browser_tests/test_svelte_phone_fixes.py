@@ -29,7 +29,9 @@ def test_log_out_is_the_last_entry_of_the_room_menu(svelte_server, open_session)
     # No Log out button in the header any more.
     expect(page.get_by_role("button", name="Log out")).to_have_count(0)
     page.get_by_role("button", name="Room menu").click()
-    entries = page.locator(".menu").first.get_by_role("button")
+    # The ⋮ menu is the panel that has "Share Room" (the room switcher is a panel too).
+    menu = page.locator(".menu", has=page.get_by_role("button", name="Share Room"))
+    entries = menu.get_by_role("button")
     expect(entries.last).to_have_text("Log out")
     entries.last.click()
     expect(page.get_by_label("Room Password")).to_be_visible()
