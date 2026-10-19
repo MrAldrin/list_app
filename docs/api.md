@@ -20,6 +20,13 @@ Write rules live in Python and apply to every write path: see
   as the read or write.
 - An unknown room and a room you cannot access give the same response.
 
+## Security headers
+
+Every response, API or page, sends `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'`,
+so no other site can frame the app. Code: `src/security_headers.py`. There is
+no full Content-Security-Policy yet: the app shell has an inline theme script.
+
 ## API version
 
 `API_VERSION` in `src/api/version.py` is a whole number set by hand. The server
