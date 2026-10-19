@@ -1,7 +1,7 @@
 # Change tracking
 
 The database keeps track of every change to room data, so the
-[changes feed](api.md#reading-the-changes-feed) can send only what changed.
+[changes feed](api-sync.md#reading-the-changes-feed) can send only what changed.
 SQLite triggers do the work (migration 4 in `src/database_setup.py`). They run
 inside the writer's transaction, so every write path (the API, share
 links, admin) is covered, and a rolled-back write leaves no trace.
@@ -34,7 +34,7 @@ Share links use a per-list seq instead of the room seq: the highest
 `changed_seq` of the list row, its items, its deletion rows (by `list_uid`) and
 its floor. Other lists' writes do not change it. It only grows, so the floor
 keeps it from dropping when pruning removes the list's deletion rows. See
-[share links](api.md#share-links).
+[share links](api-sharing.md#share-links).
 
 ## What the triggers do
 

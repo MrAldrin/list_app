@@ -25,7 +25,7 @@ flow; invitations do not introduce individual accounts. No rate limiting or
 CAPTCHA is implemented for this feature.
 
 The Svelte app has the same flow at `/admin` and `/create-room/{token}`,
-through the [JSON API](api.md#creation-invitations) and the same rules. Both
+through the [JSON API](api-sharing.md#creation-invitations) and the same rules. Both
 apps share the invitations: a link from either one works in both.
 
 ## Deployment and migration

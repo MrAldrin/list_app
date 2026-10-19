@@ -54,7 +54,7 @@ The Svelte app is served at `/`. The same rules apply:
   its hash, tied to the room's authorization version.
 - On HTTPS the token lives in a `__Host-` cookie: Secure, HttpOnly,
   SameSite=Lax, one year. Plain HTTP (local development) uses the same cookies
-  without `Secure`; see [API: Sign-in limit](api.md#sign-in-limit).
+  without `Secure`; see [API: Sign-in limit](api-rooms.md#sign-in-limit).
 - Changing or resetting a room password revokes every existing token for that
   room.
 - The admin password does not grant room access. Public share links do not
@@ -62,7 +62,7 @@ The Svelte app is served at `/`. The same rules apply:
 - "Last room" memory only helps routing; it never grants access.
 - Tapping the room name opens a **Rooms** panel with the rooms this browser
   entered (cookie `listapp-rooms`, see
-  [API: Room session](api.md#room-session)). The current room has a check
+  [API: Room session](api-rooms.md#room-session)). The current room has a check
   mark. The room menu (⋮) has no Rooms list. The room list is a routing hint,
   like the last room. Opening a listed room still asks for its password when
   access is missing.

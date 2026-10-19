@@ -24,7 +24,7 @@
 - The room menu has **Share Room**. Native sharing sends only the URL, so
   iPhone Copy does not include explanatory text. Access reminders appear in
   the app after sharing, or in the fallback copy-link dialog.
-  The API is in [share links](api.md#share-links).
+  The API is in [share links](api-sharing.md#share-links).
 
 ## Implementation
 
