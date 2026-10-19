@@ -248,6 +248,9 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
     view_offline(page, url)
 
     def stays_saved() -> None:
+        # Kept: "stays saved" is a negative check. After the failed request the
+        # app needs a moment to react; without it the checks pass trivially.
+        page.wait_for_timeout(300)
         expect(saved_notice(page)).to_be_visible()
         expect(item_names(page)).to_have_text(["bread", "milk"])
         expect(page.get_by_role("button", name="Add")).to_be_enabled()
