@@ -111,7 +111,7 @@
 					title={tag}
 					onclick={() => onTag(tag)}
 				>
-					{tagLetter(tag)}
+					<span class="letter">{tagLetter(tag)}</span>
 				</button>
 			{/each}
 		</div>
@@ -130,10 +130,10 @@
 </li>
 
 <style>
-	/* Rows are shorter than the usual 44px touch size, so more items fit on
-	   the screen; tap areas stay full width where there is room. */
+	/* Rows are as tall as the touch size, so every control in a row is 44px
+	   high to tap. */
 	li {
-		--row: 36px;
+		--row: var(--touch);
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
@@ -234,9 +234,10 @@
 		background: var(--border);
 	}
 
+	/* A 44px tap area; the grey box shows the icon. */
 	.qty button {
-		width: 20px;
-		height: 28px;
+		width: var(--touch);
+		height: var(--row);
 		min-width: 0;
 		min-height: 0;
 		padding: 0;
@@ -265,25 +266,37 @@
 	.tags {
 		display: flex;
 		align-items: center;
-		gap: 0.125rem;
 		flex-shrink: 0;
 	}
 
-	/* A round letter button: outlined, filled when the item has the tag. */
+	/* A 44px tap area per tag, next to each other. */
 	.tag {
-		width: 26px;
-		height: 26px;
+		width: var(--touch);
+		height: var(--row);
 		min-width: 0;
 		min-height: 0;
 		padding: 0;
-		border: 1.5px solid var(--tag);
-		border-radius: 50%;
+		border: none;
+		display: grid;
+		place-items: center;
 		color: var(--tag);
+	}
+
+	/* The round letter: outlined, filled when the item has the tag. */
+	.letter {
+		box-sizing: border-box;
+		min-width: 26px;
+		height: 26px;
+		padding: 0 0.1875rem;
+		display: grid;
+		place-items: center;
+		border: 1.5px solid var(--tag);
+		border-radius: 13px;
 		font-size: 0.8rem;
 		font-weight: 700;
 	}
 
-	.tag.on {
+	.tag.on .letter {
 		background: var(--tag);
 		color: var(--tag-text);
 	}

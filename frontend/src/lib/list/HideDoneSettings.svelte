@@ -144,7 +144,7 @@
 	.modes label {
 		display: grid;
 		place-items: center;
-		min-height: 2.25rem;
+		min-height: var(--touch);
 		padding: 0 0.75rem;
 		color: var(--primary);
 		font-weight: 500;
@@ -173,7 +173,7 @@
 
 	.count {
 		width: 6rem;
-		min-height: 2.25rem;
+		min-height: var(--touch);
 		text-align: right;
 	}
 </style>

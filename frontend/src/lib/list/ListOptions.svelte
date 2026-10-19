@@ -64,7 +64,7 @@
 	}
 
 	.switch select {
-		min-height: 2.25rem;
+		min-height: var(--touch);
 		max-width: 60%;
 	}
 </style>

@@ -141,9 +141,7 @@
 	}
 
 	button {
-		/* A bit under the usual touch height, so stacked toasts leave the add
-		   field visible. */
-		min-height: 2rem;
+		min-height: var(--touch);
 		color: inherit;
 		padding: 0;
 	}

@@ -142,8 +142,11 @@
 		align-items: center;
 	}
 
-	/* Outlined in the tag's color; filled while it filters the items. */
+	/* Outlined in the tag's color; filled while it filters the items. The
+	   tap area is 44px tall: the extra 4px above and below reach into the
+	   8px gap between rows of chips, so they never overlap. */
 	.chip {
+		position: relative;
 		min-height: 2.25rem;
 		padding: 0 0.75rem;
 		border: 1.5px solid var(--tag);
@@ -153,14 +156,22 @@
 		overflow-wrap: anywhere;
 	}
 
+	/* Inset counts from the inside of the 1.5px border, so -5.5px reaches 4px
+	   past the chip's edge on each side. */
+	.chip::before {
+		content: '';
+		position: absolute;
+		inset: -5.5px 0;
+	}
+
 	.chip.on {
 		background: var(--tag);
 		color: var(--tag-text);
 	}
 
 	.remove {
-		min-width: 2.25rem;
-		min-height: 2.25rem;
+		min-width: var(--touch);
+		min-height: var(--touch);
 		padding: 0;
 		display: grid;
 		place-items: center;
