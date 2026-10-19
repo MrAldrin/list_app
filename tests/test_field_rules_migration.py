@@ -2,6 +2,7 @@
 
 import sqlite3
 from collections.abc import Iterator
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from migrations import schema_version
 
 @pytest.fixture
 def db() -> Iterator[sqlite3.Connection]:
-    with sqlite3.connect(":memory:") as connection:
+    with closing(sqlite3.connect(":memory:")) as connection, connection:
         migrate_to(connection)
         connection.execute(
             "INSERT INTO lists (name, slug, room_id, share_token) "
@@ -113,7 +114,7 @@ def test_other_columns_update_without_the_check(db):
 
 def test_a_bad_stored_row_stops_the_migration_unchanged(tmp_path: Path):
     path = tmp_path / "old.db"
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         migrate_to(db, 5)
         db.execute(
             "INSERT INTO lists (name, slug, room_id, share_token) "

@@ -4,6 +4,7 @@ import hashlib
 import json
 import sqlite3
 from collections.abc import Iterator
+from contextlib import closing
 
 import pytest
 from api_helpers import (
@@ -232,7 +233,7 @@ def test_restore_helper_stores_the_date(dated_item):
 
 @pytest.fixture
 def migrated() -> Iterator[sqlite3.Connection]:
-    with sqlite3.connect(":memory:") as connection:
+    with closing(sqlite3.connect(":memory:")) as connection, connection:
         migrate_to(connection, version=8)
         # Migration 1 creates the room "Home" with ID 1.
         connection.execute(

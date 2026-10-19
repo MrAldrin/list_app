@@ -3,6 +3,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing
 from pathlib import Path
 
 import bcrypt
@@ -145,7 +146,7 @@ def test_legacy_database_with_tables_fails_and_is_left_unchanged(tmp_path, monke
         init_database()
 
     assert database_path.read_bytes() == original_contents
-    with sqlite3.connect(database_path) as check:
+    with closing(sqlite3.connect(database_path)) as check:
         assert check.execute("PRAGMA user_version").fetchone()[0] == 0
         assert "rooms" not in {
             row[0] for row in check.execute("SELECT name FROM sqlite_master")

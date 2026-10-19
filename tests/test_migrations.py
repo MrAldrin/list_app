@@ -1,12 +1,17 @@
 import sqlite3
+from collections.abc import Iterator
+from contextlib import closing
+from pathlib import Path
 
 import pytest
 
 from migrations import MigrationError, run_migrations, schema_version
 
 
-def _connect(tmp_path) -> sqlite3.Connection:
-    return sqlite3.connect(tmp_path / "migrations.db")
+@pytest.fixture
+def db(tmp_path: Path) -> Iterator[sqlite3.Connection]:
+    with closing(sqlite3.connect(tmp_path / "migrations.db")) as connection:
+        yield connection
 
 
 def _table_names(db: sqlite3.Connection) -> set[str]:
@@ -27,8 +32,7 @@ def _create_children(db: sqlite3.Connection) -> None:
     )
 
 
-def test_fresh_database_runs_all_migrations_in_order(tmp_path):
-    db = _connect(tmp_path)
+def test_fresh_database_runs_all_migrations_in_order(tmp_path, db):
 
     assert run_migrations(db, [_create_parents, _create_children]) == 2
 
@@ -37,8 +41,7 @@ def test_fresh_database_runs_all_migrations_in_order(tmp_path):
     assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1
 
 
-def test_up_to_date_database_runs_nothing(tmp_path):
-    db = _connect(tmp_path)
+def test_up_to_date_database_runs_nothing(tmp_path, db):
     run_migrations(db, [_create_parents])
     calls = []
 
@@ -48,8 +51,7 @@ def test_up_to_date_database_runs_nothing(tmp_path):
     assert schema_version(db) == 1
 
 
-def test_only_pending_migrations_run(tmp_path):
-    db = _connect(tmp_path)
+def test_only_pending_migrations_run(tmp_path, db):
     run_migrations(db, [_create_parents])
 
     run_migrations(db, [_create_parents, _create_children])
@@ -58,8 +60,7 @@ def test_only_pending_migrations_run(tmp_path):
     assert "children" in _table_names(db)
 
 
-def test_failure_rolls_back_schema_changes_and_keeps_version(tmp_path):
-    db = _connect(tmp_path)
+def test_failure_rolls_back_schema_changes_and_keeps_version(tmp_path, db):
     run_migrations(db, [_create_parents])
 
     def create_then_fail(db: sqlite3.Connection) -> None:
@@ -77,8 +78,7 @@ def test_failure_rolls_back_schema_changes_and_keeps_version(tmp_path):
     assert "name" not in columns
 
 
-def test_foreign_key_failure_rolls_back(tmp_path):
-    db = _connect(tmp_path)
+def test_foreign_key_failure_rolls_back(tmp_path, db):
     run_migrations(db, [_create_parents, _create_children])
 
     def add_orphan(db: sqlite3.Connection) -> None:
@@ -91,8 +91,7 @@ def test_foreign_key_failure_rolls_back(tmp_path):
     assert db.execute("SELECT COUNT(*) FROM children").fetchone()[0] == 0
 
 
-def test_table_rebuild_works_with_foreign_keys_off(tmp_path):
-    db = _connect(tmp_path)
+def test_table_rebuild_works_with_foreign_keys_off(tmp_path, db):
     run_migrations(db, [_create_parents, _create_children])
     db.execute("INSERT INTO parents (id) VALUES (1)")
     db.execute("INSERT INTO children (id, parent_id) VALUES (1, 1)")
@@ -113,8 +112,7 @@ def test_table_rebuild_works_with_foreign_keys_off(tmp_path):
     assert db.execute("SELECT parent_id FROM children").fetchall() == [(1,)]
 
 
-def test_newer_database_than_app_is_refused(tmp_path):
-    db = _connect(tmp_path)
+def test_newer_database_than_app_is_refused(tmp_path, db):
     run_migrations(db, [_create_parents, _create_children])
 
     with pytest.raises(MigrationError, match="newer than this app"):
@@ -123,8 +121,7 @@ def test_newer_database_than_app_is_refused(tmp_path):
     assert schema_version(db) == 2
 
 
-def test_backup_holds_pre_migration_state_and_is_private(tmp_path):
-    db = _connect(tmp_path)
+def test_backup_holds_pre_migration_state_and_is_private(tmp_path, db):
     run_migrations(db, [_create_parents])
     db.execute("INSERT INTO parents (id) VALUES (1)")
     db.commit()
@@ -133,16 +130,15 @@ def test_backup_holds_pre_migration_state_and_is_private(tmp_path):
     run_migrations(db, [_create_parents, _create_children], backup)
 
     assert backup.stat().st_mode & 0o777 == 0o600
-    with sqlite3.connect(backup) as copy:
+    with closing(sqlite3.connect(backup)) as copy:
         assert schema_version(copy) == 1
         assert "children" not in _table_names(copy)
         assert copy.execute("SELECT id FROM parents").fetchall() == [(1,)]
     assert not backup.with_name(backup.name + ".tmp").exists()
 
 
-def test_no_backup_when_up_to_date_or_fresh(tmp_path):
+def test_no_backup_when_up_to_date_or_fresh(tmp_path, db):
     backup = tmp_path / "pre-migration.db"
-    db = _connect(tmp_path)
 
     run_migrations(db, [_create_parents], backup)
     assert not backup.exists()
@@ -151,9 +147,8 @@ def test_no_backup_when_up_to_date_or_fresh(tmp_path):
     assert not backup.exists()
 
 
-def test_new_backup_replaces_previous_one(tmp_path):
+def test_new_backup_replaces_previous_one(tmp_path, db):
     backup = tmp_path / "pre-migration.db"
-    db = _connect(tmp_path)
     run_migrations(db, [_create_parents])
     run_migrations(db, [_create_parents, _create_children], backup)
 
@@ -162,13 +157,12 @@ def test_new_backup_replaces_previous_one(tmp_path):
 
     run_migrations(db, [_create_parents, _create_children, create_extra], backup)
 
-    with sqlite3.connect(backup) as copy:
+    with closing(sqlite3.connect(backup)) as copy:
         assert schema_version(copy) == 2
         assert "children" in _table_names(copy)
 
 
-def test_backup_failure_stops_migration(tmp_path):
-    db = _connect(tmp_path)
+def test_backup_failure_stops_migration(tmp_path, db):
     run_migrations(db, [_create_parents])
     blocked = tmp_path / "not-a-directory"
     blocked.write_text("")

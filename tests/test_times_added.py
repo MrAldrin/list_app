@@ -6,6 +6,7 @@ of a delete (which keeps the count it had) and repeated unchecks do not.
 
 import sqlite3
 from collections.abc import Iterator
+from contextlib import closing
 
 import pytest
 from api_helpers import (
@@ -290,7 +291,7 @@ def test_count_and_time_are_in_the_changes_feed(shop):
 
 @pytest.fixture
 def migrated() -> Iterator[sqlite3.Connection]:
-    with sqlite3.connect(":memory:") as connection:
+    with closing(sqlite3.connect(":memory:")) as connection, connection:
         migrate_to(connection, version=9)
         # Migration 1 creates the room "Home" with ID 1.
         connection.execute(

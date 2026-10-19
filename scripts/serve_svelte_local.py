@@ -19,6 +19,7 @@ import socket
 import sqlite3
 import subprocess
 import sys
+from contextlib import closing
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -173,7 +174,7 @@ def seed_database(env: dict[str, str]) -> None:
 
 def room_codes(database: Path) -> list[tuple[str, str]]:
     """(name, code) for each room, to type on the start page."""
-    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(f"file:{database}?mode=ro", uri=True)) as db:
         return db.execute("SELECT name, slug FROM rooms ORDER BY name").fetchall()
 
 

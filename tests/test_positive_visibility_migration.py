@@ -1,6 +1,7 @@
 """Positive counters preserve the old zero-count visibility on upgrade."""
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -31,7 +32,7 @@ ITEM_COLUMNS = (
 def test_upgrade_preserves_behavior_and_identity(
     tmp_path: Path, mode: str, age: int, recent: int, expected: tuple[str, int, int]
 ) -> None:
-    with sqlite3.connect(tmp_path / "old.db") as db:
+    with closing(sqlite3.connect(tmp_path / "old.db")) as db, db:
         migrations = _migrations("pw")
         migrate_to(db, 4)
         room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
@@ -67,7 +68,7 @@ def test_upgrade_preserves_behavior_and_identity(
         assert seq == before_seq + (1 if age == 0 or recent == 0 else 0)
         if age == 0 or recent == 0:
             assert db.execute("SELECT changed_seq FROM lists").fetchone()[0] == seq
-        with sqlite3.connect(backup) as copy:
+        with closing(sqlite3.connect(backup)) as copy, copy:
             assert copy.execute("PRAGMA user_version").fetchone()[0] == 4
             assert copy.execute(
                 "SELECT hide_done_mode, hide_done_age_days, hide_done_recent_count FROM lists"
@@ -79,7 +80,7 @@ def test_upgrade_preserves_behavior_and_identity(
 @pytest.mark.parametrize("field", ["hide_done_age_days", "hide_done_recent_count"])
 @pytest.mark.parametrize("value", [0, -1, 100001, 1.5])
 def test_database_guards_invalid_inserts_and_updates(field: str, value: float) -> None:
-    with sqlite3.connect(":memory:") as db:
+    with closing(sqlite3.connect(":memory:")) as db, db:
         migrate_to(db)
         room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
         with pytest.raises(sqlite3.IntegrityError):
