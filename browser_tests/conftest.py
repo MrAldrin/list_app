@@ -96,6 +96,9 @@ def wait_for_api_idle(page: Page, timeout_ms: int = 5_000) -> None:
 # WebKit reports a request that a reload cancels as a page error, e.g.
 # "/api/v1/rooms/<slug>/session due to access control checks."
 RELOAD_CANCEL_ERROR = "due to access control checks"
+# The live-update stream (/events) is long-lived; WebKit reports it the same way
+# when the network goes away or a page closes. The app reconnects by design.
+EVENTS_STREAM_CANCEL_ERROR = "/events due to access control checks"
 
 
 class BrowserSessions:
@@ -125,6 +128,8 @@ class BrowserSessions:
         """Keep a page error, except a reload cancel that the page expects."""
         message = str(error.error)
         page = error.page
+        if EVENTS_STREAM_CANCEL_ERROR in message:
+            return
         if (
             page is not None
             and getattr(page, "expects_reload_cancel", False)
