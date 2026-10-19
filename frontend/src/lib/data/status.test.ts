@@ -50,10 +50,12 @@ describe('saved time label', () => {
 });
 
 describe('offline notice text', () => {
-	it('says that changes are saved on the phone and sent later', () => {
-		expect(offlineNoticeText()).toBe(
-			"Offline — changes are saved on this phone and sent when you're back online."
-		);
+	it('says that changes are saved on the phone', () => {
+		expect(offlineNoticeText()).toBe('Offline — changes are saved on this phone.');
+	});
+
+	it('says how many changes wait to be sent', () => {
+		expect(offlineNoticeText(2)).toBe('Offline — 2 changes waiting to be sent.');
 	});
 
 	it('counts waiting changes', () => {

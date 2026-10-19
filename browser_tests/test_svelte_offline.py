@@ -100,9 +100,7 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
     expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     # The notice is the only connection message, and its spaces render.
     expect(
-        page.get_by_text(
-            "Offline — changes are saved on this phone and sent when you're back online."
-        )
+        page.get_by_text("Offline — changes are saved on this phone.")
     ).to_be_visible()
     expect(page.get_by_text("Could not load the latest changes")).to_have_count(0)
     expect(page.get_by_text("Reconnecting…")).to_have_count(0)
@@ -360,7 +358,7 @@ def test_offline_edits_survive_a_reload_and_reach_the_server(
 
     # A reload while still offline keeps both changes on the phone.
     page.reload()
-    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
+    expect(page.get_by_text("Offline — 2 changes waiting to be sent.")).to_be_visible()
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
     expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
     expect(page.get_by_text("2 changes waiting to be sent.")).to_be_visible()

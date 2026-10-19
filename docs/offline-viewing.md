@@ -15,8 +15,9 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
 - Needs a connection: creating a list, changing the password, deleting a room,
   showing or resetting a share link, signing in or out, admin and invitations.
   These controls are disabled with "Needs a connection".
-- While offline, the page says: "Offline — changes are saved on this phone and
-  sent when you're back online." If changes wait, it also gives their count.
+- While offline, a one-line notice under the top of the page says: "Offline —
+  changes are saved on this phone." If changes wait, it gives their count
+  instead: "Offline — 2 changes waiting to be sent."
 
 ## Waiting changes
 

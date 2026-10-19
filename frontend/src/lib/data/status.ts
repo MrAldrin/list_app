@@ -59,9 +59,13 @@ export function savedTimeLabel(
 	return `${day}, ${time}`;
 }
 
-/** The offline notice (docs/offline-viewing.md, "The offline notice"). */
-export function offlineNoticeText(): string {
-	return "Offline — changes are saved on this phone and sent when you're back online.";
+/**
+ * The offline notice, one line (docs/offline-viewing.md, "While offline"): what
+ * is saved, or how many changes wait to be sent.
+ */
+export function offlineNoticeText(queued = 0): string {
+	const waiting = waitingChangesText(queued);
+	return waiting ? `Offline — ${waiting}` : 'Offline — changes are saved on this phone.';
 }
 
 /** "1 change waiting to be sent." or "N changes waiting to be sent."; null for none. */

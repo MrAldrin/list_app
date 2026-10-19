@@ -245,9 +245,7 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
     ).to_be_visible()
     make_first_queue_entry_old(phone, server.room_slug)
     phone.reload()
-    expect(
-        phone.get_by_text("Offline — changes are saved", exact=False)
-    ).to_be_visible()
+    expect(phone.get_by_text("Offline — 1 change waiting to be sent.")).to_be_visible()
     phone.get_by_role("button", name="Review").click()
     old_dialog = phone.get_by_role("dialog")
     expect(old_dialog.get_by_text("Old changes not sent yet")).to_be_visible()

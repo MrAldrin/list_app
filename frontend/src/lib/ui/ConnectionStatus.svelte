@@ -41,11 +41,11 @@
 <style>
 	.connection {
 		position: fixed;
-		top: calc(0.4rem + env(safe-area-inset-top));
+		/* In the gap above the top bar (the page's 1rem padding), so the pill
+		   stays off the bar's buttons and title text. */
+		top: calc(0.1rem + env(safe-area-inset-top));
 		left: 50%;
 		transform: translateX(-50%);
-		/* Fits between the back and Options buttons on a phone. */
-		max-width: 10rem;
 		/* Above the sticky top bar and add field (z-index 10). */
 		z-index: 20;
 		pointer-events: none;
@@ -55,7 +55,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-		padding: 0.3rem 0.7rem;
+		padding: 0.15rem 0.6rem;
 		border-radius: 999px;
 		box-shadow: var(--shadow);
 		background: var(--surface);
