@@ -15,7 +15,7 @@ from room_cookies import plain_token_cookie_name, token_cookie_name
 
 HTTP = "http://testserver"
 ROOM_MAX_AGE = 31536000  # one year
-ADMIN_MAX_AGE = 1209600  # 14 days
+ADMIN_MAX_AGE = 1800  # 30 minutes
 ADMIN_HTTPS = "__Host-listapp-admin"
 ADMIN_HTTP = "listapp-admin"
 LAST_ROOM_HTTPS = "__Host-listapp-last-room"

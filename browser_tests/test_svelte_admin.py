@@ -59,7 +59,9 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     owner.get_by_label("Room Password").fill("cabin-pw")
     owner.get_by_label("Room Password").press("Enter")
     expect(owner.get_by_role("button", name="Add New List")).to_be_visible()
-    owner.get_by_role("link", name="Back to admin").click()
+    expect(owner.get_by_role("link", name="Back to admin")).to_have_count(0)
+    owner.get_by_role("button", name="Room menu").click()
+    owner.get_by_role("button", name="Admin", exact=True).click()
     expect(owner).to_have_url(re.compile(r"/admin$"))
     expect(owner.get_by_role("link")).to_have_text(["Cabin", "Home"])
 
@@ -93,7 +95,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
 
     # Log out: the sign-in prompt comes back, also after a reload.
     owner.goto(app_url(server, "admin"))
-    owner.get_by_role("button", name="Log out").click()
+    owner.get_by_role("button", name="Sign out of admin").click()
     expect(owner.get_by_label("Admin Password")).to_be_visible()
     owner.reload()
     expect(owner.get_by_label("Admin Password")).to_be_visible()

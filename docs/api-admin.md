@@ -7,7 +7,8 @@ Part of the [JSON API](api.md). Admin sign-in and admin room tools.
 The admin password is `APP_PASSWORD`. Admin sign-in has its own cookie, like
 the room cookie: `__Host-listapp-admin` on HTTPS (`Secure`, Path `/`, no
 Domain), `listapp-admin` on plain HTTP (local network testing). Both are
-HTTP-only and `SameSite=Lax`, and last 14 days. The value is a signed token
+HTTP-only and `SameSite=Lax`, and last 30 minutes from sign-in. Using admin
+tools does not extend the session. The value is a signed token
 (`v2.<expiry>.<nonce>.<signature>`); the signature uses a key derived from the
 current `APP_PASSWORD` with scrypt (a slow function), so **changing
 `APP_PASSWORD` ends every admin session**. Older `v1` cookies are refused, so
@@ -29,8 +30,10 @@ room endpoints ignore it, and admin endpoints never set a room cookie.
 - **Sign-in:** a wrong password is 401 `invalid_password` ("Wrong password").
   It does not sign out an admin who is signed in. The check is exact and in
   constant time, as is the cookie signature check.
-- **Status:** `GET /api/v1/admin/session` is how the app learns that this
-  browser is signed in as admin (for "Back to admin" on the room page).
+- **Navigation:** the room’s ⋮ menu always offers **Admin**. It opens the
+  tools when signed in, or the password prompt otherwise. Room headers never
+  change to admin navigation. **Sign out of admin** leaves room logins intact.
+- **Status:** `GET /api/v1/admin/session` checks admin sign-in.
 - Writes need the same-origin check, sign-in and sign-out included.
 - Every other admin endpoint is 401 `admin_required` without admin sign-in,
   checked before the body or the room.

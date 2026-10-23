@@ -5,14 +5,7 @@
 -->
 <script lang="ts">
 	import { page } from '$app/state';
-	import {
-		admin,
-		closeRoom,
-		logout,
-		notSentYetText,
-		openRoom,
-		type RoomHandle
-	} from '#lib/data/index.ts';
+	import { closeRoom, logout, notSentYetText, openRoom, type RoomHandle } from '#lib/data/index.ts';
 	import PageShell from '#lib/room/PageShell.svelte';
 	import RoomHeader from '#lib/room/RoomHeader.svelte';
 	import RoomLists from '#lib/room/RoomLists.svelte';
@@ -39,25 +32,6 @@
 		if (handle && handle !== signingOut && handle.store.confirmed && handle.store.room) {
 			rememberRoom(handle.slug, handle.store.room.name);
 		}
-	});
-
-	// A browser signed in as admin gets a way back to the admin page in the
-	// header, also after opening a list and coming back. It never gives room
-	// access. A browser that is not signed in as admin sees the normal header.
-	let isAdmin = $state(false);
-	$effect(() => {
-		void slug; // Ask again when another room opens.
-		isAdmin = false;
-		let current = true;
-		admin
-			.signedIn()
-			.then((signedIn) => {
-				if (current) isAdmin = signedIn;
-			})
-			.catch(() => undefined); // Without an answer, keep the normal header.
-		return () => {
-			current = false;
-		};
 	});
 
 	/** Sign-out with changes waiting asks first: they stay here until the next sign-in. */
@@ -97,7 +71,7 @@
 	failedTitle="Could not load this room."
 >
 	{#snippet content(handle)}
-		<RoomHeader room={handle} backToAdmin={isAdmin} onLogout={requestSignOut} />
+		<RoomHeader room={handle} onLogout={requestSignOut} />
 		{#if handle.store.error && !(handle.store.showsOfflineNotice && handle.store.unreachable)}
 			<!-- The lists below may be out of date; they stay usable. -->
 			<LoadError

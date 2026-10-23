@@ -20,11 +20,7 @@
 	import DeleteRoomDialog from './DeleteRoomDialog.svelte';
 	import { forgetRoom } from './remembered-rooms.ts';
 
-	let {
-		room,
-		backToAdmin = false,
-		onLogout
-	}: { room: RoomHandle; backToAdmin?: boolean; onLogout: () => void } = $props();
+	let { room, onLogout }: { room: RoomHandle; onLogout: () => void } = $props();
 
 	/** Password and delete are checked by the server: they need a connection. */
 	const online = $derived(room.store.canWrite);
@@ -56,8 +52,7 @@
 		dialog = null;
 		forgetRoom(room.slug);
 		toasts.show('Room deleted', 'danger');
-		// As NiceGUI: back to the admin page when the room was opened from there.
-		await goto(backToAdmin ? resolve('/admin') : resolve('/'));
+		await goto(resolve('/'));
 	}
 </script>
 
@@ -91,6 +86,14 @@
 			Delete Room
 		</button>
 		<NeedsConnection id={hintId} show={!online} />
+		<hr />
+		<button
+			type="button"
+			onclick={() => {
+				close();
+				void goto(resolve('/admin'));
+			}}>Admin</button
+		>
 		<hr />
 		<button
 			type="button"

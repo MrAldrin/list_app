@@ -69,7 +69,8 @@ The Svelte app is served at `/`. The same rules apply:
 - **+ Add room** (last item of the Rooms panel) opens the start page at `/?add`
   to enter another room link or code. The app stays signed in to the current
   room. A normal visit to `/` still goes to the last room. The start page's
-  **Admin** link is at its foot.
+  **Admin** link is at its foot. Every room’s ⋮ menu also has **Admin**, which
+  asks for the admin password when its separate 30-minute session has ended.
 - Broken password hashes in the database are rejected as a wrong password. An
   admin password reset fixes them.
 

@@ -1,5 +1,5 @@
 """Fixes from the owner's phone test (decision 149): "Log out" in the room
-menu, "Back to admin" that follows the admin sign-in, and the list top bar.
+menu, separate admin navigation, and the list top bar.
 """
 
 import re
@@ -9,7 +9,6 @@ from playwright.sync_api import expect
 from svelte_app import (
     PHONE,
     admin_sign_in,
-    app_url,
     create_list,
     room_app_url,
     sign_in,
@@ -37,42 +36,48 @@ def test_log_out_is_the_last_entry_of_the_room_menu(svelte_server, open_session)
     expect(page.get_by_label("Room Password")).to_be_visible()
 
 
-def test_back_to_admin_follows_the_admin_sign_in(svelte_server, open_session):
+def test_admin_menu_is_always_available_and_sign_out_keeps_rooms(
+    svelte_server, open_session
+):
     server = svelte_server
     owner = open_session("admin", **PHONE)
-    other = open_session("other", **PHONE)
-
-    # A room member who is not admin never sees the link.
-    sign_in(other, server)
-    expect(other.get_by_role("link", name="Back to admin")).to_have_count(0)
-
-    owner.goto(app_url(server, "admin"))
-    admin_sign_in(owner, server)
-
-    # Without ?admin=true, the room page still leads back to admin.
     sign_in(owner, server)
-    expect(owner).to_have_url(room_app_url(server))
-    back = owner.get_by_role("link", name="Back to admin")
-    expect(back).to_be_visible()
+    expect(owner.get_by_role("link", name="Back to admin")).to_have_count(0)
 
-    # It survives opening a list and going back (the back link has no query).
+    # Any member can find the entry, but admin still requires its password.
+    owner.get_by_role("button", name="Room menu").click()
+    owner.get_by_role("button", name="Admin", exact=True).click()
+    expect(owner.get_by_label("Admin Password")).to_be_visible()
+    admin_sign_in(owner, server)
+    expect(
+        owner.get_by_text("Admin access lasts 30 minutes", exact=False)
+    ).to_be_visible()
+
+    owner.goto(room_app_url(server))
+    expect(owner.get_by_role("link", name="Back to admin")).to_have_count(0)
     create_list(owner, "Groceries")
     owner.get_by_role("link", name="Back to room").click()
     expect(owner).to_have_url(room_app_url(server))
-    expect(back).to_be_visible()
-
-    # It survives a reload, and it leads to the admin page.
+    expect(owner.get_by_role("button", name="Room menu")).to_be_visible()
     owner.reload()
-    expect(back).to_be_visible()
-    back.click()
-    expect(owner).to_have_url(re.compile(r"/admin$"))
+    expect(owner.get_by_role("link", name="Back to admin")).to_have_count(0)
 
-    # After the admin logs out, the link is gone (the room cookie stays).
-    owner.get_by_role("button", name="Log out").click()
+    # Returning within the session does not ask for the password again.
+    owner.get_by_role("button", name="Room menu").click()
+    owner.get_by_role("button", name="Admin", exact=True).click()
+    expect(owner).to_have_url(re.compile(r"/admin$"))
+    owner.get_by_role("button", name="Sign out of admin").click()
     expect(owner.get_by_label("Admin Password")).to_be_visible()
+
+    # Admin logout leaves both the room and its list accessible.
     owner.goto(room_app_url(server))
     expect(owner.get_by_role("button", name="Add New List")).to_be_visible()
-    expect(owner.get_by_role("link", name="Back to admin")).to_have_count(0)
+    owner.get_by_role("link", name="Groceries").click()
+    expect(owner.get_by_label("Add or Search")).to_be_visible()
+    owner.get_by_role("link", name="Back to room").click()
+    owner.get_by_role("button", name="Room menu").click()
+    owner.get_by_role("button", name="Admin", exact=True).click()
+    expect(owner.get_by_label("Admin Password")).to_be_visible()
 
 
 def test_list_top_bar_holds_the_name_between_arrow_and_menus(

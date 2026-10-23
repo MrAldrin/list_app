@@ -1,6 +1,5 @@
 // Links between the admin page and rooms. `?admin=true` keeps the NiceGUI link
-// shape; it never gives room access. The room page's "Back to admin" follows
-// the admin sign-in, not this query.
+// shape; it never gives room access or changes the room header.
 
 import { resolve } from '$app/paths';
 

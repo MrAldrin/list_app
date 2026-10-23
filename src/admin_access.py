@@ -19,8 +19,8 @@ import time
 
 from config import require_app_password
 
-# How long an admin session lasts (14 days, as the earlier admin session).
-ADMIN_SESSION_SECONDS = 60 * 60 * 24 * 14
+# Fixed lifetime from sign-in; using admin tools does not extend it.
+ADMIN_SESSION_SECONDS = 30 * 60
 MAX_ADMIN_TOKEN_LENGTH = 256
 # v2 signs with the scrypt key. v1 tokens (signed with the raw password) are
 # refused, so every admin signs in again once after this change.

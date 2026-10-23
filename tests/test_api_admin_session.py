@@ -62,7 +62,7 @@ def test_https_sign_in_sets_a_host_prefixed_secure_cookie(admin_app):
     assert ADMIN_COOKIE == "__Host-listapp-admin"
     assert {"secure", "httponly", "path=/", "samesite=lax"} <= flags(header)
     assert not any(flag.startswith("domain") for flag in flags(header))
-    assert any(flag.startswith("max-age=") for flag in flags(header))
+    assert "max-age=1800" in flags(header)
     # The token is only in the cookie, never in the body.
     assert response.json() == {}
 
@@ -241,10 +241,23 @@ def test_token_expires(admin_app):
     now = 1_000_000.0
     token = issue_admin_token(now)
     lifetime = admin_access.ADMIN_SESSION_SECONDS
+    assert lifetime == 1800
     assert admin_token_valid(token, now)
     assert admin_token_valid(token, now + lifetime - 1)
     assert not admin_token_valid(token, now + lifetime)
     assert not admin_token_valid(token, now + lifetime + 1)
+
+
+def test_admin_requests_do_not_extend_the_session(admin_app, monkeypatch):
+    now = 2_000_000_000.0
+    monkeypatch.setattr(admin_access.time, "time", lambda: now)
+    client = admin(admin_app)
+    now += 1799
+    response = client.get("/api/v1/admin/rooms")
+    assert response.status_code == 200
+    assert "set-cookie" not in response.headers
+    now += 1
+    assert_error(client.get("/api/v1/admin/rooms"), 401, "admin_required")
 
 
 def test_expired_cookie_is_refused(admin_app, monkeypatch):

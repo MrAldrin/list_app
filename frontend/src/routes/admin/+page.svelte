@@ -2,8 +2,7 @@
 	The admin page (/admin; NiceGUI also had /admin/login, which the server sends here). Without
 	admin sign-in it asks for the app password; then it shows every room and
 	the creation invitations.
-	Admin sign-in is shared with NiceGUI's admin page in this browser, and it
-	never opens a room by itself.
+	Admin sign-in lasts 30 minutes and never opens a room by itself.
 -->
 <script lang="ts">
 	import { admin } from '#lib/data/index.ts';
@@ -57,10 +56,11 @@
 			<Brand size="1.8rem" />
 			<h1 class="visually-hidden">Admin</h1>
 			<div class="end">
-				<button class="outline" type="button" onclick={signOut}>Log out</button>
+				<button class="outline" type="button" onclick={signOut}>Sign out of admin</button>
 				<ThemeToggle />
 			</div>
 		</header>
+		<p class="muted">Admin access lasts 30 minutes from sign-in. Room logins are separate.</p>
 		<AdminRooms onSignedOut={() => (status = 'signed_out')} />
 		<AdminInvitations onSignedOut={() => (status = 'signed_out')} />
 	{/if}
