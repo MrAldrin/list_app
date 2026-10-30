@@ -48,6 +48,14 @@ category removal; test aisle grouping with unassigned items, person filters,
 search, checked visibility, and the existing row-hold behavior. Add snapshot,
 optimistic update and offline replay tests for both assignment and reorder.
 
+## Documentation updates after implementation
+
+Update `docs/api-lists-items.md` with the separate aisle fields and write
+behavior, keeping person tags distinct. Update `docs/item-sorting.md` with aisle
+order, grouping, unassigned items, and the interaction with existing sorts.
+Update `docs/offline-viewing.md` to include offline aisle assignment/reordering
+and queued replay if those writes remain offline-capable as proposed.
+
 ## Questions for Lead
 
 - Confirm one optional aisle per item (the proposal), rather than multiple aisle

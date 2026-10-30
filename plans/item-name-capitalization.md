@@ -53,6 +53,14 @@ preserved casing and duplicate projection. Verify replay of an old queued
 lowercase op and current offline edits; the existing ordered queue and 30-day
 hold rules remain unchanged ([offline rules](../docs/offline-viewing.md)).
 
+## Documentation updates after implementation
+
+Update `ARCHITECTURE.md` to say item names display as entered while duplicates
+remain case-insensitive. Update `docs/api-lists-items.md` for the item shape and
+write rules, and `docs/item-writes.md` to replace the lowercase field rule with
+case-preserving names and the duplicate-key rule. Keep historical background
+records as evidence rather than rewriting them.
+
 ## Questions for Lead
 
 - The current app uses Unicode-aware `lower()`, not Unicode `casefold()`, while
