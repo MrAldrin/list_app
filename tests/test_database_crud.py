@@ -24,6 +24,7 @@ from database_crud import (
     create_room,
     delete_list_locked,
     get_rooms,
+    item_name_key,
     normalize_item_name,
     reset_room_password_by_slug,
     revoke_room_access_token,
@@ -38,10 +39,11 @@ def room_id():
 
 
 def test_normalize_item_name():
-    # Verify that raw item names are correctly stripped, lowercased, and handle None.
-    assert normalize_item_name(raw="  Apples  ") == "apples"
+    # Display names are trimmed without changing entered capitalization.
+    assert normalize_item_name(raw="  Apples  ") == "Apples"
     assert normalize_item_name(raw=None) == ""
-    assert normalize_item_name(raw="\nBREAD\t") == "bread"
+    assert normalize_item_name(raw="\nBREAD\t") == "BREAD"
+    assert item_name_key("ẞ") == "ß"
 
 
 def test_create_list_success(room_id):

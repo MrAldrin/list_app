@@ -18,8 +18,8 @@ import {
 const named = (...names: string[]) => names.map((name) => ({ name }));
 
 describe('normalizeItemName', () => {
-	it('trims and lowercases, like the server', () => {
-		expect(normalizeItemName('  Oat Milk ')).toBe('oat milk');
+	it('trims while keeping the display capitalization', () => {
+		expect(normalizeItemName('  Oat Milk ')).toBe('Oat Milk');
 		expect(normalizeItemName('   ')).toBe('');
 	});
 });
@@ -30,9 +30,9 @@ describe('itemSuggestions', () => {
 	});
 
 	it('finds names that contain the text, ignoring case and outer spaces', () => {
-		expect(itemSuggestions(named('milk', 'bread', 'oat milk'), ' MIL ')).toEqual([
-			'milk',
-			'oat milk'
+		expect(itemSuggestions(named('Milk', 'bread', 'Oat Milk'), ' MIL ')).toEqual([
+			'Milk',
+			'Oat Milk'
 		]);
 	});
 

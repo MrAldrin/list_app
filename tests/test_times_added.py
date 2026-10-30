@@ -327,6 +327,7 @@ def test_database_rejects_a_count_below_one(migrated, value):
         migrated.execute("UPDATE items SET add_count = ? WHERE name = 'milk'", (value,))
     with pytest.raises(sqlite3.IntegrityError, match="add_count"):
         migrated.execute(
-            "INSERT INTO items (name, done, list_id, add_count) VALUES ('eggs', 0, 1, ?)",
+            "INSERT INTO items (name, name_key, done, list_id, add_count) "
+            "VALUES ('eggs', 'eggs', 0, 1, ?)",
             (value,),
         )

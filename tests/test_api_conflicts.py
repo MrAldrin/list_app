@@ -206,10 +206,20 @@ def test_stale_edit_after_someone_renamed_is_rejected(milk, notified):
     assert notified == []
 
 
+def test_stale_edit_with_only_a_case_difference_is_rejected(milk, notified):
+    room_id, slug, client, list_uid, milk_uid, base = milk
+    op(client, slug, edit(list_uid, milk_uid, base, name="oat milk"))
+    notified.clear()
+    late = edit(list_uid, milk_uid, base, name="Oat Milk")
+    assert_changed_meanwhile(op(client, slug, late), room_id, seq_of(room_id))
+    assert item_row(milk_uid)["name"] == "oat milk"
+    assert notified == []
+
+
 def test_edit_that_wants_the_stored_values_is_applied(milk):
     _room_id, slug, client, list_uid, milk_uid, base = milk
     op(client, slug, edit(list_uid, milk_uid, base, name="oat milk"))
-    response = op(client, slug, edit(list_uid, milk_uid, base, name="Oat Milk"))
+    response = op(client, slug, edit(list_uid, milk_uid, base, name="oat milk"))
     assert response["status"] == "applied"
     assert response["result"] == {"changed_seq": item_changed_seq(milk_uid)}
 
@@ -500,7 +510,7 @@ def test_duplicate_add_returns_the_existing_item_uid(milk):
         "op_id": op_id,
         "status": "rejected",
         "code": "duplicate_active",
-        "message": "'milk' is already on the list",
+        "message": "'Milk' is already on the list",
         "item_uid": milk_uid,
         "seq": seq,
     }

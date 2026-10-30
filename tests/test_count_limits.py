@@ -53,9 +53,11 @@ def _list_count(room_id: int) -> int:
 
 
 def _fill_items(list_id: int, count: int) -> None:
+    names = [f"item {number}" for number in range(count)]
     db.executemany(
-        "INSERT INTO items (name, done, list_id, uid) VALUES (?, 0, ?, NULL)",
-        [(f"item {number}", list_id) for number in range(count)],
+        "INSERT INTO items (name, name_key, done, list_id, uid) "
+        "VALUES (?, ?, 0, ?, NULL)",
+        [(name, name.lower(), list_id) for name in names],
     )
     db.commit()
 

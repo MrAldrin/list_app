@@ -7,6 +7,7 @@ import {
 	itemSortChoice,
 	type ItemSortChoice
 } from '#lib/data/order.ts';
+import { itemNameKey } from '#lib/data/overlay.ts';
 import type { Item } from '#lib/data/index.ts';
 import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 
@@ -25,9 +26,9 @@ export const SHARE_RESET_MESSAGE = 'This list was deleted or this share link was
 /** How many names the add field suggests, as in NiceGUI. */
 export const MAX_SUGGESTIONS = 3;
 
-/** Like Python's `normalize_item_name`: outer spaces removed, lowercase. */
+/** Like the server's item-name display normalization: trim, but keep case. */
 export function normalizeItemName(raw: string): string {
-	return raw.trim().toLowerCase();
+	return raw.trim();
 }
 
 /**
@@ -36,10 +37,10 @@ export function normalizeItemName(raw: string): string {
  * too, so typing finds them and a tap brings them back.
  */
 export function itemSuggestions(items: readonly Pick<Item, 'name'>[], typed: string): string[] {
-	const text = normalizeItemName(typed);
+	const text = itemNameKey(typed);
 	if (!text) return [];
 	const names = [...new Set(items.map((item) => item.name))].sort(compareCodePoints);
-	return names.filter((name) => name.toLowerCase().includes(text)).slice(0, MAX_SUGGESTIONS);
+	return names.filter((name) => itemNameKey(name).includes(text)).slice(0, MAX_SUGGESTIONS);
 }
 
 /** The toast after adding: NiceGUI's "Added milk" or "Restored milk!". */

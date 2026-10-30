@@ -14,7 +14,7 @@ Part of the [JSON API](api.md). Data shapes and write operations.
     "changed_seq": 41
   },
   "item": {
-    "uid": "c39f…", "list_uid": "7c0e…", "name": "milk",
+    "uid": "c39f…", "list_uid": "7c0e…", "name": "Milk",
     "done": true, "completed_at": "2026-10-03T09:12:44.123456Z",
     "quantity": 2, "description": "lactose free", "date": "2026-10-18",
     "tags": ["Lidl"], "add_count": 2, "added_at": "2026-10-18T08:30:00.000Z",
@@ -23,7 +23,8 @@ Part of the [JSON API](api.md). Data shapes and write operations.
 }
 ```
 
-- List `name` is shown as typed. Item `name` is stored in lowercase.
+- List `name` is shown as typed. Item `name` keeps its case after outer
+  whitespace is trimmed.
 - List `tags` are sorted ignoring case. Item `tags` keep their order.
 - `hide_done.mode` is `off`, `all`, `age` or `recent`; counts are 1–100,000.
 - `completed_at` is UTC, or `null` when not done or not known (items checked
@@ -69,8 +70,9 @@ Responses (HTTP 200), one applied and one rejected:
 
 ### Operation types
 
-All item operations take `list_uid` and `item_uid`. Names are trimmed; item
-names are lowercased.
+All item operations take `list_uid` and `item_uid`. Names are trimmed. Item
+names keep the case sent by the user; duplicates are compared with Python's
+Unicode-aware `lower()` key.
 
 | `type` | Fields | Result / notes |
 |---|---|---|

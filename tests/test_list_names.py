@@ -1,4 +1,4 @@
-"""List names keep the user's case; items stay lowercase."""
+"""List and item names keep the user's case; duplicates ignore case."""
 
 import pytest
 from api_helpers import (
@@ -68,7 +68,7 @@ def test_renaming_a_list_to_a_new_case_of_its_own_name_is_allowed(room):
     assert list_names(room_id) == ["Groceries"]
 
 
-def test_item_names_are_still_lowercased(room):
+def test_item_names_keep_case(room):
     room_id, slug = room
     list_id, _ = create_list("Shop", room_id)
     client = client_for(slug, "password")
@@ -85,4 +85,4 @@ def test_item_names_are_still_lowercased(room):
     )
 
     assert response["status"] == "applied"
-    assert [item["name"] for item in get_list_data(list_id)[0]] == ["oat milk"]
+    assert [item["name"] for item in get_list_data(list_id)[0]] == ["Oat MILK"]

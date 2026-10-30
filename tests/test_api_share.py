@@ -229,7 +229,7 @@ def test_share_holder_edits_items_tags_and_hide_done(shared, notified):
     assert {
         key: row[key] for key in ("name", "done", "quantity", "tags", "list_id")
     } == {
-        "name": "bread",
+        "name": "Bread",
         "done": 1,
         "quantity": 3,
         "tags": '["Lidl"]',
@@ -282,7 +282,7 @@ def test_business_rules_reject_like_in_the_room(shared):
     )
     assert response["status"] == "rejected"
     assert response["code"] == "duplicate_active"
-    assert response["message"] == "'milk' is already on the list"
+    assert response["message"] == "'MILK' is already on the list"
 
 
 def test_share_ops_reach_no_other_list(shared, notified):

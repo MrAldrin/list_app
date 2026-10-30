@@ -397,9 +397,9 @@ def _not_json_array(column: str) -> str:
     )
 
 
-# Per table: the columns checked, and each rule as the condition of a bad row.
-# `{r}` is "" for stored rows and "NEW." in the triggers. SQLite's trim() and
-# lower() only know ASCII, so the Python rules stay the main ones.
+# Frozen rules for migration 6; do not edit rules already deployed. `{r}` is
+# "" for stored rows and "NEW." in the triggers. Migration 12 replaces the
+# item-name rule with a case-preserving name and its Python-lower duplicate key.
 _FIELD_RULES: dict[str, tuple[tuple[str, ...], dict[str, str]]] = {
     "rooms": (
         ("name", "slug", "authorization_version"),
@@ -613,6 +613,73 @@ def _migration_11_invitation_room_counts(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_12_preserve_item_name_case(db: sqlite3.Connection) -> None:
+    """Keep item display names while enforcing duplicates with Python lower().
+
+    Check all existing rows before changing schema. A conflict is reported with
+    both row IDs; this migration never chooses which item to keep.
+    """
+    rows = db.execute("SELECT id, list_id, name FROM items ORDER BY id").fetchall()
+    keys: dict[tuple[int, str], int] = {}
+    backfill: list[tuple[str, int]] = []
+    for item_id, list_id, name in rows:
+        if not isinstance(name, str):
+            raise RuntimeError(
+                f"Cannot migrate item names: item {item_id} has a non-text name"
+            )
+        trimmed_name = name.strip()
+        if not trimmed_name:
+            raise RuntimeError(
+                f"Cannot migrate item names: item {item_id} is blank after trimming"
+            )
+        key = trimmed_name.lower()
+        previous = keys.get((list_id, key))
+        if previous is not None:
+            raise RuntimeError(
+                "Cannot enforce case-insensitive item names: items "
+                f"{previous} and {item_id} in list {list_id} normalize to {key!r}"
+            )
+        keys[(list_id, key)] = item_id
+        backfill.append((key, item_id))
+
+    db.execute("ALTER TABLE items ADD COLUMN name_key TEXT NOT NULL DEFAULT ''")
+    # Backfilling a stored implementation detail is not a user edit. Avoid
+    # advancing change_seq or changing each item's changed_seq.
+    db.execute("DROP TRIGGER items_track_update")
+    db.executemany("UPDATE items SET name_key = ? WHERE id = ?", backfill)
+    db.execute(
+        "CREATE UNIQUE INDEX idx_items_list_name_key ON items(list_id, name_key)"
+    )
+    db.execute("DROP INDEX idx_items_list_name_nocase")
+
+    # Migration 6's rule prohibited uppercase names. Keep its other guards and
+    # require a key, but leave key calculation to Python's Unicode-aware lower().
+    db.execute("DROP TRIGGER items_field_rules_insert")
+    db.execute("DROP TRIGGER items_field_rules_update")
+    columns, old_rules = _FIELD_RULES["items"]
+    rules = dict(old_rules)
+    rules["name"] = _bad_text("{r}name", 100)
+    rules["name_key"] = (
+        "typeof({r}name_key) != 'text' OR {r}name_key = '' "
+        "OR {r}name_key != trim({r}name_key)"
+    )
+    columns = ("name", "name_key", *columns[1:])
+    condition = " OR ".join(f"({rule.format(r='NEW.')})" for rule in rules.values())
+    for name, action in (
+        ("insert", "INSERT"),
+        ("update", f"UPDATE OF {', '.join(columns)}"),
+    ):
+        db.execute(f"""
+            CREATE TRIGGER items_field_rules_{name}
+            BEFORE {action} ON items
+            WHEN {condition}
+            BEGIN SELECT RAISE(ABORT, 'items: a value breaks a field rule'); END
+        """)
+    db.execute(
+        f"CREATE TRIGGER items_track_update {_CHANGE_TRACKING_TRIGGERS['items_track_update']}"
+    )
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -627,6 +694,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_9_item_date,
         _migration_10_times_added,
         _migration_11_invitation_room_counts,
+        _migration_12_preserve_item_name_case,
     ]
 
 

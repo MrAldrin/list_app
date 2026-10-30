@@ -53,7 +53,13 @@ def transaction(*, write: bool = False) -> Iterator[None]:
 
 
 def normalize_item_name(raw: str | None) -> str:
-    return (raw or "").strip().lower()
+    """Trim an item name without changing the case people entered."""
+    return (raw or "").strip()
+
+
+def item_name_key(name: str) -> str:
+    """The Unicode-aware, case-insensitive key used to find duplicate items."""
+    return name.strip().lower()
 
 
 def normalize_display_name(raw: str | None) -> str:
@@ -317,10 +323,11 @@ def add_or_restore_item_locked(
     in a full list raises CountLimitReached. Call inside a write transaction
     with a normalized, nonempty name.
     """
+    item_name = normalize_item_name(item_name)
+    name_key = item_name_key(item_name)
     existing = db.execute(
-        "SELECT id, done FROM items WHERE list_id = ? "
-        "AND trim(name) = ? COLLATE NOCASE",
-        (list_id, item_name),
+        "SELECT id, done FROM items WHERE list_id = ? AND name_key = ?",
+        (list_id, name_key),
     ).fetchone()
     if existing:
         if not existing[1]:
@@ -333,9 +340,9 @@ def add_or_restore_item_locked(
         return "restored", existing[0]
     _check_item_count_locked(list_id)
     result = db.execute(
-        f"INSERT INTO items (name, done, list_id, uid, added_at) "
-        f"VALUES (?, 0, ?, ?, {_NOW_SQL})",
-        (item_name, list_id, uid),
+        f"INSERT INTO items (name, name_key, done, list_id, uid, added_at) "
+        f"VALUES (?, ?, 0, ?, ?, {_NOW_SQL})",
+        (item_name, name_key, list_id, uid),
     )
     return "added", inserted_row_id(result)
 
@@ -361,21 +368,24 @@ def restore_deleted_item_locked(
     and time are kept as given: an undo is not an add. In a full list it
     raises CountLimitReached. Call inside a write transaction.
     """
+    name = normalize_item_name(name)
+    name_key = item_name_key(name)
     if db.execute(
-        "SELECT 1 FROM items WHERE list_id = ? AND trim(name) = ? COLLATE NOCASE",
-        (list_id, name.strip()),
+        "SELECT 1 FROM items WHERE list_id = ? AND name_key = ?",
+        (list_id, name_key),
     ).fetchone():
         return None
     _check_item_count_locked(list_id)
     result = db.execute(
         """
         INSERT INTO items (
-            name, done, list_id, active_tags, description, quantity,
+            name, name_key, done, list_id, active_tags, description, quantity,
             completed_at, uid, date, add_count, added_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             name,
+            name_key,
             done,
             list_id,
             json.dumps(active_tags),
@@ -484,10 +494,11 @@ def update_item_details_locked(
     is saved only when `date_given`; then None clears it. Call inside a write
     transaction with checked values.
     """
+    name = normalize_item_name(name)
+    name_key = item_name_key(name)
     duplicate = db.execute(
-        "SELECT id FROM items WHERE trim(name) = ? COLLATE NOCASE "
-        "AND id != ? AND list_id = ?",
-        (name, item_id, list_id),
+        "SELECT id FROM items WHERE name_key = ? AND id != ? AND list_id = ?",
+        (name_key, item_id, list_id),
     ).fetchone()
     if duplicate:
         return "duplicate"
@@ -506,10 +517,10 @@ def update_item_details_locked(
     if unchanged:
         return "saved"  # Already stored: no write, so no change seq bump.
     db.execute(
-        "UPDATE items SET name = ?, description = ?, "
+        "UPDATE items SET name = ?, name_key = ?, description = ?, "
         "quantity = COALESCE(?, quantity), "
         "date = CASE WHEN ? THEN ? ELSE date END WHERE id = ? AND list_id = ?",
-        (name, description, quantity, date_given, date, item_id, list_id),
+        (name, name_key, description, quantity, date_given, date, item_id, list_id),
     )
     return "saved"
 

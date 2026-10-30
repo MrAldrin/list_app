@@ -161,7 +161,7 @@ def test_each_client_sees_the_others_writes(room):
     _, list_uid = groceries()
     added = a.write({"type": "item.add", "list_uid": list_uid, "name": "Milk"})
     b.sync()
-    milk = b.item_named("milk")
+    milk = b.item_named("Milk")
     assert milk["uid"] == added["result"]["item_uid"]
     b.write(
         {

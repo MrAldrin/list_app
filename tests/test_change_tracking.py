@@ -414,7 +414,8 @@ def test_client_uid_is_kept_on_insert(room_id, shop):
     client_uid = str(uuid.uuid4())
 
     item_id = db.execute(
-        "INSERT INTO items (name, done, list_id, uid) VALUES ('eggs', 0, ?, ?)",
+        "INSERT INTO items (name, name_key, done, list_id, uid) "
+        "VALUES ('eggs', 'eggs', 0, ?, ?)",
         (shop[0], client_uid),
     ).lastrowid
     db.commit()
@@ -424,9 +425,10 @@ def test_client_uid_is_kept_on_insert(room_id, shop):
 
 def test_sql_uids_are_valid_and_unique(shop):
     for number in range(300):
+        name = f"item {number}"
         db.execute(
-            "INSERT INTO items (name, done, list_id) VALUES (?, 0, ?)",
-            (f"item {number}", shop[0]),
+            "INSERT INTO items (name, name_key, done, list_id) VALUES (?, ?, 0, ?)",
+            (name, name.lower(), shop[0]),
         )
     db.commit()
 
@@ -596,7 +598,9 @@ def test_triggers_do_not_loop_even_with_recursive_triggers_on(tmp_path, monkeypa
     ).lastrowid
     assert seq() == 1
     item = connection.execute(
-        "INSERT INTO items (name, done, list_id) VALUES ('milk', 0, ?)", (list_id,)
+        "INSERT INTO items (name, name_key, done, list_id) "
+        "VALUES ('milk', 'milk', 0, ?)",
+        (list_id,),
     ).lastrowid
     assert seq() == 2
     connection.execute("UPDATE items SET done = 1 WHERE id = ?", (item,))
@@ -619,7 +623,9 @@ def test_item_delete_after_its_list_is_gone_is_skipped(tmp_path, monkeypatch):
         (room,),
     ).lastrowid
     connection.execute(
-        "INSERT INTO items (name, done, list_id) VALUES ('milk', 0, ?)", (list_id,)
+        "INSERT INTO items (name, name_key, done, list_id) "
+        "VALUES ('milk', 'milk', 0, ?)",
+        (list_id,),
     )
     connection.commit()
     # Foreign keys normally stop this order; a migration or repair might not.

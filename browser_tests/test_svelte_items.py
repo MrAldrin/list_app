@@ -59,28 +59,28 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     create_list(page, "Groceries")
     field = page.get_by_label("Add or Search")
 
-    # Add: names are trimmed and lowercased; the field clears and keeps focus.
+    # Add: names are trimmed and keep their case; the field clears and keeps focus.
     field.fill("  Milk ")
     field.press("Enter")
-    expect(page.get_by_text("Added milk")).to_be_visible()
+    expect(page.get_by_text("Added Milk")).to_be_visible()
     expect(field).to_have_value("")
     expect(field).to_be_focused()
     add_item(page, "bread")
     add_item(page, "apples")
-    expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
+    expect(item_names(page)).to_have_text(["apples", "bread", "Milk"])
 
     # A duplicate is not added twice.
     field.fill("MILK")
     field.press("Enter")
-    expect(page.get_by_text("'milk' is already on the list")).to_be_visible()
+    expect(page.get_by_text("'MILK' is already on the list")).to_be_visible()
     expect(item_names(page)).to_have_count(3)
 
     # Check off: the item moves below the open items; uncheck moves it back.
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()
-    expect(item_names(page)).to_have_text(["bread", "milk", "apples"])
+    expect(item_names(page)).to_have_text(["bread", "Milk", "apples"])
     page.get_by_role("checkbox", name="apples").uncheck()
-    expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
+    expect(item_names(page)).to_have_text(["apples", "bread", "Milk"])
 
     # Each check and uncheck names the item in a toast with Undo.
     expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
@@ -91,7 +91,7 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
         "button", name="Undo"
     ).click()
     expect(page.get_by_role("checkbox", name="bread")).not_to_be_checked()
-    expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
+    expect(item_names(page)).to_have_text(["apples", "bread", "Milk"])
 
     # Adding a checked-off item restores it (here through a suggestion).
     with page.expect_response(saved_op):
@@ -133,18 +133,18 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     # Quantity: shown from Options; "Less" is disabled at 1.
     page.get_by_role("button", name="Options").click()
     page.get_by_role("switch", name="Show quantities").check()
-    quantity = page.get_by_role("group", name="Quantity of milk")
-    page.get_by_role("button", name="More milk").click()
+    quantity = page.get_by_role("group", name="Quantity of Milk")
+    page.get_by_role("button", name="More Milk").click()
     expect(quantity).to_contain_text("2")
-    page.get_by_role("button", name="More milk").click()
+    page.get_by_role("button", name="More Milk").click()
     expect(quantity).to_contain_text("3")
-    page.get_by_role("button", name="Less milk").click()
+    page.get_by_role("button", name="Less Milk").click()
     expect(quantity).to_contain_text("2")
     expect(page.get_by_role("button", name="Less apples")).to_be_disabled()
 
     # A click inside the dialog (also on its edge) keeps it; outside closes it.
     dialog = page.get_by_role("dialog")
-    page.get_by_role("button", name="milk", exact=True).click()
+    page.get_by_role("button", name="Milk", exact=True).click()
     expect(dialog).to_be_visible()
     # No field has focus, so a phone keyboard stays closed.
     expect(dialog).to_be_focused()
@@ -154,11 +154,11 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(dialog).to_be_hidden()
 
     # Edit: a duplicate name is refused; name, notes and quantity save together.
-    page.get_by_role("button", name="milk", exact=True).click()
-    expect(dialog.get_by_label("Item Name")).to_have_value("milk")
+    page.get_by_role("button", name="Milk", exact=True).click()
+    expect(dialog.get_by_label("Item Name")).to_have_value("Milk")
     dialog.get_by_label("Item Name").fill("Apples")
     dialog.get_by_role("button", name="Save").click()
-    expect(page.get_by_text("'apples' already exists")).to_be_visible()
+    expect(page.get_by_text("'Apples' already exists")).to_be_visible()
     expect(dialog).to_be_visible()
     dialog.get_by_label("Item Name").fill("Oat Milk")
     dialog.get_by_label("Description / Notes").fill("lactose free")
@@ -166,22 +166,22 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(dialog.locator("output")).to_have_text("3")
     dialog.get_by_role("button", name="Save").click()
     expect(dialog).to_be_hidden()
-    expect(page.get_by_role("group", name="Quantity of oat milk")).to_contain_text("3")
-    expect(page.get_by_role("button", name="oat milk (has notes)")).to_be_visible()
+    expect(page.get_by_role("group", name="Quantity of Oat Milk")).to_contain_text("3")
+    expect(page.get_by_role("button", name="Oat Milk (has notes)")).to_be_visible()
 
     # Delete with Undo.
     page.get_by_role("button", name="Delete bread").click()
     expect(page.get_by_text("Deleted bread")).to_be_visible()
-    expect(item_names(page)).to_have_text(["apples", re.compile("^oat milk")])
+    expect(item_names(page)).to_have_text(["apples", re.compile("^Oat Milk")])
     page.get_by_role("button", name="Undo").click()
     expect(page.get_by_text("Restored bread")).to_be_visible()
-    expect(item_names(page)).to_have_text(["apples", "bread", re.compile("^oat milk")])
+    expect(item_names(page)).to_have_text(["apples", "bread", re.compile("^Oat Milk")])
 
     # Without the stepper, a quantity of 2 or more shows as "x3" for everyone.
     show_quantities = page.get_by_role("switch", name="Show quantities")
     show_quantities.uncheck()
-    expect(page.get_by_role("group", name="Quantity of oat milk")).to_be_hidden()
-    expect(page.get_by_role("button", name=re.compile("^oat milk"))).to_contain_text(
+    expect(page.get_by_role("group", name="Quantity of Oat Milk")).to_be_hidden()
+    expect(page.get_by_role("button", name=re.compile("^Oat Milk"))).to_contain_text(
         "\N{MULTIPLICATION SIGN}3"
     )
     expect(page.get_by_role("button", name="apples", exact=True)).not_to_contain_text(
@@ -191,14 +191,15 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     # "Show quantities" is saved in this browser, so it survives a reload.
     show_quantities.check()
     page.reload()
-    expect(page.get_by_role("group", name="Quantity of oat milk")).to_contain_text("3")
+    expect(page.get_by_role("group", name="Quantity of Oat Milk")).to_contain_text("3")
 
     assert server.query(
-        "SELECT name, quantity, COALESCE(description, ''), done FROM items ORDER BY name"
+        "SELECT name, quantity, COALESCE(description, ''), done "
+        "FROM items ORDER BY name COLLATE NOCASE"
     ) == [
         ("apples", 1, "", 0),
         ("bread", 1, "", 0),
-        ("oat milk", 3, "lactose free", 0),
+        ("Oat Milk", 3, "lactose free", 0),
     ]
 
 

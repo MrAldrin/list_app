@@ -108,7 +108,7 @@ def _send(op_type: str, fields: Fields, text: str) -> dict[str, Any]:
 
 @pytest.mark.parametrize(("op_type", "fields", "limit", "what"), CASES)
 def test_text_at_the_limit_is_saved(op_type, fields, limit, what):
-    # Lowercase, so item names are stored exactly as sent.
+    # Simple lowercase text makes the length boundary the only variable.
     assert _send(op_type, fields, "x" * limit)["status"] == "applied"
 
 

@@ -87,7 +87,7 @@ def test_add_item(room, notified):
     assert item == {
         "uid": item_uid,
         "list_uid": list_uid,
-        "name": "milk",
+        "name": "Milk",
         "done": False,
         "completed_at": None,
         "quantity": 1,
@@ -171,8 +171,11 @@ def test_add_restores_a_checked_item(room, notified):
     assert notified == [room_id]
 
 
-@pytest.mark.parametrize("name", ["milk", " MILK ", "Milk"])
-def test_add_an_active_duplicate_is_rejected(room, notified, name):
+@pytest.mark.parametrize(
+    ("name", "message_name"),
+    [("milk", "milk"), (" MILK ", "MILK"), ("Milk", "Milk")],
+)
+def test_add_an_active_duplicate_is_rejected(room, notified, name, message_name):
     room_id, slug, client = room
     list_id, list_uid = default_list()
     add_item(list_id, "milk")
@@ -183,11 +186,56 @@ def test_add_an_active_duplicate_is_rejected(room, notified, name):
         {"op_id": new_id(), "type": "item.add", "list_uid": list_uid, "name": name},
     )
     assert_rejected(
-        response, room_id, seq, "duplicate_active", "'milk' is already on the list"
+        response,
+        room_id,
+        seq,
+        "duplicate_active",
+        f"'{message_name}' is already on the list",
     )
     assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 1
     assert processed_ops_count() == 1
     assert notified == []
+
+
+def test_add_preserves_case_and_uses_python_lower_for_duplicates(room):
+    _, slug, client = room
+    _, list_uid = default_list()
+    added = op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.add",
+            "list_uid": list_uid,
+            "name": "  ẞeta ",
+        },
+    )
+    item_uid = added["result"]["item_uid"]
+    assert item_row(item_uid)["name"] == "ẞeta"
+    duplicate = op(
+        client,
+        slug,
+        {"op_id": new_id(), "type": "item.add", "list_uid": list_uid, "name": "ßeta"},
+    )
+    assert duplicate["status"] == "rejected"
+    assert duplicate["code"] == "duplicate_active"
+    assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 1
+
+
+def test_replays_a_pre_capitalization_lowercase_add_unchanged(room):
+    _, slug, client = room
+    _, list_uid = default_list()
+    queued_before_deploy = {
+        "op_id": new_id(),
+        "type": "item.add",
+        "list_uid": list_uid,
+        "name": "oat milk",
+    }
+    first = op(client, slug, queued_before_deploy)
+    replay = op(client, slug, queued_before_deploy)
+    assert replay == first
+    assert item_row(first["result"]["item_uid"])["name"] == "oat milk"
+    assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 1
 
 
 def test_add_with_an_empty_name_is_rejected(room, notified):
@@ -299,7 +347,7 @@ def test_edit_saves_all_fields(room, notified):
     assert response["result"] == {"changed_seq": before + 1}
     item = feed_item(client, slug, before, item_uid)
     assert (item["name"], item["description"], item["quantity"]) == (
-        "oat milk",
+        "Oat Milk",
         "lactose free",
         4,
     )
@@ -347,7 +395,7 @@ def test_edit_keeps_the_quantity_when_null(room):
     [
         ("  ", "invalid_name", "Name cannot be empty"),
         ("bread", "duplicate_name", "'bread' already exists"),
-        (" BREAD ", "duplicate_name", "'bread' already exists"),
+        (" BREAD ", "duplicate_name", "'BREAD' already exists"),
     ],
 )
 def test_edit_rejections_change_nothing(room, notified, name, code, message):
@@ -384,6 +432,7 @@ def test_edit_to_its_own_name(room):
         base_seq=item_changed_seq(item_uid),
     )
     assert op(client, slug, body)["status"] == "applied"
+    assert item_row(item_uid)["name"] == "MILK"
     assert item_row(item_uid)["description"] == "d"
 
 
@@ -505,7 +554,7 @@ def test_restore_with_client_uid_and_normalized_values(room):
         "changed_seq": item_changed_seq(client_uid),
     }
     row = item_row(client_uid)
-    assert row["name"] == "milk"
+    assert row["name"] == "MILK"
     assert row["completed_at"] == "2026-10-03T09:12:44.000000Z"
     assert row["quantity"] == 1
     assert json.loads(row["tags"]) == ["Lidl", "Market"]

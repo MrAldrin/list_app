@@ -29,7 +29,7 @@ import {
 	retryPendingServerLogout
 } from './pending-logout';
 import { failed, type ActionResult, type Failure } from './result';
-import { itemName } from './overlay';
+import { itemName, itemNameKey } from './overlay';
 import { rowOf } from './rebase';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { signInRoom, SIGNIN_INTERRUPTED } from './room-signin';
@@ -1013,7 +1013,8 @@ export class RoomHandle {
 	#provisional<R>(op: Op): ActionResult<R> {
 		if (op.type === 'item.add') {
 			const name = itemName(op.name);
-			const same = this.store.itemsOf(op.list_uid).filter((item) => item.name === name);
+			const key = itemNameKey(name);
+			const same = this.store.itemsOf(op.list_uid).filter((item) => itemNameKey(item.name) === key);
 			if (same.some((item) => !item.done)) {
 				return {
 					ok: false,

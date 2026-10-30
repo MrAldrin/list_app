@@ -22,6 +22,7 @@ from database_crud import (
     change_room_password_locked,
     create_or_find_list_locked,
     delete_room_with_password_locked,
+    item_name_key,
     normalize_item_name,
     rename_room_locked,
     restore_deleted_item_locked,
@@ -314,16 +315,17 @@ def get_list_data(list_id: int) -> tuple[list[dict], list[str]]:
 def find_item_by_name(list_id: int, item_name: str):
     with _DB_LOCK:
         return db.execute(
-            "SELECT id, done FROM items WHERE trim(name) = ? COLLATE NOCASE AND list_id = ?",
-            (item_name, list_id),
+            "SELECT id, done FROM items WHERE name_key = ? AND list_id = ?",
+            (item_name_key(normalize_item_name(item_name)), list_id),
         ).fetchone()
 
 
 def insert_item(item_name: str, list_id: int) -> None:
+    normalized_name = normalize_item_name(item_name)
     write_locked(
         db.execute,
-        "INSERT INTO items (name, done, list_id) VALUES (?, ?, ?)",
-        (normalize_item_name(item_name), False, list_id),
+        "INSERT INTO items (name, name_key, done, list_id) VALUES (?, ?, ?, ?)",
+        (normalized_name, item_name_key(normalized_name), False, list_id),
     )
 
 
@@ -331,11 +333,19 @@ def add_item_with_state(
     item_name: str, list_id: int, done: bool, active_tags: list[str], *, now=None
 ) -> None:
     completed_at = _completion_timestamp(now) if done else None
+    normalized_name = normalize_item_name(item_name)
     write_locked(
         db.execute,
-        "INSERT INTO items (name, done, list_id, active_tags, completed_at) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (item_name, done, list_id, json.dumps(active_tags), completed_at),
+        "INSERT INTO items (name, name_key, done, list_id, active_tags, completed_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            normalized_name,
+            item_name_key(normalized_name),
+            done,
+            list_id,
+            json.dumps(active_tags),
+            completed_at,
+        ),
     )
 
 

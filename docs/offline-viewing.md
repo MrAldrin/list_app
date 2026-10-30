@@ -74,5 +74,8 @@ Changes merge when they can:
   changes and shows "A new version is available" with a Reload button. Waiting
   changes stay on the phone and are sent after Reload, onto the matching
   version. Reading continues.
+- Item names already waiting in the queue keep the text they were saved with.
+  An older queued name may therefore still be lowercase; the app does not
+  rewrite queued operations.
 - Answers without the version header count as compatible. See
   [API version](api.md#api-version).

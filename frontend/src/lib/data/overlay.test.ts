@@ -65,14 +65,14 @@ describe('overlay: which ops are projected', () => {
 });
 
 describe('overlay: item ops', () => {
-	it('adds a new row with the client uid, normalized name and placeholder seq', () => {
+	it('adds a new row with the client uid, case-preserved name and placeholder seq', () => {
 		const data = view(
 			pending({ type: 'item.add', list_uid: list.uid, name: '  Eggs ', uid: 'new-1' })
 		);
 		expect(data.items.get('new-1')).toEqual({
 			uid: 'new-1',
 			list_uid: list.uid,
-			name: 'eggs',
+			name: 'Eggs',
 			done: false,
 			completed_at: null,
 			quantity: 1,
@@ -112,7 +112,7 @@ describe('overlay: item ops', () => {
 			})
 		);
 		expect(data.items.get(milk.uid)).toMatchObject({
-			name: 'whole milk',
+			name: 'Whole MILK',
 			description: 'cold',
 			quantity: 1
 		});
@@ -143,16 +143,16 @@ describe('overlay: item ops', () => {
 				quantity: 3,
 				completed_at: '2026-10-05T10:00:00.000Z'
 			});
-		const data = view(restore('eggs'));
+		const data = view(restore('Eggs'));
 		expect(data.items.get('back-1')).toMatchObject({
-			name: 'eggs',
+			name: 'Eggs',
 			done: true,
 			completed_at: '2026-10-05T10:00:00.000Z',
 			tags: ['Lidl'],
 			description: 'note',
 			quantity: 3
 		});
-		const taken = view(restore('milk'));
+		const taken = view(restore('MILK'));
 		expect(taken.items.has('back-1')).toBe(false);
 	});
 

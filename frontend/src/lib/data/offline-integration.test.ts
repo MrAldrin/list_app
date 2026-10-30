@@ -1448,9 +1448,11 @@ describe('offline editing (6.2d)', () => {
 		expect(offline.store.canWrite).toBe(false);
 
 		void offline.setDone(item, true);
-		void offline.editItem(item, { name: 'milk', description: 'cold' });
-		void offline.addItem(list, 'bread');
+		void offline.editItem(item, { name: 'Milk', description: 'cold' });
+		void offline.addItem(list, 'Bread');
 		expect(offlineApi.sendOp).not.toHaveBeenCalled();
+		expect(offline.store.item(item.uid)).toMatchObject({ name: 'Milk' });
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toContain('Bread');
 		// The three ops are written to storage before the page is closed.
 		await waitFor(async () => expect(await queue.read()).toHaveLength(3));
 		offline.release();
@@ -1488,10 +1490,53 @@ describe('offline editing (6.2d)', () => {
 		expect(sent.map((op) => op.type)).toEqual(['item.set_done', 'item.edit', 'item.add']);
 		expect(sent[0]).toMatchObject({ item_uid: item.uid, done: true, base_seq: 1 });
 		// The edit was based on the same view: its base moved to the seq the tick got.
-		expect(sent[1]).toMatchObject({ base_seq: 2, name: 'milk', description: 'cold' });
+		expect(sent[1]).toMatchObject({ base_seq: 2, name: 'Milk', description: 'cold' });
+		expect(sent[2]).toMatchObject({ name: 'Bread' });
 		await waitFor(() => expect(reloaded.waitingCount).toBe(0));
 		expect(reloaded.queuedOps).toEqual([]);
 		reloaded.release();
+		storage.close();
+	});
+
+	it('replays an older lowercase add body without rewriting its queued op', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const oldQueuedOp: SentOp = {
+			op_id: 'old-lowercase-add',
+			type: 'item.add',
+			list_uid: list.uid,
+			name: 'oat milk'
+		};
+		await queue.add(newStoredEntry(oldQueuedOp, '2026-10-06T17:59:00.000Z'));
+		const sent: SentOp[] = [];
+		const api = fakeApi();
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			return {
+				op_id: op.op_id,
+				status: 'applied',
+				result: { item_uid: 'legacy-server-item', outcome: 'added', changed_seq: 6 },
+				seq: 6
+			};
+		});
+		api.changes.mockResolvedValue(
+			makeFeed({
+				seq: 6,
+				full: true,
+				lists: [list],
+				items: [
+					item,
+					makeItem(list.uid, { uid: 'legacy-server-item', name: 'oat milk', changed_seq: 6 })
+				]
+			})
+		);
+		const room = handle(api, storage, { hydrateSavedView: true, queueStorage: queue });
+
+		await waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(room.waitingCount).toBe(0));
+		expect(sent).toEqual([oldQueuedOp]);
+		expect(room.store.item('legacy-server-item')?.name).toBe('oat milk');
+		room.release();
 		storage.close();
 	});
 

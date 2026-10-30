@@ -71,7 +71,11 @@ describe('add count in pending ops', () => {
 		const fresh = view(
 			pending({ type: 'item.add', list_uid: list.uid, name: 'Eggs', uid: 'new-1' })
 		);
-		expect(fresh.items.get('new-1')).toMatchObject({ add_count: 1, added_at: AT });
+		expect(fresh.items.get('new-1')).toMatchObject({
+			name: 'Eggs',
+			add_count: 1,
+			added_at: AT
+		});
 	});
 
 	it('an undo keeps the count it was sent with, or counts 1 with no time', () => {

@@ -20,8 +20,8 @@ def db() -> Iterator[sqlite3.Connection]:
             "VALUES ('Shop', 'shop', 1, 'token')"
         )
         connection.execute(
-            "INSERT INTO items (name, done, list_id, completed_at) "
-            "VALUES ('milk', 1, 1, '2026-01-01T00:00:00Z')"
+            "INSERT INTO items (name, name_key, done, list_id, completed_at) "
+            "VALUES ('milk', 'milk', 1, 1, '2026-01-01T00:00:00Z')"
         )
         connection.commit()
         yield connection
@@ -47,9 +47,9 @@ BAD_VALUES = [
     ("lists", "list_tags", None),
     ("items", "name", None),
     ("items", "name", ""),
-    ("items", "name", "Milk"),
     ("items", "name", " milk"),
     ("items", "name", "x" * 101),
+    ("items", "name_key", ""),
     ("items", "description", None),
     ("items", "description", "x" * 1001),
     ("items", "quantity", 0),
@@ -92,9 +92,9 @@ def test_good_values_at_the_limits_are_accepted(db):
     db.execute("UPDATE rooms SET name = ?", ("x" * 100,))
     db.execute("UPDATE lists SET name = ?, list_tags = '[]'", ("Ä" * 100,))
     db.execute(
-        "UPDATE items SET name = ?, description = ?, quantity = 5, "
+        "UPDATE items SET name = ?, name_key = ?, description = ?, quantity = 5, "
         "active_tags = '[\"Dairy\"]'",
-        ("é" * 100, "x" * 1000),
+        ("É" * 100, "é" * 100, "x" * 1000),
     )
 
 

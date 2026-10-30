@@ -2,8 +2,8 @@
 
 SQLite's NOCASE folds only A-Z, so these use Norwegian letters. The rules are
 the app's (ARCHITECTURE.md, "Major UX decisions"; tests/test_list_names.py):
-list names compare with `casefold`, item names are stored in lowercase. Tags
-stay case-sensitive (decision 57).
+list names compare with `casefold`, item names preserve capitalization while
+using `lower()` for duplicates, and tags stay case-sensitive (decision 57).
 """
 
 from typing import Any

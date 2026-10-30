@@ -74,9 +74,14 @@ export interface AnsweredSeq {
 	appliedSeq: number;
 }
 
-/** Item names are stored trimmed and lowercase (docs/api.md). */
+/** Item display names keep their case and lose only outer whitespace. */
 export function itemName(name: string): string {
-	return name.trim().toLowerCase();
+	return name.trim();
+}
+
+/** The duplicate key for item names, matching Python's `str.lower()` rule. */
+export function itemNameKey(name: string): string {
+	return itemName(name).toLowerCase();
 }
 
 /**
@@ -168,8 +173,9 @@ function projectAdd(
 	at: string
 ): void {
 	const name = itemName(rawName);
+	const key = itemNameKey(name);
 	const same = [...items.values()].filter(
-		(item) => item.list_uid === listUid && item.name === name
+		(item) => item.list_uid === listUid && itemNameKey(item.name) === key
 	);
 	if (same.some((item) => !item.done)) return;
 	const checked = same[0];
@@ -197,8 +203,13 @@ function projectRestore(
 	op: Extract<SentOp, { type: 'item.restore' }>
 ): void {
 	const name = itemName(op.name);
+	const key = itemNameKey(name);
 	if (op.uid === undefined || !lists.has(op.list_uid) || items.has(op.uid)) return;
-	if ([...items.values()].some((item) => item.list_uid === op.list_uid && item.name === name))
+	if (
+		[...items.values()].some(
+			(item) => item.list_uid === op.list_uid && itemNameKey(item.name) === key
+		)
+	)
 		return;
 	items.set(op.uid, {
 		...newRow(op.uid, op.list_uid, name, {

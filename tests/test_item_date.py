@@ -261,7 +261,8 @@ def test_database_rejects_a_malformed_date(migrated, value):
         migrated.execute("UPDATE items SET date = ? WHERE name = 'milk'", (value,))
     with pytest.raises(sqlite3.IntegrityError, match="YYYY-MM-DD"):
         migrated.execute(
-            "INSERT INTO items (name, done, list_id, date) VALUES ('eggs', 0, 1, ?)",
+            "INSERT INTO items (name, name_key, done, list_id, date) "
+            "VALUES ('eggs', 'eggs', 0, 1, ?)",
             (value,),
         )
 

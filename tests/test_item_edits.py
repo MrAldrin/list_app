@@ -63,7 +63,7 @@ def test_valid_edit_saves_all_fields(edit_items):
     list_id, slug, milk_uid, client = edit_items
     response = edit(client, slug, list_id, milk_uid, " Oat Milk ", " barista ", 5)
     assert response["status"] == "applied"
-    assert stored_item(milk_uid) == ("oat milk", "barista", 5)
+    assert stored_item(milk_uid) == ("Oat Milk", "barista", 5)
     assert not db.in_transaction
 
 
@@ -88,7 +88,7 @@ def test_edit_keeps_same_name_with_different_case(edit_items):
     list_id, slug, milk_uid, client = edit_items
     response = edit(client, slug, list_id, milk_uid, "MILK", "whole", 3)
     assert response["status"] == "applied"
-    assert stored_item(milk_uid) == ("milk", "whole", 3)
+    assert stored_item(milk_uid) == ("MILK", "whole", 3)
 
 
 def test_duplicate_created_before_save_is_rejected(edit_items):
