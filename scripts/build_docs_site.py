@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import posixpath
 import subprocess
 import sys
@@ -98,6 +99,41 @@ def safe_site_root(root: Path, site_dir: object) -> Path:
     return site_root
 
 
+def reject_source_symlinks(root: Path) -> None:
+    for relative in ("README.md", "AGENTS.md", "ARCHITECTURE.md"):
+        if (root / relative).is_symlink():
+            raise ValueError(f"refusing to follow source symlink: {relative}")
+
+    frontend = root / "frontend"
+    if frontend.is_symlink():
+        raise ValueError("refusing to follow source symlink: frontend/")
+    if (frontend / "README.md").is_symlink():
+        raise ValueError("refusing to follow source symlink: frontend/README.md")
+
+    for relative in ("docs", "plans"):
+        source_root = root / relative
+        if source_root.is_symlink():
+            raise ValueError(f"refusing to follow source symlink: {relative}/")
+        if not source_root.exists():
+            continue
+        if not source_root.is_dir():
+            raise ValueError(f"expected source directory: {relative}/")
+
+        pending = [source_root]
+        while pending:
+            directory = pending.pop()
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    path = Path(entry.path)
+                    if entry.is_symlink():
+                        source_path = path.relative_to(root).as_posix()
+                        raise ValueError(
+                            f"refusing to follow source symlink: {source_path}"
+                        )
+                    if entry.is_dir(follow_symlinks=False):
+                        pending.append(path)
+
+
 def excluded_source_routes(root: Path) -> tuple[str, ...]:
     root = root.resolve()
     routes: set[str] = set()
@@ -153,6 +189,7 @@ def load_project(root: Path, config_path: Path) -> tuple[Path, tuple[str, ...]]:
             + ", ".join(sorted(missing_rules))
         )
 
+    reject_source_symlinks(root)
     return site_root, excluded_source_routes(root)
 
 

@@ -69,6 +69,62 @@ def test_nested_site_symlink_is_rejected_before_zensical_cleanup(tmp_path, monke
     assert sentinel.read_text(encoding="utf-8") == "safe in-project sentinel"
 
 
+@pytest.mark.parametrize(
+    "source_path",
+    [
+        "README.md",
+        "AGENTS.md",
+        "ARCHITECTURE.md",
+        "docs/external-link.md",
+        "docs",
+        "docs/nested-link",
+        "plans/nested-link",
+        "frontend/README.md",
+        "frontend",
+    ],
+)
+def test_source_symlinks_are_rejected_before_build_or_emission(
+    tmp_path, monkeypatch, source_path
+):
+    root = tmp_path / "project"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    marker = "EXTERNAL_SOURCE_SYMLINK_SENTINEL"
+    sentinel = outside / "external-link.md"
+    sentinel.write_text(f"# {marker}\n", encoding="utf-8")
+
+    link = root / source_path
+    if source_path in {"docs", "plans", "frontend"} or source_path.endswith(
+        "nested-link"
+    ):
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(outside, target_is_directory=True)
+    else:
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(sentinel)
+    config = write_test_config(root)
+    invoked = False
+
+    def unexpected_build(*args, **kwargs):
+        nonlocal invoked
+        invoked = True
+        raise AssertionError("source symlink reached Zensical")
+
+    monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
+    with pytest.raises(ValueError, match="source symlink"):
+        build_docs_site.build_site(root, config)
+
+    assert not invoked
+    assert not (root / "site").exists()
+    assert marker not in "".join(
+        path.read_text(encoding="utf-8", errors="ignore")
+        for path in (root / "site").rglob("*")
+        if path.is_file()
+    )
+    assert sentinel.read_text(encoding="utf-8") == f"# {marker}\n"
+
+
 def test_non_root_docs_dir_is_rejected_before_build(tmp_path, monkeypatch):
     root = tmp_path / "project"
     root.mkdir()
