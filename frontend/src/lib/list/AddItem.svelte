@@ -1,10 +1,10 @@
 <!--
-	The "Add or Search" field. Enter (or the Add button) adds the item, or
-	brings back a checked one. While typing, it suggests up to three names
-	already in the list; arrow keys highlight one and Enter picks it, Escape
+	The "Add or Search" field. Enter (or the Add button) adds the typed text,
+	unless an arrow key highlights a suggestion; Enter then adds or restores the
+	highlighted name. Clicking or tapping a suggestion also selects it. Escape
 	closes the list. Leaving the field hides the list (the text stays); coming
-	back shows it again. The field keeps focus, so the next item can be typed at
-	once.
+	back shows it again. The field keeps focus after selecting a suggestion, so
+	the next item can be typed at once.
 -->
 <script lang="ts">
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
@@ -123,19 +123,18 @@
 		     while the focus stays in the field. -->
 		<ul id={listId} role="listbox" aria-label="Suggestions">
 			{#each shown as name, index (name)}
-				<li role="none">
-					<button
-						id="{listId}-{index}"
-						class:active={index === active}
-						role="option"
-						aria-selected={index === active}
-						type="button"
-						onpointerdown={keepFocus}
-						onmousedown={keepFocus}
-						onclick={() => add(name)}
-					>
-						{name}
-					</button>
+				<!-- Keyboard handling stays on the combobox; options are not tab stops. -->
+				<!-- Prevent touch mousedown from unmounting an option before its click. -->
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<li
+					id="{listId}-{index}"
+					class:active={index === active}
+					role="option"
+					aria-selected={index === active}
+					onmousedown={keepFocus}
+					onclick={() => add(name)}
+				>
+					{name}
 				</li>
 			{/each}
 		</ul>
@@ -178,14 +177,18 @@
 		box-shadow: var(--shadow);
 	}
 
-	li button {
+	li {
+		display: flex;
+		align-items: center;
 		width: 100%;
+		min-height: var(--touch);
+		padding: 0 1rem;
 		text-align: left;
-		border-radius: 0;
 		overflow-wrap: anywhere;
+		cursor: pointer;
 	}
 
-	li button.active {
+	li.active {
 		background: var(--border);
 	}
 </style>

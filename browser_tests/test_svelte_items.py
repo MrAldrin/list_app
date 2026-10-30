@@ -7,6 +7,51 @@ from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in, wait_until
 
 
+def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session):
+    server = svelte_server
+    page = open_session("phone", **PHONE)
+    sign_in(page, server)
+    create_list(page, "Groceries")
+    field = page.get_by_label("Add or Search")
+
+    # Enter adds exactly the typed text, even when an existing name is suggested.
+    field.fill("milk")
+    field.press("Enter")
+    expect(page.get_by_text("Added milk")).to_be_visible()
+    page.get_by_role("checkbox", name="milk").check()
+
+    field.fill("mil")
+    expect(page.get_by_role("option", name="milk")).to_be_visible()
+    field.press("Enter")
+    expect(page.get_by_text("Added mil")).to_be_visible()
+    expect(item_names(page)).to_have_text(["mil", "milk"])
+
+    # Tab continues to the Add button; it neither chooses nor submits a suggestion.
+    field.fill("mil")
+    field.press("Tab")
+    expect(page.get_by_role("button", name="Add", exact=True)).to_be_focused()
+    expect(field).to_have_value("mil")
+    expect(item_names(page)).to_have_text(["mil", "milk"])
+
+    # Arrow + Enter chooses the highlighted checked item and restores it.
+    field.focus()
+    field.fill("ilk")
+    option = page.get_by_role("option", name="milk")
+    field.press("ArrowDown")
+    expect(option).to_have_attribute("aria-selected", "true")
+    field.press("Enter")
+    expect(page.get_by_text("Restored milk!")).to_be_visible()
+    expect(page.get_by_role("checkbox", name="milk")).not_to_be_checked()
+
+    # A touch tap on an option selects it too, without moving focus off the field.
+    page.get_by_role("checkbox", name="milk").check()
+    field.fill("ilk")
+    option.tap()
+    expect(page.get_by_text("Restored milk!")).to_be_visible()
+    expect(page.get_by_role("checkbox", name="milk")).not_to_be_checked()
+    expect(field).to_be_focused()
+
+
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)

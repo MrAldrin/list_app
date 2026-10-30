@@ -44,6 +44,7 @@ nav = [
     { "Offline use" = "docs/offline-viewing.md" },
     { "Change tracking" = "docs/change-tracking.md" },
     { "Item writes" = "docs/item-writes.md" },
+    { "Adding items" = "docs/adding-items.md" },
     { "Checked-item visibility" = "docs/checked-item-visibility.md" },
     { "Item sorting" = "docs/item-sorting.md" },
     { "Home-screen installation" = "docs/home-screen-installation.md" },

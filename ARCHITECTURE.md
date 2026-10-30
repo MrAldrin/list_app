@@ -99,7 +99,10 @@ checked items, run in the browser so they work offline.
 - Prioritize quick list editing on mobile, with changes reflected for other
   connected users through the live stream.
 - The add field creates a new item, leaves an existing active item unchanged,
-  or unchecks an existing completed item, with feedback to the user.
+  or unchecks an existing completed item, with feedback to the user. Enter adds
+  the typed text unless an arrow key highlights a suggestion; clicking or tapping
+  a suggestion selects it. Tab continues normal page navigation without choosing
+  a suggestion. See [adding items](docs/adding-items.md).
 - Each list can hide checked-off items immediately, after a full-24-hour age, or
   except for the last N checked items. Hiding does not remove items from search or
   matching; see [checked-item visibility](docs/checked-item-visibility.md).

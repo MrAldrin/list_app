@@ -199,8 +199,11 @@ B on top of it.
 ## Part 3: Decisions for you
 
 1. ~~Which review lines to keep~~ (decided: Part 1).
-2. Add field: should Enter pick the matching suggestion instead of adding
-   half-typed text? This changes an `ARCHITECTURE.md` UX decision.
+2. ~~Add field: should Enter pick a matching suggestion instead of adding
+   typed text?~~ Decided: Enter adds typed text unless an arrow key highlights a
+   suggestion; Enter then chooses it. Clicking or tapping a suggestion chooses
+   it, while Tab navigates normally without selecting one. See
+   [adding items](../docs/adding-items.md).
 3. Toasts: drop the toast on every check and keep one undo bar?
 4. Item names: keep your capitals, and match duplicates without case?
    Needs a data step and an `ARCHITECTURE.md` change.

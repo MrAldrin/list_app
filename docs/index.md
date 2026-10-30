@@ -10,7 +10,8 @@ copying it.
 - [Public list sharing](public-sharing.md) and [room invitations](room-invitations.md)
 - [Offline use](offline-viewing.md), [change tracking](change-tracking.md), and
   [item writes](item-writes.md)
-- [Checked-item visibility](checked-item-visibility.md),
+- [Adding items and choosing suggestions](adding-items.md),
+  [checked-item visibility](checked-item-visibility.md),
   [item sorting](item-sorting.md), and
   [home-screen installation](home-screen-installation.md)
 - [JSON API](api.md)
