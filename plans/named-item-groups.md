@@ -27,8 +27,11 @@ A group add skips every existing match, whether active or checked.
 - A tap skips every matching item already on the list, whether active or
   checked. Do not use ordinary `item.add` for group members: it restores
   checked items. Add a retry-safe `item.add_if_absent` operation that checks
-  case-insensitive identity inside the server write transaction and returns
-  `skipped` without changing an existing row; add only when no match exists.
+  case-insensitive identity inside the server write transaction. Its HTTP
+  response is `status: "applied"`; the result is
+  `{item_uid, outcome, changed_seq}`, where `outcome` is `added` or `skipped`.
+  For a skipped match, return the kept item's UID and current `changed_seq`
+  without changing that row. For a new row, return its UID and new sequence.
   Filter the current optimistic list first, then queue remaining names in group
   order. Server-side checking is still required for offline replay and races
   with other users. Each member remains its own write, not an all-or-nothing
@@ -41,15 +44,23 @@ This is a new server-side entity, unlike usual-item suggestions. Likely seams:
 route, the room changes feed in `src/api/changes.py` and
 `frontend/src/lib/data/room-store.svelte.ts`, plus snapshot validation/storage,
 optimistic state and queue interfaces in `frontend/src/lib/data/`. Add the new
-`item.add_if_absent` operation to API types, validation, optimistic projection
-and queue replay. Check the existing transaction, change-sequence and
-request-idempotency rules ([API writes](../docs/api-lists-items.md)).
+`item.add_if_absent` operation and result shape to API and client types, request
+validation, optimistic projection and queue validation. Extend
+`frontend/src/lib/data/rebase.ts` to remap later queued item ops from the
+optimistic UID to the returned kept UID and replace `NEW_ROW_SEQ` with the
+returned `changed_seq`, including when `outcome` is `skipped`. Preserve the
+existing transaction and request-idempotency rules; see
+[API writes](../docs/api-lists-items.md).
 
-Test room isolation and authorization, validation and live feed updates; test
-that group addition skips both active and checked matches without changing
-state or add counts, adds missing names in order, and handles concurrent or
-replayed duplicates without restoring them. Test cached group use offline and
-server-side skip on replay in `frontend/src/lib/data/offline-integration.test.ts`.
+Test room isolation and authorization, validation and live feed updates in
+`tests/test_api_item_ops.py`; assert the applied result has `outcome: "skipped"`,
+the existing item's UID and its current `changed_seq`, with no state/count
+change for active or checked matches. Test that missing names are added in
+order. In `frontend/src/lib/data/rebase.test.ts`, simulate a concurrent add:
+a later edit is queued against the group's optimistic UID, then replay finds an
+existing match and receives the skipped result. Assert the edit is retargeted
+to the kept UID with its returned `base_seq`. Cover the same sequence end to end
+in `frontend/src/lib/data/offline-integration.test.ts`.
 
 ## Questions for Lead
 
@@ -65,5 +76,7 @@ server-side skip on replay in `frontend/src/lib/data/offline-integration.test.ts
 
 - [x] Planned: proposed storage scope, access boundary, skip-all-existing
   semantics, offline behavior, dependencies and tests described.
-- [ ] Implemented: group storage, feed, management and add action.
-- [ ] Verified: authorization, live updates, partial results and offline replay.
+- [ ] Implemented: group storage, feed, management, add-if-absent and add
+  action.
+- [ ] Verified: authorization, skip outcomes, UID remapping, partial results
+  and offline replay.
