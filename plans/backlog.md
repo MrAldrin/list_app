@@ -23,11 +23,10 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
-- [ ] [feature] Preserve item-name capitals with case-insensitive duplicates: write the migration plan first, then implement. (in progress)
-- [ ] [feature] Plan and implement usual-item suggestions using the times-added count. (in progress)
-- [ ] [feature] Plan and implement named item groups with one-tap addition, skipping items already on the list. (in progress)
-- [ ] [feature] Plan and implement ordered aisle tags alongside person tags, with store grouping/sorting. (in progress)
-- [ ] [docs] Prepare plans for cross-room sharing without accounts, optional accounts, and rule-based paste with preview. No implementation. (in progress)
+- [ ] [feature] Implement [item-name capitals and migration](item-name-capitalization.md). (in progress)
+- [ ] [feature] Implement [usual-item suggestions](usual-items.md). (in progress)
+- [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress)
+- [ ] [feature] Implement [ordered aisle tags](aisle-tags.md). (in progress)
 
 Owner answers and any further questions: [decisions for Heming](decisions-for-heming.md).
 
@@ -49,6 +48,7 @@ Owner answers and any further questions: [decisions for Heming](decisions-for-he
 ## Ideas
 
 - [docs] [human] Review remaining proposals in the [October improvement ideas](improvement-ideas.md); the owner's recorded choices are in [decisions for Heming](decisions-for-heming.md).
+- [feature] [human] Assess [rule-based paste with preview](paste-text-to-list.md); plan only, not approved for implementation.
 - [refactor] Evaluate frontend error handling and async workflows: compare [Effect](https://effect.website/) with ordinary TypeScript and, for fetched data/cache management, TanStack Query. Use a small real workflow to compare typed failures, retries, cancellation, debugging and agent maintainability. The Python backend does not block adoption; adopt only if the benefit outweighs added complexity.
 - [infra] Evaluate infrastructure as code, including [Alchemy](https://alchemy.run/) and alternatives, against the current Railway deployment workflow. Check Railway support, secrets, persistent SQLite storage, reproducibility, rollback and maintenance cost before proposing any change.
 - [infra] Review other tooling that could improve implementation and stability as the Svelte frontend matures. Start with concrete gaps in CI, monitoring/error reporting, dependency updates and deployment checks; compare existing tools with new options rather than adding tools for their own sake. See the CI idea below and the [deployment guide](../docs/deployment.md).
@@ -58,8 +58,8 @@ Owner answers and any further questions: [decisions for Heming](decisions-for-he
 - [infra] Add CI for format, lint and tests. First replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups and secrets out of git. A ready GitHub Actions workflow (Python, frontend and browser jobs, pinned actions) was built and dropped in the [October review](improvement-ideas.md#tests-and-tooling); the deploy script now runs the same checks locally. Railway deploys regardless unless "Wait for CI" is on.
 - [feature] Gzip large JSON responses (a 1,000-item feed drops from 283 KB to 35 KB). Server-Sent Events must stay uncompressed. Built and dropped in the [October review](improvement-ideas.md#performance); low gain at today's list sizes.
 - [feature] Target realtime refreshes by list/room instead of refreshing all users.
-- [feature] Cross-room list pinning, once authorization and UX are designed. See [advanced sharing](advanced_sharing.md).
-- [feature] User profiles (individual accounts), only if per-person permissions or revocation are needed. Start the plan with "which problem do we solve?". Possible uses: one login for many rooms, who did what, removing one person without a new room password, controlling who has a share link, admin as a profile, sign-in rate limiting.
+- [feature] [human] Assess [cross-room sharing without accounts](cross-room-sharing-without-accounts.md); no implementation selected. See also [advanced sharing](advanced_sharing.md).
+- [feature] [human] Assess [optional accounts](optional-accounts.md) if individual permissions or revocation are needed; no implementation selected.
 - [feature] [human] Visual refresh: pick a direction from the [mockups and feedback](visual-refresh.md). The owner wants add and search at the bottom for the thumb (toasts move to the top), and colorful list cards.
 - [feature] [human] Item categories (dairy, dry goods, fruit and veg) that group a list into sections, as in the Aisles mockup. Tags only filter today, so this needs its own design. See [visual refresh](visual-refresh.md#owner-feedback-2026-10-19).
 - [refactor] Move `src/` into a proper Python package. (Splitting `src/main.py` is done: since step 4.3 it is only the entry point, and `src/server.py` and `src/api/` hold the rest.)
