@@ -23,7 +23,13 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
-Nothing selected.
+- [ ] [feature] Preserve item-name capitals with case-insensitive duplicates: write the migration plan first, then implement. (in progress)
+- [ ] [feature] Plan and implement usual-item suggestions using the times-added count. (in progress)
+- [ ] [feature] Plan and implement named item groups with one-tap addition, skipping items already on the list. (in progress)
+- [ ] [feature] Plan and implement ordered aisle tags alongside person tags, with store grouping/sorting. (in progress)
+- [ ] [docs] Prepare plans for cross-room sharing without accounts, optional accounts, and rule-based paste with preview. No implementation. (in progress)
+
+Owner answers and any further questions: [decisions for Heming](decisions-for-heming.md).
 
 ## Next
 
@@ -42,7 +48,7 @@ Nothing selected.
 
 ## Ideas
 
-- [docs] [human] Make the open owner decisions in the [October improvement ideas](improvement-ideas.md#part-3-decisions-for-you), then move chosen work into this backlog. Until then its "Do next" items live only there.
+- [docs] [human] Review remaining proposals in the [October improvement ideas](improvement-ideas.md); the owner's recorded choices are in [decisions for Heming](decisions-for-heming.md).
 - [refactor] Evaluate frontend error handling and async workflows: compare [Effect](https://effect.website/) with ordinary TypeScript and, for fetched data/cache management, TanStack Query. Use a small real workflow to compare typed failures, retries, cancellation, debugging and agent maintainability. The Python backend does not block adoption; adopt only if the benefit outweighs added complexity.
 - [infra] Evaluate infrastructure as code, including [Alchemy](https://alchemy.run/) and alternatives, against the current Railway deployment workflow. Check Railway support, secrets, persistent SQLite storage, reproducibility, rollback and maintenance cost before proposing any change.
 - [infra] Review other tooling that could improve implementation and stability as the Svelte frontend matures. Start with concrete gaps in CI, monitoring/error reporting, dependency updates and deployment checks; compare existing tools with new options rather than adding tools for their own sake. See the CI idea below and the [deployment guide](../docs/deployment.md).
