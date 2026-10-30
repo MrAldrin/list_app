@@ -6,29 +6,36 @@ site_dir = "site"
 
 # Keep the authoritative root architecture and maintained Markdown sources in
 # the preview without copying the architecture into docs/ or copying app code.
+# Re-inclusions are rooted at docs_dir so nested tool/cache files stay excluded.
 exclude_docs = '''
 **
-!README.md
-!AGENTS.md
-!ARCHITECTURE.md
-!docs/**
-docs/local-network-testing.md
-docs/background/**
-!plans/**
-!frontend/
-!frontend/README.md
-frontend/**
-!frontend/README.md
-.venv/
-.venv/**
-.env
-.env.*
-.jj/
-.jj/**
-.codex/
-.codex/**
-local_only/
-local_only/**
+!/README.md
+!/AGENTS.md
+!/ARCHITECTURE.md
+!/docs/**
+/docs/local-network-testing.md
+/docs/background/**
+!/plans/**
+!/frontend/
+/frontend/**
+!/frontend/README.md
+/.venv/
+/.venv/**
+/.env
+/.env.*
+/.jj/
+/.jj/**
+/.codex/
+/.codex/**
+/local_only/
+/local_only/**
+**/.venv/**
+**/.env
+**/.env.*
+**/.jj/**
+**/.codex/**
+**/.pytest_cache/**
+**/local_only/**
 **/*.db
 **/*-pre-migration.db*
 **/*.sqlite*
@@ -69,37 +76,4 @@ language = "en"
 features = ["navigation.footer", "navigation.sections", "navigation.tracking", "navigation.top", "search.highlight"]
 font = false
 
-# Excluded source links and directory routes land on the preview notice.
-[project.plugins.redirects.redirect_maps]
-"docs/background/" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/" = "docs/preview-exclusions.md"
-"docs/local-network-testing.md" = "docs/preview-exclusions.md"
-"docs/background/android-emulator-testing.md" = "docs/preview-exclusions.md"
-"docs/background/backup-research.md" = "docs/preview-exclusions.md"
-"docs/background/browser-testing.md" = "docs/preview-exclusions.md"
-"docs/background/browser-test-port-map.md" = "docs/preview-exclusions.md"
-"docs/background/codebase-cleanup.md" = "docs/preview-exclusions.md"
-"docs/background/deploy-rehearsal-2026-10-06.md" = "docs/preview-exclusions.md"
-"docs/background/field-constraints.md" = "docs/preview-exclusions.md"
-"docs/background/fixes-deployment-2026-10-06.md" = "docs/preview-exclusions.md"
-"docs/background/home-screen-installation.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/accounts.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/backend.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/docs.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/features.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/frontend.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/perf-security.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/tooling.md" = "docs/preview-exclusions.md"
-"docs/background/improvement-review-2026-10/ux.md" = "docs/preview-exclusions.md"
-"docs/background/item-writes.md" = "docs/preview-exclusions.md"
-"docs/background/nicegui-test-retirement.md" = "docs/preview-exclusions.md"
-"docs/background/offline-editing-details.md" = "docs/preview-exclusions.md"
-"docs/background/offline-editing-release-validation.md" = "docs/preview-exclusions.md"
-"docs/background/offline-findings.md" = "docs/preview-exclusions.md"
-"docs/background/offline-viewing-validation.md" = "docs/preview-exclusions.md"
-"docs/background/sqlite-wal-timeout.md" = "docs/preview-exclusions.md"
-"docs/background/staging-environment.md" = "docs/preview-exclusions.md"
-"docs/background/svelte-frontend-rewrite.md" = "docs/preview-exclusions.md"
-"docs/background/svelte-rollback.md" = "docs/preview-exclusions.md"
-"docs/background/test-suite-speed.md" = "docs/preview-exclusions.md"
-"docs/background/write-atomicity-findings.md" = "docs/preview-exclusions.md"
+# build_docs_site.py generates redirects from excluded source paths; no file map to maintain.

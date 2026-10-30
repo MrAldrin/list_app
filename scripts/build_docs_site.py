@@ -13,7 +13,38 @@ from urllib.parse import quote, unquote, urljoin, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "zensical.toml"
-SITE_ROOT = ROOT / "site"
+NOTICE_SOURCE = "docs/preview-exclusions.md"
+BACKGROUND_SOURCE = "docs/background"
+LOCAL_NETWORK_SOURCE = "docs/local-network-testing.md"
+REQUIRED_EXCLUDE_RULES = {
+    "**",
+    "!/README.md",
+    "!/AGENTS.md",
+    "!/ARCHITECTURE.md",
+    "!/docs/**",
+    "/docs/local-network-testing.md",
+    "/docs/background/**",
+    "!/plans/**",
+    "!/frontend/",
+    "/frontend/**",
+    "!/frontend/README.md",
+    "/.venv/**",
+    "/.env",
+    "/.env.*",
+    "/.jj/**",
+    "/.codex/**",
+    "/local_only/**",
+    "**/.venv/**",
+    "**/.env",
+    "**/.env.*",
+    "**/.jj/**",
+    "**/.codex/**",
+    "**/.pytest_cache/**",
+    "**/local_only/**",
+    "**/*.db",
+    "**/*-pre-migration.db*",
+    "**/*.sqlite*",
+}
 
 
 class PageLinks(HTMLParser):
@@ -32,18 +63,95 @@ class PageLinks(HTMLParser):
             self.hrefs.append(attributes["href"])
 
 
-def load_project() -> tuple[Path, dict[str, str]]:
-    with CONFIG.open("rb") as config_file:
+def project_exclude_rules(project: dict[str, object]) -> set[str]:
+    configured = project.get("exclude_docs")
+    if isinstance(configured, str):
+        rules = configured.splitlines()
+    elif isinstance(configured, list) and all(
+        isinstance(rule, str) for rule in configured
+    ):
+        rules = configured
+    else:
+        raise ValueError("project.exclude_docs must be a string or list of patterns")
+    return {rule.strip() for rule in rules if rule.strip()}
+
+
+def safe_site_root(root: Path, site_dir: object) -> Path:
+    root = root.resolve()
+    if site_dir != "site":
+        raise ValueError("this wrapper only cleans and builds the root site/ directory")
+
+    site_root = root / "site"
+    if site_root.is_symlink():
+        raise ValueError("refusing to build through a site/ symlink")
+    if site_root.exists() and not site_root.is_dir():
+        raise ValueError("site/ must be a directory before the build")
+    return site_root
+
+
+def excluded_source_routes(root: Path) -> tuple[str, ...]:
+    root = root.resolve()
+    routes: set[str] = set()
+
+    local_network_guide = root / LOCAL_NETWORK_SOURCE
+    if local_network_guide.is_file() and not local_network_guide.is_symlink():
+        routes.add(LOCAL_NETWORK_SOURCE)
+
+    background = root / BACKGROUND_SOURCE
+    if background.is_symlink():
+        raise ValueError("the excluded background directory must not be a symlink")
+    if background.is_dir():
+        routes.add(f"{BACKGROUND_SOURCE}/")
+        for path in background.rglob("*"):
+            if path.is_symlink():
+                continue
+            relative = path.relative_to(root).as_posix()
+            if path.is_dir():
+                routes.add(f"{relative}/")
+            elif path.is_file() and path.suffix.lower() == ".md":
+                routes.add(relative)
+
+    return tuple(sorted(routes))
+
+
+def load_project(root: Path, config_path: Path) -> tuple[Path, tuple[str, ...]]:
+    root = root.resolve()
+    with config_path.open("rb") as config_file:
         project = tomllib.load(config_file)["project"]
 
-    site_root = (ROOT / project["site_dir"]).resolve()
-    if site_root != SITE_ROOT.resolve():
-        raise ValueError("this wrapper only cleans and builds the site/ directory")
+    site_root = safe_site_root(root, project.get("site_dir"))
+    configured_rules = project_exclude_rules(project)
+    unrooted_reinclusions = {
+        rule
+        for rule in configured_rules
+        if rule.startswith("!") and not rule.startswith("!/")
+    }
+    if unrooted_reinclusions:
+        raise ValueError(
+            "exclude_docs re-inclusions must be rooted at docs_dir: "
+            + ", ".join(sorted(unrooted_reinclusions))
+        )
 
-    redirects = project["plugins"]["redirects"]["redirect_maps"]
-    if not redirects or any(not isinstance(value, str) for value in redirects.values()):
-        raise ValueError("redirect_maps must contain string destinations")
-    return site_root, redirects
+    missing_rules = REQUIRED_EXCLUDE_RULES - configured_rules
+    if missing_rules:
+        raise ValueError(
+            "zensical.toml is missing required rooted privacy rules: "
+            + ", ".join(sorted(missing_rules))
+        )
+
+    return site_root, excluded_source_routes(root)
+
+
+def clean_site(root: Path, site_root: Path) -> None:
+    root = root.resolve()
+    if site_root != root / "site":
+        raise ValueError("refusing to clean a path other than the root site/ directory")
+    if site_root.is_symlink():
+        raise ValueError("refusing to remove a site/ symlink")
+    if site_root.exists():
+        if not site_root.is_dir():
+            raise ValueError("site/ must be a directory before the build")
+        shutil.rmtree(site_root)
 
 
 def page_output(site_root: Path, source: str) -> Path:
@@ -92,17 +200,15 @@ def redirect_html(source_page: Path, target_page: Path) -> str:
 """
 
 
-def rewrite_redirects(site_root: Path, redirects: dict[str, str]) -> set[Path]:
+def rewrite_redirects(site_root: Path, excluded_routes: tuple[str, ...]) -> set[Path]:
+    target_page = page_output(site_root, NOTICE_SOURCE)
+    if not target_page.is_file():
+        raise FileNotFoundError(f"redirect target {NOTICE_SOURCE!r} was not generated")
+
     redirect_paths: set[Path] = set()
-    for source, target in redirects.items():
+    for source in excluded_routes:
         source_page = page_output(site_root, source)
-        target_page = page_output(site_root, target)
-        if not source_page.is_file():
-            raise FileNotFoundError(
-                f"Zensical did not generate redirect route {source!r}"
-            )
-        if not target_page.is_file():
-            raise FileNotFoundError(f"redirect target {target!r} was not generated")
+        source_page.parent.mkdir(parents=True, exist_ok=True)
         source_page.write_text(
             redirect_html(source_page, target_page), encoding="utf-8"
         )
@@ -130,7 +236,9 @@ def route_file(site_root: Path, route: str) -> Path:
 
 
 def validate_site(
-    site_root: Path, redirects: dict[str, str], redirect_paths: set[Path]
+    site_root: Path,
+    excluded_routes: tuple[str, ...],
+    redirect_paths: set[Path],
 ) -> int:
     html_pages = sorted(site_root.rglob("*.html"))
     if not html_pages:
@@ -171,18 +279,17 @@ def validate_site(
                     raise ValueError(f"broken generated anchor in {page}: {href}")
 
     search_path = site_root / "search.json"
-    if search_path.is_file():
-        search = json.loads(search_path.read_text(encoding="utf-8"))
-        locations = {item["location"].strip("/") for item in search["items"]}
-        for source in redirects:
-            route = source.strip("/")
-            if route.endswith(".md"):
-                route = route[:-3]
-            if any(
-                location == route or location.startswith(f"{route}/")
-                for location in locations
-            ):
-                raise ValueError(f"excluded route appears in search index: {source}")
+    if not search_path.is_file():
+        raise FileNotFoundError("Zensical did not generate search.json")
+    search = json.loads(search_path.read_text(encoding="utf-8"))
+    locations = {item["location"].strip("/") for item in search["items"]}
+    for source in excluded_routes:
+        route = page_output(site_root, source).parent.relative_to(site_root).as_posix()
+        if any(
+            location == route or location.startswith(f"{route}/")
+            for location in locations
+        ):
+            raise ValueError(f"excluded route appears in search index: {source}")
 
     for path in redirect_paths:
         text = path.read_text(encoding="utf-8")
@@ -191,16 +298,21 @@ def validate_site(
     return checked_links
 
 
-def main() -> None:
-    site_root, redirects = load_project()
-    if site_root.exists():
-        shutil.rmtree(site_root)
+def build_site(root: Path, config_path: Path) -> tuple[int, int]:
+    root = root.resolve()
+    site_root, excluded_routes = load_project(root, config_path)
+    clean_site(root, site_root)
 
-    subprocess.run([sys.executable, "-m", "zensical", "build"], cwd=ROOT, check=True)
-    redirect_paths = rewrite_redirects(site_root, redirects)
-    checked_links = validate_site(site_root, redirects, redirect_paths)
+    subprocess.run([sys.executable, "-m", "zensical", "build"], cwd=root, check=True)
+    redirect_paths = rewrite_redirects(site_root, excluded_routes)
+    checked_links = validate_site(site_root, excluded_routes, redirect_paths)
+    return len(redirect_paths), checked_links
+
+
+def main() -> None:
+    redirect_count, checked_links = build_site(ROOT, CONFIG)
     print(
-        f"Validated {len(redirect_paths)} fragment-free redirects and "
+        f"Validated {redirect_count} fragment-free redirects and "
         f"{checked_links} generated local links."
     )
 
