@@ -28,8 +28,9 @@ copying it.
 
 The [backlog](../plans/backlog.md) is the sole work agenda. The
 [improvement ideas](../plans/improvement-ideas.md) plan is a proposal catalog;
-its recommendations and open questions do not select work. Only items moved to
-the backlog by an owner decision become selected work.
+its recommendations and open questions do not select work. Backlog placement
+records possible work but does not select or authorize it; the owner decides
+what work is selected.
 
 ## Local site preview only
 

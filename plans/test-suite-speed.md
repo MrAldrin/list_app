@@ -6,6 +6,8 @@ Lifecycle: tracked
 
 Keep useful regression coverage while shortening the development loop. Desktop browser benchmarking and small, verifiable optimizations are authorized; Android scenario removal or consolidation still requires owner approval. Python optimization is lower priority because the default suite is already relatively fast.
 
+<span id="resume-here--remaining-work"></span>
+
 ## Resume here — remaining work
 
 This plan is **open**. Desktop browser optimizations and the scoped Python
@@ -17,12 +19,12 @@ remaining decisions and checks, in order, are:
    worthwhile) and when Python, desktop browser, Android and real-iPhone
    checks should run. Review each assertion before removing any scenario;
    do not add offline-specific tests to the current baseline. See
-   [Priority 1](#priority-1--decide-coverage-and-test-tiers).
+   [Priority 1](#priority-1-decide-coverage-and-test-tiers).
 2. **After that decision:** benchmark the approved Android scenarios on the
    dedicated emulator, serially (`-n 0`). Separate startup, installation,
    native UI, browser actions and cleanup costs; make one scoped change at a
    time, retain device-specific behavior and safe cleanup, then repeat and
-   compare clean runs. See [Priority 3](#priority-3--simplify-and-measure-android-checks)
+   compare clean runs. See [Priority 3](#priority-3-simplify-and-measure-android-checks)
    and [Android setup](../docs/android-emulator-testing.md).
 3. **Decided (2026-10-18):** no real-iPhone acceptance subset. The WebKit
    browser tests are the Safari evidence. See [iPhone acceptance](#iphone-relevance-and-remaining-acceptance).

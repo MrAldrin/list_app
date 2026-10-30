@@ -144,16 +144,19 @@ the authority for the stack and major decisions. Background research lives in
 
 Zensical builds the maintained Markdown directly, including the root
 `ARCHITECTURE.md`; there is no second architecture copy. Install the development
-dependencies with `uv sync`, then build or preview from the repository root:
+dependencies with `uv sync`, then build and serve the static preview from the
+repository root:
 
 ```bash
-uv run zensical build
-uv run zensical serve --dev-addr 127.0.0.1:8000
+uv run python scripts/build_docs_site.py
+python3 -m http.server --bind 127.0.0.1 --directory site 8000
 ```
 
-The generated `site/` directory is ignored. The preview excludes
-`docs/local-network-testing.md` and all of `docs/background/`; source files stay
-unchanged. Links to excluded pages redirect to a site-specific exclusions
-notice. Other operational guides and planning
-proposals remain included, so this local preview is not approval to publish or
-expose the site. See the hub for content and privacy limits.
+Open <http://127.0.0.1:8000/>. Stop the local server with Ctrl-C. The build
+wrapper removes stale output, strips old fragments from exclusion redirects,
+and checks generated links. The generated `site/` directory is ignored. The
+preview excludes `docs/local-network-testing.md` and all of `docs/background/`;
+source files stay unchanged. Links to excluded pages redirect to a site-specific
+exclusions notice. Other operational guides and planning proposals remain
+included, so this local preview is not approval to publish or expose the site.
+See the hub for content and privacy limits.
