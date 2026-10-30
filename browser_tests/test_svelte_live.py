@@ -45,6 +45,61 @@ def test_two_phones_see_each_others_changes(svelte_server, open_session):
     expect(phone_a.get_by_role("heading", name="Food")).to_be_visible()
 
 
+def test_suggestion_highlight_tracks_live_item_name(svelte_server, open_session):
+    server = svelte_server
+    phone_a = open_session("phone-a", **PHONE)
+    phone_b = open_session("phone-b", **PHONE)
+    sign_in(phone_a, server)
+    sign_in(phone_b, server)
+    list_url = create_list(phone_b, "Groceries")
+    phone_a.get_by_role("link", name="Groceries").click()
+    expect(phone_a).to_have_url(list_url)
+
+    add_item(phone_b, "alpha")
+    field = phone_a.get_by_label("Add or Search")
+    field.fill("a")
+    alpha = phone_a.get_by_role("option", name="alpha")
+    field.press("ArrowDown")
+    expect(alpha).to_have_attribute("aria-selected", "true")
+
+    # A live suggestion sorted ahead of alpha must not take its selection.
+    phone_b.get_by_role("checkbox", name="alpha").check()
+    expect(phone_a.get_by_role("checkbox", name="alpha")).to_be_checked()
+    add_item(phone_b, "aardvark")
+    phone_b.get_by_role("checkbox", name="aardvark").check()
+    aardvark = phone_a.get_by_role("option", name="aardvark")
+    expect(aardvark).to_be_visible()
+    expect(alpha).to_have_attribute("aria-selected", "true")
+    expect(field).to_have_attribute("aria-activedescendant", alpha.get_attribute("id"))
+
+    field.press("Enter")
+    expect(phone_a.get_by_role("checkbox", name="alpha")).not_to_be_checked()
+    expect(phone_a.get_by_role("checkbox", name="aardvark")).to_be_checked()
+    expect(field).to_have_value("")
+
+    # Removing the highlighted name clears it; reintroducing that name does not
+    # silently restore a choice for the unchanged typed text.
+    field.fill("a")
+    field.press("ArrowDown")
+    field.press("ArrowDown")
+    expect(alpha).to_have_attribute("aria-selected", "true")
+    phone_b.get_by_role("button", name="alpha", exact=True).click()
+    dialog = phone_b.get_by_role("dialog")
+    dialog.get_by_label("Item Name").fill("zebra")
+    dialog.get_by_role("button", name="Save").click()
+    expect(phone_a.get_by_role("button", name="zebra", exact=True)).to_be_visible()
+    expect(phone_a.get_by_role("option", name="alpha")).to_have_count(0)
+
+    phone_b.get_by_role("button", name="zebra", exact=True).click()
+    dialog.get_by_label("Item Name").fill("alpha")
+    dialog.get_by_role("button", name="Save").click()
+    expect(alpha).to_be_visible()
+    expect(alpha).to_have_attribute("aria-selected", "false")
+    expect(field).not_to_have_attribute("aria-activedescendant", re.compile(r".+"))
+    field.press("Enter")
+    expect(phone_a.get_by_text("Added a", exact=True)).to_be_visible()
+
+
 def test_list_deleted_while_open(svelte_server, open_session):
     server = svelte_server
     viewer = open_session("viewer", **PHONE)

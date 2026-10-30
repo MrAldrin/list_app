@@ -29,23 +29,29 @@
 	} = $props();
 	let input = $state<HTMLInputElement>();
 	const suggestions = $derived(itemSuggestions(items, text));
-	/** The suggestion highlighted with the arrow keys; -1 for none. */
-	let active = $state(-1);
+	/** The highlighted suggestion, tracked by name so live sorting cannot change it. */
+	let activeName = $state<string | null>(null);
 	/** Escape hides the suggestions until the text changes. */
 	let closed = $state(false);
 	/** Suggestions show only while the field has focus. */
 	let focused = $state(false);
 	const shown = $derived(closed || !focused ? [] : suggestions);
+	const active = $derived(activeName === null ? -1 : shown.indexOf(activeName));
 	// Unique ids on the page, for the ARIA links between field and suggestions.
 	const listId = $props.id();
 
+	// A live update can remove the highlighted suggestion; do not revive it later.
+	$effect(() => {
+		if (activeName !== null && !shown.includes(activeName)) activeName = null;
+	});
+
 	function blurred() {
 		focused = false;
-		active = -1;
+		activeName = null;
 	}
 
 	function typed() {
-		active = -1;
+		activeName = null;
 		closed = false;
 	}
 
@@ -54,14 +60,14 @@
 		const count = shown.length;
 		if (event.key === 'ArrowDown' && count > 0) {
 			event.preventDefault();
-			active = (active + 1) % count;
+			activeName = shown[(active + 1) % count];
 		} else if (event.key === 'ArrowUp' && count > 0) {
 			event.preventDefault();
-			active = active <= 0 ? count - 1 : active - 1;
+			activeName = shown[active <= 0 ? count - 1 : active - 1];
 		} else if (event.key === 'Escape' && count > 0) {
 			event.preventDefault();
 			closed = true;
-			active = -1;
+			activeName = null;
 		}
 	}
 
@@ -73,7 +79,7 @@
 			return;
 		}
 		const sent = text;
-		active = -1;
+		activeName = null;
 		input?.focus();
 		const clear = await onAdd(name);
 		// Clear only if nothing new was typed while waiting for the server.
