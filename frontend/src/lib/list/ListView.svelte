@@ -144,8 +144,12 @@
 	async function addItem(target: List, name: string): Promise<boolean> {
 		const result = await room.addItem(target, name);
 		if (result.ok) {
-			const feedback = addFeedback(result.result.outcome, name);
-			toasts.show(feedback.message, feedback.kind);
+			if (result.pending) {
+				toasts.show('Queued; the server will check this item when online.', 'info');
+			} else {
+				const feedback = addFeedback(result.result.outcome, name);
+				toasts.show(feedback.message, feedback.kind);
+			}
 			return true;
 		}
 		// A rejection is shown by the store as a toast. NiceGUI clears the

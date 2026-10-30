@@ -201,6 +201,7 @@ describe('saved room data integration', () => {
 			offline.deleteList(list)
 		]);
 		expect(edits.every((result) => result.ok)).toBe(true);
+		expect(edits[5]).toMatchObject({ ok: true, pending: true });
 		expect(offlineApi.sendOp).not.toHaveBeenCalled();
 		expect(offline.queuedOps).toHaveLength(13);
 		expect(offline.store.room?.name).toBe('new');
@@ -1500,6 +1501,140 @@ describe('offline editing (6.2d)', () => {
 		await waitFor(() => expect(reloaded.waitingCount).toBe(0));
 		expect(reloaded.queuedOps).toEqual([]);
 		reloaded.release();
+		storage.close();
+	});
+
+	it('queues a locally duplicate-looking Unicode add until the server accepts it', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const existing = makeItem(list.uid, { uid: 'old-cyrillic', name: '\u1c89' });
+		const initialFeed = makeFeed({ seq: 5, full: true, lists: [list], items: [existing] });
+		const online = handle(
+			fakeApi(async () => initialFeed),
+			storage
+		);
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
+		await waitFor(async () =>
+			expect((await storage.read({ kind: 'room', slug: ROOM.slug })).ok).toBe(true)
+		);
+		online.release();
+
+		const connectivity = fakeConnectivity();
+		const api = fakeApi();
+		api.whoAmI.mockRejectedValue(new NetworkError());
+		api.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(api, storage, {
+			hydrateSavedView: true,
+			connectivity: connectivity.target,
+			queueStorage: queue
+		});
+		await waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offline.store.canEdit).toBe(true));
+
+		const name = '\u1c8a';
+		const result = await offline.addItem(list, name);
+		expect(result).toMatchObject({ ok: true, pending: true });
+		await waitFor(async () => expect(await queue.read()).toHaveLength(1));
+		const [stored] = await queue.read();
+		expect(stored.op).toMatchObject({ type: 'item.add', name });
+		const clientSeesDuplicate = '\u1c89'.toLowerCase() === name.toLowerCase();
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toEqual(
+			clientSeesDuplicate ? ['\u1c89'] : ['\u1c89', name]
+		);
+
+		const added = makeItem(list.uid, { uid: 'new-cyrillic', name, changed_seq: 6 });
+		const sent: SentOp[] = [];
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			return applied(op, 6, {
+				item_uid: added.uid,
+				outcome: 'added',
+				changed_seq: 6
+			});
+		});
+		api.whoAmI.mockResolvedValue(ROOM);
+		api.changes.mockResolvedValue(
+			makeFeed({ seq: 6, full: true, lists: [list], items: [existing, added] })
+		);
+		connectivity.emit('online');
+		await waitFor(() => expect(sent).toHaveLength(1));
+		await waitFor(() => expect(offline.waitingCount).toBe(0));
+		expect(sent[0]).toMatchObject({ name });
+		await waitFor(() =>
+			expect(
+				offline.store
+					.itemsOf(list.uid)
+					.map((row) => row.name)
+					.sort()
+			).toEqual(['\u1c89', name].sort())
+		);
+		expect(await queue.read()).toEqual([]);
+		offline.release();
+		storage.close();
+	});
+
+	it('removes an optimistic Unicode add when the server rejects it', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const existing = makeItem(list.uid, { uid: 'old-cyrillic', name: '\u1c89' });
+		const initialFeed = makeFeed({ seq: 5, full: true, lists: [list], items: [existing] });
+		const online = handle(
+			fakeApi(async () => initialFeed),
+			storage
+		);
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
+		await waitFor(async () =>
+			expect((await storage.read({ kind: 'room', slug: ROOM.slug })).ok).toBe(true)
+		);
+		online.release();
+
+		const connectivity = fakeConnectivity();
+		const api = fakeApi();
+		api.whoAmI.mockRejectedValue(new NetworkError());
+		api.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(api, storage, {
+			hydrateSavedView: true,
+			connectivity: connectivity.target,
+			queueStorage: queue
+		});
+		await waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(offline.store.canEdit).toBe(true));
+
+		const name = '\u1c8a';
+		const result = await offline.addItem(list, name);
+		expect(result).toMatchObject({ ok: true, pending: true });
+		await waitFor(async () => expect(await queue.read()).toHaveLength(1));
+		const [stored] = await queue.read();
+		const clientSeesDuplicate = '\u1c89'.toLowerCase() === name.toLowerCase();
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toEqual(
+			clientSeesDuplicate ? ['\u1c89'] : ['\u1c89', name]
+		);
+
+		const sent: SentOp[] = [];
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			return {
+				op_id: op.op_id,
+				status: 'rejected',
+				code: 'duplicate_active',
+				message: 'The server considers this an existing item.',
+				seq: 5,
+				item_uid: existing.uid
+			};
+		});
+		api.whoAmI.mockResolvedValue(ROOM);
+		api.changes.mockResolvedValue(initialFeed);
+		connectivity.emit('online');
+		await waitFor(() => expect(sent).toHaveLength(1));
+		await waitFor(() => expect(offline.waitingCount).toBe(0));
+		expect(sent[0]).toMatchObject({ name });
+		expect(stored.op).toMatchObject({ type: 'item.add', name });
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toEqual(['\u1c89']);
+		expect(offline.store.pendingOps).toHaveLength(0);
+		expect(offline.store.notSaved).toHaveLength(0);
+		expect(await queue.read()).toEqual([]);
+		expect(await queue.readNotSaved()).toHaveLength(0);
+		offline.release();
 		storage.close();
 	});
 

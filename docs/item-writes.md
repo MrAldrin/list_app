@@ -49,15 +49,22 @@ list is full.
 The database guards the same rules as a safety net: `BEFORE INSERT` and
 `BEFORE UPDATE` triggers reject blank or untrimmed names, a missing duplicate
 key, missing slugs, quantities below 1, `done` other than 0 or 1, a completion
-time on an unchecked item, and tags that are not a JSON array. Migration 12
-updated the item-name guard to allow capitalization and check that `name_key`
-matches Python's `lower()` result. It calls `listr_item_name_key()`, registered
-on the app's SQLite connection. Other SQLite connections can read the database
+time on an unchecked item, and tags that are not a JSON array. The item-name
+guards use registered Python functions to require Python-trimmed names and a
+matching Python `lower()` key. Other SQLite connections can read the database
 and update other item fields; connections that insert or rename items must
-register the same function. A rejected write raises `sqlite3.IntegrityError`.
-Rules and reasons: the [field constraints background](background/field-constraints.md).
-Tests: `tests/test_field_limits.py`, `tests/test_field_rules_migration.py`,
-`tests/test_item_name_capitalization_migration.py`.
+register the same functions.
+
+Migration 13 records the key algorithm and Unicode-data versions. Startup backs
+up and transactionally rebuilds keys when either changes. It stops without
+changing data if names are untrimmed or new keys collide; it never merges or
+deletes items. Restore the prior runtime, correct the reported rows, then retry.
+A restored backup is checked again at startup. Rejected SQL writes raise
+`sqlite3.IntegrityError`. Rules: the
+[field constraints background](background/field-constraints.md). Tests:
+`tests/test_field_limits.py`, `tests/test_field_rules_migration.py`,
+`tests/test_item_name_capitalization_migration.py`,
+`tests/test_database_setup.py`.
 
 ## Item identity
 

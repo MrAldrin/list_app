@@ -13,6 +13,13 @@ def item_name_key(name: str) -> str:
     return name.strip().lower()
 
 
+def _sqlite_normalized_name(raw: object) -> str | None:
+    """Return a safe trimmed value from SQLite, including malformed values."""
+    if not isinstance(raw, str):
+        return None
+    return normalize_item_name(raw)
+
+
 def _sqlite_item_name_key(raw: object) -> str:
     """Return a safe key from a SQLite value, including malformed values."""
     if not isinstance(raw, str):
@@ -21,7 +28,10 @@ def _sqlite_item_name_key(raw: object) -> str:
 
 
 def register_sqlite_item_name_key(db: sqlite3.Connection) -> None:
-    """Register the Python-lower function used by item-name guard triggers."""
+    """Register Python trim/lower functions used by item-name guard triggers."""
+    db.create_function(
+        "listr_normalize_item_name", 1, _sqlite_normalized_name, deterministic=True
+    )
     db.create_function(
         "listr_item_name_key", 1, _sqlite_item_name_key, deterministic=True
     )

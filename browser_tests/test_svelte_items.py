@@ -6,6 +6,8 @@ import re
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in, wait_until
 
+from item_names import item_name_key
+
 
 def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session):
     server = svelte_server
@@ -63,6 +65,129 @@ def test_add_trims_python_whitespace(svelte_server, open_session):
     field.press("Enter")
     expect(page.get_by_text("Added Oat Milk")).to_be_visible()
     expect(item_names(page)).to_have_text(["Oat Milk"])
+
+
+def test_offline_unicode_add_reconciles_to_the_server_mapping(
+    svelte_server, open_session
+):
+    server = svelte_server
+    page = open_session("unicode-add", **{**PHONE, "service_workers": "block"})
+    sign_in(page, server)
+    url = create_list(page, "Unicode")
+    old_name = "\u1c89"
+    new_name = "\u1c8a"
+    add_item(page, old_name)
+
+    page.context.route("**/api/v1/**", lambda route: route.abort())
+    page.goto(url)
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
+    expect(item_names(page)).to_have_text([old_name])
+
+    browser_sees_duplicate = page.evaluate(
+        "String.fromCodePoint(0x1c89).toLowerCase() === "
+        "String.fromCodePoint(0x1c8a).toLowerCase()"
+    )
+    field = page.get_by_label("Add or Search")
+    field.fill(new_name)
+    field.press("Enter")
+    expect(
+        page.get_by_text("Queued; the server will check this item when online.")
+    ).to_be_visible()
+    expect(page.get_by_text(f"Added {new_name}", exact=True)).to_have_count(0)
+    expect(field).to_have_value("")
+    expect(item_names(page)).to_have_text(
+        [old_name] if browser_sees_duplicate else [old_name, new_name]
+    )
+
+    sent = []
+    page.on(
+        "request",
+        lambda request: (
+            sent.append(json.loads(request.post_data))
+            if request.url.endswith("/ops")
+            else None
+        ),
+    )
+    page.context.unroute("**/api/v1/**")
+    page.evaluate("window.dispatchEvent(new Event('online'))")
+    server_keys_match = item_name_key(old_name) == item_name_key(new_name)
+    expected = [old_name] if server_keys_match else [old_name, new_name]
+    wait_until(
+        page,
+        lambda: (
+            server.query("SELECT name FROM items ORDER BY id")
+            == [(name,) for name in expected]
+        ),
+        "The server did not settle the queued Unicode add.",
+    )
+    wait_until(page, lambda: bool(sent), "The queued Unicode add was not replayed.")
+    assert sent[-1]["name"] == new_name
+    expect(item_names(page)).to_have_text(expected)
+
+
+def test_offline_unicode_add_is_removed_after_server_rejection(
+    svelte_server, open_session
+):
+    server = svelte_server
+    page = open_session("unicode-rejection", **{**PHONE, "service_workers": "block"})
+    sign_in(page, server)
+    url = create_list(page, "Unicode")
+    old_name = "\u1c89"
+    new_name = "\u1c8a"
+    add_item(page, old_name)
+    item_uid = server.query("SELECT uid FROM items")[0][0]
+    seq = server.query("SELECT change_seq FROM rooms")[0][0]
+
+    page.context.route("**/api/v1/**", lambda route: route.abort())
+    page.goto(url)
+    expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
+    browser_sees_duplicate = page.evaluate(
+        "String.fromCodePoint(0x1c89).toLowerCase() === "
+        "String.fromCodePoint(0x1c8a).toLowerCase()"
+    )
+    field = page.get_by_label("Add or Search")
+    field.fill(new_name)
+    field.press("Enter")
+    expect(
+        page.get_by_text("Queued; the server will check this item when online.")
+    ).to_be_visible()
+    expect(page.get_by_text(f"Added {new_name}", exact=True)).to_have_count(0)
+    expect(item_names(page)).to_have_text(
+        [old_name] if browser_sees_duplicate else [old_name, new_name]
+    )
+
+    sent = []
+
+    def reject_as_duplicate(route):
+        op = json.loads(route.request.post_data)
+        if op.get("type") != "item.add" or op.get("name") != new_name:
+            route.continue_()
+            return
+        sent.append(op)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "op_id": op["op_id"],
+                    "status": "rejected",
+                    "code": "duplicate_active",
+                    "message": "The server considers this a duplicate.",
+                    "seq": seq,
+                    "item_uid": item_uid,
+                }
+            ),
+        )
+
+    page.context.unroute("**/api/v1/**")
+    page.context.route("**/api/v1/rooms/*/ops", reject_as_duplicate)
+    page.evaluate("window.dispatchEvent(new Event('online'))")
+    wait_until(page, lambda: bool(sent), "The queued duplicate was not replayed.")
+    expect(item_names(page)).to_have_text([old_name])
+    expect(page.get_by_text(f"Added {new_name}", exact=True)).to_have_count(0)
+    assert sent[0]["name"] == new_name
+    assert server.query("SELECT name FROM items ORDER BY id") == [(old_name,)]
 
 
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):

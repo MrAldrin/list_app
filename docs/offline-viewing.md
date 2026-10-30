@@ -21,6 +21,12 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
 
 ## Waiting changes
 
+- An offline item add says it is queued, not that the server accepted it. The
+  browser's Unicode lowercase table is only a local estimate; Python decides
+  duplicates when the queued operation is sent. If the tables differ, an item
+  can temporarily appear or be hidden as a local duplicate. The server's answer
+  settles the projection: an accepted item appears in the feed, while a rejected
+  one is removed and shown in Not saved. The queued name is not rewritten.
 - Changes are sent in order, after the app confirms access. The check runs when
   the app opens, when the connection returns and when the app comes back to the
   screen. There is no background sync.

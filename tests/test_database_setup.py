@@ -8,9 +8,32 @@ from pathlib import Path
 
 import bcrypt
 import pytest
-from migration_helpers import LATEST_VERSION
+from migration_helpers import LATEST_VERSION, migrate_to
 
+import database_setup
+import item_names
 from database_setup import _backup_path, init_database
+from migrations import MigrationError
+
+
+def _create_item_list(db: sqlite3.Connection) -> int:
+    room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
+    return db.execute(
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "VALUES ('Shop', 'shop', ?, 'shop-token')",
+        (room_id,),
+    ).lastrowid
+
+
+def _insert_key_test_item(db: sqlite3.Connection, list_id: int, name: str) -> int:
+    return db.execute(
+        "INSERT INTO items (name, name_key, done, list_id) VALUES (?, ?, 0, ?)",
+        (name, name.strip().lower(), list_id),
+    ).lastrowid
+
+
+def _future_item_name_key(name: str) -> str:
+    return name.strip().replace("\u1c89", "\u1c8a").lower()
 
 
 def test_default_database_path_is_project_relative_from_other_working_directory(
@@ -113,7 +136,14 @@ def test_reopening_registers_name_key_guard_and_external_field_updates_work(
     reopened = init_database()
     with pytest.raises(sqlite3.IntegrityError, match="breaks a field rule"):
         reopened.execute("UPDATE items SET name_key = 'ẞeta'")
-    assert reopened.execute("SELECT name_key FROM items").fetchone()[0] == "ßeta"
+    with pytest.raises(sqlite3.IntegrityError, match="breaks a field rule"):
+        reopened.execute(
+            "UPDATE items SET name = ?, name_key = 'ßeta'", ("\u0085ẞeta\u0085",)
+        )
+    assert reopened.execute("SELECT name, name_key FROM items").fetchone() == (
+        "ẞeta",
+        "ßeta",
+    )
     reopened.commit()
     reopened.close()
 
@@ -123,6 +153,217 @@ def test_reopening_registers_name_key_guard_and_external_field_updates_work(
         assert external.execute("SELECT name FROM items").fetchone()[0] == "ẞeta"
         external.execute("UPDATE items SET quantity = 2")
         assert external.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+
+def test_v12_upgrade_backs_up_and_a_restored_backup_migrates_again(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "v12.db"
+    backup_path = tmp_path / "v12-backup.db"
+    with closing(sqlite3.connect(database_path)) as old, old:
+        migrate_to(old, 12)
+        list_id = _create_item_list(old)
+        _insert_key_test_item(old, list_id, "Milk")
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
+    upgraded = init_database()
+    assert upgraded.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
+    assert (
+        upgraded.execute(
+            "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
+        ).fetchone()
+        == database_setup._item_name_key_version()
+    )
+    upgraded.close()
+
+    with closing(sqlite3.connect(backup_path)) as old_backup:
+        assert old_backup.execute("PRAGMA user_version").fetchone()[0] == 12
+        assert old_backup.execute("SELECT name, name_key FROM items").fetchone() == (
+            "Milk",
+            "milk",
+        )
+        assert (
+            old_backup.execute(
+                "SELECT 1 FROM sqlite_master WHERE name = 'item_name_key_metadata'"
+            ).fetchone()
+            is None
+        )
+
+    restored_path = tmp_path / "restored.db"
+    with (
+        closing(sqlite3.connect(backup_path)) as source,
+        closing(sqlite3.connect(restored_path)) as restored,
+    ):
+        source.backup(restored)
+    monkeypatch.setenv("DB_PATH", str(restored_path))
+    restored = init_database()
+    assert restored.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
+    assert restored.execute("SELECT name, name_key FROM items").fetchone() == (
+        "Milk",
+        "milk",
+    )
+    restored.close()
+
+
+def test_v12_upgrade_collision_keeps_database_and_backup_unchanged(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "v12-collision.db"
+    backup_path = tmp_path / "v12-collision-backup.db"
+    with closing(sqlite3.connect(database_path)) as old, old:
+        migrate_to(old, 12)
+        list_id = _create_item_list(old)
+        _insert_key_test_item(old, list_id, "\u1c89")
+        _insert_key_test_item(old, list_id, "\u1c8a")
+
+    with closing(sqlite3.connect(database_path)) as before:
+        before_items = before.execute("SELECT * FROM items ORDER BY id").fetchall()
+        before_schema = before.execute(
+            "SELECT type, name, sql FROM sqlite_master "
+            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
+        ).fetchall()
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
+    monkeypatch.setattr(item_names, "item_name_key", _future_item_name_key)
+    monkeypatch.setattr(
+        database_setup, "_item_name_key_version", lambda: (1, "simulated-UCD-16")
+    )
+    with pytest.raises(MigrationError, match=r"items 1 and 2 in list 1"):
+        init_database()
+
+    for path in (database_path, backup_path):
+        with closing(sqlite3.connect(path)) as unchanged:
+            assert unchanged.execute("PRAGMA user_version").fetchone()[0] == 12
+            assert (
+                unchanged.execute("SELECT * FROM items ORDER BY id").fetchall()
+                == before_items
+            )
+            assert (
+                unchanged.execute(
+                    "SELECT type, name, sql FROM sqlite_master "
+                    "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
+                ).fetchall()
+                == before_schema
+            )
+
+
+def test_runtime_key_version_change_rebuilds_and_backup_can_be_restored(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "versioned.db"
+    backup_path = tmp_path / "versioned-backup.db"
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
+    initial = init_database()
+    list_id = _create_item_list(initial)
+    item_id = _insert_key_test_item(initial, list_id, "\u1c89")
+    initial.commit()
+    old_version = database_setup._item_name_key_version()
+    old_seq = initial.execute("SELECT change_seq FROM rooms").fetchone()[0]
+    old_changed_seq = initial.execute(
+        "SELECT changed_seq FROM items WHERE id = ?", (item_id,)
+    ).fetchone()[0]
+    initial.close()
+
+    monkeypatch.setattr(item_names, "item_name_key", _future_item_name_key)
+    monkeypatch.setattr(
+        database_setup, "_item_name_key_version", lambda: (1, "simulated-UCD-16")
+    )
+    upgraded = init_database()
+    assert upgraded.execute(
+        "SELECT name, name_key FROM items WHERE id = ?", (item_id,)
+    ).fetchone() == ("\u1c89", "\u1c8a")
+    assert upgraded.execute(
+        "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
+    ).fetchone() == (1, "simulated-UCD-16")
+    assert upgraded.execute("SELECT change_seq FROM rooms").fetchone()[0] == old_seq
+    assert (
+        upgraded.execute(
+            "SELECT changed_seq FROM items WHERE id = ?", (item_id,)
+        ).fetchone()[0]
+        == old_changed_seq
+    )
+    upgraded.close()
+
+    with closing(sqlite3.connect(backup_path)) as backup:
+        assert backup.execute(
+            "SELECT name, name_key FROM items WHERE id = ?", (item_id,)
+        ).fetchone() == ("\u1c89", "\u1c89")
+        assert (
+            backup.execute(
+                "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
+            ).fetchone()
+            == old_version
+        )
+
+    restored_path = tmp_path / "restored-versioned.db"
+    with (
+        closing(sqlite3.connect(backup_path)) as source,
+        closing(sqlite3.connect(restored_path)) as restored,
+    ):
+        source.backup(restored)
+    monkeypatch.setenv("DB_PATH", str(restored_path))
+    restored = init_database()
+    assert restored.execute(
+        "SELECT name_key FROM items WHERE id = ?", (item_id,)
+    ).fetchone() == ("\u1c8a",)
+    assert restored.execute(
+        "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
+    ).fetchone() == (1, "simulated-UCD-16")
+    restored.close()
+
+
+def test_runtime_key_collision_rolls_back_and_keeps_backup_unchanged(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "runtime-collision.db"
+    backup_path = tmp_path / "runtime-collision-backup.db"
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
+    initial = init_database()
+    list_id = _create_item_list(initial)
+    _insert_key_test_item(initial, list_id, "\u1c89")
+    _insert_key_test_item(initial, list_id, "\u1c8a")
+    initial.commit()
+    before_items = initial.execute("SELECT * FROM items ORDER BY id").fetchall()
+    before_schema = initial.execute(
+        "SELECT type, name, sql FROM sqlite_master "
+        "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
+    ).fetchall()
+    old_version = database_setup._item_name_key_version()
+    initial.close()
+
+    monkeypatch.setattr(item_names, "item_name_key", _future_item_name_key)
+    monkeypatch.setattr(
+        database_setup, "_item_name_key_version", lambda: (1, "simulated-UCD-16")
+    )
+    with pytest.raises(MigrationError, match=r"items 1 and 2 in list 1"):
+        init_database()
+
+    for path in (database_path, backup_path):
+        with closing(sqlite3.connect(path)) as unchanged:
+            assert (
+                unchanged.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
+            )
+            assert (
+                unchanged.execute("SELECT * FROM items ORDER BY id").fetchall()
+                == before_items
+            )
+            assert (
+                unchanged.execute(
+                    "SELECT type, name, sql FROM sqlite_master "
+                    "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
+                ).fetchall()
+                == before_schema
+            )
+            assert (
+                unchanged.execute(
+                    "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
+                ).fetchone()
+                == old_version
+            )
 
 
 def test_default_room_uses_configured_password_without_resetting_it(

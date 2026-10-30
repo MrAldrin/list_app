@@ -30,7 +30,14 @@ export interface Failure {
 	message: string;
 }
 
-export type ActionResult<R = Record<string, never>> = { ok: true; result: R } | Failure;
+export type ActionResult<R = Record<string, never>> =
+	| {
+			ok: true;
+			result: R;
+			/** The server has not confirmed this result yet. */
+			pending?: boolean;
+	  }
+	| Failure;
 
 /** The text for the codes that have no server message. Other codes use `GENERIC`. */
 const FALLBACK_TEXT: Partial<Record<ActionCode, string>> = {

@@ -1,15 +1,17 @@
 import os
 import sqlite3
 import threading
+import unicodedata
 import uuid
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
+import item_names
 from config import require_app_password
 from identifiers import make_slug
 from item_names import register_sqlite_item_name_key
-from migrations import Migration, run_migrations
+from migrations import Migration, MigrationError, backup_database, run_migrations
 from password_hashing import hash_password
 
 _DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "list.db"
@@ -17,6 +19,7 @@ _DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "list.db"
 # failing. Waiting freezes the whole app, so keep it short.
 # See docs/background/sqlite-wal-timeout.md.
 LOCK_WAIT_SECONDS = 1.0
+ITEM_NAME_KEY_ALGORITHM_VERSION = 1
 
 
 def _database_path() -> str:
@@ -698,6 +701,128 @@ def _migration_12_preserve_item_name_case(db: sqlite3.Connection) -> None:
     )
 
 
+def _item_name_key_version() -> tuple[int, str]:
+    """Version the persisted key algorithm by code and Unicode data tables."""
+    return ITEM_NAME_KEY_ALGORITHM_VERSION, unicodedata.unidata_version
+
+
+def _calculate_item_name_keys(db: sqlite3.Connection) -> list[tuple[str, int]]:
+    """Validate stored display names and compute collision-free keys."""
+    keys: dict[tuple[int, str], int] = {}
+    updates: list[tuple[str, int]] = []
+    rows = db.execute("SELECT id, list_id, name FROM items ORDER BY id").fetchall()
+    for item_id, list_id, name in rows:
+        if not isinstance(name, str):
+            raise MigrationError(
+                f"Cannot rebuild item-name keys: item {item_id} has a non-text name"
+            )
+        if name != item_names.normalize_item_name(name):
+            raise MigrationError(
+                f"Cannot rebuild item-name keys: item {item_id} is not trimmed"
+            )
+        key = item_names.item_name_key(name)
+        previous = keys.get((list_id, key))
+        if previous is not None:
+            raise MigrationError(
+                "Cannot rebuild item-name keys without a collision: items "
+                f"{previous} and {item_id} in list {list_id} normalize to {key!r}"
+            )
+        keys[(list_id, key)] = item_id
+        updates.append((key, item_id))
+    return updates
+
+
+def _write_item_name_keys(
+    db: sqlite3.Connection, updates: list[tuple[str, int]]
+) -> None:
+    """Replace keys/index without treating an implementation change as an edit."""
+    db.execute("DROP TRIGGER items_track_update")
+    db.execute("DROP INDEX idx_items_list_name_key")
+    db.executemany("UPDATE items SET name_key = ? WHERE id = ?", updates)
+    db.execute(
+        "CREATE UNIQUE INDEX idx_items_list_name_key ON items(list_id, name_key)"
+    )
+    db.execute(
+        f"CREATE TRIGGER items_track_update {_CHANGE_TRACKING_TRIGGERS['items_track_update']}"
+    )
+
+
+def _migration_13_version_item_name_keys(db: sqlite3.Connection) -> None:
+    """Store the key algorithm version and reject names not trimmed by Python."""
+    register_sqlite_item_name_key(db)
+    updates = _calculate_item_name_keys(db)
+    _write_item_name_keys(db, updates)
+    db.execute("""
+        CREATE TABLE item_name_key_metadata (
+            singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+            algorithm_version INTEGER NOT NULL,
+            unicode_version TEXT NOT NULL
+        )
+    """)
+    algorithm_version, unicode_version = _item_name_key_version()
+    db.execute(
+        "INSERT INTO item_name_key_metadata "
+        "(singleton, algorithm_version, unicode_version) VALUES (1, ?, ?)",
+        (algorithm_version, unicode_version),
+    )
+    for name, action in (
+        ("insert", "INSERT"),
+        ("update", "UPDATE OF name"),
+    ):
+        db.execute(f"""
+            CREATE TRIGGER items_name_trim_guard_{name}
+            BEFORE {action} ON items
+            WHEN NEW.name IS NOT listr_normalize_item_name(NEW.name)
+            BEGIN SELECT RAISE(ABORT, 'items: a value breaks a field rule'); END
+        """)
+
+
+def _ensure_item_name_key_version(
+    db: sqlite3.Connection, backup_path: Path | None
+) -> None:
+    """Back up and atomically rebuild keys if Python's key semantics changed."""
+    register_sqlite_item_name_key(db)
+    current_version = _item_name_key_version()
+    stored = db.execute(
+        "SELECT algorithm_version, unicode_version "
+        "FROM item_name_key_metadata WHERE singleton = 1"
+    ).fetchone()
+    if stored == current_version:
+        return
+    if stored is None:
+        raise MigrationError("Item-name key version metadata is missing")
+    if db.in_transaction:
+        raise MigrationError("Cannot rebuild item-name keys inside another transaction")
+    if backup_path is not None:
+        try:
+            backup_database(db, backup_path)
+        except Exception as error:
+            raise MigrationError(
+                f"Pre-key-rebuild backup to {backup_path} failed; not rebuilding"
+            ) from error
+
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        stored = db.execute(
+            "SELECT algorithm_version, unicode_version "
+            "FROM item_name_key_metadata WHERE singleton = 1"
+        ).fetchone()
+        if stored == current_version:
+            db.commit()
+            return
+        updates = _calculate_item_name_keys(db)
+        _write_item_name_keys(db, updates)
+        db.execute(
+            "UPDATE item_name_key_metadata SET algorithm_version = ?, "
+            "unicode_version = ? WHERE singleton = 1",
+            current_version,
+        )
+        db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+
+
 # Append new migrations; never edit or reorder one that has been deployed.
 def _migrations(app_password: str) -> list[Migration]:
     return [
@@ -713,6 +838,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_10_times_added,
         _migration_11_invitation_room_counts,
         _migration_12_preserve_item_name_case,
+        _migration_13_version_item_name_keys,
     ]
 
 
@@ -724,7 +850,9 @@ def init_database():
     )
     try:
         register_sqlite_item_name_key(db)
-        run_migrations(db, _migrations(app_password), _backup_path(database_path))
+        backup_path = _backup_path(database_path)
+        run_migrations(db, _migrations(app_password), backup_path)
+        _ensure_item_name_key_version(db, backup_path)
     except BaseException:
         db.close()
         raise

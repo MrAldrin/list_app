@@ -2,7 +2,7 @@
 //
 //   const room = openRoom(slug);       // start: load data, live updates
 //   room.store.lists                   // reactive data (see RoomStore)
-//   await room.addItem(list, 'milk');  // writes: { ok, result } or { ok: false, message }
+//   await room.addItem(list, 'milk');  // writes: { ok, result, pending? } or a failure
 //   closeRoom(room);                   // stop live updates
 //
 //   const shared = openShare(token);   // a share link: one list, same API
@@ -29,7 +29,6 @@ import {
 	retryPendingServerLogout
 } from './pending-logout';
 import { failed, type ActionResult, type Failure } from './result';
-import { itemName, itemNameKey } from './overlay';
 import { rowOf } from './rebase';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { signInRoom, SIGNIN_INTERRUPTED } from './room-signin';
@@ -999,6 +998,16 @@ export class RoomHandle {
 		const blocked = this.#guardEdit();
 		if (blocked) return Promise.resolve(blocked);
 		if (this.store.canWrite) return this.#runOnline<R>(op, onQueued);
+		if (op.type === 'item.add') {
+			// Native browser case tables can differ from the server's Python table.
+			// Keep the op and label it pending instead of predicting a permanent result.
+			this.#queue.send(op, true, onQueued).catch(() => undefined);
+			return Promise.resolve({
+				ok: true,
+				pending: true,
+				result: { item_uid: op.uid, outcome: 'added' } as R
+			});
+		}
 		const provisional = this.#provisional<R>(op);
 		// The answer, if it is a failure, goes to the Not saved list (the op waited);
 		// nobody awaits it here.
@@ -1011,23 +1020,6 @@ export class RoomHandle {
 	 * its effect, so this only says what the answer would most likely be.
 	 */
 	#provisional<R>(op: Op): ActionResult<R> {
-		if (op.type === 'item.add') {
-			const name = itemName(op.name);
-			const key = itemNameKey(name);
-			const same = this.store.itemsOf(op.list_uid).filter((item) => itemNameKey(item.name) === key);
-			if (same.some((item) => !item.done)) {
-				return {
-					ok: false,
-					code: 'duplicate_active',
-					message: `'${name}' is already on the list`
-				};
-			}
-			const existing = same[0];
-			return {
-				ok: true,
-				result: { item_uid: existing?.uid ?? op.uid, outcome: existing ? 'restored' : 'added' } as R
-			};
-		}
 		if (op.type === 'item.restore') return { ok: true, result: { item_uid: op.uid } as R };
 		return { ok: true, result: {} as R };
 	}
