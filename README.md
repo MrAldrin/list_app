@@ -138,7 +138,7 @@ A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 Start with the [documentation hub](docs/index.md) for current behavior, API,
 operations, testing, and planning. The root [architecture](ARCHITECTURE.md) is
 the authority for the stack and major decisions. Background research lives in
-[`docs/background/`](docs/background/); it is evidence, not current guidance.
+`docs/background/`; it is evidence, not current guidance.
 
 ### Documentation preview (local only)
 
@@ -151,8 +151,9 @@ uv run zensical build
 uv run zensical serve --dev-addr 127.0.0.1:8000
 ```
 
-The generated `site/` directory is ignored. The preview includes background
-research, operational guides, planning documents, and private-network details
-from the phone-testing guide. It is for local review only and is not approval
-to publish or expose the site. See the [documentation hub](docs/index.md) for
-content and privacy notes.
+The generated `site/` directory is ignored. The preview excludes
+`docs/local-network-testing.md` and all of `docs/background/`; source files stay
+unchanged. Links to excluded pages redirect to a site-specific exclusions
+notice. Other operational guides and planning
+proposals remain included, so this local preview is not approval to publish or
+expose the site. See the hub for content and privacy limits.

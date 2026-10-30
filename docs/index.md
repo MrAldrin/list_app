@@ -19,9 +19,8 @@ copying it.
 
 - [Local setup and app development](../README.md)
 - [Deployment, backups, and recovery](deployment.md)
-- Tests: [real browsers](browser-testing.md),
-  [Android emulator](android-emulator-testing.md), and
-  [phone over the network](local-network-testing.md)
+- Tests: [real browsers](browser-testing.md) and
+  [Android emulator](android-emulator-testing.md)
 - [Scope and approval gates](scope.md)
 - [Agent rules](../AGENTS.md)
 
@@ -34,11 +33,11 @@ the backlog by an owner decision become selected work.
 
 ## Local site preview only
 
-The generated site includes current guides, operational instructions,
-historical research under `docs/background/`, and planning documents. In
-particular, the [phone-testing guide](local-network-testing.md) contains private
-Tailscale addresses, a hostname, and firewall details. This material has not
-been reviewed for public release. The local preview is not publication
-approval; get an owner review before exposing or publishing the generated site.
-See the README's [local documentation preview](../README.md#documentation-preview-local-only)
-for build instructions.
+The local preview excludes private-network details and internal evidence while
+keeping the original sources in the repository. Links to excluded pages route
+to a site-specific notice. See [preview exclusions](preview-exclusions.md) for
+the details and limitations. Other operational guides and plans remain in the
+output, which has not been reviewed for public release and is not publication
+approval. Get an owner review before exposing or publishing it. See the README's
+[local documentation preview](../README.md#documentation-preview-local-only) for
+build instructions.

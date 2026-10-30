@@ -12,6 +12,8 @@ exclude_docs = '''
 !AGENTS.md
 !ARCHITECTURE.md
 !docs/**
+docs/local-network-testing.md
+docs/background/**
 !plans/**
 !frontend/
 !frontend/README.md
@@ -51,9 +53,9 @@ nav = [
     { "Frontend guide" = "frontend/README.md" },
     { "Deployment" = "docs/deployment.md" },
     { "Scope" = "docs/scope.md" },
+    { "Preview exclusions" = "docs/preview-exclusions.md" },
     { "Browser tests" = "docs/browser-testing.md" },
     { "Android tests" = "docs/android-emulator-testing.md" },
-    { "Phone testing" = "docs/local-network-testing.md" },
     { "Agent rules" = "AGENTS.md" },
   ] },
   { "Work and proposals" = [
@@ -66,3 +68,38 @@ nav = [
 language = "en"
 features = ["navigation.footer", "navigation.sections", "navigation.tracking", "navigation.top", "search.highlight"]
 font = false
+
+# Excluded source links and directory routes land on the preview notice.
+[project.plugins.redirects.redirect_maps]
+"docs/background/" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/" = "docs/preview-exclusions.md"
+"docs/local-network-testing.md" = "docs/preview-exclusions.md"
+"docs/background/android-emulator-testing.md" = "docs/preview-exclusions.md"
+"docs/background/backup-research.md" = "docs/preview-exclusions.md"
+"docs/background/browser-testing.md" = "docs/preview-exclusions.md"
+"docs/background/browser-test-port-map.md" = "docs/preview-exclusions.md"
+"docs/background/codebase-cleanup.md" = "docs/preview-exclusions.md"
+"docs/background/deploy-rehearsal-2026-10-06.md" = "docs/preview-exclusions.md"
+"docs/background/field-constraints.md" = "docs/preview-exclusions.md"
+"docs/background/fixes-deployment-2026-10-06.md" = "docs/preview-exclusions.md"
+"docs/background/home-screen-installation.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/accounts.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/backend.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/docs.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/features.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/frontend.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/perf-security.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/tooling.md" = "docs/preview-exclusions.md"
+"docs/background/improvement-review-2026-10/ux.md" = "docs/preview-exclusions.md"
+"docs/background/item-writes.md" = "docs/preview-exclusions.md"
+"docs/background/nicegui-test-retirement.md" = "docs/preview-exclusions.md"
+"docs/background/offline-editing-details.md" = "docs/preview-exclusions.md"
+"docs/background/offline-editing-release-validation.md" = "docs/preview-exclusions.md"
+"docs/background/offline-findings.md" = "docs/preview-exclusions.md"
+"docs/background/offline-viewing-validation.md" = "docs/preview-exclusions.md"
+"docs/background/sqlite-wal-timeout.md" = "docs/preview-exclusions.md"
+"docs/background/staging-environment.md" = "docs/preview-exclusions.md"
+"docs/background/svelte-frontend-rewrite.md" = "docs/preview-exclusions.md"
+"docs/background/svelte-rollback.md" = "docs/preview-exclusions.md"
+"docs/background/test-suite-speed.md" = "docs/preview-exclusions.md"
+"docs/background/write-atomicity-findings.md" = "docs/preview-exclusions.md"
