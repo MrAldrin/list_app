@@ -135,21 +135,24 @@ A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 
 ## Documentation
 
-- [Scope, risk level and approval gates](docs/scope.md)
-- [Architecture and security boundaries](ARCHITECTURE.md)
-- [Deployment, backups, and recovery](docs/deployment.md)
-- [Public list sharing](docs/public-sharing.md)
-- [Room invitations](docs/room-invitations.md)
-- [Hiding checked-off items](docs/checked-item-visibility.md)
-- [Sorting items](docs/item-sorting.md)
-- [Home-screen installation and device checks](docs/home-screen-installation.md)
-- [Item writes and stale pages](docs/item-writes.md)
-- [Offline viewing](docs/offline-viewing.md)
-- [Change tracking](docs/change-tracking.md)
-- [JSON API](docs/api.md)
-- Testing: [real browsers](docs/browser-testing.md), [Android emulator](docs/android-emulator-testing.md), [phone over the network](docs/local-network-testing.md)
-- [Agent rules](AGENTS.md)
-- [Backlog](plans/backlog.md)
+Start with the [documentation hub](docs/index.md) for current behavior, API,
+operations, testing, and planning. The root [architecture](ARCHITECTURE.md) is
+the authority for the stack and major decisions. Background research lives in
+[`docs/background/`](docs/background/); it is evidence, not current guidance.
 
-Background material (investigations, measurements, evidence) is in
-[`docs/background/`](docs/background/).
+### Documentation preview (local only)
+
+Zensical builds the maintained Markdown directly, including the root
+`ARCHITECTURE.md`; there is no second architecture copy. Install the development
+dependencies with `uv sync`, then build or preview from the repository root:
+
+```bash
+uv run zensical build
+uv run zensical serve --dev-addr 127.0.0.1:8000
+```
+
+The generated `site/` directory is ignored. The preview includes background
+research, operational guides, planning documents, and private-network details
+from the phone-testing guide. It is for local review only and is not approval
+to publish or expose the site. See the [documentation hub](docs/index.md) for
+content and privacy notes.

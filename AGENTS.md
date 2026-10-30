@@ -24,7 +24,13 @@ Each fact has one home. Link to it rather than copying it.
 - `ARCHITECTURE.md`: stack, boundaries, security decisions and major UX
   decisions. Keep implementation mechanics in linked docs.
 - `docs/`: current behavior, contracts and operational guides. Update affected
-  docs when behavior changes. `docs/scope.md` is the standing scope.
+  docs when behavior changes. `docs/scope.md` is the standing scope. Start
+  readers at [`docs/index.md`](docs/index.md).
+- The root [`ARCHITECTURE.md`](ARCHITECTURE.md) is authoritative; the Zensical
+  preview reads that file directly instead of maintaining a second copy. The
+  [README's local preview](README.md#documentation-preview-local-only) explains
+  the commands and content/privacy limits. Preview configuration does not grant
+  permission to publish.
 - `docs/background/`: evidence and reasoning behind current docs: investigations,
   measurements, audit logs. May be long. Never the primary source for current
   behavior; current docs link to it.

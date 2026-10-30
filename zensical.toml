@@ -1,0 +1,68 @@
+[project]
+site_name = "ListR documentation"
+site_url = "http://localhost:8000/"
+docs_dir = "."
+site_dir = "site"
+
+# Keep the authoritative root architecture and maintained Markdown sources in
+# the preview without copying the architecture into docs/ or copying app code.
+exclude_docs = '''
+**
+!README.md
+!AGENTS.md
+!ARCHITECTURE.md
+!docs/**
+!plans/**
+!frontend/
+!frontend/README.md
+frontend/**
+!frontend/README.md
+.venv/
+.venv/**
+.env
+.env.*
+.jj/
+.jj/**
+.codex/
+.codex/**
+local_only/
+local_only/**
+**/*.db
+**/*-pre-migration.db*
+**/*.sqlite*
+'''
+
+nav = [
+  { "Documentation" = "docs/index.md" },
+  { "Architecture" = "ARCHITECTURE.md" },
+  { "Using ListR" = [
+    { "Public sharing" = "docs/public-sharing.md" },
+    { "Room invitations" = "docs/room-invitations.md" },
+    { "Offline use" = "docs/offline-viewing.md" },
+    { "Change tracking" = "docs/change-tracking.md" },
+    { "Item writes" = "docs/item-writes.md" },
+    { "Checked-item visibility" = "docs/checked-item-visibility.md" },
+    { "Item sorting" = "docs/item-sorting.md" },
+    { "Home-screen installation" = "docs/home-screen-installation.md" },
+    { "JSON API" = "docs/api.md" },
+  ] },
+  { "Development and operations" = [
+    { "README" = "README.md" },
+    { "Frontend guide" = "frontend/README.md" },
+    { "Deployment" = "docs/deployment.md" },
+    { "Scope" = "docs/scope.md" },
+    { "Browser tests" = "docs/browser-testing.md" },
+    { "Android tests" = "docs/android-emulator-testing.md" },
+    { "Phone testing" = "docs/local-network-testing.md" },
+    { "Agent rules" = "AGENTS.md" },
+  ] },
+  { "Work and proposals" = [
+    { "Backlog" = "plans/backlog.md" },
+    { "Improvement ideas" = "plans/improvement-ideas.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+features = ["navigation.footer", "navigation.sections", "navigation.tracking", "navigation.top", "search.highlight"]
+font = false
