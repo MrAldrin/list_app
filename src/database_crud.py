@@ -21,6 +21,7 @@ from field_limits import (
     too_long_message,
 )
 from identifiers import make_slug, token_hash
+from item_names import item_name_key, normalize_item_name
 from item_visibility import parse_completion_time, validate_visibility_settings
 from password_hashing import hash_password
 
@@ -50,16 +51,6 @@ def transaction(*, write: bool = False) -> Iterator[None]:
         except BaseException:
             db.rollback()
             raise
-
-
-def normalize_item_name(raw: str | None) -> str:
-    """Trim an item name without changing the case people entered."""
-    return (raw or "").strip()
-
-
-def item_name_key(name: str) -> str:
-    """The Unicode-aware, case-insensitive key used to find duplicate items."""
-    return name.strip().lower()
 
 
 def normalize_display_name(raw: str | None) -> str:

@@ -179,7 +179,7 @@ def test_completion_timestamp_tracks_transitions_and_add_search_restoration():
 
     items, history = get_list_data(list_id)
     assert len(items) == 1
-    assert history == ["milk"]
+    assert history == ["Milk"]
 
 
 def test_checked_item_insert_gets_utc_timestamp_and_get_list_data_keeps_history():

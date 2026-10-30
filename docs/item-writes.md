@@ -49,11 +49,15 @@ list is full.
 The database guards the same rules as a safety net: `BEFORE INSERT` and
 `BEFORE UPDATE` triggers reject blank or untrimmed names, a missing duplicate
 key, missing slugs, quantities below 1, `done` other than 0 or 1, a completion
-time on an unchecked item, and tags that are not a JSON array. The item-name
-guard was updated in migration 12 to allow capitalization. A rejected write
-raises `sqlite3.IntegrityError`. Rules and reasons: the
-[field constraints background](background/field-constraints.md). Tests:
-`tests/test_field_limits.py`, `tests/test_field_rules_migration.py`.
+time on an unchecked item, and tags that are not a JSON array. Migration 12
+updated the item-name guard to allow capitalization and check that `name_key`
+matches Python's `lower()` result. It calls `listr_item_name_key()`, registered
+on the app's SQLite connection. Other SQLite connections can read the database
+and update other item fields; connections that insert or rename items must
+register the same function. A rejected write raises `sqlite3.IntegrityError`.
+Rules and reasons: the [field constraints background](background/field-constraints.md).
+Tests: `tests/test_field_limits.py`, `tests/test_field_rules_migration.py`,
+`tests/test_item_name_capitalization_migration.py`.
 
 ## Item identity
 

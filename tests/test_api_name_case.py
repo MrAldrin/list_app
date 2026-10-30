@@ -78,6 +78,26 @@ def test_list_rename_to_another_case_of_its_own_name(room):
     assert "ØL" in list_names(room_id)
 
 
+def test_item_add_uses_python_strip_whitespace(room):
+    _, slug, client = room
+    _, list_uid = default_list()
+
+    result = op(
+        client,
+        slug,
+        list_op(
+            "item.add", list_uid=list_uid, name="\u0085Oat Milk\u0085", uid=new_id()
+        ),
+    )
+
+    assert result["status"] == "applied"
+    item_uid = result["result"]["item_uid"]
+    assert item_row(item_uid)["name"] == "Oat Milk"
+    assert db.execute(
+        "SELECT name_key FROM items WHERE uid = ?", (item_uid,)
+    ).fetchone() == ("oat milk",)
+
+
 def test_item_add_finds_an_item_in_another_case(room):
     _, slug, client = room
     list_id, list_uid = default_list()

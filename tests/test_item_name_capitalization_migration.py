@@ -105,6 +105,38 @@ def test_duplicate_key_collision_fails_without_changing_data_or_schema():
         assert second_id != first_id
 
 
+def test_name_key_guards_match_python_lower_for_direct_sql_writes():
+    with closing(sqlite3.connect(":memory:")) as db, db:
+        migrate_to(db)
+        item_id = create_old_item(db, "milk")
+
+        with pytest.raises(sqlite3.IntegrityError, match="breaks a field rule"):
+            db.execute(
+                "UPDATE items SET name = 'ẞeta', name_key = 'ẞeta' WHERE id = ?",
+                (item_id,),
+            )
+        assert db.execute(
+            "SELECT name, name_key FROM items WHERE id = ?", (item_id,)
+        ).fetchone() == ("milk", "milk")
+
+        db.execute(
+            "UPDATE items SET name = 'ẞeta', name_key = 'ßeta' WHERE id = ?",
+            (item_id,),
+        )
+        with pytest.raises(sqlite3.IntegrityError, match="breaks a field rule"):
+            db.execute("UPDATE items SET name_key = 'ẞeta' WHERE id = ?", (item_id,))
+        assert db.execute(
+            "SELECT name, name_key FROM items WHERE id = ?", (item_id,)
+        ).fetchone() == ("ẞeta", "ßeta")
+
+        with pytest.raises(sqlite3.IntegrityError, match="breaks a field rule"):
+            db.execute(
+                "INSERT INTO items (name, name_key, done, list_id) "
+                "SELECT 'ẞeta', 'ẞeta', 0, list_id FROM items WHERE id = ?",
+                (item_id,),
+            )
+
+
 def test_item_field_triggers_allow_case_but_keep_other_rules():
     with closing(sqlite3.connect(":memory:")) as db, db:
         migrate_to(db)

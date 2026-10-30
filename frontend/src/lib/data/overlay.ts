@@ -74,9 +74,39 @@ export interface AnsweredSeq {
 	appliedSeq: number;
 }
 
-/** Item display names keep their case and lose only outer whitespace. */
+// Python 3.13 str.isspace() code points used by str.strip(). JavaScript trim()
+// differs for NEL and the information separators, and also strips the BOM.
+function isPythonStripWhitespace(character: string): boolean {
+	const codePoint = character.codePointAt(0);
+	return (
+		codePoint !== undefined &&
+		((codePoint >= 0x09 && codePoint <= 0x0d) ||
+			(codePoint >= 0x1c && codePoint <= 0x20) ||
+			codePoint === 0x85 ||
+			codePoint === 0xa0 ||
+			codePoint === 0x1680 ||
+			(codePoint >= 0x2000 && codePoint <= 0x200a) ||
+			codePoint === 0x2028 ||
+			codePoint === 0x2029 ||
+			codePoint === 0x202f ||
+			codePoint === 0x205f ||
+			codePoint === 0x3000)
+	);
+}
+
+/** Trim exactly the Unicode whitespace Python's str.strip() removes. */
+export function trimItemName(name: string): string {
+	const characters = Array.from(name);
+	let start = 0;
+	let end = characters.length;
+	while (start < end && isPythonStripWhitespace(characters[start])) start += 1;
+	while (end > start && isPythonStripWhitespace(characters[end - 1])) end -= 1;
+	return characters.slice(start, end).join('');
+}
+
+/** Item display names keep their case and lose only Python-style outer whitespace. */
 export function itemName(name: string): string {
-	return name.trim();
+	return trimItemName(name);
 }
 
 /** The duplicate key for item names, matching Python's `str.lower()` rule. */

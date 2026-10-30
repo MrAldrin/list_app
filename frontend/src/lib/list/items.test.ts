@@ -20,6 +20,9 @@ const named = (...names: string[]) => names.map((name) => ({ name }));
 describe('normalizeItemName', () => {
 	it('trims while keeping the display capitalization', () => {
 		expect(normalizeItemName('  Oat Milk ')).toBe('Oat Milk');
+		expect(normalizeItemName('\u0085Oat Milk\u0085')).toBe('Oat Milk');
+		expect(normalizeItemName('\u001cBREAD\u001f')).toBe('BREAD');
+		expect(normalizeItemName('\ufeffMilk\ufeff')).toBe('\ufeffMilk\ufeff');
 		expect(normalizeItemName('   ')).toBe('');
 	});
 });

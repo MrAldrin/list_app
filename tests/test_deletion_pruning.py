@@ -87,7 +87,8 @@ def test_upgrade_keeps_old_records_and_stamps_them_with_the_migration_time(
         (home_id,),
     )
     connection.execute(
-        "INSERT INTO items (id, name, done, list_id) VALUES (2, 'bread', 0, 2)"
+        "INSERT INTO items (id, name, name_key, done, list_id) "
+        "VALUES (2, 'bread', 'bread', 0, 2)"
     )
     connection.execute("DELETE FROM items WHERE id = 2")
     created = connection.execute(

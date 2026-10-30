@@ -22,6 +22,7 @@ def test_default_database_path_is_project_relative_from_other_working_directory(
     shutil.copy(source_root / "src" / "database_setup.py", project_src)
     shutil.copy(source_root / "src" / "config.py", project_src)
     shutil.copy(source_root / "src" / "identifiers.py", project_src)
+    shutil.copy(source_root / "src" / "item_names.py", project_src)
     shutil.copy(source_root / "src" / "migrations.py", project_src)
     shutil.copy(source_root / "src" / "password_hashing.py", project_src)
 
@@ -87,6 +88,41 @@ def test_fresh_database_is_at_latest_version_with_visibility_columns(
     } <= list_columns
     assert "completed_at" in item_columns
     connection.close()
+
+
+def test_reopening_registers_name_key_guard_and_external_field_updates_work(
+    tmp_path, monkeypatch
+):
+    database_path = tmp_path / "item-name-key.db"
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    db = init_database()
+    room_id = db.execute("SELECT id FROM rooms").fetchone()[0]
+    list_id = db.execute(
+        "INSERT INTO lists (name, slug, room_id, share_token) "
+        "VALUES ('Shop', 'shop', ?, 'shop-token')",
+        (room_id,),
+    ).lastrowid
+    db.execute(
+        "INSERT INTO items (name, name_key, done, list_id) "
+        "VALUES ('ẞeta', 'ßeta', 0, ?)",
+        (list_id,),
+    )
+    db.commit()
+    db.close()
+
+    reopened = init_database()
+    with pytest.raises(sqlite3.IntegrityError, match="breaks a field rule"):
+        reopened.execute("UPDATE items SET name_key = 'ẞeta'")
+    assert reopened.execute("SELECT name_key FROM items").fetchone()[0] == "ßeta"
+    reopened.commit()
+    reopened.close()
+
+    # A plain SQLite reader/writer can still inspect the DB and update other
+    # item fields; only the Python-lower name/key invariant needs the app UDF.
+    with closing(sqlite3.connect(database_path)) as external, external:
+        assert external.execute("SELECT name FROM items").fetchone()[0] == "ẞeta"
+        external.execute("UPDATE items SET quantity = 2")
+        assert external.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
 
 
 def test_default_room_uses_configured_password_without_resetting_it(

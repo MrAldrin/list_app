@@ -7,7 +7,7 @@ import {
 	itemSortChoice,
 	type ItemSortChoice
 } from '#lib/data/order.ts';
-import { itemNameKey } from '#lib/data/overlay.ts';
+import { itemName, itemNameKey } from '#lib/data/overlay.ts';
 import type { Item } from '#lib/data/index.ts';
 import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 
@@ -28,7 +28,7 @@ export const MAX_SUGGESTIONS = 3;
 
 /** Like the server's item-name display normalization: trim, but keep case. */
 export function normalizeItemName(raw: string): string {
-	return raw.trim();
+	return itemName(raw);
 }
 
 /**

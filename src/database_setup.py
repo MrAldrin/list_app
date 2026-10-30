@@ -8,6 +8,7 @@ from typing import Any, cast
 
 from config import require_app_password
 from identifiers import make_slug
+from item_names import register_sqlite_item_name_key
 from migrations import Migration, run_migrations
 from password_hashing import hash_password
 
@@ -621,6 +622,7 @@ def _migration_12_preserve_item_name_case(db: sqlite3.Connection) -> None:
     """
     rows = db.execute("SELECT id, list_id, name FROM items ORDER BY id").fetchall()
     keys: dict[tuple[int, str], int] = {}
+    register_sqlite_item_name_key(db)
     backfill: list[tuple[str, int]] = []
     for item_id, list_id, name in rows:
         if not isinstance(name, str):
@@ -653,7 +655,7 @@ def _migration_12_preserve_item_name_case(db: sqlite3.Connection) -> None:
     db.execute("DROP INDEX idx_items_list_name_nocase")
 
     # Migration 6's rule prohibited uppercase names. Keep its other guards and
-    # require a key, but leave key calculation to Python's Unicode-aware lower().
+    # require a key; the Python-backed guard below verifies the key exactly.
     db.execute("DROP TRIGGER items_field_rules_insert")
     db.execute("DROP TRIGGER items_field_rules_update")
     columns, old_rules = _FIELD_RULES["items"]
@@ -675,6 +677,22 @@ def _migration_12_preserve_item_name_case(db: sqlite3.Connection) -> None:
             WHEN {condition}
             BEGIN SELECT RAISE(ABORT, 'items: a value breaks a field rule'); END
         """)
+    db.execute("""
+        CREATE TRIGGER items_name_key_guard_insert
+        BEFORE INSERT ON items
+        WHEN NEW.name_key IS NOT listr_item_name_key(NEW.name)
+        BEGIN
+            SELECT RAISE(ABORT, 'items: a value breaks a field rule');
+        END
+    """)
+    db.execute("""
+        CREATE TRIGGER items_name_key_guard_update
+        BEFORE UPDATE OF name, name_key ON items
+        WHEN NEW.name_key IS NOT listr_item_name_key(NEW.name)
+        BEGIN
+            SELECT RAISE(ABORT, 'items: a value breaks a field rule');
+        END
+    """)
     db.execute(
         f"CREATE TRIGGER items_track_update {_CHANGE_TRACKING_TRIGGERS['items_track_update']}"
     )
@@ -705,6 +723,7 @@ def init_database():
         database_path, check_same_thread=False, timeout=LOCK_WAIT_SECONDS
     )
     try:
+        register_sqlite_item_name_key(db)
         run_migrations(db, _migrations(app_password), _backup_path(database_path))
     except BaseException:
         db.close()

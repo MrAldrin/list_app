@@ -1449,10 +1449,10 @@ describe('offline editing (6.2d)', () => {
 
 		void offline.setDone(item, true);
 		void offline.editItem(item, { name: 'Milk', description: 'cold' });
-		void offline.addItem(list, 'Bread');
+		void offline.addItem(list, '\u0085Oat Milk\u0085');
 		expect(offlineApi.sendOp).not.toHaveBeenCalled();
 		expect(offline.store.item(item.uid)).toMatchObject({ name: 'Milk' });
-		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toContain('Bread');
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toContain('Oat Milk');
 		// The three ops are written to storage before the page is closed.
 		await waitFor(async () => expect(await queue.read()).toHaveLength(3));
 		offline.release();
@@ -1465,6 +1465,11 @@ describe('offline editing (6.2d)', () => {
 			'item.edit',
 			'item.add'
 		]);
+		expect(reloaded.store.itemsOf(list.uid).map((row) => row.name)).toContain('Oat Milk');
+		expect(reloaded.queuedOps[2]).toMatchObject({
+			type: 'item.add',
+			name: '\u0085Oat Milk\u0085'
+		});
 		expect(reloaded.store.item(item.uid)).toMatchObject({ done: true, description: 'cold' });
 		expect(reloaded.waitingCount).toBe(3);
 
@@ -1491,7 +1496,7 @@ describe('offline editing (6.2d)', () => {
 		expect(sent[0]).toMatchObject({ item_uid: item.uid, done: true, base_seq: 1 });
 		// The edit was based on the same view: its base moved to the seq the tick got.
 		expect(sent[1]).toMatchObject({ base_seq: 2, name: 'Milk', description: 'cold' });
-		expect(sent[2]).toMatchObject({ name: 'Bread' });
+		expect(sent[2]).toMatchObject({ name: '\u0085Oat Milk\u0085' });
 		await waitFor(() => expect(reloaded.waitingCount).toBe(0));
 		expect(reloaded.queuedOps).toEqual([]);
 		reloaded.release();

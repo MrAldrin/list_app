@@ -43,6 +43,9 @@ def test_normalize_item_name():
     assert normalize_item_name(raw="  Apples  ") == "Apples"
     assert normalize_item_name(raw=None) == ""
     assert normalize_item_name(raw="\nBREAD\t") == "BREAD"
+    assert normalize_item_name(raw="\u0085Oat Milk\u0085") == "Oat Milk"
+    assert normalize_item_name(raw="\u001cBREAD\u001f") == "BREAD"
+    assert normalize_item_name(raw="\ufeffMilk\ufeff") == "\ufeffMilk\ufeff"
     assert item_name_key("ẞ") == "ß"
 
 

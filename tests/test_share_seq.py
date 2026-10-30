@@ -222,7 +222,8 @@ def test_migration_records_the_list_of_new_deletions_only(tmp_path, monkeypatch)
 
     assert connection.execute("SELECT list_uid FROM deletions").fetchall() == [(None,)]
     connection.execute(
-        "INSERT INTO items (id, name, done, list_id) VALUES (2, 'tea', 0, 1)"
+        "INSERT INTO items (id, name, name_key, done, list_id) "
+        "VALUES (2, 'tea', 'tea', 0, 1)"
     )
     connection.execute("DELETE FROM items WHERE id = 2")
     shop_uid = connection.execute("SELECT uid FROM lists WHERE id = 1").fetchone()[0]

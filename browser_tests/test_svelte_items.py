@@ -52,6 +52,19 @@ def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session
     expect(field).to_be_focused()
 
 
+def test_add_trims_python_whitespace(svelte_server, open_session):
+    server = svelte_server
+    page = open_session("phone", **PHONE)
+    sign_in(page, server)
+    create_list(page, "Groceries")
+    field = page.get_by_label("Add or Search")
+
+    field.fill("\u0085Oat Milk\u0085")
+    field.press("Enter")
+    expect(page.get_by_text("Added Oat Milk")).to_be_visible()
+    expect(item_names(page)).to_have_text(["Oat Milk"])
+
+
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
