@@ -62,6 +62,17 @@ existing match and receives the skipped result. Assert the edit is retargeted
 to the kept UID with its returned `base_seq`. Cover the same sequence end to end
 in `frontend/src/lib/data/offline-integration.test.ts`.
 
+## Documentation updates after implementation
+
+Update `docs/api-lists-items.md` with the `item.add_if_absent` operation and its
+applied result shape `{item_uid, outcome, changed_seq}`, where `outcome` is
+`added` or `skipped`; document the kept item's UID and current `changed_seq` and
+that a skipped result does not mutate the item. Update
+`docs/offline-viewing.md` to explain that cached groups can be used offline,
+group management requires a connection, and each member is queued/replayed
+separately with partial results and UID remapping when a concurrent add is
+skipped.
+
 ## Questions for Lead
 
 - Confirm room-wide reusable groups rather than per-list or device-local groups,
