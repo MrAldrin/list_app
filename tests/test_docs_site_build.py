@@ -493,6 +493,40 @@ def test_existing_site_user_artifact_is_preserved_and_rejected(tmp_path, monkeyp
     assert artifact.read_text(encoding="utf-8") == "preserve me"
 
 
+def test_existing_site_empty_foreign_directory_is_preserved_and_rejected(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "docs").mkdir()
+    (root / "README.md").write_text("# Home\n", encoding="utf-8")
+    (root / "docs/index.md").write_text("# Maintained page\n", encoding="utf-8")
+    (root / "docs/preview-exclusions.md").write_text(
+        "# Preview exclusions\n", encoding="utf-8"
+    )
+    config = write_test_config(root)
+    build_docs_site.build_site(root, config)
+
+    foreign_directory = root / "site/user-added-empty-directory"
+    foreign_directory.mkdir()
+    original_run = build_docs_site.subprocess.run
+
+    def unexpected_build(*args, **kwargs):
+        raise AssertionError("unowned directory reached Zensical")
+
+    monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
+    with pytest.raises(ValueError, match="unowned or missing directories"):
+        build_docs_site.build_site(root, config)
+
+    assert foreign_directory.is_dir()
+    assert not any(foreign_directory.iterdir())
+
+    foreign_directory.rmdir()
+    monkeypatch.setattr(build_docs_site.subprocess, "run", original_run)
+    build_docs_site.build_site(root, config)
+    assert build_docs_site.owned_output_manifest(root / "site") is not None
+
+
 def test_failed_validation_preserves_previous_site_and_manual_rebuild_refreshes(
     tmp_path, monkeypatch
 ):

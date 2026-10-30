@@ -82,15 +82,18 @@ def project_exclude_rules(project: dict[str, object]) -> set[str]:
     return {rule.strip() for rule in rules if rule.strip()}
 
 
-def output_files(site_root: Path, *, allow_owner: bool = False) -> tuple[Path, ...]:
+def output_tree(
+    site_root: Path, *, allow_owner: bool = False
+) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
     if site_root.is_symlink():
         raise ValueError("refusing to follow output symlink: site root")
     if not site_root.exists():
-        return ()
+        return (), ()
     if not site_root.is_dir():
         raise ValueError("site/ must be a directory before the build")
 
     files: list[Path] = []
+    directories: list[Path] = []
     pending = [site_root]
     while pending:
         directory = pending.pop()
@@ -106,16 +109,22 @@ def output_files(site_root: Path, *, allow_owner: bool = False) -> tuple[Path, .
                     raise ValueError(f"output contains a hidden path: {relative}")
                 mode = entry.stat(follow_symlinks=False).st_mode
                 if stat.S_ISDIR(mode):
+                    directories.append(path)
                     pending.append(path)
                 elif stat.S_ISREG(mode):
                     files.append(path)
                 else:
                     raise ValueError(f"output contains a non-regular file: {relative}")
-    return tuple(files)
+    return tuple(files), tuple(directories)
+
+
+def output_files(site_root: Path, *, allow_owner: bool = False) -> tuple[Path, ...]:
+    files, _ = output_tree(site_root, allow_owner=allow_owner)
+    return files
 
 
 def ensure_safe_output_tree(site_root: Path, *, allow_owner: bool = False) -> None:
-    output_files(site_root, allow_owner=allow_owner)
+    output_tree(site_root, allow_owner=allow_owner)
 
 
 def safe_output_path(path: Path) -> Path:
@@ -369,7 +378,7 @@ def create_staging_tree(
 
 
 def owned_output_manifest(site_root: Path) -> dict[str, str] | None:
-    ensure_safe_output_tree(site_root, allow_owner=True)
+    files, directories = output_tree(site_root, allow_owner=True)
     if not site_root.exists():
         return None
     owner = site_root / OWNER_FILE
@@ -393,9 +402,7 @@ def owned_output_manifest(site_root: Path) -> dict[str, str] | None:
         raise ValueError("site output has an invalid ownership record")
     expected = data["files"]
     actual_files = {
-        path.relative_to(site_root).as_posix(): path
-        for path in output_files(site_root, allow_owner=True)
-        if path != owner
+        path.relative_to(site_root).as_posix(): path for path in files if path != owner
     }
     if set(actual_files) != set(expected):
         raise ValueError("site output contains unowned or missing files")
@@ -405,18 +412,48 @@ def owned_output_manifest(site_root: Path) -> dict[str, str] | None:
             raise ValueError(
                 f"site output was modified outside the builder: {relative}"
             )
+
+    actual_directories = {
+        path.relative_to(site_root).as_posix() for path in directories
+    }
+    recorded_directories = data.get("directories")
+    if recorded_directories is None:
+        expected_directories = {
+            parent.as_posix()
+            for relative in expected
+            for parent in PurePosixPath(relative).parents
+            if parent.as_posix() != "."
+        }
+    elif isinstance(recorded_directories, list) and all(
+        isinstance(directory, str) for directory in recorded_directories
+    ):
+        expected_directories = set(recorded_directories)
+        if len(expected_directories) != len(recorded_directories):
+            raise ValueError("site output has an invalid directory ownership record")
+    else:
+        raise ValueError("site output has an invalid directory ownership record")
+    if actual_directories != expected_directories:
+        raise ValueError("site output contains unowned or missing directories")
     return expected
 
 
 def add_output_owner(site_root: Path) -> None:
+    output_files, output_directories = output_tree(site_root)
     files = {
         path.relative_to(site_root).as_posix(): hashlib.sha256(
             path.read_bytes()
         ).hexdigest()
-        for path in output_files(site_root)
+        for path in output_files
     }
+    directories = sorted(
+        path.relative_to(site_root).as_posix() for path in output_directories
+    )
     (site_root / OWNER_FILE).write_text(
-        json.dumps({"version": 1, "files": files}, sort_keys=True) + "\n",
+        json.dumps(
+            {"version": 1, "files": files, "directories": directories},
+            sort_keys=True,
+        )
+        + "\n",
         encoding="utf-8",
     )
 
