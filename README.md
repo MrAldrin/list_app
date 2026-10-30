@@ -153,8 +153,10 @@ python3 -m http.server --bind 127.0.0.1 --directory site 8000
 ```
 
 Open <http://127.0.0.1:8000/>. Stop the local server with Ctrl-C. The build
-wrapper rejects unsafe source/output paths and symlinks before Zensical refreshes its
-output, discovers excluded pages, writes fragment-free redirects, and checks
+wrapper makes a temporary staging tree of individual file symlinks to the
+allowed Markdown sources, then builds the site from that tree. It does not copy
+or move the maintained source files. It rejects unsafe source/output paths and
+symlinks, discovers excluded pages, writes fragment-free redirects, and checks
 generated links. Treat `zensical.toml` as trusted project code: its exclusions
 are not a security boundary. Review generated output after changing preview
 configuration or source files. The `site/` directory is ignored. The preview
@@ -163,3 +165,8 @@ and all of `docs/background/`; source files stay unchanged. Links to excluded
 pages redirect to a site-specific exclusions notice. Other operational guides
 and planning proposals remain included, so this local preview is not approval to
 publish or expose the site. See the hub for content and privacy limits.
+
+The preview is a manual snapshot. After editing documentation or its
+configuration, rerun `uv run python scripts/build_docs_site.py` and reload the
+browser page. The local HTTP server does not watch the maintained sources or
+rebuild the preview automatically.

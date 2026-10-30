@@ -269,14 +269,12 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
     root = tmp_path / "project"
     root.mkdir()
     config = write_test_config(root)
-    stale_output = root / "site" / "stale" / "generated-before-build.html"
-    stale_output.parent.mkdir(parents=True)
-    stale_output.write_text("synthetic stale output", encoding="utf-8")
     sources = {
         "README.md": "PUBLIC_ROOT_README_SENTINEL",
         "AGENTS.md": "PUBLIC_ROOT_AGENTS_SENTINEL",
         "ARCHITECTURE.md": "PUBLIC_ROOT_ARCHITECTURE_SENTINEL",
         "docs/index.md": "PUBLIC_DOCS_INDEX_SENTINEL",
+        "docs/guide.md": "PUBLIC_GUIDE_SENTINEL",
         "docs/allium/README.md": "PUBLIC_NESTED_DOCS_README_SENTINEL",
         "docs/allium/public-sharing.allium": "PUBLIC_ALLIUM_EXAMPLE_SENTINEL",
         "docs/private-section/README.md": "PRIVATE_NESTED_DOCS_README_SENTINEL",
@@ -322,7 +320,10 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
     for relative, marker in sources.items():
         body = f"# {marker}\n"
         if relative == "docs/index.md":
+            body += "\n## Landing\n\n[guide](guide.md#guide)\n"
             body += "\n[excluded page](background/future-review.md#private-anchor)\n"
+        elif relative == "docs/guide.md":
+            body = f"# {marker}\n\n## Guide\n\n[landing](index.md#landing)\n"
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
@@ -330,7 +331,6 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
     redirect_count, checked_links = build_docs_site.build_site(root, config)
 
     site = root / "site"
-    assert not stale_output.exists()
     output_text = "\n".join(
         path.read_text(encoding="utf-8", errors="ignore")
         for path in site.rglob("*")
@@ -359,6 +359,171 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
         .read_text(encoding="utf-8")
         .startswith("# PRIVATE_FUTURE_REVIEW_SENTINEL")
     )
+
+
+def test_staging_tree_includes_untracked_sources_and_omits_exclusions(tmp_path):
+    root = tmp_path / "project"
+    files = {
+        "docs/new-untracked-guide.md": "# New guide",
+        "docs/background/private.md": "PRIVATE_BACKGROUND_SENTINEL",
+        "docs/background/.private/secret.md": "PRIVATE_HIDDEN_SENTINEL",
+        "docs/background/local_only/local.md": "PRIVATE_LOCAL_ONLY_SENTINEL",
+        "docs/local-network-testing.md": "PRIVATE_NETWORK_SENTINEL",
+        "docs/nested/README.md": "PRIVATE_NESTED_README_SENTINEL",
+        "docs/allium/public-sharing.allium": "PUBLIC_ALLIUM_SENTINEL",
+        "plans/new-untracked-plan.md": "# New plan",
+    }
+    for relative, content in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+    sources = build_docs_site.eligible_sources(root)
+    assert "docs/new-untracked-guide.md" in sources
+    assert "plans/new-untracked-plan.md" in sources
+    assert "docs/allium/public-sharing.allium" in sources
+    assert not any("background" in source for source in sources)
+    assert "docs/local-network-testing.md" not in sources
+    assert "docs/nested/README.md" not in sources
+    routes = build_docs_site.excluded_source_routes(root)
+    assert "docs/background/private.md" in routes
+    assert not any(".private" in route or "local_only" in route for route in routes)
+
+    staging = root / "temporary-staging"
+    staging.mkdir()
+    build_docs_site.create_staging_tree(root, staging, sources)
+    assert (staging / "docs/new-untracked-guide.md").is_symlink()
+    assert (staging / "docs/new-untracked-guide.md").resolve() == (
+        root / "docs/new-untracked-guide.md"
+    )
+    assert (staging / "plans/new-untracked-plan.md").is_symlink()
+    assert (staging / "docs/allium/public-sharing.allium").is_symlink()
+    assert not (staging / "docs/background/private.md").exists()
+    assert not (staging / "docs/local-network-testing.md").exists()
+    assert not (staging / "docs/nested/README.md").exists()
+    assert not (staging / "docs").is_symlink()
+    staged_links = {
+        path.relative_to(staging).as_posix()
+        for path in staging.rglob("*")
+        if path.is_symlink()
+    }
+    assert staged_links == set(sources)
+    assert all(
+        path.resolve().is_file() and root in path.resolve().parents
+        for path in staging.rglob("*")
+        if path.is_symlink()
+    )
+
+
+def test_scratch_collision_is_not_cleaned(tmp_path, monkeypatch):
+    root = tmp_path / "project"
+    root.mkdir()
+    collision = root / f"{build_docs_site.SCRATCH_PREFIX}collision"
+    collision.mkdir()
+    sentinel = collision / "user-file.txt"
+    sentinel.write_text("preserve me", encoding="utf-8")
+    monkeypatch.setattr(build_docs_site.secrets, "token_hex", lambda _: "collision")
+
+    with (
+        pytest.raises(FileExistsError, match="unique docs build directory"),
+        build_docs_site.build_scratch(root),
+    ):
+        pytest.fail("a colliding scratch directory must not be used")
+
+    assert sentinel.read_text(encoding="utf-8") == "preserve me"
+
+
+def test_scratch_cleanup_unlinks_staged_symlinks_without_following_them(tmp_path):
+    root = tmp_path / "project"
+    root.mkdir()
+    external = tmp_path / "outside"
+    external.mkdir()
+    sentinel = external / "keep.txt"
+    sentinel.write_text("preserve me", encoding="utf-8")
+
+    with build_docs_site.build_scratch(root) as scratch:
+        (scratch / "outside-link").symlink_to(external, target_is_directory=True)
+        scratch_path = scratch
+
+    assert not scratch_path.exists()
+    assert sentinel.read_text(encoding="utf-8") == "preserve me"
+
+
+def test_unowned_site_output_is_preserved_and_rejected(tmp_path, monkeypatch):
+    root = tmp_path / "project"
+    root.mkdir()
+    config = write_test_config(root)
+    site = root / "site"
+    site.mkdir()
+    sentinel = site / "user-file.txt"
+    sentinel.write_text("preserve me", encoding="utf-8")
+
+    def unexpected_build(*args, **kwargs):
+        raise AssertionError("unowned output reached Zensical")
+
+    monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
+    with pytest.raises(ValueError, match="unowned site"):
+        build_docs_site.build_site(root, config)
+
+    assert sentinel.read_text(encoding="utf-8") == "preserve me"
+
+
+def test_existing_site_user_artifact_is_preserved_and_rejected(tmp_path, monkeypatch):
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "docs").mkdir()
+    (root / "README.md").write_text("# Home\n", encoding="utf-8")
+    (root / "docs/index.md").write_text("# Maintained page\n", encoding="utf-8")
+    (root / "docs/preview-exclusions.md").write_text(
+        "# Preview exclusions\n", encoding="utf-8"
+    )
+    config = write_test_config(root)
+    build_docs_site.build_site(root, config)
+
+    artifact = root / "site/user-added.txt"
+    artifact.write_text("preserve me", encoding="utf-8")
+
+    def unexpected_build(*args, **kwargs):
+        raise AssertionError("modified output reached Zensical")
+
+    monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
+    with pytest.raises(ValueError, match="unowned or missing files"):
+        build_docs_site.build_site(root, config)
+
+    assert artifact.read_text(encoding="utf-8") == "preserve me"
+
+
+def test_failed_validation_preserves_previous_site_and_manual_rebuild_refreshes(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "docs").mkdir()
+    (root / "README.md").write_text("# Home\n", encoding="utf-8")
+    source = root / "docs/index.md"
+    source.write_text("# Initial page\n", encoding="utf-8")
+    (root / "docs/preview-exclusions.md").write_text(
+        "# Preview exclusions\n", encoding="utf-8"
+    )
+    config = write_test_config(root)
+    build_docs_site.build_site(root, config)
+    output = root / "site/docs/index.html"
+    previous_output = output.read_text(encoding="utf-8")
+
+    source.write_text("# Updated page\n", encoding="utf-8")
+    original_validate = build_docs_site.validate_site
+
+    def failed_validation(*args, **kwargs):
+        raise ValueError("synthetic validation failure")
+
+    monkeypatch.setattr(build_docs_site, "validate_site", failed_validation)
+    with pytest.raises(ValueError, match="synthetic validation failure"):
+        build_docs_site.build_site(root, config)
+    assert output.read_text(encoding="utf-8") == previous_output
+
+    monkeypatch.setattr(build_docs_site, "validate_site", original_validate)
+    build_docs_site.build_site(root, config)
+    assert "Updated page" in output.read_text(encoding="utf-8")
 
 
 def make_test_site(tmp_path: Path, index_html: str) -> Path:

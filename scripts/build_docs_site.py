@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import os
 import posixpath
+import re
+import secrets
+import shutil
+import stat
 import subprocess
 import sys
 import tomllib
+from contextlib import contextmanager
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
+from typing import Iterator
 from urllib.parse import quote, unquote, urljoin, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +23,8 @@ CONFIG = ROOT / "zensical.toml"
 NOTICE_SOURCE = "docs/preview-exclusions.md"
 BACKGROUND_SOURCE = "docs/background"
 LOCAL_NETWORK_SOURCE = "docs/local-network-testing.md"
+OWNER_FILE = ".docs-site-owner.json"
+SCRATCH_PREFIX = ".docs-site-build-"
 REQUIRED_EXCLUDE_RULES = {
     "**",
     "!/README.md",
@@ -73,20 +82,52 @@ def project_exclude_rules(project: dict[str, object]) -> set[str]:
     return {rule.strip() for rule in rules if rule.strip()}
 
 
-def ensure_safe_output_tree(site_root: Path) -> None:
+def output_files(site_root: Path, *, allow_owner: bool = False) -> tuple[Path, ...]:
     if site_root.is_symlink():
-        raise ValueError("refusing to build through a site/ symlink")
+        raise ValueError("refusing to follow output symlink: site root")
     if not site_root.exists():
-        return
+        return ()
     if not site_root.is_dir():
         raise ValueError("site/ must be a directory before the build")
 
-    for path in site_root.rglob("*"):
-        relative = path.relative_to(site_root)
-        if path.is_symlink():
-            raise ValueError(f"refusing to follow output symlink: {relative}")
-        if any(part.startswith(".") for part in relative.parts):
-            raise ValueError(f"output contains a hidden path: {relative}")
+    files: list[Path] = []
+    pending = [site_root]
+    while pending:
+        directory = pending.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                path = Path(entry.path)
+                relative = path.relative_to(site_root)
+                if entry.is_symlink():
+                    raise ValueError(f"refusing to follow output symlink: {relative}")
+                if any(part.startswith(".") for part in relative.parts) and not (
+                    allow_owner and relative.as_posix() == OWNER_FILE
+                ):
+                    raise ValueError(f"output contains a hidden path: {relative}")
+                mode = entry.stat(follow_symlinks=False).st_mode
+                if stat.S_ISDIR(mode):
+                    pending.append(path)
+                elif stat.S_ISREG(mode):
+                    files.append(path)
+                else:
+                    raise ValueError(f"output contains a non-regular file: {relative}")
+    return tuple(files)
+
+
+def ensure_safe_output_tree(site_root: Path, *, allow_owner: bool = False) -> None:
+    output_files(site_root, allow_owner=allow_owner)
+
+
+def safe_output_path(path: Path) -> Path:
+    absolute = Path(os.path.abspath(path))
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        if current.is_symlink():
+            raise ValueError(f"refusing to follow output symlink: {current}")
+        if current.exists() and current != absolute and not current.is_dir():
+            raise ValueError(f"output parent is not a directory: {current}")
+    return absolute
 
 
 def safe_site_root(root: Path, site_dir: object) -> Path:
@@ -94,72 +135,149 @@ def safe_site_root(root: Path, site_dir: object) -> Path:
     if site_dir != "site":
         raise ValueError("this wrapper only builds the root site/ directory")
 
-    site_root = root / "site"
-    ensure_safe_output_tree(site_root)
+    site_root = safe_output_path(root / "site")
+    ensure_safe_output_tree(site_root, allow_owner=True)
     return site_root
 
 
-def reject_source_symlinks(root: Path) -> None:
+def source_path(root: Path, relative: str) -> Path | None:
+    path = root / relative
+    if path.is_symlink():
+        raise ValueError(f"refusing to follow source symlink: {relative}")
+    if not path.exists():
+        return None
+    mode = path.lstat().st_mode
+    if not stat.S_ISREG(mode):
+        raise ValueError(f"expected a regular source file: {relative}")
+    resolved = path.resolve(strict=True)
+    try:
+        resolved.relative_to(root)
+    except ValueError as error:
+        raise ValueError(f"source escapes the repository: {relative}") from error
+    return path
+
+
+def scan_source_tree(root: Path, relative: str) -> tuple[set[str], set[str]]:
+    source_root = root / relative
+    if source_root.is_symlink():
+        raise ValueError(f"refusing to follow source symlink: {relative}/")
+    if not source_root.exists():
+        return set(), set()
+    if not source_root.is_dir():
+        raise ValueError(f"expected source directory: {relative}/")
+
+    files: set[str] = set()
+    directories: set[str] = {f"{relative}/"}
+    pending = [source_root]
+    while pending:
+        directory = pending.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                path = Path(entry.path)
+                source_name = path.relative_to(root).as_posix()
+                if entry.is_symlink():
+                    raise ValueError(
+                        f"refusing to follow source symlink: {source_name}"
+                    )
+                mode = entry.stat(follow_symlinks=False).st_mode
+                if stat.S_ISDIR(mode):
+                    directories.add(f"{source_name}/")
+                    pending.append(path)
+                elif stat.S_ISREG(mode):
+                    files.add(source_name)
+                elif path.suffix == ".md":
+                    raise ValueError(f"expected a regular source file: {source_name}")
+    return files, directories
+
+
+def eligible_sources(root: Path) -> tuple[str, ...]:
+    root = root.resolve()
+    sources: set[str] = set()
     for relative in ("README.md", "AGENTS.md", "ARCHITECTURE.md"):
-        if (root / relative).is_symlink():
-            raise ValueError(f"refusing to follow source symlink: {relative}")
+        if source_path(root, relative) is not None:
+            sources.add(relative)
+
+    docs_files, _ = scan_source_tree(root, "docs")
+    plans_files, _ = scan_source_tree(root, "plans")
+    for relative in docs_files:
+        parts = PurePosixPath(relative).parts
+        if (
+            PurePosixPath(relative).suffix != ".md"
+            or any(part.startswith(".") for part in parts)
+            or "local_only" in parts
+            or relative == LOCAL_NETWORK_SOURCE
+            or relative.startswith(f"{BACKGROUND_SOURCE}/")
+            or (
+                PurePosixPath(relative).name
+                in {"README.md", "AGENTS.md", "ARCHITECTURE.md"}
+                and relative != "docs/allium/README.md"
+            )
+        ):
+            continue
+        sources.add(relative)
+    for relative in plans_files:
+        parts = PurePosixPath(relative).parts
+        if (
+            PurePosixPath(relative).suffix == ".md"
+            and not any(part.startswith(".") for part in parts)
+            and "local_only" not in parts
+            and PurePosixPath(relative).name
+            not in {"README.md", "AGENTS.md", "ARCHITECTURE.md"}
+        ):
+            sources.add(relative)
 
     frontend = root / "frontend"
     if frontend.is_symlink():
         raise ValueError("refusing to follow source symlink: frontend/")
-    if (frontend / "README.md").is_symlink():
-        raise ValueError("refusing to follow source symlink: frontend/README.md")
+    frontend_readme = source_path(root, "frontend/README.md")
+    if frontend_readme is not None:
+        sources.add("frontend/README.md")
 
-    for relative in ("docs", "plans"):
-        source_root = root / relative
-        if source_root.is_symlink():
-            raise ValueError(f"refusing to follow source symlink: {relative}/")
-        if not source_root.exists():
-            continue
-        if not source_root.is_dir():
-            raise ValueError(f"expected source directory: {relative}/")
+    allium_example = source_path(root, "docs/allium/public-sharing.allium")
+    if allium_example is not None:
+        sources.add("docs/allium/public-sharing.allium")
 
-        pending = [source_root]
-        while pending:
-            directory = pending.pop()
-            with os.scandir(directory) as entries:
-                for entry in entries:
-                    path = Path(entry.path)
-                    if entry.is_symlink():
-                        source_path = path.relative_to(root).as_posix()
-                        raise ValueError(
-                            f"refusing to follow source symlink: {source_path}"
-                        )
-                    if entry.is_dir(follow_symlinks=False):
-                        pending.append(path)
+    for relative in sorted(sources):
+        if source_path(root, relative) is None:
+            raise ValueError(
+                f"eligible source disappeared during inventory: {relative}"
+            )
+    return tuple(sorted(sources))
 
 
 def excluded_source_routes(root: Path) -> tuple[str, ...]:
     root = root.resolve()
     routes: set[str] = set()
-
-    local_network_guide = root / LOCAL_NETWORK_SOURCE
-    if local_network_guide.is_file() and not local_network_guide.is_symlink():
+    if source_path(root, LOCAL_NETWORK_SOURCE) is not None:
         routes.add(LOCAL_NETWORK_SOURCE)
 
     background = root / BACKGROUND_SOURCE
     if background.is_symlink():
         raise ValueError("the excluded background directory must not be a symlink")
-    if background.is_dir():
-        routes.add(f"{BACKGROUND_SOURCE}/")
-        for path in background.rglob("*"):
-            if path.is_symlink():
-                continue
-            relative = path.relative_to(root).as_posix()
-            if path.is_dir():
-                routes.add(f"{relative}/")
-            elif path.is_file() and path.suffix.lower() == ".md":
-                routes.add(relative)
-
+    files, directories = scan_source_tree(root, BACKGROUND_SOURCE)
+    routes.update(
+        route
+        for route in directories
+        if not any(
+            part.startswith(".") or part == "local_only"
+            for part in PurePosixPath(route).parts
+        )
+    )
+    routes.update(
+        relative
+        for relative in files
+        if PurePosixPath(relative).suffix.lower() == ".md"
+        and not any(
+            part.startswith(".") or part == "local_only"
+            for part in PurePosixPath(relative).parts
+        )
+    )
     return tuple(sorted(routes))
 
 
-def load_project(root: Path, config_path: Path) -> tuple[Path, tuple[str, ...]]:
+def load_project(
+    root: Path, config_path: Path
+) -> tuple[Path, tuple[str, ...], tuple[str, ...]]:
     root = root.resolve()
     if config_path.resolve() != root / "zensical.toml":
         raise ValueError("the Zensical config must be at the project root")
@@ -189,8 +307,168 @@ def load_project(root: Path, config_path: Path) -> tuple[Path, tuple[str, ...]]:
             + ", ".join(sorted(missing_rules))
         )
 
-    reject_source_symlinks(root)
-    return site_root, excluded_source_routes(root)
+    sources = eligible_sources(root)
+    routes = excluded_source_routes(root)
+    return site_root, routes, sources
+
+
+@contextmanager
+def build_scratch(root: Path) -> Iterator[Path]:
+    scratch: Path | None = None
+    for _ in range(8):
+        candidate = root / f"{SCRATCH_PREFIX}{secrets.token_hex(12)}"
+        try:
+            os.mkdir(candidate, 0o700)
+        except FileExistsError:
+            continue
+        scratch = candidate
+        break
+    if scratch is None:
+        raise FileExistsError("could not reserve a unique docs build directory")
+
+    identity = scratch.lstat()
+    try:
+        yield scratch
+    finally:
+        try:
+            current = scratch.lstat()
+            if (
+                not stat.S_ISDIR(current.st_mode)
+                or stat.S_ISLNK(current.st_mode)
+                or (current.st_dev, current.st_ino)
+                != (identity.st_dev, identity.st_ino)
+            ):
+                raise RuntimeError(
+                    f"refusing to clean changed docs build directory: {scratch}"
+                )
+            shutil.rmtree(scratch)
+        except FileNotFoundError as error:
+            raise RuntimeError(
+                f"refusing to clean missing docs build directory: {scratch}"
+            ) from error
+
+
+def create_staging_tree(
+    root: Path, staging_root: Path, sources: tuple[str, ...]
+) -> None:
+    if staging_root.is_symlink() or not staging_root.is_dir():
+        raise ValueError("docs staging path must be a real directory")
+    for relative in sources:
+        target = source_path(root, relative)
+        if target is None:
+            raise ValueError(f"eligible source disappeared during staging: {relative}")
+        link = staging_root / relative
+        link.parent.mkdir(parents=True, exist_ok=True)
+        os.symlink(target.resolve(strict=True), link)
+    for relative in sources:
+        link = staging_root / relative
+        if not link.is_symlink() or link.resolve(strict=True) != (
+            root / relative
+        ).resolve(strict=True):
+            raise ValueError(f"invalid staged source link: {relative}")
+
+
+def owned_output_manifest(site_root: Path) -> dict[str, str] | None:
+    ensure_safe_output_tree(site_root, allow_owner=True)
+    if not site_root.exists():
+        return None
+    owner = site_root / OWNER_FILE
+    if owner.is_symlink():
+        raise ValueError("refusing to follow output owner symlink")
+    if not owner.exists():
+        raise ValueError("refusing to replace an unowned site/ directory")
+    try:
+        data = json.loads(owner.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError("site output has an invalid ownership record") from error
+    if (
+        not isinstance(data, dict)
+        or data.get("version") != 1
+        or not isinstance(data.get("files"), dict)
+        or not all(
+            isinstance(name, str) and isinstance(digest, str) and len(digest) == 64
+            for name, digest in data["files"].items()
+        )
+    ):
+        raise ValueError("site output has an invalid ownership record")
+    expected = data["files"]
+    actual_files = {
+        path.relative_to(site_root).as_posix(): path
+        for path in output_files(site_root, allow_owner=True)
+        if path != owner
+    }
+    if set(actual_files) != set(expected):
+        raise ValueError("site output contains unowned or missing files")
+    for relative, path in actual_files.items():
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != expected[relative]:
+            raise ValueError(
+                f"site output was modified outside the builder: {relative}"
+            )
+    return expected
+
+
+def add_output_owner(site_root: Path) -> None:
+    files = {
+        path.relative_to(site_root).as_posix(): hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+        for path in output_files(site_root)
+    }
+    (site_root / OWNER_FILE).write_text(
+        json.dumps({"version": 1, "files": files}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def remove_owned_output(site_root: Path) -> None:
+    if owned_output_manifest(site_root) is None:
+        raise ValueError(f"refusing to remove unowned output: {site_root}")
+    shutil.rmtree(site_root)
+
+
+def install_output(generated_site: Path, site_root: Path) -> None:
+    add_output_owner(generated_site)
+    if not site_root.exists():
+        os.replace(generated_site, site_root)
+        return
+
+    backup_parent: Path | None = None
+    for _ in range(8):
+        candidate = (
+            site_root.parent / f".{site_root.name}-backup-{secrets.token_hex(12)}"
+        )
+        try:
+            os.mkdir(candidate, 0o700)
+        except FileExistsError:
+            continue
+        backup_parent = candidate
+        break
+    if backup_parent is None:
+        raise FileExistsError("could not reserve a unique docs output backup")
+
+    backup_site = backup_parent / site_root.name
+    try:
+        os.replace(site_root, backup_site)
+        try:
+            os.replace(generated_site, site_root)
+        except BaseException:
+            os.replace(backup_site, site_root)
+            raise
+        try:
+            owned_output_manifest(backup_site)
+            shutil.rmtree(backup_site)
+            backup_parent.rmdir()
+        except Exception as error:
+            raise RuntimeError(
+                f"new preview installed; previous output preserved at {backup_site}"
+            ) from error
+    except BaseException:
+        if backup_site.exists() and not site_root.exists():
+            os.replace(backup_site, site_root)
+        if backup_parent.exists() and not any(backup_parent.iterdir()):
+            backup_parent.rmdir()
+        raise
 
 
 def page_output(site_root: Path, source: str) -> Path:
@@ -397,25 +675,56 @@ def validate_site(
     return checked_links
 
 
-def build_site(root: Path, config_path: Path) -> tuple[int, int]:
-    root = root.resolve()
-    site_root, excluded_routes = load_project(root, config_path)
+def staged_config_text(config_path: Path, docs_root: Path, output_root: Path) -> str:
+    text = config_path.read_text(encoding="utf-8")
+    for name, value in (("docs_dir", docs_root), ("site_dir", output_root)):
+        pattern = re.compile(rf'(?m)^(\s*{name}\s*=\s*)".*?"(\s*(?:#.*)?)$')
+        text, replacements = pattern.subn(
+            lambda match: f"{match.group(1)}{json.dumps(str(value))}{match.group(2)}",
+            text,
+            count=1,
+        )
+        if replacements != 1:
+            raise ValueError(f"could not set temporary Zensical {name}")
+    return text
 
-    # Zensical refreshes its output; preflight the directory before it runs.
-    subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "zensical",
-            "build",
-            "--config-file",
-            str(config_path.resolve()),
-        ],
-        cwd=root,
-        check=True,
+
+def build_site(
+    root: Path, config_path: Path, *, output_path: Path | None = None
+) -> tuple[int, int]:
+    root = root.resolve()
+    configured_site, excluded_routes, sources = load_project(root, config_path)
+    site_root = (
+        configured_site if output_path is None else safe_output_path(output_path)
     )
-    redirect_paths = rewrite_redirects(site_root, excluded_routes)
-    checked_links = validate_site(site_root, excluded_routes, redirect_paths)
+    if site_root.parent.stat().st_dev != root.stat().st_dev:
+        raise ValueError("site output must be on the project filesystem")
+    owned_output_manifest(site_root)
+
+    with build_scratch(root) as scratch:
+        docs_root = scratch
+        create_staging_tree(root, docs_root, sources)
+        generated_site = scratch / "output"
+        temporary_config = scratch / "zensical.toml"
+        temporary_config.write_text(
+            staged_config_text(config_path, Path("."), Path("output")),
+            encoding="utf-8",
+        )
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "zensical",
+                "build",
+                "--config-file",
+                str(temporary_config),
+            ],
+            cwd=root,
+            check=True,
+        )
+        redirect_paths = rewrite_redirects(generated_site, excluded_routes)
+        checked_links = validate_site(generated_site, excluded_routes, redirect_paths)
+        install_output(generated_site, site_root)
     return len(redirect_paths), checked_links
 
 
