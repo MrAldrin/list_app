@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_CONFIG = REPO_ROOT / "zensical.toml"
 
 
-def test_site_symlink_is_rejected_before_build_or_delete(tmp_path, monkeypatch):
+def test_site_symlink_is_rejected_before_zensical_cleanup(tmp_path, monkeypatch):
     root = tmp_path / "project"
     root.mkdir()
     external = tmp_path / "external"
@@ -42,6 +42,43 @@ def test_unrooted_allowlist_rule_is_rejected_before_build(tmp_path, monkeypatch)
 
     monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
     with pytest.raises(ValueError, match="re-inclusions must be rooted"):
+        build_docs_site.build_site(root, config)
+
+    assert not (root / "site").exists()
+
+
+def test_nested_site_symlink_is_rejected_before_zensical_cleanup(tmp_path, monkeypatch):
+    root = tmp_path / "project"
+    root.mkdir()
+    preserved = root / "preserved-output"
+    preserved.mkdir()
+    sentinel = preserved / "keep.txt"
+    sentinel.write_text("safe in-project sentinel", encoding="utf-8")
+    site = root / "site"
+    site.mkdir()
+    (site / "nested-link").symlink_to(preserved, target_is_directory=True)
+    config = write_test_config(root)
+
+    def unexpected_build(*args, **kwargs):
+        raise AssertionError("symlinked output reached Zensical cleanup")
+
+    monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
+    with pytest.raises(ValueError, match="output symlink"):
+        build_docs_site.build_site(root, config)
+
+    assert sentinel.read_text(encoding="utf-8") == "safe in-project sentinel"
+
+
+def test_non_root_docs_dir_is_rejected_before_build(tmp_path, monkeypatch):
+    root = tmp_path / "project"
+    root.mkdir()
+    config = write_test_config(root, docs_dir="local_only")
+
+    def unexpected_build(*args, **kwargs):
+        raise AssertionError("unsafe source path reached the build")
+
+    monkeypatch.setattr(build_docs_site.subprocess, "run", unexpected_build)
+    with pytest.raises(ValueError, match="root docs directory"):
         build_docs_site.build_site(root, config)
 
     assert not (root / "site").exists()
@@ -78,6 +115,29 @@ def test_redirect_html_discards_old_fragments():
     assert "#" not in redirect
 
 
+def test_validate_site_rejects_output_symlink_without_reading_its_target(tmp_path):
+    site = make_test_site(tmp_path, "temporary page")
+    sentinel = tmp_path / "outside.html"
+    sentinel.write_text("external output sentinel", encoding="utf-8")
+    (site / "index.html").unlink()
+    (site / "index.html").symlink_to(sentinel)
+
+    with pytest.raises(ValueError, match="output symlink"):
+        build_docs_site.validate_site(site, (), set())
+
+    assert sentinel.read_text(encoding="utf-8") == "external output sentinel"
+
+
+def test_validate_site_rejects_unapproved_static_output_file(tmp_path):
+    site = make_test_site(tmp_path, "")
+    private_file = site / "docs" / "private.txt"
+    private_file.parent.mkdir(parents=True)
+    private_file.write_text("synthetic static sentinel", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unapproved file appears"):
+        build_docs_site.validate_site(site, (), set())
+
+
 def test_validate_site_rejects_broken_local_link(tmp_path):
     site = make_test_site(tmp_path, '<a href="/missing/">missing</a>')
 
@@ -108,15 +168,40 @@ def test_validate_site_ignores_old_fragment_on_generated_redirect(tmp_path):
         build_docs_site.redirect_html(redirect, notice),
         encoding="utf-8",
     )
+    (site / "search.json").write_text(
+        json.dumps(
+            {"items": [{"location": ""}, {"location": "docs/preview-exclusions"}]}
+        ),
+        encoding="utf-8",
+    )
 
     assert build_docs_site.validate_site(site, (), {redirect.resolve()}) == 2
+
+
+@pytest.mark.parametrize(
+    ("location", "message"),
+    [
+        ("docs/.pytest_cache/README", "hidden source route"),
+        ("unlisted/README", "unapproved source route"),
+    ],
+)
+def test_validate_site_rejects_routes_outside_emitted_inventory(
+    tmp_path, location, message
+):
+    site = make_test_site(tmp_path, "")
+    (site / "search.json").write_text(
+        json.dumps({"items": [{"location": location}]}), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match=message):
+        build_docs_site.validate_site(site, (), set())
 
 
 def test_validate_site_rejects_excluded_route_in_search_index(tmp_path):
     site = make_test_site(tmp_path, "")
     search_path = site / "search.json"
     search_path.write_text(
-        json.dumps({"items": [{"location": "docs/background/private"}]}),
+        json.dumps({"items": [{"location": "docs/background/private#secret-section"}]}),
         encoding="utf-8",
     )
 
@@ -128,11 +213,21 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
     root = tmp_path / "project"
     root.mkdir()
     config = write_test_config(root)
+    stale_output = root / "site" / "stale" / "generated-before-build.html"
+    stale_output.parent.mkdir(parents=True)
+    stale_output.write_text("synthetic stale output", encoding="utf-8")
     sources = {
         "README.md": "PUBLIC_ROOT_README_SENTINEL",
         "AGENTS.md": "PUBLIC_ROOT_AGENTS_SENTINEL",
         "ARCHITECTURE.md": "PUBLIC_ROOT_ARCHITECTURE_SENTINEL",
         "docs/index.md": "PUBLIC_DOCS_INDEX_SENTINEL",
+        "docs/allium/README.md": "PUBLIC_NESTED_DOCS_README_SENTINEL",
+        "docs/allium/public-sharing.allium": "PUBLIC_ALLIUM_EXAMPLE_SENTINEL",
+        "docs/private-section/README.md": "PRIVATE_NESTED_DOCS_README_SENTINEL",
+        "docs/private-section/AGENTS.md": "PRIVATE_NESTED_DOCS_AGENTS_SENTINEL",
+        "docs/private-section/ARCHITECTURE.md": "PRIVATE_NESTED_DOCS_ARCHITECTURE_SENTINEL",
+        "plans/private-section/README.md": "PRIVATE_NESTED_PLANS_README_SENTINEL",
+        "plans/private-section/AGENTS.md": "PRIVATE_NESTED_PLANS_AGENTS_SENTINEL",
         "docs/preview-exclusions.md": "PUBLIC_EXCLUSIONS_NOTICE_SENTINEL",
         "plans/backlog.md": "PUBLIC_PLAN_SENTINEL",
         "frontend/README.md": "PUBLIC_FRONTEND_README_SENTINEL",
@@ -151,11 +246,20 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
         "docs/background/future-folder/README.md": "PRIVATE_FUTURE_README_SENTINEL",
         "docs/background/future-folder/AGENTS.md": "PRIVATE_FUTURE_AGENTS_SENTINEL",
         "docs/background/future-folder/private.txt": "PRIVATE_FUTURE_DATA_SENTINEL",
+        "unlisted/nested/README.md": "PRIVATE_DEEP_NESTED_README_SENTINEL",
+        "unlisted/nested/AGENTS.md": "PRIVATE_DEEP_NESTED_AGENTS_SENTINEL",
+        "docs/.private/README.md": "PRIVATE_HIDDEN_DIR_README_SENTINEL",
+        "docs/.hidden-file": "PRIVATE_DOTFILE_SENTINEL",
         "docs/.pytest_cache/README.md": "PRIVATE_NESTED_CACHE_README_SENTINEL",
         "docs/.codex/AGENTS.md": "PRIVATE_NESTED_CODEX_AGENTS_SENTINEL",
         "docs/.venv/README.md": "PRIVATE_NESTED_VENV_README_SENTINEL",
         "docs/.env.synthetic": "PRIVATE_NESTED_ENV_SENTINEL",
+        "docs/private.txt": "PRIVATE_DOCS_TEXT_SENTINEL",
+        "docs/private.yaml": "PRIVATE_DOCS_YAML_SENTINEL",
+        "docs/allium/private.allium": "PRIVATE_UNLISTED_ALLIUM_SENTINEL",
         "docs/private.sqlite3": "PRIVATE_SQLITE_SENTINEL",
+        "plans/private.txt": "PRIVATE_PLANS_TEXT_SENTINEL",
+        "plans/private.json": "PRIVATE_PLANS_JSON_SENTINEL",
         "plans/private.db": "PRIVATE_DATABASE_SENTINEL",
         "plans/local_only/private.md": "PRIVATE_NESTED_LOCAL_ONLY_SENTINEL",
     }
@@ -170,6 +274,7 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
     redirect_count, checked_links = build_docs_site.build_site(root, config)
 
     site = root / "site"
+    assert not stale_output.exists()
     output_text = "\n".join(
         path.read_text(encoding="utf-8", errors="ignore")
         for path in site.rglob("*")
@@ -204,12 +309,15 @@ def make_test_site(tmp_path: Path, index_html: str) -> Path:
     site = tmp_path / "site"
     site.mkdir()
     (site / "index.html").write_text(index_html, encoding="utf-8")
-    (site / "search.json").write_text('{"items": []}', encoding="utf-8")
+    (site / "search.json").write_text('{"items": [{"location": ""}]}', encoding="utf-8")
     return site
 
 
 def write_test_config(
-    root: Path, site_dir: str = "site", extra_exclude_rule: str | None = None
+    root: Path,
+    site_dir: str = "site",
+    docs_dir: str = ".",
+    extra_exclude_rule: str | None = None,
 ) -> Path:
     project = tomllib.loads(PROJECT_CONFIG.read_text(encoding="utf-8"))["project"]
     exclude_docs = project["exclude_docs"]
@@ -220,7 +328,7 @@ def write_test_config(
         "[project]\n"
         'site_name = "Synthetic privacy test"\n'
         'site_url = "http://localhost/"\n'
-        'docs_dir = "."\n'
+        f"docs_dir = {json.dumps(docs_dir)}\n"
         f"site_dir = {json.dumps(site_dir)}\n"
         f"exclude_docs = {json.dumps(exclude_docs)}\n",
         encoding="utf-8",

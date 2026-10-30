@@ -6,36 +6,30 @@ site_dir = "site"
 
 # Keep the authoritative root architecture and maintained Markdown sources in
 # the preview without copying the architecture into docs/ or copying app code.
-# Re-inclusions are rooted at docs_dir so nested tool/cache files stay excluded.
+# The inventory is root guides, docs/plans Markdown, and frontend README.
+# Allium's README/example are explicit exceptions; hidden paths stay excluded.
 exclude_docs = '''
 **
+!/docs/*.md
+!/docs/**/*.md
+/docs/local-network-testing.md
+/docs/background/**
+!/docs/allium/public-sharing.allium
+!/plans/*.md
+!/plans/**/*.md
+!/frontend/
+/frontend/**
+**/README.md
+**/AGENTS.md
+**/ARCHITECTURE.md
+**/.*
+**/.*/**
+**/local_only/**
 !/README.md
 !/AGENTS.md
 !/ARCHITECTURE.md
-!/docs/**
-/docs/local-network-testing.md
-/docs/background/**
-!/plans/**
-!/frontend/
-/frontend/**
+!/docs/allium/README.md
 !/frontend/README.md
-/.venv/
-/.venv/**
-/.env
-/.env.*
-/.jj/
-/.jj/**
-/.codex/
-/.codex/**
-/local_only/
-/local_only/**
-**/.venv/**
-**/.env
-**/.env.*
-**/.jj/**
-**/.codex/**
-**/.pytest_cache/**
-**/local_only/**
 **/*.db
 **/*-pre-migration.db*
 **/*.sqlite*

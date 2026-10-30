@@ -3,7 +3,6 @@ from __future__ import annotations
 import html
 import json
 import posixpath
-import shutil
 import subprocess
 import sys
 import tomllib
@@ -21,25 +20,22 @@ REQUIRED_EXCLUDE_RULES = {
     "!/README.md",
     "!/AGENTS.md",
     "!/ARCHITECTURE.md",
-    "!/docs/**",
+    "!/docs/*.md",
+    "!/docs/**/*.md",
     "/docs/local-network-testing.md",
     "/docs/background/**",
-    "!/plans/**",
+    "!/docs/allium/public-sharing.allium",
+    "!/plans/*.md",
+    "!/plans/**/*.md",
     "!/frontend/",
     "/frontend/**",
     "!/frontend/README.md",
-    "/.venv/**",
-    "/.env",
-    "/.env.*",
-    "/.jj/**",
-    "/.codex/**",
-    "/local_only/**",
-    "**/.venv/**",
-    "**/.env",
-    "**/.env.*",
-    "**/.jj/**",
-    "**/.codex/**",
-    "**/.pytest_cache/**",
+    "**/README.md",
+    "**/AGENTS.md",
+    "**/ARCHITECTURE.md",
+    "!/docs/allium/README.md",
+    "**/.*",
+    "**/.*/**",
     "**/local_only/**",
     "**/*.db",
     "**/*-pre-migration.db*",
@@ -76,16 +72,29 @@ def project_exclude_rules(project: dict[str, object]) -> set[str]:
     return {rule.strip() for rule in rules if rule.strip()}
 
 
+def ensure_safe_output_tree(site_root: Path) -> None:
+    if site_root.is_symlink():
+        raise ValueError("refusing to build through a site/ symlink")
+    if not site_root.exists():
+        return
+    if not site_root.is_dir():
+        raise ValueError("site/ must be a directory before the build")
+
+    for path in site_root.rglob("*"):
+        relative = path.relative_to(site_root)
+        if path.is_symlink():
+            raise ValueError(f"refusing to follow output symlink: {relative}")
+        if any(part.startswith(".") for part in relative.parts):
+            raise ValueError(f"output contains a hidden path: {relative}")
+
+
 def safe_site_root(root: Path, site_dir: object) -> Path:
     root = root.resolve()
     if site_dir != "site":
-        raise ValueError("this wrapper only cleans and builds the root site/ directory")
+        raise ValueError("this wrapper only builds the root site/ directory")
 
     site_root = root / "site"
-    if site_root.is_symlink():
-        raise ValueError("refusing to build through a site/ symlink")
-    if site_root.exists() and not site_root.is_dir():
-        raise ValueError("site/ must be a directory before the build")
+    ensure_safe_output_tree(site_root)
     return site_root
 
 
@@ -116,8 +125,13 @@ def excluded_source_routes(root: Path) -> tuple[str, ...]:
 
 def load_project(root: Path, config_path: Path) -> tuple[Path, tuple[str, ...]]:
     root = root.resolve()
+    if config_path.resolve() != root / "zensical.toml":
+        raise ValueError("the Zensical config must be at the project root")
+
     with config_path.open("rb") as config_file:
         project = tomllib.load(config_file)["project"]
+    if project.get("docs_dir") != ".":
+        raise ValueError("this wrapper only builds from the root docs directory")
 
     site_root = safe_site_root(root, project.get("site_dir"))
     configured_rules = project_exclude_rules(project)
@@ -140,18 +154,6 @@ def load_project(root: Path, config_path: Path) -> tuple[Path, tuple[str, ...]]:
         )
 
     return site_root, excluded_source_routes(root)
-
-
-def clean_site(root: Path, site_root: Path) -> None:
-    root = root.resolve()
-    if site_root != root / "site":
-        raise ValueError("refusing to clean a path other than the root site/ directory")
-    if site_root.is_symlink():
-        raise ValueError("refusing to remove a site/ symlink")
-    if site_root.exists():
-        if not site_root.is_dir():
-            raise ValueError("site/ must be a directory before the build")
-        shutil.rmtree(site_root)
 
 
 def page_output(site_root: Path, source: str) -> Path:
@@ -201,6 +203,7 @@ def redirect_html(source_page: Path, target_page: Path) -> str:
 
 
 def rewrite_redirects(site_root: Path, excluded_routes: tuple[str, ...]) -> set[Path]:
+    ensure_safe_output_tree(site_root)
     target_page = page_output(site_root, NOTICE_SOURCE)
     if not target_page.is_file():
         raise FileNotFoundError(f"redirect target {NOTICE_SOURCE!r} was not generated")
@@ -235,11 +238,48 @@ def route_file(site_root: Path, route: str) -> Path:
     return candidate
 
 
+def validate_search_inventory(locations: set[str]) -> None:
+    allowed_routes = {"", "AGENTS", "ARCHITECTURE", "frontend"}
+    allowed_roots = {"docs", "plans"}
+    for location in locations:
+        route = location.split("#", maxsplit=1)[0].strip("/")
+        path = PurePosixPath(route)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError(
+                f"search index route escapes the source inventory: {location}"
+            )
+        if any(part.startswith(".") for part in path.parts):
+            raise ValueError(f"hidden source route appears in search index: {location}")
+        if route not in allowed_routes and (
+            not path.parts or path.parts[0] not in allowed_roots
+        ):
+            raise ValueError(
+                f"unapproved source route appears in search index: {location}"
+            )
+
+
+def validate_output_file_inventory(site_root: Path) -> None:
+    generated_files = {"404.html", "search.json", "sitemap.xml"}
+    allowed_source_files = {"docs/allium/public-sharing.allium"}
+    for path in site_root.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(site_root).as_posix()
+        if path.suffix == ".html" or relative in generated_files:
+            continue
+        if relative.split("/", maxsplit=1)[0] == "assets":
+            continue
+        if relative not in allowed_source_files:
+            raise ValueError(f"unapproved file appears in generated site: {relative}")
+
+
 def validate_site(
     site_root: Path,
     excluded_routes: tuple[str, ...],
     redirect_paths: set[Path],
 ) -> int:
+    ensure_safe_output_tree(site_root)
+    validate_output_file_inventory(site_root)
     html_pages = sorted(site_root.rglob("*.html"))
     if not html_pages:
         raise FileNotFoundError("Zensical generated no HTML pages")
@@ -283,13 +323,35 @@ def validate_site(
         raise FileNotFoundError("Zensical did not generate search.json")
     search = json.loads(search_path.read_text(encoding="utf-8"))
     locations = {item["location"].strip("/") for item in search["items"]}
+    validate_search_inventory(locations)
+    location_routes = {
+        location.split("#", maxsplit=1)[0].strip("/") for location in locations
+    }
     for source in excluded_routes:
         route = page_output(site_root, source).parent.relative_to(site_root).as_posix()
         if any(
             location == route or location.startswith(f"{route}/")
-            for location in locations
+            for location in location_routes
         ):
             raise ValueError(f"excluded route appears in search index: {source}")
+
+    page_routes = set()
+    for page in html_pages:
+        if page.resolve() in redirect_paths:
+            continue
+        relative = page.relative_to(site_root)
+        if relative.as_posix() == "404.html":
+            continue
+        if page.name != "index.html":
+            raise ValueError(f"unapproved generated page: {relative}")
+        route = relative.parent.as_posix()
+        page_routes.add("" if route == "." else route)
+    if page_routes != location_routes:
+        raise ValueError(
+            "generated page inventory differs from search index: "
+            f"unindexed={sorted(page_routes - location_routes)}, "
+            f"missing={sorted(location_routes - page_routes)}"
+        )
 
     for path in redirect_paths:
         text = path.read_text(encoding="utf-8")
@@ -301,9 +363,20 @@ def validate_site(
 def build_site(root: Path, config_path: Path) -> tuple[int, int]:
     root = root.resolve()
     site_root, excluded_routes = load_project(root, config_path)
-    clean_site(root, site_root)
 
-    subprocess.run([sys.executable, "-m", "zensical", "build"], cwd=root, check=True)
+    # Zensical refreshes its output; preflight the directory before it runs.
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "zensical",
+            "build",
+            "--config-file",
+            str(config_path.resolve()),
+        ],
+        cwd=root,
+        check=True,
+    )
     redirect_paths = rewrite_redirects(site_root, excluded_routes)
     checked_links = validate_site(site_root, excluded_routes, redirect_paths)
     return len(redirect_paths), checked_links
