@@ -13,6 +13,17 @@ the field.
   not select a suggestion. **Escape** closes the suggestions; typing again opens
   them.
 
+When the field is blank, a **Usual items** row offers up to three checked
+items from this list that have been added at least twice. It ranks by the
+existing per-item, per-list count, then name. Unchecked items are left out
+because they are already active on the list. These are separate buttons, not
+combobox suggestions: use **Tab** past **Add**, then **Enter** to choose one,
+or tap it. Choosing a checked item uses the normal add behavior and restores it.
+
+The row uses the saved item counts while offline. Choosing one queues the same
+normal add operation as typing a name; it is sent when the app reconnects. See
+[offline use](offline-viewing.md#waiting-changes).
+
 This follows the W3C's [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
 for keyboard navigation and its [editable combobox with list autocomplete
 example](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/).

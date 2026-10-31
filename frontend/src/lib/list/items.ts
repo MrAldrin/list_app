@@ -26,6 +26,12 @@ export const SHARE_RESET_MESSAGE = 'This list was deleted or this share link was
 /** How many names the add field suggests, as in NiceGUI. */
 export const MAX_SUGGESTIONS = 3;
 
+/** Usual items need at least two recorded adds. */
+export const USUAL_ITEM_MIN_ADD_COUNT = 2;
+
+/** How many usual items the blank add field offers. */
+export const MAX_USUAL_ITEM_SUGGESTIONS = 3;
+
 /** Like the server's item-name display normalization: trim, but keep case. */
 export function normalizeItemName(raw: string): string {
 	return itemName(raw);
@@ -41,6 +47,28 @@ export function itemSuggestions(items: readonly Pick<Item, 'name'>[], typed: str
 	if (!text) return [];
 	const names = [...new Set(items.map((item) => item.name))].sort(compareCodePoints);
 	return names.filter((name) => itemNameKey(name).includes(text)).slice(0, MAX_SUGGESTIONS);
+}
+
+/**
+ * Checked items added at least twice, most-added first, for the blank add field.
+ * Open items are already on the list and are not shortcuts; typing keeps the
+ * existing autocomplete in charge.
+ */
+export function usualItemSuggestions(
+	items: readonly Pick<Item, 'name' | 'done' | 'add_count'>[],
+	typed: string
+): string[] {
+	if (itemNameKey(typed)) return [];
+	return items
+		.filter((item) => item.done && item.add_count >= USUAL_ITEM_MIN_ADD_COUNT)
+		.sort(
+			(a, b) =>
+				b.add_count - a.add_count ||
+				compareCodePoints(itemNameKey(a.name), itemNameKey(b.name)) ||
+				compareCodePoints(a.name, b.name)
+		)
+		.map((item) => item.name)
+		.slice(0, MAX_USUAL_ITEM_SUGGESTIONS);
 }
 
 /** The toast after adding: NiceGUI's "Added milk" or "Restored milk!". */

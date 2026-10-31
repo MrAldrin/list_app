@@ -9,7 +9,7 @@
 <script lang="ts">
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import type { Item } from '#lib/data/index.ts';
-	import { itemSuggestions, normalizeItemName } from './items';
+	import { itemSuggestions, normalizeItemName, usualItemSuggestions } from './items';
 	import { keepFocus } from '#lib/ui/focus.ts';
 
 	let {
@@ -29,6 +29,7 @@
 	} = $props();
 	let input = $state<HTMLInputElement>();
 	const suggestions = $derived(itemSuggestions(items, text));
+	const usual = $derived(usualItemSuggestions(items, text));
 	/** The highlighted suggestion, tracked by name so live sorting cannot change it. */
 	let activeName = $state<string | null>(null);
 	/** Escape hides the suggestions until the text changes. */
@@ -124,6 +125,21 @@
 		</button>
 	</form>
 
+	{#if usual.length > 0}
+		<div class="usual">
+			<p id="{listId}-usual-label" class="usual-label">Usual items</p>
+			<ul class="usual-items" aria-labelledby="{listId}-usual-label">
+				{#each usual as name (name)}
+					<li>
+						<button type="button" disabled={!canEdit} onclick={() => add(name)}>
+							{name}
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
 	{#if shown.length > 0}
 		<!-- A combobox's popup: screen readers announce the highlighted option
 		     while the focus stays in the field. -->
@@ -196,5 +212,46 @@
 
 	li.active {
 		background: var(--border);
+	}
+
+	.usual {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		padding-bottom: 0.5rem;
+	}
+
+	.usual-label {
+		margin: 0;
+		color: var(--text-muted);
+	}
+
+	ul.usual-items {
+		position: static;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		margin: 0;
+		padding: 0;
+		background: transparent;
+		border-radius: 0;
+		box-shadow: none;
+	}
+
+	ul.usual-items li {
+		width: auto;
+		min-height: 0;
+		padding: 0;
+	}
+
+	.usual-items button {
+		width: auto;
+		min-height: var(--touch);
+		padding: 0 0.75rem;
+		border-color: var(--border);
+		background: var(--surface);
+		text-align: left;
+		overflow-wrap: anywhere;
 	}
 </style>

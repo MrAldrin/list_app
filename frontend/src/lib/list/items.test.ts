@@ -5,6 +5,7 @@ import {
 	checkFeedback,
 	formatItemDate,
 	itemSuggestions,
+	usualItemSuggestions,
 	lastAddedLabel,
 	normalizeItemName,
 	loadItemSort,
@@ -46,6 +47,41 @@ describe('itemSuggestions', () => {
 
 	it('lists a name once', () => {
 		expect(itemSuggestions(named('milk', 'milk'), 'milk')).toEqual(['milk']);
+	});
+});
+
+describe('usualItemSuggestions', () => {
+	const items = [
+		{ name: 'oat milk', done: true, add_count: 4 },
+		{ name: 'Milk', done: true, add_count: 3 },
+		{ name: 'apples', done: true, add_count: 3 },
+		{ name: 'Bread', done: true, add_count: 3 },
+		{ name: 'eggs', done: true, add_count: 1 },
+		{ name: 'coffee', done: false, add_count: 20 }
+	];
+
+	it('returns no usual items when typing, but includes them for blank text', () => {
+		expect(usualItemSuggestions(items, '')).toEqual(['oat milk', 'apples', 'Bread']);
+		expect(usualItemSuggestions(items, '  ')).toEqual(['oat milk', 'apples', 'Bread']);
+		expect(usualItemSuggestions(items, 'milk')).toEqual([]);
+	});
+
+	it('requires checked items with at least two adds', () => {
+		expect(
+			usualItemSuggestions(
+				[
+					{ name: 'new', done: true, add_count: 1 },
+					{ name: 'active', done: false, add_count: 8 },
+					{ name: 'checked', done: true, add_count: 2 }
+				],
+				''
+			)
+		).toEqual(['checked']);
+	});
+
+	it('ranks by count then case-insensitive name and returns at most three', () => {
+		const input = [...items].reverse();
+		expect(usualItemSuggestions(input, '')).toEqual(['oat milk', 'apples', 'Bread']);
 	});
 });
 

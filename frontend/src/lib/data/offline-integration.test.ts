@@ -28,6 +28,7 @@ import { createSnapshotStore, type SnapshotStore } from './snapshot-store';
 import type { SessionLockManager } from './session-transition';
 import { createQueueStorage, MemoryQueueStorage, type QueueStorage } from './queue-storage';
 import { newStoredEntry } from './queue-entries';
+import { usualItemSuggestions } from '#lib/list/items.ts';
 
 const list = makeList({ uid: 'saved-list' });
 const item = makeItem(list.uid, { uid: 'saved-item', name: 'milk' });
@@ -1501,6 +1502,92 @@ describe('offline editing (6.2d)', () => {
 		await waitFor(() => expect(reloaded.waitingCount).toBe(0));
 		expect(reloaded.queuedOps).toEqual([]);
 		reloaded.release();
+		storage.close();
+	});
+
+	it('queues and replays a usual checked item through the normal add operation', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const usualItem = makeItem(list.uid, {
+			uid: 'usual-oat-milk',
+			name: 'Oat Milk',
+			done: true,
+			completed_at: '2026-10-06T17:00:00.000Z',
+			add_count: 2
+		});
+		const initialFeed = makeFeed({ seq: 5, full: true, lists: [list], items: [usualItem] });
+		const online = handle(
+			fakeApi(async () => initialFeed),
+			storage
+		);
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
+		await waitFor(async () => {
+			const saved = await storage.read({ kind: 'room', slug: ROOM.slug });
+			expect(saved.ok && saved.value?.items).toEqual([usualItem]);
+		});
+		online.release();
+
+		const connectivity = fakeConnectivity();
+		const api = fakeApi(async () => {
+			throw new NetworkError();
+		});
+		api.whoAmI.mockRejectedValue(new NetworkError());
+		const offline = handle(api, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await waitFor(() => expect(offline.store.canEdit).toBe(true));
+
+		const [name] = usualItemSuggestions(offline.store.itemsOf(list.uid), '');
+		expect(name).toBe('Oat Milk');
+		const added = await offline.addItem(list, name);
+		expect(added).toMatchObject({ ok: true, pending: true });
+		expect(offline.store.item(usualItem.uid)).toMatchObject({
+			done: false,
+			add_count: 3
+		});
+		await waitFor(async () => expect(await queue.read()).toHaveLength(1));
+		const [queued] = await queue.read();
+		expect(queued.op).toMatchObject({ type: 'item.add', list_uid: list.uid, name });
+
+		const sent: SentOp[] = [];
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			return applied(op, 6, {
+				item_uid: usualItem.uid,
+				outcome: 'restored',
+				changed_seq: 6
+			});
+		});
+		api.whoAmI.mockResolvedValue(ROOM);
+		api.changes.mockResolvedValue(
+			makeFeed({
+				seq: 6,
+				full: true,
+				lists: [list],
+				items: [
+					{
+						...usualItem,
+						done: false,
+						completed_at: null,
+						add_count: 3,
+						changed_seq: 6
+					}
+				]
+			})
+		);
+		connectivity.emit('online');
+		await waitFor(() => expect(sent).toHaveLength(1));
+		await waitFor(() => expect(offline.waitingCount).toBe(0));
+		expect(sent[0]).toMatchObject({
+			type: 'item.add',
+			list_uid: list.uid,
+			name: 'Oat Milk'
+		});
+		expect(offline.store.item(usualItem.uid)).toMatchObject({ done: false, add_count: 3 });
+		expect(await queue.read()).toEqual([]);
+		offline.release();
 		storage.close();
 	});
 
