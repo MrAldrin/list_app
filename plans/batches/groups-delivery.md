@@ -16,8 +16,12 @@ Conductor uses GPT-6.1 Terra medium; bounded children Luna xhigh, escalate Sol m
 
 ## Status (Conductor-owned)
 
-Active. Conductor 01a190c4 owns child workspace `tmp-groups-implementation` at `/home/hsa/projects/tmp-groups-implementation`. Implementation `xxktorwz` passed independent review after fixes. Integrating into the batch workspace; combined checks remain. Lead retains entry workspace and final integration.
+Review-ready. Implementation `xxktorwz` is integrated into the batch workspace. The Conductor removed its child workspace after checks; Lead owns final integration and entry workspace cleanup.
 
 ## Closeout (Conductor-owned)
 
-Pending.
+- Delivered `xxktorwz` (5702e7ce): room groups, online management, retry-safe member adds, offline reconciliation, tests and feature docs. Independent review of the exact diff found no remaining issues after fixes.
+- Combined checks: 1,481 Python tests, 660 frontend tests and 378 browser tests passed. Python formatting, lint and type checks, frontend lint, Svelte checks and build passed. Browser log: `/tmp/groups-combined-browser.log`.
+- An earlier post-review browser run had one WebKit offline service-worker failure and teardown error; six isolated retries and its 30-test module passed. Root cause unproven. Logs: `/tmp/groups-browser-postreview.log`, `/tmp/groups-webkit-investigation.log`.
+- `npm ci` reported 19 dependency vulnerabilities (4 low, 13 moderate, 2 high); not investigated or changed in this batch. Tests used isolated credentials; `.env` was not copied.
+- Child workspace removed. Lead retains this workspace, final integration and shared planning records. No bookmarks moved or deployment performed.
