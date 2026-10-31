@@ -16,8 +16,12 @@ Lifecycle: temporary
 
 ## Status (Conductor-owned)
 
-Active. Conductor session `01a18ea9-0910-7616-879b-19e176793495`. Worker completed `lukostum` in conductor-owned `tmp-capitals-impl` (`/home/hsa/projects/tmp-capitals-impl`); independent read-only review is active. Next: resolve review, integrate, and run full combined checks. Conductor owns child workspace cleanup.
+Review-ready for Lead integration. Conductor session `01a18ea9-0910-7616-879b-19e176793495`. Worker workspace `tmp-capitals-impl` was integrated into this batch line and removed. Lead owns entry workspace and final integration.
 
 ## Closeout (Conductor-owned)
 
-Pending.
+- Delivered `lukostum`, `ysnysyuv`, and `xmsktuos`: case-preserving names, safe migrations and Unicode key rebuild, offline reconciliation, and documentation. Fresh independent review found no remaining issues; subsequent changes were formatting only.
+- Combined checks: 1,451 Python tests, Ruff and ty; frontend check, 641 tests and build; 366 browser tests across Chromium, Firefox and WebKit. An earlier browser run had two failures and two teardown errors; the three affected cases passed individually and the full suite passed on rerun.
+- Frontend lint passes Prettier but has five existing navigation ESLint errors, reproduced on the exact parent with the same dependencies. npm reported five dependency advisories (four low, one high); no audit fixes applied.
+- A plain SQLite connection needs the documented app function to insert or rename items; backup and restore paths were reviewed. A Unicode-key collision stops startup without merging data. Browser matching is provisional until server reconciliation.
+- No bookmarks moved or deployment performed. Lead retains shared-plan lifecycle and final integration.
