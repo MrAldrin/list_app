@@ -5,6 +5,7 @@ import {
 	deferred,
 	makeFeed,
 	makeItem,
+	makeItemGroup,
 	makeList,
 	ROOM,
 	settle,
@@ -62,6 +63,19 @@ describe('RoomStore.applyFeed', () => {
 		expect(store.item(milk.uid)?.quantity).toBe(3);
 		expect(store.item(eggs.uid)).toBeUndefined();
 		expect(store.room?.name).toBe('Renamed');
+	});
+
+	it('merges group catalog changes and removes deleted groups', () => {
+		const store = storeWith();
+		const group = makeItemGroup({ uid: 'group-one' });
+		store.applyFeed(makeFeed({ seq: 2, full: true, groups: [group] }));
+		expect(store.groups).toEqual([group]);
+
+		const changed = { ...group, name: 'Supper', changed_seq: 3 };
+		store.applyFeed(makeFeed({ seq: 3, groups: [changed] }));
+		expect(store.groups).toEqual([changed]);
+		store.applyFeed(makeFeed({ seq: 4, deletions: [{ kind: 'group', uid: group.uid }] }));
+		expect(store.groups).toEqual([]);
 	});
 
 	it('drops the items of a deleted list, listed in the feed or not', () => {
@@ -320,7 +334,11 @@ describe('project', () => {
 		completed_at: '2026-01-01T00:00:00Z',
 		tags: ['a', 'b']
 	});
-	const server = { lists: new Map([[list.uid, list]]), items: new Map([[item.uid, item]]) };
+	const server = {
+		lists: new Map([[list.uid, list]]),
+		items: new Map([[item.uid, item]]),
+		groups: new Map()
+	};
 	const run = (...ops: Op[]) =>
 		project(
 			server,
@@ -625,6 +643,7 @@ describe('RoomStore.unconfirmedView', () => {
 		seq: 3,
 		lists: [makeList()],
 		items: [],
+		groups: [],
 		savedAt: '2026-10-06T10:00:00.000Z'
 	};
 

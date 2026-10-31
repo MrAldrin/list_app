@@ -30,6 +30,7 @@ import {
 } from './pending-logout';
 import { failed, type ActionResult, type Failure } from './result';
 import { rowOf } from './rebase';
+import { itemNameKey } from './overlay';
 import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
 import { signInRoom, SIGNIN_INTERRUPTED } from './room-signin';
 import { ShareApi } from './share';
@@ -56,7 +57,10 @@ import { ApiError, NetworkError } from './types';
 import type {
 	HideDone,
 	Item,
+	ItemAddIfAbsentResult,
 	ItemAddResult,
+	ItemGroup,
+	ItemGroupAddResult,
 	ItemRestoreResult,
 	List,
 	ListCreateResult,
@@ -129,6 +133,9 @@ export type RoomApi = Pick<
 	| 'deleteRoom'
 	| 'shareLink'
 	| 'resetShareLink'
+	| 'createItemGroup'
+	| 'updateItemGroup'
+	| 'deleteItemGroup'
 >;
 
 export interface RoomOptions {
@@ -181,6 +188,14 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | type
 	} finally {
 		clearTimeout(timer);
 	}
+}
+
+/** ASCII lowercasing is stable across JS/Python; Unicode matches go to the server. */
+function isAsciiItemName(name: string): boolean {
+	for (const character of name) {
+		if (character.charCodeAt(0) > 0x7f) return false;
+	}
+	return true;
 }
 
 export class RoomHandle {
@@ -515,6 +530,81 @@ export class RoomHandle {
 	/** Sends only the changed hide-done fields. */
 	setVisibility(list: ListRef, changes: Partial<HideDone>): Promise<ActionResult> {
 		return this.#run({ type: 'list.visibility', list_uid: list.uid, ...changes });
+	}
+
+	// Item groups
+
+	createItemGroup(name: string, items: string[]): Promise<ActionResult<ItemGroup>> {
+		return this.#manageItemGroup(() => this.#api.createItemGroup(this.slug, name, items));
+	}
+
+	updateItemGroup(
+		group: ItemGroup,
+		name: string,
+		items: string[]
+	): Promise<ActionResult<ItemGroup>> {
+		return this.#manageItemGroup(() =>
+			this.#api.updateItemGroup(this.slug, group.uid, group.changed_seq, name, items)
+		);
+	}
+
+	async deleteItemGroup(group: ItemGroup): Promise<ActionResult<void>> {
+		const blocked = this.#guardWrite();
+		if (blocked) return blocked;
+		const result = await this.#call(() =>
+			this.#api.deleteItemGroup(this.slug, group.uid, group.changed_seq)
+		);
+		if ((result.ok || result.code === 'group_changed_meanwhile') && this.store.canWrite) {
+			await this.store.refresh();
+		}
+		return result;
+	}
+
+	/** Locally skips ASCII matches; the server decides Unicode matches for each queued op. */
+	async addItemGroup(list: ListRef, group: ItemGroup): Promise<ActionResult<ItemGroupAddResult>> {
+		if (this.#isShare) return READ_ONLY;
+		const blocked = this.#guardEdit();
+		if (blocked) return blocked;
+		const present = new Set(
+			this.store
+				.itemsOf(list.uid)
+				.filter((item) => isAsciiItemName(item.name))
+				.map((item) => itemNameKey(item.name))
+		);
+		let added = 0;
+		let skipped = 0;
+		let queued = 0;
+		const failures: ItemGroupAddResult['failures'] = [];
+		for (const name of group.items) {
+			const locallyComparable = isAsciiItemName(name);
+			const key = itemNameKey(name);
+			if (locallyComparable && present.has(key)) {
+				skipped += 1;
+				continue;
+			}
+			if (locallyComparable) present.add(key);
+			const result = await this.#run<ItemAddIfAbsentResult>({
+				type: 'item.add_if_absent',
+				list_uid: list.uid,
+				name,
+				uid: newId()
+			});
+			if (!result.ok) failures.push({ name, message: result.message });
+			else if (result.pending) queued += 1;
+			else if (result.result.outcome === 'skipped') skipped += 1;
+			else added += 1;
+		}
+		return { ok: true, result: { added, skipped, queued, failures } };
+	}
+
+	async #manageItemGroup<R>(request: () => Promise<R>): Promise<ActionResult<R>> {
+		const blocked = this.#guardWrite();
+		if (blocked) return blocked;
+		const result = await this.#call(request);
+		if ((result.ok || result.code === 'group_changed_meanwhile') && this.store.canWrite) {
+			await this.store.refresh();
+		}
+		return result;
 	}
 
 	// Items
@@ -1017,15 +1107,15 @@ export class RoomHandle {
 		const blocked = this.#guardEdit();
 		if (blocked) return Promise.resolve(blocked);
 		if (this.store.canWrite) return this.#runOnline<R>(op, onQueued);
-		if (op.type === 'item.add') {
-			// Native browser case tables can differ from the server's Python table.
-			// Keep the op and label it pending instead of predicting a permanent result.
+		if (op.type === 'item.add' || op.type === 'item.add_if_absent') {
+			// Native browser case tables can differ from Python's. The server's
+			// item.add_if_absent check settles a concurrent duplicate during replay.
 			this.#queue.send(op, true, onQueued).catch(() => undefined);
-			return Promise.resolve({
-				ok: true,
-				pending: true,
-				result: { item_uid: op.uid, outcome: 'added' } as R
-			});
+			const result =
+				op.type === 'item.add_if_absent'
+					? { item_uid: op.uid ?? '', outcome: 'added', changed_seq: 0 }
+					: { item_uid: op.uid, outcome: 'added' };
+			return Promise.resolve({ ok: true, pending: true, result: result as R });
 		}
 		const provisional = this.#provisional<R>(op);
 		// The answer, if it is a failure, goes to the Not saved list (the op waited);

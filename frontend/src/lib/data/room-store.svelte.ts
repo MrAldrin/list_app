@@ -5,7 +5,7 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { compat } from './compat.svelte';
 import { ApiError, NetworkError } from './types';
 import { failed, isActionCode, type ActionCode } from './result';
-import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
+import type { Feed, Item, ItemGroup, List, OpResponse, Room, SentOp } from './types';
 import {
 	isProjected,
 	nowIso,
@@ -82,7 +82,7 @@ export interface RoomStoreLifecycle {
 	) => void;
 }
 
-const EMPTY: RoomData = { lists: new Map(), items: new Map() };
+const EMPTY: RoomData = { lists: new Map(), items: new Map(), groups: new Map() };
 const NO_ITEMS: readonly Item[] = Object.freeze([]);
 
 /**
@@ -148,6 +148,8 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	/** All lists, sorted by name ignoring case (pending ops included). */
 	lists = $derived(sortLists(this.#view.lists.values()));
+	/** Room group catalog in creation order (feed and saved view included). */
+	groups = $derived([...this.#view.groups.values()]);
 	#itemsByList = $derived(groupItemsByList(this.#view.items));
 
 	#noticeId = 0;
@@ -243,7 +245,8 @@ export class RoomStore implements QueueHost, LiveHost {
 		this.#cleared = false;
 		this.#server = {
 			lists: new SvelteMap(snapshot.lists.map((list) => [list.uid, list])),
-			items: new SvelteMap(snapshot.items.map((item) => [item.uid, item]))
+			items: new SvelteMap(snapshot.items.map((item) => [item.uid, item])),
+			groups: new SvelteMap(snapshot.groups.map((group) => [group.uid, group]))
 		};
 		this.#serverRoom = snapshot.room;
 		this.#answeredRows = [];
@@ -298,6 +301,10 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	item(uid: string): Item | undefined {
 		return this.#view.items.get(uid);
+	}
+
+	itemGroup(uid: string): ItemGroup | undefined {
+		return this.#view.groups.get(uid);
 	}
 
 	/** The items of a list: open first, then by name. */
@@ -400,7 +407,8 @@ export class RoomStore implements QueueHost, LiveHost {
 					seq: this.seq,
 					room: this.#serverRoom,
 					lists: [...this.#server.lists.values()],
-					items: [...this.#server.items.values()]
+					items: [...this.#server.items.values()],
+					groups: [...this.#server.groups.values()]
 				});
 			}
 			return clearVersion === this.#clearVersion && feedVersion === this.#feedVersion;
@@ -533,6 +541,7 @@ export class RoomStore implements QueueHost, LiveHost {
 
 	/** The item or list name the user sees for this op's row, or null. */
 	#nameOf(op: SentOp): string | null {
+		if (op.type === 'item.add' || op.type === 'item.add_if_absent') return op.name;
 		if ('item_uid' in op) return this.#view.items.get(op.item_uid)?.name ?? null;
 		if (op.type.startsWith('list.') && 'list_uid' in op) {
 			return this.#view.lists.get(op.list_uid)?.name ?? null;

@@ -51,6 +51,7 @@ def test_fresh_database_has_pruning_columns(tmp_path, monkeypatch):
 
     assert "deletions_pruned_seq" in _columns(connection, "rooms")
     assert "created_at" in _columns(connection, "deletions")
+    assert "deleted_at" in _columns(connection, "item_groups")
     connection.close()
 
 
@@ -175,6 +176,71 @@ def test_recent_client_gets_a_delta_after_pruning(room):
 
     assert feed["full"] is False
     assert feed["deletions"] == [{"kind": "item", "uid": recent_uid}]
+
+
+def test_prune_expires_group_payload_and_preserves_delta_sync(room):
+    room_id, slug, client = room
+    created = client.post(
+        f"/api/v1/rooms/{slug}/item-groups",
+        json={"name": "Old recipe", "items": ["beans", "rice"]},
+    )
+    assert created.status_code == 201, created.text
+    old_group = created.json()["group"]
+    since_before_delete = changes(client, slug, 0)["seq"]
+    deleted = client.request(
+        "DELETE",
+        f"/api/v1/rooms/{slug}/item-groups/{old_group['uid']}",
+        json={"base_seq": old_group["changed_seq"]},
+    )
+    assert deleted.status_code == 204, deleted.text
+    db.execute(
+        f"UPDATE item_groups SET deleted_at = {AGED} WHERE uid = ?",
+        (old_group["uid"],),
+    )
+    db.commit()
+    aged_seq = db.execute(
+        "SELECT changed_seq FROM item_groups WHERE uid = ?", (old_group["uid"],)
+    ).fetchone()[0]
+
+    recent = client.post(
+        f"/api/v1/rooms/{slug}/item-groups",
+        json={"name": "Recent recipe", "items": ["pasta"]},
+    )
+    assert recent.status_code == 201, recent.text
+    recent_group = recent.json()["group"]
+    recent_delete = client.request(
+        "DELETE",
+        f"/api/v1/rooms/{slug}/item-groups/{recent_group['uid']}",
+        json={"base_seq": recent_group["changed_seq"]},
+    )
+    assert recent_delete.status_code == 204, recent_delete.text
+
+    assert db.execute(
+        "SELECT items_json FROM item_groups WHERE uid = ?", (old_group["uid"],)
+    ).fetchone() == ('["beans", "rice"]',)
+    assert crud.prune_deletions() == 1
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM item_groups WHERE uid = ?", (old_group["uid"],)
+        ).fetchone()[0]
+        == 0
+    )
+    assert db.execute(
+        "SELECT items_json FROM item_groups WHERE uid = ?", (recent_group["uid"],)
+    ).fetchone() == ('["pasta"]',)
+    assert (
+        db.execute(
+            "SELECT deletions_pruned_seq FROM rooms WHERE id = ?", (room_id,)
+        ).fetchone()[0]
+        == aged_seq
+    )
+
+    old_client = changes(client, slug, since_before_delete)
+    assert old_client["full"] is True
+    assert old_client["groups"] == []
+    recent_client = changes(client, slug, aged_seq)
+    assert recent_client["full"] is False
+    assert recent_client["deletions"] == [{"kind": "group", "uid": recent_group["uid"]}]
 
 
 def test_startup_prunes_deletions_and_the_daily_task_repeats_it(monkeypatch):

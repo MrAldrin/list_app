@@ -14,6 +14,8 @@ from database_crud import (
     get_deletions_locked,
     get_deletions_pruned_seq_locked,
     get_item_changes_locked,
+    get_item_group_changes_locked,
+    get_item_group_deletions_locked,
     get_list_changes_locked,
     get_room_details_locked,
     get_room_seq_locked,
@@ -45,5 +47,11 @@ def changes(
             "room": get_room_details_locked(room.room_id),
             "lists": get_list_changes_locked(room.room_id, rows_since),
             "items": get_item_changes_locked(room.room_id, rows_since),
-            "deletions": [] if full else get_deletions_locked(room.room_id, since),
+            "groups": get_item_group_changes_locked(room.room_id, rows_since),
+            "deletions": (
+                []
+                if full
+                else get_deletions_locked(room.room_id, since)
+                + get_item_group_deletions_locked(room.room_id, since)
+            ),
         }

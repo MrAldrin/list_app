@@ -215,7 +215,7 @@ def test_unsent_marks_and_connection_hints_while_offline(svelte_server, open_ses
     ).to_have_count(0)
 
     phone.get_by_role("button", name="List menu").click()
-    expect(phone.get_by_text("Needs a connection")).to_be_visible()
+    expect(phone.locator("header").get_by_text("Needs a connection")).to_be_visible()
     described = phone.get_by_role("button", name="Share List").get_attribute(
         "aria-describedby"
     )

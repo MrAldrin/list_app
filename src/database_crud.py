@@ -1,6 +1,7 @@
 import json
 import secrets
 import threading
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -11,6 +12,7 @@ import bcrypt
 
 from database_setup import db, inserted_row_id
 from field_limits import (
+    MAX_ITEM_GROUPS_PER_ROOM,
     MAX_ITEMS_PER_LIST,
     MAX_LISTS_PER_ROOM,
     MAX_NAME_LENGTH,
@@ -457,6 +459,31 @@ def _check_item_count_locked(list_id: int) -> None:
         )
 
 
+def add_item_if_absent_locked(
+    item_name: str, list_id: int, *, uid: str | None = None
+) -> tuple[str, int]:
+    """Add a new item only when its case-insensitive name is absent.
+
+    Existing open and checked rows are both kept unchanged. Call inside the
+    list's write transaction so the check and insert cannot race another writer.
+    """
+    item_name = normalize_item_name(item_name)
+    name_key = item_name_key(item_name)
+    existing = db.execute(
+        "SELECT id FROM items WHERE list_id = ? AND name_key = ?",
+        (list_id, name_key),
+    ).fetchone()
+    if existing:
+        return "skipped", existing[0]
+    _check_item_count_locked(list_id)
+    result = db.execute(
+        f"INSERT INTO items (name, name_key, done, list_id, uid, added_at) "
+        f"VALUES (?, ?, 0, ?, ?, {_NOW_SQL})",
+        (item_name, name_key, list_id, uid),
+    )
+    return "added", inserted_row_id(result)
+
+
 def add_or_restore_item_locked(
     item_name: str, list_id: int, *, uid: str | None = None
 ) -> tuple[str, int]:
@@ -801,6 +828,147 @@ def get_room_details_locked(room_id: int) -> dict | None:
 # reads every row; otherwise only rows changed after that seq.
 
 
+def _group_row_to_api(row: tuple[Any, ...]) -> dict[str, Any]:
+    try:
+        items = json.loads(row[3])
+    except (json.JSONDecodeError, TypeError):
+        items = []
+    if not isinstance(items, list) or not all(isinstance(item, str) for item in items):
+        items = []
+    return {
+        "uid": row[0],
+        "name": row[1],
+        "items": items,
+        "changed_seq": row[2],
+    }
+
+
+def get_item_group_locked(room_id: int, group_uid: str) -> dict[str, Any] | None:
+    row = db.execute(
+        "SELECT uid, name, changed_seq, items_json FROM item_groups "
+        "WHERE room_id = ? AND uid = ? AND deleted = 0",
+        (room_id, group_uid),
+    ).fetchone()
+    return _group_row_to_api(row) if row else None
+
+
+def get_item_group_changes_locked(
+    room_id: int, since: int | None
+) -> list[dict[str, Any]]:
+    rows = db.execute(
+        "SELECT uid, name, changed_seq, items_json FROM item_groups "
+        "WHERE room_id = ? AND deleted = 0 AND changed_seq > ? ORDER BY id",
+        (room_id, _since_bound(since)),
+    ).fetchall()
+    return [_group_row_to_api(row) for row in rows]
+
+
+def get_item_group_deletions_locked(room_id: int, since: int) -> list[dict[str, str]]:
+    rows = db.execute(
+        "SELECT uid FROM item_groups WHERE room_id = ? AND deleted = 1 "
+        "AND changed_seq > ? ORDER BY changed_seq, id",
+        (room_id, since),
+    ).fetchall()
+    return [{"kind": "group", "uid": row[0]} for row in rows]
+
+
+def create_item_group_locked(
+    room_id: int, name: str, items: list[str]
+) -> dict[str, Any]:
+    """Create a validated group. Caller holds the room's write transaction."""
+    name_key = item_name_key(name)
+    if db.execute(
+        "SELECT 1 FROM item_groups WHERE room_id = ? AND name_key = ? AND deleted = 0",
+        (room_id, name_key),
+    ).fetchone():
+        raise ItemGroupNameTaken
+    count = db.execute(
+        "SELECT COUNT(*) FROM item_groups WHERE room_id = ? AND deleted = 0",
+        (room_id,),
+    ).fetchone()[0]
+    if count >= MAX_ITEM_GROUPS_PER_ROOM:
+        raise CountLimitReached(
+            count_limit_message("A room", MAX_ITEM_GROUPS_PER_ROOM, "item groups")
+        )
+    uid = str(uuid.uuid4())
+    while uid_in_use_locked(uid):
+        uid = str(uuid.uuid4())
+    insert = db.execute(
+        "INSERT INTO item_groups (uid, room_id, name, name_key, items_json) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (uid, room_id, name, name_key, json.dumps(items, ensure_ascii=False)),
+    )
+    inserted_row_id(insert)
+    group = get_item_group_locked(room_id, uid)
+    if group is None:
+        raise RuntimeError("Inserted item group could not be read")
+    return group
+
+
+class ItemGroupNameTaken(Exception):
+    """A room already has a non-deleted group with this case-insensitive name."""
+
+
+def update_item_group_locked(
+    room_id: int,
+    group_uid: str,
+    base_seq: int,
+    name: str,
+    items: list[str],
+) -> tuple[str, dict[str, Any] | None]:
+    """Replace a group unless another editor changed it after `base_seq`."""
+    row = db.execute(
+        "SELECT id, name, name_key, items_json, changed_seq, deleted FROM item_groups "
+        "WHERE room_id = ? AND uid = ?",
+        (room_id, group_uid),
+    ).fetchone()
+    if row is None or row[5]:
+        return "missing", None
+    group_id, old_name, _old_key, old_items_json, changed_seq, _deleted = row
+    try:
+        old_items = json.loads(old_items_json)
+    except (json.JSONDecodeError, TypeError):
+        old_items = []
+    if old_name == name and old_items == items:
+        return "saved", get_item_group_locked(room_id, group_uid)
+    if changed_seq != base_seq:
+        return "changed", get_item_group_locked(room_id, group_uid)
+
+    name_key = item_name_key(name)
+    duplicate = db.execute(
+        "SELECT 1 FROM item_groups WHERE room_id = ? AND name_key = ? "
+        "AND deleted = 0 AND id != ?",
+        (room_id, name_key, group_id),
+    ).fetchone()
+    if duplicate:
+        raise ItemGroupNameTaken
+    db.execute(
+        "UPDATE item_groups SET name = ?, name_key = ?, items_json = ? WHERE id = ?",
+        (name, name_key, json.dumps(items, ensure_ascii=False), group_id),
+    )
+    return "saved", get_item_group_locked(room_id, group_uid)
+
+
+def delete_item_group_locked(room_id: int, group_uid: str, base_seq: int) -> str:
+    """Soft-delete a group, rejecting a stale deletion to protect edits."""
+    row = db.execute(
+        "SELECT id, changed_seq, deleted FROM item_groups WHERE room_id = ? AND uid = ?",
+        (room_id, group_uid),
+    ).fetchone()
+    if row is None:
+        return "missing"
+    group_id, changed_seq, deleted = row
+    if deleted:
+        return "deleted"
+    if changed_seq != base_seq:
+        return "changed"
+    db.execute(
+        f"UPDATE item_groups SET deleted = 1, deleted_at = {_NOW_SQL} WHERE id = ?",
+        (group_id,),
+    )
+    return "deleted"
+
+
 def get_room_seq_locked(room_id: int) -> int:
     return db.execute(
         "SELECT change_seq FROM rooms WHERE id = ?", (room_id,)
@@ -978,6 +1146,7 @@ def uid_in_use_locked(uid: str) -> bool:
         db.execute(
             "SELECT 1 FROM lists WHERE uid = :uid "
             "UNION ALL SELECT 1 FROM items WHERE uid = :uid "
+            "UNION ALL SELECT 1 FROM item_groups WHERE uid = :uid "
             "UNION ALL SELECT 1 FROM deletions WHERE uid = :uid LIMIT 1",
             {"uid": uid},
         ).fetchone()
@@ -1037,18 +1206,23 @@ DELETION_DAYS = 90
 
 
 def prune_deletions(max_age_days: int = DELETION_DAYS) -> int:
-    """Delete deletion records older than `max_age_days`; return the count.
+    """Delete old deletion records and group tombstones; return the count.
 
-    Per room, every record up to the newest old one goes, so the records kept
-    are all newer than the pruned ones. The room keeps that seq as
+    Per room, every record up to the newest old one goes, so records kept are
+    all newer than the pruned ones. The room keeps that seq as
     `deletions_pruned_seq`: a client behind it gets a full snapshot.
     """
     with transaction(write=True):
+        age = f"-{int(max_age_days)} days"
         old_rooms = db.execute(
-            "SELECT room_id, MAX(changed_seq) FROM deletions "
+            "SELECT room_id, MAX(changed_seq) FROM ("
+            "SELECT room_id, changed_seq FROM deletions "
             "WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?) "
-            "GROUP BY room_id",
-            (f"-{int(max_age_days)} days",),
+            "UNION ALL "
+            "SELECT room_id, changed_seq FROM item_groups "
+            "WHERE deleted = 1 AND deleted_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)"
+            ") GROUP BY room_id",
+            (age, age),
         ).fetchall()
         removed = 0
         for room_id, seq in old_rooms:
@@ -1065,11 +1239,16 @@ def prune_deletions(max_age_days: int = DELETION_DAYS) -> int:
                     "changed_seq = MAX(changed_seq, excluded.changed_seq)",
                     (list_uid, floor),
                 )
-            result = db.execute(
+            deleted_rows = db.execute(
                 "DELETE FROM deletions WHERE room_id = ? AND changed_seq <= ?",
                 (room_id, seq),
             )
-            removed += result.rowcount
+            group_rows = db.execute(
+                "DELETE FROM item_groups WHERE room_id = ? AND deleted = 1 "
+                "AND changed_seq <= ?",
+                (room_id, seq),
+            )
+            removed += deleted_rows.rowcount + group_rows.rowcount
             db.execute(
                 "UPDATE rooms SET deletions_pruned_seq = MAX(deletions_pruned_seq, ?) "
                 "WHERE id = ?",

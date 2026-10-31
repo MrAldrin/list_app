@@ -7,7 +7,7 @@
 
 import { sortTags } from './order';
 import { NEW_ROW_SEQ } from './rebase';
-import type { Item, List, Room, SentOp } from './types';
+import type { Item, ItemGroup, List, Room, SentOp } from './types';
 
 export interface PendingOp {
 	op: SentOp;
@@ -44,6 +44,7 @@ const PROJECTED = new Set<SentOp['type']>([
 	'list.tag_rename',
 	'list.visibility',
 	'item.add',
+	'item.add_if_absent',
 	'item.set_done',
 	'item.quantity_delta',
 	'item.edit',
@@ -64,6 +65,7 @@ export function isProjected(op: SentOp): boolean {
 export interface RoomData {
 	lists: ReadonlyMap<string, List>;
 	items: ReadonlyMap<string, Item>;
+	groups: ReadonlyMap<string, ItemGroup>;
 }
 
 /**
@@ -151,6 +153,9 @@ export function project(
 			case 'item.add':
 				projectAdd(lists, items, op.list_uid, op.name, op.uid, at);
 				break;
+			case 'item.add_if_absent':
+				projectAddIfAbsent(lists, items, op.list_uid, op.name, op.uid, at);
+				break;
 			case 'item.restore':
 				projectRestore(lists, items, op);
 				break;
@@ -202,7 +207,7 @@ export function project(
 			if (item) items.set(uid, { ...item, changed_seq });
 		}
 	}
-	return { lists, items };
+	return { lists, items, groups: server.groups };
 }
 
 /** The room name with pending renames applied. */
@@ -260,11 +265,42 @@ function keepFirstItemTag(items: Map<string, Item>, listUid: string, listTags: s
 	}
 }
 
+/** Client-side case folding is authoritative only for ASCII item names. */
+function isAsciiItemName(name: string): boolean {
+	return Array.from(name).every((character) => character.charCodeAt(0) <= 0x7f);
+}
+
 /**
  * Add-or-restore, as the server does it: an active item with the name means no
  * change; a checked one is unchecked and counted; otherwise a new row with the
  * client uid. `at` is when the user added it.
  */
+function projectAddIfAbsent(
+	lists: Map<string, List>,
+	items: Map<string, Item>,
+	listUid: string,
+	rawName: string,
+	uid: string | undefined,
+	at: string
+): void {
+	const name = itemName(rawName);
+	const key = itemNameKey(name);
+	if (
+		[...items.values()].some(
+			(item) =>
+				item.list_uid === listUid &&
+				(item.name === name ||
+					(isAsciiItemName(item.name) && isAsciiItemName(name) && itemNameKey(item.name) === key))
+		)
+	)
+		return;
+	if (uid === undefined || !lists.has(listUid) || items.has(uid)) return;
+	items.set(uid, {
+		...newRow(uid, listUid, name, { done: false, completed_at: null }),
+		added_at: at
+	});
+}
+
 function projectAdd(
 	lists: Map<string, List>,
 	items: Map<string, Item>,

@@ -1,4 +1,4 @@
-import type { Item, List, Room } from '#lib/data/types.ts';
+import type { Item, ItemGroup, List, Room } from '#lib/data/types.ts';
 import { isItemDate } from './item-date';
 import type {
 	RoomIdentity,
@@ -90,6 +90,32 @@ function validList(value: unknown, seq: number): value is List {
 	return isSequence(value.changed_seq) && value.changed_seq <= seq;
 }
 
+function validGroup(value: unknown, seq: number): value is ItemGroup {
+	return (
+		isRecord(value) &&
+		nonEmptyString(value.uid) &&
+		typeof value.name === 'string' &&
+		value.name.length > 0 &&
+		value.name.length <= 100 &&
+		Array.isArray(value.items) &&
+		value.items.length <= 1000 &&
+		value.items.every(
+			(item) => typeof item === 'string' && item.length > 0 && item.length <= 100
+		) &&
+		isSequence(value.changed_seq) &&
+		value.changed_seq <= seq
+	);
+}
+
+function copyGroup(group: ItemGroup): ItemGroup {
+	return {
+		uid: group.uid,
+		name: group.name,
+		items: [...group.items],
+		changed_seq: group.changed_seq
+	};
+}
+
 function validItem(value: unknown, seq: number): value is Item {
 	if (!isRecord(value) || !nonEmptyString(value.uid) || !nonEmptyString(value.list_uid))
 		return false;
@@ -164,7 +190,8 @@ export function validateData(identity: SnapshotIdentity, data: unknown): Snapsho
 		!isRecord(data) ||
 		!isSequence(data.seq) ||
 		!Array.isArray(data.lists) ||
-		!Array.isArray(data.items)
+		!Array.isArray(data.items) ||
+		(data.groups !== undefined && !Array.isArray(data.groups))
 	)
 		return null;
 	if (identity.kind === 'room') {
@@ -179,6 +206,12 @@ export function validateData(identity: SnapshotIdentity, data: unknown): Snapsho
 	}
 	if (!data.lists.every((list) => validList(list, data.seq as number))) return null;
 	if (!data.items.every((item) => validItem(item, data.seq as number))) return null;
+	const groups = (data.groups ?? []) as unknown[];
+	if (groups.length > 100 || !groups.every((group) => validGroup(group, data.seq as number)))
+		return null;
+	if (identity.kind === 'share' && groups.length !== 0) return null;
+	const groupIds = new Set(groups.map((group) => (group as ItemGroup).uid));
+	if (groupIds.size !== groups.length) return null;
 	const listIds = new Set(data.lists.map((list) => (list as List).uid));
 	const itemIds = new Set(data.items.map((item) => (item as Item).uid));
 	if (listIds.size !== data.lists.length || itemIds.size !== data.items.length) return null;
@@ -191,7 +224,8 @@ export function validateData(identity: SnapshotIdentity, data: unknown): Snapsho
 		seq: data.seq as number,
 		room: identity.kind === 'room' ? { slug: identity.slug, name: (data.room as Room).name } : null,
 		lists: (data.lists as List[]).map(copyList),
-		items: (data.items as Item[]).map(copyItem)
+		items: (data.items as Item[]).map(copyItem),
+		groups: groups.map((group) => copyGroup(group as ItemGroup))
 	};
 }
 

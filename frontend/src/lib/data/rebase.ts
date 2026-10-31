@@ -79,7 +79,9 @@ function keptItemUid(response: OpResponse): string | undefined {
 export function changedRow(settled: SentOp, response: OpResponse): string | null {
 	if (
 		response.status === 'applied' &&
-		(settled.type === 'item.add' || settled.type === 'item.restore')
+		(settled.type === 'item.add' ||
+			settled.type === 'item.add_if_absent' ||
+			settled.type === 'item.restore')
 	) {
 		const uid = response.result.item_uid;
 		return typeof uid === 'string' ? `item:${uid}` : null;
@@ -107,13 +109,9 @@ export function planRewrites(input: RewriteInput): Rewrite[] {
 			? response.result.changed_seq
 			: undefined;
 
-	const kept = settled.type === 'item.add' ? keptItemUid(response) : undefined;
-	if (
-		kept !== undefined &&
-		settled.type === 'item.add' &&
-		settled.uid !== undefined &&
-		kept !== settled.uid
-	) {
+	const isAdd = settled.type === 'item.add' || settled.type === 'item.add_if_absent';
+	const kept = isAdd ? keptItemUid(response) : undefined;
+	if (kept !== undefined && isAdd && settled.uid !== undefined && kept !== settled.uid) {
 		for (const op of later) {
 			if (sent(op.op_id) || !('item_uid' in op) || op.item_uid !== settled.uid) continue;
 			let next = withItemUid(op, kept);

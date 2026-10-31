@@ -3,6 +3,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import uuid
 from contextlib import closing
 from pathlib import Path
 
@@ -29,6 +30,14 @@ def _insert_key_test_item(db: sqlite3.Connection, list_id: int, name: str) -> in
     return db.execute(
         "INSERT INTO items (name, name_key, done, list_id) VALUES (?, ?, 0, ?)",
         (name, name.strip().lower(), list_id),
+    ).lastrowid
+
+
+def _insert_key_test_group(db: sqlite3.Connection, room_id: int, name: str) -> int:
+    return db.execute(
+        "INSERT INTO item_groups (uid, room_id, name, name_key, items_json) "
+        "VALUES (?, ?, ?, ?, '[]')",
+        (str(uuid.uuid4()), room_id, name, item_names.item_name_key(name)),
     ).lastrowid
 
 
@@ -104,13 +113,90 @@ def test_fresh_database_is_at_latest_version_with_visibility_columns(
     item_columns = {
         column[1] for column in connection.execute("PRAGMA table_info(items)")
     }
+    group_columns = {
+        column[1] for column in connection.execute("PRAGMA table_info(item_groups)")
+    }
     assert {
         "hide_done_mode",
         "hide_done_age_days",
         "hide_done_recent_count",
     } <= list_columns
     assert "completed_at" in item_columns
+    assert {
+        "uid",
+        "room_id",
+        "name",
+        "name_key",
+        "items_json",
+        "deleted",
+        "changed_seq",
+        "deleted_at",
+    } <= group_columns
     connection.close()
+
+
+def test_group_migration_preserves_existing_room_lists_and_items(tmp_path, monkeypatch):
+    database_path = tmp_path / "group-upgrade.db"
+    backup_path = tmp_path / "group-upgrade-backup.db"
+    with closing(sqlite3.connect(database_path)) as old, old:
+        migrate_to(old, 13)
+        list_id = _create_item_list(old)
+        _insert_key_test_item(old, list_id, "Milk")
+
+    monkeypatch.setenv("DB_PATH", str(database_path))
+    monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
+    upgraded = init_database()
+    assert upgraded.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
+    assert upgraded.execute(
+        "SELECT name FROM lists WHERE name = 'Shop'"
+    ).fetchone() == ("Shop",)
+    assert upgraded.execute("SELECT name FROM items").fetchone() == ("Milk",)
+    assert upgraded.execute("SELECT COUNT(*) FROM item_groups").fetchone()[0] == 0
+    upgraded.close()
+
+    with closing(sqlite3.connect(backup_path)) as backup:
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == 13
+        assert backup.execute("SELECT name FROM items").fetchone() == ("Milk",)
+
+
+def test_group_retention_migration_stamps_existing_tombstones_without_losing_payload():
+    with closing(sqlite3.connect(":memory:")) as connection:
+        migrate_to(connection, 14)
+        room_id = connection.execute("SELECT id FROM rooms").fetchone()[0]
+        uid = str(uuid.uuid4())
+        connection.execute(
+            "INSERT INTO item_groups "
+            "(uid, room_id, name, name_key, items_json, deleted) "
+            "VALUES (?, ?, 'Old recipe', 'old recipe', '[\"beans\"]', 1)",
+            (uid, room_id),
+        )
+        connection.commit()
+        old_seq = connection.execute(
+            "SELECT changed_seq FROM item_groups WHERE uid = ?", (uid,)
+        ).fetchone()[0]
+        old_room_seq = connection.execute(
+            "SELECT change_seq FROM rooms WHERE id = ?", (room_id,)
+        ).fetchone()[0]
+
+        migrate_to(connection)
+
+        deleted_at, items_json = connection.execute(
+            "SELECT deleted_at, items_json FROM item_groups WHERE uid = ?", (uid,)
+        ).fetchone()
+        assert deleted_at is not None and deleted_at.endswith("Z")
+        assert items_json == '["beans"]'
+        assert (
+            connection.execute(
+                "SELECT changed_seq FROM item_groups WHERE uid = ?", (uid,)
+            ).fetchone()[0]
+            == old_seq
+        )
+        assert (
+            connection.execute(
+                "SELECT change_seq FROM rooms WHERE id = ?", (room_id,)
+            ).fetchone()[0]
+            == old_room_seq
+        )
 
 
 def test_reopening_registers_name_key_guard_and_external_field_updates_work(
@@ -258,12 +344,23 @@ def test_runtime_key_version_change_rebuilds_and_backup_can_be_restored(
     monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
     initial = init_database()
     list_id = _create_item_list(initial)
+    room_id = initial.execute(
+        "SELECT room_id FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()[0]
     item_id = _insert_key_test_item(initial, list_id, "\u1c89")
+    group_id = _insert_key_test_group(initial, room_id, "\u1c89")
+    other_room_id = initial.execute(
+        "INSERT INTO rooms (name, slug, password_hash) VALUES ('Other', 'other', 'hash')"
+    ).lastrowid
+    other_group_id = _insert_key_test_group(initial, other_room_id, "\u1c8a")
     initial.commit()
     old_version = database_setup._item_name_key_version()
     old_seq = initial.execute("SELECT change_seq FROM rooms").fetchone()[0]
     old_changed_seq = initial.execute(
         "SELECT changed_seq FROM items WHERE id = ?", (item_id,)
+    ).fetchone()[0]
+    old_group_changed_seq = initial.execute(
+        "SELECT changed_seq FROM item_groups WHERE id = ?", (group_id,)
     ).fetchone()[0]
     initial.close()
 
@@ -276,6 +373,12 @@ def test_runtime_key_version_change_rebuilds_and_backup_can_be_restored(
         "SELECT name, name_key FROM items WHERE id = ?", (item_id,)
     ).fetchone() == ("\u1c89", "\u1c8a")
     assert upgraded.execute(
+        "SELECT name, name_key FROM item_groups WHERE id = ?", (group_id,)
+    ).fetchone() == ("\u1c89", "\u1c8a")
+    assert upgraded.execute(
+        "SELECT room_id, name_key FROM item_groups WHERE id = ?", (other_group_id,)
+    ).fetchone() == (other_room_id, "\u1c8a")
+    assert upgraded.execute(
         "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
     ).fetchone() == (1, "simulated-UCD-16")
     assert upgraded.execute("SELECT change_seq FROM rooms").fetchone()[0] == old_seq
@@ -285,12 +388,24 @@ def test_runtime_key_version_change_rebuilds_and_backup_can_be_restored(
         ).fetchone()[0]
         == old_changed_seq
     )
+    assert (
+        upgraded.execute(
+            "SELECT changed_seq FROM item_groups WHERE id = ?", (group_id,)
+        ).fetchone()[0]
+        == old_group_changed_seq
+    )
     upgraded.close()
 
     with closing(sqlite3.connect(backup_path)) as backup:
         assert backup.execute(
             "SELECT name, name_key FROM items WHERE id = ?", (item_id,)
         ).fetchone() == ("\u1c89", "\u1c89")
+        assert backup.execute(
+            "SELECT name, name_key FROM item_groups WHERE id = ?", (group_id,)
+        ).fetchone() == ("\u1c89", "\u1c89")
+        assert backup.execute(
+            "SELECT name_key FROM item_groups WHERE id = ?", (other_group_id,)
+        ).fetchone() == ("\u1c8a",)
         assert (
             backup.execute(
                 "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
@@ -310,6 +425,12 @@ def test_runtime_key_version_change_rebuilds_and_backup_can_be_restored(
         "SELECT name_key FROM items WHERE id = ?", (item_id,)
     ).fetchone() == ("\u1c8a",)
     assert restored.execute(
+        "SELECT name_key FROM item_groups WHERE id = ?", (group_id,)
+    ).fetchone() == ("\u1c8a",)
+    assert restored.execute(
+        "SELECT name_key FROM item_groups WHERE id = ?", (other_group_id,)
+    ).fetchone() == ("\u1c8a",)
+    assert restored.execute(
         "SELECT algorithm_version, unicode_version FROM item_name_key_metadata"
     ).fetchone() == (1, "simulated-UCD-16")
     restored.close()
@@ -324,10 +445,15 @@ def test_runtime_key_collision_rolls_back_and_keeps_backup_unchanged(
     monkeypatch.setenv("DB_BACKUP_PATH", str(backup_path))
     initial = init_database()
     list_id = _create_item_list(initial)
-    _insert_key_test_item(initial, list_id, "\u1c89")
-    _insert_key_test_item(initial, list_id, "\u1c8a")
+    room_id = initial.execute(
+        "SELECT room_id FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()[0]
+    _insert_key_test_item(initial, list_id, "milk")
+    _insert_key_test_group(initial, room_id, "\u1c89")
+    _insert_key_test_group(initial, room_id, "\u1c8a")
     initial.commit()
     before_items = initial.execute("SELECT * FROM items ORDER BY id").fetchall()
+    before_groups = initial.execute("SELECT * FROM item_groups ORDER BY id").fetchall()
     before_schema = initial.execute(
         "SELECT type, name, sql FROM sqlite_master "
         "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
@@ -339,7 +465,7 @@ def test_runtime_key_collision_rolls_back_and_keeps_backup_unchanged(
     monkeypatch.setattr(
         database_setup, "_item_name_key_version", lambda: (1, "simulated-UCD-16")
     )
-    with pytest.raises(MigrationError, match=r"items 1 and 2 in list 1"):
+    with pytest.raises(MigrationError, match=r"groups 1 and 2 in room 1"):
         init_database()
 
     for path in (database_path, backup_path):
@@ -350,6 +476,10 @@ def test_runtime_key_collision_rolls_back_and_keeps_backup_unchanged(
             assert (
                 unchanged.execute("SELECT * FROM items ORDER BY id").fetchall()
                 == before_items
+            )
+            assert (
+                unchanged.execute("SELECT * FROM item_groups ORDER BY id").fetchall()
+                == before_groups
             )
             assert (
                 unchanged.execute(

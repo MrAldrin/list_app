@@ -7,7 +7,7 @@ import type { SentOp } from './types';
 
 describe('Api', () => {
 	it('reads the changes feed from /api/v1 at the origin root', async () => {
-		const feed = { seq: 3, full: true, room: {}, lists: [], items: [], deletions: [] };
+		const feed = { seq: 3, full: true, room: {}, lists: [], items: [], groups: [], deletions: [] };
 		const fetch = fakeFetch(json(200, feed));
 		const result = await new Api(fetch).changes('home ab', 2);
 
@@ -109,6 +109,35 @@ describe('Api', () => {
 			code: 'wrong_password',
 			message: 'Incorrect password'
 		});
+	});
+
+	it('manages named item groups with room-only JSON endpoints', async () => {
+		const group = { uid: 'group-uid', name: 'Dinner', items: ['Rice'], changed_seq: 5 };
+		const create = fakeFetch(json(201, { group }));
+		expect(await new Api(create).createItemGroup('home', 'Dinner', ['Rice'])).toEqual(group);
+		expect(create.mock.calls[0][0]).toBe('/api/v1/rooms/home/item-groups');
+		expect(create.mock.calls[0][1]?.method).toBe('POST');
+		expect(JSON.parse(create.mock.calls[0][1]?.body as string)).toEqual({
+			name: 'Dinner',
+			items: ['Rice']
+		});
+
+		const update = fakeFetch(json(200, { group }));
+		expect(await new Api(update).updateItemGroup('home', group.uid, 4, 'Dinner', ['Rice'])).toEqual(
+			group
+		);
+		expect(update.mock.calls[0][0]).toBe('/api/v1/rooms/home/item-groups/group-uid');
+		expect(update.mock.calls[0][1]?.method).toBe('PUT');
+		expect(JSON.parse(update.mock.calls[0][1]?.body as string)).toEqual({
+			base_seq: 4,
+			name: 'Dinner',
+			items: ['Rice']
+		});
+
+		const remove = fakeFetch(new Response(null, { status: 204 }));
+		await expect(new Api(remove).deleteItemGroup('home', group.uid, 5)).resolves.toBeUndefined();
+		expect(remove.mock.calls[0][1]?.method).toBe('DELETE');
+		expect(JSON.parse(remove.mock.calls[0][1]?.body as string)).toEqual({ base_seq: 5 });
 	});
 
 	it('builds the events URL', () => {

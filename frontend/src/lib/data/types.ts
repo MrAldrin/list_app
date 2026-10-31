@@ -36,6 +36,14 @@ export interface List {
 	changed_seq: number;
 }
 
+export interface ItemGroup {
+	uid: string;
+	name: string;
+	/** Ordered item names; each name is trimmed and unique ignoring case. */
+	items: string[];
+	changed_seq: number;
+}
+
 export interface Item {
 	uid: string;
 	list_uid: string;
@@ -58,7 +66,7 @@ export interface Item {
 }
 
 export interface Deletion {
-	kind: 'list' | 'item';
+	kind: 'list' | 'item' | 'group';
 	uid: string;
 }
 
@@ -73,6 +81,7 @@ export interface Feed {
 	room: Room | null;
 	lists: List[];
 	items: Item[];
+	groups: ItemGroup[];
 	deletions: Deletion[];
 }
 
@@ -136,6 +145,12 @@ export interface ListVisibilityOp {
 }
 export interface ItemAddOp {
 	type: 'item.add';
+	list_uid: string;
+	name: string;
+	uid?: string;
+}
+export interface ItemAddIfAbsentOp {
+	type: 'item.add_if_absent';
 	list_uid: string;
 	name: string;
 	uid?: string;
@@ -206,6 +221,7 @@ export type Op =
 	| ListTagRenameOp
 	| ListVisibilityOp
 	| ItemAddOp
+	| ItemAddIfAbsentOp
 	| ItemSetDoneOp
 	| ItemQuantityDeltaOp
 	| ItemEditOp
@@ -224,6 +240,20 @@ export interface ListCreateResult {
 export interface ItemAddResult {
 	item_uid: string;
 	outcome: 'added' | 'restored';
+}
+export interface ItemAddIfAbsentResult {
+	item_uid: string;
+	outcome: 'added' | 'skipped';
+	changed_seq: number;
+}
+export interface ItemGroupResult {
+	group: ItemGroup;
+}
+export interface ItemGroupAddResult {
+	added: number;
+	skipped: number;
+	queued: number;
+	failures: { name: string; message: string }[];
 }
 export interface ItemRestoreResult {
 	item_uid: string;
@@ -269,6 +299,9 @@ export const API_ERROR_CODES = [
 	'admin_required',
 	'share_unavailable',
 	'list_unavailable',
+	'group_unavailable',
+	'group_name_taken',
+	'group_changed_meanwhile',
 	'wrong_password',
 	'forbidden_origin',
 	'not_found',

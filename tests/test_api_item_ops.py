@@ -100,6 +100,96 @@ def test_add_item(room, notified):
     assert notified == [room_id]
 
 
+@pytest.mark.parametrize("done", [False, True])
+def test_add_if_absent_skips_existing_open_and_checked_items_without_mutation(
+    room, done
+):
+    room_id, slug, client = room
+    list_id, list_uid = default_list()
+    item_uid = add_item(list_id, "Milk", done=done)
+    before_seq = seq_of(room_id)
+    before = item_row(item_uid)
+    before_changed_seq = item_changed_seq(item_uid)
+    response = op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.add_if_absent",
+            "list_uid": list_uid,
+            "name": " milk ",
+            "uid": new_id(),
+        },
+    )
+
+    assert response["status"] == "applied"
+    assert response["result"] == {
+        "item_uid": item_uid,
+        "outcome": "skipped",
+        "changed_seq": before_changed_seq,
+    }
+    assert response["seq"] == before_seq == seq_of(room_id)
+    assert item_row(item_uid) == before
+    assert item_changed_seq(item_uid) == before_changed_seq
+    assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 1
+
+
+def test_add_if_absent_keeps_python_distinct_unicode_names(room):
+    room_id, slug, client = room
+    list_id, list_uid = default_list()
+    existing_uid = add_item(list_id, "\u1c89")
+    assert "\u1c89".lower() != "\u1c8a".lower()
+    before_seq = seq_of(room_id)
+
+    response = op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.add_if_absent",
+            "list_uid": list_uid,
+            "name": "\u1c8a",
+            "uid": new_id(),
+        },
+    )
+
+    assert response["status"] == "applied"
+    assert response["result"]["outcome"] == "added"
+    assert response["result"]["item_uid"] != existing_uid
+    assert response["seq"] == before_seq + 1
+    assert db.execute(
+        "SELECT name FROM items WHERE list_id = ? ORDER BY id", (list_id,)
+    ).fetchall() == [("\u1c89",), ("\u1c8a",)]
+
+
+def test_add_if_absent_adds_only_missing_names_in_request_order(room):
+    _room_id, slug, client = room
+    list_id, list_uid = default_list()
+    results = []
+    for name in ("Zucchini", "Apples", "Carrot"):
+        response = op(
+            client,
+            slug,
+            {
+                "op_id": new_id(),
+                "type": "item.add_if_absent",
+                "list_uid": list_uid,
+                "name": name,
+                "uid": new_id(),
+            },
+        )
+        assert response["status"] == "applied"
+        assert response["result"]["outcome"] == "added"
+        results.append(response["result"])
+    rows = db.execute(
+        "SELECT uid, name FROM items WHERE list_id = ? ORDER BY id", (list_id,)
+    ).fetchall()
+    assert rows == [
+        (result["item_uid"], name)
+        for result, name in zip(results, ("Zucchini", "Apples", "Carrot"), strict=True)
+    ]
+
+
 def test_add_item_with_client_uid(room):
     _, slug, client = room
     _, list_uid = default_list()

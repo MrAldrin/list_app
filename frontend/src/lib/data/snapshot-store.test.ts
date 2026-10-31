@@ -62,7 +62,8 @@ function roomData(slug = 'kitchen'): SnapshotData {
 				added_at: null,
 				changed_seq: 8
 			}
-		]
+		],
+		groups: [{ uid: 'group-1', name: 'Dinner', items: ['beans', 'Rice'], changed_seq: 7 }]
 	};
 }
 
@@ -149,7 +150,8 @@ describe('snapshot store', () => {
 			...roomData(),
 			room: { slug: 'private-room-metadata', name: 'Must not persist', admin: true } as never,
 			lists: [roomData().lists[0]],
-			items: roomData().items
+			items: roomData().items,
+			groups: []
 		};
 		const shareSave = await store.save(shareIdentity, shareData, shareToken.value);
 		expect(roomSave.ok && shareSave.ok).toBe(true);
@@ -173,7 +175,11 @@ describe('snapshot store', () => {
 		if (!roomToken.ok || !shareToken.ok) throw new Error('generation unavailable');
 		expect(await store.lastRoom()).toEqual({ ok: true, value: null });
 		expect(
-			await store.save(share, { ...roomData(), lists: [roomData().lists[0]] }, shareToken.value)
+			await store.save(
+				share,
+				{ ...roomData(), lists: [roomData().lists[0]], groups: [] },
+				shareToken.value
+			)
 		).toMatchObject({ ok: true });
 		expect(await store.lastRoom()).toEqual({ ok: true, value: null });
 		expect(await store.save(room, { ...roomData(), seq: -1 }, roomToken.value)).toEqual({
@@ -309,7 +315,11 @@ describe('snapshot store', () => {
 		const share: SnapshotIdentity = { kind: 'share', token: 'token-a' };
 		const shareGeneration = await store.generation(share);
 		if (!shareGeneration.ok) throw new Error('share generation unavailable');
-		await store.save(share, { ...roomData(), lists: [roomData().lists[0]] }, shareGeneration.value);
+		await store.save(
+			share,
+			{ ...roomData(), lists: [roomData().lists[0]], groups: [] },
+			shareGeneration.value
+		);
 		await store.localSignOut(room);
 
 		expect(await reopened.read(room)).toEqual({ ok: false, reason: 'signed_out' });
@@ -461,7 +471,13 @@ describe('snapshot store', () => {
 			if (!token.ok) throw new Error('no generation');
 			expect((await store.save(identity, data, token.value)).ok).toBe(true);
 		};
-		const shareData: SnapshotData = { seq: 8, room: null, lists: [roomData().lists[0]], items: [] };
+		const shareData: SnapshotData = {
+			seq: 8,
+			room: null,
+			lists: [roomData().lists[0]],
+			items: [],
+			groups: []
+		};
 		await saveAt('2026-10-01T08:00:00.000Z', kitchen, roomData('kitchen'));
 		await saveAt('2026-10-01T08:00:00.000Z', garage, roomData('garage'));
 		await saveAt('2026-10-20T08:00:00.000Z', attic, roomData('attic'));

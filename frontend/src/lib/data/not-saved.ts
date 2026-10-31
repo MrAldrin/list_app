@@ -55,6 +55,7 @@ export function describeChange(op: SentOp, name: string | null): string {
 		case 'item.delete':
 			return `Delete ${ITEM(name)}`;
 		case 'item.add':
+		case 'item.add_if_absent':
 			return `Add '${op.name}'`;
 		case 'item.restore':
 			return `Undo delete of '${op.name}'`;

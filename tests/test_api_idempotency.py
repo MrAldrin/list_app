@@ -137,6 +137,12 @@ CASES = [
         "duplicate_active",
         lambda c: {"list_uid": c.list_uid, "name": "milk"},
     ),
+    applied("item.add_if_absent", lambda c: {"list_uid": c.list_uid, "name": "eggs"}),
+    rejected(
+        "item.add_if_absent",
+        "invalid_name",
+        lambda c: {"list_uid": c.list_uid, "name": " "},
+    ),
     applied(
         "item.set_done",
         lambda c: {"list_uid": c.list_uid, "item_uid": c.milk_uid, "done": True},

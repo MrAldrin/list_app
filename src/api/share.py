@@ -78,6 +78,8 @@ def share_changes(
             "items": get_item_changes_locked(
                 share.room_id, None, list_id=share.list_id
             ),
+            # A public share is one list, never the room's group catalog.
+            "groups": [],
             "deletions": [],
         }
 

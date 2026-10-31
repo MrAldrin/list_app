@@ -7,6 +7,7 @@ import type {
 	Feed,
 	Invitation,
 	IssuedInvitation,
+	ItemGroup,
 	OpResponse,
 	Room,
 	SentOp,
@@ -229,6 +230,37 @@ export class Api {
 	/** Gives the list a new share token; the old link stops working for everyone. */
 	resetShareLink(slug: string, listUid: string): Promise<ShareLink> {
 		return this.request<ShareLink>('POST', shareLinkPath(slug, listUid), {});
+	}
+
+	// Room item groups (online-only management; adding members uses queued ops).
+
+	createItemGroup(slug: string, name: string, items: string[]): Promise<ItemGroup> {
+		return this.request<{ group: ItemGroup }>('POST', roomPath(slug, 'item-groups'), {
+			name,
+			items
+		}).then((data) => data.group);
+	}
+
+	updateItemGroup(
+		slug: string,
+		groupUid: string,
+		baseSeq: number,
+		name: string,
+		items: string[]
+	): Promise<ItemGroup> {
+		return this.request<{ group: ItemGroup }>(
+			'PUT',
+			roomPath(slug, `item-groups/${encodeURIComponent(groupUid)}`),
+			{ base_seq: baseSeq, name, items }
+		).then((data) => data.group);
+	}
+
+	deleteItemGroup(slug: string, groupUid: string, baseSeq: number): Promise<void> {
+		return this.request<void>(
+			'DELETE',
+			roomPath(slug, `item-groups/${encodeURIComponent(groupUid)}`),
+			{ base_seq: baseSeq }
+		);
 	}
 
 	// A share link's own reads and writes: one list, by its token.

@@ -113,11 +113,12 @@ def test_full_snapshot(shop):
 
     data = feed(signed_in(slug), slug, 0)
 
-    assert set(data) == {"seq", "full", "room", "lists", "items", "deletions"}
+    assert set(data) == {"seq", "full", "room", "lists", "items", "groups", "deletions"}
     assert data["full"] is True
     assert data["seq"] == room_seq(room_id)
     assert data["room"] == {"slug": slug, "name": "Home"}
     assert data["deletions"] == []
+    assert data["groups"] == []
     lists = by_uid(data["lists"])
     assert len(lists) == 2  # "default" from the test setup, and "Shop"
     shop_list = lists[uid("lists", list_id)]

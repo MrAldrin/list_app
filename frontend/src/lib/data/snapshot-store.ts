@@ -1,4 +1,4 @@
-import type { Item, List, Room } from '#lib/data/types.ts';
+import type { Item, ItemGroup, List, Room } from '#lib/data/types.ts';
 import { CONTROLS, ROUTING, SNAPSHOTS, openDatabase, requestValue, transact } from './snapshot-idb';
 import {
 	isRecord,
@@ -29,6 +29,7 @@ export interface SnapshotData {
 	room: Room | null;
 	lists: List[];
 	items: Item[];
+	groups: ItemGroup[];
 }
 
 export interface SavedSnapshot extends SnapshotData {

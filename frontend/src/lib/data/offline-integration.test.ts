@@ -16,6 +16,7 @@ import {
 	fakeRoomApi,
 	makeFeed,
 	makeItem,
+	makeItemGroup,
 	makeList,
 	ROOM,
 	settle,
@@ -1660,6 +1661,94 @@ describe('offline editing (6.2d)', () => {
 		storage.close();
 	});
 
+	it('queues and replays a Unicode group member the client lowercases as a duplicate', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const existing = makeItem(list.uid, { uid: 'old-cyrillic', name: '\u1c89' });
+		const group = makeItemGroup({ uid: 'cyrillic-group', items: ['\u1c8a'] });
+		const initialFeed = makeFeed({
+			seq: 5,
+			full: true,
+			lists: [list],
+			items: [existing],
+			groups: [group]
+		});
+		const online = handle(
+			fakeApi(async () => initialFeed),
+			storage
+		);
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
+		await waitFor(async () =>
+			expect((await storage.read({ kind: 'room', slug: ROOM.slug })).ok).toBe(true)
+		);
+		online.release();
+
+		const connectivity = fakeConnectivity();
+		const api = fakeApi();
+		api.whoAmI.mockRejectedValue(new NetworkError());
+		api.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(api, storage, {
+			hydrateSavedView: true,
+			connectivity: connectivity.target,
+			queueStorage: queue
+		});
+		await waitFor(() => expect(offline.store.canEdit).toBe(true));
+
+		const result = await offline.addItemGroup(list, group);
+		expect(result).toEqual({
+			ok: true,
+			result: { added: 0, skipped: 0, queued: 1, failures: [] }
+		});
+		await waitFor(async () => expect(await queue.read()).toHaveLength(1));
+		const [queued] = await queue.read();
+		expect(queued.op).toMatchObject({
+			type: 'item.add_if_absent',
+			list_uid: list.uid,
+			name: '\u1c8a'
+		});
+		expect(offline.store.itemsOf(list.uid).map((row) => row.name)).toEqual(['\u1c89', '\u1c8a']);
+		offline.release();
+
+		const added = makeItem(list.uid, { uid: 'new-cyrillic', name: '\u1c8a', changed_seq: 6 });
+		const sent: SentOp[] = [];
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			return applied(op, 6, {
+				item_uid: added.uid,
+				outcome: 'added',
+				changed_seq: added.changed_seq
+			});
+		});
+		api.whoAmI.mockResolvedValue(ROOM);
+		api.changes.mockResolvedValue(
+			makeFeed({
+				seq: 6,
+				full: true,
+				lists: [list],
+				items: [existing, added],
+				groups: [group]
+			})
+		);
+		const reconnected = handle(api, storage, {
+			hydrateSavedView: true,
+			connectivity: connectivity.target,
+			queueStorage: queue
+		});
+		connectivity.emit('online');
+		await waitFor(() => expect(sent).toHaveLength(1));
+		await waitFor(() => expect(reconnected.waitingCount).toBe(0));
+		expect(sent[0]).toMatchObject({
+			type: 'item.add_if_absent',
+			name: '\u1c8a'
+		});
+		await waitFor(() =>
+			expect(reconnected.store.itemsOf(list.uid).map((row) => row.name)).toContain('\u1c8a')
+		);
+		expect(await queue.read()).toEqual([]);
+		reconnected.release();
+		storage.close();
+	});
+
 	it('removes an optimistic Unicode add when the server rejects it', async () => {
 		const storage = snapshots();
 		const queue = new MemoryQueueStorage();
@@ -1828,6 +1917,93 @@ describe('offline editing (6.2d)', () => {
 		expect(back.store.notice).toBeNull();
 		expect(back.store.notSaved).toEqual([]);
 		back.release();
+		storage.close();
+	});
+
+	it('replays an offline group member add as skipped and retargets its later edit', async () => {
+		const storage = snapshots();
+		const queue = new MemoryQueueStorage();
+		const group = makeItemGroup({ uid: 'group-eggs', items: ['eggs'] });
+		const online = handle(
+			fakeApi(async () => makeFeed({ ...feed, groups: [group] })),
+			storage
+		);
+		await waitFor(() => expect(online.store.canWrite).toBe(true));
+		await waitFor(async () => {
+			const saved = await storage.read({ kind: 'room', slug: ROOM.slug });
+			expect(saved.ok && saved.value?.groups).toEqual([group]);
+		});
+		online.release();
+
+		const connectivity = fakeConnectivity();
+		const api = fakeApi();
+		api.whoAmI.mockRejectedValue(new NetworkError());
+		api.changes.mockRejectedValue(new NetworkError());
+		const offline = handle(api, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		await waitFor(() => expect(offline.store.canEdit).toBe(true));
+		expect(offline.store.groups).toEqual([group]);
+
+		const added = await offline.addItemGroup(list, group);
+		expect(added).toEqual({
+			ok: true,
+			result: { added: 0, skipped: 0, queued: 1, failures: [] }
+		});
+		const addOp = offline.queuedOps[0];
+		if (addOp.type !== 'item.add_if_absent' || !addOp.uid) throw new Error('no group add queued');
+		const optimisticUid = addOp.uid;
+		void offline.editItem(
+			{ uid: optimisticUid, list_uid: list.uid, changed_seq: 0 },
+			{ name: 'eggs', description: 'free range' }
+		);
+		await waitFor(async () => expect(await queue.read()).toHaveLength(2));
+		expect(offline.store.itemsOf(list.uid).some((row) => row.uid === optimisticUid)).toBe(true);
+		offline.release();
+
+		const kept = makeItem(list.uid, { uid: 'kept-eggs', name: 'eggs', changed_seq: 8 });
+		const saved = { ...kept, description: 'free range', changed_seq: 9 };
+		api.whoAmI.mockResolvedValue(ROOM);
+		api.changes
+			.mockResolvedValueOnce(
+				makeFeed({ seq: 8, full: true, lists: [list], items: [item, kept], groups: [group] })
+			)
+			.mockResolvedValue(
+				makeFeed({ seq: 9, full: true, lists: [list], items: [item, saved], groups: [group] })
+			);
+		const sent: SentOp[] = [];
+		api.sendOp.mockImplementation(async (_slug, op) => {
+			sent.push(op);
+			if (op.type === 'item.add_if_absent') {
+				return applied(op, 8, {
+					item_uid: kept.uid,
+					outcome: 'skipped',
+					changed_seq: kept.changed_seq
+				});
+			}
+			return applied(op, 9, { changed_seq: saved.changed_seq });
+		});
+
+		const reconnected = handle(api, storage, {
+			hydrateSavedView: true,
+			queueStorage: queue,
+			connectivity: connectivity.target
+		});
+		connectivity.emit('online');
+		await waitFor(() => expect(api.sendOp).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(reconnected.waitingCount).toBe(0));
+		expect(sent[0]).toMatchObject({ type: 'item.add_if_absent', uid: optimisticUid });
+		expect(sent[1]).toMatchObject({
+			type: 'item.edit',
+			item_uid: kept.uid,
+			base_seq: kept.changed_seq,
+			description: 'free range'
+		});
+		expect(reconnected.store.item(kept.uid)).toMatchObject({ description: 'free range' });
+		expect(await queue.read()).toEqual([]);
+		reconnected.release();
 		storage.close();
 	});
 

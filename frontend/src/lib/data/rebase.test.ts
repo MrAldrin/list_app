@@ -165,6 +165,28 @@ describe('R3 for a row this device created', () => {
 });
 
 describe('R6: uid remap after an add', () => {
+	it('moves a later edit to the existing uid when add-if-absent is skipped', () => {
+		const add = sent({
+			type: 'item.add_if_absent',
+			list_uid: 'l',
+			name: 'milk',
+			uid: 'optimistic-milk'
+		});
+		const later = edit(NEW_ROW_SEQ, 'optimistic-milk', 'Milk');
+		const rewrites = plan(
+			add,
+			applied(add, {
+				item_uid: 'kept-milk',
+				outcome: 'skipped',
+				changed_seq: 11
+			}),
+			[later]
+		);
+		expect(rewrites).toEqual([
+			{ opId: later.op_id, op: { ...later, item_uid: 'kept-milk', base_seq: 11 } }
+		]);
+	});
+
 	it('moves later ops to the uid of a restored item, and their placeholder base to its seq', () => {
 		const add = sent({ type: 'item.add', list_uid: 'l', name: 'milk', uid: 'client-1' });
 		const qty = sent({

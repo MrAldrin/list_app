@@ -40,6 +40,29 @@ Part of the [JSON API](api.md). Data shapes and write operations.
   In `recent` mode, items without `completed_at` rank last in no fixed order;
   the API does not expose creation order.
 
+## Named item groups
+
+Groups belong to a room and contain an ordered list of item names. A group row
+looks like `{"uid": "…", "name": "Breakfast", "items": ["Tea", "Bread"],
+"changed_seq": 51}`. Group names are unique within a room, and item names are
+unique within a group; both comparisons ignore case. All names are trimmed. A
+room can have 100 groups, each with up to 1,000 item names; every name is
+limited to 100 characters. Empty groups can be saved, but adding one adds no
+items.
+
+Authenticated room members manage groups online with dedicated endpoints:
+
+- `POST /api/v1/rooms/{slug}/item-groups` with `{"name", "items"}` creates a
+  group and returns `{"group": …}`.
+- `PUT /api/v1/rooms/{slug}/item-groups/{uid}` with `{"base_seq", "name",
+  "items"}` replaces a group. `DELETE` on that path with `{"base_seq"}` removes
+  it. Both check the group's `changed_seq`; a stale request gets 409
+  `group_changed_meanwhile`. Reload the group and ask before replacing a newer
+  version. Reusing a room group name gets 409 `group_name_taken`.
+
+Groups are included in authenticated room feeds and device snapshots. A public
+share feed has an empty `groups` array and does not reveal the room catalog.
+
 ## Writing: operations
 
 All writes go to one endpoint, `POST /api/v1/rooms/{slug}/ops`, one operation
@@ -75,9 +98,9 @@ Responses (HTTP 200), one applied and one rejected:
 
 ### Operation types
 
-All item operations take `list_uid` and `item_uid`. Names are trimmed. Item
-names keep the case sent by the user; duplicates are compared with Python's
-Unicode-aware `lower()` key.
+Item writes name their `list_uid`; operations on an existing item also name
+`item_uid`. Names are trimmed. Item names keep the case sent by the user;
+duplicates are compared with Python's Unicode-aware `lower()` key.
 
 | `type` | Fields | Result / notes |
 |---|---|---|
@@ -92,6 +115,7 @@ Unicode-aware `lower()` key.
 | `list.tag_rename` | `list_uid`, `tag`, `new_tag` | Renames a tag, trimmed and checked like `list.tag_add`. Re-sorts the list's tags, moves the color, and renames the tag on every item of the list (an item keeps one copy if it has both). Same name: no change. Atomic. |
 | `list.visibility` | `list_uid`, `mode`?, `age_days`?, `recent_count`? | Sends only the changed fields (at least one); the server keeps the others. Out-of-range values give 422. |
 | `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). Either one counts as an add: `add_count` +1 (a new item starts at 1) and `added_at` is now. |
+| `item.add_if_absent` | `list_uid`, `name`, `uid`? | Applied result `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `skipped`. Adds a new item, but skips an active or checked match without changing it; the skipped result returns that item's UID and current `changed_seq`. |
 | `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Unchecking a checked item counts as an add (`add_count` +1, `added_at` now); checking, or unchecking an unchecked item, does not. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
 | `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `date`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. `date` absent keeps it; `null` clears it. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
@@ -124,7 +148,7 @@ If the stored value already matches, the op is applied. A quantity that was
 not sent is not compared.
 
 Applied answers of one-row ops (`item.set_done`, `item.quantity_delta`,
-`item.edit`, `item.toggle_tag`, `item.add`, `item.restore`, `list.rename`,
+`item.edit`, `item.toggle_tag`, `item.add`, `item.add_if_absent`, `item.restore`, `list.rename`,
 `list.tag_add`, `list.tag_remove`, `list.visibility`) include the row's new
 `changed_seq` in `result`. A client can use it as the next `base_seq` for that
 row. Answers stored before this was added have no `changed_seq`.
@@ -133,9 +157,9 @@ row. Answers stored before this was added have no `changed_seq`.
 
 | `code` | Operations | Message |
 |---|---|---|
-| `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `list.tag_rename`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
+| `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `list.tag_rename`, `item.add`, `item.add_if_absent`, `item.edit`, `item.restore` | Name cannot be empty |
 | `too_long` | the same, after trimming: names 100 characters, tags 30 (`list.tag_add`, `list.tag_rename`), `item.edit` and `item.restore` descriptions 1000 | Name (Tag, Description) can be at most N characters |
-| `too_many` | `item.add`, `item.restore` (1000 items per list); `list.create` (100 lists per room); `list.tag_add` (50 tags per list) | A list can have at most 1000 items; A room can have at most 100 lists; A list can have at most 50 tags |
+| `too_many` | `item.add`, `item.add_if_absent`, `item.restore` (1000 items per list); `list.create` (100 lists per room); `list.tag_add` (50 tags per list) | A list can have at most 1000 items; A room can have at most 100 lists; A list can have at most 50 tags |
 | `duplicate_name` | `list.rename`, `item.edit`, `list.tag_rename` | 'X' already exists (in this room) |
 | `duplicate_active` | `item.add` | 'x' is already on the list. Also has `item_uid`: the uid of the existing item. |
 | `changed_meanwhile` | `list.rename`, `item.set_done`, `item.edit` | Someone else changed this meanwhile. |

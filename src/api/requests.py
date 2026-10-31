@@ -13,6 +13,7 @@ from room_cookies import is_same_origin_request
 
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 MAX_BODY_BYTES = 64 * 1024
+MAX_ITEM_GROUP_BODY_BYTES = 640 * 1024
 
 
 class StrictBody(BaseModel):
@@ -50,12 +51,12 @@ async def check_write_request(request: Request) -> None:
         raise ApiError(415, "invalid_request", "Send a JSON body.")
 
 
-async def json_object(request: Request) -> dict[str, Any]:
-    """Dependency: the request body as a JSON object (400 if it is not JSON)."""
+async def _json_object(request: Request, max_bytes: int) -> dict[str, Any]:
+    """Read one bounded JSON object (400 if it is not JSON)."""
     body = b""
     async for chunk in request.stream():
         body += chunk
-        if len(body) > MAX_BODY_BYTES:
+        if len(body) > max_bytes:
             raise ApiError(413, "invalid_request", "The request body is too large.")
     try:
         data = json.loads(body)
@@ -66,8 +67,19 @@ async def json_object(request: Request) -> dict[str, Any]:
     return data
 
 
-# The request body, read by json_object.
+async def json_object(request: Request) -> dict[str, Any]:
+    """Dependency: standard-sized JSON object for API requests."""
+    return await _json_object(request, MAX_BODY_BYTES)
+
+
+async def item_group_json_object(request: Request) -> dict[str, Any]:
+    """Dependency: allow the bounded full content of a 1,000-item group."""
+    return await _json_object(request, MAX_ITEM_GROUP_BODY_BYTES)
+
+
+# The request body, read by the API dependencies above.
 JsonBody = Annotated[dict[str, Any], Depends(json_object)]
+ItemGroupJsonBody = Annotated[dict[str, Any], Depends(item_group_json_object)]
 
 
 def parse_body[ModelT: BaseModel](model: type[ModelT], data: dict[str, Any]) -> ModelT:

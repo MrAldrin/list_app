@@ -3,7 +3,7 @@
 import { vi } from 'vitest';
 import type { EventSourceLike } from './events';
 import type { RoomApi } from './index';
-import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
+import type { Feed, Item, ItemGroup, List, OpResponse, Room, SentOp } from './types';
 
 /** Deadline for polling waits. Long enough for a loaded machine, short enough to fail fast. */
 export const WAIT_TIMEOUT_MS = 5_000;
@@ -24,6 +24,16 @@ export function makeList(overrides: Partial<List> = {}): List {
 		tags: [],
 		hide_done: { mode: 'off', age_days: 7, recent_count: 10 },
 		tag_settings: { mode: 'multi', show_on_items: true, only_item_tags: false, colors: {} },
+		changed_seq: 1,
+		...overrides
+	};
+}
+
+export function makeItemGroup(overrides: Partial<ItemGroup> = {}): ItemGroup {
+	return {
+		uid: uid('group'),
+		name: 'Dinner',
+		items: ['beans', 'Rice'],
 		changed_seq: 1,
 		...overrides
 	};
@@ -54,6 +64,7 @@ export function makeFeed(overrides: Partial<Feed> = {}): Feed {
 		room: ROOM,
 		lists: [],
 		items: [],
+		groups: [],
 		deletions: [],
 		...overrides
 	};
@@ -216,6 +227,14 @@ export function fakeRoomApi<T extends Partial<RoomApi>>(overrides: T = {} as T) 
 		deleteRoom: vi.fn(async () => undefined),
 		shareLink: vi.fn(async () => ({ token: 'share-token' })),
 		resetShareLink: vi.fn(async () => ({ token: 'new-token' })),
+		createItemGroup: vi.fn(async (_slug: string, name: string, items: string[]) =>
+			makeItemGroup({ name, items })
+		),
+		updateItemGroup: vi.fn(
+			async (_slug: string, groupUid: string, _seq: number, name: string, items: string[]) =>
+				makeItemGroup({ uid: groupUid, name, items })
+		),
+		deleteItemGroup: vi.fn(async () => undefined),
 		eventsUrl: (slug: string) => `/api/v1/rooms/${slug}/events`
 	} satisfies RoomApi;
 	return { ...defaults, ...overrides };

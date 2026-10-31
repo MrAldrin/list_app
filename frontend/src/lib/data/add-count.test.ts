@@ -11,7 +11,8 @@ const OLD = '2000-01-01T00:00:00.000Z';
 function server(lists: List[], items: Item[]) {
 	return {
 		lists: new Map(lists.map((list) => [list.uid, list])),
-		items: new Map(items.map((item) => [item.uid, item]))
+		items: new Map(items.map((item) => [item.uid, item])),
+		groups: new Map()
 	};
 }
 

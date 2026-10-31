@@ -14,6 +14,7 @@ from api_helpers import client_for, home
 from fastapi import FastAPI
 
 import live_updates
+from api import item_groups as api_item_groups
 from api import ops as api_ops
 from api import register_api, sign_in_limit
 from api import share as api_share
@@ -80,6 +81,7 @@ def notified(monkeypatch) -> list[int]:
     # Both modules import the name, so each one's reference is replaced.
     monkeypatch.setattr(api_ops, "notify_room_changed", record)
     monkeypatch.setattr(api_share, "notify_room_changed", record)
+    monkeypatch.setattr(api_item_groups, "notify_room_changed", record)
     return calls
 
 

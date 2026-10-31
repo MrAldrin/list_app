@@ -13,6 +13,9 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
   and rename), delete and undo, hide-done setting, rename and delete a list, rename
   the room. The change shows at once,
   with a dot until it is sent.
+- A group saved in the room can add its names offline. Creating, editing and
+  deleting groups need a connection. Group members are queued as separate adds
+  in their saved order; each can succeed or fail independently.
 - Needs a connection: creating a list, changing the password, deleting a room,
   showing or resetting a share link, signing in or out, admin and invitations.
   These controls are disabled with "Needs a connection".
@@ -44,7 +47,11 @@ Changes merge when they can:
 
 - Two +1 taps add up. Two ticks, or the same tag added twice, end in one result.
 - Adding an item that someone else added keeps one item. Later changes to your
-  copy go to that item.
+  copy go to that item. A group add skips matches already on the list, whether
+  active or checked. The server checks again when each queued add is replayed;
+  if another device added the same name, the later queued edits are remapped to
+  that kept item. The group action reports partial results instead of hiding a
+  failed member.
 - A change is refused when someone else changed the same thing in a different
   way, when the item or list was deleted, or when a list name is taken.
 

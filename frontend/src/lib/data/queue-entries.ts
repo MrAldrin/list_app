@@ -76,6 +76,7 @@ const FIELDS: Record<Op['type'], Checks> = {
 		recent_count: optional(num)
 	},
 	'item.add': { list_uid: str, name: str, uid: optional(str) },
+	'item.add_if_absent': { list_uid: str, name: str, uid: optional(str) },
 	'item.set_done': { list_uid: str, item_uid: str, done: bool, base_seq: optional(num) },
 	'item.quantity_delta': { list_uid: str, item_uid: str, delta: num },
 	'item.edit': {

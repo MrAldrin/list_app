@@ -14,27 +14,30 @@ Each room has a counter `seq`; every write in the room increases it.
   "room": {"slug": "home-ab12cd", "name": "Home"},
   "lists": ["…lists changed after N…"],
   "items": ["…items changed after N…"],
-  "deletions": [{"kind": "item", "uid": "a1b2…"}, {"kind": "list", "uid": "9f8e…"}]
+  "groups": ["…room item groups changed after N…"],
+  "deletions": [{"kind": "item", "uid": "a1b2…"}, {"kind": "group", "uid": "4c3d…"}]
 }
 ```
 
-- `since=0` returns a **full snapshot** (`full: true`): every list and item,
-  no deletions. The client replaces all its data for the room.
+- `since=0` returns a **full snapshot** (`full: true`): every list, item and
+  item group, no deletions. The client replaces all its data for the room.
 - The server also sends a full snapshot when it cannot serve the delta: `since`
   is larger than the current `seq` (for example after a database restore), or
-  below the newest pruned deletion record. Deletion records are kept for 90
-  days.
+  below the newest pruned deletion. Deletion records and deleted-group
+  tombstones, including their saved item names, are kept for 90 days.
 - `since` is required: a whole number from 0 up; anything else gives 422.
 - Stored values are read leniently: a missing quantity is 1,
   a missing description is `""`, unreadable tags are `[]`, and an unreadable
   `completed_at` is `null`. `date` is `YYYY-MM-DD` or `null` (no date).
   `add_count` is at least 1 (a missing one reads as 1); `added_at` is a UTC
   time or `null` for items from before counting.
-- Otherwise (`full: false`) the client upserts `lists` and `items` by `uid` and
-  removes each `uid` in `deletions`.
+- Otherwise (`full: false`) the client upserts `lists`, `items` and `groups` by
+  `uid` and removes each `uid` in `deletions`. Deletions can name a list, item
+  or group.
 - A deleted list means its items are gone too. The client drops them, whether or
   not the feed also lists them.
-- `room` is always included, so a room rename shows up.
+- `room` is always included, so a room rename shows up. A public share feed
+  has `groups: []`; it does not reveal room item groups.
 - Store `seq` and send it as `since` next time.
 - How the server tracks changes: [change tracking](change-tracking.md).
 

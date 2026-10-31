@@ -9,7 +9,7 @@
 
 import type { Api } from './api';
 import { ApiError } from './types';
-import type { Feed, OpResponse, Room, SentOp, ShareLink } from './types';
+import type { Feed, ItemGroup, OpResponse, Room, SentOp, ShareLink } from './types';
 import type { RoomApi } from './index';
 
 /** What "who am I" answers for a working link: the link opens no room. */
@@ -94,5 +94,17 @@ export class ShareApi implements RoomApi {
 	resetShareLink(token: string, listUid: string): Promise<ShareLink> {
 		const slug = this.#roomSlugs.get(token);
 		return slug ? this.#api.resetShareLink(slug, listUid) : notForShareLinks();
+	}
+
+	createItemGroup(): Promise<ItemGroup> {
+		return notForShareLinks();
+	}
+
+	updateItemGroup(): Promise<ItemGroup> {
+		return notForShareLinks();
+	}
+
+	deleteItemGroup(): Promise<void> {
+		return notForShareLinks();
 	}
 }

@@ -732,16 +732,71 @@ def _calculate_item_name_keys(db: sqlite3.Connection) -> list[tuple[str, int]]:
     return updates
 
 
+def _calculate_item_group_name_keys(
+    db: sqlite3.Connection,
+) -> list[tuple[str, int]]:
+    """Compute current group keys and reject active room-name collisions."""
+    keys: dict[tuple[int, str], int] = {}
+    updates: list[tuple[str, int]] = []
+    rows = db.execute(
+        "SELECT id, room_id, name, deleted FROM item_groups ORDER BY id"
+    ).fetchall()
+    for group_id, room_id, name, deleted in rows:
+        if not isinstance(name, str):
+            raise MigrationError(
+                f"Cannot rebuild item-name keys: group {group_id} has a non-text name"
+            )
+        if name != item_names.normalize_item_name(name):
+            raise MigrationError(
+                f"Cannot rebuild item-name keys: group {group_id} is not trimmed"
+            )
+        key = item_names.item_name_key(name)
+        if not deleted:
+            previous = keys.get((room_id, key))
+            if previous is not None:
+                raise MigrationError(
+                    "Cannot rebuild item-name keys without a collision: groups "
+                    f"{previous} and {group_id} in room {room_id} normalize to {key!r}"
+                )
+            keys[(room_id, key)] = group_id
+        updates.append((key, group_id))
+    return updates
+
+
 def _write_item_name_keys(
-    db: sqlite3.Connection, updates: list[tuple[str, int]]
+    db: sqlite3.Connection,
+    updates: list[tuple[str, int]],
+    group_updates: list[tuple[str, int]] | None = None,
 ) -> None:
-    """Replace keys/index without treating an implementation change as an edit."""
+    """Replace keys/indexes without treating an implementation change as an edit."""
     db.execute("DROP TRIGGER items_track_update")
     db.execute("DROP INDEX idx_items_list_name_key")
+    if group_updates is not None:
+        group_index = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'index' "
+            "AND name = 'idx_item_groups_room_name_key'"
+        ).fetchone()
+        group_tracking = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'trigger' "
+            "AND name = 'item_groups_track_update'"
+        ).fetchone()
+        if group_index is None or group_tracking is None:
+            raise MigrationError(
+                "Cannot rebuild item-name keys: group guards are missing"
+            )
+        db.execute("DROP TRIGGER item_groups_track_update")
+        db.execute("DROP INDEX idx_item_groups_room_name_key")
     db.executemany("UPDATE items SET name_key = ? WHERE id = ?", updates)
+    if group_updates is not None:
+        db.executemany(
+            "UPDATE item_groups SET name_key = ? WHERE id = ?", group_updates
+        )
     db.execute(
         "CREATE UNIQUE INDEX idx_items_list_name_key ON items(list_id, name_key)"
     )
+    if group_updates is not None:
+        db.execute(group_index[0])
+        db.execute(group_tracking[0])
     db.execute(
         f"CREATE TRIGGER items_track_update {_CHANGE_TRACKING_TRIGGERS['items_track_update']}"
     )
@@ -818,6 +873,117 @@ def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
         """)
 
 
+def _migration_15_named_item_groups(db: sqlite3.Connection) -> None:
+    """Add room-scoped reusable groups with change tracking and retained tombstones."""
+    db.execute("""
+        CREATE TABLE item_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uid TEXT NOT NULL UNIQUE,
+            room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            name_key TEXT NOT NULL,
+            items_json TEXT NOT NULL,
+            deleted INTEGER NOT NULL DEFAULT 0,
+            changed_seq INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+    db.execute(
+        "CREATE UNIQUE INDEX idx_item_groups_room_name_key "
+        "ON item_groups(room_id, name_key) WHERE deleted = 0"
+    )
+    db.execute(
+        "CREATE INDEX idx_item_groups_room_seq ON item_groups(room_id, changed_seq)"
+    )
+    for name, action in (("insert", "INSERT"), ("update", "UPDATE")):
+        db.execute(f"""
+            CREATE TRIGGER item_groups_field_rules_{name}
+            BEFORE {action} ON item_groups
+            WHEN typeof(NEW.name) != 'text'
+              OR NEW.name = ''
+              OR NEW.name != listr_normalize_item_name(NEW.name)
+              OR length(NEW.name) > 100
+              OR NEW.name_key IS NOT listr_item_name_key(NEW.name)
+              OR typeof(NEW.items_json) != 'text'
+              OR CASE WHEN json_valid(NEW.items_json) THEN
+                    json_type(NEW.items_json) != 'array'
+                    OR json_array_length(NEW.items_json) > 1000
+                    OR EXISTS (
+                        SELECT 1 FROM json_each(NEW.items_json)
+                        WHERE type != 'text' OR value = ''
+                          OR value != listr_normalize_item_name(value)
+                          OR length(value) > 100
+                    )
+                    OR EXISTS (
+                        SELECT listr_item_name_key(value)
+                        FROM json_each(NEW.items_json)
+                        GROUP BY listr_item_name_key(value)
+                        HAVING COUNT(*) > 1
+                    )
+                 ELSE 1 END
+              OR typeof(NEW.deleted) != 'integer'
+              OR NEW.deleted NOT IN (0, 1)
+            BEGIN
+                SELECT RAISE(ABORT, 'item_groups: a value breaks a field rule');
+            END
+        """)
+    db.execute("""
+        CREATE TRIGGER item_groups_track_insert
+        AFTER INSERT ON item_groups
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = NEW.room_id;
+            UPDATE item_groups
+            SET changed_seq = COALESCE(
+                (SELECT change_seq FROM rooms WHERE id = NEW.room_id),
+                changed_seq
+            )
+            WHERE id = NEW.id;
+        END
+    """)
+    db.execute("""
+        CREATE TRIGGER item_groups_track_update
+        AFTER UPDATE ON item_groups
+        WHEN NEW.changed_seq IS OLD.changed_seq
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = NEW.room_id;
+            UPDATE item_groups
+            SET changed_seq = COALESCE(
+                (SELECT change_seq FROM rooms WHERE id = NEW.room_id),
+                changed_seq
+            )
+            WHERE id = NEW.id;
+        END
+    """)
+
+
+def _migration_16_item_group_tombstone_retention(db: sqlite3.Connection) -> None:
+    """Timestamp group tombstones for bounded retention and delta-sync recovery."""
+    db.execute("DROP TRIGGER item_groups_track_update")
+    db.execute("ALTER TABLE item_groups ADD COLUMN deleted_at TEXT")
+    # Rows deleted before this migration receive the usual 90-day grace period.
+    db.execute(
+        f"UPDATE item_groups SET deleted_at = {_NOW_TEXT} "
+        "WHERE deleted = 1 AND deleted_at IS NULL"
+    )
+    db.execute("""
+        CREATE TRIGGER item_groups_track_update
+        AFTER UPDATE ON item_groups
+        WHEN NEW.changed_seq IS OLD.changed_seq
+        BEGIN
+            UPDATE rooms SET change_seq = change_seq + 1 WHERE id = NEW.room_id;
+            UPDATE item_groups
+            SET changed_seq = COALESCE(
+                (SELECT change_seq FROM rooms WHERE id = NEW.room_id),
+                changed_seq
+            )
+            WHERE id = NEW.id;
+        END
+    """)
+    db.execute(
+        "CREATE INDEX idx_item_groups_deleted_at "
+        "ON item_groups(room_id, deleted_at, changed_seq) WHERE deleted = 1"
+    )
+
+
 def _ensure_item_name_key_version(
     db: sqlite3.Connection, backup_path: Path | None
 ) -> None:
@@ -852,7 +1018,8 @@ def _ensure_item_name_key_version(
             db.commit()
             return
         updates = _calculate_item_name_keys(db)
-        _write_item_name_keys(db, updates)
+        group_updates = _calculate_item_group_name_keys(db)
+        _write_item_name_keys(db, updates, group_updates)
         db.execute(
             "UPDATE item_name_key_metadata SET algorithm_version = ?, "
             "unicode_version = ? WHERE singleton = 1",
@@ -881,6 +1048,8 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_12_preserve_item_name_case,
         _migration_13_version_item_name_keys,
         _migration_14_tag_settings,
+        _migration_15_named_item_groups,
+        _migration_16_item_group_tombstone_retention,
     ]
 
 

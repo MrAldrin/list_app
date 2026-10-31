@@ -10,6 +10,7 @@ import {
 	FakeEventSource,
 	makeFeed,
 	makeItem,
+	makeItemGroup,
 	makeList,
 	ROOM,
 	settle,
@@ -146,6 +147,84 @@ describe('RoomHandle', () => {
 		});
 		expect(store.item(milk.uid)?.quantity).toBe(2);
 		expect(store.notice?.message).toBe('The item is no longer available.');
+	});
+
+	it('adds a group one item op at a time and reports partial results', async () => {
+		const { room, store, ops } = await opened();
+		const bread = makeItem(list.uid, { name: 'bread', done: true });
+		store.applyFeed(makeFeed({ seq: 5, full: true, lists: [list], items: [milk, bread] }));
+		const group = makeItemGroup({ items: ['Milk', 'bread', 'eggs', 'tea'] });
+		const adding = room.addItemGroup(list, group);
+		await settle();
+		expect(ops).toHaveLength(1);
+		expect(ops[0].op).toMatchObject({ type: 'item.add_if_absent', name: 'eggs' });
+
+		ops[0].answer.resolve(
+			applied(ops[0].op, 5, {
+				item_uid: 'kept-eggs',
+				outcome: 'skipped',
+				changed_seq: 4
+			})
+		);
+		await settle();
+		expect(ops).toHaveLength(2);
+		expect(ops[1].op).toMatchObject({ type: 'item.add_if_absent', name: 'tea' });
+		ops[1].answer.resolve({
+			op_id: ops[1].op.op_id,
+			status: 'rejected',
+			code: 'too_many',
+			message: 'A list can have at most 1000 items',
+			seq: 5
+		});
+
+		expect(await adding).toEqual({
+			ok: true,
+			result: {
+				added: 0,
+				skipped: 3,
+				queued: 0,
+				failures: [{ name: 'tea', message: 'A list can have at most 1000 items' }]
+			}
+		});
+		expect(store.item(milk.uid)).toMatchObject({ name: 'milk', done: false });
+		expect(store.item(bread.uid)).toMatchObject({ name: 'bread', done: true });
+		expect(ops.every(({ op }) => op.type === 'item.add_if_absent')).toBe(true);
+	});
+
+	it('lets the server decide Unicode group-name matches', async () => {
+		const { room, store, ops } = await opened();
+		const existing = makeItem(list.uid, { uid: 'cyrillic-old', name: '\u1c89' });
+		store.applyFeed(makeFeed({ seq: 5, full: true, lists: [list], items: [existing] }));
+		const group = makeItemGroup({ items: ['\u1c8a'] });
+		expect('\u1c89'.toLowerCase()).toBe('\u1c8a'.toLowerCase());
+
+		const adding = room.addItemGroup(list, group);
+		await settle();
+		expect(ops).toHaveLength(1);
+		expect(ops[0].op).toMatchObject({ type: 'item.add_if_absent', name: '\u1c8a' });
+		ops[0].answer.resolve(
+			applied(ops[0].op, 6, {
+				item_uid: 'cyrillic-new',
+				outcome: 'added',
+				changed_seq: 6
+			})
+		);
+
+		expect(await adding).toEqual({
+			ok: true,
+			result: { added: 1, skipped: 0, queued: 0, failures: [] }
+		});
+	});
+
+	it('does not send an operation when an empty group is selected', async () => {
+		const { room, ops } = await opened();
+		const empty = makeItemGroup({ items: [] });
+
+		expect(await room.addItemGroup(list, empty)).toEqual({
+			ok: true,
+			result: { added: 0, skipped: 0, queued: 0, failures: [] }
+		});
+		expect(ops).toEqual([]);
 	});
 
 	it('creates lists and items with client uids and returns the result once the data is in', async () => {

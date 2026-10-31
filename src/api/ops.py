@@ -32,6 +32,7 @@ from api.idempotency import Response, request_hash, run_once_locked
 from api.requests import JsonBody, StrictBody
 from database_crud import (
     CountLimitReached,
+    add_item_if_absent_locked,
     add_or_restore_item_locked,
     adjust_item_quantity_locked,
     change_list_tag_locked,
@@ -258,6 +259,13 @@ class ItemAdd(Op):
     uid: Uuid | None = None
 
 
+class ItemAddIfAbsent(Op):
+    type: Literal["item.add_if_absent"]
+    list_uid: Uuid
+    name: StrictStr
+    uid: Uuid | None = None
+
+
 class ItemOp(Op):
     list_uid: Uuid
     item_uid: Uuid
@@ -335,6 +343,7 @@ AnyOp = Annotated[
     | ListTagRename
     | ListVisibility
     | ItemAdd
+    | ItemAddIfAbsent
     | ItemSetDone
     | ItemQuantityDelta
     | ItemEdit
@@ -564,6 +573,18 @@ def item_add(scope: OpScope, op: ItemAdd) -> dict[str, Any]:
     }
 
 
+def item_add_if_absent(scope: OpScope, op: ItemAddIfAbsent) -> dict[str, Any]:
+    uid = _new_uid(op.uid)
+    list_id = scope.list_id(op.list_uid)
+    name = _item_name(op.name)
+    outcome, item_id = add_item_if_absent_locked(name, list_id, uid=uid)
+    return {
+        "item_uid": get_item_uid_locked(item_id),
+        "outcome": outcome,
+        "changed_seq": get_item_changed_seq_locked(item_id),
+    }
+
+
 def item_set_done(scope: OpScope, op: ItemSetDone) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
@@ -672,6 +693,7 @@ HANDLERS: dict[str, Callable[[OpScope, Any], dict[str, Any]]] = {
     "list.tag_rename": list_tag_rename,
     "list.visibility": list_visibility,
     "item.add": item_add,
+    "item.add_if_absent": item_add_if_absent,
     "item.set_done": item_set_done,
     "item.quantity_delta": item_quantity_delta,
     "item.edit": item_edit,
@@ -692,6 +714,7 @@ SHARE_OP_TYPES = frozenset(
         "list.tag_rename",
         "list.visibility",
         "item.add",
+        "item.add_if_absent",
         "item.set_done",
         "item.quantity_delta",
         "item.edit",

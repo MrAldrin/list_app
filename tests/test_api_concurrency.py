@@ -330,6 +330,29 @@ def test_duplicate_add_race_in_parallel(room):
     assert_consistent(room_id, slug, a, b)
 
 
+def test_add_if_absent_race_keeps_one_item_and_returns_same_uid(room):
+    room_id, slug, a, b = room
+    _, list_uid = groceries()
+    before_seq = seq_of(room_id)
+    results = run_in_parallel(
+        lambda: a.write(
+            {"type": "item.add_if_absent", "list_uid": list_uid, "name": "Milk"}
+        ),
+        lambda: b.write(
+            {"type": "item.add_if_absent", "list_uid": list_uid, "name": "milk"}
+        ),
+    )
+
+    assert [result["status"] for result in results] == ["applied", "applied"]
+    outcomes = [result["result"]["outcome"] for result in results]
+    assert sorted(outcomes) == ["added", "skipped"]
+    assert results[0]["result"]["item_uid"] == results[1]["result"]["item_uid"]
+    assert db.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 1
+    assert seq_of(room_id) == before_seq + 1
+    assert all(result["seq"] == seq_of(room_id) for result in results)
+    assert_consistent(room_id, slug, a, b)
+
+
 def test_quantity_deltas_from_both_clients_add_up(room):
     room_id, slug, a, b = room
     list_id, list_uid = groceries()

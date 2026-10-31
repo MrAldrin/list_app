@@ -15,7 +15,8 @@ function pending(op: Op, extra: Partial<PendingOp> = {}): PendingOp {
 function server(lists: List[], items: Item[]) {
 	return {
 		lists: new Map(lists.map((list) => [list.uid, list])),
-		items: new Map(items.map((item) => [item.uid, item]))
+		items: new Map(items.map((item) => [item.uid, item])),
+		groups: new Map()
 	};
 }
 
@@ -45,6 +46,7 @@ describe('overlay: which ops are projected', () => {
 		{ type: 'list.tag_rename', list_uid: 'l', tag: 'x', new_tag: 'y' },
 		{ type: 'list.visibility', list_uid: 'l', mode: 'all' },
 		{ type: 'item.add', list_uid: 'l', name: 'x', uid: 'u' },
+		{ type: 'item.add_if_absent', list_uid: 'l', name: 'x', uid: 'u' },
 		{ type: 'item.set_done', list_uid: 'l', item_uid: 'i', done: true },
 		{ type: 'item.quantity_delta', list_uid: 'l', item_uid: 'i', delta: 1 },
 		{ type: 'item.edit', list_uid: 'l', item_uid: 'i', name: 'x', description: '', base_seq: 1 },
@@ -93,6 +95,56 @@ describe('overlay: item ops', () => {
 			pending({ type: 'item.add', list_uid: list.uid, name: 'MILK', uid: 'new-1' })
 		);
 		expect([...data.items.keys()].sort()).toEqual(['item-bread', 'item-milk']);
+	});
+
+	it('add-if-absent skips active and checked matches without changing them', () => {
+		const data = view(
+			pending({ type: 'item.add_if_absent', list_uid: list.uid, name: 'MILK', uid: 'new-1' }),
+			pending({ type: 'item.add_if_absent', list_uid: list.uid, name: 'BREAD', uid: 'new-2' })
+		);
+		expect(data.items.get(milk.uid)).toBe(milk);
+		expect(data.items.get(bread.uid)).toBe(bread);
+		expect(data.items.size).toBe(2);
+	});
+
+	it('add-if-absent projects a new row without restoring a checked match', () => {
+		const data = view(
+			pending({ type: 'item.add_if_absent', list_uid: list.uid, name: 'Apples', uid: 'new-1' })
+		);
+		expect(data.items.get('new-1')).toMatchObject({
+			name: 'Apples',
+			done: false,
+			changed_seq: NEW_ROW_SEQ
+		});
+		expect(data.items.get(bread.uid)).toBe(bread);
+	});
+
+	it('does not use JavaScript Unicode case folding to hide an optimistic add', () => {
+		const existing = makeItem(list.uid, { uid: 'cyrillic-old', name: '\u1c89' });
+		const data = project(server([list], [existing]), [
+			pending({
+				type: 'item.add_if_absent',
+				list_uid: list.uid,
+				name: '\u1c8a',
+				uid: 'cyrillic-new'
+			})
+		]);
+
+		expect([...data.items.values()].map((item) => item.name)).toEqual(['\u1c89', '\u1c8a']);
+	});
+
+	it('recognizes an exact Unicode spelling as an existing duplicate', () => {
+		const existing = makeItem(list.uid, { uid: 'cyrillic-existing', name: '\u1c8a' });
+		const data = project(server([list], [existing]), [
+			pending({
+				type: 'item.add_if_absent',
+				list_uid: list.uid,
+				name: '\u1c8a',
+				uid: 'cyrillic-new'
+			})
+		]);
+
+		expect([...data.items.keys()]).toEqual([existing.uid]);
 	});
 
 	it('unchecks a checked item with the name instead of adding a row', () => {
