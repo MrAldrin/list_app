@@ -449,7 +449,7 @@ def test_browser_flag_adds_browser_suite_last(tmp_path):
         run_main(tmp_path, fake, ["--rev", "feature", "--browser"], answers=["y"]) == 0
     )
 
-    browser = ["uv", "run", "pytest", "browser_tests", "-q", "-n", "8"]
+    browser = ["uv", "run", "pytest", "browser_tests", "-q", "-n", "2"]
     ran = [c for c in fake.calls if c in [*check_commands(), browser]]
     assert ran == [*check_commands(), browser]
 

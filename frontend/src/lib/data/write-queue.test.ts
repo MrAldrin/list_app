@@ -357,6 +357,7 @@ describe('WriteQueue', () => {
 describe('WriteQueue sent marks (6.3)', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-10-02T10:00:00.000Z'));
 	});
 	afterEach(() => {
 		vi.useRealTimers();

@@ -81,7 +81,7 @@ CHECKS: list[tuple[str, list[str]]] = [
 ]
 BROWSER_CHECK = (
     "Browser tests",
-    ["uv", "run", "pytest", "browser_tests", "-q", "-n", "8"],
+    ["uv", "run", "pytest", "browser_tests", "-q", "-n", "2"],
 )
 
 Runner = Callable[[list[str]], str]
