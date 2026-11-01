@@ -13,9 +13,9 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
   and rename), delete and undo, hide-done setting, rename and delete a list, rename
   the room. The change shows at once,
   with a dot until it is sent.
-- A group saved in the room can add its names offline. Creating, editing and
-  deleting groups need a connection. Group members are queued as separate adds
-  in their saved order; each can succeed or fail independently.
+- Open **Options** > **Item groups** to add saved groups offline. Creating,
+  editing and deleting groups need a connection. Group members are queued as
+  separate adds in their saved order; each can succeed or fail independently.
 - Needs a connection: creating a list, changing the password, deleting a room,
   showing or resetting a share link, signing in or out, admin and invitations.
   These controls are disabled with "Needs a connection".

@@ -27,3 +27,14 @@ normal add operation as typing a name; it is sent when the app reconnects. See
 This follows the W3C's [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)
 for keyboard navigation and its [editable combobox with list autocomplete
 example](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/).
+
+## Reusable item groups
+
+Open **Options**, then **Item groups**, on a room list to add a saved group or
+manage the room's groups.
+When creating or editing a group, add one name at a time. Suggestions come from
+existing items in every list in the current room; choose a suggestion or add a
+new name you typed. The saved group shows its names in order, and each can be
+removed before saving. Suggestions do not search other rooms. See
+[offline use](offline-viewing.md#what-works-offline) for adding saved groups
+without a connection.

@@ -5,10 +5,12 @@
 	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import ItemGroupEditor from './ItemGroupEditor.svelte';
+	import OptionDialogRow from './OptionDialogRow.svelte';
 
 	let { room, list }: { room: RoomHandle; list: List } = $props();
 	const online = $derived(room.store.canWrite);
 	const hintId = $props.id();
+	let adding = $state(false);
 	let managing = $state(false);
 	let editor = $state<{ group: ItemGroup | null } | null>(null);
 	let deleting = $state.raw<ItemGroup | null>(null);
@@ -36,6 +38,11 @@
 			: '';
 		const kind = failures.length ? 'warning' : queued ? 'info' : added ? 'success' : 'info';
 		toasts.show(`${summary}${detail}`, kind);
+	}
+
+	function manage() {
+		adding = false;
+		managing = true;
 	}
 
 	function create() {
@@ -79,36 +86,43 @@
 	}
 </script>
 
-<section class="item-groups" aria-label="Item groups">
-	{#if room.store.groups.length > 0}
-		<p class="label">Item groups</p>
-		<div class="group-buttons">
-			{#each room.store.groups as group (group.uid)}
-				<button
-					class="outline group-add"
-					type="button"
-					disabled={!room.store.canEdit}
-					aria-label={group.items.length === 0 ? `${group.name}, empty group` : undefined}
-					title={group.items.length === 0 ? 'Empty group. Edit it to add items.' : undefined}
-					onclick={() => add(group)}
-				>
-					{group.name}
-				</button>
-			{/each}
+<OptionDialogRow label="Item groups" open={adding || managing} onOpen={() => (adding = true)} />
+{#if adding}
+	<Dialog title="Item groups" onClose={() => (adding = false)}>
+		{#if room.store.groups.length === 0}
+			<p class="empty">No saved groups yet.</p>
+		{:else}
+			<div class="group-buttons">
+				{#each room.store.groups as group (group.uid)}
+					<button
+						class="outline group-add"
+						type="button"
+						disabled={!room.store.canEdit}
+						aria-label={group.items.length === 0 ? `${group.name}, empty group` : undefined}
+						title={group.items.length === 0 ? 'Empty group. Edit it to add items.' : undefined}
+						onclick={() => add(group)}
+					>
+						{group.name}
+					</button>
+				{/each}
+			</div>
+		{/if}
+		<div class="actions">
+			<button type="button" onclick={() => (adding = false)}>Close</button>
+			<button
+				class="outline"
+				type="button"
+				disabled={!online}
+				title={online ? undefined : 'Needs a connection'}
+				aria-describedby={online ? undefined : hintId}
+				onclick={manage}
+			>
+				Manage groups
+			</button>
 		</div>
-	{/if}
-	<button
-		class="manage"
-		type="button"
-		disabled={!online}
-		title={online ? undefined : 'Needs a connection'}
-		aria-describedby={online ? undefined : hintId}
-		onclick={() => (managing = true)}
-	>
-		{room.store.groups.length ? 'Manage groups' : 'Create an item group'}
-	</button>
-	<NeedsConnection id={hintId} show={!online} />
-</section>
+		<NeedsConnection id={hintId} show={!online} />
+	</Dialog>
+{/if}
 
 {#if managing}
 	<Dialog title="Item groups" onClose={() => (managing = false)}>
@@ -145,6 +159,7 @@
 			<button type="button" onclick={() => (managing = false)}>Close</button>
 			<button class="primary" type="button" disabled={!online} onclick={create}>New group</button>
 		</div>
+		<NeedsConnection id={hintId} show={!online} />
 	</Dialog>
 {/if}
 
@@ -171,17 +186,6 @@
 {/if}
 
 <style>
-	.item-groups {
-		display: grid;
-		gap: 0.25rem;
-		padding: 0.25rem 0 0.5rem;
-	}
-
-	.label {
-		color: var(--text-muted);
-		font-size: 0.9rem;
-	}
-
 	.group-buttons {
 		display: flex;
 		flex-wrap: wrap;
@@ -189,18 +193,10 @@
 	}
 
 	.group-add {
-		min-height: 40px;
+		min-height: var(--touch);
 		padding: 0 0.75rem;
 		text-align: left;
 		overflow-wrap: anywhere;
-	}
-
-	.manage {
-		justify-self: start;
-		min-height: 36px;
-		padding: 0 0.5rem;
-		color: var(--text-muted);
-		font-size: 0.9rem;
 	}
 
 	.empty {

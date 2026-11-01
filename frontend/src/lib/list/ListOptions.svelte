@@ -5,17 +5,11 @@
 	hide-done settings are saved for the list, for everyone.
 -->
 <script lang="ts">
-	import {
-		ITEM_SORTS,
-		type HideDone,
-		type Item,
-		type ItemSortChoice,
-		type TagMode,
-		type TagSettings
-	} from '#lib/data/index.ts';
+	import { ITEM_SORTS, type HideDone, type Item, type ItemSortChoice, type List, type RoomHandle, type TagMode, type TagSettings } from '#lib/data/index.ts';
 	import HideDoneSettings from './HideDoneSettings.svelte';
 	import OptionDialogRow from './OptionDialogRow.svelte';
 	import TagsDialog from './TagsDialog.svelte';
+	import ItemGroups from './ItemGroups.svelte';
 
 	// `$bindable` lets the parent write <ListOptions bind:view={…} />.
 	let {
@@ -31,7 +25,9 @@
 		onTagSettings,
 		onTagColor,
 		onAddTag,
-		onDeleteTag
+		onDeleteTag,
+		room,
+		list
 	}: {
 		showQuantities: boolean;
 		/** The chosen item sort (personal, like "Show quantities"). */
@@ -55,6 +51,8 @@
 		/** Adds a tag; true when the field should be cleared. */
 		onAddTag: (tag: string) => Promise<boolean>;
 		onDeleteTag: (tag: string) => void;
+		room: RoomHandle;
+		list: List;
 	} = $props();
 
 	const sortId = $props.id();
@@ -75,6 +73,7 @@
 		<input type="checkbox" role="switch" bind:checked={showQuantities} />
 	</label>
 	<HideDoneSettings settings={hideDone} disabled={!canEdit} onChange={onHideDone} />
+	{#if !room.isShare}<ItemGroups {room} {list} />{/if}
 </section>
 
 <OptionDialogRow label="Tags" open={tagsOpen} onOpen={() => (tagsOpen = true)} />

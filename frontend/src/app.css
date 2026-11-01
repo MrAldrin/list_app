@@ -182,6 +182,12 @@ button.outline {
 	background: var(--surface);
 }
 
+/* Destructive outline buttons have a light surface, so use danger text rather
+   than the white text reserved for filled danger buttons. */
+button.outline.danger {
+	color: var(--danger);
+}
+
 /* An on/off switch: <input type="checkbox" role="switch">. `appearance:
    none` hides the browser's checkbox so CSS can draw a track and a knob. */
 input[role='switch'] {

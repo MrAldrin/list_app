@@ -60,8 +60,9 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     assert_tap_height("tag filter chip", page.locator("ul.chips .chip"))
     assert_tap_height("new tag chip", page.locator("ul.chips .chip.add"))
     assert_tap_height(
-        "options row", page.locator("section[aria-label='Options'] > label")
+        "options setting", page.locator("section[aria-label='Options'] > label")
     )
+    assert_tap_height("options dialog row", page.locator(".option-dialog-row"))
     assert_tap_height("hide mode", page.locator(".modes label"))
     assert_tap_height("days field", page.locator("input.count"))
     assert_tap_height("sort select", page.get_by_role("combobox", name="Sort"))

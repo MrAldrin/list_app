@@ -20,7 +20,6 @@
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import AddItem from './AddItem.svelte';
 	import ItemDialog from './ItemDialog.svelte';
-	import ItemGroups from './ItemGroups.svelte';
 	import ItemRow from './ItemRow.svelte';
 	import ListHeader from './ListHeader.svelte';
 	import ListMenu from './ListMenu.svelte';
@@ -331,6 +330,8 @@
 		onTagColor={(tag, index) => setColor(list, tag, index)}
 		onAddTag={(tag) => addTag(list, tag)}
 		onDeleteTag={(tag) => deleteTag(list, tag)}
+		{room}
+		{list}
 	/>
 {/if}
 <ListTags
@@ -346,9 +347,6 @@
 	onDelete={(tag) => deleteTag(list, tag)}
 	onColor={(tag, index) => setColor(list, tag, index)}
 />
-{#if !room.isShare}
-	<ItemGroups {room} {list} />
-{/if}
 <AddItem
 	items={room.store.itemsOf(list.uid)}
 	{canEdit}
