@@ -1,7 +1,9 @@
 // Tag rules of the list page, as NiceGUI's list page has them (`src/main.py`):
-// tag chips filter the items, letter buttons on each row toggle a tag.
+// tag chips filter the items, letter buttons on each row toggle a tag. The
+// tag settings are the list's and live on the server (`list.tag_settings`);
+// these rules are pure.
 
-import type { Item } from '#lib/data/index.ts';
+import type { Item, TagSettings } from '#lib/data/index.ts';
 
 /** How many tag colors there are (`--tag-0` … `--tag-6` in app.css, NiceGUI's `TAG_COLORS`). */
 export const TAG_COLOR_COUNT = 7;
@@ -22,9 +24,24 @@ export function tagHash(tag: string): number {
 	return hash >>> 0;
 }
 
-/** The CSS color of a tag, from its name. Two tags may share a color; their letters then differ. */
-export function tagColor(tag: string): string {
-	return `var(--tag-${tagHash(tag) % TAG_COLOR_COUNT})`;
+/** The palette index (0 to 6) a tag gets from its name, when no color was chosen. */
+export function defaultTagColor(tag: string): number {
+	return tagHash(tag) % TAG_COLOR_COUNT;
+}
+
+/** The CSS color of palette entry `index`. */
+export function colorVar(index: number): string {
+	return `var(--tag-${index})`;
+}
+
+/** The palette index of a tag: its chosen color, else the default from its name. */
+export function tagColorIndex(settings: Pick<TagSettings, 'colors'>, tag: string): number {
+	return Object.hasOwn(settings.colors, tag) ? settings.colors[tag] : defaultTagColor(tag);
+}
+
+/** The CSS color of a tag. Two tags may share a color; their letters then differ. */
+export function tagColor(settings: Pick<TagSettings, 'colors'>, tag: string): string {
+	return colorVar(tagColorIndex(settings, tag));
 }
 
 /** The first `length` characters of the tag, trimmed, with the first one in upper case. */
@@ -85,4 +102,30 @@ export function filterByTags<T extends Pick<Item, 'tags'>>(
 export function newTag(raw: string, listTags: readonly string[]): string | null {
 	const tag = raw.trim();
 	return tag && !listTags.includes(tag) ? tag : null;
+}
+
+/**
+ * The tags an item keeps when it switches to one tag per item: its first tag
+ * in the list's order. Tags the list no longer has come after the others.
+ * Mirrors `_keep_first_item_tag_locked` in the API.
+ */
+export function extraTagsOf(itemTags: readonly string[], listTags: readonly string[]): string[] {
+	const rank = (tag: string) => {
+		const index = listTags.indexOf(tag);
+		return index < 0 ? Infinity : index;
+	};
+	const [, ...extra] = [...itemTags].sort((a, b) => rank(a) - rank(b));
+	return extra;
+}
+
+/** How many items have several tags: the switch to "One tag per item" must ask first. */
+export function countSeveralTags(items: readonly Pick<Item, 'tags'>[]): number {
+	return items.filter((item) => item.tags.length > 1).length;
+}
+
+/** The question on the confirm dialog before switching to one tag per item. */
+export function severalTagsQuestion(count: number): string {
+	return count === 1
+		? '1 item has several tags. Keep only the first tag on it?'
+		: `${count} items have several tags. Keep only the first tag on each?`;
 }

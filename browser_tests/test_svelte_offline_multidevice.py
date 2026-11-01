@@ -13,6 +13,7 @@ import re
 from playwright.sync_api import Page, expect
 from svelte_app import (
     add_item,
+    add_list_tag,
     create_list,
     item_names,
     room_app_url,
@@ -168,10 +169,7 @@ def test_both_offline_add_the_same_tag_to_an_item_once(svelte_server, open_sessi
     """R4: the same tag added on two devices is on the item once, no conflict."""
     server = svelte_server
     phone, url = member_with_list(open_session, server, "r4-a")
-    phone.get_by_role("button", name="Options").click()
-    tag = phone.get_by_label("Add Tag")
-    tag.fill("Market")
-    tag.press("Enter")
+    add_list_tag(phone, "Market")
     phone.get_by_role("button", name="Done").click()
     expect(phone.get_by_role("button", name="Market tag for milk")).to_be_visible()
 

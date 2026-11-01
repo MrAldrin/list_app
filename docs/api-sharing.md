@@ -27,8 +27,8 @@ Share holders:
   deletions), not with other lists. Op answers of the link and its stream send
   the same number, so `seq` of a share op answer is the next feed `seq` if
   nothing else changed the list. How it is kept: [change tracking](change-tracking.md).
-- Ops: the list ops `list.tag_add`, `list.tag_remove`, `list.visibility` and
-  every item op. Other types (`room.rename`,
+- Ops: the list ops `list.tag_add`, `list.tag_remove`, `list.tag_settings`,
+  `list.tag_color`, `list.tag_rename`, `list.visibility` and every item op. Other types (`room.rename`,
   `list.create`, `list.rename`, `list.delete`) are 422. A `list_uid` other
   than the shared list's is rejected as `list_unavailable`. Ops are stored per
   room, as for room ops, so retries are safe.

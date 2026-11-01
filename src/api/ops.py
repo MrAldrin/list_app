@@ -52,18 +52,22 @@ from database_crud import (
     normalize_display_name,
     normalize_item_name,
     rename_list_if_unique_locked,
+    rename_list_tag_locked,
     rename_room_locked,
     restore_deleted_item_locked,
     savepoint_locked,
+    set_list_tag_color_locked,
     toggle_item_active_tag_locked,
     uid_in_use_locked,
     update_item_details_locked,
     update_item_done_locked,
+    update_list_tag_settings_locked,
     update_list_visibility_settings_locked,
 )
 from field_limits import (
     MAX_DESCRIPTION_LENGTH,
     MAX_NAME_LENGTH,
+    MAX_TAG_COLOR,
     MAX_TAG_LENGTH,
     too_long_message,
 )
@@ -205,6 +209,48 @@ class ListVisibility(Op):
         return self
 
 
+class ListTagSettings(Op):
+    type: Literal["list.tag_settings"]
+    list_uid: Uuid
+    mode: Literal["single", "multi"] | None = None
+    show_on_items: StrictBool | None = None
+    only_item_tags: StrictBool | None = None
+
+    @model_validator(mode="after")
+    def _check_something_sent(self) -> "ListTagSettings":
+        if (
+            self.mode is None
+            and self.show_on_items is None
+            and self.only_item_tags is None
+        ):
+            raise ValueError("Send at least one setting")
+        return self
+
+
+def _tag_color(value: int | None) -> int | None:
+    if value is not None and not 0 <= value <= MAX_TAG_COLOR:
+        raise ValueError(f"color must be from 0 to {MAX_TAG_COLOR}")
+    return value
+
+
+# A tag's color number, or null for the default color.
+TagColor = Annotated[StrictInt | None, AfterValidator(_tag_color)]
+
+
+class ListTagColor(Op):
+    type: Literal["list.tag_color"]
+    list_uid: Uuid
+    tag: StrictStr
+    color: TagColor
+
+
+class ListTagRename(Op):
+    type: Literal["list.tag_rename"]
+    list_uid: Uuid
+    tag: StrictStr
+    new_tag: StrictStr
+
+
 class ItemAdd(Op):
     type: Literal["item.add"]
     list_uid: Uuid
@@ -284,6 +330,9 @@ AnyOp = Annotated[
     | ListDelete
     | ListTagAdd
     | ListTagRemove
+    | ListTagSettings
+    | ListTagColor
+    | ListTagRename
     | ListVisibility
     | ItemAdd
     | ItemSetDone
@@ -325,6 +374,7 @@ ITEM_NOT_FOUND = "The item is no longer available."
 EMPTY_NAME = "Name cannot be empty"
 UNDO_NAME_TAKEN = "Cannot undo: item name already exists"
 CHANGED_MEANWHILE = "Someone else changed this meanwhile."
+UNKNOWN_TAG = "The tag is not on this list."
 
 
 @dataclass(frozen=True)
@@ -459,6 +509,35 @@ def list_tag_remove(scope: OpScope, op: ListTagRemove) -> dict[str, Any]:
     return {"changed_seq": get_list_changed_seq_locked(list_id)}
 
 
+def list_tag_settings(scope: OpScope, op: ListTagSettings) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
+    update_list_tag_settings_locked(
+        list_id,
+        mode=op.mode,
+        show_on_items=op.show_on_items,
+        only_item_tags=op.only_item_tags,
+    )
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
+
+
+def list_tag_color(scope: OpScope, op: ListTagColor) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
+    if not set_list_tag_color_locked(list_id, op.tag, op.color):
+        raise OpRejected("unknown_tag", UNKNOWN_TAG)
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
+
+
+def list_tag_rename(scope: OpScope, op: ListTagRename) -> dict[str, Any]:
+    list_id = scope.list_id(op.list_uid)
+    new_tag = _tag(op.new_tag)
+    outcome = rename_list_tag_locked(list_id, op.tag, new_tag)
+    if outcome == "missing":
+        raise OpRejected("unknown_tag", UNKNOWN_TAG)
+    if outcome == "duplicate":
+        raise OpRejected("duplicate_name", f"'{new_tag}' already exists")
+    return {"changed_seq": get_list_changed_seq_locked(list_id)}
+
+
 def list_visibility(scope: OpScope, op: ListVisibility) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     update_list_visibility_settings_locked(
@@ -588,6 +667,9 @@ HANDLERS: dict[str, Callable[[OpScope, Any], dict[str, Any]]] = {
     "list.delete": list_delete,
     "list.tag_add": list_tag_add,
     "list.tag_remove": list_tag_remove,
+    "list.tag_settings": list_tag_settings,
+    "list.tag_color": list_tag_color,
+    "list.tag_rename": list_tag_rename,
     "list.visibility": list_visibility,
     "item.add": item_add,
     "item.set_done": item_set_done,
@@ -605,6 +687,9 @@ SHARE_OP_TYPES = frozenset(
     {
         "list.tag_add",
         "list.tag_remove",
+        "list.tag_settings",
+        "list.tag_color",
+        "list.tag_rename",
         "list.visibility",
         "item.add",
         "item.set_done",

@@ -45,6 +45,29 @@ function validTags(value: unknown): value is string[] {
 	return Array.isArray(value) && value.every((tag) => typeof tag === 'string');
 }
 
+const TAG_MODES = ['single', 'multi'];
+
+function validTagColors(value: unknown): value is Record<string, number> {
+	return (
+		isRecord(value) &&
+		Object.values(value).every(
+			(color) => Number.isSafeInteger(color) && (color as number) >= 0 && (color as number) <= 6
+		)
+	);
+}
+
+/** Saved before tag settings existed: a missing `tag_settings` means the defaults. */
+function validTagSettings(value: unknown): boolean {
+	if (value === undefined) return true;
+	if (!isRecord(value)) return false;
+	return (
+		TAG_MODES.includes(String(value.mode)) &&
+		typeof value.show_on_items === 'boolean' &&
+		typeof value.only_item_tags === 'boolean' &&
+		validTagColors(value.colors)
+	);
+}
+
 function validList(value: unknown, seq: number): value is List {
 	if (!isRecord(value) || !nonEmptyString(value.uid)) return false;
 	if (typeof value.slug !== 'string' || typeof value.name !== 'string' || !validTags(value.tags))
@@ -63,6 +86,7 @@ function validList(value: unknown, seq: number): value is List {
 		(value.hide_done.recent_count as number) > 100_000
 	)
 		return false;
+	if (!validTagSettings(value.tag_settings)) return false;
 	return isSequence(value.changed_seq) && value.changed_seq <= seq;
 }
 
@@ -107,6 +131,12 @@ function copyList(list: List): List {
 			mode: list.hide_done.mode,
 			age_days: list.hide_done.age_days,
 			recent_count: list.hide_done.recent_count
+		},
+		tag_settings: {
+			mode: list.tag_settings?.mode ?? 'multi',
+			show_on_items: list.tag_settings?.show_on_items ?? true,
+			only_item_tags: list.tag_settings?.only_item_tags ?? false,
+			colors: { ...(list.tag_settings?.colors ?? {}) }
 		},
 		changed_seq: list.changed_seq
 	};

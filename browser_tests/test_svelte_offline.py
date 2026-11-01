@@ -6,6 +6,7 @@ from playwright.sync_api import Page, expect
 from svelte_app import (
     PHONE,
     add_item,
+    add_list_tag,
     create_list,
     item_names,
     list_links,
@@ -63,10 +64,7 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
     for name in ("apples", "milk", "bread"):
         add_item(page, name)
 
-    page.get_by_role("button", name="Options").click()
-    tag = page.get_by_label("Add Tag")
-    tag.fill("Market")
-    tag.press("Enter")
+    add_list_tag(page, "Market")
     page.get_by_role("button", name="Market tag for apples").click()
     page.get_by_role("button", name="Market tag for milk").click()
     with page.expect_response(
@@ -117,8 +115,9 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
 
     page.get_by_role("button", name="Options").click()
     expect(page.get_by_role("switch", name="Hide checked-off items")).to_be_enabled()
-    expect(page.get_by_role("button", name="Add new tag")).to_be_enabled()
+    page.get_by_role("button", name="Tags").click()
     expect(page.get_by_role("button", name="Delete tag Market")).to_be_enabled()
+    page.get_by_role("button", name="Close").click()
     expect(page.get_by_role("button", name="Delete apples")).to_be_enabled()
     page.get_by_role("switch", name="Show quantities").check()
     page.get_by_role("button", name="Done").click()

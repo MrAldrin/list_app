@@ -108,9 +108,11 @@ def test_upgrade_from_version_two_keeps_data_and_backfills_uids(tmp_path, monkey
     )
     for table in ("lists", "items"):
         rows = db.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()
-        # New columns are appended, so the old ones keep their order. Items also
-        # got `date` (migration 9), `add_count` and `added_at` (migration 10),
-        # and `name_key` (migration 12), all after the existing columns.
+        # New columns are appended, so the old ones keep their order. Lists also
+        # got the tag settings (migration 14) and items `date` (migration 9),
+        # `add_count` and `added_at` (migration 10), and `name_key` (migration 12).
+        if table == "lists":
+            rows = [row[:-4] for row in rows]  # drop the four tag settings
         width = 6 if table == "items" else 2
         assert [row[:-width] for row in rows] == before[table]
         uids = [row[-width] for row in rows]

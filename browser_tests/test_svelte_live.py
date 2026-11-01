@@ -7,6 +7,7 @@ from svelte_app import (
     DESKTOP,
     PHONE,
     add_item,
+    add_list_tag,
     create_list,
     item_names,
     room_app_url,
@@ -32,9 +33,7 @@ def test_two_phones_see_each_others_changes(svelte_server, open_session):
     expect(item_names(phone_a)).to_have_text(["milk"])
     phone_a.get_by_role("checkbox", name="milk").check()
     expect(phone_b.get_by_role("checkbox", name="milk")).to_be_checked()
-    phone_a.get_by_role("button", name="Options").click()
-    phone_a.get_by_label("Add Tag").fill("Lidl")
-    phone_a.get_by_label("Add Tag").press("Enter")
+    add_list_tag(phone_a, "Lidl")
     expect(phone_b.get_by_role("button", name="Lidl tag for milk")).to_be_visible()
 
     # A list rename shows on the open list page.
@@ -191,9 +190,7 @@ def test_tag_deleted_elsewhere_stops_filtering(svelte_server, open_session):
     list_url = create_list(phone_a, "Groceries")
     for name in ("milk", "bread"):
         add_item(phone_a, name)
-    phone_a.get_by_role("button", name="Options").click()
-    phone_a.get_by_label("Add Tag").fill("Lidl")
-    phone_a.get_by_label("Add Tag").press("Enter")
+    add_list_tag(phone_a, "Lidl")
     phone_a.get_by_role("button", name="Lidl tag for milk").click()
     phone_a.get_by_role("button", name="Done").click()
 
@@ -205,6 +202,9 @@ def test_tag_deleted_elsewhere_stops_filtering(svelte_server, open_session):
     # Phone B deletes the tag: phone A shows every item again.
     phone_b.goto(list_url)
     phone_b.get_by_role("button", name="Options").click()
-    phone_b.get_by_role("button", name="Delete tag Lidl").click()
+    phone_b.locator("ul.chips").get_by_role("button", name="Lidl", exact=True).click()
+    phone_b.get_by_role("dialog", name="Edit Tag").get_by_role(
+        "button", name="Delete tag"
+    ).click()
     expect(chips.get_by_role("button", name="Lidl", exact=True)).to_have_count(0)
     expect(item_names(phone_a)).to_have_text(["bread", "milk"])

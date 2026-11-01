@@ -63,7 +63,8 @@ import type {
 	Op,
 	Room,
 	SentOp,
-	ShareLink
+	ShareLink,
+	TagSettings
 } from './types';
 import type { HeldOp, UnreadableOp } from './queue-entries';
 import { createQueueStorage, type QueueStorage } from './queue-storage';
@@ -491,6 +492,24 @@ export class RoomHandle {
 
 	removeListTag(list: ListRef, tag: string): Promise<ActionResult> {
 		return this.#run({ type: 'list.tag_remove', list_uid: list.uid, tag });
+	}
+
+	/** Sends only the changed tag settings. */
+	setTagSettings(
+		list: ListRef,
+		changes: Partial<Pick<TagSettings, 'mode' | 'show_on_items' | 'only_item_tags'>>
+	): Promise<ActionResult> {
+		return this.#run({ type: 'list.tag_settings', list_uid: list.uid, ...changes });
+	}
+
+	/** Sets a tag's color (0 to 6), or clears it with null. */
+	setTagColor(list: ListRef, tag: string, color: number | null): Promise<ActionResult> {
+		return this.#run({ type: 'list.tag_color', list_uid: list.uid, tag, color });
+	}
+
+	/** Renames a tag on the list and on every item of the list, in one write. */
+	renameListTag(list: ListRef, tag: string, newTag: string): Promise<ActionResult> {
+		return this.#run({ type: 'list.tag_rename', list_uid: list.uid, tag, new_tag: newTag });
 	}
 
 	/** Sends only the changed hide-done fields. */

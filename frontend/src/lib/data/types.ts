@@ -13,6 +13,17 @@ export interface HideDone {
 	recent_count: number;
 }
 
+export type TagMode = 'single' | 'multi';
+
+/** Tag settings of a list, shared by every device (docs/api-lists-items.md). */
+export interface TagSettings {
+	mode: TagMode;
+	show_on_items: boolean;
+	only_item_tags: boolean;
+	/** Tag name to a color number from 0 to 6. Tags without one use the default color. */
+	colors: Record<string, number>;
+}
+
 export interface List {
 	uid: string;
 	/** Empty in a share link's feed: the slug is room navigation. */
@@ -21,6 +32,7 @@ export interface List {
 	/** Sorted ignoring case. */
 	tags: string[];
 	hide_done: HideDone;
+	tag_settings: TagSettings;
 	changed_seq: number;
 }
 
@@ -94,6 +106,26 @@ export interface ListTagRemoveOp {
 	type: 'list.tag_remove';
 	list_uid: string;
 	tag: string;
+}
+export interface ListTagSettingsOp {
+	type: 'list.tag_settings';
+	list_uid: string;
+	mode?: TagMode;
+	show_on_items?: boolean;
+	only_item_tags?: boolean;
+}
+export interface ListTagColorOp {
+	type: 'list.tag_color';
+	list_uid: string;
+	tag: string;
+	/** A color from 0 to 6, or null for the default color. */
+	color: number | null;
+}
+export interface ListTagRenameOp {
+	type: 'list.tag_rename';
+	list_uid: string;
+	tag: string;
+	new_tag: string;
 }
 export interface ListVisibilityOp {
 	type: 'list.visibility';
@@ -169,6 +201,9 @@ export type Op =
 	| ListDeleteOp
 	| ListTagAddOp
 	| ListTagRemoveOp
+	| ListTagSettingsOp
+	| ListTagColorOp
+	| ListTagRenameOp
 	| ListVisibilityOp
 	| ItemAddOp
 	| ItemSetDoneOp
@@ -202,6 +237,7 @@ export const REJECTION_CODES = [
 	'changed_meanwhile',
 	'list_unavailable',
 	'item_not_found',
+	'unknown_tag',
 	'too_long',
 	'too_many'
 ] as const;

@@ -6,7 +6,7 @@ that another control covers counts less.
 """
 
 from playwright.sync_api import Locator, expect
-from svelte_app import PHONE, add_item, create_list, sign_in
+from svelte_app import PHONE, add_item, add_list_tag, create_list, sign_in
 
 TOUCH = 44
 
@@ -44,12 +44,8 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
         add_item(page, name)
 
     # Options: two tags, a tag on one item, quantities, hide-done with a count.
-    page.get_by_role("button", name="Options").click()
-    tag_field = page.get_by_label("Add Tag")
     for tag in ("Lidl", "Market"):
-        tag_field.fill(tag)
-        page.get_by_role("button", name="Add new tag").click()
-        expect(tag_field).to_have_value("")
+        add_list_tag(page, tag)
     page.get_by_role("button", name="Lidl tag for milk").click()
     page.get_by_role("switch", name="Show quantities").click()
     page.get_by_role("switch", name="Hide checked-off items").click()
@@ -62,7 +58,7 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     assert_tap_height("tag letter", page.locator("ul.items .tag"))
     assert_tap_height("item delete", page.locator("ul.items .delete"))
     assert_tap_height("tag filter chip", page.locator("ul.chips .chip"))
-    assert_tap_height("tag remove", page.locator("ul.chips .remove"))
+    assert_tap_height("new tag chip", page.locator("ul.chips .chip.add"))
     assert_tap_height(
         "options row", page.locator("section[aria-label='Options'] > label")
     )

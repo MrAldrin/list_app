@@ -777,6 +777,47 @@ def _migration_13_version_item_name_keys(db: sqlite3.Connection) -> None:
         """)
 
 
+def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
+    """Store each list's tag settings: one or several tags, tag display, colors.
+
+    Defaults keep existing lists as they were. `tag_colors` is a JSON object
+    from tag to a color number 0 to 6. The lists update trigger (migration 4)
+    already tracks every column, so changing a setting bumps the list.
+    """
+    db.execute("ALTER TABLE lists ADD COLUMN tag_mode TEXT NOT NULL DEFAULT 'multi'")
+    db.execute(
+        "ALTER TABLE lists ADD COLUMN tag_show_on_items INTEGER NOT NULL DEFAULT 1"
+    )
+    db.execute(
+        "ALTER TABLE lists ADD COLUMN tag_only_item_tags INTEGER NOT NULL DEFAULT 0"
+    )
+    db.execute("ALTER TABLE lists ADD COLUMN tag_colors TEXT NOT NULL DEFAULT '{}'")
+    bad_colors = (
+        "CASE WHEN json_valid(NEW.tag_colors) AND json_type(NEW.tag_colors) = 'object'"
+        " THEN EXISTS (SELECT 1 FROM json_each(NEW.tag_colors)"
+        " WHERE type != 'integer' OR value NOT BETWEEN 0 AND 6)"
+        " ELSE 1 END"
+    )
+    for name, action in (
+        ("insert", "INSERT"),
+        (
+            "update",
+            "UPDATE OF tag_mode, tag_show_on_items, tag_only_item_tags, tag_colors",
+        ),
+    ):
+        db.execute(f"""
+            CREATE TRIGGER lists_tag_settings_{name}
+            BEFORE {action} ON lists
+            WHEN NEW.tag_mode NOT IN ('single', 'multi')
+              OR typeof(NEW.tag_show_on_items) != 'integer'
+              OR NEW.tag_show_on_items NOT IN (0, 1)
+              OR typeof(NEW.tag_only_item_tags) != 'integer'
+              OR NEW.tag_only_item_tags NOT IN (0, 1)
+              OR {bad_colors}
+            BEGIN SELECT RAISE(ABORT, 'lists: a tag setting breaks a field rule'); END
+        """)
+
+
 def _ensure_item_name_key_version(
     db: sqlite3.Connection, backup_path: Path | None
 ) -> None:
@@ -839,6 +880,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_11_invitation_room_counts,
         _migration_12_preserve_item_name_case,
         _migration_13_version_item_name_keys,
+        _migration_14_tag_settings,
     ]
 
 

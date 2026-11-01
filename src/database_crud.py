@@ -15,6 +15,7 @@ from field_limits import (
     MAX_LISTS_PER_ROOM,
     MAX_NAME_LENGTH,
     MAX_SESSIONS_PER_ROOM,
+    MAX_TAG_COLOR,
     MAX_TAGS_PER_LIST,
     MIN_PASSWORD_LENGTH,
     count_limit_message,
@@ -67,6 +68,21 @@ def _decode_tags(raw: str | None) -> list[str]:
     if not isinstance(tags, list):
         return []
     return [tag for tag in tags if isinstance(tag, str)]
+
+
+def _decode_tag_colors(raw: str | None) -> dict[str, int]:
+    """Stored tag colors; bad JSON or a bad entry is left out."""
+    try:
+        colors = json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(colors, dict):
+        return {}
+    return {
+        tag: color
+        for tag, color in colors.items()
+        if type(color) is int and 0 <= color <= MAX_TAG_COLOR
+    }
 
 
 # The text format of the schema's created_at defaults (database_setup.py).
@@ -165,13 +181,73 @@ def update_list_visibility_settings_locked(
     )
 
 
+def update_list_tag_settings_locked(
+    list_id: int,
+    *,
+    mode: str | None = None,
+    show_on_items: bool | None = None,
+    only_item_tags: bool | None = None,
+) -> None:
+    """Change the given tag settings; None keeps the stored value.
+
+    Like update_list_visibility_settings_locked, the merge runs in the caller's
+    write transaction. Switching to "single" keeps one tag per item
+    (_keep_first_item_tag_locked). No write if nothing changes.
+    """
+    stored = db.execute(
+        "SELECT tag_mode, tag_show_on_items, tag_only_item_tags "
+        "FROM lists WHERE id = ?",
+        (list_id,),
+    ).fetchone()
+    wanted = (
+        stored[0] if mode is None else mode,
+        stored[1] if show_on_items is None else int(show_on_items),
+        stored[2] if only_item_tags is None else int(only_item_tags),
+    )
+    if wanted == tuple(stored):
+        return
+    db.execute(
+        "UPDATE lists SET tag_mode = ?, tag_show_on_items = ?, "
+        "tag_only_item_tags = ? WHERE id = ?",
+        (*wanted, list_id),
+    )
+    if wanted[0] == "single" and stored[0] != "single":
+        _keep_first_item_tag_locked(list_id)
+
+
+def _keep_first_item_tag_locked(list_id: int) -> None:
+    """Single mode: each item keeps only its first tag in the list's tag order.
+
+    Tags the list no longer has rank after the list's tags.
+    """
+    list_tags = _decode_tags(
+        db.execute("SELECT list_tags FROM lists WHERE id = ?", (list_id,)).fetchone()[0]
+    )
+    rank = {tag: index for index, tag in enumerate(list_tags)}
+    rows = db.execute(
+        "SELECT id, active_tags FROM items WHERE list_id = ?", (list_id,)
+    ).fetchall()
+    for item_id, raw in rows:
+        tags = _decode_tags(raw)
+        if len(tags) < 2:
+            continue
+        first = min(tags, key=lambda tag: rank.get(tag, len(list_tags)))
+        db.execute(
+            "UPDATE items SET active_tags = ? WHERE id = ?",
+            (json.dumps([first]), item_id),
+        )
+
+
 def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
     """Add or remove one list tag on the stored tags; no write if unchanged.
 
-    Call inside a write transaction; the list must exist. Adding a new tag to a
-    list with MAX_TAGS_PER_LIST tags raises CountLimitReached.
+    Removing a tag also drops its color. Call inside a write transaction; the
+    list must exist. Adding a new tag to a list with MAX_TAGS_PER_LIST tags
+    raises CountLimitReached.
     """
-    row = db.execute("SELECT list_tags FROM lists WHERE id = ?", (list_id,)).fetchone()
+    row = db.execute(
+        "SELECT list_tags, tag_colors FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()
     list_tags = _decode_tags(row[0])
 
     if add:
@@ -187,11 +263,85 @@ def change_list_tag_locked(list_id: int, tag: str, *, add: bool) -> None:
             )
     else:
         updated_tags = [existing for existing in list_tags if existing != tag]
-        if updated_tags != list_tags:
+        colors = _decode_tag_colors(row[1])
+        updated_colors = {name: color for name, color in colors.items() if name != tag}
+        if updated_tags != list_tags or updated_colors != colors:
             db.execute(
-                "UPDATE lists SET list_tags = ? WHERE id = ?",
-                (json.dumps(updated_tags), list_id),
+                "UPDATE lists SET list_tags = ?, tag_colors = ? WHERE id = ?",
+                (json.dumps(updated_tags), json.dumps(updated_colors), list_id),
             )
+
+
+def set_list_tag_color_locked(list_id: int, tag: str, color: int | None) -> bool:
+    """Set one tag's color, or clear it with None; False if the list lacks the tag.
+
+    No write if the color is already stored. Call inside a write transaction.
+    """
+    row = db.execute(
+        "SELECT list_tags, tag_colors FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()
+    if tag not in _decode_tags(row[0]):
+        return False
+    colors = _decode_tag_colors(row[1])
+    updated = dict(colors)
+    if color is None:
+        updated.pop(tag, None)
+    else:
+        updated[tag] = color
+    if updated != colors:
+        db.execute(
+            "UPDATE lists SET tag_colors = ? WHERE id = ?",
+            (json.dumps(updated), list_id),
+        )
+    return True
+
+
+def rename_list_tag_locked(list_id: int, tag: str, new_tag: str) -> str:
+    """Rename one list tag everywhere it is used; nothing is written unless renamed.
+
+    Changes the list's tags (re-sorted), its color, and each item's tags in the
+    same place (an item that already has `new_tag` keeps one copy). Returns
+    "renamed", "unchanged" (same name), "missing" or "duplicate". Call inside a
+    write transaction.
+    """
+    row = db.execute(
+        "SELECT list_tags, tag_colors FROM lists WHERE id = ?", (list_id,)
+    ).fetchone()
+    list_tags = _decode_tags(row[0])
+    if tag not in list_tags:
+        return "missing"
+    if tag == new_tag:
+        return "unchanged"
+    if new_tag in list_tags:
+        return "duplicate"
+    renamed_tags = sorted(
+        [new_tag if existing == tag else existing for existing in list_tags],
+        key=str.lower,
+    )
+    colors = _decode_tag_colors(row[1])
+    if tag in colors:
+        colors[new_tag] = colors.pop(tag)
+    db.execute(
+        "UPDATE lists SET list_tags = ?, tag_colors = ? WHERE id = ?",
+        (json.dumps(renamed_tags), json.dumps(colors), list_id),
+    )
+    rows = db.execute(
+        "SELECT id, active_tags FROM items WHERE list_id = ?", (list_id,)
+    ).fetchall()
+    for item_id, raw in rows:
+        item_tags = _decode_tags(raw)
+        if tag not in item_tags:
+            continue
+        item_renamed: list[str] = []
+        for existing in item_tags:
+            name = new_tag if existing == tag else existing
+            if name not in item_renamed:
+                item_renamed.append(name)
+        db.execute(
+            "UPDATE items SET active_tags = ? WHERE id = ?",
+            (json.dumps(item_renamed), item_id),
+        )
+    return "renamed"
 
 
 def toggle_item_active_tag_locked(
@@ -200,10 +350,13 @@ def toggle_item_active_tag_locked(
     """Toggle one tag on the stored item tags; False if no such item.
 
     With `active`, set the tag on or off instead; already in that state means
-    no write. Call inside a write transaction.
+    no write. In a "single" list, setting a tag on leaves it as the item's only
+    tag. Call inside a write transaction.
     """
     row = db.execute(
-        "SELECT active_tags FROM items WHERE id = ? AND list_id = ?",
+        "SELECT i.active_tags, l.tag_mode FROM items AS i "
+        "JOIN lists AS l ON l.id = i.list_id "
+        "WHERE i.id = ? AND i.list_id = ?",
         (item_id, list_id),
     ).fetchone()
     if row is None:
@@ -211,15 +364,17 @@ def toggle_item_active_tag_locked(
     active_tags = _decode_tags(row[0])
     if active is None:
         active = tag not in active_tags
-    elif (tag in active_tags) == active:
-        return True
-    if active:
-        active_tags.append(tag)
+    if not active:
+        wanted = [existing for existing in active_tags if existing != tag]
+    elif row[1] == "single":
+        wanted = [tag]
     else:
-        active_tags.remove(tag)
+        wanted = active_tags if tag in active_tags else [*active_tags, tag]
+    if wanted == active_tags:
+        return True
     db.execute(
         "UPDATE items SET active_tags = ? WHERE id = ? AND list_id = ?",
-        (json.dumps(active_tags), item_id, list_id),
+        (json.dumps(wanted), item_id, list_id),
     )
     return True
 
@@ -698,7 +853,8 @@ def get_list_changes_locked(
     rows = db.execute(
         """
         SELECT uid, slug, name, list_tags, hide_done_mode, hide_done_age_days,
-               hide_done_recent_count, changed_seq
+               hide_done_recent_count, changed_seq, tag_mode, tag_show_on_items,
+               tag_only_item_tags, tag_colors
         FROM lists
         WHERE room_id = :room_id AND changed_seq > :since
           AND (:list_id IS NULL OR id = :list_id)
@@ -716,6 +872,12 @@ def get_list_changes_locked(
                 "mode": row[4],
                 "age_days": row[5],
                 "recent_count": row[6],
+            },
+            "tag_settings": {
+                "mode": row[8],
+                "show_on_items": bool(row[9]),
+                "only_item_tags": bool(row[10]),
+                "colors": _decode_tag_colors(row[11]),
             },
             "changed_seq": row[7],
         }

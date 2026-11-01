@@ -9,8 +9,9 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
 
 - Rooms, lists and share links you opened online are saved on the phone. Offline
   they open from that copy.
-- Edits work there: add, tick, quantity, edit, tags, delete and undo, hide-done
-  setting, rename and delete a list, rename the room. The change shows at once,
+- Edits work there: add, tick, quantity, edit, tags (including tag settings, colors
+  and rename), delete and undo, hide-done setting, rename and delete a list, rename
+  the room. The change shows at once,
   with a dot until it is sent.
 - Needs a connection: creating a list, changing the password, deleting a room,
   showing or resetting a share link, signing in or out, admin and invitations.

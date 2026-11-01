@@ -8,6 +8,7 @@ from playwright.sync_api import Page, expect
 from svelte_app import (
     PHONE,
     add_item,
+    add_list_tag,
     admin_sign_in,
     app_url,
     create_list,
@@ -53,9 +54,7 @@ def test_every_control_has_a_name(svelte_server, open_session):
 
     create_list(page, "Names")
     add_item(page, "milk")
-    page.get_by_role("button", name="Options").click()
-    page.get_by_label("Add Tag").fill("Shop")
-    page.get_by_label("Add Tag").press("Enter")
+    add_list_tag(page, "Shop")
     expect(page.get_by_role("button", name="Shop tag for milk")).to_be_visible()
     page.get_by_role("switch", name="Show quantities").check()
     page.get_by_role("switch", name="Hide checked-off items").check()

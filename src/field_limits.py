@@ -15,6 +15,7 @@ MAX_PASSWORD_LENGTH = 1024  # Passwords, in characters.
 MAX_ITEMS_PER_LIST = 1000  # Checked and unchecked items together.
 MAX_LISTS_PER_ROOM = 100
 MAX_TAGS_PER_LIST = 50
+MAX_TAG_COLOR = 6  # Tag colors are whole numbers 0 to 6; no color is null.
 # Sign-in sessions kept per room. A new sign-in drops the oldest ones.
 MAX_SESSIONS_PER_ROOM = 200
 # Rooms one creation invitation link may create (docs/room-invitations.md).

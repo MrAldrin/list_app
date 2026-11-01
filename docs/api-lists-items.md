@@ -11,6 +11,8 @@ Part of the [JSON API](api.md). Data shapes and write operations.
     "uid": "7c0e…", "slug": "groceries-1a2b3c", "name": "Groceries",
     "tags": ["Lidl", "Market"],
     "hide_done": {"mode": "age", "age_days": 7, "recent_count": 10},
+    "tag_settings": {"mode": "multi", "show_on_items": true,
+                     "only_item_tags": false, "colors": {"Lidl": 3}},
     "changed_seq": 41
   },
   "item": {
@@ -26,6 +28,9 @@ Part of the [JSON API](api.md). Data shapes and write operations.
 - List `name` is shown as typed. Item `name` keeps its case after outer
   whitespace is trimmed.
 - List `tags` are sorted ignoring case. Item `tags` keep their order.
+- `tag_settings.mode` is `multi` (an item may have several tags) or `single`
+  (at most one). `colors` maps a tag to a color number from 0 to 6; a tag not
+  in it has the default color. Show/only-item-tags flags are booleans.
 - `hide_done.mode` is `off`, `all`, `age` or `recent`; counts are 1–100,000.
 - `completed_at` is UTC, or `null` when not done or not known (items checked
   before completion times existed).
@@ -81,13 +86,16 @@ Unicode-aware `lower()` key.
 | `list.rename` | `list_uid`, `name`, `base_seq` | Checked against `base_seq` ([conflicts](#conflicts)). |
 | `list.delete` | `list_uid` | Deletes the list and all its items. |
 | `list.tag_add` | `list_uid`, `tag` | Adds one tag (trimmed); no change if it exists. Tags match exactly, case included. Also used to undo a tag delete. |
-| `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list; no change if it is not there. Item tags are not changed. |
+| `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list and its color; no change if it is not there. Item tags are not changed. |
+| `list.tag_settings` | `list_uid`, `mode`?, `show_on_items`?, `only_item_tags`? | Sends only the changed fields (at least one); the server keeps the others. Switching `mode` to `single` keeps each item's first tag in the list's tag order and drops the rest, in the same write. No change if nothing differs. |
+| `list.tag_color` | `list_uid`, `tag`, `color` | Sets the tag's color (0 to 6), or back to the default with `null`. Exact tag match. |
+| `list.tag_rename` | `list_uid`, `tag`, `new_tag` | Renames a tag, trimmed and checked like `list.tag_add`. Re-sorts the list's tags, moves the color, and renames the tag on every item of the list (an item keeps one copy if it has both). Same name: no change. Atomic. |
 | `list.visibility` | `list_uid`, `mode`?, `age_days`?, `recent_count`? | Sends only the changed fields (at least one); the server keeps the others. Out-of-range values give 422. |
 | `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). Either one counts as an add: `add_count` +1 (a new item starts at 1) and `added_at` is now. |
 | `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Unchecking a checked item counts as an add (`add_count` +1, `added_at` now); checking, or unchecking an unchecked item, does not. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
 | `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `date`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. `date` absent keeps it; `null` clears it. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
-| `item.toggle_tag` | `list_uid`, `item_uid`, `tag`, `active`? | Toggles one tag on the stored item tags. With `active`, sets the tag on (`true`) or off (`false`); already in that state changes nothing, so the op is safe to send twice. |
+| `item.toggle_tag` | `list_uid`, `item_uid`, `tag`, `active`? | Toggles one tag on the stored item tags. With `active`, sets the tag on (`true`) or off (`false`); already in that state changes nothing, so the op is safe to send twice. In a `single` list, turning a tag on leaves it as the item's only tag. |
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
 | `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at`, `date`?, `add_count`?, `added_at`? | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. `date` is kept as sent (absent is no date). `add_count` and `added_at` are kept as sent (absent: 1 and no time); an undo is not an add. |
 
@@ -125,15 +133,16 @@ row. Answers stored before this was added have no `changed_seq`.
 
 | `code` | Operations | Message |
 |---|---|---|
-| `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
-| `too_long` | the same, after trimming: names 100 characters, `list.tag_add` tags 30, `item.edit` and `item.restore` descriptions 1000 | Name (Tag, Description) can be at most N characters |
+| `invalid_name` | `room.rename`, `list.create`, `list.rename`, `list.tag_add`, `list.tag_rename`, `item.add`, `item.edit`, `item.restore` | Name cannot be empty |
+| `too_long` | the same, after trimming: names 100 characters, tags 30 (`list.tag_add`, `list.tag_rename`), `item.edit` and `item.restore` descriptions 1000 | Name (Tag, Description) can be at most N characters |
 | `too_many` | `item.add`, `item.restore` (1000 items per list); `list.create` (100 lists per room); `list.tag_add` (50 tags per list) | A list can have at most 1000 items; A room can have at most 100 lists; A list can have at most 50 tags |
-| `duplicate_name` | `list.rename`, `item.edit` | 'X' already exists (in this room) |
+| `duplicate_name` | `list.rename`, `item.edit`, `list.tag_rename` | 'X' already exists (in this room) |
 | `duplicate_active` | `item.add` | 'x' is already on the list. Also has `item_uid`: the uid of the existing item. |
 | `changed_meanwhile` | `list.rename`, `item.set_done`, `item.edit` | Someone else changed this meanwhile. |
 | `undo_name_taken` | `item.restore` | Cannot undo: item name already exists |
 | `list_unavailable` | every op with `list_uid` | The list is no longer available. |
 | `item_not_found` | `item.set_done`, `item.quantity_delta`, `item.edit`, `item.toggle_tag` | The item is no longer available. |
+| `unknown_tag` | `list.tag_color`, `list.tag_rename` | The tag is not on this list. |
 
 A list in another room counts as `list_unavailable`, like a deleted one. An
 item in another list counts as `item_not_found` (`item.delete`: applied, no

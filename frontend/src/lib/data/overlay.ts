@@ -39,6 +39,9 @@ const PROJECTED = new Set<SentOp['type']>([
 	'list.delete',
 	'list.tag_add',
 	'list.tag_remove',
+	'list.tag_settings',
+	'list.tag_color',
+	'list.tag_rename',
 	'list.visibility',
 	'item.add',
 	'item.set_done',
@@ -136,7 +139,8 @@ export function project(
 			case 'item.toggle_tag': {
 				const item = items.get(op.item_uid);
 				if (!item || item.list_uid !== op.list_uid) break;
-				items.set(item.uid, applyItemOp(item, op, at));
+				const single = lists.get(op.list_uid)?.tag_settings.mode === 'single';
+				items.set(item.uid, applyItemOp(item, op, at, single));
 				break;
 			}
 			case 'item.delete': {
@@ -150,7 +154,28 @@ export function project(
 			case 'item.restore':
 				projectRestore(lists, items, op);
 				break;
+			case 'list.tag_settings': {
+				const list = lists.get(op.list_uid);
+				if (!list) break;
+				const next = applyListOp(list, op);
+				lists.set(list.uid, next);
+				// Switching to single mode strips extra tags, as the server does.
+				if (next.tag_settings.mode === 'single' && list.tag_settings.mode !== 'single') {
+					keepFirstItemTag(items, list.uid, next.tags);
+				}
+				break;
+			}
+			case 'list.tag_rename': {
+				const list = lists.get(op.list_uid);
+				if (!list) break;
+				const renamed = renameListTag(list, op.tag, op.new_tag);
+				if (renamed === null) break;
+				lists.set(list.uid, renamed);
+				renameItemTags(items, list.uid, op.tag, op.new_tag.trim());
+				break;
+			}
 			case 'list.tag_add':
+			case 'list.tag_color':
 			case 'list.tag_remove':
 			case 'list.visibility':
 			case 'list.rename': {
@@ -187,6 +212,52 @@ export function projectRoom(room: Room | null, pending: readonly PendingOp[]): R
 		if (op.type === 'room.rename') name = op.name.trim();
 	}
 	return room && name !== null ? { ...room, name } : room;
+}
+
+/** The list's tags after a rename, sorted; null if the rename would be refused. */
+function renameListTag(list: List, tag: string, newTag: string): List | null {
+	const name = newTag.trim();
+	if (!list.tags.includes(tag) || name === '' || name.length > 30) return null;
+	if (name === tag) return list;
+	if (list.tags.includes(name)) return null;
+	const colors = { ...list.tag_settings.colors };
+	if (tag in colors) {
+		colors[name] = colors[tag];
+		delete colors[tag];
+	}
+	const tags = sortTags(list.tags.map((existing) => (existing === tag ? name : existing)));
+	return { ...list, tags, tag_settings: { ...list.tag_settings, colors } };
+}
+
+/** Renames a tag on each item of the list, keeping its position and dropping repeats. */
+function renameItemTags(
+	items: Map<string, Item>,
+	listUid: string,
+	tag: string,
+	newTag: string
+): void {
+	for (const item of [...items.values()]) {
+		if (item.list_uid !== listUid || !item.tags.includes(tag)) continue;
+		const tags: string[] = [];
+		for (const existing of item.tags) {
+			const name = existing === tag ? newTag : existing;
+			if (!tags.includes(name)) tags.push(name);
+		}
+		items.set(item.uid, { ...item, tags });
+	}
+}
+
+/** Single mode: each item of the list keeps only its first tag in the list's tag order. */
+function keepFirstItemTag(items: Map<string, Item>, listUid: string, listTags: string[]): void {
+	const rank = (tag: string) => {
+		const index = listTags.indexOf(tag);
+		return index === -1 ? listTags.length : index;
+	};
+	for (const item of [...items.values()]) {
+		if (item.list_uid !== listUid || item.tags.length < 2) continue;
+		const first = item.tags.reduce((best, tag) => (rank(tag) < rank(best) ? tag : best));
+		items.set(item.uid, { ...item, tags: [first] });
+	}
 }
 
 /**
@@ -278,7 +349,7 @@ function newRow(
 	};
 }
 
-function applyItemOp(item: Item, op: SentOp, at: string): Item {
+function applyItemOp(item: Item, op: SentOp, at: string, singleTag = false): Item {
 	switch (op.type) {
 		case 'item.set_done':
 			if (!op.done) {
@@ -311,6 +382,11 @@ function applyItemOp(item: Item, op: SentOp, at: string): Item {
 		case 'item.toggle_tag': {
 			const on = op.active ?? !item.tags.includes(op.tag);
 			if (!on) return { ...item, tags: item.tags.filter((tag) => tag !== op.tag) };
+			if (singleTag) {
+				return item.tags.length === 1 && item.tags[0] === op.tag
+					? item
+					: { ...item, tags: [op.tag] };
+			}
 			return item.tags.includes(op.tag) ? item : { ...item, tags: [...item.tags, op.tag] };
 		}
 		default:
@@ -327,8 +403,29 @@ function applyListOp(list: List, op: SentOp): List {
 			if (!tag || list.tags.includes(tag)) return list;
 			return { ...list, tags: sortTags([...list.tags, tag]) };
 		}
-		case 'list.tag_remove':
-			return { ...list, tags: list.tags.filter((tag) => tag !== op.tag) };
+		case 'list.tag_remove': {
+			const colors = { ...list.tag_settings.colors };
+			delete colors[op.tag];
+			return {
+				...list,
+				tags: list.tags.filter((tag) => tag !== op.tag),
+				tag_settings: { ...list.tag_settings, colors }
+			};
+		}
+		case 'list.tag_color': {
+			if (!list.tags.includes(op.tag)) return list;
+			const colors = { ...list.tag_settings.colors };
+			if (op.color === null) delete colors[op.tag];
+			else colors[op.tag] = op.color;
+			return { ...list, tag_settings: { ...list.tag_settings, colors } };
+		}
+		case 'list.tag_settings': {
+			const settings = { ...list.tag_settings };
+			if (op.mode !== undefined) settings.mode = op.mode;
+			if (op.show_on_items !== undefined) settings.show_on_items = op.show_on_items;
+			if (op.only_item_tags !== undefined) settings.only_item_tags = op.only_item_tags;
+			return { ...list, tag_settings: settings };
+		}
 		case 'list.visibility': {
 			const hideDone = { ...list.hide_done };
 			if (op.mode !== undefined) hideDone.mode = op.mode;

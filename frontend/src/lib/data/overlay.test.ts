@@ -40,6 +40,9 @@ describe('overlay: which ops are projected', () => {
 		{ type: 'list.delete', list_uid: 'l' },
 		{ type: 'list.tag_add', list_uid: 'l', tag: 'x' },
 		{ type: 'list.tag_remove', list_uid: 'l', tag: 'x' },
+		{ type: 'list.tag_settings', list_uid: 'l', mode: 'single' },
+		{ type: 'list.tag_color', list_uid: 'l', tag: 'x', color: 2 },
+		{ type: 'list.tag_rename', list_uid: 'l', tag: 'x', new_tag: 'y' },
 		{ type: 'list.visibility', list_uid: 'l', mode: 'all' },
 		{ type: 'item.add', list_uid: 'l', name: 'x', uid: 'u' },
 		{ type: 'item.set_done', list_uid: 'l', item_uid: 'i', done: true },
@@ -292,6 +295,117 @@ describe('overlay: list and room ops', () => {
 			tags: ['Market'],
 			hide_done: { mode: 'all', age_days: 7, recent_count: 10 }
 		});
+	});
+
+	it('projects tag settings, merging only the sent fields', () => {
+		const data = view(
+			pending({ type: 'list.tag_settings', list_uid: list.uid, show_on_items: false }),
+			pending({ type: 'list.tag_settings', list_uid: list.uid, only_item_tags: true })
+		);
+		expect(data.lists.get(list.uid)?.tag_settings).toEqual({
+			mode: 'multi',
+			show_on_items: false,
+			only_item_tags: true,
+			colors: {}
+		});
+	});
+
+	it('projects a tag color, and clears it with null', () => {
+		const colored = view(
+			pending({ type: 'list.tag_color', list_uid: list.uid, tag: 'Lidl', color: 4 })
+		);
+		expect(colored.lists.get(list.uid)?.tag_settings.colors).toEqual({ Lidl: 4 });
+		const cleared = project(colored, [
+			pending({ type: 'list.tag_color', list_uid: list.uid, tag: 'Lidl', color: null })
+		]);
+		expect(cleared.lists.get(list.uid)?.tag_settings.colors).toEqual({});
+	});
+
+	it('drops the color of a removed tag', () => {
+		const data = view(
+			pending({ type: 'list.tag_color', list_uid: list.uid, tag: 'Lidl', color: 4 }),
+			pending({ type: 'list.tag_remove', list_uid: list.uid, tag: 'Lidl' })
+		);
+		expect(data.lists.get(list.uid)).toMatchObject({ tags: [], tag_settings: { colors: {} } });
+	});
+
+	it('ignores a color for a tag the list does not have', () => {
+		const data = view(
+			pending({ type: 'list.tag_color', list_uid: list.uid, tag: 'Nope', color: 1 })
+		);
+		expect(data.lists.get(list.uid)?.tag_settings.colors).toEqual({});
+	});
+
+	it('strips extra tags from items when the list switches to single mode', () => {
+		const multi = makeList({ uid: 'list-2', tags: ['aldi', 'Lidl', 'Market'] });
+		const first = makeItem(multi.uid, { uid: 'i-1', name: 'a', tags: ['Market', 'Lidl', 'aldi'] });
+		const second = makeItem(multi.uid, { uid: 'i-2', name: 'b', tags: ['Lidl', 'Market'] });
+		const data = project(server([multi], [first, second]), [
+			pending({ type: 'list.tag_settings', list_uid: multi.uid, mode: 'single' })
+		]);
+		expect(data.items.get('i-1')?.tags).toEqual(['aldi']);
+		expect(data.items.get('i-2')?.tags).toEqual(['Lidl']);
+		expect(data.lists.get(multi.uid)?.tag_settings.mode).toBe('single');
+	});
+
+	it('does not strip tags when the list is already single', () => {
+		const single = makeList({
+			uid: 'list-3',
+			tags: ['a', 'b'],
+			tag_settings: { mode: 'single', show_on_items: true, only_item_tags: false, colors: {} }
+		});
+		const item = makeItem(single.uid, { uid: 'i-3', tags: ['b', 'a'] });
+		const data = project(server([single], [item]), [
+			pending({ type: 'list.tag_settings', list_uid: single.uid, mode: 'single' })
+		]);
+		expect(data.items.get('i-3')?.tags).toEqual(['b', 'a']);
+	});
+
+	it('keeps only the toggled-on tag of an item in single mode', () => {
+		const single = makeList({
+			uid: 'list-4',
+			tags: ['a', 'b'],
+			tag_settings: { mode: 'single', show_on_items: true, only_item_tags: false, colors: {} }
+		});
+		const item = makeItem(single.uid, { uid: 'i-6', tags: ['a'] });
+		const data = project(server([single], [item]), [
+			pending({
+				type: 'item.toggle_tag',
+				list_uid: single.uid,
+				item_uid: 'i-6',
+				tag: 'b',
+				active: true
+			})
+		]);
+		expect(data.items.get('i-6')?.tags).toEqual(['b']);
+	});
+
+	it('renames a tag on the list, its color and every item, in place', () => {
+		const data = view(
+			pending({ type: 'list.tag_color', list_uid: list.uid, tag: 'Lidl', color: 3 }),
+			pending({ type: 'list.tag_rename', list_uid: list.uid, tag: 'Lidl', new_tag: '  Aldi ' })
+		);
+		expect(data.lists.get(list.uid)).toMatchObject({
+			tags: ['Aldi'],
+			tag_settings: { colors: { Aldi: 3 } }
+		});
+	});
+
+	it('renames a tag on items without repeating it', () => {
+		const withBoth = makeItem(list.uid, { uid: 'i-4', name: 'c', tags: ['Lidl', 'Aldi'] });
+		const withOne = makeItem(list.uid, { uid: 'i-5', name: 'd', tags: ['Market', 'Lidl'] });
+		const data = project(server([list], [withBoth, withOne]), [
+			pending({ type: 'list.tag_rename', list_uid: list.uid, tag: 'Lidl', new_tag: 'Aldi' })
+		]);
+		expect(data.items.get('i-4')?.tags).toEqual(['Aldi']);
+		expect(data.items.get('i-5')?.tags).toEqual(['Market', 'Aldi']);
+	});
+
+	it('leaves a rename the server would refuse out of the view', () => {
+		const data = view(
+			pending({ type: 'list.tag_rename', list_uid: list.uid, tag: 'Lidl', new_tag: '  ' })
+		);
+		expect(data.lists.get(list.uid)?.tags).toEqual(['Lidl']);
 	});
 
 	it('renames the room, and only with a room in view', () => {

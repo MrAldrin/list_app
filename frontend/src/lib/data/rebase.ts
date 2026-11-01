@@ -41,6 +41,9 @@ export function rowOf(op: SentOp): string | null {
 		case 'list.delete':
 		case 'list.tag_add':
 		case 'list.tag_remove':
+		case 'list.tag_settings':
+		case 'list.tag_color':
+		case 'list.tag_rename':
 		case 'list.visibility':
 			return `list:${op.list_uid}`;
 		default:

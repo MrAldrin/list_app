@@ -93,6 +93,33 @@ CASES = [
         "list.tag_add", "invalid_name", lambda c: {"list_uid": c.list_uid, "tag": ""}
     ),
     applied("list.tag_remove", lambda c: {"list_uid": c.list_uid, "tag": "Lidl"}),
+    applied(
+        "list.tag_settings",
+        lambda c: {"list_uid": c.list_uid, "mode": "single"},
+    ),
+    rejected(
+        "list.tag_settings",
+        "list_unavailable",
+        lambda c: {"list_uid": new_id(), "mode": "single"},
+    ),
+    applied(
+        "list.tag_color",
+        lambda c: {"list_uid": c.list_uid, "tag": "Lidl", "color": 3},
+    ),
+    rejected(
+        "list.tag_color",
+        "unknown_tag",
+        lambda c: {"list_uid": c.list_uid, "tag": "Nope", "color": 3},
+    ),
+    applied(
+        "list.tag_rename",
+        lambda c: {"list_uid": c.list_uid, "tag": "Lidl", "new_tag": "Aldi"},
+    ),
+    rejected(
+        "list.tag_rename",
+        "unknown_tag",
+        lambda c: {"list_uid": c.list_uid, "tag": "Nope", "new_tag": "Aldi"},
+    ),
     rejected(
         "list.tag_remove",
         "list_unavailable",

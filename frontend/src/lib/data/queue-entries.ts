@@ -61,6 +61,14 @@ const FIELDS: Record<Op['type'], Checks> = {
 	'list.delete': { list_uid: str },
 	'list.tag_add': { list_uid: str, tag: str },
 	'list.tag_remove': { list_uid: str, tag: str },
+	'list.tag_settings': {
+		list_uid: str,
+		mode: optional(str),
+		show_on_items: optional(bool),
+		only_item_tags: optional(bool)
+	},
+	'list.tag_color': { list_uid: str, tag: str, color: nullable(num) },
+	'list.tag_rename': { list_uid: str, tag: str, new_tag: str },
 	'list.visibility': {
 		list_uid: str,
 		mode: optional(str),

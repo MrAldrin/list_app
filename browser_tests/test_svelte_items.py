@@ -4,7 +4,15 @@ import json
 import re
 
 from playwright.sync_api import expect
-from svelte_app import PHONE, add_item, create_list, item_names, sign_in, wait_until
+from svelte_app import (
+    PHONE,
+    add_item,
+    add_list_tag,
+    create_list,
+    item_names,
+    sign_in,
+    wait_until,
+)
 
 from item_names import item_name_key
 
@@ -412,13 +420,8 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     expect(item_names(page)).to_have_count(4)
 
     # Add two list tags in Options mode.
-    page.get_by_role("button", name="Options").click()
-    tag_field = page.get_by_label("Add Tag")
-    tag_field.fill(" Market ")
-    tag_field.press("Enter")
-    expect(tag_field).to_have_value("")
-    tag_field.fill("Lidl")
-    page.get_by_role("button", name="Add new tag").click()
+    add_list_tag(page, " Market ")
+    add_list_tag(page, "Lidl")
     chips = page.get_by_role("list", name="Tags")
     expect(
         chips.get_by_role("button", name=re.compile("^(Lidl|Market)$"))
@@ -434,8 +437,7 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
         "aria-pressed", "true"
     )
     # A third tag, on bread only: no item has both Lidl and Bakery.
-    tag_field.fill("Bakery")
-    page.get_by_role("button", name="Add new tag").click()
+    add_list_tag(page, "Bakery")
     expect(chips.get_by_role("button", name="Bakery", exact=True)).to_be_visible()
     page.get_by_role("button", name="Market tag for milk").click()
     page.get_by_role("button", name="Market tag for bread").click()
@@ -470,7 +472,10 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
 
     # Delete a tag with Undo; item tags come back with it.
     page.get_by_role("button", name="Options").click()
-    page.get_by_role("button", name="Delete tag Lidl").click()
+    chips.get_by_role("button", name="Lidl", exact=True).click()
+    page.get_by_role("dialog", name="Edit Tag").get_by_role(
+        "button", name="Delete tag"
+    ).click()
     expect(page.get_by_text("Deleted tag Lidl")).to_be_visible()
     expect(page.get_by_role("button", name="Lidl tag for milk")).to_have_count(0)
     page.get_by_role("button", name="Undo").click()
@@ -480,12 +485,15 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     )
 
     # An exact duplicate warns; another letter case is a new tag.
-    tag_field.fill("Lidl")
-    tag_field.press("Enter")
+    page.get_by_role("button", name="New tag").click()
+    new_tag = page.get_by_role("dialog", name="New tag")
+    new_tag.get_by_label("Tag name").fill("Lidl")
+    new_tag.get_by_role("button", name="Add").click()
     expect(page.get_by_text("'Lidl' is already a tag")).to_be_visible()
-    expect(tag_field).to_have_value("")
-    tag_field.fill("lidl")
-    tag_field.press("Enter")
+    expect(new_tag).to_have_count(0)
+    page.get_by_role("button", name="New tag").click()
+    new_tag.get_by_label("Tag name").fill("lidl")
+    new_tag.get_by_role("button", name="Add").click()
     expect(chips.get_by_role("button", name="lidl", exact=True)).to_be_visible()
 
     # Hide-done "All": checked items disappear; switching it off shows them.
@@ -525,12 +533,8 @@ def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     create_list(page, "Groceries")
     add_item(page, "milk")
 
-    page.get_by_role("button", name="Options").click()
-    tag_field = page.get_by_label("Add Tag")
     for tag in ("Dairy", "Dry goods"):
-        tag_field.fill(tag)
-        page.get_by_role("button", name="Add new tag").click()
-        expect(tag_field).to_have_value("")
+        add_list_tag(page, tag)
     dairy = page.get_by_role("button", name="Dairy tag for milk")
     dry = page.get_by_role("button", name="Dry goods tag for milk")
     # Both start with "D": each shows two letters, so they tell apart.
@@ -539,8 +543,7 @@ def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     color = dairy.evaluate("el => el.style.getPropertyValue('--tag')")
 
     # A new tag does not recolor the others (the color depends on the name).
-    tag_field.fill("Aisle")
-    page.get_by_role("button", name="Add new tag").click()
+    add_list_tag(page, "Aisle")
     expect(page.get_by_role("button", name="Aisle tag for milk")).to_be_visible()
     expect(dairy).to_have_text("Da")
     assert dairy.evaluate("el => el.style.getPropertyValue('--tag')") == color
@@ -555,11 +558,7 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     add_item(page, "apple")
     expect(page.get_by_text("No items yet. Type above to add.")).to_have_count(0)
 
-    page.get_by_role("button", name="Options").click()
-    tag_field = page.get_by_label("Add Tag")
-    tag_field.fill("Lidl")
-    page.get_by_role("button", name="Add new tag").click()
-    expect(tag_field).to_have_value("")
+    add_list_tag(page, "Lidl")
     page.get_by_role("button", name="Lidl tag for milk").click()
     page.get_by_role("button", name="Done").click()
 

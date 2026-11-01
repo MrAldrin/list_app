@@ -13,6 +13,7 @@ from playwright.sync_api import Page, expect
 from svelte_app import (
     PHONE,
     add_item,
+    add_list_tag,
     app_url,
     create_list,
     hold_live_updates,
@@ -83,9 +84,7 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     expect(item_names(visitor)).to_have_text(["bread", "eggs", "milk"])
 
     # Tags too, as on the public page.
-    visitor.get_by_role("button", name="Options").click()
-    visitor.get_by_label("Add Tag").fill("produce")
-    visitor.get_by_label("Add Tag").press("Enter")
+    add_list_tag(visitor, "produce")
     expect(
         visitor.get_by_role("list", name="Tags").get_by_role(
             "button", name="produce", exact=True
@@ -223,15 +222,15 @@ def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
 
     # By the link: tags can be added and deleted.
     visitor.goto(link)
-    visitor.get_by_role("button", name="Options").click()
-    visitor.get_by_label("Add Tag").fill("produce")
-    visitor.get_by_label("Add Tag").press("Enter")
+    add_list_tag(visitor, "produce")
     tags = visitor.get_by_role("list", name="Tags")
     expect(tags.get_by_role("button", name="produce", exact=True)).to_be_visible()
     # The page shows a change before the server answers it.
     wait_until(visitor, lambda: list_tags(server) == ["produce"], "tag not saved")
+    tags.get_by_role("button", name="produce", exact=True).click()
+    card = visitor.get_by_role("dialog", name="Edit Tag")
     with visitor.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
-        visitor.get_by_role("button", name="Delete tag produce").click()
+        card.get_by_role("button", name="Delete tag").click()
     assert answer.value.ok
     expect(visitor.get_by_text("Deleted tag produce")).to_be_visible()
     expect(tags.get_by_role("button", name="produce", exact=True)).to_have_count(0)
@@ -274,19 +273,18 @@ def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_se
     hold_live_updates(tagger)
     tagger.goto(share_link(member))
     tagger.get_by_role("button", name="Options").click()
-    tagger.get_by_label("Add Tag").fill("revoked tag")
+    tagger.get_by_role("button", name="Tags").click()
+    tagger.get_by_label("Add tag").fill("revoked tag")
     reset_link(member)
     with tagger.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
-        tagger.get_by_label("Add Tag").press("Enter")
+        tagger.get_by_label("Add tag").press("Enter")
     assert answer.value.status == 401
     expect(tagger.get_by_text(RESET_MESSAGE)).to_be_visible()
     assert json.loads(server.query("SELECT list_tags FROM lists")[0][0]) == []
 
     # The new link can add a tag.
     tagger.goto(share_link(member))
-    tagger.get_by_role("button", name="Options").click()
-    tagger.get_by_label("Add Tag").fill("current tag")
-    tagger.get_by_label("Add Tag").press("Enter")
+    add_list_tag(tagger, "current tag")
     expect(
         tagger.get_by_role("list", name="Tags").get_by_role(
             "button", name="current tag", exact=True

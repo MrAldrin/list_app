@@ -1,14 +1,14 @@
 <!--
 	One item: a checkbox, the name (tap to edit), a note icon when it has a
 	description, the date ("18 Oct") when it has one, "×2" for a quantity of
-	2 or more, the quantity stepper (when
-	"Show quantities" is on; it replaces "×2"), a letter
-	button per list tag (filled when the item has the tag) and, in Options
-	mode, a delete button. Checkbox, stepper and tags change at once; the data
-	layer sends the change in the background.
+	2 or more, the quantity stepper (when "Show quantities" is on; it replaces
+	"×2"), a letter button per list tag (filled when the item has the tag; none
+	when "Show tags on items" is off; with "Only show tags the item has", just
+	the item's tags) and, in Options mode, a delete button. Checkbox, stepper and
+	tags change at once; the data layer sends the change in the background.
 -->
 <script lang="ts">
-	import type { Item } from '#lib/data/index.ts';
+	import type { Item, TagSettings } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import UnsentMark from '#lib/ui/UnsentMark.svelte';
 	import { formatItemDate, quantityBadge } from './items';
@@ -20,6 +20,7 @@
 		showDelete,
 		canEdit,
 		listTags,
+		tagSettings,
 		unsent = false,
 		onToggle,
 		onQuantity,
@@ -34,6 +35,8 @@
 		canEdit: boolean;
 		/** The list's tags, sorted; each gets a letter button. */
 		listTags: readonly string[];
+		/** The list's tag colors, and whether the letter buttons show. */
+		tagSettings: TagSettings;
 		/** A change to this item is not sent yet (a small mark). */
 		unsent?: boolean;
 		onToggle: (done: boolean) => void;
@@ -98,23 +101,25 @@
 			</button>
 		</div>
 	{/if}
-	{#if listTags.length > 0}
+	{#if tagSettings.show_on_items && listTags.length > 0}
 		<div class="tags">
 			{#each listTags as tag, index (tag)}
 				{@const on = item.tags.includes(tag)}
-				<button
-					class="tag"
-					class:on
-					style:--tag={tagColor(tag)}
-					type="button"
-					aria-label="{tag} tag for {item.name}"
-					aria-pressed={on}
-					disabled={!canEdit}
-					title={tag}
-					onclick={() => onTag(tag)}
-				>
-					<span class="letter">{letters[index]}</span>
-				</button>
+				{#if on || !tagSettings.only_item_tags}
+					<button
+						class="tag"
+						class:on
+						style:--tag={tagColor(tagSettings, tag)}
+						type="button"
+						aria-label="{tag} tag for {item.name}"
+						aria-pressed={on}
+						disabled={!canEdit}
+						title={tag}
+						onclick={() => onTag(tag)}
+					>
+						<span class="letter">{letters[index]}</span>
+					</button>
+				{/if}
 			{/each}
 		</div>
 	{/if}

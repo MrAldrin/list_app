@@ -34,6 +34,7 @@ function roomData(slug = 'kitchen'): SnapshotData {
 				name: 'Groceries',
 				tags: ['Market'],
 				hide_done: { mode: 'age', age_days: 7, recent_count: 10 },
+				tag_settings: { mode: 'multi', show_on_items: true, only_item_tags: false, colors: {} },
 				changed_seq: 8
 			},
 			{
@@ -42,6 +43,7 @@ function roomData(slug = 'kitchen'): SnapshotData {
 				name: 'Hardware',
 				tags: [],
 				hide_done: { mode: 'off', age_days: 7, recent_count: 10 },
+				tag_settings: { mode: 'multi', show_on_items: true, only_item_tags: false, colors: {} },
 				changed_seq: 6
 			}
 		],

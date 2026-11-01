@@ -47,7 +47,7 @@ def test_migration_preserves_names_and_does_not_mark_backfill_as_an_edit():
         assert after_item[:-1] == before_item
         assert after_item[-1] == "éggs"
         assert db.execute("SELECT change_seq FROM rooms").fetchone()[0] == before_seq
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 13
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 14
         assert (
             db.execute(
                 "SELECT sql FROM sqlite_master WHERE type = 'index' "

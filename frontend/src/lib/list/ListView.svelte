@@ -11,7 +11,8 @@
 		type HideDone,
 		type Item,
 		type List,
-		type RoomHandle
+		type RoomHandle,
+		type TagMode
 	} from '#lib/data/index.ts';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
@@ -241,6 +242,28 @@
 		if (result.ok) toasts.show(`Restored tag ${tag}`, 'success');
 	}
 
+	/** Renames the tag everywhere in one write. Keeps the filter on the new name. */
+	async function renameTag(target: List, tag: string, name: string): Promise<boolean> {
+		const result = await room.renameListTag(target, tag, name);
+		if (result.ok) {
+			const renamed = name.trim();
+			chosenTags = chosenTags.map((chosen) => (chosen === tag ? renamed : chosen));
+		}
+		return result.ok;
+	}
+
+	function setColor(target: List, tag: string, index: number) {
+		void room.setTagColor(target, tag, index);
+	}
+
+	/** Switching to one tag per item: the server keeps each item's first tag. */
+	function setTagSettings(
+		target: List,
+		changes: { mode?: TagMode; show_on_items?: boolean; only_item_tags?: boolean }
+	) {
+		void room.setTagSettings(target, changes);
+	}
+
 	function setHideDone(target: List, changes: Partial<HideDone>) {
 		void room.setVisibility(target, changes);
 	}
@@ -298,19 +321,29 @@
 		sort={itemSort}
 		onSort={setItemSort}
 		hideDone={list.hide_done}
+		tagSettings={list.tag_settings}
+		tags={list.tags}
+		items={room.store.itemsOf(list.uid)}
 		{canEdit}
 		onHideDone={(changes) => setHideDone(list, changes)}
+		onTagSettings={(changes) => setTagSettings(list, changes)}
+		onTagColor={(tag, index) => setColor(list, tag, index)}
+		onAddTag={(tag) => addTag(list, tag)}
+		onDeleteTag={(tag) => deleteTag(list, tag)}
 	/>
 {/if}
 <ListTags
 	tags={list.tags}
 	filter={filterTags}
-	editing={optionsOpen}
+	tagSettings={list.tag_settings}
+	{optionsOpen}
 	{canEdit}
 	onToggleFilter={toggleFilter}
 	onClear={clearFilter}
 	onAdd={(tag) => addTag(list, tag)}
+	onRename={(tag, name) => renameTag(list, tag, name)}
 	onDelete={(tag) => deleteTag(list, tag)}
+	onColor={(tag, index) => setColor(list, tag, index)}
 />
 <AddItem
 	items={room.store.itemsOf(list.uid)}
@@ -329,6 +362,7 @@
 				showDelete={optionsOpen}
 				{canEdit}
 				listTags={list.tags}
+				tagSettings={list.tag_settings}
 				unsent={room.store.isUnsent(`item:${item.uid}`)}
 				onToggle={(done) => toggle(item, done)}
 				onQuantity={(delta) => changeQuantity(item, delta)}
@@ -350,10 +384,16 @@
 {/if}
 {#if editing}
 	{@const item = editing}
+	<!-- The text fields start from `item`; the tag chips follow the live item, as they save at once. -->
+	{@const live = room.store.item(item.uid) ?? item}
 	<ItemDialog
 		{item}
+		itemTags={live.tags}
+		tags={list.tags}
+		tagSettings={list.tag_settings}
 		{canEdit}
 		onSave={(changes) => saveItem(item, changes)}
+		onTag={(tag) => toggleTag(live, tag)}
 		onDelete={() => deleteItem(item)}
 		onClose={() => (editing = null)}
 	/>

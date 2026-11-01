@@ -1,6 +1,8 @@
 <!--
 	"Edit Item": name, description, quantity and date, saved together (or not at all).
 	The date is optional: "Clear" removes it. Enter in the name field saves.
+	Tags are chips that change at once, not on Save: one tag per item in single
+	mode, several in multi mode.
 	A muted line shows how often the item was added and when it was last added
 	(it is not editable).
 	The delete button deletes the item (with undo).
@@ -10,19 +12,30 @@
 <script lang="ts">
 	import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
-	import type { Item } from '#lib/data/index.ts';
+	import type { Item, TagSettings } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { addedLabel, lastAddedLabel, stepQuantity } from './items';
+	import { tagColor } from './tags';
 
 	let {
 		item,
+		itemTags,
+		tags,
+		tagSettings,
 		canEdit,
 		onSave,
+		onTag,
 		onDelete,
 		onClose
 	}: {
 		item: Item;
+		/** The item's tags now (not at opening): the chips save at once, so they follow the store. */
+		itemTags: readonly string[];
+		/** The list's tags, sorted. */
+		tags: readonly string[];
+		/** The tag colors, and the mode (one or several tags per item). */
+		tagSettings: TagSettings;
 		/** Whether shared-data writes are authorized. */
 		canEdit: boolean;
 		/** Saves the fields. The parent closes the dialog if it worked. */
@@ -32,6 +45,8 @@
 			quantity: number;
 			date: string | null;
 		}) => Promise<void>;
+		/** Turns a tag on or off for the item at once. */
+		onTag: (tag: string) => void;
 		onDelete: () => void;
 		onClose: () => void;
 	} = $props();
@@ -41,6 +56,7 @@
 	const nameId = $props.id();
 	const descriptionId = `${nameId}-description`;
 	const dateId = `${nameId}-date`;
+	const tagsId = `${nameId}-tags`;
 	// `untrack`: start with the values at opening; live changes by someone
 	// else do not overwrite what is being typed.
 	let name = $state(untrack(() => item.name));
@@ -96,6 +112,30 @@
 		<input id={dateId} type="date" bind:value={date} />
 		<button type="button" disabled={!canEdit || !date} onclick={() => (date = '')}> Clear </button>
 	</div>
+	{#if tags.length > 0}
+		<span id={tagsId} class="label">Tags</span>
+		<ul class="chips" aria-labelledby={tagsId}>
+			{#each tags as tag (tag)}
+				{@const on = itemTags.includes(tag)}
+				<li>
+					<button
+						class="chip"
+						class:on
+						style:--tag={tagColor(tagSettings, tag)}
+						type="button"
+						aria-pressed={on}
+						disabled={!canEdit}
+						onclick={() => onTag(tag)}
+					>
+						{tag}
+					</button>
+				</li>
+			{/each}
+		</ul>
+		{#if tagSettings.mode === 'single'}
+			<p class="added">One tag per item: a tap on another tag replaces this one.</p>
+		{/if}
+	{/if}
 	<p class="added">{addedLabel(item.add_count)}</p>
 	{#if lastAdded}
 		<p class="added">{lastAdded}</p>
@@ -158,6 +198,35 @@
 		min-height: var(--touch);
 		padding: 0 0.5rem;
 		color: var(--primary);
+	}
+
+	.label {
+		font-weight: 600;
+	}
+
+	/* Wrapping chips, each a 44px tap area; the border shows the tag's color. */
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.chip {
+		min-height: var(--touch);
+		padding: 0 0.75rem;
+		border: 1.5px solid var(--tag);
+		border-radius: 999px;
+		color: var(--tag);
+		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+
+	.chip.on {
+		background: var(--tag);
+		color: var(--tag-text);
 	}
 
 	.added {

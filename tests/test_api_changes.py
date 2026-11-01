@@ -26,7 +26,7 @@ from database_setup import db
 
 HTTPS = "https://testserver"
 
-LIST_KEYS = {"uid", "slug", "name", "tags", "hide_done", "changed_seq"}
+LIST_KEYS = {"uid", "slug", "name", "tags", "hide_done", "tag_settings", "changed_seq"}
 ITEM_KEYS = {
     "uid",
     "list_uid",
@@ -129,6 +129,12 @@ def test_full_snapshot(shop):
         "name": "Shop",
         "tags": ["aldi", "Lidl", "market"],
         "hide_done": {"mode": "age", "age_days": 3, "recent_count": 5},
+        "tag_settings": {
+            "mode": "multi",
+            "show_on_items": True,
+            "only_item_tags": False,
+            "colors": {},
+        },
         "changed_seq": db.execute(
             "SELECT changed_seq FROM lists WHERE id = ?", (list_id,)
         ).fetchone()[0],

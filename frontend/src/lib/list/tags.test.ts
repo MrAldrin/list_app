@@ -1,18 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { activeFilters, filterByTags, newTag, tagColor, tagHash, tagLetters } from './tags';
+import {
+	activeFilters,
+	countSeveralTags,
+	extraTagsOf,
+	filterByTags,
+	newTag,
+	severalTagsQuestion,
+	tagColor,
+	tagColorIndex,
+	tagHash,
+	tagLetters
+} from './tags';
+
+const NO_COLORS = { colors: {} };
 
 describe('tagColor', () => {
 	it('is one of the seven palette colors', () => {
 		for (const tag of ['Lidl', 'Market', '🍎 fruit', 'é', 'x'.repeat(100)]) {
-			expect(tagColor(tag)).toMatch(/^var\(--tag-[0-6]\)$/);
+			expect(tagColor(NO_COLORS, tag)).toMatch(/^var\(--tag-[0-6]\)$/);
 		}
 	});
 
 	it('stays the same for a name, whatever other tags the list has', () => {
 		// Pinned values: a change here would recolor every tag on every list.
-		expect(tagColor('Lidl')).toBe('var(--tag-0)');
-		expect(tagColor('Market')).toBe('var(--tag-6)');
-		expect(tagColor('Dairy')).toBe('var(--tag-5)');
+		expect(tagColor(NO_COLORS, 'Lidl')).toBe('var(--tag-0)');
+		expect(tagColor(NO_COLORS, 'Market')).toBe('var(--tag-6)');
+		expect(tagColor(NO_COLORS, 'Dairy')).toBe('var(--tag-5)');
 		expect(tagHash('Lidl')).toBe(tagHash('Lidl'));
 	});
 
@@ -21,7 +34,13 @@ describe('tagColor', () => {
 		const second = tagLetters(['Market', 'Lidl']);
 		expect(first).toEqual(['L', 'M']);
 		expect(second).toEqual(['M', 'L']);
-		expect(tagColor('Market')).toBe('var(--tag-6)');
+		expect(tagColor(NO_COLORS, 'Market')).toBe('var(--tag-6)');
+	});
+
+	it('uses the chosen color of the list, and the default for the others', () => {
+		const settings = { colors: { Lidl: 4 } };
+		expect(tagColor(settings, 'Lidl')).toBe('var(--tag-4)');
+		expect(tagColorIndex(settings, 'Market')).toBe(6);
 	});
 });
 
@@ -112,5 +131,32 @@ describe('newTag', () => {
 		expect(newTag('   ', [])).toBeNull();
 		expect(newTag('Lidl', ['Lidl'])).toBeNull();
 		expect(newTag('lidl', ['Lidl'])).toBe('lidl');
+	});
+});
+
+describe('single-mode tag rules', () => {
+	it('keeps the first tag in the list order and drops the others', () => {
+		// The list order is aldi, Lidl, Market (ignoring case).
+		const listTags = ['aldi', 'Lidl', 'Market'];
+		expect(extraTagsOf(['Market', 'Lidl', 'aldi'], listTags)).toEqual(['Lidl', 'Market']);
+		expect(extraTagsOf(['Lidl', 'Market'], listTags)).toEqual(['Market']);
+	});
+
+	it('puts tags the list no longer has after the others', () => {
+		expect(extraTagsOf(['gone', 'Market'], ['Market'])).toEqual(['gone']);
+	});
+
+	it('keeps nothing extra for one tag or none', () => {
+		expect(extraTagsOf(['Lidl'], ['Lidl'])).toEqual([]);
+		expect(extraTagsOf([], ['Lidl'])).toEqual([]);
+	});
+
+	it('counts the items with several tags and asks in the right words', () => {
+		const items = [{ tags: ['a'] }, { tags: ['a', 'b'] }, { tags: ['a', 'b', 'c'] }];
+		expect(countSeveralTags(items)).toBe(2);
+		expect(severalTagsQuestion(1)).toBe('1 item has several tags. Keep only the first tag on it?');
+		expect(severalTagsQuestion(2)).toBe(
+			'2 items have several tags. Keep only the first tag on each?'
+		);
 	});
 });

@@ -42,8 +42,9 @@ def prepare_action(page: Page, action: str):
         return page.get_by_role("button", name="More milk").click
     if action == "tag":
         page.get_by_role("button", name="Options").click()
-        page.get_by_label("Add Tag").fill("forbidden")
-        return lambda: page.get_by_label("Add Tag").press("Enter")
+        page.get_by_role("button", name="Tags").click()
+        page.get_by_label("Add tag").fill("forbidden")
+        return lambda: page.get_by_label("Add tag").press("Enter")
     if action == "undo":
         # This page's own delete is answered with a new seq, so the page then
         # reads the changes. The member's delete must wait for that read: once

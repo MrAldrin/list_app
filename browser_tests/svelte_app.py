@@ -49,6 +49,24 @@ def item_names(page: Page):
     return page.locator("ul.items > li .name")
 
 
+def add_list_tag(page: Page, tag: str) -> None:
+    """Add a list tag from Options > Tags, then close the Tags dialog.
+
+    Options stays open (its button then says "Done"), as the callers expect.
+    """
+    # Options may already be open (its button then says "Done").
+    toggle = page.get_by_role("button", name=re.compile(r"^(Options|Done)$"))
+    expect(toggle).to_be_visible()
+    if toggle.inner_text().strip() == "Options":
+        toggle.click()
+    page.get_by_role("button", name="Tags").click()
+    tags_dialog = page.get_by_role("dialog", name="Tags")
+    field = tags_dialog.get_by_label("Add tag")
+    field.fill(tag)
+    field.press("Enter")
+    tags_dialog.get_by_role("button", name="Close").click()
+
+
 def list_links(page: Page):
     return page.locator("main li a")
 

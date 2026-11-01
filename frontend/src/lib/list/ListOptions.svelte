@@ -5,8 +5,17 @@
 	hide-done settings are saved for the list, for everyone.
 -->
 <script lang="ts">
-	import { ITEM_SORTS, type HideDone, type ItemSortChoice } from '#lib/data/index.ts';
+	import {
+		ITEM_SORTS,
+		type HideDone,
+		type Item,
+		type ItemSortChoice,
+		type TagMode,
+		type TagSettings
+	} from '#lib/data/index.ts';
 	import HideDoneSettings from './HideDoneSettings.svelte';
+	import OptionDialogRow from './OptionDialogRow.svelte';
+	import TagsDialog from './TagsDialog.svelte';
 
 	// `$bindable` lets the parent write <ListOptions bind:view={…} />.
 	let {
@@ -14,19 +23,42 @@
 		sort,
 		onSort,
 		hideDone,
+		tagSettings,
+		tags,
+		items,
 		canEdit,
-		onHideDone
+		onHideDone,
+		onTagSettings,
+		onTagColor,
+		onAddTag,
+		onDeleteTag
 	}: {
 		showQuantities: boolean;
 		/** The chosen item sort (personal, like "Show quantities"). */
 		sort: ItemSortChoice;
 		onSort: (choiceId: string) => void;
 		hideDone: HideDone;
+		/** The list's tag settings (mode, colors, show on items). */
+		tagSettings: TagSettings;
+		/** The list's tags, sorted ignoring case. */
+		tags: readonly string[];
+		/** The list's items, to count those with several tags before a switch to one tag. */
+		items: readonly Item[];
 		canEdit: boolean;
 		onHideDone: (changes: Partial<HideDone>) => void;
+		onTagSettings: (changes: {
+			mode?: TagMode;
+			show_on_items?: boolean;
+			only_item_tags?: boolean;
+		}) => void;
+		onTagColor: (tag: string, index: number) => void;
+		/** Adds a tag; true when the field should be cleared. */
+		onAddTag: (tag: string) => Promise<boolean>;
+		onDeleteTag: (tag: string) => void;
 	} = $props();
 
 	const sortId = $props.id();
+	let tagsOpen = $state(false);
 </script>
 
 <section class="card" aria-label="Options">
@@ -44,6 +76,21 @@
 	</label>
 	<HideDoneSettings settings={hideDone} disabled={!canEdit} onChange={onHideDone} />
 </section>
+
+<OptionDialogRow label="Tags" open={tagsOpen} onOpen={() => (tagsOpen = true)} />
+{#if tagsOpen}
+	<TagsDialog
+		{tags}
+		settings={tagSettings}
+		{items}
+		{canEdit}
+		onSettings={onTagSettings}
+		onColor={onTagColor}
+		onAdd={onAddTag}
+		onDelete={onDeleteTag}
+		onClose={() => (tagsOpen = false)}
+	/>
+{/if}
 
 <style>
 	section {

@@ -68,6 +68,12 @@ export function describeChange(op: SentOp, name: string | null): string {
 			return `Add tag '${op.tag}' to ${LIST(name)}`;
 		case 'list.tag_remove':
 			return `Remove tag '${op.tag}' from ${LIST(name)}`;
+		case 'list.tag_settings':
+			return `Change tag settings of ${LIST(name)}`;
+		case 'list.tag_color':
+			return `Change color of tag '${op.tag}' in ${LIST(name)}`;
+		case 'list.tag_rename':
+			return `Rename tag '${op.tag}' to '${op.new_tag}' in ${LIST(name)}`;
 		case 'list.visibility':
 			return `Change hide-done settings of ${LIST(name)}`;
 		case 'room.rename':
@@ -122,6 +128,9 @@ export function unsentRows(
 			case 'list.delete':
 			case 'list.tag_add':
 			case 'list.tag_remove':
+			case 'list.tag_settings':
+			case 'list.tag_color':
+			case 'list.tag_rename':
 			case 'list.visibility':
 				rows.add(`list:${op.list_uid}`);
 				break;
