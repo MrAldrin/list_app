@@ -76,8 +76,10 @@ Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 Approval rules for these steps are [gates in the scope](docs/scope.md#gates).
 
 - `integration` marks accepted work: "keep this, build on it". It is not a
-  promise that the work is deployed. Start new independent work from it
-  (`jj new integration`); continue existing work on its own line.
+  promise that the work is deployed. It must include `main`: if it is behind,
+  fix the baseline with approval before starting work. Start independent work
+  from `integration` when it is ahead of `main`; otherwise start from `main`.
+  Continue existing work on its own line.
 - `main` is the production line. Pushing it deploys Railway; the owner runs the
   [deploy script](docs/deployment.md#deployment-checklist), which moves `main`.
   Feature bookmarks mark work not yet accepted. There are no other shared
@@ -107,7 +109,7 @@ these guardrails after we have tried them. Do not remove them automatically.
   `main` production line. Multiple agents may coordinate there, but agree who
   is writing each shared file before editing it.
 - Every agent creates its own new jj workspace for each new task, based on
-  `integration`, and does all implementation there. Never share an
+  the current development baseline above, and does all implementation there. Never share an
   implementation workspace with another agent. Keep feature-specific docs and
   tests with the feature.
 - When the task's work is integrated, the agent that created the workspace
