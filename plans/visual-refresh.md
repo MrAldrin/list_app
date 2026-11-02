@@ -46,6 +46,8 @@ discussed.
 
 - Which palette and type: Market's green and rounded style, or a mix?
 - Bottom bar contents: add/search only, or also Options, Sort and the menu?
+  Owner (2026-11-02): add/search goes down; the implementing agent decides
+  the rest. Tracked in the [backlog](backlog.md#next).
 - Categories: a new concept, or tags with grouping turned on?
 
 ## Progress
