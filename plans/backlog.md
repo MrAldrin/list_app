@@ -29,7 +29,7 @@ Owner answers and any further questions: [decisions for Heming](decisions-for-he
 
 ## Next
 
-- [ ] [feature] Show the "+" add-tag chip in the tag row only while Options is open (today it always shows; `frontend/src/lib/list/ListTags.svelte`).
+- [ ] [feature] Remove the "+" add-tag chip from the tag row (`frontend/src/lib/list/ListTags.svelte`). New tags are added in **Options → Tags**, as today.
 - [ ] [feature] [human] Redesign usual-item suggestions; the live version (a "Usual items" row when the add field is blank) is not the way the owner wants it. Owner to describe the new approach. See [adding items](../docs/adding-items.md).
 
 ## Blocked
