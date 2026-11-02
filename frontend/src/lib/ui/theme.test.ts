@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { memoryStorage } from '../data/test-helpers';
-import { effectiveTheme, otherTheme, savedTheme, saveTheme, THEME_KEY } from './theme';
+import {
+	DEFAULT_PALETTE,
+	effectiveTheme,
+	otherTheme,
+	PALETTE_KEY,
+	PALETTES,
+	savedPalette,
+	savePalette,
+	savedTheme,
+	saveTheme,
+	THEME_KEY
+} from './theme';
 
 const blocked = {
 	getItem: () => {
@@ -54,4 +65,31 @@ describe('saveTheme', () => {
 it('otherTheme switches between the two', () => {
 	expect(otherTheme('light')).toBe('dark');
 	expect(otherTheme('dark')).toBe('light');
+});
+
+describe('palettes', () => {
+	it('starts with Classic and has unique ids, each with a source and license', () => {
+		expect(DEFAULT_PALETTE).toBe('classic');
+		const ids = PALETTES.map((palette) => palette.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		for (const palette of PALETTES) {
+			expect(palette.source).not.toBe('');
+			expect(palette.license).not.toBe('');
+		}
+	});
+
+	it('reads a saved palette, and falls back to Classic', () => {
+		expect(PALETTE_KEY).toBe('listapp_palette');
+		expect(savedPalette(memoryStorage({ listapp_palette: 'nord' }))).toBe('nord');
+		expect(savedPalette(memoryStorage({ listapp_palette: 'neon' }))).toBe('classic');
+		expect(savedPalette(memoryStorage())).toBe('classic');
+		expect(savedPalette(blocked)).toBe('classic');
+	});
+
+	it('saves the palette, and reports when it cannot', () => {
+		const storage = memoryStorage();
+		expect(savePalette('gruvbox', storage)).toBe(true);
+		expect(storage.getItem(PALETTE_KEY)).toBe('gruvbox');
+		expect(savePalette('gruvbox', blocked)).toBe(false);
+	});
 });

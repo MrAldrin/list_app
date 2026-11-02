@@ -83,6 +83,253 @@
 	--tag-text: #111418;
 }
 
+/* Color themes (palettes), chosen in the ⋮ menu; the list is PALETTES in
+   lib/ui/theme.ts. `data-palette` on <html> picks one; light and dark stay
+   `data-theme`. "Classic" is the default above and has no block. Each block
+   sets every color, so a palette never mixes with the classic colors.
+   Accents are the palette's own, darkened (light) or lightened (dark) only as
+   far as 4.5:1 text contrast needs; app-colors.test.ts checks every pair. */
+
+:root[data-palette='nord'] {
+	--bg: #eceff4;
+	--surface: #ffffff;
+	--text: #2e3440;
+	--text-muted: #4c566a;
+	--border: #d8dee9;
+	--control-border: #84878e;
+	--primary: #506e92;
+	--danger: #a4535b;
+	--warning: #925e4e;
+	--success: #607053;
+	--focus: #506e92;
+	--primary-text: #eceff4;
+	--danger-text: #eceff4;
+	--tag-0: #506e92;
+	--tag-1: #607053;
+	--tag-2: #a4535b;
+	--tag-3: #925e4e;
+	--tag-4: #7e6379;
+	--tag-5: #50717b;
+	--tag-6: #7a6a48;
+	--tag-text: #eceff4;
+}
+
+:root[data-palette='nord'][data-theme='dark'] {
+	--bg: #2e3440;
+	--surface: #3b4252;
+	--text: #eceff4;
+	--text-muted: #d8dee9;
+	--border: #4c566a;
+	--control-border: #878e9b;
+	--primary: #88c0d0;
+	--danger: #d9a0a6;
+	--warning: #ebcb8b;
+	--success: #a3be8c;
+	--focus: #88c0d0;
+	--primary-text: #2e3440;
+	--danger-text: #2e3440;
+	--tag-0: #98b2cc;
+	--tag-1: #a3be8c;
+	--tag-2: #d9a0a6;
+	--tag-3: #dba391;
+	--tag-4: #c4a6be;
+	--tag-5: #8fbcbb;
+	--tag-6: #ebcb8b;
+	--tag-text: #2e3440;
+}
+
+:root[data-palette='solarized'] {
+	--bg: #fdf6e3;
+	--surface: #eee8d5;
+	--text: #073642;
+	--text-muted: #556b71;
+	--border: #e0d8bf;
+	--control-border: #868273;
+	--primary: #1e6ca4;
+	--danger: #c42d2a;
+	--warning: #b34213;
+	--success: #606e00;
+	--focus: #1e6ca4;
+	--primary-text: #fdf6e3;
+	--danger-text: #fdf6e3;
+	--tag-0: #1e6ca4;
+	--tag-1: #606e00;
+	--tag-2: #c42d2a;
+	--tag-3: #b34213;
+	--tag-4: #5d61a9;
+	--tag-5: #1e726c;
+	--tag-6: #ba3072;
+	--tag-text: #fdf6e3;
+}
+
+:root[data-palette='solarized'][data-theme='dark'] {
+	--bg: #002b36;
+	--surface: #073642;
+	--text: #eee8d5;
+	--text-muted: #93a1a1;
+	--border: #0e4754;
+	--control-border: #5b828b;
+	--primary: #4da0da;
+	--danger: #e87876;
+	--warning: #bc9417;
+	--success: #90a217;
+	--focus: #4da0da;
+	--primary-text: #002b36;
+	--danger-text: #002b36;
+	--tag-0: #4da0da;
+	--tag-1: #90a217;
+	--tag-2: #e87876;
+	--tag-3: #db835e;
+	--tag-4: #9195d3;
+	--tag-5: #3ba9a0;
+	--tag-6: #e176aa;
+	--tag-text: #002b36;
+}
+
+:root[data-palette='gruvbox'] {
+	--bg: #fbf1c7;
+	--surface: #f9f5d7;
+	--text: #3c3836;
+	--text-muted: #665c54;
+	--border: #d5c4a1;
+	--control-border: #93876f;
+	--primary: #076678;
+	--danger: #9d0006;
+	--warning: #af3a03;
+	--success: #746f0d;
+	--focus: #076678;
+	--primary-text: #fbf1c7;
+	--danger-text: #fbf1c7;
+	--tag-0: #076678;
+	--tag-1: #746f0d;
+	--tag-2: #9d0006;
+	--tag-3: #af3a03;
+	--tag-4: #8f3f71;
+	--tag-5: #407755;
+	--tag-6: #966211;
+	--tag-text: #fbf1c7;
+}
+
+:root[data-palette='gruvbox'][data-theme='dark'] {
+	--bg: #282828;
+	--surface: #3c3836;
+	--text: #ebdbb2;
+	--text-muted: #bdae93;
+	--border: #504945;
+	--control-border: #888381;
+	--primary: #89aa9d;
+	--danger: #fc7c6d;
+	--warning: #fabd2f;
+	--success: #b8bb26;
+	--focus: #89aa9d;
+	--primary-text: #282828;
+	--danger-text: #282828;
+	--tag-0: #89aa9d;
+	--tag-1: #b8bb26;
+	--tag-2: #fc7c6d;
+	--tag-3: #fe8019;
+	--tag-4: #d68ea2;
+	--tag-5: #8ec07c;
+	--tag-6: #fabd2f;
+	--tag-text: #282828;
+}
+
+:root[data-palette='catppuccin'] {
+	--bg: #eff1f5;
+	--surface: #ffffff;
+	--text: #4c4f69;
+	--text-muted: #5c5f77;
+	--border: #ccd0da;
+	--control-border: #878990;
+	--primary: #1d63ee;
+	--danger: #d20f39;
+	--warning: #b94908;
+	--success: #317b21;
+	--focus: #1d63ee;
+	--primary-text: #eff1f5;
+	--danger-text: #eff1f5;
+	--tag-0: #1d63ee;
+	--tag-1: #317b21;
+	--tag-2: #d20f39;
+	--tag-3: #b94908;
+	--tag-4: #8839ef;
+	--tag-5: #13797f;
+	--tag-6: #a1518c;
+	--tag-text: #eff1f5;
+}
+
+:root[data-palette='catppuccin'][data-theme='dark'] {
+	--bg: #1e1e2e;
+	--surface: #313244;
+	--text: #cdd6f4;
+	--text-muted: #bac2de;
+	--border: #45475a;
+	--control-border: #7d7e8c;
+	--primary: #89b4fa;
+	--danger: #f38ba8;
+	--warning: #fab387;
+	--success: #a6e3a1;
+	--focus: #89b4fa;
+	--primary-text: #1e1e2e;
+	--danger-text: #1e1e2e;
+	--tag-0: #89b4fa;
+	--tag-1: #a6e3a1;
+	--tag-2: #f38ba8;
+	--tag-3: #fab387;
+	--tag-4: #cba6f7;
+	--tag-5: #94e2d5;
+	--tag-6: #f5c2e7;
+	--tag-text: #1e1e2e;
+}
+
+:root[data-palette='rosepine'] {
+	--bg: #faf4ed;
+	--surface: #fffaf3;
+	--text: #575279;
+	--text-muted: #6f6c87;
+	--border: #dfdad9;
+	--control-border: #8f8c8b;
+	--primary: #286983;
+	--danger: #a2596e;
+	--warning: #966421;
+	--success: #45767f;
+	--focus: #286983;
+	--primary-text: #faf4ed;
+	--danger-text: #faf4ed;
+	--tag-0: #286983;
+	--tag-1: #45767f;
+	--tag-2: #a2596e;
+	--tag-3: #966421;
+	--tag-4: #7a6890;
+	--tag-5: #9d5f5c;
+	--tag-6: #575279;
+	--tag-text: #faf4ed;
+}
+
+:root[data-palette='rosepine'][data-theme='dark'] {
+	--bg: #191724;
+	--surface: #1f1d2e;
+	--text: #e0def4;
+	--text-muted: #908caa;
+	--border: #403d52;
+	--control-border: #6c6a7a;
+	--primary: #c4a7e7;
+	--danger: #eb6f92;
+	--warning: #f6c177;
+	--success: #9ccfd8;
+	--focus: #c4a7e7;
+	--primary-text: #191724;
+	--danger-text: #191724;
+	--tag-0: #588ea4;
+	--tag-1: #9ccfd8;
+	--tag-2: #eb6f92;
+	--tag-3: #f6c177;
+	--tag-4: #c4a7e7;
+	--tag-5: #ebbcba;
+	--tag-6: #e0def4;
+	--tag-text: #191724;
+}
+
 *,
 *::before,
 *::after {

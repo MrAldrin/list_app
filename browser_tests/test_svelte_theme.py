@@ -1,4 +1,4 @@
-"""Svelte light and dark mode.
+"""Svelte light and dark mode, and the color themes.
 
 Without a saved choice the page follows the phone or computer. The toggle
 saves the choice in this browser (`listapp_theme`, the key the old pages
@@ -146,3 +146,31 @@ def test_saved_theme_paints_before_the_app_scripts(
         )
     finally:
         context.close()
+
+
+NORD_LIGHT = "rgb(236, 239, 244)"
+NORD_DARK = "rgb(46, 52, 64)"
+
+
+def test_color_theme_is_chosen_in_the_menu_and_kept(svelte_server, open_session):
+    page = open_session("phone", **PHONE, color_scheme="light")
+    page.goto(app_url(svelte_server))
+    sign_in(page, svelte_server)
+    create_list(page, "Colors")
+    expect(page.locator("html")).to_have_attribute("data-palette", "classic")
+
+    page.get_by_role("button", name="List menu").click()
+    page.get_by_label("Colors").select_option(label="Nord")
+    expect(page.locator("html")).to_have_attribute("data-palette", "nord")
+    expect(page.locator("body")).to_have_css("background-color", NORD_LIGHT)
+    assert page.evaluate("localStorage.getItem('listapp_palette')") == "nord"
+
+    # Dark mode keeps the color theme and uses its dark colors.
+    page.get_by_role("button", name="List menu").click()
+    list_menu_switch(page).click()
+    expect(page.locator("body")).to_have_css("background-color", NORD_DARK)
+
+    # A reload paints the saved theme again.
+    page.reload()
+    expect(page.locator("html")).to_have_attribute("data-palette", "nord")
+    expect(page.locator("body")).to_have_css("background-color", NORD_DARK)

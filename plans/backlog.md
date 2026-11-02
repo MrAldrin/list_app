@@ -40,7 +40,6 @@ locally before merging.
 
 - [ ] [feature] Remove the "+" add-tag chip from the tag row (`frontend/src/lib/list/ListTags.svelte`). New tags are added in **Options → Tags**, as today.
 - [ ] [feature] Split the Sort menu into two controls: what to sort by (name, date, added, most added) and the direction (high to low or low to high), instead of eight fixed choices. The data already stores a key and a direction (`ITEM_SORTS` in `frontend/src/lib/data/order.ts`); keep saved choices working. See [sorting items](../docs/item-sorting.md).
-- [ ] [feature] Color themes, step 1: about five ready-made themes (each with light and dark), chosen in the menu and saved in the browser like dark mode. Base them on well-known open palettes (for example Catppuccin, Nord, Solarized, Gruvbox or Dracula; check each license). Colors already live in CSS variables (`frontend/src/app.css`, `frontend/src/lib/ui/theme.svelte.ts`). Every theme keeps text at 4.5:1 contrast. Build the theme list so step 2 can add a custom one.
 - [ ] [feature] Due-date reminders inside the app (options 1 and 2 of the [sketch](due-date-reminders.md)): a toast when a list opens, and a check across all lists while the app is open, re-run every few minutes. "Soon" means due today or tomorrow, and overdue items count too. Frontend only. Phone push (option 3) stays in Later.
 - [ ] [feature] Bottom bar for the thumb on phones: move add/search to the bottom of the list page. The implementing agent decides whether Options, Sort and the menu also move down, and may move more if it judges that better; record the choice in the docs. Toasts move to the top. See [visual refresh](visual-refresh.md#open-questions).
 - [ ] [feature] Scrollable typing suggestions: while typing in **Add or Search**, show more than the top three matches in a list that scrolls, best matches first (today capped by `MAX_SUGGESTIONS` in `frontend/src/lib/list/items.ts`). Keep the keyboard rules in [adding items](../docs/adding-items.md); fit with the bottom bar item above.
@@ -50,7 +49,7 @@ locally before merging.
 
 ## Later
 
-- [ ] [feature] Color themes, step 2: a custom theme picker built on step 1. Start from a ready-made theme and change a few colors (background, accent, text); warn or adjust when text would be hard to read.
+- [ ] [feature] Color themes, step 2: a custom theme picker built on step 1. Add an entry to `PALETTES` in `frontend/src/lib/ui/theme.ts`; the contrast test already covers every entry. Start from a ready-made theme and change a few colors (background, accent, text); warn or adjust when text would be hard to read.
 - [ ] [feature] Phone push reminders when the app is closed (option 3 of the [due-date sketch](due-date-reminders.md)). Needs a push service, a scheduled job and an architecture change.
 - [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline use](../docs/offline-viewing.md#what-works-offline).
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).

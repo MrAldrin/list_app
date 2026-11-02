@@ -10,7 +10,10 @@ Railway. See the [architecture](ARCHITECTURE.md).
 protect room controls, not public list links.
 
 Switch between light and dark mode with the moon button, or from the ⋮ menu
-on a list page. The choice is saved in that device's browser, not shared with other devices.
+on a list page. Pick a color theme (Classic, Nord, Solarized, Gruvbox,
+Catppuccin or Rosé Pine) under **Colors** in the ⋮ menu; each has light and
+dark colors. Both choices are saved in that device's browser, not shared with
+other devices.
 
 Scope and approval rules: [scope](docs/scope.md). Work starts from the
 [backlog's current focus](plans/backlog.md#current-focus).

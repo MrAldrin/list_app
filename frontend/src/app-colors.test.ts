@@ -1,9 +1,10 @@
 // The color pairs in app.css meet the WCAG contrast minimums in light and
-// dark mode: 4.5:1 for text, 3:1 for field edges and focus rings. The test
+// dark mode, for every color theme in PALETTES: 4.5:1 for text, 3:1 for field edges and focus rings. The test
 // reads the CSS file itself, so a new color cannot slip below them.
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { PALETTES } from './lib/ui/theme';
 
 const css = readFileSync(new URL('./app.css', import.meta.url), 'utf8');
 
@@ -29,14 +30,32 @@ function contrast(a: string, b: string): number {
 	return (light + 0.05) / (dark + 0.05);
 }
 
-const light = colors(':root');
-const dark = { ...light, ...colors(":root[data-theme='dark']") };
+const classicLight = colors(':root');
+const classicDark = { ...classicLight, ...colors(":root[data-theme='dark']") };
+const NAMES = Object.keys(classicLight);
+
+/** A palette's own colors; each block must set every color, so none is borrowed. */
+function palette(selector: string): Record<string, string> {
+	const own = colors(selector);
+	expect(Object.keys(own).sort()).toEqual([...NAMES].sort());
+	return own;
+}
+
+const modes: [string, () => Record<string, string>][] = PALETTES.flatMap(({ id }) =>
+	id === 'classic'
+		? [
+				['classic light', () => classicLight],
+				['classic dark', () => classicDark]
+			]
+		: [
+				[`${id} light`, () => palette(`:root[data-palette='${id}']`)],
+				[`${id} dark`, () => palette(`:root[data-palette='${id}'][data-theme='dark']`)]
+			]
+);
 const TAGS = ['tag-0', 'tag-1', 'tag-2', 'tag-3', 'tag-4', 'tag-5', 'tag-6'];
 
-describe.each([
-	['light', light],
-	['dark', dark]
-])('%s mode', (_, theme) => {
+describe.each(modes)('%s', (_, read) => {
+	const theme = read();
 	type Pair = [foreground: string, background: string];
 	const pairs = (foreground: string[], background: string[]): Pair[] =>
 		foreground.flatMap((fg) => background.map((bg): Pair => [fg, bg]));

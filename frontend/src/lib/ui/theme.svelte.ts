@@ -4,17 +4,27 @@
 // `theme.ts`.
 
 import { untrack } from 'svelte';
-import { effectiveTheme, otherTheme, savedTheme, saveTheme, type Theme } from './theme';
+import {
+	effectiveTheme,
+	otherTheme,
+	savedPalette,
+	savePalette,
+	savedTheme,
+	saveTheme,
+	type Theme
+} from './theme';
 import { toasts } from './toasts.svelte.ts';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /**
- * `current`: the mode the page shows. `headerToggles`: toggle buttons in the
+ * `current`: the mode the page shows. `palette`: the color theme's id.
+ * `headerToggles`: toggle buttons in the
  * page's own top bar; the layout shows one above the page only when there is none.
  */
-export const theme = $state<{ current: Theme; headerToggles: number }>({
+export const theme = $state<{ current: Theme; palette: string; headerToggles: number }>({
 	current: 'light',
+	palette: 'classic',
 	headerToggles: 0
 });
 
@@ -27,10 +37,12 @@ function systemMedia(): MediaQueryList | null {
  * the `theme-color` meta tag (the browser's bar color) gets the page
  * background, so Safari can follow a switch.
  */
-function apply(next: Theme): void {
+function apply(next: Theme, palette = theme.palette): void {
 	theme.current = next;
+	theme.palette = palette;
 	const root = document.documentElement;
 	root.dataset.theme = next;
+	root.dataset.palette = palette;
 	const background = getComputedStyle(root).getPropertyValue('--bg').trim();
 	const meta = document.querySelector('meta[name="theme-color"]');
 	if (meta && background) meta.setAttribute('content', background);
@@ -39,7 +51,7 @@ function apply(next: Theme): void {
 /** Applies the mode and follows the system while nothing is saved. Returns a stop function. */
 export function startTheme(): () => void {
 	const media = systemMedia();
-	apply(effectiveTheme(savedTheme(), media?.matches ?? false));
+	apply(effectiveTheme(savedTheme(), media?.matches ?? false), savedPalette());
 	const follow = () => {
 		if (savedTheme() === null) apply(effectiveTheme(null, media?.matches ?? false));
 	};
@@ -57,6 +69,14 @@ export function toggleTheme(): boolean {
 /** Toggles the mode for a button; a warning toast when it could not be saved (NiceGUI's text). */
 export function toggleThemeWithNotice(): void {
 	if (!toggleTheme()) toasts.show('Theme could not be saved on this device', 'warning');
+}
+
+/** Switches the color theme and saves it; a warning toast when it could not be saved. */
+export function choosePalette(id: string): boolean {
+	apply(theme.current, id);
+	const saved = savePalette(id);
+	if (!saved) toasts.show('Theme could not be saved on this device', 'warning');
+	return saved;
 }
 
 /** Counts a toggle in a top bar while the calling component lives (call in `$effect`). */
