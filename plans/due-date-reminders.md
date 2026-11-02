@@ -55,5 +55,6 @@ try it on Android first.
 
 ## Progress
 
-- [ ] Choose options and answer the open questions
+- [x] Options 1 and 2 chosen; "soon" is due today or tomorrow, overdue included (owner, 2026-11-02). Option 3 is in Later.
+- [ ] Option 3 questions (who gets the reminder in a shared room)
 - [ ] Write the implementation plan
