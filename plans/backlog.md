@@ -23,11 +23,14 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
-- [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress) Parked: the draft on `tmp-listr-groups-ux` (`rlzvuowp`) must be rebuilt onto `main` before it can ship.
+- [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress) Parked on bookmark `groups` (rebuilt on `integration`, not accepted). Not shipping yet.
 
 Owner answers and any further questions: [decisions for Heming](decisions-for-heming.md).
 
 ## Next
+
+- [ ] [feature] Show the "+" add-tag chip in the tag row only while Options is open (today it always shows; `frontend/src/lib/list/ListTags.svelte`).
+- [ ] [feature] [human] Redesign usual-item suggestions; the live version (a "Usual items" row when the add field is blank) is not the way the owner wants it. Owner to describe the new approach. See [adding items](../docs/adding-items.md).
 
 ## Blocked
 
