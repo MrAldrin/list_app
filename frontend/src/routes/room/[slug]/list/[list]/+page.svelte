@@ -40,6 +40,7 @@
 	canSignIn
 	connectTitle="Connect to load this list."
 	failedTitle="Could not load this list."
+	listUid={list?.uid}
 >
 	{#snippet content(handle)}
 		{#if !list}

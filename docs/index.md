@@ -12,7 +12,8 @@ copying it.
   [item writes](item-writes.md)
 - [Adding items and choosing suggestions](adding-items.md),
   [checked-item visibility](checked-item-visibility.md),
-  [item sorting](item-sorting.md), and
+  [item sorting](item-sorting.md),
+  [due-date reminders](due-date-reminders.md), and
   [home-screen installation](home-screen-installation.md)
 - [JSON API](api.md)
 

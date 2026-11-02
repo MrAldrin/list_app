@@ -47,6 +47,7 @@ nav = [
     { "Adding items" = "docs/adding-items.md" },
     { "Checked-item visibility" = "docs/checked-item-visibility.md" },
     { "Item sorting" = "docs/item-sorting.md" },
+    { "Due-date reminders" = "docs/due-date-reminders.md" },
     { "Home-screen installation" = "docs/home-screen-installation.md" },
     { "JSON API" = "docs/api.md" },
   ] },

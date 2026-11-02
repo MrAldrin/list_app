@@ -56,5 +56,6 @@ try it on Android first.
 ## Progress
 
 - [x] Options 1 and 2 chosen; "soon" is due today or tomorrow, overdue included (owner, 2026-11-02). Option 3 is in Later.
+- [x] Options 1 and 2 implemented; current behavior in [due-date reminders](../docs/due-date-reminders.md).
 - [ ] Option 3 questions (who gets the reminder in a shared room)
-- [ ] Write the implementation plan
+- [ ] Write the implementation plan for option 3
