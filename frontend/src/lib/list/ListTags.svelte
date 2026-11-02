@@ -3,17 +3,14 @@
 	a chip adds it to the filter, and a tap again removes it; the items must have
 	every chosen tag. While Options is open a tap on a chip opens its "Edit Tag"
 	card instead, and each chip shows a pencil. A right click always opens the
-	card. A mouse can drag the row, and its wheel scrolls it sideways. The "+"
-	chip adds a tag (with edit rights).
+	card. A mouse can drag the row, and its wheel scrolls it sideways. New tags
+	are added in Options > Tags.
 -->
 <script lang="ts">
 	import type { TagSettings } from '#lib/data/index.ts';
-	import { MAX_TAG_LENGTH } from '#lib/ui/field-limits.ts';
-	import FormDialog from '#lib/ui/FormDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
-	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import TagDialog from './TagDialog.svelte';
-	import { newTag, tagColor, tagColorIndex } from './tags';
+	import { tagColor, tagColorIndex } from './tags';
 
 	let {
 		tags,
@@ -23,7 +20,6 @@
 		canEdit,
 		onToggleFilter,
 		onClear,
-		onAdd,
 		onRename,
 		onDelete,
 		onColor
@@ -41,8 +37,6 @@
 		onToggleFilter: (tag: string) => void;
 		/** Removes every tag from the filter. Shown as "Clear" while a filter is on. */
 		onClear: () => void;
-		/** Adds a tag; true when the dialog should close. */
-		onAdd: (tag: string) => Promise<boolean>;
 		/** Renames a tag to the new name; true when the card should close. */
 		onRename: (tag: string, name: string) => Promise<boolean>;
 		/** Deletes the tag (the parent offers "Undo"). */
@@ -55,8 +49,6 @@
 
 	/** The tag whose card is open, or null. */
 	let openTagName = $state<string | null>(null);
-	let adding = $state(false);
-	let addText = $state('');
 
 	let row = $state<HTMLUListElement>();
 	let fadeStart = $state(false);
@@ -154,29 +146,11 @@
 		openTagName = null;
 		onDelete(tag);
 	}
-
-	async function submitNew() {
-		if (!canEdit) return;
-		const tag = newTag(addText, tags);
-		if (tag === null) {
-			// Exact match only: "fruit" next to "Fruit" is allowed.
-			const name = addText.trim();
-			if (name) {
-				toasts.show(`'${name}' is already a tag`, 'warning');
-				adding = false;
-			}
-			return;
-		}
-		if (await onAdd(tag)) {
-			addText = '';
-			adding = false;
-		}
-	}
 </script>
 
 <svelte:window onresize={updateFades} />
 
-{#if tags.length > 0 || canEdit}
+{#if tags.length > 0}
 	<ul
 		class="chips"
 		class:dragging
@@ -214,13 +188,6 @@
 				<button class="chip clear" type="button" onclick={onClear}>Clear</button>
 			</li>
 		{/if}
-		{#if canEdit}
-			<li>
-				<button class="chip add" type="button" aria-label="New tag" onclick={() => (adding = true)}>
-					<Icon name="add" />
-				</button>
-			</li>
-		{/if}
 	</ul>
 {/if}
 
@@ -235,25 +202,6 @@
 		onDelete={() => deleteOpenTag(tag)}
 		onClose={() => (openTagName = null)}
 	/>
-{/if}
-
-{#if adding}
-	<FormDialog
-		title="New tag"
-		submitLabel="Add"
-		submitDisabled={!canEdit}
-		onSubmit={submitNew}
-		onClose={() => (adding = false)}
-	>
-		<label for="new-tag-name">Tag name</label>
-		<input
-			id="new-tag-name"
-			bind:value={addText}
-			maxlength={MAX_TAG_LENGTH}
-			autocomplete="off"
-			enterkeyhint="done"
-		/>
-	</FormDialog>
 {/if}
 
 <style>
@@ -353,15 +301,6 @@
 	/* Not a tag: grey, so it does not look like one. */
 	.chip.clear {
 		--tag: var(--text-muted);
-	}
-
-	/* The add chip: a round 44px button in the primary color. */
-	.chip.add {
-		--tag: var(--primary);
-		min-width: 2.25rem;
-		padding: 0 0.5rem;
-		display: grid;
-		place-items: center;
 	}
 
 	/* The pencil shown while Options is open; it takes the chip's text color. */

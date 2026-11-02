@@ -485,15 +485,16 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     )
 
     # An exact duplicate warns; another letter case is a new tag.
-    page.get_by_role("button", name="New tag").click()
-    new_tag = page.get_by_role("dialog", name="New tag")
-    new_tag.get_by_label("Tag name").fill("Lidl")
-    new_tag.get_by_role("button", name="Add").click()
+    page.get_by_role("button", name="Tags").click()
+    tags_dialog = page.get_by_role("dialog", name="Tags")
+    field = tags_dialog.get_by_label("Add tag")
+    field.fill("Lidl")
+    field.press("Enter")
     expect(page.get_by_text("'Lidl' is already a tag")).to_be_visible()
-    expect(new_tag).to_have_count(0)
-    page.get_by_role("button", name="New tag").click()
-    new_tag.get_by_label("Tag name").fill("lidl")
-    new_tag.get_by_role("button", name="Add").click()
+    expect(field).to_have_value("")
+    field.fill("lidl")
+    field.press("Enter")
+    tags_dialog.get_by_role("button", name="Close").click()
     expect(chips.get_by_role("button", name="lidl", exact=True)).to_be_visible()
 
     # Hide-done "All": checked items disappear; switching it off shows them.

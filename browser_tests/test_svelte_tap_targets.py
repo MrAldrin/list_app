@@ -58,7 +58,6 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     assert_tap_height("tag letter", page.locator("ul.items .tag"))
     assert_tap_height("item delete", page.locator("ul.items .delete"))
     assert_tap_height("tag filter chip", page.locator("ul.chips .chip"))
-    assert_tap_height("new tag chip", page.locator("ul.chips .chip.add"))
     assert_tap_height(
         "options row", page.locator("section[aria-label='Options'] > label")
     )
