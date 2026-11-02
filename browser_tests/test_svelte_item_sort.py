@@ -7,12 +7,13 @@ rules (open items first, ties, dates, no time) are covered by unit tests.
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in
 
-NAME_Z_TO_A = "Name Z\N{EN DASH}A"
+NAME_Z_TO_A = "Z\N{EN DASH}A"
 
 
 def open_options(page):
+    """Opens Options; returns the "Sort by" and "Order" selects."""
     page.get_by_role("button", name="Options").click()
-    return page.get_by_label("Sort")
+    return page.get_by_label("Sort by"), page.get_by_label("Order")
 
 
 def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_session):
@@ -27,19 +28,26 @@ def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_sessio
 
     # The default is name A to Z.
     expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
-    sort = open_options(page)
-    expect(sort).to_have_value("name-asc")
+    sort_by, order = open_options(page)
+    expect(sort_by).to_have_value("name")
+    expect(order).to_have_value("name-asc")
 
-    sort.select_option(label="Added: newest first")
+    # A new "Sort by" starts in its default order: newest first.
+    sort_by.select_option(label="Added")
+    expect(order).to_have_value("added-desc")
     expect(item_names(page)).to_have_text(["zucchini", "apple", "milk"])
 
     # The choice is saved in this browser, so it survives a reload.
     page.reload()
     expect(item_names(page)).to_have_text(["zucchini", "apple", "milk"])
-    sort = open_options(page)
-    expect(sort).to_have_value("added-desc")
+    sort_by, order = open_options(page)
+    expect(sort_by).to_have_value("added")
+    expect(order).to_have_value("added-desc")
 
-    sort.select_option(label=NAME_Z_TO_A)
+    # Back to name, then the other direction.
+    sort_by.select_option(label="Name")
+    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
+    order.select_option(label=NAME_Z_TO_A)
     expect(item_names(page)).to_have_text(["zucchini", "milk", "apple"])
 
 

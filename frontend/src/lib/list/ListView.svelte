@@ -7,9 +7,9 @@
 <script lang="ts">
 	import {
 		countHiddenChecked,
-		itemSortChoice,
 		type HideDone,
 		type Item,
+		type ItemSortChoice,
 		type List,
 		type RoomHandle,
 		type TagMode
@@ -71,9 +71,7 @@
 	}
 	// "Sort": personal too, saved per list in this browser (name A–Z by default).
 	let itemSort = $derived(loadItemSort(listUid));
-	function setItemSort(choiceId: string) {
-		const choice = itemSortChoice(choiceId);
-		if (!choice) return;
+	function setItemSort(choice: ItemSortChoice) {
 		releaseRows();
 		itemSort = choice;
 		saveItemSort(listUid, choice.id);
