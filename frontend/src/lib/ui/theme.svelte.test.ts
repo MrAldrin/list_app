@@ -3,7 +3,7 @@
 // the saved choice and following the system's mode.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startTheme, theme, toggleTheme } from './theme.svelte';
+import { choosePalette, startTheme, theme, toggleTheme } from './theme.svelte';
 
 /** A fake `matchMedia` whose dark-mode answer the test can change. */
 function fakeSystem(dark: boolean) {
@@ -39,6 +39,7 @@ afterEach(() => {
 	stop();
 	vi.unstubAllGlobals();
 	delete document.documentElement.dataset.theme;
+	delete document.documentElement.dataset.palette;
 });
 
 const themeColor = () =>
@@ -103,11 +104,33 @@ describe('toggleTheme', () => {
 	it('still switches when the choice cannot be saved', () => {
 		fakeSystem(false);
 		stop = startTheme();
-		vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
-			throw new Error('full');
+		// A stub, not a spy: happy-dom's storage keeps a spied method as an item.
+		vi.stubGlobal('localStorage', {
+			getItem: () => null,
+			setItem: () => {
+				throw new Error('full');
+			}
 		});
 		expect(toggleTheme()).toBe(false);
 		expect(theme.current).toBe('dark');
-		vi.restoreAllMocks();
+	});
+});
+
+describe('choosePalette', () => {
+	it('sets data-palette, saves it and keeps it on the next start', () => {
+		fakeSystem(false);
+		stop = startTheme();
+		expect(document.documentElement.dataset.palette).toBe('classic');
+
+		expect(choosePalette('nord')).toBe(true);
+		expect(theme.palette).toBe('nord');
+		expect(document.documentElement.dataset.palette).toBe('nord');
+		expect(localStorage.getItem('listapp_palette')).toBe('nord');
+
+		toggleTheme();
+		expect(document.documentElement.dataset.palette).toBe('nord');
+		stop();
+		stop = startTheme();
+		expect(theme.palette).toBe('nord');
 	});
 });

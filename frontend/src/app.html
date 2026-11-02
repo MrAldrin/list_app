@@ -34,6 +34,15 @@
 					saved === 'dark' ||
 					(saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
 				document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+				// The color theme (lib/ui/theme.ts PALETTES); an unknown one
+				// has no colors in app.css, so the page shows Classic.
+				var palette = null;
+				try {
+					palette = localStorage.getItem('listapp_palette');
+				} catch (error) {
+					palette = null;
+				}
+				document.documentElement.dataset.palette = palette || 'classic';
 			})();
 		</script>
 		%sveltekit.head%

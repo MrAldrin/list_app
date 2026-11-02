@@ -49,3 +49,63 @@ export function saveTheme(theme: Theme, storage = browserStorage()): boolean {
 export function otherTheme(theme: Theme): Theme {
 	return theme === 'dark' ? 'light' : 'dark';
 }
+
+// Color themes (palettes): which colors light and dark mode use. Saved per
+// browser next to the mode, under its own key.
+
+/** One ready-made color theme. `id` is its `data-palette` value in `app.css`. */
+export type Palette = {
+	id: string;
+	name: string;
+	/** Where the colors come from, and under which license. */
+	source: string;
+	license: string;
+};
+
+/**
+ * The menu's color themes, in menu order. The first is the default. Step 2
+ * (a custom theme) adds an entry here and its own colors.
+ */
+export const PALETTES: readonly Palette[] = [
+	{ id: 'classic', name: 'Classic', source: 'This app', license: 'Project' },
+	{ id: 'nord', name: 'Nord', source: 'https://www.nordtheme.com', license: 'MIT' },
+	{
+		id: 'solarized',
+		name: 'Solarized',
+		source: 'https://ethanschoonover.com/solarized',
+		license: 'MIT'
+	},
+	{ id: 'gruvbox', name: 'Gruvbox', source: 'https://github.com/morhetz/gruvbox', license: 'MIT' },
+	{
+		id: 'catppuccin',
+		name: 'Catppuccin',
+		source: 'https://catppuccin.com/palette',
+		license: 'MIT'
+	},
+	{ id: 'rosepine', name: 'Rosé Pine', source: 'https://rosepinetheme.com/palette', license: 'MIT' }
+];
+
+export const DEFAULT_PALETTE = PALETTES[0].id;
+
+export const PALETTE_KEY = 'listapp_palette';
+
+/** The saved color theme, or the default when nothing (or something unknown) is saved. */
+export function savedPalette(storage = browserStorage()): string {
+	try {
+		const value = storage?.getItem(PALETTE_KEY);
+		return PALETTES.some((palette) => palette.id === value) ? (value as string) : DEFAULT_PALETTE;
+	} catch {
+		return DEFAULT_PALETTE;
+	}
+}
+
+/** Saves the color theme; false when this browser cannot. */
+export function savePalette(id: string, storage = browserStorage()): boolean {
+	try {
+		if (!storage) return false;
+		storage.setItem(PALETTE_KEY, id);
+		return true;
+	} catch {
+		return false;
+	}
+}
