@@ -5,7 +5,16 @@
 	hide-done settings are saved for the list, for everyone.
 -->
 <script lang="ts">
-	import { ITEM_SORTS, type HideDone, type Item, type ItemSortChoice, type List, type RoomHandle, type TagMode, type TagSettings } from '#lib/data/index.ts';
+	import {
+		ITEM_SORTS,
+		type HideDone,
+		type Item,
+		type ItemSortChoice,
+		type List,
+		type RoomHandle,
+		type TagMode,
+		type TagSettings
+	} from '#lib/data/index.ts';
 	import HideDoneSettings from './HideDoneSettings.svelte';
 	import OptionDialogRow from './OptionDialogRow.svelte';
 	import TagsDialog from './TagsDialog.svelte';
@@ -74,9 +83,8 @@
 	</label>
 	<HideDoneSettings settings={hideDone} disabled={!canEdit} onChange={onHideDone} />
 	{#if !room.isShare}<ItemGroups {room} {list} />{/if}
+	<OptionDialogRow label="Tags" open={tagsOpen} onOpen={() => (tagsOpen = true)} />
 </section>
-
-<OptionDialogRow label="Tags" open={tagsOpen} onOpen={() => (tagsOpen = true)} />
 {#if tagsOpen}
 	<TagsDialog
 		{tags}

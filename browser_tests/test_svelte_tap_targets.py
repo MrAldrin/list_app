@@ -33,7 +33,9 @@ def assert_tap_height(name: str, locator: Locator) -> None:
     for element in locator.all():
         element.scroll_into_view_if_needed()
         height = element.evaluate(TAP_HEIGHT)
-        assert height >= TOUCH, f"{name} is {height} px tall, needs {TOUCH}"
+        assert height >= TOUCH, (
+            f"{name} ({element.inner_text()}) is {height} px tall, needs {TOUCH}"
+        )
 
 
 def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):

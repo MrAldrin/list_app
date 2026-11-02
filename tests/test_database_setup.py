@@ -139,8 +139,9 @@ def test_group_migration_preserves_existing_room_lists_and_items(tmp_path, monke
     database_path = tmp_path / "group-upgrade.db"
     backup_path = tmp_path / "group-upgrade-backup.db"
     with closing(sqlite3.connect(database_path)) as old, old:
-        migrate_to(old, 13)
+        migrate_to(old, 14)
         list_id = _create_item_list(old)
+        old.execute("UPDATE lists SET tag_mode = 'single' WHERE id = ?", (list_id,))
         _insert_key_test_item(old, list_id, "Milk")
 
     monkeypatch.setenv("DB_PATH", str(database_path))
@@ -151,17 +152,18 @@ def test_group_migration_preserves_existing_room_lists_and_items(tmp_path, monke
         "SELECT name FROM lists WHERE name = 'Shop'"
     ).fetchone() == ("Shop",)
     assert upgraded.execute("SELECT name FROM items").fetchone() == ("Milk",)
+    assert upgraded.execute("SELECT tag_mode FROM lists").fetchone() == ("single",)
     assert upgraded.execute("SELECT COUNT(*) FROM item_groups").fetchone()[0] == 0
     upgraded.close()
 
     with closing(sqlite3.connect(backup_path)) as backup:
-        assert backup.execute("PRAGMA user_version").fetchone()[0] == 13
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == 14
         assert backup.execute("SELECT name FROM items").fetchone() == ("Milk",)
 
 
 def test_group_retention_migration_stamps_existing_tombstones_without_losing_payload():
     with closing(sqlite3.connect(":memory:")) as connection:
-        migrate_to(connection, 14)
+        migrate_to(connection, 15)
         room_id = connection.execute("SELECT id FROM rooms").fetchone()[0]
         uid = str(uuid.uuid4())
         connection.execute(
