@@ -30,6 +30,7 @@ Owner answers and any further questions: [decisions for Heming](decisions-for-he
 ## Next
 
 - [ ] [feature] Remove the "+" add-tag chip from the tag row (`frontend/src/lib/list/ListTags.svelte`). New tags are added in **Options → Tags**, as today.
+- [ ] [feature] Split the Sort menu into two controls: what to sort by (name, date, added, most added) and the direction (high to low or low to high), instead of eight fixed choices. The data already stores a key and a direction (`ITEM_SORTS` in `frontend/src/lib/data/order.ts`); keep saved choices working. See [sorting items](../docs/item-sorting.md).
 - [ ] [feature] [human] Redesign usual-item suggestions; the live version (a "Usual items" row when the add field is blank) is not the way the owner wants it. Owner to describe the new approach. See [adding items](../docs/adding-items.md).
 
 ## Blocked
