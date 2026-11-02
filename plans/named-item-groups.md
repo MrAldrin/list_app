@@ -9,7 +9,7 @@ Implement named item groups as authorized in the
 The first version stores reusable item names only; no quantities, notes or tags.
 A group add skips every existing match, whether active or checked.
 
-**State:** Planned only. No implementation or feature verification has been done.
+**State:** A draft is implemented on the parked `tmp-listr-groups-ux` line (`rlzvuowp`). It is not on `main` and not verified there.
 
 ## Plan
 

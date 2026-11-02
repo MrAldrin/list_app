@@ -23,10 +23,7 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
-- [ ] [feature] Implement [item-name capitals and migration](item-name-capitalization.md). (in progress)
-- [ ] [feature] Implement [usual-item suggestions](usual-items.md). (in progress)
-- [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress)
-- [ ] [feature] Implement [ordered aisle tags](aisle-tags.md). (in progress)
+- [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress) Parked: the draft on `tmp-listr-groups-ux` (`rlzvuowp`) must be rebuilt onto `main` before it can ship.
 
 Owner answers and any further questions: [decisions for Heming](decisions-for-heming.md).
 
