@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { makeItem } from './test-helpers';
-import { ITEM_SORTS, itemSortChoice, sortItems, type ItemSort } from './order';
+import {
+	ITEM_SORT_KEYS,
+	ITEM_SORTS,
+	itemSortChoice,
+	itemSortDirections,
+	itemSortFor,
+	sortItems,
+	type ItemSort
+} from './order';
 import type { Item } from './types';
 
 const names = (items: Item[]) => items.map((item) => item.name);
@@ -154,6 +162,34 @@ describe('ITEM_SORTS', () => {
 		const items = [makeItem('l', { name: 'a' }), makeItem('l', { name: 'b', done: true })];
 		for (const choice of ITEM_SORTS) {
 			expect(sortItems(items, choice)).toHaveLength(2);
+		}
+	});
+});
+
+describe('split Sort controls', () => {
+	it('offers every key once, and two directions for each, default first', () => {
+		expect(ITEM_SORT_KEYS.map((option) => option.key)).toEqual([
+			'name',
+			'date',
+			'added',
+			'most-added'
+		]);
+		for (const { key } of ITEM_SORT_KEYS) {
+			const directions = itemSortDirections(key);
+			expect(directions.map((choice) => choice.reverse)).toEqual([false, true]);
+		}
+		expect(itemSortDirections('added').map((choice) => choice.direction)).toEqual([
+			'Newest first',
+			'Oldest first'
+		]);
+	});
+
+	it('maps a key and direction back to the saved id, so old saved choices still work', () => {
+		expect(itemSortFor('name', false).id).toBe('name-asc');
+		expect(itemSortFor('added', true).id).toBe('added-asc');
+		expect(itemSortFor('most-added', false).id).toBe('most-added-desc');
+		for (const choice of ITEM_SORTS) {
+			expect(itemSortFor(choice.key, choice.reverse)).toBe(choice);
 		}
 	});
 });

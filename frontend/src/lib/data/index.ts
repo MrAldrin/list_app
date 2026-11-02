@@ -96,6 +96,9 @@ export {
 export {
 	ITEM_SORTS,
 	itemSortChoice,
+	itemSortDirections,
+	itemSortFor,
+	ITEM_SORT_KEYS,
 	sortItems,
 	sortLists,
 	sortTags,

@@ -41,10 +41,13 @@ export interface ItemSort {
 	reverse: boolean;
 }
 
-/** One choice of the Sort menu. `id` is what is saved in the browser. */
+/** One sort (a key and a direction). `id` is what is saved in the browser. */
 export interface ItemSortChoice extends ItemSort {
 	id: string;
+	/** The full name, such as "Name Z–A". */
 	label: string;
+	/** The name in the direction control, such as "Z–A". */
+	direction: string;
 }
 
 /**
@@ -52,15 +55,71 @@ export interface ItemSortChoice extends ItemSort {
  * Open items always come before checked ones, whatever the choice.
  */
 export const ITEM_SORTS: readonly ItemSortChoice[] = [
-	{ id: 'name-asc', label: 'Name A–Z', key: 'name', reverse: false },
-	{ id: 'name-desc', label: 'Name Z–A', key: 'name', reverse: true },
-	{ id: 'date-asc', label: 'Date: soonest first', key: 'date', reverse: false },
-	{ id: 'date-desc', label: 'Date: latest first', key: 'date', reverse: true },
-	{ id: 'added-desc', label: 'Added: newest first', key: 'added', reverse: false },
-	{ id: 'added-asc', label: 'Added: oldest first', key: 'added', reverse: true },
-	{ id: 'most-added-desc', label: 'Most added first', key: 'most-added', reverse: false },
-	{ id: 'most-added-asc', label: 'Fewest added first', key: 'most-added', reverse: true }
+	{ id: 'name-asc', label: 'Name A–Z', key: 'name', reverse: false, direction: 'A–Z' },
+	{ id: 'name-desc', label: 'Name Z–A', key: 'name', reverse: true, direction: 'Z–A' },
+	{
+		id: 'date-asc',
+		label: 'Date: soonest first',
+		key: 'date',
+		reverse: false,
+		direction: 'Soonest first'
+	},
+	{
+		id: 'date-desc',
+		label: 'Date: latest first',
+		key: 'date',
+		reverse: true,
+		direction: 'Latest first'
+	},
+	{
+		id: 'added-desc',
+		label: 'Added: newest first',
+		key: 'added',
+		reverse: false,
+		direction: 'Newest first'
+	},
+	{
+		id: 'added-asc',
+		label: 'Added: oldest first',
+		key: 'added',
+		reverse: true,
+		direction: 'Oldest first'
+	},
+	{
+		id: 'most-added-desc',
+		label: 'Most added first',
+		key: 'most-added',
+		reverse: false,
+		direction: 'Most first'
+	},
+	{
+		id: 'most-added-asc',
+		label: 'Fewest added first',
+		key: 'most-added',
+		reverse: true,
+		direction: 'Fewest first'
+	}
 ];
+
+/** The "Sort by" control: each key once, in menu order, with its name. */
+export const ITEM_SORT_KEYS: readonly { key: ItemSortKey; label: string }[] = [
+	{ key: 'name', label: 'Name' },
+	{ key: 'date', label: 'Date' },
+	{ key: 'added', label: 'Added' },
+	{ key: 'most-added', label: 'Most added' }
+];
+
+/** The two directions of one key, default direction first. */
+export function itemSortDirections(key: ItemSortKey): ItemSortChoice[] {
+	return ITEM_SORTS.filter((choice) => choice.key === key).sort(
+		(a, b) => Number(a.reverse) - Number(b.reverse)
+	);
+}
+
+/** The choice for this key and direction (every pair exists in `ITEM_SORTS`). */
+export function itemSortFor(key: ItemSortKey, reverse: boolean): ItemSortChoice {
+	return ITEM_SORTS.find((choice) => choice.key === key && choice.reverse === reverse)!;
+}
 
 /** The default choice: name A–Z. */
 export const DEFAULT_ITEM_SORT: ItemSort = { key: 'name', reverse: false };

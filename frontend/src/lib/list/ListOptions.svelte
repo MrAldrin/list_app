@@ -1,15 +1,18 @@
 <!--
-	The "Options" panel of the list page. "Sort" comes first, as the option
-	changed most often.
+	The "Options" panel of the list page. "Sort by" and its direction come
+	first, as the options changed most often.
 	"Sort" and "Show quantities" are personal and saved in this browser; the
 	hide-done settings are saved for the list, for everyone.
 -->
 <script lang="ts">
 	import {
-		ITEM_SORTS,
+		ITEM_SORT_KEYS,
+		itemSortDirections,
+		itemSortFor,
 		type HideDone,
 		type Item,
 		type ItemSortChoice,
+		type ItemSortKey,
 		type TagMode,
 		type TagSettings
 	} from '#lib/data/index.ts';
@@ -36,7 +39,7 @@
 		showQuantities: boolean;
 		/** The chosen item sort (personal, like "Show quantities"). */
 		sort: ItemSortChoice;
-		onSort: (choiceId: string) => void;
+		onSort: (choice: ItemSortChoice) => void;
 		hideDone: HideDone;
 		/** The list's tag settings (mode, colors, show on items). */
 		tagSettings: TagSettings;
@@ -57,16 +60,37 @@
 		onDeleteTag: (tag: string) => void;
 	} = $props();
 
-	const sortId = $props.id();
+	const uid = $props.id();
+	const sortId = `${uid}-sort`;
+	const directionId = `${uid}-direction`;
+	let directions = $derived(itemSortDirections(sort.key));
 	let tagsOpen = $state(false);
 </script>
 
 <section class="card" aria-label="Options">
+	<!-- A new key starts in its default direction ("Most first", "Newest first"). -->
 	<label class="switch" for={sortId}>
-		<span>Sort</span>
-		<select id={sortId} value={sort.id} onchange={(event) => onSort(event.currentTarget.value)}>
-			{#each ITEM_SORTS as choice (choice.id)}
-				<option value={choice.id}>{choice.label}</option>
+		<span>Sort by</span>
+		<select
+			id={sortId}
+			value={sort.key}
+			onchange={(event) => onSort(itemSortFor(event.currentTarget.value as ItemSortKey, false))}
+		>
+			{#each ITEM_SORT_KEYS as option (option.key)}
+				<option value={option.key}>{option.label}</option>
+			{/each}
+		</select>
+	</label>
+	<label class="switch" for={directionId}>
+		<span>Order</span>
+		<select
+			id={directionId}
+			value={sort.id}
+			onchange={(event) =>
+				onSort(directions.find((choice) => choice.id === event.currentTarget.value) ?? sort)}
+		>
+			{#each directions as choice (choice.id)}
+				<option value={choice.id}>{choice.direction}</option>
 			{/each}
 		</select>
 	</label>

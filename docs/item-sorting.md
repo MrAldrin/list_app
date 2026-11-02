@@ -1,17 +1,15 @@
 # Sorting items
 
-Each list has a **Sort** choice under **Options**. It only changes the order of the rows on screen. The server does not store it, and other people keep their own choice.
+Each list has two sort controls under **Options**: **Sort by** (what to sort by) and **Order** (which way). They only change the order of the rows on screen. The server does not store them, and other people keep their own choice.
 
-| Choice | Order |
-| --- | --- |
-| Name A–Z | Default. By name, ignoring case. |
-| Name Z–A | By name, reversed. |
-| Date: soonest first | By date, earliest first. |
-| Date: latest first | By date, latest first. |
-| Added: newest first | By the last time the item was added, newest first. |
-| Added: oldest first | By the last time the item was added, oldest first. |
-| Most added first | By how many times the item was added, most first. |
-| Fewest added first | By how many times the item was added, fewest first. |
+| Sort by | Order (default first) | Sorts by |
+| --- | --- | --- |
+| Name | A–Z (app default), Z–A | The name, ignoring case. |
+| Date | Soonest first, Latest first | The item's optional date. |
+| Added | Newest first, Oldest first | The last time the item was added. |
+| Most added | Most first, Fewest first | How many times the item was added. |
+
+Picking a new **Sort by** starts it in its default order. The pairs live in `ITEM_SORTS` (`frontend/src/lib/data/order.ts`).
 
 ## Rules for every choice
 
@@ -24,4 +22,4 @@ Each list has a **Sort** choice under **Options**. It only changes the order of 
 
 ## Saved choice
 
-The choice is saved per list, in this browser only, like **Show quantities**. A missing or unknown saved choice means Name A–Z. Clearing the browser's site data resets it.
+The choice (one key with its order) is saved per list, in this browser only, like **Show quantities**. A missing or unknown saved choice means Name A–Z. Clearing the browser's site data resets it.
