@@ -340,7 +340,6 @@
 	{canEdit}
 	onToggleFilter={toggleFilter}
 	onClear={clearFilter}
-	onAdd={(tag) => addTag(list, tag)}
 	onRename={(tag, name) => renameTag(list, tag, name)}
 	onDelete={(tag) => deleteTag(list, tag)}
 	onColor={(tag, index) => setColor(list, tag, index)}

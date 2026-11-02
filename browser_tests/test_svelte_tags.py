@@ -17,16 +17,18 @@ def chips(page):
     return page.get_by_role("list", name="Tags")
 
 
-def test_add_a_tag_with_the_plus_chip(svelte_server, open_session):
+def test_new_tags_come_from_options_not_the_tag_row(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
     create_list(page, "Groceries")
     add_item(page, "milk")
 
-    page.get_by_role("button", name="New tag").click()
-    dialog = page.get_by_role("dialog", name="New tag")
-    dialog.get_by_label("Tag name").fill("Lidl")
-    dialog.get_by_role("button", name="Add").click()
+    # No tags yet: no tag row, and no "+" chip to add one.
+    expect(chips(page)).to_have_count(0)
+    expect(page.get_by_role("button", name="New tag")).to_have_count(0)
+
+    add_list_tag(page, "Lidl")
+    expect(chips(page).get_by_role("button")).to_have_count(1)
     expect(chips(page).get_by_role("button", name="Lidl", exact=True)).to_be_visible()
     expect(page.get_by_role("button", name="Lidl tag for milk")).to_be_visible()
 

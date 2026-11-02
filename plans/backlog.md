@@ -34,11 +34,10 @@ session that follows [`CLAUDE.md`](../CLAUDE.md) and opens a pull request into
 `integration`. Merging needs the owner's approval; browser tests are rerun
 locally before merging.
 
-- **Wave 1, in parallel:** tag "+" chip, Sort, themes step 1, in-app reminders.
+- **Wave 1, in parallel:** Sort, themes step 1, in-app reminders.
 - **Wave 2, one session in order, after wave 1 is merged:** bottom bar,
   scrollable suggestions, usual items. All three rebuild the add area.
 
-- [ ] [feature] Remove the "+" add-tag chip from the tag row (`frontend/src/lib/list/ListTags.svelte`). New tags are added in **Options → Tags**, as today.
 - [ ] [feature] Split the Sort menu into two controls: what to sort by (name, date, added, most added) and the direction (high to low or low to high), instead of eight fixed choices. The data already stores a key and a direction (`ITEM_SORTS` in `frontend/src/lib/data/order.ts`); keep saved choices working. See [sorting items](../docs/item-sorting.md).
 - [ ] [feature] Color themes, step 1: about five ready-made themes (each with light and dark), chosen in the menu and saved in the browser like dark mode. Base them on well-known open palettes (for example Catppuccin, Nord, Solarized, Gruvbox or Dracula; check each license). Colors already live in CSS variables (`frontend/src/app.css`, `frontend/src/lib/ui/theme.svelte.ts`). Every theme keeps text at 4.5:1 contrast. Build the theme list so step 2 can add a custom one.
 - [ ] [feature] Due-date reminders inside the app (options 1 and 2 of the [sketch](due-date-reminders.md)): a toast when a list opens, and a check across all lists while the app is open, re-run every few minutes. "Soon" means due today or tomorrow, and overdue items count too. Frontend only. Phone push (option 3) stays in Later.
