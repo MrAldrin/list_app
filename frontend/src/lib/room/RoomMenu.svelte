@@ -1,6 +1,6 @@
 <!--
 	The room menu (the ⋮ button in the room header): share the room link,
-	home-screen install help, dark mode, rename the room, change its password,
+	home-screen install help, appearance, rename the room, change its password,
 	delete it, log out. Texts and order match NiceGUI's room menu. Each entry
 	closes the menu and opens a dialog. Switching rooms is in RoomSwitcher.
 -->

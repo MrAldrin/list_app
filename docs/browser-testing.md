@@ -63,9 +63,9 @@ Traces hold test data only. Never point this harness at production.
   tab really sends its action, then check the database.
 - **Checked-item visibility:** all modes, from private and public views, with
   live updates. Day boundaries are covered by unit tests.
-- **Theme:** dark mode is available in both room and list menus. The theme
+- **Theme:** dark mode is in both room and list menus. The theme
   is remembered per browser, not per room, and is applied before the page
-  scripts load (no flash). A color theme chosen in the menu keeps its colors
+  scripts load (no flash). A color theme chosen in Appearance keeps its colors
   in dark mode and after a reload. Every theme's contrast is checked by
   `frontend/src/app-colors.test.ts`.
 - **Svelte app (`test_svelte_*.py`):** on a phone-sized screen: start page,

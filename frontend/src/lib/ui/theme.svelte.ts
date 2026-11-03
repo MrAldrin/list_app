@@ -22,9 +22,15 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
  * `headerToggles`: toggle buttons in the
  * page's own top bar; the layout shows one above the page only when there is none.
  */
-export const theme = $state<{ current: Theme; palette: string; headerToggles: number }>({
+export const theme = $state<{
+	current: Theme;
+	palette: string;
+	headerToggles: number;
+	appearanceOpen: boolean;
+}>({
 	current: 'light',
 	palette: 'classic',
+	appearanceOpen: false,
 	headerToggles: 0
 });
 

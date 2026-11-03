@@ -1,7 +1,6 @@
 <!--
 	The list menu (the ⋮ button in the list header): "Share List" for everyone
-	who sees the list, "Reset share link" for room members only, and "Dark
-	mode" (it lives here, not in the top bar). A share link opens this list without the room password; resetting
+	who sees the list, "Reset share link" for room members only, and "Appearance" (it lives here, not in the top bar). A share link opens this list without the room password; resetting
 	it stops the old link for everyone.
 -->
 <script lang="ts">

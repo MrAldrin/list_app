@@ -1,5 +1,5 @@
 <!--
-	The "Options" panel of the list page. "Sort by" and its direction come
+	The "Options" panel of the list page. Sort and its direction come
 	first, as the options changed most often.
 	"Sort" and "Show quantities" are personal and saved in this browser; the
 	hide-done settings are saved for the list, for everyone.
@@ -7,7 +7,6 @@
 <script lang="ts">
 	import {
 		ITEM_SORT_KEYS,
-		itemSortDirections,
 		itemSortFor,
 		type HideDone,
 		type Item,
@@ -62,46 +61,38 @@
 
 	const uid = $props.id();
 	const sortId = `${uid}-sort`;
-	const directionId = `${uid}-direction`;
-	let directions = $derived(itemSortDirections(sort.key));
 	let tagsOpen = $state(false);
 </script>
 
 <section class="card" aria-label="Options">
 	<!-- A new key starts in its default direction ("Most first", "Newest first"). -->
-	<label class="switch" for={sortId}>
-		<span>Sort by</span>
-		<select
-			id={sortId}
-			value={sort.key}
-			onchange={(event) => onSort(itemSortFor(event.currentTarget.value as ItemSortKey, false))}
-		>
-			{#each ITEM_SORT_KEYS as option (option.key)}
-				<option value={option.key}>{option.label}</option>
-			{/each}
-		</select>
-	</label>
-	<label class="switch" for={directionId}>
-		<span>Order</span>
-		<select
-			id={directionId}
-			value={sort.id}
-			onchange={(event) =>
-				onSort(directions.find((choice) => choice.id === event.currentTarget.value) ?? sort)}
-		>
-			{#each directions as choice (choice.id)}
-				<option value={choice.id}>{choice.direction}</option>
-			{/each}
-		</select>
-	</label>
+	<div class="switch sort-row">
+		<label for={sortId}>Sort</label>
+		<div class="sort-controls">
+			<select
+				id={sortId}
+				value={sort.key}
+				onchange={(event) => onSort(itemSortFor(event.currentTarget.value as ItemSortKey, false))}
+			>
+				{#each ITEM_SORT_KEYS as option (option.key)}<option value={option.key}
+						>{option.label}</option
+					>{/each}
+			</select>
+			<button
+				type="button"
+				aria-label={`Order: ${sort.direction}. Reverse`}
+				onclick={() => onSort(itemSortFor(sort.key, !sort.reverse))}
+				>{sort.direction} <span aria-hidden="true">↕</span></button
+			>
+		</div>
+	</div>
 	<label class="switch">
 		<span>Show quantities</span>
 		<input type="checkbox" role="switch" bind:checked={showQuantities} />
 	</label>
 	<HideDoneSettings settings={hideDone} disabled={!canEdit} onChange={onHideDone} />
+	<OptionDialogRow label="Tags" open={tagsOpen} onOpen={() => (tagsOpen = true)} />
 </section>
-
-<OptionDialogRow label="Tags" open={tagsOpen} onOpen={() => (tagsOpen = true)} />
 {#if tagsOpen}
 	<TagsDialog
 		{tags}
@@ -134,8 +125,21 @@
 		cursor: pointer;
 	}
 
-	.switch select {
+	.sort-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+	.sort-controls select,
+	.sort-controls button {
 		min-height: var(--touch);
-		max-width: 60%;
+	}
+	.sort-controls select {
+		min-width: 0;
+	}
+	.sort-controls button {
+		padding: 0 0.4rem;
+		white-space: nowrap;
 	}
 </style>

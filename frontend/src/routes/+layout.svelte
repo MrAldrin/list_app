@@ -5,6 +5,7 @@
 	import { manifestHref } from '#lib/install/manifest.ts';
 	import { registerServiceWorker } from '#lib/service-worker.ts';
 	import { endStaleBuildReload } from '#lib/stale-build.ts';
+	import AppearanceDialog from '#lib/ui/AppearanceDialog.svelte';
 	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { startTheme, theme } from '#lib/ui/theme.svelte.ts';
 	import Toast from '#lib/ui/Toast.svelte';
@@ -39,6 +40,9 @@
      show it there; the others get it here, above the page. -->
 {#if theme.headerToggles === 0}
 	<div class="theme-corner"><ThemeToggle corner /></div>
+{/if}
+{#if theme.appearanceOpen}
+	<AppearanceDialog onClose={() => (theme.appearanceOpen = false)} />
 {/if}
 <UpdateNotice />
 {@render children()}

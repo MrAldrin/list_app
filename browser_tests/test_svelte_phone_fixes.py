@@ -114,6 +114,7 @@ def test_list_top_bar_holds_the_name_between_arrow_and_menus(
     expect(bar.get_by_role("button", name="Dark mode")).to_have_count(0)
     menu.click()
     expect(page.get_by_role("button", name="Dark mode")).to_be_visible()
+    expect(page.get_by_role("button", name="Appearance")).to_be_visible()
     expect(page.get_by_role("button", name="Share List")).to_be_visible()
     page.keyboard.press("Escape")
 

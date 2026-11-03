@@ -159,12 +159,19 @@ def test_color_theme_is_chosen_in_the_menu_and_kept(svelte_server, open_session)
     expect(page.locator("html")).to_have_attribute("data-palette", "classic")
 
     page.get_by_role("button", name="List menu").click()
-    page.get_by_label("Colors").select_option(label="Nord")
+    page.get_by_role("button", name="Appearance").click()
+    dialog = page.get_by_role("dialog", name="Appearance")
+    dialog.get_by_role("radio", name="Nord").check()
+    # The dialog stays open, so themes can be compared.
+    expect(dialog.get_by_role("radio", name="Nord")).to_be_checked()
+    expect(dialog).to_be_visible()
     expect(page.locator("html")).to_have_attribute("data-palette", "nord")
     expect(page.locator("body")).to_have_css("background-color", NORD_LIGHT)
     assert page.evaluate("localStorage.getItem('listapp_palette')") == "nord"
+    dialog.get_by_role("button", name="Close").click()
+    expect(dialog).to_have_count(0)
 
-    # Dark mode keeps the color theme and uses its dark colors.
+    # Dark mode (its own menu entry) keeps the theme and uses its dark colors.
     page.get_by_role("button", name="List menu").click()
     list_menu_switch(page).click()
     expect(page.locator("body")).to_have_css("background-color", NORD_DARK)

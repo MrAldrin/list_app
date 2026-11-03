@@ -9,10 +9,10 @@ Railway. See the [architecture](ARCHITECTURE.md).
 **Anyone with a public list link can view and edit that list.** Room passwords
 protect room controls, not public list links.
 
-Switch between light and dark mode with the moon button, or from the ⋮ menu
-on a list page. Pick a color theme (Classic, Nord, Solarized, Gruvbox,
-Catppuccin or Rosé Pine) under **Colors** in the ⋮ menu; each has light and
-dark colors. Both choices are saved in that device's browser, not shared with
+Switch between light and dark mode with the moon button, or with **Dark mode**
+in the ⋮ menu on room and list pages. Pick a color theme (Classic, Nord,
+Solarized, Gruvbox, Catppuccin or Rosé Pine) under **Appearance** in the same
+menu; each has light and dark colors. Both choices are saved in that device's browser, not shared with
 other devices.
 
 Scope and approval rules: [scope](docs/scope.md). Work starts from the
@@ -126,15 +126,15 @@ A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 
 ## Repository map
 
-| Path | Purpose |
-|---|---|
-| `src/` | Python server. `main.py` is the entry point. |
-| `frontend/` | Svelte app, built to `frontend/build/`. |
-| `tests/` | Pytest suite. |
-| `browser_tests/`, `android_tests/` | Real-browser and Android emulator suites. |
-| `scripts/` | Helpers: deploy with backup, phone serving, test data, icons. |
-| `docs/` | Current behavior, contracts and guides. Evidence in `docs/background/`. |
-| `plans/` | The [backlog](plans/backlog.md), the one work agenda, and detail for larger items. |
+| Path                               | Purpose                                                                            |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/`                             | Python server. `main.py` is the entry point.                                       |
+| `frontend/`                        | Svelte app, built to `frontend/build/`.                                            |
+| `tests/`                           | Pytest suite.                                                                      |
+| `browser_tests/`, `android_tests/` | Real-browser and Android emulator suites.                                          |
+| `scripts/`                         | Helpers: deploy with backup, phone serving, test data, icons.                      |
+| `docs/`                            | Current behavior, contracts and guides. Evidence in `docs/background/`.            |
+| `plans/`                           | The [backlog](plans/backlog.md), the one work agenda, and detail for larger items. |
 
 ## Documentation
 

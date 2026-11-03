@@ -65,6 +65,9 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     assert_tap_height("days field", page.locator("input.count"))
     assert_tap_height("sort select", page.get_by_role("combobox", name="Sort"))
 
+    assert_tap_height("sort direction", page.get_by_role("button", name="Order:"))
+    assert_tap_height("tags row", page.get_by_role("button", name="Tags"))
+
     # A check shows a toast with "Undo" and a dismiss button.
     page.get_by_role("checkbox", name="milk").click()
     expect(page.get_by_role("button", name="Undo")).to_be_visible()

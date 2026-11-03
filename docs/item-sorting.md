@@ -1,6 +1,6 @@
 # Sorting items
 
-Each list has two sort controls under **Options**: **Sort by** (what to sort by) and **Order** (which way). They only change the order of the rows on screen. The server does not store them, and other people keep their own choice.
+Each list has a **Sort** row under **Options**: choose what to sort by, then tap the direction button to reverse the order. They only change the order of the rows on screen. The server does not store them, and other people keep their own choice.
 
 | Sort by | Order (default first) | Sorts by |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ Each list has two sort controls under **Options**: **Sort by** (what to sort by)
 | Added | Newest first, Oldest first | The last time the item was added. |
 | Most added | Most first, Fewest first | How many times the item was added. |
 
-Picking a new **Sort by** starts it in its default order. The pairs live in `ITEM_SORTS` (`frontend/src/lib/data/order.ts`).
+Picking a new **Sort** starts it in its default order. The pairs live in `ITEM_SORTS` (`frontend/src/lib/data/order.ts`).
 
 ## Rules for every choice
 

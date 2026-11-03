@@ -77,3 +77,20 @@ describe.each(modes)('%s', (_, read) => {
 		}
 	);
 });
+
+describe('palette swatches', () => {
+	it.each(PALETTES)('$name matches the CSS in both modes', (entry) => {
+		for (const mode of ['light', 'dark'] as const) {
+			const selector =
+				entry.id === 'classic'
+					? mode === 'light'
+						? ':root'
+						: ":root[data-theme='dark']"
+					: `:root[data-palette='${entry.id}']${mode === 'dark' ? "[data-theme='dark']" : ''}`;
+			const actual = colors(selector);
+			expect(entry.swatches[mode]).toEqual(
+				['bg', 'surface', 'text', 'primary', 'tag-0', 'tag-1', 'tag-2'].map((key) => actual[key])
+			);
+		}
+	});
+});

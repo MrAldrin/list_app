@@ -166,7 +166,7 @@ describe('ITEM_SORTS', () => {
 	});
 });
 
-describe('split Sort controls', () => {
+describe('Sort controls', () => {
 	it('offers every key once, and two directions for each, default first', () => {
 		expect(ITEM_SORT_KEYS.map((option) => option.key)).toEqual([
 			'name',
@@ -182,6 +182,14 @@ describe('split Sort controls', () => {
 			'Newest first',
 			'Oldest first'
 		]);
+	});
+
+	it('reverses each direction and returns to the original choice on a second tap', () => {
+		for (const choice of ITEM_SORTS) {
+			const reversed = itemSortFor(choice.key, !choice.reverse);
+			expect(reversed.id).not.toBe(choice.id);
+			expect(itemSortFor(reversed.key, !reversed.reverse)).toBe(choice);
+		}
 	});
 
 	it('maps a key and direction back to the saved id, so old saved choices still work', () => {
