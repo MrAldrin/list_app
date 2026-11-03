@@ -59,6 +59,7 @@ locally before merging.
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [refactor] Switch the live-update stream to FastAPI's built-in Server-Sent Events (`EventSourceResponse`, FastAPI 0.135+) to drop our keep-alive code. Do it next time `src/api/events.py` changes. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 - [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).
+- [ ] [test] Stable room codes in the local preview: `serve_svelte_local.py --seed` (via `scripts/seed_test_data.py`) should give Home and Cabin the same room codes every time, so a browser that remembers a room from an earlier preview can still sign in. Today each new preview database makes new random codes, and the old remembered room fails with "wrong room or password".
 
 ## Ideas
 
