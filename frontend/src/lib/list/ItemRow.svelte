@@ -11,6 +11,8 @@
 	import type { Item, TagSettings } from '#lib/data/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import UnsentMark from '#lib/ui/UnsentMark.svelte';
+	import { dueClock } from './due-clock.svelte.ts';
+	import { dueTag, itemDueGroup } from './due-reminders.ts';
 	import { formatItemDate, quantityBadge } from './items';
 	import { tagColor, tagLetters } from './tags';
 
@@ -47,6 +49,8 @@
 	} = $props();
 
 	const badge = $derived(quantityBadge(item.quantity, showQuantity));
+	/** "Overdue", "Today" or "Tomorrow" beside the date; none for later or undated items. */
+	const dueLabel = $derived(dueTag(itemDueGroup(item, dueClock.now) ?? 'later'));
 	/** One letter (or two or three, where tags look alike) per list tag, in the same order. */
 	const letters = $derived(tagLetters(listTags));
 </script>
@@ -75,6 +79,9 @@
 		{/if}
 		{#if item.date}
 			<span class="date">{formatItemDate(item.date)}</span>
+		{/if}
+		{#if dueLabel}
+			<span class="due {dueLabel.tone}">{dueLabel.text}</span>
 		{/if}
 	</button>
 	{#if unsent}
@@ -225,6 +232,21 @@
 		color: var(--text-muted);
 		font-size: 0.8rem;
 		font-variant-numeric: tabular-nums;
+	}
+
+	/* Beside the date: the word carries the meaning, the color repeats it. */
+	.due {
+		flex-shrink: 0;
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+
+	.due.danger {
+		color: var(--danger);
+	}
+
+	.due.warning {
+		color: var(--warning);
 	}
 
 	.qty {

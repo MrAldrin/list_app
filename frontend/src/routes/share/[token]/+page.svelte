@@ -56,7 +56,6 @@
 	close={closeShare}
 	connectTitle="Connect to load this shared list."
 	failedTitle="Could not load this list."
-	listUid={list?.uid}
 >
 	{#snippet content(handle)}
 		{#if !list}

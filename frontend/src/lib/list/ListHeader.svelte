@@ -14,6 +14,7 @@
 		roomHref,
 		optionsOpen,
 		onToggleOptions,
+		bell,
 		menu
 	}: {
 		name: string;
@@ -21,6 +22,8 @@
 		roomHref: string | null;
 		optionsOpen: boolean;
 		onToggleOptions: () => void;
+		/** The due bell, before Options. */
+		bell?: Snippet;
 		menu?: Snippet;
 	} = $props();
 </script>
@@ -33,6 +36,7 @@
 	{/if}
 	<h1 title={name}>{name}</h1>
 	<div class="end">
+		{@render bell?.()}
 		<button type="button" aria-expanded={optionsOpen} onclick={onToggleOptions}>
 			{optionsOpen ? 'Done' : 'Options'}
 		</button>

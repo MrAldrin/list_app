@@ -1,6 +1,7 @@
 <!-- The room header stays the same whether or not admin is signed in. -->
 <script lang="ts">
 	import type { RoomHandle } from '#lib/data/index.ts';
+	import DueCenter from '#lib/list/DueCenter.svelte';
 	import Brand from '#lib/ui/Brand.svelte';
 	import RoomMenu from './RoomMenu.svelte';
 	import RoomSwitcher from './RoomSwitcher.svelte';
@@ -11,6 +12,7 @@
 <header>
 	<Brand />
 	<RoomSwitcher {room} />
+	<DueCenter {room} roomScope />
 	<RoomMenu {room} {onLogout} />
 </header>
 

@@ -15,8 +15,15 @@
 	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
 	import UnsentMark from '#lib/ui/UnsentMark.svelte';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
+	import { dueClock } from '#lib/list/due-clock.svelte.ts';
+	import { dueTally } from '#lib/list/due-reminders.ts';
 
 	let { room }: { room: RoomHandle } = $props();
+	const now = $derived(dueClock.now);
+	/** Unchecked items overdue, due today or due tomorrow in a list (see due-reminders.ts). */
+	function listDue(listUid: string) {
+		return dueTally(room.store.itemsOf(listUid), now);
+	}
 	/** Creating a list needs the server (it gets its address there). */
 	const online = $derived(room.store.canWrite);
 	const addHintId = $props.id();
@@ -69,6 +76,12 @@
 				>
 				{#if room.store.isUnsent(`list:${list.uid}`)}
 					<UnsentMark />
+				{/if}
+				{#if listDue(list.uid).count > 0}
+					{@const due = listDue(list.uid)}
+					<span class="due" class:overdue={due.overdue > 0}>
+						{due.count} due{due.overdue > 0 ? `, ${due.overdue} overdue` : ''}
+					</span>
 				{/if}
 				<button
 					class="icon"
@@ -167,6 +180,18 @@
 	}
 
 	.icon.delete {
+		color: var(--danger);
+	}
+
+	/* The list's due count: text first, red only when something is overdue. */
+	.due {
+		flex-shrink: 0;
+		color: var(--primary);
+		font-size: 0.8rem;
+		font-weight: 700;
+	}
+
+	.due.overdue {
 		color: var(--danger);
 	}
 </style>

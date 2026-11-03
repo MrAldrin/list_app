@@ -14,18 +14,22 @@
 		type RoomHandle,
 		type TagMode
 	} from '#lib/data/index.ts';
+	import { page } from '$app/state';
+	import { tick } from 'svelte';
 	import BottomBar from '#lib/ui/BottomBar.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
 	import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import AddItem from './AddItem.svelte';
+	import DueCenter from './DueCenter.svelte';
 	import ItemDialog from './ItemDialog.svelte';
 	import ItemRow from './ItemRow.svelte';
 	import ListHeader from './ListHeader.svelte';
 	import ListMenu from './ListMenu.svelte';
 	import ListOptions from './ListOptions.svelte';
 	import ListTags from './ListTags.svelte';
+	import { readReveal } from './reveal.ts';
 	import {
 		addFeedback,
 		checkFeedback,
@@ -45,7 +49,8 @@
 		list,
 		roomHref,
 		canReset,
-		onReset
+		onReset,
+		roomDue = false
 	}: {
 		room: RoomHandle;
 		list: List;
@@ -55,6 +60,8 @@
 		canReset: boolean;
 		/** Called with the new share token after a reset. */
 		onReset?: (token: string) => void;
+		/** The due bell may show the whole room (the room's list page only, never a share link). */
+		roomDue?: boolean;
 	} = $props();
 
 	// Edits may start offline (they are queued). Sharing and resets need the server.
@@ -213,6 +220,36 @@
 		chosenTags = [];
 	}
 
+	// A tap in the due bell opens this list with the item shown (`?item=…`).
+	// It clears the tag filter and the add-field search, then scrolls to the
+	// item and focuses it. Runs once per tap, never on live updates.
+	let handledReveal = '';
+	let revealMissing = $state(false);
+	const reveal = $derived(readReveal(page.url.searchParams));
+	$effect(() => {
+		const current = reveal;
+		if (!current || current.key === handledReveal || room.store.status !== 'ready') return;
+		handledReveal = current.key;
+		const target = room.store.item(current.uid);
+		revealMissing = !target || target.list_uid !== list.uid;
+		if (revealMissing) return;
+		revealMissing = false;
+		releaseRows();
+		chosenTags = [];
+		searchText = '';
+		void tick().then(() => {
+			const row = document.querySelector<HTMLElement>(
+				`[data-item-uid="${CSS.escape(current.uid)}"]`
+			);
+			if (!row) {
+				revealMissing = true;
+				return;
+			}
+			row.scrollIntoView({ block: 'center' });
+			row.querySelector<HTMLButtonElement>('button.name')?.focus();
+		});
+	});
+
 	/** Adds the tag to the filter, or removes it when it is already there. */
 	function toggleFilter(tag: string) {
 		releaseRows();
@@ -302,6 +339,9 @@
 	{optionsOpen}
 	onToggleOptions={() => (optionsOpen = !optionsOpen)}
 >
+	{#snippet bell()}
+		<DueCenter {room} listUid={list.uid} roomScope={roomDue} />
+	{/snippet}
 	{#snippet menu()}
 		<ListMenu {room} {list} canReset={canReset && online} {onReset} />
 	{/snippet}
@@ -343,11 +383,16 @@
 	onDelete={(tag) => deleteTag(list, tag)}
 	onColor={(tag, index) => setColor(list, tag, index)}
 />
+{#if revealMissing}
+	<p class="hidden-count" role="status">
+		That item is no longer on this list. Its date may have changed, or it was deleted.
+	</p>
+{/if}
 <ul class="items">
 	<!-- Hide checked items first (on the whole list), then filter by tag. -->
 	{#each visibleItems as item (item.uid)}
 		<!-- The row's <li> is here, not in ItemRow: Svelte animates only elements. -->
-		<li animate:flip={rowFlip}>
+		<li animate:flip={rowFlip} data-item-uid={item.uid}>
 			<ItemRow
 				{item}
 				showQuantity={showQuantities}

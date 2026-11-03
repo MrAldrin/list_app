@@ -40,7 +40,6 @@
 	canSignIn
 	connectTitle="Connect to load this list."
 	failedTitle="Could not load this list."
-	listUid={list?.uid}
 >
 	{#snippet content(handle)}
 		{#if !list}
@@ -49,7 +48,7 @@
 				<BackLink href={roomHref} label="Back to room" />
 			</div>
 		{:else}
-			<ListView room={handle} {list} {roomHref} canReset />
+			<ListView room={handle} {list} {roomHref} canReset roomDue />
 		{/if}
 	{/snippet}
 </PageShell>
