@@ -572,3 +572,30 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     clear.click()
     expect(clear).to_have_count(0)
     expect(item_names(page)).to_have_text(["apple", "milk"])
+
+
+def test_suggestions_rank_by_add_count_and_scroll(svelte_server, open_session):
+    page = open_session("phone", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    for name in ["tea a", "tea b", "tea c", "tea d", "tea e"]:
+        add_item(page, name)
+    # Adding a checked item again raises its count, so it ranks first.
+    page.get_by_role("checkbox", name="tea e").check()
+    add_item(page, "tea e")
+
+    field = page.get_by_label("Add or Search")
+    field.fill("tea")
+    suggestions = page.get_by_role("listbox", name="Suggestions")
+    options = suggestions.get_by_role("option")
+    expect(options).to_have_text(["tea e", "tea a", "tea b", "tea c", "tea d"])
+
+    # About three show at once; the rest scroll inside the popup.
+    assert suggestions.evaluate("el => el.scrollHeight > el.clientHeight")
+    expect(options.last).not_to_be_in_viewport()
+
+    # Up wraps to the last option and scrolls it into view.
+    field.press("ArrowUp")
+    expect(options.last).to_have_attribute("aria-selected", "true")
+    expect(options.last).to_be_in_viewport()
+    expect(field).to_be_focused()

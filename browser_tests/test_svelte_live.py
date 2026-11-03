@@ -78,8 +78,8 @@ def test_suggestion_highlight_tracks_live_item_name(svelte_server, open_session)
 
     # Removing the highlighted name clears it; reintroducing that name does not
     # silently restore a choice for the unchanged typed text.
+    # Restoring alpha raised its add count, so it now ranks first.
     field.fill("a")
-    field.press("ArrowDown")
     field.press("ArrowDown")
     expect(alpha).to_have_attribute("aria-selected", "true")
     phone_b.get_by_role("button", name="alpha", exact=True).click()
