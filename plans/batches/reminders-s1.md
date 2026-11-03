@@ -74,9 +74,16 @@ material fixes after independent review.
 ## Status — assigned Conductor writes after handoff
 
 - State: active; two-way readiness and explicit edit handoff received.
-- Next: UI worker implements S1; fresh independent review follows completion.
-- Child: worker run `5b6c7408-2f4f-487d-9264-092304820d4e`, requested
-  `claude-code/claude-haiku-5-5:medium`; effective settings verification pending.
+- Next: worker finishes verification; fresh independent review follows completion.
+- Child: worker run `5b6c7408-2f4f-487d-9264-092304820d4e`; native runtime
+  status verified `claude-code/claude-haiku-5-5`, thinking `medium`.
+- Provisional milestone: scoped due center, grouping/clock/reveal, headers,
+  card counts, date labels and current-behavior docs implemented. Worker output
+  reports 1,085 unit tests and 12 focused browser tests passing; final worker
+  checks, independent review and combined stage gates remain pending.
+- Independent review must cover room/share boundaries, midnight/visibility/
+  offline refresh, filtered/deleted-item reveal/focus and every theme/mode's
+  contrast, as well as the full Stage 1 contract.
 - Child workspace: `tmp-reminders-s1-ui`,
   `/home/hsa/projects/tmp-reminders-s1-ui`, created/managed by this Conductor;
   initial change `kxumoykk` from completed base `zpzpvuyl` (`9abc4e72`).
