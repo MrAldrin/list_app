@@ -58,21 +58,26 @@ material fixes after independent review.
 
 - Creator/lifecycle owner: Lead, session `01a1a2c7-22c9-71e2`.
 - Planned owner: dedicated visible Pi Conductor `listr-reminders-s1`.
-- Model: `openai-codex/gpt-6.1-sol:low`; effective setting to be verified before edits.
+- Verified model: `openai-codex/gpt-6.1-sol`, effective thinking `low`;
+  two-way readiness acknowledged before edits.
 - Repository: `/home/hsa/projects/list_app`.
 - Lead aggregate: `tmp-reminder-delivery`, `/home/hsa/projects/tmp-reminder-delivery`.
 - Entry workspace: `tmp-reminders-s1`, `/home/hsa/projects/tmp-reminders-s1`;
-  Lead-created/agent-managed; creation and exact base pending dispatch.
-- Exact peer identity, Zellij location and base change: pending readiness.
+  Lead-created/agent-managed; base `zpzpvuyl` (`9abc4e72`).
+- Peer: `01a1a2f1-3b36-7354-b16b-8fe1f4db448c`.
+  Zellij `pc-home`, tab 10 **ListR S1 due center**, pane `terminal_19`.
+  Normal Fish shell verified before launching foreground Pi; cwd/model/thinking
+  verified by peer environment and pane metadata.
 - Child fanout: workers and independent review authorized within this brief;
   isolated concurrent editors, no unrestricted recursive delegation.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: ready for launch.
-- Next: Lead creates workspace and verifies the dedicated peer, then hands over.
-- Children/workspaces: none yet.
-- Docs-desk status write ownership: Lead until edit handoff; Conductor thereafter.
+- State: active; Lead edit handoff follows this assignment commit.
+- Next: Conductor dispatches bounded implementation and fresh independent review.
+- Children/workspaces: none yet; Conductor records its children here.
+- Docs-desk status/closeout write ownership: assigned Conductor after handoff;
+  obtain a write window before changing/committing this file in the docs desk.
 
 ## Closeout — assigned Conductor
 
