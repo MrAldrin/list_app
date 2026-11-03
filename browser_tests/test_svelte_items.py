@@ -554,10 +554,10 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
     create_list(page, "Groceries")
-    expect(page.get_by_text("No items yet. Type above to add.")).to_be_visible()
+    expect(page.get_by_text("No items yet. Type below to add.")).to_be_visible()
     add_item(page, "milk")
     add_item(page, "apple")
-    expect(page.get_by_text("No items yet. Type above to add.")).to_have_count(0)
+    expect(page.get_by_text("No items yet. Type below to add.")).to_have_count(0)
 
     add_list_tag(page, "Lidl")
     page.get_by_role("button", name="Lidl tag for milk").click()

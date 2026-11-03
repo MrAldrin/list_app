@@ -46,7 +46,7 @@
 		top: calc(0.1rem + env(safe-area-inset-top));
 		left: 50%;
 		transform: translateX(-50%);
-		/* Above the sticky top bar and add field (z-index 10). */
+		/* Above the sticky top bar and the bottom bar (z-index 10). */
 		z-index: 20;
 		pointer-events: none;
 	}

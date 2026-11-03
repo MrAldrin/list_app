@@ -1,5 +1,6 @@
 <!--
-	The lists of a room, with "Add New List", rename and delete. Texts match
+	The lists of a room, with rename and delete, and "Add New List" in the
+	bottom bar, within thumb reach. Texts match
 	the NiceGUI room page. Rejected changes (such as a duplicate name) come
 	back as `store.notice`; the room page shows those as toasts.
 -->
@@ -7,6 +8,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { List, RoomHandle } from '#lib/data/index.ts';
+	import BottomBar from '#lib/ui/BottomBar.svelte';
 	import ConfirmDialog from '#lib/ui/ConfirmDialog.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
@@ -53,19 +55,6 @@
 	}
 </script>
 
-<button
-	class="outline add"
-	type="button"
-	disabled={!online}
-	title={online ? undefined : 'Needs a connection'}
-	aria-describedby={online ? undefined : addHintId}
-	onclick={() => (creating = true)}
->
-	<Icon name="add" />
-	Add New List
-</button>
-<NeedsConnection id={addHintId} show={!online} />
-
 {#if room.store.lists.length === 0}
 	<p class="muted empty">No lists yet. Create your first one!</p>
 {:else}
@@ -103,6 +92,22 @@
 		{/each}
 	</ul>
 {/if}
+
+<!-- "Add New List" sits at the bottom of the screen, within thumb reach. -->
+<BottomBar>
+	<button
+		class="outline add"
+		type="button"
+		disabled={!online}
+		title={online ? undefined : 'Needs a connection'}
+		aria-describedby={online ? undefined : addHintId}
+		onclick={() => (creating = true)}
+	>
+		<Icon name="add" />
+		Add New List
+	</button>
+	<NeedsConnection id={addHintId} show={!online} />
+</BottomBar>
 
 {#if creating}
 	<NameDialog
@@ -144,7 +149,7 @@
 		justify-content: center;
 		gap: 0.5rem;
 		width: 100%;
-		margin-bottom: 1rem;
+		margin: 0.5rem 0;
 		color: var(--primary);
 		font-weight: 600;
 	}

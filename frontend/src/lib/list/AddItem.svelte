@@ -4,7 +4,8 @@
 	highlighted name. Clicking or tapping a suggestion also selects it. Escape
 	closes the list. Leaving the field hides the list (the text stays); coming
 	back shows it again. The field keeps focus after selecting a suggestion, so
-	the next item can be typed at once.
+	the next item can be typed at once. It sits in the page's bottom bar, so the
+	suggestions open upwards, above the field.
 -->
 <script lang="ts">
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
@@ -164,14 +165,10 @@
 </div>
 
 <style>
-	/* The field sticks just below the list page's top bar while the page
-	   scrolls. Sticky also anchors the suggestions, which float over the
-	   items below, so the list does not jump while typing. */
+	/* The list page's bottom bar holds this field. The suggestions float
+	   above it, over the items, so the list does not jump while typing. */
 	.add {
-		position: sticky;
-		top: var(--touch);
-		z-index: 10;
-		background: var(--bg);
+		position: relative;
 	}
 
 	form {
@@ -187,18 +184,17 @@
 
 	ul {
 		position: absolute;
-		top: 100%;
+		bottom: 100%;
 		left: 0;
 		right: 0;
 		z-index: 5;
 		list-style: none;
-		margin: 0.25rem 0 0;
+		margin: 0 0 0.25rem;
 		padding: 0.25rem 0;
 		background: var(--surface);
 		border-radius: var(--radius);
 		box-shadow: var(--shadow);
 	}
-
 	li {
 		display: flex;
 		align-items: center;
