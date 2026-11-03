@@ -74,7 +74,14 @@ material fixes after independent review.
 ## Status — assigned Conductor writes after handoff
 
 - State: active; two-way readiness and explicit edit handoff received.
-- Next: worker finishes verification; fresh independent review follows completion.
+- Next: resumed worker finishes missing share/deleted-target coverage and
+  preserves a stable completed tip; fresh review and combined full gates follow.
+- Runtime checkpoint: initial worker reached the harness 30-minute timeout;
+  partial scoped work remains in `kxumoykk`. Same worker resumed once as
+  `04e1ec55-9fb2-4155-af65-fd3c65031ed3`, no harness/model substitution.
+  Broader focused browser run had 103 passes and two WebKit offline failures
+  plus teardown errors; serial offline 15 passed, but parallel failures remain
+  unresolved until investigated and the required full `-n 4` gate passes.
 - Child: worker run `5b6c7408-2f4f-487d-9264-092304820d4e`; native runtime
   status verified `claude-code/claude-haiku-5-5`, thinking `medium`.
 - Provisional milestone: scoped due center, grouping/clock/reveal, headers,
