@@ -54,7 +54,14 @@ uv run python scripts/serve_svelte_local.py
   `APP_PASSWORD` as its password. The script prints each room's code, which
   the start page asks for. `--db` picks another file.
 - `--seed` adds sample data: lists in `Home` and a second room, `Cabin`,
-  with the password `cabin`. It does nothing if `Cabin` already exists.
+  with the password `cabin`. The rooms always get the codes `home-test` and
+  `cabin-test`, so a room the browser remembers still opens with a new test
+  database. `Cabin` is ready for testing: due dates (overdue, today, tomorrow,
+  later), tags with colors, a one-tag-per-item list, add counts and times for
+  sorting and usual items, hidden checked items, a long list and an empty
+  list. Sample data is added once; the codes are reset on every run.
+- `--fresh` deletes the test database first. Use `--fresh --seed` on a new day,
+  so the due dates count from today.
 - `--skip-build` reuses the last build; `--port` changes the port.
 
 ## HTTPS on the phone

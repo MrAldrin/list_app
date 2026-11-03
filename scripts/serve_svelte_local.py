@@ -4,6 +4,7 @@ Usage:
     uv run python scripts/serve_svelte_local.py
     uv run python scripts/serve_svelte_local.py --port 8081 --skip-build
     uv run python scripts/serve_svelte_local.py --seed
+    uv run python scripts/serve_svelte_local.py --fresh --seed
 
 Uses a separate test database (never list.db or production) and prints the
 addresses to open on the phone. Guide: docs/local-network-testing.md.
@@ -172,6 +173,12 @@ def seed_database(env: dict[str, str]) -> None:
         sys.exit("Could not add the sample data.")
 
 
+def remove_database(database: Path) -> None:
+    """Delete the test database and its SQLite side files."""
+    for path in (database, *(Path(f"{database}{end}") for end in ("-wal", "-shm"))):
+        path.unlink(missing_ok=True)
+
+
 def room_codes(database: Path) -> list[tuple[str, str]]:
     """(name, code) for each room, to type on the start page."""
     with closing(sqlite3.connect(f"file:{database}?mode=ro", uri=True)) as db:
@@ -197,6 +204,11 @@ def main() -> None:
     parser.add_argument(
         "--seed", action="store_true", help="add sample rooms, lists and items"
     )
+    parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="delete the test database first (so --seed dates start from today)",
+    )
     args = parser.parse_args()
     database = args.db.expanduser().resolve()
     if database == (ROOT / "list.db").resolve():
@@ -212,6 +224,8 @@ def main() -> None:
         print("No .env found. See README.md#new-jj-workspace.", file=sys.stderr)
 
     database.parent.mkdir(parents=True, exist_ok=True)
+    if args.fresh:
+        remove_database(database)
     env = server_env(database, dict(os.environ))
     prepare_database(env)
     if args.seed:
@@ -219,7 +233,7 @@ def main() -> None:
     print(f"\nTest database: {database}")
     print("Rooms (Home: APP_PASSWORD; Cabin from --seed: cabin):")
     for name, code in room_codes(database):
-        print(f"  {name}: room code {code}")
+        print(f"  {name}: room code {code}  http://localhost:{args.port}/room/{code}")
     https_urls = serve_https_urls(tailscale_serve_status(), args.port)
     print("\nOpen on the phone:")
     if https_urls:
