@@ -1,77 +1,705 @@
-# Due-date reminders
+# Configurable due-date reminders
 
 Lifecycle: tracked
 
-Research and staged redesign planning are selected (owner, 2026-11-03).
-Implementation, architecture changes and deployment are not approved.
-The original sketch below will be expanded into a handoff-ready plan.
+**Status: proposed; research and planning only.** The owner requested this
+redesign on 2026-11-03. No implementation, architecture change, feature
+acceptance, deployment, paid service or real notification is approved.
 
-## Planning ownership
+Current behavior: [due-date reminders](../docs/due-date-reminders.md).
+Evidence and external sources: [research report](../docs/background/reminder-redesign-research.md).
+Approval and delivery safeguards: [scope](../docs/scope.md).
 
-- Owner: Pi session `01a1a2c7-22c9-71e2` in `/home/hsa/projects/list_app`
-  (shared docs desk; sole writer of this plan and the task's research report).
-- Agent-managed investigation workspace: `tmp-reminder-plan`, at
-  `/home/hsa/projects/tmp-reminder-plan`, based on `integration`.
-- Bounded read-only children: phone-platform research and reminder UX research.
-  They may search official sources, but may not edit files, spawn children,
-  change version control, subscribe devices or send notifications.
-- Status: research in progress. Parent reviews sources and writes the plan;
-  owner reviews the recommendation and consolidated decisions before coding.
-- Completion: commit planning documents only, retain the existing backlog
-  placement, resolve children and remove the investigation workspace.
-  No feature acceptance or production changes.
+## Recommended outcome
 
-## Options
+A quiet list app with a capable reminder system behind it:
 
-Ordered from easiest to hardest. Each builds on the one before.
+- A bell opens due items for the room or current list. Counts and date labels
+  remain visible without interrupting editing.
+- Configure several reminders, such as a week before, a day before and at the
+  due time. Use presets first; reveal custom controls on request.
+- Choose a daily summary, scheduled reminders, both, or neither. Snooze and
+  dismiss without changing anybody else's due date.
+- Opt into phone notifications on supported devices. Without permission or
+  support, the due overview and in-app reminders still work.
+- Keep the present Svelte/FastAPI/SQLite stack, one service and no accounts.
+  Add a durable scheduler and standards-based Web Push only with approval.
 
-### 1. Toast when a list opens
+This is not a proposal to remain limited to the present two simple toasts.
+It is also not a request to copy every feature of a full task manager.
 
-- When a list loads, check its item dates and show a toast, such as "2 items
-  due tomorrow".
-- Frontend only. No server work and no permissions.
-- Limit: you see it only when you open that list.
+## Boundaries and ownership
 
-### 2. Warning anywhere in the app
+- **Home** means the room overview at `/room/{slug}`, not a new cross-room
+  dashboard at `/`. Reminders never reveal other rooms.
+- Shared item dates and optional due times are shared facts. Reminder rules,
+  channels, quiet hours, notification history and snoozes belong to this
+  browser/app installation. Say **On this device**, not **Your account**.
+- One installation can opt into several authorized rooms. A browser and its
+  separately installed app can be separate installations. There is no
+  cross-device preference or snooze sync without a later identity design.
+- Anyone may view due items within their existing access. A public share link
+  stays list-scoped and cannot enroll in scheduled or push reminders. Room
+  sign-in is required; installation alone grants nothing.
+- No accounts, assignments, recurring-task engine, location reminders, email,
+  SMS, native app or critical alarms in this delivery. These are not hidden
+  prerequisites for the requested feature.
+- Keep [backlog](backlog.md) placement unchanged while planning. Its existing
+  phone-reminder entry links here; placement is not approval or scheduling.
 
-- Check dates across all lists, so the toast shows whichever list is open.
-- Re-check every few minutes, so "due in 1 hour" appears while the app is open.
-- Still an in-app toast, not a phone notification. Browsers pause timers in
-  background tabs, so it is unreliable there.
+## Owner choices — answer once
 
-### 3. Phone notification when the app is closed (Web Push)
+All later sections use the recommended **A/A/A** options. The alternatives
+below are already accommodated; they change defaults or the delivery endpoint,
+not the data model. These answers settle the plan, not permission to code.
 
-- The user taps "Turn on reminders". The browser asks for permission and gives
-  a push address for that device.
-- The server stores the address. A scheduled job (every 15 minutes or so) finds
-  items due soon and sends a message through Apple's or Google's push service.
-- The phone wakes the service worker, which shows the notification.
-- Android (Chrome): works, even without installing the app.
-- iPhone (iOS 16.4+): works only for the home-screen app, and permission must
-  be asked from a button tap. Not in normal Safari.
-- No server-free route: Notification Triggers was dropped, and Periodic
-  Background Sync is Chrome-only and unreliable.
-- New parts: a push library (such as `pywebpush`), VAPID keys, a table for
-  device push addresses, a scheduled job on Railway, an on/off setting and
-  duplicate-reminder protection. This changes the architecture; update
-  [`ARCHITECTURE.md`](../ARCHITECTURE.md) if chosen.
+| Choice | A — recommended | B | C |
+| --- | --- | --- | --- |
+| 1. Default reminder mode | One daily summary at 09:00; no individual alerts until selected | Scheduled: one calendar day before and at the due anchor | Quiet: counts and due overview only |
+| 2. Default phone text | Generic: “You have reminders. Open ListR.” | Counts, without names | Item/list names visible on the lock screen |
+| 3. Planned delivery endpoint | All five stages, including the proposed scheduler, dependency and Web Push architecture | Stages 1–3: full in-app scheduling, no phone push yet | Stage 1 only: quiet due overview first |
 
-## Open questions
+All reminder modes and message-detail levels remain configurable regardless
+of the chosen defaults. Stage 1 deliberately has no automatic warning; the
+chosen default starts with the scheduler in stage 3. Phone push is always off
+until the person enables it on that device.
 
-- What counts as "soon"? A fixed rule (due today or tomorrow) or a reminder
-  time per item?
-- Do options 1 and 2 cover enough, or is option 3 needed?
-- For option 3: who gets the reminder in a shared room? Every device that
-  turned reminders on?
+Before starting, record the choices and explicit implementation approval here.
+Approval of the five-stage architecture should explicitly cover a supervised
+FastAPI scheduler, new SQLite migrations, optional shared due-time fields,
+`pywebpush`/VAPID, IANA timezone data (`tzdata` if needed) and extending the
+existing service worker. No additional
+service or spending increase is proposed. Acceptance and deployment keep their
+separate gates. A future agent may complete approved stages sequentially for
+review, but may not infer approval from this document or the research request.
 
-## Suggested path
+## Product contract proposed for approval
 
-Ship options 1 and 2 together as one small step. Plan option 3 separately, and
-try it on Android first.
+The numbers below are product defaults, not claimed industry standards.
+
+### 1. Always-available due information
+
+- Room bell: all unchecked dated items in that room, with list names.
+  List bell: that list only; authenticated room users can switch to the room
+  scope. A share page cannot expand its scope.
+- Group into **Overdue**, **Today**, **Tomorrow**, **Next 7 days** and
+  **Later**. The last two groups are disjoint: Next 7 days means days 2–7
+  after today; Later is beyond day 7. All dated items remain discoverable.
+- The badge counts unchecked items overdue or due today/tomorrow, not unread
+  messages or the number of reminder rules. Opening the bell does not clear
+  that count. Zero has no badge; large counts may show `99+` with a full
+  accessible label. A list card shows the same list-specific due count.
+- A due item appears once even with several reminder times. Sort by due
+  day/instant, then list/name and UID for deterministic ties. Completed and
+  undated items are excluded. Existing tag/search/hide-done filters do not
+  silently remove items from this whole-list overview.
+- Date labels: red + “Overdue”; amber + “Today”/“Tomorrow”; neutral for later.
+  Use existing theme tokens, with tested contrast in every light/dark theme.
+  No continuous gradient or whole-row urgency wash. Keep the actual date and
+  optional time readable; color is never the only signal.
+- Tap an item to open its list and reveal/focus that item, clearing conflicting
+  filters explicitly. A deleted/inaccessible target gives a clear unavailable
+  state, never another room's content. Do not steal focus on live updates.
+- The panel works from saved offline data and labels it as such. Recompute on
+  visible-page return, live/offline edits and local day rollover, not only on
+  navigation. A sleeping tab catches up when visible.
+
+### 2. Settings without a wall of controls
+
+- Put **Reminders** in the room menu and in the bell panel's settings action.
+  The primary screen shows mode, summary time, phone status and timezone.
+  Due information needs no enrollment. **Enable reminders on this device**
+  explicitly saves the initial room enrollment and selected mode; merely
+  opening a room never subscribes it. Phone permission is a separate action.
+  Device-wide controls are visibly marked as affecting all enrolled rooms.
+- Presets: **Quiet**, **Daily summary**, **Scheduled**, **Custom**. Scheduled
+  starts with one day before and at the anchor. Choosing Custom exposes
+  **Add reminder**, quiet hours, limits, overdue repeats and content privacy.
+- In the item dialog, keep **Date** simple. Add optional **Time** and one
+  **Reminders: Uses list settings** row. That row opens the same editor used
+  elsewhere, with an inheritance summary and next-run preview. It must not
+  require walking through several nested settings dialogs.
+- Rule precedence on this device: item override > list override > device's
+  room default. An override replaces the inherited rule set; it does not add
+  to it. Explicit Off differs from Inherit. Reset restores inheritance.
+  Device-wide pause, room opt-out, quiet hours and safety limits always win.
+- Support up to **five effective reminder rules per item**, including optional
+  fixed date/time reminders. Preset offsets include 7 days, 1 day and at due;
+  Custom supports integer minutes/hours/days/weeks before the anchor, up to
+  365 days. Reject invalid/past fixed times, duplicate equivalent rules and
+  oversized input; coalesce distinct rules resolving to the same instant.
+- A fixed reminder is personal and independent of the shared due time.
+  Moving the due date moves relative reminders, not a still-future fixed
+  reminder. Removing the date cancels all its reminders. Label this distinction
+  in the preview rather than silently moving an absolute time.
+- Show the next actual reminder times, timezone, inheritance source and any
+  quiet-hour adjustment before Save. Changing defaults affects only inheriting
+  items/lists. Editing the shared date/time uses the existing shared Save flow;
+  saving personal rules is a separate explicit action and cannot falsely claim
+  an atomic save of both shared and personal data.
+
+### 3. Date, time and timezone rules
+
+- Preserve `date: YYYY-MM-DD | null`. Existing date-only items remain date-only;
+  never migrate them to midnight deadlines. A date-only item is overdue only
+  when its calendar day has passed.
+- Add optional shared `due_time: HH:MM` and `due_timezone: IANA zone`. Both are
+  required together and need a date. The item editor starts with this device's
+  configured zone, displays it, and saves it explicitly. A timed item is
+  overdue after its due instant, even if that instant was earlier today.
+- A date-only item's reminder anchor is its date at the device's all-day
+  reminder time, initially 09:00 in its configured zone. This is a reminder
+  time, not a newly invented due deadline. A timed item's anchor is its shared
+  due date/time/zone. Fixed personal times carry their own explicit zone.
+- Store and publish read-only `due_at` (UTC) for timed items, resolved by the
+  server from date/time/zone; null for date-only items. Recompute it atomically
+  whenever any source field changes. Clients send date/time/zone only; reject
+  a client-supplied `due_at`. Those wall-clock fields preserve intent; stored
+  `due_at` is the authoritative resolved instant for this due cycle. The
+  frontend uses it instead of inventing a second DST resolver. Offline
+  due-time drafts show their wall time and **Waiting to sync**; do not present
+  an unconfirmed draft as a newly server-scheduled instant.
+- Store UTC instants for work/delivery, IANA zones and wall-clock intentions for
+  recalculation. Capture the browser zone on setup; do not use a fixed UTC
+  offset. If it changes, offer an explicit timezone update with a preview;
+  do not silently reschedule while the app is closed.
+- For date-only items, buckets use the configured device zone (browser zone
+  before setup). Timed items use their instant for overdue status and the
+  device zone for Today/Tomorrow grouping. Display the zone if it differs from
+  the current browser zone. A timezone change recomputes future work only.
+- Days/weeks subtract calendar days in the anchor's zone at the same local
+  clock time; hours/minutes subtract elapsed time from the resolved instant.
+  Around DST gaps use the first valid local instant after the gap; for a
+  repeated local time use the first occurrence. Resolve this on the server
+  with `zoneinfo`; the preview and scheduler must use that same resolver.
+  Include production-image IANA-zone availability in the approved dependency
+  decision: verify it in image checks and add Python `tzdata` through `uv` if
+  needed. Missing zone data must visibly disable affected reminder processing,
+  not silently fall back to UTC or make the whole list app unusable.
+- Clearing the date atomically clears its shared time/zone. Clearing only the
+  time returns to a date-only item. Old offline operations with absent new
+  fields keep them unless the date is cleared; explicit null clears them.
+  Extend restore/undo, snapshots, validation and field-conflict handling too.
+
+### 4. Reminding, quiet hours and frequency
+
+- Daily summary: one per enrolled room/device/local day, at the chosen time,
+  including unchecked overdue/today/tomorrow items. Skip empty summaries.
+  Scheduled mode uses the selected rules. Custom can combine both explicitly.
+- The in-app bell panel has **Due items** and **Reminders** views. Due items
+  are live facts; Reminders is a persistent, paged event history with pending,
+  snoozed, dismissed and transport states. Reading an event does not complete
+  the item or remove its due badge.
+- No list-open warning and no five-minute room toast. New in-app reminders
+  can produce one non-modal, dismissible summary strip; the content remains
+  in Reminders. It never blocks the add bar or grabs focus. One strip at a
+  time, with due events grouped by room. Optional disabling leaves counts and
+  history intact. No auto-disappearing action is the sole way to snooze.
+- Device-wide default quiet hours: **22:00–08:00**, configurable or off.
+  Default maximum: **10 interruptive notifications/day**, adjustable 1–50.
+  Default minimum spacing: **10 minutes**, adjustable 1–60. Apply these to
+  combined automatic in-app/push dispatches, not bell browsing or history.
+  Count by the configured device timezone's dispatch day; the OS may display
+  accepted push later. Reserve quota and spacing durably before dispatch,
+  across tabs and rooms.
+- Group events in the same room becoming eligible in the same minute into one
+  notification. Never combine private names across rooms. During quiet hours,
+  hold eligible work and emit one current room summary at quiet-hours end,
+  subject to device spacing. Do not replay one alert per missed rule.
+- During cooldown, coalesce waiting work until the next allowed time. After
+  the daily cap, retain events in history and the next daily summary, not a
+  midnight backlog burst. A daily summary replaces matching pending individual
+  interruptions for items it covers, without canceling future rule times.
+- Optional overdue repeat: off by default; once per local day at the summary
+  time, for at most seven overdue days (configurable 1–30). If the daily summary
+  already covers it, do not add another interruptive repeat. Counts persist
+  after repeats stop. An overnight quiet window may cross a date boundary.
+- On enrolling or changing rules, show future reminders. Do not replay every
+  offset already passed. Offer **Remind me now** for an already-due item as an
+  explicit action, still subject to quiet hours and the shared frequency cap.
+- Same-day retries reuse the interruption's quota and spacing reservation;
+  they do not consume another slot that day. A retry crossing a local day
+  boundary must reserve a slot in the new day before sending; retain any
+  attempted old-day charge, and reuse the new slot for later same-day retries.
+  On cancellation/expiry, release quota only if no send was attempted and
+  delivery is provably absent. Ambiguous attempts still count; never rewind
+  the spacing clock. Once an occurrence is grouped into an interruption,
+  reconciliation cannot regroup it into another pending send.
+- After an outage, pending scheduled alerts up to one hour late can be grouped
+  once if still relevant. Older ones remain in history/next summary. A missed
+  daily summary may catch up once during that same local day; older daily
+  summaries never replay. Quiet-hour deferral is intentional, not an outage.
+
+### 5. Snooze, dismiss and cancellation
+
+- Snooze choices: 15 minutes, 1 hour, tomorrow at the all-day reminder time,
+  or a custom future date/time (up to 365 days). Preview quiet-hour adjustment.
+- Snooze suppresses all interruptions for this item's current due cycle on
+  this device until that instant, replacing any previous snooze. Wake with
+  one reminder if it is still eligible; coalesce any rule at the same instant.
+  Snoozing the daily summary instead snoozes that summary occurrence, not
+  every item's future rule. Label the scope in the action.
+- Dismiss acknowledges the occurrence only. It does not change the due date,
+  complete the item, disable future rules or dismiss other devices' reminders.
+  **Stop reminders for this item** is a separate personal override.
+- Completing/deleting an item or removing its date cancels unsent work and
+  snoozes. Changing due date/time/zone starts a new due cycle and cancels the
+  old cycle's pending relative work/snooze; still-future fixed reminders keep
+  their stable rule/instant identity and do not become duplicate occurrences.
+  Completing an item cancels pending fixed reminders too. On unchecking,
+  reactivate only still-future, never-attempted fixed reminders; never resend
+  an accepted or past fixed reminder. Unchecking starts a new relative due
+  cycle with future rules only, not a burst of already-missed alerts.
+- Renaming, quantity or tag edits do not restart a reminder cycle. Viewing or
+  dismissing a notification does not imply the underlying task is done.
+- Notification tap opens the app; snooze works inside it everywhere. Optional
+  platform action buttons may deep-link to an in-app snooze choice. Do not
+  depend on lock-screen buttons or grant shared write authority to a payload.
+
+### 6. Offline and synchronization limits
+
+- Keep viewing due items and editing shared date/time through the existing
+  offline queue. Schedule only server-confirmed state; queued phone edits may
+  temporarily disagree with server reminders. Show **Waiting to sync**.
+- Personal preference changes, enrollment and reminder actions require a
+  connection in this delivery. Keep drafts and clearly disable saving offline;
+  do not create another offline write queue as a hidden dependency.
+- Local read state may be cached. Reminders cannot claim to be server-snoozed
+  until acknowledged. No exact closed-app reminder from a page timer.
+- An offline sign-out can stop local UI but cannot immediately revoke a server
+  enrollment. Try the existing pending sign-out flow and display that phone
+  reminders may continue until the server confirms. Generic text limits
+  disclosure; do not promise immediate remote revocation without connectivity.
+
+## Worked acceptance examples
+
+Use these as end-to-end fixtures, in addition to the edge-case tests per stage.
+
+| Scenario | Expected result |
+| --- | --- |
+| Date-only item due 10 November; 7-day/1-day/at-due rules; 09:00 Europe/Oslo | Reminder anchors are 3, 9 and 10 November at 09:00 Oslo time; the due date stays date-only. |
+| Enable that schedule on 3 November at 10:00 | No replay of the missed 09:00 warning; preview starts with 9 November. |
+| Two tabs navigate through the same list repeatedly | Due counts update; no navigation warning and no duplicate claimed in-app strip. |
+| Two people use separate devices; one snoozes an item | Only that installation's current item cycle is snoozed; shared date and the other device are unchanged. |
+| A reminder is due at 23:00 with 22:00–08:00 quiet hours | It contributes to one current room summary after 08:00, not a burst of every deferred event. |
+| The item is completed before that deferred send | Recheck removes it; if nothing eligible remains, no notification. |
+| Date-only reminder lands in Oslo's 29 March 2026 02:30 DST gap | Preview and scheduler both resolve to the first valid time, 03:00. |
+| Push provider accepts, then the server crashes before recording success | Recovery uses the same stable IDs/tags and reservation; a rare repeated delivery remains possible and is not reported as exactly once. |
+| Room password is reset while every page is closed | Saved authorization no longer validates; no new send for that enrollment. An already-accepted provider message cannot be recalled. |
+
+## Proposed implementation architecture
+
+This section is a proposal requiring the architecture approval above, not a
+statement that the current app already has these components.
+
+### Personal identity and access
+
+- Create a random, server-issued installation secret in a Secure, HttpOnly,
+  host-only device cookie (`__Host-` on HTTPS), `SameSite=Lax`, `Path=/`, no
+  Domain, one-year lifetime; store only its hash. Set/renew it only through
+  explicit enrollment/resume, not background reads. Match the existing
+  plain-HTTP local-test convention. Never expose room tokens to JS.
+- Each device/room enrollment records the authenticating room-token hash and
+  room authorization version. Existing room cookie + device cookie are both
+  required to read/change that device's room reminder data. The device cookie
+  alone grants no room access. Lists/items must belong to that room.
+- A fresh successful sign-in may explicitly rebind this device's enrollment
+  to the new room token after access is revalidated, preserving personal rules.
+  Password reset/sign-out disables affected enrollment; re-sign-in requires an
+  explicit resume action rather than silently restoring background pushes.
+- At generation and immediately before dispatch, revalidate the saved grant
+  against live room tokens/version and room/list/item existence. Room deletion
+  or password reset cancels unsent sends even without a page open.
+- Keep personal policies/history out of shared room feeds, share-link feeds
+  and SSE payloads. Own-device refresh signals must not expose another
+  installation's settings. No arbitrary device-ID lookup API. Do not add an
+  admin view of personal histories/settings. The server operator can inspect
+  the database; do not claim privacy from that operator.
+
+### Storage and API seams
+
+Use the current migration runner and same-origin JSON protections. Suggested
+new modules are `src/reminders/` and `src/api/reminders.py`; keep item mutations
+in the established API/CRUD boundary.
+
+Minimum logical records (final table names can differ):
+
+| Record | Key purpose |
+| --- | --- |
+| Installation | Hashed device secret; timezone, quiet hours, caps, pause and content privacy |
+| Enrollment | Device + room; authorizing grant/version; active state and selected channels |
+| Policy | Enrollment + room/list/item scope; revision; inherited/off/custom rule set |
+| Item due cycle | Stable revision for date/time/zone changes or done→active, not arbitrary edits |
+| Occurrence | Relative: enrollment + item/cycle + normalized rule + scheduled UTC instant; fixed: enrollment + item + stable fixed-rule/instant identity, independent of due cycle |
+| Snooze/summary | Item-cycle or summary scope; wake instant; unique summary local-day key |
+| Delivery outbox | Occurrence/group + channel; state, lease, retry/expiry and provider acceptance |
+| Push subscription | Installation-owned endpoint/keys; unique endpoint hash, active state and key version |
+
+Do not duplicate the whole shared item into every event. Render authorized
+history against current data, marking obsolete/deleted occurrences unavailable.
+Retain terminal history/delivery records for 30 days; never prune pending,
+leased, snoozed or deferred work merely because it is old. Advance a durable
+processed-through watermark per enrollment only in the transaction that
+records every event or suppression in that interval. Ordinary evaluation
+never recreates past work at/before that watermark; policy changes activate
+future work, never rewind it. Prune terminal records only when both their
+retention age and the processed-through watermark allow it; retain any rule/
+cycle dedupe state still needed. Disabled orphan installations/subscriptions
+may be pruned after 90 days of
+inactivity. Cascades must not delete other devices or rooms.
+
+API under `/api/v1/rooms/{slug}/reminders`:
+
+- `POST /enrollment`: initialize own installation/enrollment or explicitly
+  resume after authorized sign-in. Never enroll silently on page load.
+- `GET/PATCH /preferences`: own device/room settings; list/item overrides
+  through scoped subresources. Return effective source and revision.
+- `POST /preview`: compute the draft's next five reminder instants using the
+  same pure evaluator as dispatch; validate ownership without saving a policy.
+- `GET /inbox`: own paged occurrences; `POST /occurrences/{id}/actions` for
+  dismiss/read/snooze. Reject another installation's occurrence ID uniformly.
+- `PUT/DELETE /push`: register this installation's subscription and enable or
+  disable this room's push channel. One worker subscription can serve several
+  rooms; turning off one room must not unsubscribe the others.
+- A device-wide **Stop all phone notifications** action revokes all of this
+  installation's push channels/subscription. It grants no ability to read
+  rooms whose authorization has expired.
+
+Personal mutations use revision checks and an idempotency key scoped to the
+installation/enrollment, not the public/shared op-result namespace. Cross-tab
+conflicts return a refresh-and-review state, not silent last-writer-wins.
+Device-wide edits are clearly separated from a room policy update. Draft the
+API contract/tests before wiring forms; do not treat these proposed paths as
+already existing endpoints.
+
+### Durable scheduling and delivery
+
+- Extend `src/server.py` lifespan with one supervised task, approximately every
+  60 seconds, plus startup reconciliation. A fixed minute scan of the small
+  app's active recipients and dated items is sufficient; no Celery, Redis,
+  APScheduler or second service. Use indexed due/outbox queries and bounded
+  batches. Do not promise dispatch at an exact second.
+- Verify Railway Serverless/app sleeping is disabled before rollout. Its live
+  value is unknown; checking/changing hosting configuration belongs to the
+  approved rollout. The process cannot wake itself after Railway sleeps it.
+- Keep a pure evaluator for inheritance, time resolution, eligibility,
+  cancellation, coalescing and next-run previews. Use an injectable clock.
+  Persist evaluation watermarks and occurrence identities, not an in-memory
+  Set or a volatile timer per item. Catch up using the product rules above.
+  Snooze wakes are explicit future work, not backdated watermark replay.
+- Commit generation, quota reservations and delivery claims under the DB lock;
+  release it before HTTP. Run synchronous DB/push work in bounded threads,
+  never on the async request loop or while holding a transaction across I/O.
+  Use a DB lease/unique claim so restart/reconciliation cannot create two
+  simultaneous sends. On shutdown, interrupted I/O is ambiguous until lease
+  recovery proves otherwise; do not mark it expired or delivered by default.
+  Shutdown and lease expiry must be testable.
+- Separate event creation from transports. No push enabled: one in-app strip
+  for the event, durably claimed across tabs. Push enabled: push is the
+  interruptive transport and the app updates history silently. Do not show an
+  extra automatic strip merely because provider acceptance is uncertain.
+  Explicitly blocked/disabled push falls back to in-app on the next app visit.
+- Transport states: pending, claimed, accepted, retry-wait, expired, canceled
+  or failed. **Accepted by push service** is not delivered/displayed/read.
+  A crash or timeout after sending is ambiguous: exactly-once delivery is not
+  achievable. Reuse stable occurrence/group IDs and replacement tags/topics
+  for bounded retry dedupe; do not claim network-level exactly-once semantics.
+- Retry temporary failures with bounded exponential backoff/jitter until the
+  reminder's expiry. Respect `Retry-After` for 429; cap attempts at five.
+  HTTP 404/410 disables that endpoint. Authentication/configuration failures
+  pause push and expose a safe diagnostic rather than looping rapidly.
+- Normal urgency. Push expiry: at most one hour for scheduled/snoozed alerts;
+  daily summaries expire at the next local day. Compute the outgoing TTL from
+  remaining relevance time, including time already spent in the outbox.
+  Before sending, recheck quiet hours, pause, quotas, item state and access.
+- Dedicated `REMINDERS_ENABLED` / `PUSH_ENABLED` operational switches can stop
+  dispatch without losing due information. Push defaults off unless explicitly
+  configured for the approved environment. Configure tests with fake senders;
+  starting the development/test server must never notify real devices.
+
+### Phone enrollment, worker and security
+
+- Use standards-based Web Push and a small maintained Python sender such as
+  `pywebpush`, installed through `uv` after approval. Keep the VAPID private key
+  in deployment secrets, never source, responses or logs. Configure the VAPID
+  contact and canonical HTTPS app origin explicitly; the public key/origin may
+  appear in public client configuration. Keep keys stable across deploys;
+  document rotation and restoring the correct key. Do not create a Firebase
+  application merely
+  because Chrome's browser-managed push service uses FCM.
+- Android: feature-detect HTTPS, notifications, push and the worker; installation
+  is not a blanket prerequisite. iPhone/iPad: provide Home Screen instructions,
+  then enable from the installed app; baseline support is iOS/iPadOS 16.4+.
+  Do not infer support only from an OS/browser name.
+- Explain the benefit before an **Enable phone reminders on this device** tap.
+  Preserve user activation when calling permission/subscribe: obtain server
+  public config and worker readiness beforehand, not through a long async
+  chain after the tap. Never request permission on load. Handle unsupported,
+  needs-install, default, denied, granted-but-not-subscribed and active states.
+- Add an explicit test-notification button after enrollment; one user action,
+  rate-limited. Do not send a test merely because the page mounted. Denial
+  leaves the app usable and links to instructions, not repeated prompts.
+- Extend `frontend/src/service-worker.ts` at `/service-worker.js`; preserve
+  caching, offline writes, waiting-version safety and `/sw.js` retirement.
+  Do not register another root worker or change app identity/scope.
+- Use a visible payload with title/body, an allowlisted same-origin navigation
+  target and opaque occurrence/group ID. Prefer the WebKit-described
+  declarative JSON envelope with a tested imperative worker fallback, so
+  Safari 18.4+ can show fallback content and older browsers still work. The
+  worker must not create duplicate displays on declarative-capable browsers.
+  Revalidate the current format at implementation; never require 18.4+ merely
+  to support the baseline push flow.
+- Every received push must display a visible notification, even with an open
+  page, malformed/empty payload or a failed authenticated fetch; use a safe
+  generic fallback that opens the app root and contains no room data. Treat
+  an unrecognized declarative format the same way. Do not fetch room contents
+  before showing it and do not use silent push for sync. Notification clicks focus an
+  existing matching same-origin app window when possible, otherwise open one;
+  normal room authorization still applies before revealing item details.
+- Feature-detect icon badging/actions as enhancements only. In-app snooze and
+  tap-to-open are mandatory; notification action buttons, sounds, vibration
+  and exact timing are not portable guarantees.
+- Treat endpoints and encryption keys as secrets. Validate size/key formats,
+  HTTPS, no user-info/fragments and approved provider hosts with exact or
+  boundary-safe suffix matching. Reject localhost/private/link-local/metadata
+  destinations, nonstandard ports and redirects; prevent DNS-rebinding/private
+  resolution at send time. Document the maintained provider-host policy rather
+  than accepting any client-supplied URL into an HTTP sender. Test SSRF cases.
+- Bind a subscription uniquely to its installation; another device cannot
+  replace, inspect or delete it merely by sending its ID/endpoint. Limit one
+  active subscription per installation, enrollments per installation and
+  subscription mutations/test sends to bounded rates. No raw endpoint logging.
+- Default generic lock-screen text unless choice 2 changes it. Detailed text
+  is explicit opt-in. No password, room/share token or privileged action in a
+  payload/URL. Approved canonical origin, never an arbitrary request Host.
+  A message already accepted by a provider cannot reliably be recalled after
+  completion, sign-out or revocation; explain that limitation.
+
+## Five dependent delivery stages
+
+Build each stage with its own tests and affected documentation. Later stages
+build on earlier ones; stage numbers are dependencies, not parallel branches.
+Each stage can contain several small atomic jj changes. Update the affected
+architecture/API/current-behavior docs as each approved stage is implemented;
+stage 5 reviews completeness, not a delayed first documentation update. Do not
+save all tests for stage 5 or introduce an unfinished push UI in stage 1.
+
+### Stage 1 — Quiet due center
+
+**Depends on:** implementation approval for stage 1.
+**Unblocks:** stage 2.
+
+- Replace `showDueReminders` list-open/periodic toasts with pure due grouping,
+  the bell/panel, list counts and date labels. Reuse the existing room store,
+  list navigation, dialog and theme patterns. Keep normal error/undo toasts.
+- Main seams: `frontend/src/lib/list/due-reminders.ts`,
+  `frontend/src/lib/ui/due-reminder-toasts.svelte.ts`,
+  `frontend/src/lib/room/PageShell.svelte`, room/list headers, `RoomLists`,
+  `ItemRow` and new reminder UI modules as needed.
+- Tests: list/room/share isolation; done/undated exclusion; all groups and
+  stable ordering; navigation/reload produces no warning; offline snapshots;
+  midnight/visibility refresh; filters/deleted targets; keyboard/focus and
+  six themes in both modes. Replace old tests requiring repeated toasts.
+- **Done:** due information is discoverable without repeated interruptions,
+  in all three browser engines; no backend/schema or permission prompt.
+
+### Stage 2 — Personal policies, dates and previews
+
+**Depends on:** stage 1 and approval of the identity/schema/time proposal.
+**Unblocks:** stage 3.
+
+- Add installation/enrollment and policy records/API, shared optional due time
+  and timezone, stable due-cycle identity, and pure schedule resolver/preview.
+  No outgoing reminders or real subscriptions yet.
+- Implement presets, inheritance/reset/off, up to five relative/fixed rules,
+  device settings and one reusable editor. Show clearly that scheduling is
+  not active until stage 3; avoid enabled controls that imply delivery exists.
+- Extend item API models/CRUD, migrations/triggers, undo/restore, feeds, TS
+  types, offline overlay/snapshots/queue validation and conflict handling.
+  Preserve old queued-op hashes and compatibility; follow
+  [API versioning](../docs/api.md#api-version) if the contract requires it.
+- Tests: upgrade old DB; absent/null/clear semantics; legacy date-only changes
+  keep a timed item's time/zone while date-clear removes them; reject client
+  `due_at`; recompute stored UTC; IANA data in the image; all due-cycle
+  transitions; defaults/list/item precedence; invalid offsets/duplicates/limits; fixed vs
+  relative dates; positive/negative-offset zones, leap days, DST gap/fold,
+  month/year rollover; two-tab policy conflict; room/device/share access;
+  offline legacy date edits and restore; no send side effects from preview.
+- **Done:** a user can see/save an understandable effective schedule, with
+  correct timezone previews and no changes to another device's preferences.
+
+### Stage 3 — Durable in-app reminders and snooze
+
+**Depends on:** stage 2 and approval of the scheduler/hosting proposal.
+**Unblocks:** stage 4; is the complete delivery endpoint for choice 3B.
+
+Implement in three reviewable internal steps, each with targeted tests:
+
+1. **3a — Durable core:** occurrence/outbox storage, processed-through cursor,
+   evaluator, claims/leases and saved-grant cancellation. Fake transport only;
+   do not expose a partially protected dispatch path.
+2. **3b — Daily summaries:** quiet hours, grouping, quota/spacing reservation,
+   expiry/recovery, persistent history and one claimed in-app summary strip.
+   Include sign-out/revocation tests before enabling any real in-app dispatch.
+3. **3c — Full scheduling:** relative/fixed rules, item/summary snooze,
+   dismiss/off, overdue repeats and all cancellation/catch-up cases. Retain the
+   same evaluator/outbox rather than a second path for scheduled mode.
+
+Across these steps:
+- Add Reminders history and restrained in-app strips, next-run state and
+  settings pause/off. Remove any legacy reminder paths still present.
+- Use saved server grants for scheduling; integrate sign-out/password reset,
+  deletion and re-enrollment. Keep the installation secret out of JS.
+- Tests with fake clock: restart/lease recovery, repeated tick/no duplicates,
+  two tabs claiming one strip, 100 items in one minute, multiple rooms under
+  one cap, overnight quiet periods/DST, cap reset without burst, mode/rule
+  edits, outage catch-up, snooze replacement/coalescing, completion/date clear/
+  deletion, unrelated edit, done→active, revoked enrollment and offline logout.
+  Test migration and prune→tick without replay; same-day 429→success consumes
+  one slot; cross-day retry must respect the new day's cap;
+  shutdown leaves ambiguous work recoverable; fixed reminders survive a due
+  change without a second identity and completion→uncheck restores only future
+  unsent fixed reminders. No network calls under DB lock.
+- **Done:** configurable reminders work while using the app, survive reloads
+  and restarts, and neither browsing nor snoozing affects another installation.
+  No promise of phone delivery yet.
+
+### Stage 4 — Phone notifications
+
+**Depends on:** stage 3 and explicit approval of Web Push/dependency/secrets.
+**Unblocks:** stage 5.
+
+- Add VAPID sender, installation subscription storage, supported/denied/install
+  enrollment UI, explicit test send, disable/resubscribe and endpoint cleanup.
+  Reuse the stage-3 outbox, rules and caps; do not create a second reminder
+  scheduler just for push. Reconcile subscriptions on foreground return;
+  feature-detect subscription-change support rather than relying on it alone.
+- Extend the existing worker with visible push and click handling, compatible
+  declarative payload/fallback and optional best-effort app icon badges.
+  If worker/subscription rotation changes the endpoint, transfer ownership
+  within the same installation; do not duplicate room enrollments or replay
+  accepted occurrences. Site-data deletion requires fresh enrollment.
+- Tests: mocked 2xx/429/404/410/5xx/timeouts and VAPID error; endpoint validation,
+  ownership/CSRF/auth revocation and private-data leakage; explicit permission
+  gesture and denial; iPhone install guidance; generic/detailed payloads;
+  every push shows, including empty/malformed/unrecognized JSON with a generic
+  root-link fallback; tap/click allowlist and authentication; no duplicate
+  foreground strip; worker upgrades/offline regression; opt out one of several
+  rooms; retry expiry and provider acceptance distinct from delivery.
+- **Done:** standards-based push is implemented and deterministically tested
+  without real external sends. Report genuine physical-device delivery as
+  unverified unless actually observed; do not equate desktop WebKit or mocked
+  pushes with iPhone lock-screen acceptance.
+
+### Stage 5 — Finish, operational controls and review package
+
+**Depends on:** stage 4 (or stage 3 for choice 3B).
+**Unblocks:** owner review, not automatic integration/deployment.
+
+- Review the complete flow at mobile sizes: simple first screen, advanced
+  discovery, previews, busy/error states, keyboard, screen-reader labels,
+  touch targets, contrast and persistent access to reminder actions.
+- Finish safe diagnostics: last scheduler tick, queued/failed counts and
+  configuration health, with no endpoint/token/payload leaks. A scheduler fault
+  is visible and logged but does not turn an otherwise usable list app into
+  a failed healthcheck/restart loop. No new telemetry vendor or dashboard.
+- Document operational switches, VAPID provisioning/rotation, Serverless off,
+  limits, failed subscription recovery and restore behavior. Before a database
+  restore, pause sending; when resuming, suppress pre-restore occurrences so
+  restored outbox rows cannot replay old notifications. Keep this within the
+  existing backup/deploy workflow, not an extra rehearsal/staging requirement.
+- Update `docs/due-date-reminders.md`, affected API contracts, installation,
+  offline and deployment guides, and authoritative `ARCHITECTURE.md` once the
+  approved architecture is implemented. Keep research in background docs.
+- Run full checks below, review the final diff/change stack and provide a
+  stage-by-stage behavior/checks/limitations report. No new GitHub issues/PR,
+  feature bookmarks, remote cleanup or launch of another agent unless asked.
+- **Done:** owner receives reviewable work and honest platform limitations.
+  Integration/deploy remain explicit gates. No routine pre-deploy phone check;
+  optional real push observation happens only with owner consent and does not
+  replace automated evidence.
+
+## Verification and execution contract
+
+Once implementation is explicitly approved, the receiving agent should read
+this plan, scope, architecture and current jj state again. Start its own new
+workspace from the then-current baseline; do not reuse the planning workspace
+or disturb parked `groups`. Shared plans/backlog stay on the docs desk under
+explicit ownership. No speculative bookmark moves or remote actions.
+
+For every affected stage, add tests alongside the behavior and run targeted
+checks first. Before completion, use the repository's full quality gates:
+
+- Python changes: `uv run ruff format .`, `uv run ruff check --fix .`,
+  `uv run pytest -q`, then `uv run ruff format --check .`,
+  `uv run ruff check .`, `uv run ty check`.
+- Frontend: in `frontend/`, `npm run format`, `npm run lint`, `npm run check`,
+  `npm run test`, `npm run build` with the repository's Node setup.
+- Browser suite: `uv run pytest browser_tests -q -n 4` across Chromium,
+  Firefox and WebKit. Extend/run relevant Android emulator coverage using its
+  [guide](../docs/android-emulator-testing.md) if the new UI affects it.
+- Fake clock, fake sender, disposable databases and test VAPID keys only.
+  Never enroll a real phone or call a real push provider from the test suite.
+  Desktop tests validate contracts, not actual APNs/FCM/OS background delivery.
+
+A stage may proceed to the next approved stage after its tests pass. The owner
+can review the approved batch together at the end. If a material new privacy,
+architecture, spending or product decision appears, stop at that seam, record
+it here and ask; ordinary implementation details do not require a new interview.
+Do not move `integration` for feature work or `main` without the applicable
+approval. Planning-doc commits have only the existing docs-desk permission.
+
+## Planning ownership and delivery record
+
+- Parent: Pi session `01a1a2c7-22c9-71e2`, coordination workspace
+  `/home/hsa/projects/list_app`; sole writer of this plan, research report and
+  the existing reminder backlog entry (wording/link only; no queue move).
+- Agent-managed investigation workspace `tmp-reminder-plan` at
+  `/home/hsa/projects/tmp-reminder-plan` was verified empty, forgotten and
+  removed after research. It ran no app/server. Future implementation needs
+  its own workspace and the README's
+  [new-workspace setup](../README.md#new-jj-workspace).
+- Read-only research workflow `0180b8ca-c0a0-444e-acbc-26756b565b4c` completed.
+  Platform child `b85062b5-6a6a-4686-9267-089c97c78c39` and UX child
+  `c486494a-64ba-4d59-a4dc-ae352d23d057` used Claude Haiku 5.5/high.
+  Findings were reviewed and durable evidence moved into the research report.
+  No child workspace, writes, notifications or descendants.
+- Read-only Haiku/high review `10843a14-b720-4dcd-a53c-3ba441bf4ba5` completed.
+  Parent clarified fixed-time identity, stored UTC, pruning/watermarks, quota
+  reuse, shutdown, timezone data and stage-3 internal steps. Some findings
+  repeated already-added text; an unsupported suggestion to change the browser
+  worker count was rejected in favor of the repository's documented `-n 4`.
+- GPT-6.1 Terra/high follow-up `6813d59d-0964-4d31-8dd3-5bd537137978`
+  completed read-only and found no remaining blockers. Parent additionally
+  clarified cross-day retry quota accounting. All children are complete;
+  none edited code, spawned descendants or gained integration authority.
+- Planning result: change `nkxxqrql` (with ownership setup in `prykkzux`).
+  Checks: local Markdown paths/anchors, whitespace/fences, five stage headings,
+  stage-3 substeps, explicit authority marker and docs-only diff boundary.
+  Runtime suites not run: no application/test code changed. Investigation
+  workspace removed; only the coordination workspace remains.
+- Recorded owner answers: pending. Implementation authority: **not granted**.
 
 ## Progress
 
-- [x] Options 1 and 2 chosen; "soon" is due today or tomorrow, overdue included (owner, 2026-11-02). Option 3 is in Later.
-- [x] Options 1 and 2 implemented; current behavior in [due-date reminders](../docs/due-date-reminders.md).
-- [ ] Option 3 questions (who gets the reminder in a shared room)
-- [ ] Write the implementation plan for option 3
+### Existing implementation
+
+- [x] Original list-open and room-wide toasts approved on 2026-11-02.
+- [x] Original behavior implemented; current contract remains in the linked doc.
+
+### This planning task
+
+- [x] Research competitor UX and current phone-platform constraints.
+- [x] Draft configurable behavior, architecture, stages and consolidated choices.
+- [x] Independently review the plan and validate planning documents.
+- [x] Record final planning change/checks and remove the investigation workspace.
+
+### Future delivery — not started or approved
+
+- [ ] Owner records choices and explicit implementation/architecture approval.
+- [ ] Stage 1: quiet due center.
+- [ ] Stage 2: personal policies, dates and previews.
+- [ ] Stage 3: durable in-app reminders and snooze.
+- [ ] Stage 4: phone notifications, if selected and approved.
+- [ ] Stage 5: finish and review package.
+- [ ] Owner review/acceptance; deployment separately approved when requested.

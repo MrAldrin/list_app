@@ -35,7 +35,7 @@ Owner answers and any further questions: [decisions for Heming](decisions-for-he
 ## Later
 
 - [ ] [feature] Color themes, step 2: a custom theme picker built on step 1. Add an entry to `PALETTES` in `frontend/src/lib/ui/theme.ts`; the contrast test already covers every entry. Start from a ready-made theme and change a few colors (background, accent, text); warn or adjust when text would be hard to read.
-- [ ] [feature] Phone push reminders when the app is closed (option 3 of the [due-date sketch](due-date-reminders.md)). Needs a push service, a scheduled job and an architecture change.
+- [ ] [feature] Configurable due-date reminders and phone push when the app is closed: [staged proposal](due-date-reminders.md). Research and planning only; implementation and architecture changes need approval.
 - [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline use](../docs/offline-viewing.md#what-works-offline).
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
