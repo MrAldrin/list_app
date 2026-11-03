@@ -23,8 +23,8 @@ export const SHARE_UNAVAILABLE_MESSAGE = 'This list was deleted or you no longer
 /** A share link that stopped working while its page was open (NiceGUI's text). */
 export const SHARE_RESET_MESSAGE = 'This list was deleted or this share link was reset.';
 
-/** How many names the add field suggests, as in NiceGUI. */
-export const MAX_SUGGESTIONS = 3;
+/** How many names the add field suggests; about three show, the rest scroll. */
+export const MAX_SUGGESTIONS = 10;
 
 /** Usual items need at least two recorded adds. */
 export const USUAL_ITEM_MIN_ADD_COUNT = 2;
@@ -39,14 +39,26 @@ export function normalizeItemName(raw: string): string {
 
 /**
  * Names the add field suggests while typing: the list's item names that
- * contain the typed text, sorted, at most three. Hidden checked items count
- * too, so typing finds them and a tap brings them back.
+ * contain the typed text, most-added first, then by name, at most ten. Hidden
+ * checked items count too, so typing finds them and a tap brings them back.
  */
-export function itemSuggestions(items: readonly Pick<Item, 'name'>[], typed: string): string[] {
+export function itemSuggestions(
+	items: readonly Pick<Item, 'name' | 'add_count'>[],
+	typed: string
+): string[] {
 	const text = itemNameKey(typed);
 	if (!text) return [];
-	const names = [...new Set(items.map((item) => item.name))].sort(compareCodePoints);
-	return names.filter((name) => itemNameKey(name).includes(text)).slice(0, MAX_SUGGESTIONS);
+	// A name listed twice ranks by its highest count.
+	const counts = new Map<string, number>();
+	for (const { name, add_count } of items) {
+		if (itemNameKey(name).includes(text)) {
+			counts.set(name, Math.max(counts.get(name) ?? 0, add_count));
+		}
+	}
+	return [...counts]
+		.sort(([a, countA], [b, countB]) => countB - countA || compareCodePoints(a, b))
+		.map(([name]) => name)
+		.slice(0, MAX_SUGGESTIONS);
 }
 
 /**

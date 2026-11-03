@@ -16,7 +16,7 @@ import {
 	stepQuantity
 } from './items';
 
-const named = (...names: string[]) => names.map((name) => ({ name }));
+const named = (...names: string[]) => names.map((name) => ({ name, add_count: 1 }));
 
 describe('normalizeItemName', () => {
 	it('trims while keeping the display capitalization', () => {
@@ -40,13 +40,33 @@ describe('itemSuggestions', () => {
 		]);
 	});
 
-	it('sorts by code point and keeps at most three', () => {
-		const items = named('e', 'ea', 'de', 'ce', 'be', 'ae');
-		expect(itemSuggestions(items, 'e')).toEqual(['ae', 'be', 'ce']);
+	it('ranks most-added first, then by code point', () => {
+		const items = [
+			{ name: 'be', add_count: 1 },
+			{ name: 'ae', add_count: 1 },
+			{ name: 'ce', add_count: 4 },
+			{ name: 'de', add_count: 2 }
+		];
+		expect(itemSuggestions(items, 'e')).toEqual(['ce', 'de', 'ae', 'be']);
+	});
+
+	it('keeps at most ten', () => {
+		const items = named(...Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`));
+		expect(itemSuggestions(items, 'e')).toHaveLength(10);
+		expect(itemSuggestions(items, 'e')[9]).toBe('e09');
 	});
 
 	it('lists a name once', () => {
 		expect(itemSuggestions(named('milk', 'milk'), 'milk')).toEqual(['milk']);
+	});
+
+	it('ranks a repeated name by its highest count', () => {
+		const items = [
+			{ name: 'milk', add_count: 1 },
+			{ name: 'oat milk', add_count: 2 },
+			{ name: 'milk', add_count: 3 }
+		];
+		expect(itemSuggestions(items, 'milk')).toEqual(['milk', 'oat milk']);
 	});
 });
 

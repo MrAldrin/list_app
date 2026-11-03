@@ -41,6 +41,12 @@
 	// Unique ids on the page, for the ARIA links between field and suggestions.
 	const listId = $props.id();
 
+	// Arrow keys can highlight an option below the visible three; scroll it into view.
+	$effect(() => {
+		if (active >= 0)
+			document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: 'nearest' });
+	});
+
 	// A live update can remove the highlighted suggestion; do not revive it later.
 	$effect(() => {
 		if (activeName !== null && !shown.includes(activeName)) activeName = null;
@@ -143,7 +149,7 @@
 	{#if shown.length > 0}
 		<!-- A combobox's popup: screen readers announce the highlighted option
 		     while the focus stays in the field. -->
-		<ul id={listId} role="listbox" aria-label="Suggestions">
+		<ul id={listId} class="suggestions" role="listbox" aria-label="Suggestions">
 			{#each shown as name, index (name)}
 				<!-- Keyboard handling stays on the combobox; options are not tab stops. -->
 				<!-- Prevent touch mousedown from unmounting an option before its click. -->
@@ -197,6 +203,13 @@
 		background: var(--surface);
 		border-radius: var(--radius);
 		box-shadow: var(--shadow);
+	}
+
+	/* About three options show at once; the rest scroll inside the popup. */
+	ul.suggestions {
+		max-height: calc(3.5 * var(--touch) + 0.5rem);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	li {
