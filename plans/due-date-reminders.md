@@ -2,8 +2,24 @@
 
 Lifecycle: tracked
 
-A rough sketch, not an approved plan. Users asked to be warned when an item's
-date is close. Dig into the options, pros and cons before choosing.
+Research and staged redesign planning are selected (owner, 2026-11-03).
+Implementation, architecture changes and deployment are not approved.
+The original sketch below will be expanded into a handoff-ready plan.
+
+## Planning ownership
+
+- Owner: Pi session `01a1a2c7-22c9-71e2` in `/home/hsa/projects/list_app`
+  (shared docs desk; sole writer of this plan and the task's research report).
+- Agent-managed investigation workspace: `tmp-reminder-plan`, at
+  `/home/hsa/projects/tmp-reminder-plan`, based on `integration`.
+- Bounded read-only children: phone-platform research and reminder UX research.
+  They may search official sources, but may not edit files, spawn children,
+  change version control, subscribe devices or send notifications.
+- Status: research in progress. Parent reviews sources and writes the plan;
+  owner reviews the recommendation and consolidated decisions before coding.
+- Completion: commit planning documents only, retain the existing backlog
+  placement, resolve children and remove the investigation workspace.
+  No feature acceptance or production changes.
 
 ## Options
 
