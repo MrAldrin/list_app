@@ -38,9 +38,9 @@ locally before merging.
 - **Wave 2, one session in order, after wave 1 is merged:** bottom bar,
   scrollable suggestions, usual items. All three rebuild the add area.
 
-- [ ] [feature] Bottom bar for the thumb on phones: move add/search to the bottom of the list page. The implementing agent decides whether Options, Sort and the menu also move down, and may move more if it judges that better; record the choice in the docs. Toasts move to the top. See [visual refresh](visual-refresh.md#open-questions).
-- [ ] [feature] Scrollable typing suggestions: while typing in **Add or Search**, show more than the top three matches in a list that scrolls, best matches first (today capped by `MAX_SUGGESTIONS` in `frontend/src/lib/list/items.ts`). Keep the keyboard rules in [adding items](../docs/adding-items.md); fit with the bottom bar item above.
-- [ ] [feature] Redesign usual items so they no longer take space under the add field. Move them to their own place, opened on demand: for example a button in the add area, or a "Most added" button that opens a pop-up or sheet. The implementing agent picks the most intuitive design, builds it and explains the choice; the owner reviews the result. Keep the current ranking and offline behavior unless the design needs a change. See [adding items](../docs/adding-items.md).
+- [ ] [feature] Bottom bar for the thumb on phones: move add/search to the bottom of the list page and toasts to the top. The implementing agent decides whether Options, Sort, the menu or other controls also move down; avoid crowding and record the choice in the docs. The room page may also be improved for thumb reach. The mockups, especially C, are inspiration, not a requirement to copy their other features. See [visual refresh](visual-refresh.md).
+- [ ] [feature] Scrollable typing suggestions: while typing in **Add or Search**, show about three matches at once in a scrollable list. Order matches by add count, most added first, rather than alphabetically. A cap around ten is acceptable if useful; typing more narrows the matches. Keep the keyboard rules in [adding items](../docs/adding-items.md); fit with the bottom bar item above.
+- [ ] [feature] Redesign usual items so they take no space when not needed. Prefer showing them on demand when the empty add/search field is focused, rather than adding a permanent control; the implementing agent may choose a better design and explains the choice. Keep the current ranking and offline behavior. See [adding items](../docs/adding-items.md).
 
 ## Blocked
 
