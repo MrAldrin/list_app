@@ -58,19 +58,25 @@ material fixes after independent review.
 
 - Creator/lifecycle owner: Lead, session `01a1a2c7-22c9-71e2`.
 - Planned owner: dedicated visible Pi Conductor `listr-reminders-s4`.
-- Model: `openai-codex/gpt-6.1-sol:high`; effective setting to be verified before edits.
+- Verified model: `openai-codex/gpt-6.1-sol`, effective thinking `high`;
+  peer environment matches the explicit launch setting.
 - Repository: `/home/hsa/projects/list_app`.
 - Lead aggregate: `tmp-reminder-delivery`, `/home/hsa/projects/tmp-reminder-delivery`.
 - Entry workspace: `tmp-reminders-s4`, `/home/hsa/projects/tmp-reminders-s4`;
-  Lead-created/agent-managed; creation and exact base pending dispatch.
-- Exact peer identity, Zellij location and base change: pending readiness.
+  Lead-created/agent-managed; initial preflight @ `twuqsnnx`, base
+  `rptqkywz` / `72b25032`. Lead will supply the reviewed predecessor tip
+  before implementation; do not implement on this provisional base.
+- Peer: `01a1a2ff-4fcb-7503-803f-e651fb9d7e45`.
+  Zellij `pc-home`, tab 13 **ListR S4 phone push**, pane `terminal_22`.
+  Normal Fish shell, target cwd and foreground Pi launch verified.
 - Child fanout: workers and independent review authorized within this brief;
   isolated concurrent editors, no unrestricted recursive delegation.
 
 ## Status — assigned Conductor writes after handoff
 
 - State: blocked by predecessor stage.
-- Next: Lead creates workspace and verifies the dedicated peer, then hands over.
+- Next: complete two-way readiness and read-only preflight; wait for reviewed
+  predecessor integration and explicit Lead edit handoff before implementing.
 - Children/workspaces: none yet.
 - Docs-desk status write ownership: Lead until edit handoff; Conductor thereafter.
 
