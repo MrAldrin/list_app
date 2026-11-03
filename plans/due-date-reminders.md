@@ -2,9 +2,14 @@
 
 Lifecycle: tracked
 
-**Status: proposed; research and planning only.** The owner requested this
-redesign on 2026-11-03. No implementation, architecture change, feature
-acceptance, deployment, paid service or real notification is approved.
+**Status: approved for implementation; in progress.** On 2026-11-03 the owner
+selected **A/A/A** and explicitly authorized the Lead to deliver all five
+stages through one Conductor per stage, with subagents. This includes the
+planned scheduler, schema/timezone changes, `pywebpush`/VAPID and worker
+extension. Routine implementation assumptions are delegated to the Lead.
+Feature acceptance, moving `main`, deployment, extra spending and real-device
+notification enrollment remain unapproved. The owner will review before live
+release.
 
 Current behavior: [due-date reminders](../docs/due-date-reminders.md).
 Evidence and external sources: [research report](../docs/background/reminder-redesign-research.md).
@@ -44,14 +49,14 @@ It is also not a request to copy every feature of a full task manager.
 - No accounts, assignments, recurring-task engine, location reminders, email,
   SMS, native app or critical alarms in this delivery. These are not hidden
   prerequisites for the requested feature.
-- Keep [backlog](backlog.md) placement unchanged while planning. Its existing
-  phone-reminder entry links here; placement is not approval or scheduling.
+- The owner selected this delivery as current work. The
+  [backlog](backlog.md#current-focus) links here; parked `groups` stays untouched.
 
-## Owner choices — answer once
+## Recorded owner choices
 
-All later sections use the recommended **A/A/A** options. The alternatives
-below are already accommodated; they change defaults or the delivery endpoint,
-not the data model. These answers settle the plan, not permission to code.
+**A/A/A selected, with explicit implementation approval (2026-11-03).** The
+alternatives remain product settings, not unresolved questions. A means daily
+09:00 summary, generic/private phone text and all five delivery stages.
 
 | Choice | A — recommended | B | C |
 | --- | --- | --- | --- |
@@ -64,18 +69,36 @@ of the chosen defaults. Stage 1 deliberately has no automatic warning; the
 chosen default starts with the scheduler in stage 3. Phone push is always off
 until the person enables it on that device.
 
-Before starting, record the choices and explicit implementation approval here.
-Approval of the five-stage architecture should explicitly cover a supervised
-FastAPI scheduler, new SQLite migrations, optional shared due-time fields,
-`pywebpush`/VAPID, IANA timezone data (`tzdata` if needed) and extending the
-existing service worker. No additional
-service or spending increase is proposed. Acceptance and deployment keep their
-separate gates. A future agent may complete approved stages sequentially for
-review, but may not infer approval from this document or the research request.
+The owner's implementation approval covers the supervised FastAPI scheduler,
+new SQLite migrations, optional shared due-time fields, `pywebpush`/VAPID,
+IANA timezone data (`tzdata` if needed) and the existing service-worker
+extension. No additional service or spending increase is approved. The Lead
+may integrate reviewed child results into its isolated delivery line under
+the shared role contract. Moving feature work to `integration` and deploying
+remain owner gates; docs-desk commits retain their standing permission.
 
-## Product contract proposed for approval
+### Delivery coordination
 
-The numbers below are product defaults, not claimed industry standards.
+- Lead: Pi session `01a1a2c7-22c9-71e2-897a-af8ac7de162d`.
+- Aggregate workspace: `tmp-reminder-delivery`,
+  `/home/hsa/projects/tmp-reminder-delivery` (Lead-created/managed).
+- Five sequential stage briefs: [S1](batches/reminders-s1.md),
+  [S2](batches/reminders-s2.md), [S3](batches/reminders-s3.md),
+  [S4](batches/reminders-s4.md), [S5](batches/reminders-s5.md).
+- Conductors: GPT-6.1 Sol, low for S1/S5, high for hard S2–S4. Verify effective
+  model/thinking before granting edits. Bounded workers/reviewers start on
+  Claude Haiku 5.5/medium; escalate to Haiku 5.5/max if needed. Unsupported
+  levels must be reported, never silently substituted.
+- Lead alone writes the backlog, this plan and the owner-review list below.
+  Each Conductor owns only its separate batch record's status/closeout; shared
+  records are edited/committed on the docs desk with coordinated write windows.
+- Owner review pending: final implementation/UX; feature acceptance; deploy;
+  actual push provisioning/phone opt-in. No production configuration or real
+  external push will be changed/sent during automated implementation.
+
+## Approved product contract
+
+The numbers below are approved product defaults, not claimed industry standards.
 
 ### 1. Always-available due information
 
@@ -289,8 +312,9 @@ Use these as end-to-end fixtures, in addition to the edge-case tests per stage.
 
 ## Proposed implementation architecture
 
-This section is a proposal requiring the architecture approval above, not a
-statement that the current app already has these components.
+This design is approved for implementation, but is not a statement that the
+current app already has these components. Update current architecture docs
+with each implemented stage.
 
 ### Personal identity and access
 
@@ -678,7 +702,9 @@ approval. Planning-doc commits have only the existing docs-desk permission.
   stage-3 substeps, explicit authority marker and docs-only diff boundary.
   Runtime suites not run: no application/test code changed. Investigation
   workspace removed; only the coordination workspace remains.
-- Recorded owner answers: pending. Implementation authority: **not granted**.
+- Recorded owner answers: **A/A/A**. Implementation/architecture authority:
+  **granted for all five stages** by the owner's 2026-11-03 request. Lead and
+  Conductor ownership is recorded above and in the five linked batch records.
 
 ## Progress
 
@@ -694,9 +720,9 @@ approval. Planning-doc commits have only the existing docs-desk permission.
 - [x] Independently review the plan and validate planning documents.
 - [x] Record final planning change/checks and remove the investigation workspace.
 
-### Future delivery — not started or approved
+### Approved delivery — in progress
 
-- [ ] Owner records choices and explicit implementation/architecture approval.
+- [x] Owner records choices and explicit implementation/architecture approval.
 - [ ] Stage 1: quiet due center.
 - [ ] Stage 2: personal policies, dates and previews.
 - [ ] Stage 3: durable in-app reminders and snooze.
