@@ -81,8 +81,8 @@ describe('usualItemSuggestions', () => {
 	];
 
 	it('returns no usual items when typing, but includes them for blank text', () => {
-		expect(usualItemSuggestions(items, '')).toEqual(['oat milk', 'apples', 'Bread']);
-		expect(usualItemSuggestions(items, '  ')).toEqual(['oat milk', 'apples', 'Bread']);
+		expect(usualItemSuggestions(items, '')).toEqual(['oat milk', 'apples', 'Bread', 'Milk']);
+		expect(usualItemSuggestions(items, '  ')).toEqual(['oat milk', 'apples', 'Bread', 'Milk']);
 		expect(usualItemSuggestions(items, 'milk')).toEqual([]);
 	});
 
@@ -99,9 +99,9 @@ describe('usualItemSuggestions', () => {
 		).toEqual(['checked']);
 	});
 
-	it('ranks by count then case-insensitive name and returns at most three', () => {
+	it('ranks all usual items by count then case-insensitive name', () => {
 		const input = [...items].reverse();
-		expect(usualItemSuggestions(input, '')).toEqual(['oat milk', 'apples', 'Bread']);
+		expect(usualItemSuggestions(input, '')).toEqual(['oat milk', 'apples', 'Bread', 'Milk']);
 	});
 });
 

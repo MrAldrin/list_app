@@ -14,6 +14,7 @@
 		type RoomHandle,
 		type TagMode
 	} from '#lib/data/index.ts';
+	import BottomBar from '#lib/ui/BottomBar.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
 	import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
@@ -342,12 +343,6 @@
 	onDelete={(tag) => deleteTag(list, tag)}
 	onColor={(tag, index) => setColor(list, tag, index)}
 />
-<AddItem
-	items={room.store.itemsOf(list.uid)}
-	{canEdit}
-	bind:text={searchText}
-	onAdd={(name) => addItem(list, name)}
-/>
 <ul class="items">
 	<!-- Hide checked items first (on the whole list), then filter by tag. -->
 	{#each visibleItems as item (item.uid)}
@@ -371,7 +366,7 @@
 	{/each}
 </ul>
 {#if room.store.status === 'ready' && room.store.itemsOf(list.uid).length === 0}
-	<p class="empty">No items yet. Type above to add.</p>
+	<p class="empty">No items yet. Type below to add.</p>
 {/if}
 {#if hiddenChecked > 0}
 	<p class="hidden-count">{hiddenText}</p>
@@ -379,6 +374,15 @@
 {#if filterTags.length > 0 && visibleItems.length === 0}
 	<p class="hidden-count">No items match all selected tags.</p>
 {/if}
+<!-- Add or Search sits at the bottom of the screen, within thumb reach. -->
+<BottomBar>
+	<AddItem
+		items={room.store.itemsOf(list.uid)}
+		{canEdit}
+		bind:text={searchText}
+		onAdd={(name) => addItem(list, name)}
+	/>
+</BottomBar>
 {#if editing}
 	{@const item = editing}
 	<!-- The text fields start from `item`; the tag chips follow the live item, as they save at once. -->

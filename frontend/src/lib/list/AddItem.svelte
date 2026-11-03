@@ -4,9 +4,11 @@
 	highlighted name. Clicking or tapping a suggestion also selects it. Escape
 	closes the list. Leaving the field hides the list (the text stays); coming
 	back shows it again. The field keeps focus after selecting a suggestion, so
-	the next item can be typed at once.
+	the next item can be typed at once. Suggestions open above the bottom bar.
+	While blank, the same list offers usual items only on focus.
 -->
 <script lang="ts">
+	import { SvelteMap } from 'svelte/reactivity';
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import type { Item } from '#lib/data/index.ts';
 	import { itemSuggestions, normalizeItemName, usualItemSuggestions } from './items';
@@ -30,13 +32,21 @@
 	let input = $state<HTMLInputElement>();
 	const suggestions = $derived(itemSuggestions(items, text));
 	const usual = $derived(usualItemSuggestions(items, text));
+	const addCounts = $derived.by(() => {
+		const counts = new SvelteMap<string, number>();
+		for (const item of items)
+			counts.set(item.name, Math.max(counts.get(item.name) ?? 0, item.add_count));
+		return counts;
+	});
 	/** The highlighted suggestion, tracked by name so live sorting cannot change it. */
 	let activeName = $state<string | null>(null);
 	/** Escape hides the suggestions until the text changes. */
 	let closed = $state(false);
 	/** Suggestions show only while the field has focus. */
 	let focused = $state(false);
-	const shown = $derived(closed || !focused ? [] : suggestions);
+	// Blank text: offer usual items in the same popup (empty when typing).
+	const usualMode = $derived(usual.length > 0);
+	const shown = $derived(closed || !focused ? [] : usualMode ? usual : suggestions);
 	const active = $derived(activeName === null ? -1 : shown.indexOf(activeName));
 	// Unique ids on the page, for the ARIA links between field and suggestions.
 	const listId = $props.id();
@@ -131,25 +141,18 @@
 		</button>
 	</form>
 
-	{#if usual.length > 0}
-		<div class="usual">
-			<p id="{listId}-usual-label" class="usual-label">Usual items</p>
-			<ul class="usual-items" aria-labelledby="{listId}-usual-label">
-				{#each usual as name (name)}
-					<li>
-						<button type="button" disabled={!canEdit} onclick={() => add(name)}>
-							{name}
-						</button>
-					</li>
-				{/each}
-			</ul>
-		</div>
-	{/if}
-
 	{#if shown.length > 0}
 		<!-- A combobox's popup: screen readers announce the highlighted option
 		     while the focus stays in the field. -->
-		<ul id={listId} class="suggestions" role="listbox" aria-label="Suggestions">
+		<ul
+			id={listId}
+			class="suggestions"
+			role="listbox"
+			aria-label={usualMode ? 'Usual items' : 'Suggestions'}
+		>
+			{#if usualMode}
+				<li class="heading" role="presentation" aria-hidden="true">Usual items</li>
+			{/if}
 			{#each shown as name, index (name)}
 				<!-- Keyboard handling stays on the combobox; options are not tab stops. -->
 				<!-- Prevent touch mousedown from unmounting an option before its click. -->
@@ -162,7 +165,10 @@
 					onmousedown={keepFocus}
 					onclick={() => add(name)}
 				>
-					{name}
+					<span>{name}</span>
+					<span class="count" aria-label={`Added ${addCounts.get(name) ?? 0} times`}
+						>{addCounts.get(name) ?? 0}×</span
+					>
 				</li>
 			{/each}
 		</ul>
@@ -170,14 +176,10 @@
 </div>
 
 <style>
-	/* The field sticks just below the list page's top bar while the page
-	   scrolls. Sticky also anchors the suggestions, which float over the
-	   items below, so the list does not jump while typing. */
+	/* The list page's bottom bar holds this field. The suggestions float
+	   above it, over the items, so the list does not jump while typing. */
 	.add {
-		position: sticky;
-		top: var(--touch);
-		z-index: 10;
-		background: var(--bg);
+		position: relative;
 	}
 
 	form {
@@ -193,19 +195,18 @@
 
 	ul {
 		position: absolute;
-		top: 100%;
+		bottom: 100%;
 		left: 0;
 		right: 0;
 		z-index: 5;
 		list-style: none;
-		margin: 0.25rem 0 0;
+		margin: 0 0 0.25rem;
 		padding: 0.25rem 0;
 		background: var(--surface);
 		border-radius: var(--radius);
 		box-shadow: var(--shadow);
 	}
 
-	/* About three options show at once; the rest scroll inside the popup. */
 	ul.suggestions {
 		max-height: calc(3.5 * var(--touch) + 0.5rem);
 		overflow-y: auto;
@@ -223,48 +224,21 @@
 		cursor: pointer;
 	}
 
+	li .count {
+		margin-left: auto;
+		padding-left: 1rem;
+		white-space: nowrap;
+		color: var(--text-muted);
+	}
+
 	li.active {
 		background: var(--border);
 	}
 
-	.usual {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.25rem 0.5rem;
-		padding-bottom: 0.5rem;
-	}
-
-	.usual-label {
-		margin: 0;
+	li.heading {
+		min-height: 2rem;
 		color: var(--text-muted);
-	}
-
-	ul.usual-items {
-		position: static;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-		margin: 0;
-		padding: 0;
-		background: transparent;
-		border-radius: 0;
-		box-shadow: none;
-	}
-
-	ul.usual-items li {
-		width: auto;
-		min-height: 0;
-		padding: 0;
-	}
-
-	.usual-items button {
-		width: auto;
-		min-height: var(--touch);
-		padding: 0 0.75rem;
-		border-color: var(--border);
-		background: var(--surface);
-		text-align: left;
-		overflow-wrap: anywhere;
+		font-size: 0.875rem;
+		cursor: default;
 	}
 </style>

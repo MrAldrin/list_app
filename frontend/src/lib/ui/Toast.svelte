@@ -24,26 +24,6 @@
 		if (area.matches(':popover-open')) area.hidePopover();
 		if (count > 0) area.showPopover();
 	});
-
-	// The iPhone keyboard covers the bottom of the screen but does not shrink
-	// the page. The visual viewport is the part still visible, so its height
-	// tells how far to lift the toasts to keep them above the keyboard.
-	$effect(() => {
-		const viewport = window.visualViewport;
-		if (!area || !viewport) return;
-		const target = area;
-		const update = () => {
-			const covered = window.innerHeight - viewport.height - viewport.offsetTop;
-			target.style.setProperty('--keyboard', `${Math.max(0, covered)}px`);
-		};
-		update();
-		viewport.addEventListener('resize', update);
-		viewport.addEventListener('scroll', update);
-		return () => {
-			viewport.removeEventListener('resize', update);
-			viewport.removeEventListener('scroll', update);
-		};
-	});
 </script>
 
 {#if active}
@@ -74,7 +54,6 @@
 		position: fixed;
 		/* Undo the browser's default popover box (centered, border, padding). */
 		inset: auto;
-		top: auto;
 		width: auto;
 		height: auto;
 		max-width: none;
@@ -84,9 +63,10 @@
 		padding: 0;
 		background: transparent;
 		overflow: visible;
-		/* Above the keyboard when it is open (`--keyboard`, set above), and
-		   clear of the iPhone home bar (`env(safe-area-inset-bottom)`). */
-		bottom: calc(0.5rem + var(--keyboard, 0px) + env(safe-area-inset-bottom));
+		/* At the top, just under the page's top bar: the bottom of the screen
+		   holds the bottom bar and, while typing, the phone keyboard. Clear of
+		   the iPhone notch (`env(safe-area-inset-top)`). */
+		top: calc(var(--touch) + 1.25rem + env(safe-area-inset-top));
 		left: 1rem;
 		right: 1rem;
 		display: grid;
@@ -95,7 +75,7 @@
 		gap: 0.375rem;
 		justify-items: center;
 		/* Toasts keep their own height, even if Safari makes the area taller. */
-		align-content: end;
+		align-content: start;
 		/* Clicks pass through the empty area to the page below. */
 		pointer-events: none;
 		z-index: 10;

@@ -29,9 +29,6 @@ export const MAX_SUGGESTIONS = 10;
 /** Usual items need at least two recorded adds. */
 export const USUAL_ITEM_MIN_ADD_COUNT = 2;
 
-/** How many usual items the blank add field offers. */
-export const MAX_USUAL_ITEM_SUGGESTIONS = 3;
-
 /** Like the server's item-name display normalization: trim, but keep case. */
 export function normalizeItemName(raw: string): string {
 	return itemName(raw);
@@ -79,8 +76,7 @@ export function usualItemSuggestions(
 				compareCodePoints(itemNameKey(a.name), itemNameKey(b.name)) ||
 				compareCodePoints(a.name, b.name)
 		)
-		.map((item) => item.name)
-		.slice(0, MAX_USUAL_ITEM_SUGGESTIONS);
+		.map((item) => item.name);
 }
 
 /** The toast after adding: NiceGUI's "Added milk" or "Restored milk!". */

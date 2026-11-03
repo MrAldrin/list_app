@@ -56,13 +56,20 @@ def expect_small_and_on_screen(page: Page, count: int = 1) -> None:
         assert box["y"] >= 0, box
         assert box["x"] + box["width"] <= viewport["width"], box
         assert box["y"] + box["height"] <= viewport["height"], box
-    # Stacked toasts sit together at the bottom; the area is no taller than them.
+    # Stacked toasts sit together at the top, clear of the bottom bar and the
+    # top bar; the area is no taller than them.
     area = page.locator(".toasts").bounding_box()
     assert area
     top = min(box["y"] for box in boxes)
     bottom = max(box["y"] + box["height"] for box in boxes)
     assert area["height"] <= bottom - top + 1, (area, boxes)
-    assert bottom > viewport["height"] - 3 * MAX_TOAST_HEIGHT, (bottom, viewport)
+    assert top < 3 * MAX_TOAST_HEIGHT, (top, viewport)
+    bar = page.locator(".bottom-bar").bounding_box()
+    if bar:
+        assert bottom <= bar["y"], (bottom, bar)
+    header = page.locator("header").first.bounding_box()
+    if header and page.locator("dialog[open]").count() == 0:
+        assert top >= header["y"] + header["height"], (top, header)
 
 
 def test_toasts_are_small_and_inside_the_screen(svelte_server, open_session):
@@ -80,7 +87,7 @@ def test_toasts_are_small_and_inside_the_screen(svelte_server, open_session):
     assert message.evaluate("span => span.scrollWidth > span.clientWidth")
     expect_small_and_on_screen(page)
 
-    # Three toasts (the most at once) stack at the bottom, each still small.
+    # Three toasts (the most at once) stack at the top, each still small.
     add_item(page, "milk")
     add_item(page, "bread")
     add_item(page, "apples")

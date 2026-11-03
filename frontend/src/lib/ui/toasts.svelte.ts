@@ -1,4 +1,4 @@
-// Short messages at the bottom of the screen ("toasts"), like NiceGUI's
+// Short messages at the top of the screen ("toasts"), like NiceGUI's
 // `ui.notify`. Any page can call `toasts.show(…)`; `Toast.svelte` (in the
 // root layout) shows them. A `.svelte.ts` file may use runes such as `$state`.
 
