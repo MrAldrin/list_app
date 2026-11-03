@@ -95,6 +95,8 @@ remain owner gates; docs-desk commits retain their standing permission.
 - Owner review pending: final implementation/UX; feature acceptance; deploy;
   actual push provisioning/phone opt-in. No production configuration or real
   external push will be changed/sent during automated implementation.
+- Lead's combined checks and review evidence:
+  [delivery verification](../docs/background/reminder-delivery-verification.md).
 
 ## Approved product contract
 
