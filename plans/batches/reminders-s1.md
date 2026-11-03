@@ -73,11 +73,17 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: active; Lead edit handoff follows this assignment commit.
-- Next: Conductor dispatches bounded implementation and fresh independent review.
-- Children/workspaces: none yet; Conductor records its children here.
-- Docs-desk status/closeout write ownership: assigned Conductor after handoff;
-  obtain a write window before changing/committing this file in the docs desk.
+- State: active; two-way readiness and explicit edit handoff received.
+- Next: UI worker implements S1; fresh independent review follows completion.
+- Child: worker run `5b6c7408-2f4f-487d-9264-092304820d4e`, requested
+  `claude-code/claude-haiku-5-5:medium`; effective settings verification pending.
+- Child workspace: `tmp-reminders-s1-ui`,
+  `/home/hsa/projects/tmp-reminders-s1-ui`, created/managed by this Conductor;
+  initial change `kxumoykk` from completed base `zpzpvuyl` (`9abc4e72`).
+  Worker alone edits frontend, related tests and current-behavior docs there;
+  no grandchildren. Conductor owns reviewed integration and child cleanup.
+- Docs-desk write window granted by Lead for this status update only;
+  record-only commit and release reported through intercom.
 
 ## Closeout — assigned Conductor
 
