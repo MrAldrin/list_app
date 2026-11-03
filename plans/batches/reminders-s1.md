@@ -74,8 +74,20 @@ material fixes after independent review.
 ## Status — assigned Conductor writes after handoff
 
 - State: active; two-way readiness and explicit edit handoff received.
-- Next: resumed worker finishes missing share/deleted-target coverage and
-  preserves a stable completed tip; fresh review and combined full gates follow.
+- Next: substantive review fixes, fresh diff-level independent review, then
+  combined full stage gates; no acceptance yet.
+- Candidate: completed `kxumoykk` (`30cf8d1b977f`), empty child `swtpolmk`.
+  Actual worker environment confirms `claude-code/claude-haiku-5-5`, `medium`.
+- Independent medium review `cdd5ba56-6485-4563-947e-a4be24c8f2a6`: BLOCK.
+  Confirmed stale clock on remount, silent conflicting-filter clearing, doc
+  contradiction and missing edge browser coverage. Reviewer admitted it did
+  not inspect the base-to-tip diff; this is not final review approval.
+- Fix worker `35e31c54-60b6-4b5c-9737-77900331ee1b` uses the same isolated
+  child workspace, requested Haiku 5.5/max (effective verification pending),
+  explicit 60-minute runtime with three-minute checkpoint. Scope: clock and
+  lifecycle tests, restrained explicit filter-cleared status (not a due toast),
+  doc correction and isolation/offline/live/keyboard/unavailable coverage.
+  Fresh independent diff-level review is required after material fixes.
 - Runtime checkpoint: initial worker reached the harness 30-minute timeout;
   partial scoped work remains in `kxumoykk`. Same worker resumed once as
   `04e1ec55-9fb2-4155-af65-fd3c65031ed3`, no harness/model substitution.
