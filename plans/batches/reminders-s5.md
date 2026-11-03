@@ -74,11 +74,34 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: blocked by predecessor stage.
-- Next: complete two-way readiness and read-only preflight; wait for reviewed
-  predecessor integration and explicit Lead edit handoff before implementing.
-- Children/workspaces: none yet.
-- Docs-desk status write ownership: Lead until edit handoff; Conductor thereafter.
+- State: quiescent, blocked by reviewed predecessor integration. Two-way
+  readiness and read-only preflight accepted by Lead.
+- Next: await exact reviewed S4 base, coordinated entry rebase and explicit
+  edit handoff. No implementation, children or services started.
+- Proposed bounded work: integrated-contract gap review; isolated backend
+  diagnostics/restore and frontend mobile/accessibility fixes; docs/evidence
+  consistency; fresh independent final review and complete combined checks.
+- Interface needs: S3 scheduler status, switches, cursor/outbox and claim
+  semantics; S4 safe configuration-health/fallback states; S2 revision,
+  inheritance and preview contracts; S1 dialog/focus/theme conventions.
+  Re-inspect implemented interfaces after handoff; provisional legacy source
+  observations are not predecessor findings.
+- Accepted safety direction: keep public `/healthz` DB-only. Expose safe reason
+  enums, last tick and own queue state only through own-device/room-authorized
+  reminder settings/status; no global private history or new admin access model.
+- Restore: use an explicit external resume cutoff that survives DB replacement;
+  suppress work whose actual eligible/wake instant precedes it, retain legitimate
+  future work, and verify against S3 storage with fake-clock tests. Stay within
+  the existing restore workflow; no rehearsal or extra deployment gate.
+- Preview remains stopped. Later use a new explicit
+  `local_only/reminder-preview.db`, never the helper's shared default or
+  `--fresh` on existing data; confirm port 8080 ownership and use a visible pane.
+- Evidence limits: no attached Android emulator found; physical Android/iPhone
+  push, production Serverless and VAPID provisioning remain rollout limits,
+  not automated passes. Use fake senders and disposable databases only.
+- Children/workspaces: none created; Lead owns the entry workspace lifecycle.
+- Docs-desk window: status-only preflight record; release immediately after
+  committing this file. Further writes require another coordinated window.
 
 ## Closeout — assigned Conductor
 
