@@ -225,6 +225,8 @@
 	// item and focuses it. Runs once per tap, never on live updates.
 	let handledReveal = '';
 	let revealMissing = $state(false);
+	/** What the last reveal cleared to show its item, named in a status; empty when nothing was cleared. */
+	let revealCleared = $state('');
 	const reveal = $derived(readReveal(page.url.searchParams));
 	$effect(() => {
 		const current = reveal;
@@ -234,6 +236,12 @@
 		revealMissing = !target || target.list_uid !== list.uid;
 		if (revealMissing) return;
 		revealMissing = false;
+		revealCleared = [
+			chosenTags.length > 0 ? 'the tag filter' : '',
+			searchText !== '' ? 'the search' : ''
+		]
+			.filter(Boolean)
+			.join(' and ');
 		releaseRows();
 		chosenTags = [];
 		searchText = '';
@@ -387,6 +395,8 @@
 	<p class="hidden-count" role="status">
 		That item is no longer on this list. Its date may have changed, or it was deleted.
 	</p>
+{:else if revealCleared}
+	<p class="hidden-count" role="status">Showing the item. Cleared {revealCleared}.</p>
 {/if}
 <ul class="items">
 	<!-- Hide checked items first (on the whole list), then filter by tag. -->

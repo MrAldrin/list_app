@@ -2,8 +2,9 @@
 
 The due bell shows the items that are due, in the room or on the list on
 screen. It needs no permission and no setup, and works from saved data when
-offline. Nothing interrupts editing: there are no reminder toasts, and the
-bell's count is the only due signal. Phone notifications are not built yet
+offline. Nothing interrupts editing: there are no reminder toasts. The bell's count
+and the list counts are the due signals; date labels mark each dated item.
+Phone notifications are not built yet
 (see the [plan](../plans/due-date-reminders.md)).
 
 ## What counts as due
@@ -31,7 +32,9 @@ are the device's own days. Items without a date never show as due.
 - The panel groups items as in the table. Empty groups are hidden. Items are
   sorted by day, then by list name, then by item name.
 - Tapping an item opens its list with the item revealed: the tag filter and
-  the search text are cleared, and the item is focused.
+  the search text are cleared, and the item is focused. A short status says
+  which filter was cleared; nothing is cleared, and no status shows, when
+  neither was set.
 - If the item is no longer on that list, the page says so.
 - The panel is marked "Saved data" when the page cannot confirm the latest data.
 - Updates from other devices change the panel's content without moving focus.
@@ -59,6 +62,6 @@ labels and counts without a reload.
 - Rules: `frontend/src/lib/list/due-reminders.ts` (tests next to it).
 - Day clock: `frontend/src/lib/list/due-clock.svelte.ts`.
 - Bell and panel: `frontend/src/lib/list/DueCenter.svelte`, placed in
-  `RoomHeader.svelte` and `ListHeader.svelte`.
+  `RoomHeader.svelte` and, through `ListHeader`'s bell slot, in `ListView.svelte`.
 - Reveal link and read: `frontend/src/lib/list/reveal.ts`, used by `ListView.svelte`.
 - Browser tests: `browser_tests/test_svelte_due_center.py`.

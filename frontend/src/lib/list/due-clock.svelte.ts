@@ -3,7 +3,6 @@
 // midnight without a reload. Browsers pause timers in background tabs, which the
 // visibility check covers. It never moves within a day, so views do not redo work.
 
-import { SvelteDate } from 'svelte/reactivity';
 import { localDay } from './due-reminders.ts';
 
 /** How often the clock checks for a new day, in milliseconds. */
@@ -31,7 +30,10 @@ export function advanceDueClock(next: Date): void {
 
 /** Checks the day now, every minute and when the page is shown again. Returns the function that stops it. */
 export function startDueClock(): () => void {
-	const check = () => advanceDueClock(new SvelteDate());
+	// A plain Date, not SvelteDate: the day is the reactive state, and SvelteDate ignores fake timers in tests.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const check = () => advanceDueClock(new Date());
+	check();
 	const timer = setInterval(check, DUE_CLOCK_CHECK_MS);
 	document.addEventListener('visibilitychange', check);
 	return () => {
