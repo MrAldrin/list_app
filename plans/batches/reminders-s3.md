@@ -74,16 +74,41 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: blocked by predecessor stage.
-- Next: complete two-way readiness and read-only preflight; wait for reviewed
-  predecessor integration and explicit Lead edit handoff before implementing.
-- Children/workspaces: none yet.
-- Docs-desk status write ownership: Lead until edit handoff; Conductor thereafter.
+- State: preflight accepted by Lead; quiescent, blocked on reviewed S2.
+- Two-way readiness verified: assigned session/cwd, Sol high, pc-home tab 12
+  pane 21. Required role contract and authoritative master/brief read fully.
+- Decomposition: independently reviewed 3a durable core; 3b protected summaries,
+  history and claimed strip; 3c full scheduling/actions on the same outbox.
+  Use isolated bounded Haiku 5.5/medium workers after implementation handoff.
+- S2 interfaces needed: pure resolver/effective policy; installation/enrollment
+  authorization helpers; saved-grant validation; policy revisions/idempotency;
+  due-cycle and stable fixed-rule identity; future-only activation timestamp
+  and revocation/deletion hooks. Concrete names arrive with S2 handoff.
+- S4 seam: injectable transport, stable occurrence/group IDs, leased outbox,
+  attempt/acceptance/ambiguity states, expiry and reusable quota reservations.
+  Push-active suppresses strips; disabled/blocked push allows in-app fallback.
+- S5 seams: safe status/switch-reason enums, explicit eligible/wake instants,
+  and injectable reconciliation with an external restore-resume cutoff.
+  Suppress pre-cutoff eligible work while retaining actual future work;
+  restored SQLite cannot remember post-backup sends. No second scheduler.
+  Diagnostics remain authenticated own-device data; /healthz stays DB-only.
+- Next: Lead may update/rebase this released entry; await reviewed predecessor,
+  exact new base and explicit EDIT HANDOFF before code, children or services.
+- Children/workspaces: none; entry remains unchanged on its provisional base.
+- Docs-desk status write: preflight-only window granted; later writes require
+  another coordinated window. Frozen Brief/Assignment remain Lead-owned.
 
 ## Closeout — assigned Conductor
 
 - Result/change IDs: pending.
-- Independent review and checks: pending.
-- Assumptions, limits and retained artifacts: pending.
-- Child cleanup/entry cwd release: pending.
+- Independent review and checks: implementation pending. Read-only inspection
+  confirmed empty entry and prepared .env/.venv/frontend dependencies; no
+  runtime suites or services started for preflight.
+- Assumptions: existing single-process SQLite lock, bounded threaded DB batches,
+  no network under transactions, roughly 60-second scan, injectable clock and
+  dispatch switch. No new owner decision, physical-device or hosting gate.
+- Limits: no implementation authority until explicit handoff; no real sends,
+  production configuration, feature acceptance or deployment.
+- Child cleanup/entry cwd release: no children; entry released to Lead for
+  predecessor update, not removal. Keep this interactive session available.
 - Owner review/acceptance: pending; no deployment.
