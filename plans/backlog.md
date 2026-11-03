@@ -36,11 +36,11 @@ locally before merging.
 
 - **Wave 1:** done (tag "+" chip, Sort, themes step 1, in-app reminders).
 - **Wave 2, one session in order, after wave 1 is merged:** bottom bar,
-  scrollable suggestions, usual items. All three rebuild the add area.
+  scrollable suggestions, usual items. All three rebuild the add area. Usual
+  items done (pop-up on blank focus); bottom bar and suggestions still open.
 
 - [ ] [feature] Bottom bar for the thumb on phones: move add/search to the bottom of the list page and toasts to the top. The implementing agent decides whether Options, Sort, the menu or other controls also move down; avoid crowding and record the choice in the docs. The room page may also be improved for thumb reach. The mockups, especially C, are inspiration, not a requirement to copy their other features. See [visual refresh](visual-refresh.md).
 - [ ] [feature] Scrollable typing suggestions: while typing in **Add or Search**, show about three matches at once in a scrollable list. Order matches by add count, most added first, rather than alphabetically. A cap around ten is acceptable if useful; typing more narrows the matches. Keep the keyboard rules in [adding items](../docs/adding-items.md); fit with the bottom bar item above.
-- [ ] [feature] Redesign usual items so they take no space when not needed. Prefer showing them on demand when the empty add/search field is focused, rather than adding a permanent control; the implementing agent may choose a better design and explains the choice. Keep the current ranking and offline behavior. See [adding items](../docs/adding-items.md).
 
 ## Blocked
 

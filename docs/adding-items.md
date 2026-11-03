@@ -13,14 +13,16 @@ the field.
   not select a suggestion. **Escape** closes the suggestions; typing again opens
   them.
 
-When the field is blank, a **Usual items** row offers up to three checked
-items from this list that have been added at least twice. It ranks by the
-existing per-item, per-list count, then name. Unchecked items are left out
-because they are already active on the list. These are separate buttons, not
-combobox suggestions: use **Tab** past **Add**, then **Enter** to choose one,
-or tap it. Choosing a checked item uses the normal add behavior and restores it.
+When the field is blank and focused, the same pop-up list shows **Usual
+items** instead: up to three checked items from this list that have been added
+at least twice. It ranks by the existing per-item, per-list count, then name.
+Unchecked items are left out because they are already active on the list. The
+usual items follow the same keyboard and touch rules as suggestions above, and
+choosing a checked item restores it. Typing replaces them with the normal
+suggestions. Nothing shows under the field until it is focused, so the list
+keeps its space.
 
-The row uses the saved item counts while offline. Choosing one queues the same
+The usual items use the saved item counts while offline. Choosing one queues the same
 normal add operation as typing a name; it is sent when the app reconnects. See
 [offline use](offline-viewing.md#waiting-changes).
 

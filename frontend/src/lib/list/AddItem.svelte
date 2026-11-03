@@ -4,7 +4,8 @@
 	highlighted name. Clicking or tapping a suggestion also selects it. Escape
 	closes the list. Leaving the field hides the list (the text stays); coming
 	back shows it again. The field keeps focus after selecting a suggestion, so
-	the next item can be typed at once.
+	the next item can be typed at once. While the field is blank, the same list
+	offers the usual items instead, so they take no space until asked for.
 -->
 <script lang="ts">
 	import { MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
@@ -36,7 +37,9 @@
 	let closed = $state(false);
 	/** Suggestions show only while the field has focus. */
 	let focused = $state(false);
-	const shown = $derived(closed || !focused ? [] : suggestions);
+	// Blank text: offer usual items in the same popup (empty when typing).
+	const usualMode = $derived(usual.length > 0);
+	const shown = $derived(closed || !focused ? [] : usualMode ? usual : suggestions);
 	const active = $derived(activeName === null ? -1 : shown.indexOf(activeName));
 	// Unique ids on the page, for the ARIA links between field and suggestions.
 	const listId = $props.id();
@@ -125,25 +128,14 @@
 		</button>
 	</form>
 
-	{#if usual.length > 0}
-		<div class="usual">
-			<p id="{listId}-usual-label" class="usual-label">Usual items</p>
-			<ul class="usual-items" aria-labelledby="{listId}-usual-label">
-				{#each usual as name (name)}
-					<li>
-						<button type="button" disabled={!canEdit} onclick={() => add(name)}>
-							{name}
-						</button>
-					</li>
-				{/each}
-			</ul>
-		</div>
-	{/if}
-
 	{#if shown.length > 0}
 		<!-- A combobox's popup: screen readers announce the highlighted option
 		     while the focus stays in the field. -->
-		<ul id={listId} role="listbox" aria-label="Suggestions">
+		<ul id={listId} role="listbox" aria-label={usualMode ? 'Usual items' : 'Suggestions'}>
+			{#if usualMode}
+				<!-- A visible heading; aria-label already names the listbox. -->
+				<li class="heading" role="presentation" aria-hidden="true">Usual items</li>
+			{/if}
 			{#each shown as name, index (name)}
 				<!-- Keyboard handling stays on the combobox; options are not tab stops. -->
 				<!-- Prevent touch mousedown from unmounting an option before its click. -->
@@ -214,44 +206,10 @@
 		background: var(--border);
 	}
 
-	.usual {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.25rem 0.5rem;
-		padding-bottom: 0.5rem;
-	}
-
-	.usual-label {
-		margin: 0;
+	li.heading {
+		min-height: 2rem;
 		color: var(--text-muted);
-	}
-
-	ul.usual-items {
-		position: static;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-		margin: 0;
-		padding: 0;
-		background: transparent;
-		border-radius: 0;
-		box-shadow: none;
-	}
-
-	ul.usual-items li {
-		width: auto;
-		min-height: 0;
-		padding: 0;
-	}
-
-	.usual-items button {
-		width: auto;
-		min-height: var(--touch);
-		padding: 0 0.75rem;
-		border-color: var(--border);
-		background: var(--surface);
-		text-align: left;
-		overflow-wrap: anywhere;
+		font-size: 0.875rem;
+		cursor: default;
 	}
 </style>

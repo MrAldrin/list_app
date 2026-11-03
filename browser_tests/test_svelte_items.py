@@ -62,7 +62,7 @@ def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session
     expect(field).to_be_focused()
 
 
-def test_usual_item_shortcut_supports_keyboard_touch_and_checked_restore(
+def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     svelte_server, open_session
 ):
     server = svelte_server
@@ -83,34 +83,42 @@ def test_usual_item_shortcut_supports_keyboard_touch_and_checked_restore(
         checkbox.check()
     assert server.query("SELECT done, add_count FROM items") == [(1, 2)]
 
-    usual = page.get_by_role("list", name="Usual items")
-    shortcut = usual.get_by_role("button", name="milk", exact=True)
+    # Usual items take no space until the blank field is focused.
+    usual = page.get_by_role("listbox", name="Usual items")
+    expect(usual).to_have_count(0)
+    field.focus()
+    shortcut = usual.get_by_role("option", name="milk", exact=True)
     expect(shortcut).to_be_visible()
     assert shortcut.evaluate("element => element.getBoundingClientRect().height") >= 44
 
-    # A usual item is in the ordinary focus order after the field's Add button.
-    field.focus()
-    field.press("Tab")
-    expect(page.get_by_role("button", name="Add", exact=True)).to_be_focused()
-    page.keyboard.press("Tab")
-    expect(shortcut).to_be_focused()
-    page.keyboard.press("Enter")
-    expect(page.get_by_text("Restored milk!")).to_be_visible()
+    # The keyboard uses the normal combobox rules: arrow down, then Enter.
+    field.press("ArrowDown")
+    expect(field).to_have_attribute("aria-activedescendant", re.compile(".+"))
+    with page.expect_response(saved_op):
+        field.press("Enter")
+    expect(page.get_by_text("Restored milk!").last).to_be_visible()
     expect(field).to_be_focused()
     expect(usual).to_have_count(0)
 
     # With the checked item back on the list, a touch tap restores it too.
     with page.expect_response(saved_op):
         checkbox.check()
+    field.focus()
     expect(shortcut).to_be_visible()
     shortcut.tap()
-    expect(page.get_by_text("Restored milk!")).to_be_visible()
+    expect(page.get_by_text("Restored milk!").last).to_be_visible()
     expect(field).to_be_focused()
     expect(usual).to_have_count(0)
 
-    # Typing still shows the existing autocomplete, not the usual-item row.
+    # Escape closes it; typing shows the normal suggestions instead.
+    with page.expect_response(saved_op):
+        checkbox.check()
+    field.focus()
+    expect(shortcut).to_be_visible()
+    field.press("Escape")
+    expect(usual).to_have_count(0)
     field.fill("mil")
-    expect(page.get_by_role("option", name="milk")).to_be_visible()
+    expect(page.get_by_role("listbox", name="Suggestions")).to_be_visible()
     expect(usual).to_have_count(0)
 
 
