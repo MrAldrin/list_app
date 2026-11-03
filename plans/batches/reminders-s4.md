@@ -74,11 +74,27 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: blocked by predecessor stage.
-- Next: complete two-way readiness and read-only preflight; wait for reviewed
-  predecessor integration and explicit Lead edit handoff before implementing.
-- Children/workspaces: none yet.
-- Docs-desk status write ownership: Lead until edit handoff; Conductor thereafter.
+- State: preflight accepted; quiescent, blocked by reviewed S3 integration.
+  Two-way readiness verified; brief/master read fully and provisional seams inspected.
+- Next: coordinated entry rebase and exact-base Lead EDIT HANDOFF. No
+  implementation, children, services or notification enrollment/sends yet.
+- Decomposition: subscription/API/security contracts, then sender/outbox;
+  isolated frontend/worker work; fresh independent review and combined gates.
+- Transport requirement: validate actual-connect DNS/IP/TLS and reject redirects,
+  not only pre-resolve an endpoint. Lead approved a small injectable/pinned HTTPS
+  transport or maintained crypto/VAPID with separately tested transport; reconfirm
+  library APIs at implementation and escalate concrete unresolved seams only.
+- S2 interface: installation cookie/access, revision/idempotency and settings seams.
+  S3 interface: transport results, claims/leases, stable group IDs, expiry,
+  saved-grant cancellation, shared quota/cross-day retries and blocked-push fallback
+  without a duplicate foreground strip. Bind exact symbols after predecessor lands.
+  S5 handoff: config/rotation/recovery notes, safe diagnostics and evidence limits.
+- Assumptions: iOS16.4 installed-app baseline; WebKit18.4 declarative enhancement,
+  never silent push. Push remains off without explicit configuration; fake sender
+  and test keys only. Physical-device closed-app delivery remains unverified.
+- Children/workspaces: none created; Lead retains entry workspace lifecycle.
+- Docs-desk status-only window granted for this update; release after file-only
+  commit. No bookmark moves; further writes require another coordinated window.
 
 ## Closeout — assigned Conductor
 
