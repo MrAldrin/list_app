@@ -74,11 +74,28 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: blocked by predecessor stage.
-- Next: complete two-way readiness and read-only preflight; wait for reviewed
-  predecessor integration and explicit Lead edit handoff before implementing.
-- Children/workspaces: none yet.
-- Docs-desk status write ownership: Lead until edit handoff; Conductor thereafter.
+- State: preflight complete and accepted; entry workspace quiescent, blocked
+  on reviewed Stage 1 integration and explicit Lead edit handoff/exact base.
+- Two-way readiness verified; required skills and authoritative brief/master
+  read fully. No implementation edits, children, tests or services started.
+- Next: Lead may update/rebase the quiescent entry workspace; Conductor waits
+  for the exact new base before dispatching bounded implementation workers.
+- Proposed sequence: shared due-time/resolver foundation; personal policy/API;
+  compatible offline client; reusable editor/UI; integrated independent review
+  and full quality gates. Parallel editors get separate child workspaces.
+- Children/workspaces: none yet; entry remains Lead-managed.
+- Assumptions: add approved runtime `tzdata`; prove resolution with
+  `PYTHONTZPATH=''` and verify Dockerfile's locked `uv --no-dev` dependency
+  path includes it. Docker CLI is absent; check Podman if useful. Do not
+  claim image execution without an engine or add a manual predeploy gate.
+- Compatibility: test absent/null/legacy hashes and undo/conflict semantics;
+  use the existing API-version mechanism only if required, with rationale.
+- S3 handoff must document/test concrete resolver/effective-policy exports,
+  installation/enrollment grant validation, due-cycle and stable fixed-rule
+  identities/instants, revisions/idempotency and future-only activation time.
+  S3 owns persisted occurrences/outbox/quotas/leases and the scheduler.
+- Docs-desk: Lead granted this status-only preflight window; future writes
+  require another coordinated window. Brief remains Lead-owned.
 
 ## Closeout — assigned Conductor
 
