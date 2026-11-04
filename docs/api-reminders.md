@@ -29,7 +29,12 @@ Times are UTC. Expiry is checked on each request with the server clock.
   enrollment and one year after its authorizing room token was created.
 - Only `POST …/reminders/enrollment` starts a new lifetime. Reads
   (`GET`) and PATCH never extend the device, the grant or the cookie.
-- An expired device or grant behaves as missing or `needs_resume`.
+- An expired device behaves as missing: it is not an installation for any
+  request. An expired grant reports `needs_resume`.
+- The installation expiry is checked on every grant state read, not only on the
+  cookie lookup, so a grant cannot read as `active` after its device expired.
+- Room tokens store no expiry. The grant bound uses the token's creation time
+  plus one year, the same as the room cookie.
 
 ### Revocation
 
@@ -114,11 +119,16 @@ account. Changing a device setting does not change any room's data.
 - Each personal write has its own store (`reminder_processed_ops`), split by
   scope: `installation` (device settings) and `enrollment` (one room). Shared
   `op_id`s in list and item writes never collide with these.
-- The stored result is returned on a retry with the same body. Nothing is
-  applied again, and the activation time does not move.
-- The same `op_id` with another body is 409 `op_id_reused`.
-- Replays of enrollment report the grant's **current** state, so an old
-  success never makes a cut grant look active.
+- The hash covers the **action** (enrollment POST or preferences PATCH) and the
+  body. The same `op_id` with the same body replays the stored result for that
+  action. The same `op_id` for the other action, or with another body, is
+  409 `op_id_reused` and changes nothing.
+- A replay applies nothing again. It does not move the activation time, does
+  not renew the device or grant, and sets no cookie.
+- Replays refresh only the dynamic `state` (`active`, `needs_resume`,
+  `opted_out`) inside the same transaction, so a grant cut since the first
+  response is reported as cut. Stored `revision` and other fields stay as first
+  returned.
 - Revisions: a PATCH whose `base_revision` is not the current one is 409
   `revision_conflict`. Refresh and review; never last-writer-wins.
 - Auth and the device cookie are checked before the op is looked up. A

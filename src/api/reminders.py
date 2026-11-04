@@ -13,18 +13,18 @@ use their own op namespace (`reminder_processed_ops`), never `processed_ops`.
 Nothing here changes a room's change sequence or its live stream.
 """
 
+import hashlib
 import json
 from collections.abc import Callable
 from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
-from pydantic import Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
 
 from api.access import is_https, room_access, room_token
 from api.cookies import set_cookie
 from api.errors import ApiError
-from api.idempotency import request_hash
 from api.ops import Uuid
 from api.requests import JsonBody, StrictBody, parse_body
 from identifiers import token_hash
@@ -77,6 +77,9 @@ class EnrollmentBody(StrictBody):
     hash_omit_if_unsent: ClassVar[frozenset[str]] = frozenset(
         {"base_revision", "timezone", "mode", "summary_time"}
     )
+    # Hashed with the body, never sent: the same op_id used for another action
+    # (PATCH preferences) is a different request, so it gets 409 op_id_reused.
+    action: ClassVar[str] = "enroll"
 
 
 class EnrollmentPatchBody(StrictBody):
@@ -90,6 +93,7 @@ class EnrollmentPatchBody(StrictBody):
     hash_omit_if_unsent: ClassVar[frozenset[str]] = frozenset(
         {"mode", "summary_time", "opted_out"}
     )
+    action: ClassVar[str] = "patch_preferences"
 
 
 class DevicePatchBody(StrictBody):
@@ -199,6 +203,27 @@ def _check_revision(current: int | None, base: int | None) -> None:
         raise ApiError(409, "revision_conflict")
 
 
+def personal_request_hash(body: BaseModel) -> str:
+    """The hash of a personal op: its action name and body, in canonical JSON.
+
+    The action is part of the hash, so one op_id used for two actions (for
+    example POST enrollment and PATCH preferences) is 409 `op_id_reused`, not a
+    replay of the other action. A body's own hash rules are kept.
+    """
+    action = getattr(body, "action", "")
+    data = body.model_dump(mode="json")
+    for name in getattr(body, "hash_omit_if_null", frozenset()):
+        if data.get(name) is None:
+            data.pop(name, None)
+    for name in getattr(body, "hash_omit_if_unsent", frozenset()):
+        if name not in body.model_fields_set:
+            data.pop(name, None)
+    canonical = json.dumps(
+        {"action": action, **data}, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def run_personal_once_locked(
     scope: str,
     installation_id: int,
@@ -236,7 +261,7 @@ def enroll(slug: str, request: Request, body: JsonBody) -> Response:
     current state, so it never reactivates a grant that was cut since.
     """
     data = parse_body(EnrollmentBody, body)
-    body_hash = request_hash(data)
+    body_hash = personal_request_hash(data)
     token_digest = token_hash(room_token(request, slug) or "")
     with room_access(request, slug, write=True) as room:
         installation_id = installation_for_request(request)
@@ -262,12 +287,13 @@ def enroll(slug: str, request: Request, body: JsonBody) -> Response:
         result, replayed = _enroll_once(
             installation_id, room.room_id, token_digest, data, body_hash
         )
-    if replayed:
-        # The client already holds the device cookie; a replay renews nothing.
-        result["enrollment"]["state"] = identity.saved_grant_state_locked(
-            installation_id, room.room_id
-        )
-        return JSONResponse(result)
+        if replayed:
+            # Refresh the dynamic grant state inside the same lock. The stored
+            # result is otherwise unchanged, and no cookie is reset.
+            result["enrollment"]["state"] = identity.saved_grant_state_locked(
+                installation_id, room.room_id
+            )
+            return JSONResponse(result)
     response = JSONResponse(result)
     assert secret is not None  # Set on create, or read from the valid cookie.
     set_cookie(response, request, device_cookie_name(request), secret, MAX_AGE)
@@ -332,7 +358,7 @@ def get_preferences(slug: str, request: Request) -> dict[str, Any]:
 def patch_preferences(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
     """Change this device's enrollment settings in the room. Never activates a grant."""
     data = parse_body(EnrollmentPatchBody, body)
-    body_hash = request_hash(data)
+    body_hash = personal_request_hash(data)
     with room_access(request, slug, write=True) as room:
         installation_id = _require_device(request)
         if identity.enrollment_row_locked(installation_id, room.room_id) is None:
@@ -357,9 +383,15 @@ def patch_preferences(slug: str, request: Request, body: JsonBody) -> dict[str, 
                 )
             return {"enrollment": _enrollment_view(installation_id, room.room_id)}
 
-        response, _replayed = run_personal_once_locked(
+        response, replayed = run_personal_once_locked(
             ENROLLMENT_SCOPE, installation_id, room.room_id, data.op_id, body_hash, run
         )
+        if replayed:
+            # A stored PATCH result may predate a sign-out or password change. The
+            # dynamic grant state is refreshed inside the lock; nothing is reapplied.
+            response["enrollment"]["state"] = identity.saved_grant_state_locked(
+                installation_id, room.room_id
+            )
     return response
 
 
@@ -377,7 +409,7 @@ def get_device(slug: str, request: Request) -> dict[str, Any]:
 def patch_device(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
     """Change this device's settings. They apply to every room it is enrolled in."""
     data = parse_body(DevicePatchBody, body)
-    body_hash = request_hash(data)
+    body_hash = personal_request_hash(data)
     with room_access(request, slug, write=True):
         installation_id = _require_device(request)
 

@@ -222,9 +222,11 @@ def _token_is_live_locked(room_id: int, saved_hash: str, saved_version: int) -> 
 def saved_grant_state_locked(installation_id: int, room_id: int) -> str:
     """The grant state of this device in this room. Pure validation: never writes.
 
-    Returns `not_enrolled` (no row), `opted_out`, `active` (the saved token is
-    still live at the saved room version and the grant has not expired) or
-    `needs_resume` (revoked, expired, or no longer matching the room). Only an
+    Returns `not_enrolled` (no row), `opted_out`, `active` (the installation and
+    the saved grant have not expired, and the saved token is still live at the
+    saved room version) or `needs_resume` (revoked, expired, or no longer
+    matching the room). The installation's own expiry is checked here as well,
+    so a grant cannot read as active after its device has expired. Only an
     explicit enrollment restores a grant.
     """
     row = enrollment_row_locked(installation_id, room_id)
@@ -234,7 +236,14 @@ def saved_grant_state_locked(installation_id: int, room_id: int) -> str:
         return STATUS_OPTED_OUT
     if row["status"] == STATUS_REVOKED:
         return STATE_NEEDS_RESUME
-    if row["expires_at"] <= stamp(current_time()):
+    now = stamp(current_time())
+    installation_expires_at = db.execute(
+        "SELECT expires_at FROM reminder_installations WHERE id = ?",
+        (installation_id,),
+    ).fetchone()
+    if installation_expires_at is None or installation_expires_at[0] <= now:
+        return STATE_NEEDS_RESUME
+    if row["expires_at"] <= now:
         return STATE_NEEDS_RESUME
     if _token_is_live_locked(room_id, row["token_hash"], row["authorization_version"]):
         return STATUS_ACTIVE
