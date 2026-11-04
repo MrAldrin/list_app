@@ -3,6 +3,7 @@
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import { ApiError, NetworkError } from '#lib/data/types.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
+	import { setDeviceZone } from './device-zone.svelte';
 	import {
 		ReminderApi,
 		UnknownWriteOutcome,
@@ -22,6 +23,14 @@
 	let timezone = $state('');
 	let allDay = $state('09:00');
 	let paused = $state(false);
+	let quietEnabled = $state(true),
+		quietStart = $state('22:00'),
+		quietEnd = $state('08:00');
+	let dailyCap = $state(10),
+		spacingMinutes = $state(10);
+	let contentPrivacy = $state<Device['content_privacy']>('generic');
+	let repeatEnabled = $state(false),
+		repeatDays = $state(1);
 	let confirmZone = $state(false);
 	let hasDeviceDraft = false;
 	let recoveringIdentity = $state(false);
@@ -40,6 +49,7 @@
 
 	function applyEnrollment(value: Enrollment, initialize: boolean) {
 		enrollment = value;
+		if (value.state !== 'active') setDeviceZone(room, undefined);
 		if (initialize) {
 			mode = value.state === 'not_enrolled' ? 'daily_summary' : value.mode;
 			summary = value.state === 'not_enrolled' ? '09:00' : value.summary_time;
@@ -52,6 +62,14 @@
 			timezone = value?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
 			allDay = value?.all_day_time ?? '09:00';
 			paused = value?.paused ?? false;
+			quietEnabled = !!value?.quiet_hours;
+			quietStart = value?.quiet_hours?.start ?? '22:00';
+			quietEnd = value?.quiet_hours?.end ?? '08:00';
+			dailyCap = value?.daily_cap ?? 10;
+			spacingMinutes = value?.spacing_minutes ?? 10;
+			contentPrivacy = value?.content_privacy ?? 'generic';
+			repeatEnabled = value?.overdue_repeat_days != null;
+			repeatDays = value?.overdue_repeat_days ?? 1;
 		}
 	}
 	async function load(initialize: boolean) {
@@ -109,14 +127,18 @@
 			if (pendingKind === 'device') {
 				const result = await api.sendDevice(pending);
 				applyDevice(result, true);
+				if (enrollment?.state === 'active') setDeviceZone(room, result.timezone);
 				confirmZone = false;
 			} else {
 				const result = await api.sendEnrollment(pending);
 				applyEnrollment(result, false);
+				if (result.state !== 'active') setDeviceZone(room, undefined);
 				if (pendingKind === 'enroll') {
 					// Enrollment may have created the device; this GET does not renew it.
 					try {
-						applyDevice((await api.device()).device, !hasDeviceDraft);
+						const latest = (await api.device()).device;
+						applyDevice(latest, !hasDeviceDraft);
+						if (result.state === 'active') setDeviceZone(room, latest?.timezone);
 					} catch {
 						notice = 'Enrolled. Reopen settings to load device settings.';
 					}
@@ -202,11 +224,29 @@
 				error = 'Confirm the time zone change first.';
 				return;
 			}
+			if (
+				(quietEnabled && (!quietStart || !quietEnd || quietStart === quietEnd)) ||
+				!Number.isInteger(dailyCap) ||
+				dailyCap < 1 ||
+				dailyCap > 50 ||
+				!Number.isInteger(spacingMinutes) ||
+				spacingMinutes < 1 ||
+				spacingMinutes > 60 ||
+				(repeatEnabled && (!Number.isInteger(repeatDays) || repeatDays < 1 || repeatDays > 30))
+			) {
+				error = 'Check quiet hours and numeric limits.';
+				return;
+			}
 			pending = api.prepare('PATCH', 'preferences/device', {
 				base_revision: device.revision,
 				timezone,
 				all_day_time: allDay,
-				paused
+				paused,
+				quiet_hours: quietEnabled ? { start: quietStart, end: quietEnd } : null,
+				daily_cap: dailyCap,
+				spacing_minutes: spacingMinutes,
+				content_privacy: contentPrivacy,
+				overdue_repeat_days: repeatEnabled ? repeatDays : null
 			});
 		} else return;
 		pendingKind = kind;
@@ -225,7 +265,7 @@
 		Private to this browser. Room settings apply only here; device settings apply across enrolled
 		rooms. Reminder delivery is not active in phase 2.
 	</p>
-	<p>Due item day groups currently use the browser time zone, not this device setting.</p>
+	<p>Due views use the device time zone when enrolled, otherwise the browser time zone.</p>
 	{#if loading}<p role="status">Loading settings…</p>{/if}
 	{#if error}<p role="alert">{error}</p>{/if}
 	{#if notice}<p role="status">{notice}</p>{/if}

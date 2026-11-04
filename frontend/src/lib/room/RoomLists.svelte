@@ -5,6 +5,8 @@
 	back as `store.notice`; the room page shows those as toasts.
 -->
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { deviceZone, loadDeviceZone } from '#lib/reminders/device-zone.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { List, RoomHandle } from '#lib/data/index.ts';
@@ -20,9 +22,10 @@
 
 	let { room }: { room: RoomHandle } = $props();
 	const now = $derived(dueClock.now);
+	onMount(() => loadDeviceZone(room));
 	/** Unchecked items overdue, due today or due tomorrow in a list (see due-reminders.ts). */
 	function listDue(listUid: string) {
-		return dueTally(room.store.itemsOf(listUid), now);
+		return dueTally(room.store.itemsOf(listUid), now, deviceZone(room));
 	}
 	/** Creating a list needs the server (it gets its address there). */
 	const online = $derived(room.store.canWrite);

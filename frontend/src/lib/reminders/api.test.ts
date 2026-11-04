@@ -9,7 +9,17 @@ const enrollment = {
 	summary_time: '09:00',
 	activated_at: '2026-01-01T00:00:00Z'
 };
-const device = { revision: 1, timezone: 'Europe/Oslo', all_day_time: '09:00', paused: false };
+const device = {
+	revision: 1,
+	timezone: 'Europe/Oslo',
+	all_day_time: '09:00',
+	paused: false,
+	quiet_hours: { start: '22:00', end: '08:00' },
+	daily_cap: 10,
+	spacing_minutes: 10,
+	content_privacy: 'generic',
+	overdue_repeat_days: null
+};
 const json = (value: unknown) =>
 	new Response(JSON.stringify(value), {
 		status: 200,
@@ -76,5 +86,37 @@ describe('ReminderApi', () => {
 		await expect(api.sendDevice(pending)).rejects.toBeInstanceOf(UnknownWriteOutcome);
 		await expect(api.sendDevice(pending)).resolves.toEqual(device);
 		expect(fetch.mock.calls[0][1].body).toBe(fetch.mock.calls[1][1].body);
+	});
+});
+
+it('policy writes retain the exact request after malformed successful responses', async () => {
+	const policy = {
+		scope: 'item',
+		state: 'off',
+		preset: null,
+		summary_enabled: false,
+		rules: [],
+		revision: 1,
+		activated_at: null
+	};
+	const fetch = vi
+		.fn()
+		.mockResolvedValueOnce(json({ policy: { ...policy, rules: [{}] }, effective: policy }))
+		.mockResolvedValueOnce(json({ policy, effective: policy }));
+	const api = new ReminderApi('home', new Api(fetch));
+	const pending = api.prepare('PUT', 'items/uid/policy', { base_revision: 0, state: 'off' });
+	await expect(api.sendPolicy(pending)).rejects.toBeInstanceOf(UnknownWriteOutcome);
+	await expect(api.sendPolicy(pending)).resolves.toEqual({ policy, effective: policy });
+	expect(fetch.mock.calls[0][1].body).toBe(fetch.mock.calls[1][1].body);
+});
+it('preview uses the public item UID and rejects malformed responses', async () => {
+	const fetch = vi.fn().mockResolvedValue(json({ entries: [] }));
+	const api = new ReminderApi('home', new Api(fetch));
+	await expect(api.preview('item-uid', { state: 'inherit' })).rejects.toThrow(
+		'Could not read preview'
+	);
+	expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
+		item_uid: 'item-uid',
+		draft: { state: 'inherit' }
 	});
 });

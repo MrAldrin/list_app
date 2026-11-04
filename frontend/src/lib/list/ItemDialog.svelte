@@ -12,8 +12,9 @@
 <script lang="ts">
 	import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
-	import type { Item, TagSettings } from '#lib/data/index.ts';
+	import type { Item, RoomHandle, TagSettings } from '#lib/data/index.ts';
 	import FormDialog from '#lib/ui/FormDialog.svelte';
+	import PolicyEditor from '#lib/reminders/PolicyEditor.svelte';
 	import Icon from '#lib/ui/Icon.svelte';
 	import { addedLabel, lastAddedLabel, stepQuantity } from './items';
 	import { tagColor } from './tags';
@@ -21,6 +22,7 @@
 
 	let {
 		item,
+		reminderRoom,
 		itemTags,
 		tags,
 		tagSettings,
@@ -31,6 +33,7 @@
 		onClose
 	}: {
 		item: Item;
+		reminderRoom?: RoomHandle;
 		/** The item's tags now (not at opening): the chips save at once, so they follow the store. */
 		itemTags: readonly string[];
 		/** The list's tags, sorted. */
@@ -54,6 +57,7 @@
 		onClose: () => void;
 	} = $props();
 
+	let remindersOpen = $state(false);
 	const lastAdded = $derived(lastAddedLabel(item.added_at));
 
 	const nameId = $props.id();
@@ -188,6 +192,12 @@
 			{/if}
 		{/if}
 	{/if}
+	{#if reminderRoom && item.date}
+		<button type="button" onclick={() => (remindersOpen = true)}
+			>Personal reminders for this item</button
+		>
+		<p class="added">Preview uses the saved item date, not unsaved changes in this dialog.</p>
+	{/if}
 	{#if tags.length > 0}
 		<span id={tagsId} class="label">Tags</span>
 		<ul class="chips" aria-labelledby={tagsId}>
@@ -229,6 +239,14 @@
 		<span class="spacer"></span>
 	{/snippet}
 </FormDialog>
+{#if remindersOpen && reminderRoom}
+	<PolicyEditor
+		room={reminderRoom}
+		scope="item"
+		uid={item.uid}
+		onClose={() => (remindersOpen = false)}
+	/>
+{/if}
 
 <style>
 	.quantity {

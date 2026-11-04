@@ -8,13 +8,17 @@ is not active yet; these endpoints only store settings.
 
 The room menu's **Personal reminders** dialog reads these settings without
 creating a device. Enroll or resume explicitly there. Room mode and summary
-time, device time zone, all-day time and pause can be changed while online.
+time, device time zone, all-day time, quiet hours, privacy and limits can be
+changed while online. Private room, list and dated-item policies are available
+from the due bell; room menu, list options and item editing also offer policy
+entry points. Preview uses the saved item date, not unsaved item edits.
 Unsaved edits stay in the open dialog; they are never put in the shared offline
 queue. Drafts and pending request IDs live only in memory and are lost on page
 reload or navigation. A request with an unknown result can be retried unchanged
 while the dialog remains open; after reload it cannot be retried with that same
-ID and body. The due views still use the browser time zone, not the saved device
-time zone.
+ID and body. Due views use the device time zone while this room is actively
+enrolled; otherwise they use the browser time zone. The zone is held in memory
+only.
 
 ## Device and enrollment
 

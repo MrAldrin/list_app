@@ -15,7 +15,8 @@
 		type TagMode
 	} from '#lib/data/index.ts';
 	import { page } from '$app/state';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import { deviceZone, loadDeviceZone } from '#lib/reminders/device-zone.svelte.ts';
 	import BottomBar from '#lib/ui/BottomBar.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import { showUndoToast } from '#lib/ui/undo-toast.ts';
@@ -23,6 +24,7 @@
 	import { toasts } from '#lib/ui/toasts.svelte.ts';
 	import AddItem from './AddItem.svelte';
 	import DueCenter from './DueCenter.svelte';
+	import PolicyEditor from '#lib/reminders/PolicyEditor.svelte';
 	import ItemDialog from './ItemDialog.svelte';
 	import ItemRow from './ItemRow.svelte';
 	import ListHeader from './ListHeader.svelte';
@@ -64,10 +66,13 @@
 		roomDue?: boolean;
 	} = $props();
 
+	onMount(() => (roomDue ? loadDeviceZone(room) : undefined));
+
 	// Edits may start offline (they are queued). Sharing and resets need the server.
 	const canEdit = $derived(room.store.canEdit);
 	const online = $derived(room.store.canWrite);
 	let optionsOpen = $state(false);
+	let listRemindersOpen = $state(false);
 	let searchText = $state('');
 	// "Show quantities": personal, saved per list in this browser.
 	// A writable `$derived`: read again when the list changes, set by the switch.
@@ -385,7 +390,16 @@
 		onAddTag={(tag) => addTag(list, tag)}
 		onDeleteTag={(tag) => deleteTag(list, tag)}
 	/>
+	{#if roomDue}<button type="button" onclick={() => (listRemindersOpen = true)}
+			>Personal list reminders</button
+		>{/if}
 {/if}
+{#if listRemindersOpen && roomDue}<PolicyEditor
+		{room}
+		scope="list"
+		uid={list.uid}
+		onClose={() => (listRemindersOpen = false)}
+	/>{/if}
 <ListTags
 	tags={list.tags}
 	filter={filterTags}
@@ -411,6 +425,7 @@
 		<!-- The row's <li> is here, not in ItemRow: Svelte animates only elements. -->
 		<li animate:flip={rowFlip} data-item-uid={item.uid}>
 			<ItemRow
+				zone={roomDue ? deviceZone(room) : undefined}
 				{item}
 				showQuantity={showQuantities}
 				showDelete={optionsOpen}
@@ -451,6 +466,7 @@
 	{@const live = room.store.item(item.uid) ?? item}
 	<ItemDialog
 		{item}
+		reminderRoom={roomDue ? room : undefined}
 		itemTags={live.tags}
 		tags={list.tags}
 		tagSettings={list.tag_settings}

@@ -11,6 +11,7 @@
 	import InstallHelpDialog from '#lib/install/InstallHelpDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
 	import ReminderSettings from '#lib/reminders/ReminderSettings.svelte';
+	import PolicyEditor from '#lib/reminders/PolicyEditor.svelte';
 	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
 	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
@@ -26,14 +27,14 @@
 	/** Password and delete are checked by the server: they need a connection. */
 	const online = $derived(room.store.canWrite);
 	const hintId = $props.id();
-	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | 'reminders' | null>(
-		null
-	);
+	let dialog = $state<
+		'share' | 'install' | 'rename' | 'password' | 'delete' | 'reminders' | 'reminder-policy' | null
+	>(null);
 	let shareUrl = $state('');
 
 	function choose(
 		close: () => void,
-		next: 'install' | 'rename' | 'password' | 'delete' | 'reminders'
+		next: 'install' | 'rename' | 'password' | 'delete' | 'reminders' | 'reminder-policy'
 	) {
 		close();
 		dialog = next;
@@ -67,6 +68,9 @@
 		<button type="button" onclick={() => share(close)}>Share Room</button>
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
 		<button type="button" onclick={() => choose(close, 'reminders')}>Personal reminders</button>
+		<button type="button" onclick={() => choose(close, 'reminder-policy')}
+			>Personal room reminder policy</button
+		>
 		<ThemeMenuItem {close} />
 		<hr />
 		<button type="button" disabled={!room.store.canEdit} onclick={() => choose(close, 'rename')}>
@@ -116,6 +120,8 @@
 	<ShareDialog kind="room" url={shareUrl} onClose={() => (dialog = null)} />
 {:else if dialog === 'reminders'}
 	<ReminderSettings {room} onClose={() => (dialog = null)} />
+{:else if dialog === 'reminder-policy'}
+	<PolicyEditor {room} scope="room" onClose={() => (dialog = null)} />
 {:else if dialog === 'install'}
 	<InstallHelpDialog onClose={() => (dialog = null)} />
 {:else if dialog === 'rename'}

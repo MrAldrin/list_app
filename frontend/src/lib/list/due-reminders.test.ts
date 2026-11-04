@@ -171,3 +171,19 @@ describe('confirmed timed deadlines', () => {
 		expect(itemDueGroup(item, NOW)).toBe('today');
 	});
 });
+
+it('uses the enrolled device zone for calendar grouping without changing overdue instants', () => {
+	const now = new Date('2026-11-02T23:30:00Z');
+	expect(localDay(now, 'Pacific/Kiritimati')).toBe('2026-11-03');
+	expect(localDay(now, 'America/Adak')).toBe('2026-11-02');
+	expect(
+		itemDueGroup({ date: '2026-11-03', done: false, due_at: null }, now, 'Pacific/Kiritimati')
+	).toBe('today');
+	expect(
+		itemDueGroup(
+			{ date: '2026-11-03', done: false, due_at: '2026-11-02T23:00:00Z' },
+			now,
+			'Pacific/Kiritimati'
+		)
+	).toBe('overdue');
+});

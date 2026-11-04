@@ -12,12 +12,13 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import UnsentMark from '#lib/ui/UnsentMark.svelte';
 	import { dueClock } from './due-clock.svelte.ts';
-	import { dueTag, itemDueGroup } from './due-reminders.ts';
+	import { dueTag, itemDueGroup, localDay } from './due-reminders.ts';
 	import { formatItemDate, quantityBadge } from './items';
 	import { tagColor, tagLetters } from './tags';
 
 	let {
 		item,
+		zone,
 		showQuantity,
 		showDelete,
 		canEdit,
@@ -31,6 +32,7 @@
 		onDelete
 	}: {
 		item: Item;
+		zone?: string;
 		showQuantity: boolean;
 		showDelete: boolean;
 		/** Whether shared-data writes are authorized. */
@@ -50,7 +52,12 @@
 
 	const badge = $derived(quantityBadge(item.quantity, showQuantity));
 	/** "Overdue", "Today" or "Tomorrow" beside the date; none for later or undated items. */
-	const dueLabel = $derived(dueTag(itemDueGroup(item, dueClock.now) ?? 'later'));
+	const displayDate = $derived(
+		item.due_at && Number.isFinite(Date.parse(item.due_at))
+			? localDay(new Date(item.due_at), zone)
+			: item.date
+	);
+	const dueLabel = $derived(dueTag(itemDueGroup(item, dueClock.now, zone) ?? 'later'));
 	/** One letter (or two or three, where tags look alike) per list tag, in the same order. */
 	const letters = $derived(tagLetters(listTags));
 </script>
@@ -78,7 +85,7 @@
 			<span class="badge">{badge}</span>
 		{/if}
 		{#if item.date}
-			<span class="date">{formatItemDate(item.date)}</span>
+			<span class="date">{formatItemDate(displayDate ?? item.date)}</span>
 		{/if}
 		{#if dueLabel}
 			<span class="due {dueLabel.tone}">{dueLabel.text}</span>
