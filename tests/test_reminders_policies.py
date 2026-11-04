@@ -492,3 +492,150 @@ def test_policy_constraints_and_item_cascade(policy_home):
         ).fetchone()[0]
         == 0
     )
+
+
+@pytest.mark.parametrize("scope", ["room", "list", "item"])
+@pytest.mark.parametrize("mixed", [False, True], ids=["relative", "mixed"])
+def test_http_rule_reordering_preserves_activation_and_catchup(
+    policy_home, scope, mixed
+):
+    _, _, list_id, item_id, clock, client, slug = policy_home
+    suffix = {
+        "room": "policy",
+        "list": f"lists/{list_id}/policy",
+        "item": f"items/{item_id}/policy",
+    }[scope]
+    url = f"/api/v1/rooms/{slug}/reminders/{suffix}"
+    relative = {"kind": "relative", "amount": 1, "unit": "days"}
+    other = (
+        {"kind": "fixed", "date": "2030-01-01", "time": "12:00", "timezone": "UTC"}
+        if mixed
+        else {"kind": "relative", "amount": 2, "unit": "hours"}
+    )
+    body = {
+        "op_id": new_id(),
+        "base_revision": 0,
+        "state": "replace",
+        "preset": "custom",
+        "rules": [relative, other],
+    }
+    first = client.put(url, json=body)
+    assert first.status_code == 200, first.text
+    initial = first.json()["policy"]
+    before = effective(policy_home)
+    fire_at = clock[0] + timedelta(minutes=5)
+    clock[0] += timedelta(hours=1)
+    reordered = {
+        **body,
+        "op_id": new_id(),
+        "base_revision": initial["revision"],
+        "rules": [other, relative],
+    }
+    result = client.put(url, json=reordered)
+    assert result.status_code == 200, result.text
+    assert result.json()["policy"] == initial
+    after = effective(policy_home)
+    assert after.rules == before.rules
+    assert after.relative_activations == before.relative_activations
+    assert after.summary_activations == before.summary_activations
+    assert after.relative_cutoff == before.relative_cutoff
+    assert relative_rule_is_active(fire_at, [after.relative_cutoff])
+    assert client.put(url, json=reordered).json() == result.json()
+    changed = {
+        **reordered,
+        "op_id": new_id(),
+        "rules": [{**relative, "amount": 2}, other],
+    }
+    updated = client.put(url, json=changed)
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["policy"]["revision"] == initial["revision"] + 1
+    assert effective(policy_home).relative_cutoff == clock[0]
+    assert not relative_rule_is_active(
+        fire_at, [effective(policy_home).relative_cutoff]
+    )
+    assert client.put(url, json=reordered).json() == result.json()
+    assert client.put(url, json={**reordered, "op_id": new_id()}).status_code == 409
+
+
+@pytest.mark.parametrize(
+    "change", ["fixed_intent", "preset", "summary", "summary_time"]
+)
+def test_actual_schedule_changes_still_advance_cutoff(policy_home, change):
+    clock = policy_home[4]
+    fixed = {"kind": "fixed", "date": "2030-01-01", "time": "12:00", "timezone": "UTC"}
+    original = put(policy_home, preset="custom", inputs=[fixed])
+    clock[0] += timedelta(hours=1)
+    if change == "fixed_intent":
+        changed = put(
+            policy_home,
+            preset="custom",
+            inputs=[{**fixed, "time": "13:00", "id": original.rules[0].id}],
+        )
+        assert changed.rules[0].id != original.rules[0].id
+    elif change == "preset":
+        changed = put(policy_home, preset="scheduled")
+    elif change == "summary":
+        changed = put(policy_home, preset="custom", inputs=[fixed], summary=True)
+    else:
+        changed = put(
+            policy_home, preset="custom", inputs=[fixed], summary_time="10:30"
+        )
+    assert changed.revision == original.revision + 1
+    assert effective(policy_home).relative_cutoff == clock[0]
+
+
+def test_cross_room_targets_and_forged_cookie_denied_before_retry(policy_home):
+    from api_helpers import client_for
+
+    _, room_id, list_id, _, _, client, slug = policy_home
+    password_hash = db.execute(
+        "SELECT password_hash FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()[0]
+    other_room = db.execute(
+        "INSERT INTO rooms (name, slug, password_hash) VALUES ('Other', 'other-private', ?)",
+        (password_hash,),
+    ).lastrowid
+    other_list = db.execute(
+        "INSERT INTO lists (name, slug, room_id, share_token) VALUES ('Other', 'other-list', ?, 'other-share')",
+        (other_room,),
+    ).lastrowid
+    other_item = db.execute(
+        "INSERT INTO items (name, name_key, done, list_id) VALUES ('Other', 'other', 0, ?)",
+        (other_list,),
+    ).lastrowid
+    db.commit()
+    root = f"/api/v1/rooms/{slug}/reminders"
+    body = {"op_id": new_id(), "base_revision": 0, "state": "off"}
+    first = client.put(f"{root}/lists/{list_id}/policy", json=body)
+    assert first.status_code == 200, first.text
+    before = db.execute("SELECT id, change_seq FROM rooms ORDER BY id").fetchall()
+    count = db.execute("SELECT count(*) FROM reminder_processed_ops").fetchone()[0]
+    for target in (f"lists/{other_list}/policy", f"items/{other_item}/policy"):
+        for response in (
+            client.get(f"{root}/{target}"),
+            client.put(f"{root}/{target}", json=body),
+        ):
+            assert response.status_code == 404
+            assert "policy" not in response.json()
+            assert "set-cookie" not in response.headers
+    forged = client_for(slug)
+    forged.cookies.set(
+        "__Host-listapp-device", "forged-secret", domain="testserver.local", path="/"
+    )
+    for response in (
+        forged.get(f"{root}/lists/{list_id}/policy"),
+        forged.put(f"{root}/lists/{list_id}/policy", json=body),
+    ):
+        assert response.status_code == 403
+        assert (
+            "__Host-listapp-device=forged-secret" in response.request.headers["cookie"]
+        )
+        assert response.json()["error"]["code"] == "not_enrolled"
+        assert "policy" not in response.json()
+        assert "set-cookie" not in response.headers
+    assert (
+        db.execute("SELECT id, change_seq FROM rooms ORDER BY id").fetchall() == before
+    )
+    assert (
+        db.execute("SELECT count(*) FROM reminder_processed_ops").fetchone()[0] == count
+    )

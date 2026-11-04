@@ -274,12 +274,12 @@ def replace_policy_locked(
     changed_time = (
         summary_time is not None and summary_time != enrollment["summary_time"]
     )
-    if (current.state, current.preset, current.summary_enabled, current.rules) == (
-        state,
-        preset,
-        summary,
-        rules,
-    ) and not changed_time:
+    if (
+        (current.state, current.preset, current.summary_enabled)
+        == (state, preset, summary)
+        and frozenset(current.rules) == frozenset(rules)
+        and not changed_time
+    ):
         return current
     _save_locked(
         installation_id, room_id, scope, target_id, state, preset, summary, rules, now
