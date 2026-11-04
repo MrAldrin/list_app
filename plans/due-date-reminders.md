@@ -794,7 +794,8 @@ approval. Planning-doc commits have only the existing docs-desk permission.
 ### Approved delivery — in progress
 
 - [x] Owner records choices and explicit implementation/architecture approval.
-- [ ] Stage 1: quiet due center.
+- [x] Stage 1: quiet due center (reviewed and integrated into the isolated
+  delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s1-reviewed-integration--2026-11-04)).
 - [ ] Stage 2: personal policies, dates and previews.
 - [ ] Stage 3: durable in-app reminders and snooze.
 - [ ] Stage 4: phone notifications, if selected and approved.

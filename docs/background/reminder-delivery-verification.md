@@ -23,6 +23,34 @@ and authorized implementation, not acceptance/deployment or real pushes.
 - Approval/master/backlog/five-stage brief local Markdown links and anchors
   checked. Aggregate tracked state remained clean after checks.
 
+## S1 reviewed integration — 2026-11-04
+
+- Reviewed UI `swtpolmk` / `d90bc864`, browser-storage fixture `xtwzoknt` /
+  `5092264e`, dialog repair `tyyvxrul` / `ab12f9c0`. Fresh Terra/medium review
+  approved the complete repair diff; original UI had independent review.
+  Matched native WebKit tests reproduced ephemeral cache loss versus isolated
+  persistent-profile retention. This supports a test-harness repair, not a
+  production cache-eviction claim.
+- Final single post-review browser gate on the exact tip: **456 passed**,
+  exit 0, 605.22 seconds. No skips, xfails, weakened assertions or repeated
+  runs until green. Earlier failures and invalid diagnostic wrappers are not
+  passes; their limits remain in the [S1 closeout](../../plans/batches/reminders-s1.md).
+- Lead integrated the exact tip into isolated aggregate `mytytmnv` / `fedd46f5`.
+  No other feature combined yet; bookmarks stayed fixed. Lead reran Ruff
+  format-check/lint, ty and pytest: **1544 passed**, exit 0. Frontend lint/check,
+  **1088 unit tests** and production build passed; Svelte check had zero
+  errors/warnings. Aggregate tracked state stayed clean. The browser gate was
+  not repeated in the identical-source aggregate; final combined verification
+  remains later work.
+- Durable review and full browser logs/report remain in S1 Pi session artifacts:
+  `d67aeaee.../s1-independent-repair-review.md` and
+  `b061919f.../s1-final-browser-gate.md`, with retained pytest artifacts.
+  UI and baseline child workspaces were safely removed after integration and
+  evidence preservation. S1 entry/session retained for dependencies.
+- S1 is complete for isolated delivery and S2 UI is unblocked. Full scheduling,
+  phone push and final combined verification remain incomplete. No feature
+  acceptance, deployment or actual-device delivery is implied.
+
 ## Isolated S2 image smoke — 2026-11-04
 
 S2 Conductor executed this on foundation `zystrxzr` / `2e0f70a4`, before
