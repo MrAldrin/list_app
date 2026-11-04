@@ -1,7 +1,11 @@
 """Private settings require an explicit enrollment and stay out of the shared queue."""
 
+import json
+
+import pytest
 from playwright.sync_api import expect
-from svelte_app import PHONE, create_list, share_link, sign_in
+from svelte_app import PHONE, app_url, create_list, share_link, sign_in
+from test_svelte_room_switcher import CABIN_PASSWORD, create_room_as_admin
 from test_svelte_share import without_share_sheet
 
 
@@ -91,6 +95,153 @@ def test_lost_response_retries_same_operation(svelte_server, open_session):
     page.unroute("**/reminders/preferences", lose_first_response)
 
 
+@pytest.mark.parametrize(
+    "action,malformed",
+    [
+        ("room", "{"),
+        ("room", "{}"),
+        ("enroll", "{"),
+        ("optout", "{}"),
+        ("device", "{}"),
+    ],
+)
+def test_unusable_success_retries_committed_operation(
+    svelte_server, open_session, action, malformed
+):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    if action != "enroll":
+        dialog.get_by_role("button", name="Enroll this device").click()
+        expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    bodies = []
+    endpoint = (
+        "enrollment"
+        if action == "enroll"
+        else "preferences/device"
+        if action == "device"
+        else "preferences"
+    )
+    expected_method = "POST" if action == "enroll" else "PATCH"
+
+    def corrupt_first(route):
+        if route.request.method != expected_method:
+            route.continue_()
+            return
+        bodies.append(route.request.post_data)
+        if len(bodies) == 1:
+            response = route.fetch()
+            assert response.status == 200
+            route.fulfill(response=response, body=malformed)
+        else:
+            route.continue_()
+
+    page.route(f"**/reminders/{endpoint}", corrupt_first)
+    if action == "room":
+        dialog.get_by_label("Room reminder mode").select_option("quiet")
+    if action == "device":
+        dialog.get_by_label("All-day reminder time").fill("13:25")
+    button = {
+        "room": "Save room settings",
+        "enroll": "Enroll this device",
+        "optout": "Opt out of this room",
+        "device": "Save device settings",
+    }[action]
+    dialog.get_by_role("button", name=button).click()
+    expect(dialog.get_by_role("button", name="Retry request")).to_be_visible()
+    expect(dialog.get_by_label("Room reminder mode")).to_be_disabled()
+    dialog.get_by_role("button", name="Retry request").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    assert len(bodies) == 2 and bodies[0] == bodies[1]
+    op_id = json.loads(bodies[0])["op_id"]
+    assert svelte_server.query(
+        "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?", (op_id,)
+    ) == [(1,)]
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(1,)]
+    page.unroute(f"**/reminders/{endpoint}", corrupt_first)
+
+
+def test_body_read_failure_after_server_commit(svelte_server, open_session):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    bodies = []
+    page.on(
+        "request",
+        lambda r: (
+            bodies.append(r.post_data)
+            if r.method == "PATCH" and r.url.endswith("/reminders/preferences")
+            else None
+        ),
+    )
+    page.evaluate("""() => {
+        const real = window.fetch;
+        let fail = true;
+        window.fetch = async (...args) => {
+            const response = await real(...args);
+            if (fail && String(args[0]).endsWith('/reminders/preferences') && args[1]?.method === 'PATCH') {
+                fail = false;
+                Object.defineProperty(response, 'json', {value: async () => {throw new TypeError('body stream failed')}});
+            }
+            return response;
+        };
+    }""")
+    dialog.get_by_label("Room reminder mode").select_option("quiet")
+    dialog.get_by_role("button", name="Save room settings").click()
+    expect(dialog.get_by_role("button", name="Retry request")).to_be_visible()
+    dialog.get_by_role("button", name="Retry request").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    assert len(bodies) == 2 and bodies[0] == bodies[1]
+    op_id = json.loads(bodies[0])["op_id"]
+    assert svelte_server.query(
+        "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?", (op_id,)
+    ) == [(1,)]
+
+
+@pytest.mark.parametrize("retry", [False, True])
+def test_expired_device_identity_preserves_draft_and_requires_enrollment(
+    svelte_server, open_session, retry
+):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_label("Room summary time").fill("11:45")
+    if retry:
+        attempts = []
+
+        def lose_response(route):
+            if route.request.method == "PATCH" and not attempts:
+                attempts.append(route.request.post_data)
+                response = route.fetch()
+                assert response.status == 200
+                route.fulfill(response=response, body="{")
+            else:
+                route.continue_()
+
+        page.route("**/reminders/preferences", lose_response)
+        dialog.get_by_role("button", name="Save room settings").click()
+        expect(dialog.get_by_role("alert")).to_contain_text("result is unknown")
+    page.context.clear_cookies(name="listapp-device")
+    dialog.get_by_role(
+        "button", name="Retry request" if retry else "Save room settings"
+    ).click()
+    expect(dialog.get_by_text("Status: Not enrolled")).to_be_visible()
+    expect(dialog.get_by_role("alert")).to_contain_text(
+        "previous request may have committed"
+    )
+    expect(dialog.get_by_label("Room summary time")).to_have_value("11:45")
+    expect(dialog.get_by_role("button", name="Retry request")).to_have_count(0)
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(1,)]
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    expect(dialog.get_by_label("Room summary time")).to_have_value("11:45")
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(2,)]
+
+
 def test_revoked_grant_needs_explicit_resume(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -128,6 +279,63 @@ def test_opt_out_requires_explicit_resume(svelte_server, open_session):
     expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
     dialog.get_by_role("button", name="Resume this room").click()
     expect(dialog.get_by_text("Status: Active")).to_be_visible()
+
+
+def assert_device_draft(dialog):
+    expect(dialog.get_by_label("Device time zone")).to_have_value("Europe/Oslo")
+    expect(
+        dialog.get_by_label("Confirm time zone change for all enrolled rooms")
+    ).to_be_checked()
+    expect(dialog.get_by_label("All-day reminder time")).to_have_value("13:25")
+    expect(dialog.get_by_label("Pause reminders on this device")).to_be_checked()
+
+
+def edit_device_draft(dialog):
+    # Choose a different zone regardless of the browser's default.
+    dialog.get_by_label("Device time zone").fill("Europe/Oslo")
+    dialog.get_by_label("Confirm time zone change for all enrolled rooms").check()
+    dialog.get_by_label("All-day reminder time").fill("13:25")
+    dialog.get_by_label("Pause reminders on this device").check()
+
+
+def test_optout_resume_preserves_unrelated_drafts(svelte_server, open_session):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_label("Time zone for this device").fill("UTC")
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_label("Room reminder mode").select_option("quiet")
+    dialog.get_by_label("Room summary time").fill("11:45")
+    dialog.get_by_role("button", name="Opt out of this room").click()
+    expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
+    expect(dialog.get_by_label("Room reminder mode")).to_have_value("quiet")
+    expect(dialog.get_by_label("Room summary time")).to_have_value("11:45")
+    edit_device_draft(dialog)
+    dialog.get_by_role("button", name="Resume this room").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    assert_device_draft(dialog)
+
+
+def test_enroll_other_room_preserves_existing_device_draft(svelte_server, open_session):
+    admin = open_session("admin", **PHONE)
+    slug = create_room_as_admin(admin, svelte_server, "Cabin", CABIN_PASSWORD)
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_label("Time zone for this device").fill("UTC")
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_role("button", name="Close").click()
+    page.goto(app_url(svelte_server, f"room/{slug}"))
+    page.get_by_label("Room Password").fill(CABIN_PASSWORD)
+    page.get_by_label("Room Password").press("Enter")
+    expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+    dialog = open_settings(page)
+    edit_device_draft(dialog)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    assert_device_draft(dialog)
 
 
 def test_conflict_requires_reload_and_preserves_draft(svelte_server, open_session):

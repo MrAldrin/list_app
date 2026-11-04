@@ -10,8 +10,11 @@ The room menu's **Personal reminders** dialog reads these settings without
 creating a device. Enroll or resume explicitly there. Room mode and summary
 time, device time zone, all-day time and pause can be changed while online.
 Unsaved edits stay in the open dialog; they are never put in the shared offline
-queue. A request with an unknown result can be retried unchanged in that dialog.
-The due views still use the browser time zone, not the saved device time zone.
+queue. Drafts and pending request IDs live only in memory and are lost on page
+reload or navigation. A request with an unknown result can be retried unchanged
+while the dialog remains open; after reload it cannot be retried with that same
+ID and body. The due views still use the browser time zone, not the saved device
+time zone.
 
 ## Device and enrollment
 

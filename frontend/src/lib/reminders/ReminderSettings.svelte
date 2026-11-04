@@ -3,7 +3,14 @@
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import { ApiError, NetworkError } from '#lib/data/types.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
-	import { ReminderApi, type Device, type Enrollment, type Mode, type PendingWrite } from './api';
+	import {
+		ReminderApi,
+		UnknownWriteOutcome,
+		type Device,
+		type Enrollment,
+		type Mode,
+		type PendingWrite
+	} from './api';
 
 	let { room, onClose }: { room: RoomHandle; onClose: () => void } = $props();
 	const api = new ReminderApi(untrack(() => room.slug));
@@ -16,6 +23,8 @@
 	let allDay = $state('09:00');
 	let paused = $state(false);
 	let confirmZone = $state(false);
+	let hasDeviceDraft = false;
+	let recoveringIdentity = $state(false);
 	let loading = $state(true);
 	let busy = $state(false);
 	let online = $state(true);
@@ -35,6 +44,7 @@
 	}
 	function applyDevice(value: Device | null, initialize: boolean) {
 		device = value;
+		if (value) hasDeviceDraft = true;
 		if (initialize) {
 			timezone = value?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
 			allDay = value?.all_day_time ?? '09:00';
@@ -49,6 +59,7 @@
 			applyEnrollment(a.enrollment, initialize);
 			applyDevice(b.device, initialize);
 			conflict = false;
+			recoveringIdentity = false;
 			if (!initialize)
 				notice = 'Latest revisions loaded. Your edits remain; review them before saving.';
 		} catch (e) {
@@ -77,16 +88,16 @@
 		notice = '';
 		try {
 			if (pendingKind === 'device') {
-				const result = await api.send<{ device: Device }>(pending);
-				applyDevice(result.device, true);
+				const result = await api.sendDevice(pending);
+				applyDevice(result, true);
 				confirmZone = false;
 			} else {
-				const result = await api.send<{ enrollment: Enrollment }>(pending);
-				applyEnrollment(result.enrollment, true);
+				const result = await api.sendEnrollment(pending);
+				applyEnrollment(result, false);
 				if (pendingKind === 'enroll') {
 					// Enrollment may have created the device; this GET does not renew it.
 					try {
-						applyDevice((await api.device()).device, true);
+						applyDevice((await api.device()).device, !hasDeviceDraft);
 					} catch {
 						notice = 'Enrolled. Reopen settings to load device settings.';
 					}
@@ -96,9 +107,23 @@
 			pendingKind = null;
 			if (!notice) notice = 'Saved on this device.';
 		} catch (e) {
-			if (e instanceof NetworkError || (e instanceof ApiError && e.status >= 500)) {
+			if (
+				e instanceof UnknownWriteOutcome ||
+				e instanceof NetworkError ||
+				(e instanceof ApiError && e.status >= 500)
+			) {
 				error =
 					'The result is unknown. Retry the same request when connected; your edits are kept.';
+			} else if (e instanceof ApiError && e.status === 403 && e.code === 'not_enrolled') {
+				pending = null;
+				pendingKind = null;
+				// The old request cannot be replayed against a different installation.
+				recoveringIdentity = true;
+				enrollment = null;
+				device = null;
+				await load(false);
+				error =
+					'This device enrollment is unavailable or expired. The previous request may have committed; it cannot be retried on a new installation. Your edits are kept. Check the status and explicitly enroll to continue.';
 			} else {
 				pending = null;
 				pendingKind = null;
@@ -169,7 +194,9 @@
 			Connection required. Your edits stay here while this dialog is open.
 		</p>{/if}
 	{#if !loading && !enrollment}
-		<button type="button" disabled={!online} onclick={() => load(true)}>Try loading again</button>
+		<button type="button" disabled={!online} onclick={() => load(!recoveringIdentity)}
+			>Try loading again</button
+		>
 	{/if}
 	{#if conflict}<button type="button" disabled={!canSend} onclick={() => load(false)}
 			>Load latest revisions</button
