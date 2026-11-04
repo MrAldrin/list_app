@@ -130,3 +130,44 @@ describe('dueRows and dueSections', () => {
 		expect(dueTag('later')).toBeNull();
 	});
 });
+
+describe('confirmed timed deadlines', () => {
+	it('uses the instant for overdue strictly after it and for device-local grouping', () => {
+		const deadline = new Date(2026, 10, 2, 12);
+		const item = makeItem('l', {
+			date: '2026-11-03',
+			due_time: '01:00',
+			due_timezone: 'Pacific/Kiritimati',
+			due_at: deadline.toISOString()
+		});
+		expect(itemDueGroup(item, new Date(deadline.valueOf() - 1))).toBe('today');
+		expect(itemDueGroup(item, deadline)).toBe('today');
+		expect(itemDueGroup(item, new Date(deadline.valueOf() + 1))).toBe('overdue');
+		expect(dueTally([item], new Date(deadline.valueOf() + 1))).toEqual({ count: 1, overdue: 1 });
+		expect(dueSections(dueRows([item], () => '', new Date(deadline.valueOf() + 1)))[0].group).toBe(
+			'overdue'
+		);
+		expect(dueTag(itemDueGroup(item, new Date(deadline.valueOf() + 1))!)?.text).toBe('Overdue');
+	});
+	it('uses the confirmed instant day rather than the wall date at device midnight', () => {
+		const now = new Date(2026, 10, 2, 23, 0);
+		const instant = new Date(2026, 10, 3, 0, 30);
+		const item = makeItem('l', {
+			date: '2026-11-02',
+			due_time: '12:00',
+			due_timezone: 'America/Adak',
+			due_at: instant.toISOString()
+		});
+		expect(itemDueGroup(item, now)).toBe('tomorrow');
+		expect(itemDueGroup(item, new Date(2026, 10, 3, 0, 1))).toBe('today');
+	});
+	it('does not manufacture an instant for an unsynced wall intent', () => {
+		const item = makeItem('l', {
+			date: '2026-11-02',
+			due_time: '01:00',
+			due_timezone: 'Europe/Oslo',
+			due_at: null
+		});
+		expect(itemDueGroup(item, NOW)).toBe('today');
+	});
+});

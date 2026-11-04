@@ -12,16 +12,19 @@ Phone notifications are not built yet
 An item can also have a time and an explicit IANA time zone. Clearing its date
 clears both. The server confirms the UTC instant; an unsynced change shows
 **Waiting to sync** instead. These shared edits use the existing offline queue.
-The time does not change the day-based due groups below.
+Confirmed timed items become overdue after their confirmed instant. Other timed
+items are grouped by that instant in the browser time zone. Until device settings
+are available, the browser time zone is used for day groups. Unconfirmed edits
+use their wall date and never invent a UTC instant.
 
 ## What counts as due
 
 An item is due when it is not checked and has a date. "Today" and "Tomorrow"
-are the device's own days. Items without a date never show as due.
+are days in the browser time zone. Items without a date never show as due.
 
 | Group | Days from today |
 | --- | --- |
-| Overdue | before today |
+| Overdue | date-only before today; timed after the confirmed instant |
 | Today | today |
 | Tomorrow | tomorrow |
 | Next 7 days | days 2–7 |
@@ -60,9 +63,8 @@ contrast in every theme and light/dark mode ([app colors test](../frontend/src/a
 
 ## Day changes
 
-The views recompute when the local day changes: a check runs every minute and
-when the page is shown again. Changing the device's day therefore updates
-labels and counts without a reload.
+The views recompute every minute and when the page is shown again. Timed
+deadlines, day changes, labels and counts update without a reload.
 
 ## Code
 

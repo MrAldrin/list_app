@@ -53,8 +53,19 @@ export function dueGroupOfDay(date: string, today: string): DueGroup {
 }
 
 /** The due group of an item, or null when it is done or has no date. */
-export function itemDueGroup(item: Pick<Item, 'date' | 'done'>, now: Date): DueGroup | null {
+export function itemDueGroup(
+	item: Pick<Item, 'date' | 'done' | 'due_at'>,
+	now: Date
+): DueGroup | null {
 	if (item.done || item.date === null) return null;
+	if (item.due_at) {
+		const instant = new Date(item.due_at);
+		if (Number.isFinite(instant.valueOf())) {
+			if (instant.valueOf() < now.valueOf()) return 'overdue';
+			return dueGroupOfDay(localDay(instant), localDay(now));
+		}
+	}
+	// Date-only items and unconfirmed wall intents have no invented instant.
 	return dueGroupOfDay(item.date, localDay(now));
 }
 
@@ -99,7 +110,6 @@ export function dueRows(
 	listName: (listUid: string) => string,
 	now: Date
 ): DueRow[] {
-	const today = localDay(now);
 	const rows: DueRow[] = [];
 	for (const item of items) {
 		if (item.done || item.date === null) continue;
@@ -107,7 +117,7 @@ export function dueRows(
 			item,
 			date: item.date,
 			listName: listName(item.list_uid),
-			group: dueGroupOfDay(item.date, today)
+			group: itemDueGroup(item, now)!
 		});
 	}
 	// `YYYY-MM-DD` text sorts like the days it names.

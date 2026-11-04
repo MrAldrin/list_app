@@ -17,6 +17,7 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import { addedLabel, lastAddedLabel, stepQuantity } from './items';
 	import { tagColor } from './tags';
+	import { usableTimeZone } from './time-zone';
 
 	let {
 		item,
@@ -73,9 +74,8 @@
 			dueTime === (item.due_time ?? '') &&
 			dueTimezone === (item.due_timezone ?? '')
 	);
-	const validDue = $derived(
-		!date || (!dueTime && !dueTimezone) || (!!dueTime && !!dueTimezone.trim())
-	);
+	const validZone = $derived(usableTimeZone(dueTimezone) || (unchangedDue && !!item.due_at));
+	const validDue = $derived(!date || !dueTime || validZone);
 </script>
 
 <FormDialog
@@ -164,7 +164,18 @@
 		/>
 		{#if dueTime}
 			<label for="{nameId}-due-zone">Time zone (IANA, for example Europe/Oslo)</label>
-			<input id="{nameId}-due-zone" bind:value={dueTimezone} autocomplete="off" />
+			<input
+				id="{nameId}-due-zone"
+				bind:value={dueTimezone}
+				autocomplete="off"
+				aria-invalid={!validZone}
+				aria-describedby={!validZone ? `${nameId}-zone-error` : undefined}
+			/>
+			{#if !validZone}
+				<p id="{nameId}-zone-error" class="added" role="alert">
+					Enter a valid IANA time zone, up to 64 characters, such as Europe/Oslo.
+				</p>
+			{/if}
 			{#if unchangedDue && item.due_at}
 				<p class="added">Server-confirmed UTC: {item.due_at}</p>
 			{:else}

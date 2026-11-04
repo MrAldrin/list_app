@@ -403,3 +403,25 @@ def test_timed_due_requires_zone_and_shows_server_confirmation(
     page.get_by_role("button", name=re.compile("^milk")).click()
     expect(dialog.get_by_text(re.compile("Server-confirmed UTC"))).to_be_visible()
     expect(dialog.get_by_label(re.compile("Time zone"))).to_have_value("Europe/Oslo")
+
+
+def test_zone_validation_online_and_offline(svelte_server, open_session):
+    page, url = member_with_list(open_session, svelte_server, "zone-validation")
+    for offline in (False, True):
+        if offline:
+            view_offline(page, url)
+        page.get_by_role("button", name="milk", exact=True).click()
+        dialog = page.get_by_role("dialog", name="Edit Item")
+        dialog.get_by_label("Date").fill("2026-10-18")
+        dialog.get_by_label("Due time (optional)").fill("09:00")
+        zone = dialog.get_by_label(re.compile("Time zone"))
+        for invalid in ("", "Not/AZone", "a" * 65):
+            zone.fill(invalid)
+            expect(dialog.get_by_role("button", name="Save")).to_be_disabled()
+            expect(zone).to_have_attribute("aria-invalid", "true")
+            expect(dialog.get_by_text(re.compile("Enter a valid IANA"))).to_be_visible()
+        for valid in ("UTC", "Asia/Kathmandu"):
+            zone.fill(valid)
+            expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
+        dialog.get_by_role("button", name="Cancel").click()
+        expect(dialog).to_have_count(0)
