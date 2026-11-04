@@ -1250,16 +1250,23 @@ def revoke_room_access_token(room_slug: str, token: str) -> None:
     Enrollments that were granted by this token need an explicit resume.
     """
     with transaction(write=True):
+        room = db.execute(
+            "SELECT id FROM rooms WHERE slug = ?", (room_slug,)
+        ).fetchone()
+        if room is None:
+            return
+        room_id = room[0]
         db.execute(
             """
             UPDATE room_access_tokens
             SET revoked_at = CURRENT_TIMESTAMP
-            WHERE token_hash = ?
-              AND room_id = (SELECT id FROM rooms WHERE slug = ?)
+            WHERE token_hash = ? AND room_id = ?
             """,
-            (token_hash(token), room_slug),
+            (token_hash(token), room_id),
         )
-        disable_enrollments_for_token_locked(token_hash(token))
+        # Only this room's enrollments, and only for this token: a token sent to
+        # another room's slug changes no grant here (same transaction).
+        disable_enrollments_for_token_locked(room_id, token_hash(token))
 
 
 def _replace_room_password_locked(room_id: int, password_hash: str) -> int | None:

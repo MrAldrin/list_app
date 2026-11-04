@@ -268,7 +268,8 @@ def _token_created_at_locked(room_id: int, authorizing_token_hash: str) -> datet
 
 
 def grant_expiry_locked(room_id: int, authorizing_token_hash: str) -> str:
-    """The saved grant's expiry: the earlier of a device lifetime from now and a room lifetime from token issue."""
+    """The saved grant's expiry: the earlier of a device lifetime from now and
+    a room lifetime from token issue."""
     now = current_time()
     room_bound = _token_created_at_locked(room_id, authorizing_token_hash)
     return stamp(min(now + DEVICE_LIFETIME, room_bound + ROOM_TOKEN_LIFETIME))
@@ -358,16 +359,20 @@ def update_enrollment_locked(
     )
 
 
-def disable_enrollments_for_token_locked(authorizing_token_hash: str) -> None:
+def disable_enrollments_for_token_locked(
+    room_id: int, authorizing_token_hash: str
+) -> None:
     """A room token was signed out or revoked: its active enrollments need a resume.
 
-    Opted-out rows keep their status. Call inside a write transaction.
+    Only enrollments in `room_id` that this token authorized are cut, so a token
+    revoked through another room's slug never changes this room's grants. Opted-out
+    rows keep their status. Call inside a write transaction.
     """
     db.execute(
         "UPDATE reminder_enrollments "
         "SET status = ?, revision = revision + 1 "
-        "WHERE token_hash = ? AND status = ?",
-        (STATUS_REVOKED, authorizing_token_hash, STATUS_ACTIVE),
+        "WHERE room_id = ? AND token_hash = ? AND status = ?",
+        (STATUS_REVOKED, room_id, authorizing_token_hash, STATUS_ACTIVE),
     )
 
 

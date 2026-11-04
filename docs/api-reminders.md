@@ -131,8 +131,12 @@ account. Changing a device setting does not change any room's data.
   returned.
 - Revisions: a PATCH whose `base_revision` is not the current one is 409
   `revision_conflict`. Refresh and review; never last-writer-wins.
-- Auth and the device cookie are checked before the op is looked up. A
-  forged or expired device cookie is 403 `not_enrolled`.
+- Auth and the device cookie are checked before the op is looked up. On the
+  routes that need an existing device (`GET preferences/device`, `PATCH
+  preferences`, `PATCH preferences/device`), a forged or expired device cookie
+  is 403 `not_enrolled`. `POST enrollment` with such a cookie is different: it
+  bootstraps a new device with the current room authorization. It creates no
+  client-chosen IDs.
 
 **Lost first response:** a new device's first enrollment creates its cookie
 only in the response. If that response is lost, the client has no device

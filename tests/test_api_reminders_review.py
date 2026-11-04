@@ -7,6 +7,7 @@ from api_helpers import assert_error, client_for, new_id
 
 from database_crud import revoke_room_access_token
 from database_setup import db
+from identifiers import token_hash
 from reminders import identity
 
 ENROLL = "/api/v1/rooms/{slug}/reminders/enrollment"
@@ -249,7 +250,7 @@ def test_sign_out_revocation_rolls_back_when_enrollment_update_fails(
     ).fetchall()
     enrollment_before = _rows()[1]
 
-    def fail(_token_hash):
+    def fail(_room_id, _token_hash):
         raise RuntimeError("simulated hook failure")
 
     monkeypatch.setattr("database_crud.disable_enrollments_for_token_locked", fail)
@@ -302,3 +303,119 @@ def _room_token_for(client, slug: str) -> str:
 
     cookie = client.cookies.get(token_cookie_name(slug))
     return cookie
+
+
+# --- F1: sign-out is scoped to the token's own room --------------------------------
+
+
+def _enroll_second_room(client, slug_b: str) -> None:
+    """Enroll this device in a second room (the client is signed in to it)."""
+    response = client.post(
+        ENROLL.format(slug=slug_b), json={"op_id": new_id(), "timezone": "Europe/Oslo"}
+    )
+    assert response.status_code == 200, response.text
+
+
+def _grant_states(installation_id: int) -> dict[str, str]:
+    rows = db.execute(
+        "SELECT r.slug, e.status FROM reminder_enrollments AS e "
+        "JOIN rooms AS r ON r.id = e.room_id WHERE e.installation_id = ?",
+        (installation_id,),
+    ).fetchall()
+    return dict(rows)
+
+
+def _installation_of(client, slug: str) -> int:
+    """The installation whose cookie this client holds for `slug`'s device."""
+    from reminders import identity
+
+    return identity.installation_id_for_secret_locked(
+        client.cookies.get("__Host-listapp-device")
+    )
+
+
+def _second_room_slug() -> str:
+    from password_hashing import hash_password
+
+    slug = f"probe-b-{new_id()[:6]}"
+    db.execute(
+        "INSERT INTO rooms (name, slug, password_hash) VALUES ('Probe B', ?, ?)",
+        (slug, hash_password("pw")),
+    )
+    db.commit()
+    return slug
+
+
+def test_sign_out_through_another_rooms_slug_cuts_nothing(enrolled):
+    """A room-A token sent to room B's slug must not change room A's grant."""
+    _room_a_id, slug_a, client, installation_id = enrolled
+    slug_b = _second_room_slug()
+    client_b = client_for(slug_b)
+    client_b.post(SESSION.format(slug=slug_b), json={"password": "pw"})
+    _enroll_second_room(client_b, slug_b)
+    token_a = _room_token_for(client, slug_a)
+    assert token_a
+
+    # Sign out of room B while holding room A's token in room B's cookie.
+    client_b.cookies.set(_cookie_name(slug_b), token_a)
+    response = client_b.delete(SESSION.format(slug=slug_b))
+
+    assert response.status_code == 204
+    states = _grant_states(installation_id)
+    assert states[slug_a] == "active"
+    assert db.execute(
+        "SELECT revoked_at FROM room_access_tokens WHERE token_hash = ?",
+        (token_hash(token_a),),
+    ).fetchone() == (None,)
+    assert client.get(PREFS.format(slug=slug_a)).json()["enrollment"]["state"] == (
+        "active"
+    )
+
+
+def test_sign_out_through_nonexistent_slug_cuts_nothing(enrolled):
+    _room_id, slug, client, _installation_id = enrolled
+    token = _room_token_for(client, slug)
+    before = _rows()
+
+    client.cookies.set(_cookie_name("no-such-room-000000"), token)
+    response = client.delete(SESSION.format(slug="no-such-room-000000"))
+
+    assert response.status_code == 204
+    assert _rows() == before
+    assert client.get(PREFS.format(slug=slug)).json()["enrollment"]["state"] == (
+        "active"
+    )
+
+
+def test_legitimate_sign_out_cuts_only_its_own_rooms_grants(enrolled):
+    _room_a_id, slug_a, client_a, installation_id = enrolled
+    slug_b = _second_room_slug()
+    client_b = client_for(slug_b)
+    client_b.post(SESSION.format(slug=slug_b), json={"password": "pw"})
+    _enroll_second_room(client_b, slug_b)
+    # A second device, enrolled in room A only, must be untouched.
+    other_device = client_for(slug_a)
+    other_device.post(
+        ENROLL.format(slug=slug_a), json={"op_id": new_id(), "timezone": "Europe/Oslo"}
+    )
+    other_before = _rows()
+
+    response = client_a.delete(SESSION.format(slug=slug_a))
+
+    assert response.status_code == 204
+    states = _grant_states(installation_id)
+    assert states[slug_a] == "revoked"
+    # Room B's grant belongs to client_b's device, so it stays active.
+    assert _grant_states(_installation_of(client_b, slug_b))[slug_b] == "active"
+    assert client_b.get(PREFS.format(slug=slug_b)).json()["enrollment"]["state"] == (
+        "active"
+    )
+    # The other device's room-A grant is cut by the same token, so it changes too;
+    # the rows of other rooms and devices are what must stay.
+    assert _rows()[0] == other_before[0]
+
+
+def _cookie_name(slug: str) -> str:
+    from room_cookies import token_cookie_name
+
+    return token_cookie_name(slug)
