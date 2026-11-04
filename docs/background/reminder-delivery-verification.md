@@ -51,6 +51,33 @@ and authorized implementation, not acceptance/deployment or real pushes.
   phone push and final combined verification remain incomplete. No feature
   acceptance, deployment or actual-device delivery is implied.
 
+## S2 reviewed integration — 2026-11-04
+
+- Completed source `kwqutmso` / `3f536353` includes reviewed S1, server
+  identity/time/policy/preview milestones and their private settings/editor UI.
+  Its tree matches independently approved `2b6193ec` (zero files changed).
+  Final native reviewer receipt confirms `openai/gpt-6.1-terra`, medium.
+- S2's own exact-final-tree full browser gate: **567 passed**, exit 0,
+  672.91 seconds. Own Python pre-build gate: **1783 passed, 9 skipped**;
+  build-dependent tests are included in the built aggregate result below.
+  Historical intermittent WebKit sign-in interruption has no established
+  root cause and is not claimed fixed by a subsequent green run.
+- Lead rebased only the isolated aggregate's empty `mytytmnv` onto that
+  completed tip (`1ad77419`). Frontend lint/check, **1111 unit tests** and
+  production build passed; Svelte check reported no errors/warnings. Built
+  Python aggregate: **1792 passed**, Ruff format-check/lint and ty clean.
+  Commands exited 0; tracked aggregate stayed clean. This did not rerun
+  the exact-tip S2 browser gate or verify later-stage combinations.
+- Durable own browser log and reviewer-native receipt are under S2's Pi
+  session `subagent-artifacts/outputs/s2-own-stage-final/`. Lead aggregate
+  log: `tmp-reminder-delivery/local_only/lead-verification/s2-aggregate.log`.
+  Full milestone review lineage and limits are in the
+  [S2 closeout](../../plans/batches/reminders-s2.md).
+- Policy and UI child workspaces were safely removed after preservation,
+  reachability and no-user checks; S2 entry/session retained. Reviewed S2
+  unblocks actual S3 runtime implementation, not feature acceptance/deploy.
+  `main`, `integration` and parked `groups` remain unchanged.
+
 ## Isolated S2 image smoke — 2026-11-04
 
 S2 Conductor executed this on foundation `zystrxzr` / `2e0f70a4`, before
