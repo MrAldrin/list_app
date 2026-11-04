@@ -757,6 +757,7 @@ def test_public_uid_targets_preserve_ownership_and_retry(policy_home):
         assert client.get(f"{root}/{kind}/{uid}/policy").status_code == 404
         assert client.put(f"{root}/{kind}/{uid}/policy", json=body).status_code == 404
     assert client.get(f"{root}/items/not-a-uuid/policy").status_code == 404
+    assert client.get(f"{root}/items/{'9' * 100}/policy").status_code == 404
     assert client.get(f"{root}/items/{item_uid}/policy").status_code == 200
     before = db.execute("SELECT count(*) FROM reminder_processed_ops").fetchone()[0]
     preview = client.post(f"{root}/preview", json={"item_uid": item_uid})

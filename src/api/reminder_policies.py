@@ -94,7 +94,11 @@ def _target_locked(
     if scope == "room":
         return None
     if isinstance(target, int) or (isinstance(target, str) and target.isdecimal()):
+        if isinstance(target, str) and (not target.isascii() or len(target) > 19):
+            raise ApiError(404, "not_found")
         target_id = int(target)
+        if target_id > 9_223_372_036_854_775_807:
+            raise ApiError(404, "not_found")
         try:
             policies.validate_target_locked(room_id, scope, target_id)
         except ValueError:
