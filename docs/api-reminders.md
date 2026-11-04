@@ -71,8 +71,8 @@ same-origin and JSON rules in [writes](api.md#writes-same-origin-rule).
 | `GET preferences/device` | optional | Read device-wide settings, or `null`. |
 | `PATCH preferences/device` | yes | Change device-wide settings. |
 | `GET` / `PUT policy` | yes | Read or replace the room default policy. |
-| `GET` / `PUT lists/{id}/policy` | yes | Read or replace a list override. |
-| `GET` / `PUT items/{id}/policy` | yes | Read or replace an item override. |
+| `GET` / `PUT lists/{uid}/policy` | yes | Read or replace a list override. |
+| `GET` / `PUT items/{uid}/policy` | yes | Read or replace an item override. |
 
 ### Enrollment (`POST enrollment`)
 
@@ -131,7 +131,7 @@ account. Changing a device setting does not change any room's data.
 
 All policy requests require this device's enrollment, even when its saved grant
 needs resuming. Settings remain drafts and never resume a grant. List and item
-IDs must belong to the authorized room. A missing device or enrollment is 403;
+UIDs must belong to the authorized room. A missing device or enrollment is 403;
 a target outside the room is 404. Each GET returns `policy` (the requested
 scope) and `effective` (the selected replacement). Item overrides replace list
 overrides, which replace the room default. `off` disables a scope; `inherit`
@@ -218,7 +218,9 @@ but leaves an unused installation. Clients should not invent device IDs.
 ## Item preview
 
 `POST /preview` requires the room cookie and this device's enrollment. It is
-read-only and accepts exactly `{"item_id": 123, "draft": null}`. Omit `draft`
+read-only and accepts `{"item_uid": "<item UUID>", "draft": null}`. For compatibility, numeric database IDs remain accepted in policy paths and
+`item_id` remains accepted in preview; preview requires exactly one identifier.
+Omit `draft`
 for the saved effective policy. A draft is an item override with `state`,
 `preset`, `rules`, and `summary_enabled`, using the policy input format above;
 only `state` is required. Inherit previews the saved list/room parents. It does

@@ -4,7 +4,7 @@ import hashlib
 from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import APIRouter, Request
-from pydantic import Field, StrictBool, StrictInt
+from pydantic import Field, StrictBool, StrictInt, model_validator
 
 from api.access import room_access
 from api.errors import ApiError
@@ -16,6 +16,8 @@ from api.reminders import (
     run_personal_once_locked,
 )
 from api.requests import JsonBody, StrictBody, parse_body
+from database_setup import db
+from identifiers import canonical_uuid
 from reminders import identity, policies
 from reminders.rules import FixedRule, RelativeRule
 from reminders.zoned_time import format_utc
@@ -85,10 +87,46 @@ def _authorized(
     return installation_id
 
 
+def _target_locked(
+    room_id: int, scope: policies.Scope, target: str | int | None
+) -> int | None:
+    """Resolve public UIDs without revealing targets from other rooms."""
+    if scope == "room":
+        return None
+    if isinstance(target, int) or (isinstance(target, str) and target.isdecimal()):
+        target_id = int(target)
+        try:
+            policies.validate_target_locked(room_id, scope, target_id)
+        except ValueError:
+            raise ApiError(404, "not_found") from None
+        return target_id
+    uid = canonical_uuid(target) if isinstance(target, str) else None
+    if uid is None:
+        raise ApiError(404, "not_found")
+    if scope == "list":
+        row = db.execute(
+            "SELECT id FROM lists WHERE room_id = ? AND uid = ?", (room_id, uid)
+        ).fetchone()
+    else:
+        row = db.execute(
+            "SELECT items.id FROM items JOIN lists ON items.list_id = lists.id WHERE lists.room_id = ? AND items.uid = ?",
+            (room_id, uid),
+        ).fetchone()
+    if row is None:
+        raise ApiError(404, "not_found")
+    return row[0]
+
+
 def _get(
-    slug: str, request: Request, scope: policies.Scope, target_id: int | None
+    slug: str, request: Request, scope: policies.Scope, target_id: str | int | None
 ) -> dict[str, Any]:
     with room_access(request, slug) as room:
+        if (
+            identity.enrollment_row_locked(_require_device(request), room.room_id)
+            is None
+        ):
+            raise ApiError(403, "not_enrolled")
+        target_id = _target_locked(room.room_id, scope, target_id)
         installation = _authorized(request, room.room_id, scope, target_id)
         own = policies.policy_locked(installation, room.room_id, scope, target_id)
         selected, _, _ = policies.resolve_policy_locked(
@@ -102,14 +140,20 @@ def _put(
     request: Request,
     body: JsonBody,
     scope: policies.Scope,
-    target_id: int | None,
+    target_id: str | int | None,
 ) -> dict[str, Any]:
     data = parse_body(PolicyBody, body)
-    digest = hashlib.sha256(
-        f"{scope}:{target_id}:{personal_request_hash(data)}".encode()
-    ).hexdigest()
     with room_access(request, slug, write=True) as room:
+        if (
+            identity.enrollment_row_locked(_require_device(request), room.room_id)
+            is None
+        ):
+            raise ApiError(403, "not_enrolled")
+        target_id = _target_locked(room.room_id, scope, target_id)
         installation = _authorized(request, room.room_id, scope, target_id)
+        digest = hashlib.sha256(
+            f"{scope}:{target_id}:{personal_request_hash(data)}".encode()
+        ).hexdigest()
 
         def run() -> dict[str, Any]:
             current = policies.policy_locked(
@@ -158,25 +202,25 @@ def put_room(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
 
 
 @router.get("/rooms/{slug}/reminders/lists/{target_id}/policy")
-def get_list(slug: str, target_id: int, request: Request) -> dict[str, Any]:
+def get_list(slug: str, target_id: str, request: Request) -> dict[str, Any]:
     return _get(slug, request, "list", target_id)
 
 
 @router.put("/rooms/{slug}/reminders/lists/{target_id}/policy")
 def put_list(
-    slug: str, target_id: int, request: Request, body: JsonBody
+    slug: str, target_id: str, request: Request, body: JsonBody
 ) -> dict[str, Any]:
     return _put(slug, request, body, "list", target_id)
 
 
 @router.get("/rooms/{slug}/reminders/items/{target_id}/policy")
-def get_item(slug: str, target_id: int, request: Request) -> dict[str, Any]:
+def get_item(slug: str, target_id: str, request: Request) -> dict[str, Any]:
     return _get(slug, request, "item", target_id)
 
 
 @router.put("/rooms/{slug}/reminders/items/{target_id}/policy")
 def put_item(
-    slug: str, target_id: int, request: Request, body: JsonBody
+    slug: str, target_id: str, request: Request, body: JsonBody
 ) -> dict[str, Any]:
     return _put(slug, request, body, "item", target_id)
 
@@ -189,7 +233,15 @@ class PreviewDraft(StrictBody):
 
 
 class PreviewBody(StrictBody):
-    item_id: Annotated[StrictInt, Field(gt=0)]
+    item_id: Annotated[StrictInt, Field(gt=0)] | None = None
+    item_uid: Uuid | None = None
+
+    @model_validator(mode="after")
+    def one_target(self):
+        if (self.item_id is None) == (self.item_uid is None):
+            raise ValueError("Provide exactly one item identifier")
+        return self
+
     draft: PreviewDraft | None = None
 
 
@@ -204,17 +256,22 @@ def post_preview(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
 
     data = parse_body(PreviewBody, body)
     with room_access(request, slug) as room:
-        installation = _authorized(request, room.room_id, "item", data.item_id)
+        if (
+            identity.enrollment_row_locked(_require_device(request), room.room_id)
+            is None
+        ):
+            raise ApiError(403, "not_enrolled")
+        item_id = _target_locked(room.room_id, "item", data.item_uid or data.item_id)
+        assert item_id is not None
+        installation = _authorized(request, room.room_id, "item", item_id)
         now = identity.current_time()
         effective = policies.effective_policy_locked(
-            installation, room.room_id, data.item_id, now=now
+            installation, room.room_id, item_id, now=now
         )
         provisional: set[str] = set()
         if data.draft is not None:
             draft = data.draft
-            own = policies.policy_locked(
-                installation, room.room_id, "item", data.item_id
-            )
+            own = policies.policy_locked(installation, room.room_id, "item", item_id)
             if draft.state != "replace":
                 if draft.preset is not None or draft.rules or draft.summary_enabled:
                     raise ApiError(
@@ -233,7 +290,7 @@ def post_preview(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
                     result = str(
                         uuid5(
                             NAMESPACE_URL,
-                            f"preview:{installation}:{room.room_id}:{data.item_id}:{counter}",
+                            f"preview:{installation}:{room.room_id}:{item_id}:{counter}",
                         )
                     )
                     provisional.add(result)
@@ -272,7 +329,7 @@ def post_preview(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
             state, preset = draft.state, draft.preset
             if draft.state == "inherit":
                 list_id = db.execute(
-                    "SELECT list_id FROM items WHERE id = ?", (data.item_id,)
+                    "SELECT list_id FROM items WHERE id = ?", (item_id,)
                 ).fetchone()[0]
                 selected, _, parent_cutoffs = policies.resolve_policy_locked(
                     installation, room.room_id, "list", list_id

@@ -720,3 +720,73 @@ def test_share_only_cannot_preview_personal_policies(policy_home):
     assert response.json()["error"]["code"] == "not_authenticated"
     assert "set-cookie" not in response.headers
     assert not visitor.cookies
+
+
+def test_public_uid_targets_preserve_ownership_and_retry(policy_home):
+    from api_helpers import client_for, rotate_list_share_token
+
+    _, room_id, list_id, item_id, _, client, slug = policy_home
+    list_uid, item_uid = new_id(), new_id()
+    db.execute("UPDATE lists SET uid = ? WHERE id = ?", (list_uid, list_id))
+    db.execute("UPDATE items SET uid = ? WHERE id = ?", (item_uid, item_id))
+    password = db.execute(
+        "SELECT password_hash FROM rooms WHERE id = ?", (room_id,)
+    ).fetchone()[0]
+    other_room = db.execute(
+        "INSERT INTO rooms (name, slug, password_hash) VALUES ('Other', 'uid-other', ?)",
+        (password,),
+    ).lastrowid
+    other_uid, other_item_uid = new_id(), new_id()
+    other_list = db.execute(
+        "INSERT INTO lists (name, slug, room_id, uid, share_token) VALUES ('Other', 'uid-other-list', ?, ?, 'uid-other-share')",
+        (other_room, other_uid),
+    ).lastrowid
+    db.execute(
+        "INSERT INTO items (name, name_key, done, list_id, uid) VALUES ('Other', 'other', 0, ?, ?)",
+        (other_list, other_item_uid),
+    )
+    db.commit()
+    root = f"/api/v1/rooms/{slug}/reminders"
+    body = {"op_id": new_id(), "base_revision": 0, "state": "off"}
+    url = f"{root}/lists/{list_uid}/policy"
+    first = client.put(url, json=body)
+    assert first.status_code == 200
+    assert client.put(url, json=body).json() == first.json()
+    assert client.put(f"{root}/items/{item_uid}/policy", json=body).status_code == 409
+    for kind, uid in (("lists", other_uid), ("items", other_item_uid)):
+        assert client.get(f"{root}/{kind}/{uid}/policy").status_code == 404
+        assert client.put(f"{root}/{kind}/{uid}/policy", json=body).status_code == 404
+    assert client.get(f"{root}/items/{item_uid}/policy").status_code == 200
+    before = db.execute("SELECT count(*) FROM reminder_processed_ops").fetchone()[0]
+    preview = client.post(f"{root}/preview", json={"item_uid": item_uid})
+    assert preview.status_code == 200 and "set-cookie" not in preview.headers
+    assert (
+        client.post(f"{root}/preview", json={"item_uid": other_item_uid}).status_code
+        == 404
+    )
+    assert (
+        client.post(
+            f"{root}/preview", json={"item_uid": item_uid, "item_id": item_id}
+        ).status_code
+        == 422
+    )
+    assert (
+        db.execute("SELECT count(*) FROM reminder_processed_ops").fetchone()[0]
+        == before
+    )
+    forged = client_for(slug)
+    forged.cookies.set(
+        "__Host-listapp-device", "forged", domain="testserver.local", path="/"
+    )
+    assert forged.get(f"{root}/items/{item_uid}/policy").status_code == 403
+    assert (
+        forged.post(f"{root}/preview", json={"item_uid": other_item_uid}).status_code
+        == 403
+    )
+    visitor = client_for()
+    token = rotate_list_share_token(list_id)
+    assert visitor.get(f"/api/v1/share/{token}/changes?since=0").status_code == 200
+    assert visitor.get(f"{root}/lists/{list_uid}/policy").status_code == 401
+    assert (
+        visitor.post(f"{root}/preview", json={"item_uid": item_uid}).status_code == 401
+    )
