@@ -89,7 +89,8 @@ subject to the current bookmark hold recorded below.
 - Conductors: GPT-6.1 Sol, initially low for S1/S5, high for hard work including
   S2–S4 and S1's expanded lifecycle diagnosis. Verify effective
   model/thinking before granting edits. Owner's 2026-11-04 provider exception:
-  Claude quota is exhausted; use `openai-codex/gpt-6.1-sol` workers/reviewers,
+  Claude quota is exhausted; use `openai/gpt-6.1-sol` workers/reviewers
+  (the current registry provider, replacing the earlier `openai-codex` alias),
   low for small bounded work and high for hard scheduling/security work.
   This overrides older Haiku instructions in batch records. Select and verify
   effective settings; report unsupported levels, never silently substitute.
