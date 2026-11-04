@@ -8,7 +8,18 @@ Lifecycle: tracked
 
 **Edit seams:** src/reminders transport + authenticated same-origin device/room APIs/config; frontend enrollment/settings; existing /service-worker.js (preserve /sw.js kill switch, cache/update/offline safety). Dependencies through uv only.
 
-**Dependencies:** Stage 3 reviewed and integrated into the Lead line; exact base supplied at dispatch.
+**Integration dependencies:** Stage 3 reviewed/integrated before dependent
+DB/API/UI/worker/scheduler integration. Lead sequencing amendment agreed
+2026-11-04: pure transport/security foundation may start first in isolation.
+
+**Current foundation-only handoff:** new `src/reminders/push_transport.py`,
+focused fake-network/signing/endpoint/DNS/TLS/redirect/result tests, approved
+`pywebpush` runtime dependency/lockfile. Do not edit the package `__init__`
+(S2 owns foundations), DB, enrollment APIs, UI, worker or scheduler. Outcomes
+and retry hints are pure transport outputs, not another retry engine. No real
+provider calls/endpoints/key provisioning. Fresh independent review/Python
+gates are required. Reconcile dependency locks after predecessors; no full
+stage completion claim before integration and remaining behavior.
 **Unblocks:** [S5](reminders-s5.md).
 
 **Done criteria:** Standards-based phone push is implemented with generic/private defaults, supported/needs-install/denied/subscribed states and safe opt-out per room/device. Every push shows a visible fallback and safe same-origin navigation. No real endpoint enrollment, VAPID secret provisioning or external push provider send during implementation/tests.
@@ -64,8 +75,10 @@ material fixes after independent review.
 - Lead aggregate: `tmp-reminder-delivery`, `/home/hsa/projects/tmp-reminder-delivery`.
 - Entry workspace: `tmp-reminders-s4`, `/home/hsa/projects/tmp-reminders-s4`;
   Lead-created/agent-managed; initial preflight @ `twuqsnnx`, base
-  `rptqkywz` / `72b25032`. Lead will supply the reviewed predecessor tip
-  before implementation; do not implement on this provisional base.
+  `rptqkywz` / `72b25032`. Independent foundation base is amendment change
+  `vyvtntwv`, supplied exactly at the Lead edit handoff. Conductor freshly
+  confirmed Sol/high, quiescence and Lead entry-update permission. Lead will
+  supply reviewed S3 before dependent implementation/stage integration.
 - Peer: `01a1a2ff-4fcb-7503-803f-e651fb9d7e45`.
   Zellij `pc-home`, tab 13 **ListR S4 phone push**, pane `terminal_22`.
   Normal Fish shell, target cwd and foreground Pi launch verified.

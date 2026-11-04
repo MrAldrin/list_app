@@ -8,7 +8,16 @@ Lifecycle: tracked
 
 **Edit seams:** src/reminders, src/api/reminders and existing item ops/CRUD/migrations/feed; frontend types/validation/offline overlays, reusable reminder editor/settings and previews. Keep personal data out of shared feeds and share-link APIs.
 
-**Dependencies:** Stage 1 reviewed and integrated into the Lead line; exact base supplied at dispatch.
+**Integration dependencies:** Stage 1 reviewed/integrated before dependent UI
+or stage integration. Lead sequencing amendment agreed 2026-11-04: the
+independent backend date/time foundation may start first in isolation.
+
+**Current foundation-only handoff:** pure server zoneinfo resolver; shared
+`due_time`/`due_timezone`/canonical `due_at` and stable due-cycle migration,
+CRUD/item ops/feeds; Python tests; approved runtime `tzdata`; directly related
+API docs. No frontend, personal-policy API, scheduler or push yet. Obtain fresh
+independent review and Python gates. Preserve result for reconciliation onto
+reviewed S1; do not rebase active children or claim full stage completion.
 **Unblocks:** [S3](reminders-s3.md).
 
 **Done criteria:** Users can explicitly enroll this installation, save understandable policies/overrides and inspect next-run previews; invalid ownership/rules/timezones fail safely. Time changes use the established shared mutation and offline conflict/restore rules. Phase-2 UI clearly says delivery is not active yet.
@@ -64,8 +73,10 @@ material fixes after independent review.
 - Lead aggregate: `tmp-reminder-delivery`, `/home/hsa/projects/tmp-reminder-delivery`.
 - Entry workspace: `tmp-reminders-s2`, `/home/hsa/projects/tmp-reminders-s2`;
   Lead-created/agent-managed; initial preflight @ `ooqvyvmw`, base
-  `rptqkywz` / `72b25032`. Lead will supply the reviewed predecessor tip
-  before implementation; do not implement on this provisional base.
+  `rptqkywz` / `72b25032`. Independent foundation base is amendment change
+  `vyvtntwv`, supplied exactly at the Lead edit handoff. Conductor freshly
+  confirmed Sol/high, quiescence and Lead entry-update permission. Lead will
+  supply reviewed S1 before dependent implementation/stage integration.
 - Peer: `01a1a2ff-4ea8-70c1-b611-b0506e7b9929`.
   Zellij `pc-home`, tab 11 **ListR S2 schedules**, pane `terminal_20`.
   Normal Fish shell, target cwd and foreground Pi launch verified.

@@ -82,7 +82,7 @@ remain owner gates; docs-desk commits retain their standing permission.
 - Lead: Pi session `01a1a2c7-22c9-71e2-897a-af8ac7de162d`.
 - Aggregate workspace: `tmp-reminder-delivery`,
   `/home/hsa/projects/tmp-reminder-delivery` (Lead-created/managed).
-- Five sequential stage briefs: [S1](batches/reminders-s1.md),
+- Five ordered delivery stage briefs: [S1](batches/reminders-s1.md),
   [S2](batches/reminders-s2.md), [S3](batches/reminders-s3.md),
   [S4](batches/reminders-s4.md), [S5](batches/reminders-s5.md).
 - Conductors: GPT-6.1 Sol, low for S1/S5, high for hard S2–S4. Verify effective
@@ -503,8 +503,15 @@ already existing endpoints.
 
 ## Five dependent delivery stages
 
-Build each stage with its own tests and affected documentation. Later stages
-build on earlier ones; stage numbers are dependencies, not parallel branches.
+Build each stage with its own tests and affected documentation. Runtime
+integration follows the numbered dependencies. Lead-approved sequencing
+refinement (2026-11-04): isolated S2 backend date/time foundations and S4 pure
+push-transport/security foundations may be developed and independently tested
+while predecessors are verified. They do not expose dependent UI/APIs, bypass
+review/full stage gates or integrate before their predecessors. Reconcile
+completed, quiescent lines before dependent implementation; never rebase an
+active writer merely for graph tidiness. This is a delivery assumption under
+the owner's delegated authority, not added scope.
 Each stage can contain several small atomic jj changes. Update the affected
 architecture/API/current-behavior docs as each approved stage is implemented;
 stage 5 reviews completeness, not a delayed first documentation update. Do not
@@ -531,7 +538,8 @@ save all tests for stage 5 or introduce an unfinished push UI in stage 1.
 
 ### Stage 2 — Personal policies, dates and previews
 
-**Depends on:** stage 1 and approval of the identity/schema/time proposal.
+**Integration depends on:** reviewed stage 1 and the approved identity/schema/time design.
+Independent backend foundation work may start under the sequencing refinement above.
 **Unblocks:** stage 3.
 
 - Add installation/enrollment and policy records/API, shared optional due time
@@ -592,7 +600,9 @@ Across these steps:
 
 ### Stage 4 — Phone notifications
 
-**Depends on:** stage 3 and explicit approval of Web Push/dependency/secrets.
+**Integration depends on:** reviewed stage 3 and the approved Web Push design.
+Independent transport/security foundations may start under the sequencing
+refinement above; secret provisioning and real sends remain rollout work.
 **Unblocks:** stage 5.
 
 - Add VAPID sender, installation subscription storage, supported/denied/install
@@ -668,7 +678,8 @@ checks first. Before completion, use the repository's full quality gates:
   Never enroll a real phone or call a real push provider from the test suite.
   Desktop tests validate contracts, not actual APNs/FCM/OS background delivery.
 
-A stage may proceed to the next approved stage after its tests pass. The owner
+Runtime integration advances after each predecessor's review/tests pass;
+independent foundation lanes follow the narrow exceptions above. The owner
 can review the approved batch together at the end. If a material new privacy,
 architecture, spending or product decision appears, stop at that seam, record
 it here and ask; ordinary implementation details do not require a new interview.
