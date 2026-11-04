@@ -172,3 +172,100 @@ def test_historical_eligibility_is_separate_from_future_preview():
     assert preview_item(p, now=instant).entries == ()
     p = replace(p, relative_activations=(Activation("cycle", dt("2026-03-30T07:01")),))
     assert not resolve_rule(p, rule).historically_eligible
+
+
+def test_quiet_interval_uses_utc_boundaries_across_dst():
+    from reminders.preview import _quiet_end
+
+    # First 02:30 is 00:30Z; the second occurrence never reopens that interval.
+    cases = [
+        ("22:00", "02:30", "2026-10-24T19:59", None),
+        ("22:00", "02:30", "2026-10-24T20:00", "2026-10-25T00:30"),
+        ("22:00", "02:30", "2026-10-25T00:15", "2026-10-25T00:30"),
+        ("22:00", "02:30", "2026-10-25T00:29:59", "2026-10-25T00:30"),
+        ("22:00", "02:30", "2026-10-25T00:30", None),
+        ("22:00", "02:30", "2026-10-25T00:45", None),
+        ("22:00", "02:30", "2026-10-25T01:15", None),
+        ("22:00", "02:30", "2026-10-25T01:30", None),
+        ("02:30", "04:00", "2026-10-25T00:29:59", None),
+        ("02:30", "04:00", "2026-10-25T00:30", "2026-10-25T03:00"),
+        ("02:30", "04:00", "2026-10-25T00:45", "2026-10-25T03:00"),
+        ("02:30", "04:00", "2026-10-25T01:15", "2026-10-25T03:00"),
+        ("02:30", "04:00", "2026-10-25T01:30", "2026-10-25T03:00"),
+        ("02:30", "04:00", "2026-10-25T02:59:59", "2026-10-25T03:00"),
+        ("02:30", "04:00", "2026-10-25T03:00", None),
+        ("02:30", "01:30", "2026-10-25T00:29:59", None),
+        ("02:30", "01:30", "2026-10-25T00:30", "2026-10-26T00:30"),
+        ("02:30", "01:30", "2026-10-25T01:15", "2026-10-26T00:30"),
+        ("22:00", "02:30", "2026-03-29T00:59", "2026-03-29T01:00"),
+        ("22:00", "02:30", "2026-03-29T01:00", None),
+        ("02:30", "04:00", "2026-03-29T00:59", None),
+        ("02:30", "04:00", "2026-03-29T01:00", "2026-03-29T02:00"),
+        ("09:00", "17:00", "2026-02-01T08:00", "2026-02-01T16:00"),
+        ("09:00", "17:00", "2026-02-01T16:00", None),
+        ("22:00", "08:00", "2026-02-01T21:00", "2026-02-02T07:00"),
+        ("22:00", "08:00", "2026-02-02T07:00", None),
+    ]
+    for start, end, original, expected in cases:
+        instant = dt(original)
+        result = _quiet_end(instant, "Europe/Oslo", QuietWindow(start, end))
+        assert result == (dt(expected) if expected else None), (start, end, original)
+        assert result is None or result > instant
+    assert _quiet_end(dt("2026-10-25T01:15"), "Europe/Oslo", None) is None
+
+
+def test_quiet_rejects_equal_times_and_handles_calendar_bounds():
+    import pytest
+
+    from reminders.preview import _quiet_end
+
+    with pytest.raises(ValueError):
+        _quiet_end(dt("2026-01-01T12:00"), "UTC", QuietWindow("09:00", "09:00"))
+    assert (
+        _quiet_end(dt("0001-01-01T01:00"), "UTC", QuietWindow("22:00", "08:00")) is None
+    )
+    assert _quiet_end(
+        dt("9999-12-31T01:00"), "UTC", QuietWindow("22:00", "08:00")
+    ) == dt("9999-12-31T08:00")
+    with pytest.raises(OverflowError):
+        _quiet_end(dt("9999-12-31T23:00"), "UTC", QuietWindow("22:00", "08:00"))
+
+
+def test_fold_quiet_rule_and_summary_keep_original_instants():
+    second = dt("2026-10-25T01:15")
+    fixed = FixedRule(
+        "stable", "2026-10-25", "02:15", "Europe/Oslo", second, dt("2026-01-01T00:00")
+    )
+    p = policy(
+        due_date="2026-10-25",
+        due_time=None,
+        due_timezone=None,
+        due_at=None,
+        rules=(fixed,),
+        summary_enabled=True,
+        summary_time="02:15",
+    )
+    result = preview_item(
+        p, now=dt("2026-10-24T00:00"), quiet=QuietWindow("22:00", "02:30")
+    )
+    same_day = [
+        e for e in result.entries if e.instant.date().isoformat() == "2026-10-25"
+    ]
+    assert [(e.kind, e.instant, e.deferred_until) for e in same_day] == [
+        ("summary", dt("2026-10-25T00:15"), dt("2026-10-25T00:30")),
+        ("rules", second, None),
+    ]
+    assert all(
+        e.deferred_until is None or e.deferred_until > e.instant for e in result.entries
+    )
+
+
+def test_missing_confirmed_timed_instant_does_not_resolve_wall():
+    p = policy(
+        due_at=None,
+        rules=(RelativeRule("at_due", 0), RelativeRule("elapsed", 60)),
+        summary_enabled=True,
+    )
+    result = preview_item(p, now=dt("2026-03-01T00:00"))
+    assert result.disabled_reasons == ("missing_due_instant",)
+    assert result.entries and all(e.kind == "summary" for e in result.entries)

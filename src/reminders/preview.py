@@ -94,21 +94,24 @@ def _quiet_end(
     if quiet is None:
         return None
     zone = load_zone(zone_name)
-    local = instant.astimezone(zone)
-    clock = local.time().replace(tzinfo=None)
+    day = instant.astimezone(zone).date()
     start, end = time.fromisoformat(quiet.start), time.fromisoformat(quiet.end)
-    if start < end:
-        if not start <= clock < end:
-            return None
-        day = local.date()
-    else:
-        if clock >= start:
-            day = local.date() + timedelta(days=1)
-        elif clock < end:
-            day = local.date()
-        else:
-            return None
-    return resolve_wall_time(day, end, zone)
+    if start == end:
+        raise ValueError("Quiet hours must have different start and end times")
+    # Resolve both boundaries using the same first-occurrence rule. A repeated
+    # local clock must not reopen an interval whose first end already passed.
+    start_days = [day]
+    if start > end and day > date.min:
+        start_days.insert(0, day - timedelta(days=1))
+    for start_day in start_days:
+        start_at = resolve_wall_time(start_day, start, zone)
+        if instant < start_at:
+            continue
+        end_day = start_day + timedelta(days=1) if start > end else start_day
+        end_at = resolve_wall_time(end_day, end, zone)
+        if start_at <= instant < end_at:
+            return end_at
+    return None
 
 
 def preview_item(

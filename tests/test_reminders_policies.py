@@ -700,3 +700,23 @@ def test_preview_each_installation_uses_its_own_policy(policy_home):
     assert a.json()["entries"]
     assert b.json()["entries"] == []
     assert b.json()["disabled_reasons"] == ["policy_off"]
+
+
+def test_share_only_cannot_preview_personal_policies(policy_home):
+    from api_helpers import client_for, rotate_list_share_token
+
+    _, _, list_id, item, _, _, slug = policy_home
+    token = rotate_list_share_token(list_id)
+    visitor = client_for()
+    assert not visitor.cookies
+    share = visitor.get(f"/api/v1/share/{token}/changes?since=0")
+    assert share.status_code == 200
+    assert share.json()["room"] is None
+    assert not visitor.cookies
+    response = visitor.post(
+        f"/api/v1/rooms/{slug}/reminders/preview", json={"item_id": item}
+    )
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "not_authenticated"
+    assert "set-cookie" not in response.headers
+    assert not visitor.cookies

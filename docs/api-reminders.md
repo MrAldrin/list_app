@@ -224,7 +224,10 @@ UTC `deferred_until`, and nullable summary `local_day`. Fixed keys are
 Summary entries represent this item's contribution on an eligible local day,
 not a room aggregate or a promise that a notification will be sent. During
 quiet hours `deferred_until` is the room-summary eligibility time, not a
-promise to send individual alerts. If `timezone_unavailable` is reported, a
+promise to send individual alerts. Quiet windows include their start and exclude
+their end; both boundaries use the first occurrence of a repeated wall time.
+A repeated clock time does not reopen a window whose end has already passed.
+If `timezone_unavailable` is reported, a
 null deferral cannot be interpreted as no quiet adjustment. Quota, spacing,
 other items, history, catch-up and dispatch are not predicted.
 
