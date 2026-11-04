@@ -88,12 +88,14 @@ subject to the current bookmark hold recorded below.
   [S4](batches/reminders-s4.md), [S5](batches/reminders-s5.md).
 - Conductors: GPT-6.1 Sol, initially low for S1/S5, high for hard work including
   S2–S4 and S1's expanded lifecycle diagnosis. Verify effective
-  model/thinking before granting edits. Owner's 2026-11-04 provider exception:
-  Claude quota is exhausted; use `openai/gpt-6.1-sol` workers/reviewers
-  (the current registry provider, replacing the earlier `openai-codex` alias),
-  low for small bounded work and high for hard scheduling/security work.
-  This overrides older Haiku instructions in batch records. Select and verify
-  effective settings; report unsupported levels, never silently substitute.
+  model/thinking before granting edits. Owner's latest 2026-11-04 instruction:
+  checkpoint and stop active Sol subagents promptly, then use
+  `openai/gpt-6.1-terra:medium` for **all implementation and independent-review
+  subagents**. Conductors remain unchanged. This replaces the earlier Sol
+  fallback and Haiku defaults for this delivery. Do not automatically escalate
+  to Sol/high. Preserve handoffs and stop the old writer before replacement.
+  Verify effective provider/model/medium; report unsupported settings rather
+  than substituting. Claude remains unavailable due to quota.
 - Lead alone writes the backlog, this plan and the owner-review list below.
   Each Conductor owns only its separate batch record's status/closeout; shared
   records are edited/committed on the docs desk with coordinated write windows.
