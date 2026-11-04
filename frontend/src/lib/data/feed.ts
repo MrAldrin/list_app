@@ -8,7 +8,13 @@ export function mergeFeed(server: RoomData, feed: Feed): RoomData {
 	const lists = new Map(feed.full ? [] : server.lists);
 	const items = new Map(feed.full ? [] : server.items);
 	for (const list of feed.lists) lists.set(list.uid, list);
-	for (const item of feed.items) items.set(item.uid, item);
+	for (const item of feed.items)
+		items.set(item.uid, {
+			...item,
+			due_time: item.due_time ?? null,
+			due_timezone: item.due_timezone ?? null,
+			due_at: item.due_at ?? null
+		});
 
 	const deletedLists = new Set<string>();
 	for (const deletion of feed.deletions) {

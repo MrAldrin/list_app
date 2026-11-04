@@ -5,16 +5,17 @@
 	"Loading…" text, the saved-view notice, the sign-in prompt (rooms only), the
 	load error with Retry, or the page's own content (passed as `content`, with
 	the loaded handle as its argument). The connection status and the toasts for
-	data-layer messages and due-date reminders are shown here too.
+	data-layer messages are shown here too. The due bell lives in the page
+	headers; this frame keeps the day for the due views current.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { RoomHandle } from '#lib/data/index.ts';
+	import { startDueClock } from '#lib/list/due-clock.svelte.ts';
 	import ConnectionStatus from '#lib/ui/ConnectionStatus.svelte';
 	import LoadError from '#lib/ui/LoadError.svelte';
 	import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
 	import { showNoticesAsToasts } from '#lib/ui/notice-toasts.svelte.ts';
-	import { showDueReminders } from '#lib/ui/due-reminder-toasts.svelte.ts';
 	import RoomLogin from './RoomLogin.svelte';
 	import SavedChanges from './SavedChanges.svelte';
 
@@ -26,7 +27,6 @@
 		canSignIn = false,
 		connectTitle,
 		failedTitle,
-		listUid,
 		content
 	}: {
 		/** The opened handle, for the page's own use (for example its title). */
@@ -42,8 +42,6 @@
 		connectTitle: string;
 		/** Load error title for any other failure. */
 		failedTitle: string;
-		/** The list on screen, for its due-date reminder; none on the room page. */
-		listUid?: string;
 		content: Snippet<[RoomHandle]>;
 	} = $props();
 
@@ -58,11 +56,8 @@
 
 	// Messages from the data layer (a rejected or failed change) become toasts.
 	showNoticesAsToasts(() => handle?.store);
-	// Due-date reminders: when a list opens, and across all lists every few minutes.
-	showDueReminders(
-		() => handle?.store,
-		() => listUid
-	);
+	// Keeps the day current: at midnight, and when the page is shown again.
+	$effect(() => startDueClock());
 </script>
 
 <main class="page">

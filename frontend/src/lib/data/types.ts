@@ -48,6 +48,10 @@ export interface Item {
 	description: string;
 	/** Optional day as `YYYY-MM-DD`; null for no date. */
 	date: string | null;
+	/** Wall time and IANA zone; due_at is confirmed by the server only. */
+	due_time: string | null;
+	due_timezone: string | null;
+	due_at: string | null;
 	/** Keep their order. */
 	tags: string[];
 	/** How often the item was added: adds, restores and unchecks. At least 1. */
@@ -163,6 +167,8 @@ export interface ItemEditOp {
 	quantity?: number | null;
 	/** Absent keeps the date; null clears it. */
 	date?: string | null;
+	due_time?: string | null;
+	due_timezone?: string | null;
 	base_seq: number;
 }
 export interface ItemToggleTagOp {
@@ -189,6 +195,8 @@ export interface ItemRestoreOp {
 	quantity: number;
 	completed_at: string | null;
 	date?: string | null;
+	due_time?: string | null;
+	due_timezone?: string | null;
 	/** Kept from the deleted item; absent counts as 1 with no time. */
 	add_count?: number;
 	added_at?: string | null;

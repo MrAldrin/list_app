@@ -1,16 +1,26 @@
-// Due-date reminders inside the app (no server, no permissions). An item is
-// "due soon" when it is not checked and its date is tomorrow or earlier
-// (overdue counts too). See docs/due-date-reminders.md.
-//
-// Two moments show a reminder toast:
-// - opening a list: every due item of that list, every time it opens;
-// - a check across all lists (on load and every few minutes): only items not
-//   yet reminded about on this page, so the same item does not nag.
+// Due items: unchecked items with a date, grouped for the due bell and counted
+// on the room and list pages. Dates are calendar days (`YYYY-MM-DD`) in the
+// device's own time zone. Pure rules, so Vitest can test them. See
+// docs/due-date-reminders.md.
 
-import type { Item, List } from '#lib/data/types.ts';
+import { compareCodePoints } from '#lib/data/order.ts';
+import type { Item } from '#lib/data/types.ts';
 
-/** How often the app checks all lists again, in milliseconds. */
-export const DUE_CHECK_INTERVAL_MS = 5 * 60_000;
+/** Disjoint groups, from the most urgent: overdue, today, tomorrow, days 2–7, then beyond day 7. */
+export type DueGroup = 'overdue' | 'today' | 'tomorrow' | 'next7' | 'later';
+
+/** The groups in the order they show. */
+export const DUE_GROUPS: readonly DueGroup[] = ['overdue', 'today', 'tomorrow', 'next7', 'later'];
+
+export const DUE_GROUP_TITLES: Record<DueGroup, string> = {
+	overdue: 'Overdue',
+	today: 'Today',
+	tomorrow: 'Tomorrow',
+	next7: 'Next 7 days',
+	later: 'Later'
+};
+
+const DAY_MS = 86_400_000;
 
 /** A day as `YYYY-MM-DD` in the device's own time zone. */
 export function localDay(now: Date): string {
@@ -18,91 +28,116 @@ export function localDay(now: Date): string {
 	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-function nextDay(now: Date): Date {
-	return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+/** The day's number since 1970-01-01, counted in UTC so daylight saving never shifts it. */
+function dayNumber(day: string): number {
+	const [year, month, date] = day.split('-').map(Number);
+	// setUTCFullYear, not Date.UTC: Date.UTC maps years 0-99 to 1900-1999.
+	const when = new Date(0);
+	when.setUTCFullYear(year, month - 1, date);
+	return Math.round(when.getTime() / DAY_MS);
 }
 
-/** The unchecked items dated tomorrow or earlier. */
-export function dueItems(items: readonly Item[], now: Date): Item[] {
-	const tomorrow = localDay(nextDay(now));
+/** Whole calendar days from `today` to `date`; negative when `date` has passed. */
+export function daysBetween(today: string, date: string): number {
+	return dayNumber(date) - dayNumber(today);
+}
+
+/** The group of a day, counted from `today` (both `YYYY-MM-DD`). */
+export function dueGroupOfDay(date: string, today: string): DueGroup {
+	const days = daysBetween(today, date);
+	if (days < 0) return 'overdue';
+	if (days === 0) return 'today';
+	if (days === 1) return 'tomorrow';
+	// Days 2–7 after today; the rest is later.
+	return days <= 7 ? 'next7' : 'later';
+}
+
+/** The due group of an item, or null when it is done or has no date. */
+export function itemDueGroup(item: Pick<Item, 'date' | 'done'>, now: Date): DueGroup | null {
+	if (item.done || item.date === null) return null;
+	return dueGroupOfDay(item.date, localDay(now));
+}
+
+/** Unchecked items overdue, due today or due tomorrow; `overdue` is the part past due. */
+export interface DueTally {
+	count: number;
+	overdue: number;
+}
+
+/** The counts on the bell and on list cards. */
+export function dueTally(items: readonly Item[], now: Date): DueTally {
+	const tally: DueTally = { count: 0, overdue: 0 };
+	for (const item of items) {
+		const group = itemDueGroup(item, now);
+		if (group === 'overdue') tally.overdue += 1;
+		if (group === 'overdue' || group === 'today' || group === 'tomorrow') tally.count += 1;
+	}
+	return tally;
+}
+
+/** A badge number: `99+` above 99, nothing at zero. */
+export function badgeText(count: number): string {
+	return count > 99 ? '99+' : String(count);
+}
+
+/** One dated, unchecked item in the due views. */
+export interface DueRow {
+	item: Item;
+	/** `YYYY-MM-DD`, from the item. */
+	date: string;
+	/** The name of the item's list, for the whole-room view. */
+	listName: string;
+	group: DueGroup;
+}
+
+/**
+ * The due rows of `items` (done and undated items are left out), in order:
+ * by day, then list name, item name and UID, so ties keep one place.
+ */
+export function dueRows(
+	items: readonly Item[],
+	listName: (listUid: string) => string,
+	now: Date
+): DueRow[] {
+	const today = localDay(now);
+	const rows: DueRow[] = [];
+	for (const item of items) {
+		if (item.done || item.date === null) continue;
+		rows.push({
+			item,
+			date: item.date,
+			listName: listName(item.list_uid),
+			group: dueGroupOfDay(item.date, today)
+		});
+	}
 	// `YYYY-MM-DD` text sorts like the days it names.
-	return items.filter((item) => !item.done && item.date !== null && item.date <= tomorrow);
+	return rows.sort(
+		(a, b) =>
+			compareCodePoints(a.date, b.date) ||
+			compareCodePoints(a.listName, b.listName) ||
+			compareCodePoints(a.item.name, b.item.name) ||
+			compareCodePoints(a.item.uid, b.item.uid)
+	);
 }
 
-function plural(count: number): string {
-	return `${count} ${count === 1 ? 'item' : 'items'}`;
+/** One group of the due views. */
+export interface DueSection {
+	group: DueGroup;
+	rows: DueRow[];
 }
 
-/** "2 items due: 1 overdue, 1 tomorrow". Assumes `due` came from `dueItems`. */
-export function dueSummary(due: readonly Item[], now: Date): string {
-	const today = localDay(now);
-	let overdue = 0;
-	let dueToday = 0;
-	for (const item of due) {
-		if (item.date! < today) overdue += 1;
-		else if (item.date === today) dueToday += 1;
-	}
-	const tomorrow = due.length - overdue - dueToday;
-	const parts = [
-		overdue ? `${overdue} overdue` : '',
-		dueToday ? `${dueToday} today` : '',
-		tomorrow ? `${tomorrow} tomorrow` : ''
-	].filter(Boolean);
-	return `${plural(due.length)} due: ${parts.join(', ')}`;
+/** The rows split into their groups, in display order; groups without rows are left out. */
+export function dueSections(rows: readonly DueRow[]): DueSection[] {
+	return DUE_GROUPS.map((group) => ({
+		group,
+		rows: rows.filter((row) => row.group === group)
+	})).filter((section) => section.rows.length > 0);
 }
 
-/** A toast to show. `danger` when something is overdue, else `warning`. */
-export interface DueReminder {
-	message: string;
-	kind: 'warning' | 'danger';
-}
-
-function reminder(message: string, due: readonly Item[], now: Date): DueReminder {
-	const today = localDay(now);
-	return { message, kind: due.some((item) => item.date! < today) ? 'danger' : 'warning' };
-}
-
-/** Remembers what this page has already reminded about. One per opened room or share link. */
-export class DueReminders {
-	// `uid@date`: a new date on the same item reminds again.
-	readonly #reminded = new Set<string>();
-
-	#mark(due: readonly Item[]): void {
-		for (const item of due) this.#reminded.add(`${item.uid}@${item.date}`);
-	}
-
-	/** A list was opened: remind about all its due items. */
-	listOpened(items: readonly Item[], now: Date): DueReminder | null {
-		const due = dueItems(items, now);
-		this.#mark(due);
-		return due.length ? reminder(dueSummary(due, now), due, now) : null;
-	}
-
-	/** The periodic check across all lists: remind only about items not reminded yet. */
-	checkAll(
-		lists: readonly List[],
-		itemsOf: (listUid: string) => readonly Item[],
-		now: Date
-	): DueReminder | null {
-		const fresh: { list: List; due: Item[] }[] = [];
-		for (const list of lists) {
-			const due = dueItems(itemsOf(list.uid), now).filter(
-				(item) => !this.#reminded.has(`${item.uid}@${item.date}`)
-			);
-			if (due.length) fresh.push({ list, due });
-		}
-		if (!fresh.length) return null;
-		const all = fresh.flatMap(({ due }) => due);
-		this.#mark(all);
-		const message =
-			fresh.length === 1
-				? `${fresh[0].list.name}: ${dueSummary(fresh[0].due, now)}`
-				: `Due soon: ${fresh.map(({ list, due }) => `${list.name} (${due.length})`).join(', ')}`;
-		return reminder(message, all, now);
-	}
-}
-
-/** The current time, read once per check (not a reactive value). */
-export function clockNow(): Date {
-	return new Date();
+/** The date label next to an item: text and color. Later and next-7 days have none. */
+export function dueTag(group: DueGroup): { text: string; tone: 'danger' | 'warning' } | null {
+	if (group === 'overdue') return { text: 'Overdue', tone: 'danger' };
+	if (group === 'today') return { text: 'Today', tone: 'warning' };
+	if (group === 'tomorrow') return { text: 'Tomorrow', tone: 'warning' };
+	return null;
 }

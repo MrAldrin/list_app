@@ -37,6 +37,11 @@ uv run pytest browser_tests -q -k svelte  # Svelte app only
 - The database, storage, logs, screenshots and traces live in pytest's temp
   folder. `.env` is ignored and test-only secrets are used. Real databases are
   never touched.
+- WebKit uses a separate, disposable persistent profile for each session. Its
+  private-mode CacheStorage does not survive page replacement
+  ([Playwright #41618](https://github.com/microsoft/playwright/issues/41618)).
+  Profiles are deleted after their contexts close. Replacement tabs stay blank
+  until the old tab closes: closing WebKit's last tab would exit the browser.
 - Server tracebacks and browser JavaScript errors fail the test.
 - Servers and browsers are always shut down, even on failure.
 

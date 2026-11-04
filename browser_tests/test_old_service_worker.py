@@ -126,12 +126,16 @@ def test_the_old_service_worker_is_removed_before_the_new_shell_is_saved(
         # Close the page reloaded by the legacy worker. A fresh page waits for
         # the new worker to activate, then reopens under it without claims.
         context = page.context
+        # A blank replacement keeps persistent WebKit alive, without warming
+        # the app before the old tab closes.
+        replacement = context.new_page()
         page.close()
-        page = context.new_page()
+        page = replacement
         page.goto(server.url)
         page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+        replacement = context.new_page()
         page.close()
-        page = context.new_page()
+        page = replacement
         page.goto(server.url)
         page.wait_for_function(
             "navigator.serviceWorker.controller?.scriptURL.endsWith('/service-worker.js')"

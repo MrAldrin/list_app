@@ -44,6 +44,8 @@
 			description: string;
 			quantity: number;
 			date: string | null;
+			due_time: string | null;
+			due_timezone: string | null;
 		}) => Promise<void>;
 		/** Turns a tag on or off for the item at once. */
 		onTag: (tag: string) => void;
@@ -64,14 +66,32 @@
 	let quantity = $state(untrack(() => item.quantity));
 	// '' means no date; the save sends null for it.
 	let date = $state(untrack(() => item.date ?? ''));
+	let dueTime = $state(untrack(() => item.due_time ?? ''));
+	let dueTimezone = $state(untrack(() => item.due_timezone ?? ''));
+	const unchangedDue = $derived(
+		date === (item.date ?? '') &&
+			dueTime === (item.due_time ?? '') &&
+			dueTimezone === (item.due_timezone ?? '')
+	);
+	const validDue = $derived(
+		!date || (!dueTime && !dueTimezone) || (!!dueTime && !!dueTimezone.trim())
+	);
 </script>
 
 <FormDialog
 	title="Edit Item"
 	submitLabel="Save"
-	submitDisabled={!canEdit}
+	submitDisabled={!canEdit || !validDue}
 	focusBox
-	onSubmit={() => onSave({ name, description, quantity, date: date || null })}
+	onSubmit={() =>
+		onSave({
+			name,
+			description,
+			quantity,
+			date: date || null,
+			due_time: date && dueTime ? dueTime : null,
+			due_timezone: date && dueTime ? dueTimezone.trim() : null
+		})}
 	{onClose}
 >
 	<label for={nameId}>Item Name</label>
@@ -109,9 +129,49 @@
 	</div>
 	<label for={dateId}>Date</label>
 	<div class="date-row">
-		<input id={dateId} type="date" bind:value={date} />
-		<button type="button" disabled={!canEdit || !date} onclick={() => (date = '')}> Clear </button>
+		<input
+			id={dateId}
+			type="date"
+			bind:value={date}
+			onchange={() => {
+				if (!date) {
+					dueTime = '';
+					dueTimezone = '';
+				}
+			}}
+		/>
+		<button
+			type="button"
+			disabled={!canEdit || !date}
+			onclick={() => {
+				date = '';
+				dueTime = '';
+				dueTimezone = '';
+			}}
+		>
+			Clear
+		</button>
 	</div>
+	{#if date}
+		<label for="{nameId}-due-time">Due time (optional)</label>
+		<input
+			id="{nameId}-due-time"
+			type="time"
+			bind:value={dueTime}
+			onchange={() => {
+				if (!dueTime) dueTimezone = '';
+			}}
+		/>
+		{#if dueTime}
+			<label for="{nameId}-due-zone">Time zone (IANA, for example Europe/Oslo)</label>
+			<input id="{nameId}-due-zone" bind:value={dueTimezone} autocomplete="off" />
+			{#if unchangedDue && item.due_at}
+				<p class="added">Server-confirmed UTC: {item.due_at}</p>
+			{:else}
+				<p class="added">Waiting to sync — the server will confirm the UTC time.</p>
+			{/if}
+		{/if}
+	{/if}
 	{#if tags.length > 0}
 		<span id={tagsId} class="label">Tags</span>
 		<ul class="chips" aria-labelledby={tagsId}>

@@ -23,6 +23,7 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
+- [ ] [feature] Fix the [reminder bell and item-dialog UX](batches/reminders-polish-2.md): two-line bell rows on phones, plain dialog text, phone-width checks. Owner placed first, 2026-11-05. Then discuss S3–S5 scope.
 - [ ] [feature] Implement [configurable due-date and phone reminders](due-date-reminders.md), all five stages. (in progress) Owner approved A/A/A and Lead/Conductor delivery; review before acceptance/deploy.
 - [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress) Parked on bookmark `groups` (rebuilt on `integration`, not accepted). Not shipping yet.
 
@@ -40,6 +41,7 @@ Owner answers and any further questions: [decisions for Heming](decisions-for-he
 - [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
+- [ ] [test] Review test-suite quality and value against testing best practices, including AI-written tests. Check that assertions catch meaningful behavior failures rather than merely rechecking fixture setup; identify tautologies, over-mocking, implementation-coupled checks and redundant coverage. Use representative deliberate breakages to verify important tests fail for the right reason. Measure slow tests and propose a faster development feedback loop without weakening regression coverage; coordinate with the [test-suite speed work](test-suite-speed.md#resume-here--remaining-work).
 - [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - [ ] [refactor] Switch the live-update stream to FastAPI's built-in Server-Sent Events (`EventSourceResponse`, FastAPI 0.135+) to drop our keep-alive code. Do it next time `src/api/events.py` changes. See [Not now](../docs/background/codebase-cleanup.md#not-now).
 - [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).

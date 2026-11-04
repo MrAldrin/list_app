@@ -8,7 +8,21 @@ Lifecycle: tracked
 
 **Edit seams:** Existing approved reminder models/evaluator/API; server lifespan supervised task and bounded DB/I/O separation; private inbox/settings/action UI. Reuse one evaluator/outbox. Never hold DB transactions across network or expose an unprotected partial dispatcher.
 
-**Dependencies:** Stage 2 reviewed and integrated into the Lead line; exact base supplied at dispatch.
+**Runtime dependencies:** Reviewed full S2 before evaluator/scheduler/API/UI
+integration. Lead sequencing handoff (2026-11-04) permits an independent durable
+storage foundation now from reviewed identity/cycle tip `rwswntvl` / `3eb72704`.
+
+**Foundation edit handoff:** Conductor creates/owns
+`tmp-reminders-s3-store` from that completed tip, not the provisional entry.
+Implement real SQLite occurrence/outbox/watermark/lease/reservation persistence
+and atomic repository operations/tests against the existing identity/grant
+helpers. Use the master record/state/retention contracts; agree concrete seams
+directly with S2/S4/S5. No invented policy/evaluator stubs, generation loop,
+lifespan task, dispatch, API/UI or shared migration-runner edits yet. Keep DDL
+in this module for direct repository tests; register its migration after S2
+schema integration. Fresh independent review/full Python gates are required.
+Integrate the reviewed foundation into the released empty S3 entry only; full
+stage/aggregate integration still waits for the reviewed predecessors.
 **Unblocks:** [S4](reminders-s4.md).
 
 **Done criteria:** Configurable in-app reminders, safe dedupe, one tab-claimed strip, snoozes and history survive reload/restarts. No navigation spam or cross-installation action effects. Cancellation/revocation, future-only setup and finite catch-up are explicit and tested.
@@ -24,8 +38,9 @@ material fixes after independent review.
 - Read `/home/hsa/projects/my_personal_skills/skills/conductor/SKILL.md` and its
   required `../lead/workflow.md` in full before execution. Stay in the Conductor role.
 - Use bounded workers for all implementation and fresh independent reviewers.
-  Subagents: explicitly select Claude Haiku 5.5/medium first, Haiku 5.5/max on
-  escalation; verify effective model/effort and report unsupported levels.
+  Follow the current model/provider exception in the
+  [master delivery contract](../due-date-reminders.md#delivery-coordination);
+  verify effective model/effort and report unsupported settings.
   You may create isolated jj child workspaces and integrate reviewed children
   into your assigned stage workspace without repeated approval.
 - Lead owns your entry workspace lifecycle; you own your child workspaces.
@@ -56,6 +71,14 @@ material fixes after independent review.
 
 ## Assignment
 
+**Successor (2026-11-05):** Lead Pi `01a1aa7e`. The original S3 Conductor
+session was closed at owner request. New Conductor `reminders-s3-list-app`
+(GPT-6.1 Sol/medium) takes over ownership of all `tmp-reminders-s3*`
+workspaces and the runtime records in
+`/home/hsa/projects/tmp-reminders-s3/.pi/reminders-s3-runtime/`. Start from the
+latest final disposition in its `DEADLINE-0410.md`/`CURRENT.md`. Details below
+are historical.
+
 - Creator/lifecycle owner: Lead, session `01a1a2c7-22c9-71e2`.
 - Planned owner: dedicated visible Pi Conductor `listr-reminders-s3`.
 - Verified model: `openai-codex/gpt-6.1-sol`, effective thinking `high`;
@@ -74,41 +97,36 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: preflight accepted by Lead; quiescent, blocked on reviewed S2.
-- Two-way readiness verified: assigned session/cwd, Sol high, pc-home tab 12
-  pane 21. Required role contract and authoritative master/brief read fully.
-- Decomposition: independently reviewed 3a durable core; 3b protected summaries,
-  history and claimed strip; 3c full scheduling/actions on the same outbox.
-  Use isolated bounded Haiku 5.5/medium workers after implementation handoff.
-- S2 interfaces needed: pure resolver/effective policy; installation/enrollment
-  authorization helpers; saved-grant validation; policy revisions/idempotency;
-  due-cycle and stable fixed-rule identity; future-only activation timestamp
-  and revocation/deletion hooks. Concrete names arrive with S2 handoff.
-- S4 seam: injectable transport, stable occurrence/group IDs, leased outbox,
-  attempt/acceptance/ambiguity states, expiry and reusable quota reservations.
-  Push-active suppresses strips; disabled/blocked push allows in-app fallback.
-- S5 seams: safe status/switch-reason enums, explicit eligible/wake instants,
-  and injectable reconciliation with an external restore-resume cutoff.
-  Suppress pre-cutoff eligible work while retaining actual future work;
-  restored SQLite cannot remember post-backup sends. No second scheduler.
-  Diagnostics remain authenticated own-device data; /healthz stays DB-only.
-- Next: Lead may update/rebase this released entry; await reviewed predecessor,
-  exact new base and explicit EDIT HANDOFF before code, children or services.
-- Children/workspaces: none; entry remains unchanged on its provisional base.
-- Docs-desk status write: preflight-only window granted; later writes require
-  another coordinated window. Frozen Brief/Assignment remain Lead-owned.
+- **Full S3 unfinished.** No complete local app, full-stage acceptance or
+  deployment. No unreviewed S3 source was merged into Lead's aggregate.
+- Reviewed-component tree `kulntpxm/4ffec984`; own combined working child
+  `smxxkylq/83609b2af045` has identical source. All six Python gates passed:
+  **2,254 tests, zero skips**, format/Ruff/ty clean. Frontend is unchanged
+  from the earlier 1,155-test validated build; not the pending strip UI.
+- Final unreviewed candidates: item API `yoounzxz/3f620969` needs fresh
+  same-626 review; strip UI `syollnqp/38eea306` needs fresh same-204 review.
+  Neither was accepted or consumed into the combined root.
+- Still required: complete causal/grouped cap B26, actual repeat27,
+  cooldown A28, known-absence fallback, summary/manual29 and remaining UI,
+  then latest full combined browser and independent full-stage gates.
+- Entry remains `wnyyylyt/54561d1c`. No main/integration/other bookmark,
+  production or provider changes. Implementation and review children used
+  verified native Terra/medium; no further reviews or source work in this window.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: implementation pending. Read-only inspection
-  confirmed empty entry and prepared .env/.venv/frontend dependencies; no
-  runtime suites or services started for preflight.
-- Assumptions: existing single-process SQLite lock, bounded threaded DB batches,
-  no network under transactions, roughly 60-second scan, injectable clock and
-  dispatch switch. No new owner decision, physical-device or hosting gate.
-- Limits: no implementation authority until explicit handoff; no real sends,
-  production configuration, feature acceptance or deployment.
-- Child cleanup/entry cwd release: no children; entry released to Lead for
-  predecessor update, not removal. Keep this interactive session available.
-- Owner review/acceptance: pending; no deployment.
+- Window ended with all child jobs complete and no owned test/preview server
+  remaining. No complete morning preview was started. All 16 extant S3
+  directories and partial changes are retained; no destructive cleanup.
+- Definitive root/gates, exact partial sources, missing behavior and next
+  executable steps are retained under
+  `/home/hsa/projects/tmp-reminders-s3/.pi/reminders-s3-runtime/`:
+  `DEADLINE-0410.md` and `CURRENT.md`. Native reports remain outside
+  `/tmp`; copied logs/probes have a SHA256/source manifest.
+- Evidence gap: an earlier failed WebKit matrix's textual log is retained,
+  but its trace was lost to pytest temporary retention. Later focused green
+  results are not a full-browser gate or proof of the earlier error's cause.
+- Next session: independently review exact `3f620969` and `38eea306`,
+  including the stronger privacy/group proofs and UI test adjustment.
+  Join only approved sources, rerun applicable gates, then complete the
+  missing scope. No fake acceptance or automatic integration.

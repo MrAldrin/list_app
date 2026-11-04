@@ -20,6 +20,35 @@ and retry hints are pure transport outputs, not another retry engine. No real
 provider calls/endpoints/key provisioning. Fresh independent review/Python
 gates are required. Reconcile dependency locks after predecessors; no full
 stage completion claim before integration and remaining behavior.
+**Additional independent handoff (2026-11-04):** Conductor creates/owns
+`tmp-reminders-s4-subscriptions` from reviewed identity/cycle `rwswntvl` /
+`3eb72704`, reconciling the reviewed transport `ooywutkn` / `c23ab8a3` on its
+own line. Implement installation-owned subscription storage/validation and
+private registration/disable ownership contracts with real reviewed auth and
+fake endpoints; a separately tested router may be built but not mounted yet.
+One active endpoint/device, unique endpoint hash, room-only versus device-wide
+opt-out, revisions/idempotency, expiry/revocation and secrecy remain mandatory.
+Do not edit S2's active API/package files or the shared migration runner; keep
+own DDL locally testable until predecessor integration. No real subscribe/send,
+VAPID provisioning, worker/UI/scheduler hookup or second retry engine. Coordinate
+interfaces directly with S2/S3, independently review and run own Python gates.
+Full stage integration still waits for reviewed S3.
+
+**Independent worker handoff (2026-11-05):** While S3 finishes, Conductor
+creates/owns `tmp-reminders-s4-worker` from completed reviewed S2
+`kwqutmso` / `3f536353`. Implement only existing-worker push/click handling,
+pure payload validation/building contracts and tests. Recheck current declarative
+format against first-party sources; require visible generic fallback for empty,
+malformed or unknown payloads, safe same-origin allowlisted click navigation,
+no private fetch before display, no duplicate declarative display, and preserve
+all existing cache/update/offline/retirement behavior. Establish the exact
+payload schema for later sender integration; no guessed scheduler adapters,
+server/router/subscription registration UI, migration or transport hookup yet.
+No real permission requests, registration, sends, VAPID provisioning or new
+service worker. Fresh Terra/medium implementation and independent review,
+frontend gates and focused existing worker/browser regressions. Keep this
+reviewed atomic worker delta isolated until full S3 runtime integration.
+
 **Unblocks:** [S5](reminders-s5.md).
 
 **Done criteria:** Standards-based phone push is implemented with generic/private defaults, supported/needs-install/denied/subscribed states and safe opt-out per room/device. Every push shows a visible fallback and safe same-origin navigation. No real endpoint enrollment, VAPID secret provisioning or external push provider send during implementation/tests.
@@ -35,8 +64,9 @@ material fixes after independent review.
 - Read `/home/hsa/projects/my_personal_skills/skills/conductor/SKILL.md` and its
   required `../lead/workflow.md` in full before execution. Stay in the Conductor role.
 - Use bounded workers for all implementation and fresh independent reviewers.
-  Subagents: explicitly select Claude Haiku 5.5/medium first, Haiku 5.5/max on
-  escalation; verify effective model/effort and report unsupported levels.
+  Follow the current model/provider exception in the
+  [master delivery contract](../due-date-reminders.md#delivery-coordination);
+  verify effective model/effort and report unsupported settings.
   You may create isolated jj child workspaces and integrate reviewed children
   into your assigned stage workspace without repeated approval.
 - Lead owns your entry workspace lifecycle; you own your child workspaces.
@@ -87,32 +117,161 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: preflight accepted; quiescent, blocked by reviewed S3 integration.
-  Two-way readiness verified; brief/master read fully and provisional seams inspected.
-- Next: coordinated entry rebase and exact-base Lead EDIT HANDOFF. No
-  implementation, children, services or notification enrollment/sends yet.
-- Decomposition: subscription/API/security contracts, then sender/outbox;
-  isolated frontend/worker work; fresh independent review and combined gates.
-- Transport requirement: validate actual-connect DNS/IP/TLS and reject redirects,
-  not only pre-resolve an endpoint. Lead approved a small injectable/pinned HTTPS
-  transport or maintained crypto/VAPID with separately tested transport; reconfirm
-  library APIs at implementation and escalate concrete unresolved seams only.
-- S2 interface: installation cookie/access, revision/idempotency and settings seams.
-  S3 interface: transport results, claims/leases, stable group IDs, expiry,
-  saved-grant cancellation, shared quota/cross-day retries and blocked-push fallback
-  without a duplicate foreground strip. Bind exact symbols after predecessor lands.
-  S5 handoff: config/rotation/recovery notes, safe diagnostics and evidence limits.
-- Assumptions: iOS16.4 installed-app baseline; WebKit18.4 declarative enhancement,
-  never silent push. Push remains off without explicit configuration; fake sender
-  and test keys only. Physical-device closed-app delivery remains unverified.
-- Children/workspaces: none created; Lead retains entry workspace lifecycle.
-- Docs-desk status-only window granted for this update; release after file-only
-  commit. No bookmark moves; further writes require another coordinated window.
+- State: partial transport and subscriptions foundations independently reviewed
+  and verified in S4 entry only; quiescent. Full S4 waits for reviewed S3.
+- Subscriptions tip `srloqwyv` / `5fc7a6f9`; entry clean empty `twuqsnnx` /
+  `d55b6f12`. Local DDL and router remain unmounted; no runtime hookup.
+  Supersedes the transport-only entry position below.
+- Stable foundation tip: `ooywutkn` / `c23ab8a3`, based on `vyvtntwv` / `f43d01ca`.
+  Entry `twuqsnnx` / `bdf37564` is an empty child above it. No Lead aggregate or
+  dependent-stage integration; no bookmark moves.
+- Next: Lead-coordinated reconciliation and exact reviewed S3 base before the
+  remaining DB/enrollment/API/UI/worker/scheduler work. Reconcile dependency locks
+  and rerun combined gates then; current foundation is not full-stage evidence.
+- S2 seam: installation cookie/access, revision/idempotency and settings.
+  S3 seam: transport results, leases, stable groups, expiry, live grant/state
+  revalidation outside DB lock, quota/cross-day retries and blocked-push fallback
+  without duplicate foreground strips. S5 receives operational notes/evidence limits.
+- No live children or services. Owned transport child was removed after its
+  reviewed work and artifacts were preserved. Lead retains S4 entry lifecycle.
+- Sole Status/Closeout window granted after quota-interruption recovery. Earlier
+  timed-out requests granted no edits. Commit this file only and release window;
+  `integration` and `main` remain fixed, including for this docs-only change.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: pending.
-- Assumptions, limits and retained artifacts: pending.
-- Child cleanup/entry cwd release: pending.
-- Owner review/acceptance: pending; no deployment.
+### Isolated pure payload parity — ready, not wired to sender
+
+- New child `tmp-reminders-s4-payload` from immutable reviewed worker `onqokrwz` /
+  `9f856c92`; builder `xksskwuq` / `af353836`, strict privacy fix `yruntwov` /
+  `b2c438c9`. Clean empty `xszznwzq` / `341e8af4` retained. Both owned worker
+  and payload children stay quiescent for full S3 reconciliation; no active rebase.
+- Pure `src/reminders/push_payload.py` and actual TypeScript builder consume
+  shared finite builder/parser examples. Generic default; private content requires
+  exact boolean true, never truthy strings/integers. Malformed runtime types are
+  rejected consistently. UTF-16 bounds, safe root/room navigation and exact
+  24-character stable group ID (including terminal-newline rejection) tested.
+- Approved visible configured-origin restriction in BOTH languages: canonical
+  HTTPS lowercase ASCII multi-label DNS, valid labels/final label starts letter,
+  optional canonical decimal port 1–65535 with default 443 omitted. No IP literals,
+  localhost/single-label names, Unicode or `xn--` labels, path/trailing slash,
+  credentials, query/fragment, whitespace/controls/backslash/percent escapes.
+  This deliberately avoids divergent WHATWG/urllib/IDNA normalization; no dependency.
+- Native Terra/medium author `6f2564e7` → `7f78ca9d`; fresh independent review
+  `01459b66` → `c11ea3a1` ACCEPT after closing truthy-private-content P1.
+  Parent final Python gates **1804 passed**, frontend **1197 passed**, Ruff
+  format/fix/check, ty, frontend lint/check/build and worker TS clean. Finite
+  shared examples establish tested parity, not universal language equivalence.
+- Evidence: `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/payload/`,
+  exact `s4-payload-independent-review.c11ea3a1.md`, `parent-gates.log` and reports.
+- No sender hookup, user consent/configuration/authentication enforcement or runtime
+  claim. Future sender must supply trusted origin, real DB slug and current grant/
+  consent, invoke builder before every encryption, and retain declarative no-worker
+  platform limits. No real sends/keys/enrollment, migrations or final version assumed.
+
+### Isolated existing-worker delta — ready, not joined to runtime
+
+- Base reviewed full S2 `kwqutmso` / `3f536353`; implementation `ltwqknlr` /
+  `54e4f463`, documentation/test fix `onqokrwz` /
+  `9f856c926441bae1cb4b243b3131c1daa5e9879e`. Clean child `oorkmmrt` /
+  `e7a723b9` retained in S4-owned `tmp-reminders-s4-worker` until full S3
+  reconciliation. Deliberately not merged into S4 entry or aggregate.
+- Existing worker only: generic visible fallback, validated private opt-in
+  payload contract, same-origin root/room navigation-only clicks, no private
+  fetch, no duplicate declarative display. Cache/update/offline and old worker
+  retirement preserved. No permission, enrollment, sender or scheduler hookup.
+- First-party W3C/WebKit declarative format checked by author and reviewer.
+  Browser may display/navigate without worker execution. The TypeScript builder
+  is not a Python sender safety boundary: future Python validation before every
+  encryption and cross-language parity tests are mandatory. Trusted configured
+  origin, never request Host. S3 confirmed stable 24-character group IDs and
+  single encoded room-slug route; event IDs are distinct.
+- Verified native Terra/medium implementation `16fc4211` → fix `67a4820b`;
+  fresh independent `47445cb0` → `64a243c3` ACCEPT isolated delta. Review closed
+  durable-contract parity documentation gap; added rejected-show promise
+  propagation test. No runtime fix was needed.
+- Parent inspected builder/handlers/contract; frontend lint/check/unit/build and
+  worker TypeScript gates passed; 3 built-script browser mock cases passed.
+  Independent review also ran full frontend gates (1118 unit tests before added
+  rejection regression), then 8 focused tests on final fix. Author reported 36
+  browser cache/offline/retirement/mock regressions and 1792 Python tests passed.
+  These are case-scoped mocks, not actual declarative UA or OS/phone delivery.
+- Exact retained acceptance and reports:
+  `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/worker/`,
+  `s4-worker-independent-review.64a243c3.md` and `parent-frontend.log`.
+  No active writers/services. Keep reviewed child and evidence until integration;
+  full phone flow still waits for reviewed full S3 and exact predecessor handoff.
+
+### Subscriptions foundation — full stage still open
+
+- Reviewed stack: merge `vrtrqtzs` / `6515fb6f` combines reviewed identity/cycle
+  `rwswntvl` / `3eb72704` and transport `ooywutkn` / `c23ab8a3`; fixes
+  `zkkrmqtq` / `2c5b6d6e` → `srloqwyv` / `5fc7a6f9`.
+- New modules: `src/reminders/push_subscriptions.py`, unmounted
+  `src/api/push_subscriptions.py`, `tests/test_push_subscriptions.py`.
+  Real installation/room auth, saved grants, revisions/idempotency, unique endpoint
+  ownership/tombstones, one active endpoint/device, secret-free views, room-only
+  and device-wide stops, stale provider invalidation. Own local DDL only.
+  Both parents' dependency versions retained; pywebpush and tzdata reconciled.
+- Owner-directed recovery/model change: interrupted Sol stopped before replacement;
+  checkpoint retained outside `/tmp`. Implementation/fixes and independent reviewer
+  verified native `openai/gpt-6.1-terra`, medium. No automatic Sol escalation.
+- Independent lineage `3ceb9f4e` → `0ada9900` → `d3615f8c`: ACCEPT isolated
+  foundation after fixing quota-blocked effective privacy stops and unbounded
+  repeated no-op stops. Effective stops bypass quota; registrations/re-enablement
+  and already-stopped fresh requests stay bounded. Replay/revision/auth preserved.
+- Parent required Python gates on final S4 entry: **1829 passed, 9 skipped**;
+  Ruff format/fix/check, format-check, ty and `uv lock --check` clean. Independent
+  focused tests **21 passed**. No frontend/browser or physical-device claims.
+- Evidence retained in `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/`:
+  `subscriptions-verification.log`, implementation/fix reports and exact final
+  `s4-subscriptions-independent-review.0ada9900.d3615f8c.md`. Preserve this directory
+  before eventual entry removal. Review opportunity at integration: saturated stop
+  with an actually revoked/expired saved grant and hidden enabled second room.
+  Concurrency tests cover the actual same-process SQLite lock, not multiprocess deployment.
+- Creator cleanup complete: clean subscriptions child, final tip reachability in
+  entry, usable saved artifacts and no live cwd users verified, then
+  `tmp-reminders-s4-subscriptions` forgotten and removed. Entry/evidence retained.
+- No migration runner/S2 active API/init/policy/activation edits, router mount,
+  worker/UI/scheduler hookup, services, real subscriptions/sends/keys or bookmarks.
+  Full S4 remains open pending reviewed predecessors and explicit exact-base handoff.
+
+### Transport foundation evidence
+
+- Result: `rzknzosp` / `ff5401a6` → `yrluorsp` / `43a93cc3` → `ooywutkn` /
+  `c23ab8a301167b0a4f47a1bcd88433e46085306b`. Exactly four tracked files:
+  `src/reminders/push_transport.py`, `tests/test_push_transport.py`,
+  `pyproject.toml`, `uv.lock`. No package `__init__` or dependent runtime changes.
+- Delivered: maintained pywebpush encryption/VAPID with injectable pinned HTTPS,
+  public-only actual-connect DNS/IP validation, original TLS hostname/Host,
+  no redirects/proxies, bounded DNS capacity/I/O, UTC/elapsed-time TTL checked
+  after signing, secret-safe validation and typed outcomes without retry scheduling.
+  Library API/source inspected; pywebpush 2.5.0 locked. No existing package
+  versions changed; sixteen transitive packages added.
+- Workers: implementation `c6da6314`, fixes `05c27137` → `e66334db`; actual
+  Haiku5.5/medium verified. Medium review `590717ab` lacked committed-diff/shell
+  access; escalated to fresh independent max reviewer with worker toolset
+  `9d8195df` → re-review `6a9bebe8`. Actual Haiku5.5/max verified; final verdict
+  ACCEPT for foundation only. Signer-expiry/budget and caller-contract findings
+  fixed and independently re-reviewed; all three new regressions fail on old code.
+- Parent gates on the S4 entry: required Ruff format/check-fix, full pytest
+  **1655 passed, 9 skipped**, then format-check, Ruff and ty clean. Focused
+  transport tests **120 passed**. Formatting/checks left no tracked edits.
+  Frontend/browser lanes not run for this Python-only foundation.
+- Retained evidence: `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/`
+  contains `report.md`, `verification.log`, `final-review.md` and prior reports.
+  These ignored artifacts survive child removal; Lead must preserve them before
+  eventual S4 entry removal. Original subagent reports also remain in session artifacts.
+- Cleanup: S4-created `tmp-reminders-s4-transport` was forgotten and its directory
+  removed after reviewed reachability in entry, clean child, no live cwd users and
+  artifact preservation were verified. No live child remains. S4 entry retained.
+- Limits: exact FCM/Mozilla hosts and Apple push subdomains only; not universal
+  provider support. A stuck resolver occupies at most four process-wide daemon
+  slots; further lookups fail fast until capacity returns. Ambiguous attempts may
+  be repeated by a future caller; acceptance is not delivery or exactly once.
+  TLS tested in-memory, not against a remote provider. Physical iPhone/Android
+  closed-app delivery remains unverified. iOS16.4 baseline/18.4 enhancement and
+  no-silent-push requirements remain for the later worker implementation.
+- Owner review/acceptance: pending for full S4. No real sends, registration,
+  services, secret provisioning, production changes, deployment or bookmarks.
+  Remaining full-stage behavior waits for the explicit reviewed-S3 handoff.

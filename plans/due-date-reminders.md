@@ -75,26 +75,60 @@ IANA timezone data (`tzdata` if needed) and the existing service-worker
 extension. No additional service or spending increase is approved. The Lead
 may integrate reviewed child results into its isolated delivery line under
 the shared role contract. Moving feature work to `integration` and deploying
-remain owner gates; docs-desk commits retain their standing permission.
+remain owner gates; docs-desk commits normally retain their standing permission,
+subject to the current bookmark hold recorded below.
 
 ### Delivery coordination
 
-- Lead: Pi session `01a1a2c7-22c9-71e2-897a-af8ac7de162d`.
+- Lead: Pi session `01a1aa7e-4659-74d2-b51e-a2fb367fdeec` (from 2026-11-05;
+  earlier `01a1a2c7-22c9-71e2-897a-af8ac7de162d`).
 - Aggregate workspace: `tmp-reminder-delivery`,
   `/home/hsa/projects/tmp-reminder-delivery` (Lead-created/managed).
 - Five ordered delivery stage briefs: [S1](batches/reminders-s1.md),
   [S2](batches/reminders-s2.md), [S3](batches/reminders-s3.md),
   [S4](batches/reminders-s4.md), [S5](batches/reminders-s5.md).
-- Conductors: GPT-6.1 Sol, low for S1/S5, high for hard S2–S4. Verify effective
-  model/thinking before granting edits. Bounded workers/reviewers start on
-  Claude Haiku 5.5/medium; escalate to Haiku 5.5/max if needed. Unsupported
-  levels must be reported, never silently substituted.
+- Conductors: GPT-6.1 Sol, initially low for S1/S5, high for hard work including
+  S2–S4 and S1's expanded lifecycle diagnosis. Verify effective
+  model/thinking before granting edits. Owner's latest 2026-11-04 instruction:
+  checkpoint and stop active Sol subagents promptly, then use
+  `openai/gpt-6.1-terra:medium` for **all implementation and independent-review
+  subagents**. Conductors remain unchanged. This replaces the earlier Sol
+  fallback and Haiku defaults for this delivery. Do not automatically escalate
+  to Sol/high. Preserve handoffs and stop the old writer before replacement.
+  Verify effective provider/model/medium; report unsupported settings rather
+  than substituting. Claude remains unavailable due to quota.
+- Overnight continuation (owner request, 2026-11-04): continue coordinating
+  approved delivery for up to eight hours or completion, aiming for a reviewed,
+  verified local preview for the owner's morning inspection. Keep ready work
+  moving through real predecessor handoffs; preserve/report genuine blockers.
+  This does not approve release, bookmark moves, real push sends or extra
+  spending. Use existing completion notifications; no reminder/scheduler tool
+  is exposed in the current harness.
 - Lead alone writes the backlog, this plan and the owner-review list below.
   Each Conductor owns only its separate batch record's status/closeout; shared
   records are edited/committed on the docs desk with coordinated write windows.
+- Owner relay on 2026-11-04: continue authorized isolated integration, verification
+  and creator cleanup; keep `integration` and `main` fixed, including docs-only
+  bookmark advancement, unless separately authorized. Docs-desk records may be
+  committed above the held bookmark; do not mistake them for feature acceptance.
 - Owner review pending: final implementation/UX; feature acceptance; deploy;
   actual push provisioning/phone opt-in. No production configuration or real
   external push will be changed/sent during automated implementation.
+- Owner decision pending: where to place separate frontend tooling maintenance
+  in the backlog (recommend Later). [Audit triage](../docs/background/reminder-delivery-verification.md#existing-frontend-tooling-audit)
+  found existing dev/test risks, not identified production reachability. No
+  upgrades or new reminder release gate are approved; backlog placement needs
+  the owner's decision, not an automatic queue addition.
+- **Run of 2026-11-05 (Lead Pi `01a1aa7e`, owner away ~9 h).** Order:
+  [polish P](batches/reminders-polish.md) and S3 run in parallel (P is
+  frontend-only on reviewed S2; S3 is mostly server work), then S4, then S5,
+  each started only on its reviewed predecessor. Conductors are visible Pi
+  peers named `reminders-<stage>-list-app` on GPT-6.1 Sol/medium (owner
+  choice, replacing low/high for this run). All implementation and review
+  subagents stay `openai/gpt-6.1-terra:medium`. Lead integrates P, then S3,
+  S4, S5 into `tmp-reminder-delivery` and refreshes the local preview. Same
+  limits: no deployment, held-bookmark moves, real pushes or extra spending.
+  S3 successor Conductor takes over the closed S3 Conductor's workspaces.
 - Lead's combined checks and review evidence:
   [delivery verification](../docs/background/reminder-delivery-verification.md).
 
@@ -105,8 +139,8 @@ The numbers below are approved product defaults, not claimed industry standards.
 ### 1. Always-available due information
 
 - Room bell: all unchecked dated items in that room, with list names.
-  List bell: that list only; authenticated room users can switch to the room
-  scope. A share page cannot expand its scope.
+  List bell: that list only, with no room-scope switch (owner polish
+  2026-11-05). A share page cannot expand its scope.
 - Group into **Overdue**, **Today**, **Tomorrow**, **Next 7 days** and
   **Later**. The last two groups are disjoint: Next 7 days means days 2–7
   after today; Later is beyond day 7. All dated items remain discoverable.
@@ -183,12 +217,16 @@ The numbers below are approved product defaults, not claimed industry standards.
   `due_at` is the authoritative resolved instant for this due cycle. The
   frontend uses it instead of inventing a second DST resolver. Offline
   due-time drafts show their wall time and **Waiting to sync**; do not present
-  an unconfirmed draft as a newly server-scheduled instant.
+  an unconfirmed draft as a newly server-scheduled instant. Timed at-due and
+  minute/hour offsets use the stored confirmed `due_at` directly, even if zone
+  data later changes; calendar-day/week offsets use wall intent and the common
+  resolver. Do not silently re-resolve an unchanged timed anchor.
 - Store UTC instants for work/delivery, IANA zones and wall-clock intentions for
-  recalculation. Capture the browser zone on setup; do not use a fixed UTC
-  offset. If it changes, offer an explicit timezone update with a preview;
+  recalculation. New setup defaults to Europe/Oslo (owner polish 2026-11-05),
+  not the browser zone; do not use a fixed UTC offset. Existing saved zones
+  stay as they are. If it changes, offer an explicit timezone update with a preview;
   do not silently reschedule while the app is closed.
-- For date-only items, buckets use the configured device zone (browser zone
+- For date-only items, buckets use the configured device zone (Europe/Oslo
   before setup). Timed items use their instant for overdue status and the
   device zone for Today/Tomorrow grouping. Display the zone if it differs from
   the current browser zone. A timezone change recomputes future work only.
@@ -236,12 +274,24 @@ The numbers below are approved product defaults, not claimed industry standards.
   midnight backlog burst. A daily summary replaces matching pending individual
   interruptions for items it covers, without canceling future rule times.
 - Optional overdue repeat: off by default; once per local day at the summary
-  time, for at most seven overdue days (configurable 1–30). If the daily summary
-  already covers it, do not add another interruptive repeat. Counts persist
-  after repeats stop. An overnight quiet window may cross a date boundary.
+  time, for at most seven overdue days (configurable 1–30). Day 1 is the first
+  device-local summary anchor strictly after a timed item's confirmed due
+  instant, or the first local day after a date-only item's date. Count consecutive
+  summary days from that due-derived anchor, not sends or enrollment; pauses,
+  caps and missed days do not extend the window. Quiet deferral does not renumber
+  a repeat day. Future-only activation still prevents backfill, and summary-time
+  or zone edits cannot replay past days or duplicate a local day's repeat.
+  If the daily summary already covers it, do not add another interruptive repeat.
+  Counts persist after repeats stop. Quiet hours may cross a date boundary.
 - On enrolling or changing rules, show future reminders. Do not replay every
   offset already passed. Offer **Remind me now** for an already-due item as an
-  explicit action, still subject to quiet hours and the shared frequency cap.
+  explicit action for one already-due item, still subject to quiet hours and
+  the shared frequency cap. It cannot override Quiet mode, effective Off,
+  pause, opt-out, invalid authorization or an active current-cycle snooze.
+  Explain the blocked state; never clear or shorten snooze implicitly or add
+  a second wake. Date-only today qualifies even before its reminder anchor;
+  tomorrow does not. Timed items qualify at or after confirmed `due_at`,
+  including equality. Quiet hours can defer an otherwise valid manual reminder.
 - Same-day retries reuse the interruption's quota and spacing reservation;
   they do not consume another slot that day. A retry crossing a local day
   boundary must reserve a slot in the new day before sending; retain any
@@ -324,7 +374,9 @@ with each implemented stage.
   host-only device cookie (`__Host-` on HTTPS), `SameSite=Lax`, `Path=/`, no
   Domain, one-year lifetime; store only its hash. Set/renew it only through
   explicit enrollment/resume, not background reads. Match the existing
-  plain-HTTP local-test convention. Never expose room tokens to JS.
+  plain-HTTP local-test convention. Persist the installation's UTC expiry on
+  the server as well; cookie Max-Age alone cannot bound background authority.
+  Never expose room tokens to JS.
 - Each device/room enrollment records the authenticating room-token hash and
   room authorization version. Existing room cookie + device cookie are both
   required to read/change that device's room reminder data. The device cookie
@@ -335,7 +387,12 @@ with each implemented stage.
   explicit resume action rather than silently restoring background pushes.
 - At generation and immediately before dispatch, revalidate the saved grant
   against live room tokens/version and room/list/item existence. Room deletion
-  or password reset cancels unsent sends even without a page open.
+  or password reset cancels unsent sends even without a page open. Persist a
+  saved-grant expiry bounded by installation expiry and the original room-token
+  issuance time plus the existing room-cookie lifetime; enrolling later cannot
+  extend that original background deadline. Explicit fresh sign-in/resume can
+  rebind it. GET/validation never renews it. This adds a background-grant bound,
+  not a change to existing room API token-validation semantics.
 - Keep personal policies/history out of shared room feeds, share-link feeds
   and SSE payloads. Own-device refresh signals must not expose another
   installation's settings. No arbitrary device-ID lookup API. Do not add an
@@ -355,11 +412,23 @@ Minimum logical records (final table names can differ):
 | Installation | Hashed device secret; timezone, quiet hours, caps, pause and content privacy |
 | Enrollment | Device + room; authorizing grant/version; active state and selected channels |
 | Policy | Enrollment + room/list/item scope; revision; inherited/off/custom rule set |
-| Item due cycle | Stable revision for date/time/zone changes or done→active, not arbitrary edits |
+| Item due cycle | Server UUID plus UTC cycle-start time for date/time/zone changes or done→active, not arbitrary edits |
 | Occurrence | Relative: enrollment + item/cycle + normalized rule + scheduled UTC instant; fixed: enrollment + item + stable fixed-rule/instant identity, independent of due cycle |
 | Snooze/summary | Item-cycle or summary scope; wake instant; unique summary local-day key |
 | Delivery outbox | Occurrence/group + channel; state, lease, retry/expiry and provider acceptance |
 | Push subscription | Installation-owned endpoint/keys; unique endpoint hash, active state and key version |
+
+Persist server-only `items.due_cycle_started_at` with its UUID. Sample one
+injected UTC clock under the write lock on an actual schedule change or new
+dated active cycle (including restore/uncheck); preserve it on unrelated edits,
+no-ops and retries, and clear it with the date/cycle. Initial migration backfill
+uses one explicit UTC migration instant; it is not historical enrollment.
+Relative activation is bounded by the latest of cycle start, enrollment/resume
+activation and applicable policy activations. First-seen tick time or arbitrary
+`changed_seq` edits cannot substitute for these durable cutoffs. Keep fixed-rule
+identity/activation independent. Test the 10:00 cycle change / 10:05 future rule /
+10:30 catch-up with a 10:10 rename, and suppress a pre-change 09:55 rule.
+Do not accept client cycle/cutoff fields or publish them in shared feeds.
 
 Do not duplicate the whole shared item into every event. Render authorized
 history against current data, marking obsolete/deleted occurrences unavailable.
@@ -505,10 +574,19 @@ already existing endpoints.
 
 Build each stage with its own tests and affected documentation. Runtime
 integration follows the numbered dependencies. Lead-approved sequencing
-refinement (2026-11-04): isolated S2 backend date/time foundations and S4 pure
-push-transport/security foundations may be developed and independently tested
-while predecessors are verified. They do not expose dependent UI/APIs, bypass
-review/full stage gates or integrate before their predecessors. Reconcile
+refinement (2026-11-04): isolated S2 backend date/time foundations, followed by
+server-only identity/policy/preview APIs after reviewed foundation/own-line gates,
+and S4 pure push-transport/security foundations may proceed while predecessors
+are verified. Further Lead handoffs allow S3's durable storage repository,
+S4's installation-owned subscription storage/contracts and S5's external
+restore-state helper on reviewed identity/cycle `rwswntvl` / `3eb72704`.
+S4 may also implement isolated existing-worker push/click/payload handling
+from reviewed full S2 while S3 finishes, with no scheduler/UI/API hookup.
+Their batch briefs bound files, real contracts, review and creator-owned cleanup;
+no guessed evaluator stubs or shared migration-runner changes. They become
+runtime components only after their reviewed predecessors are reconciled.
+These lanes do not wire dependent frontend or dispatch paths,
+bypass review/full-stage gates or integrate into the aggregate before predecessors. Reconcile
 completed, quiescent lines before dependent implementation; never rebase an
 active writer merely for graph tidiness. This is a delivery assumption under
 the owner's delegated authority, not added scope.
@@ -533,13 +611,26 @@ save all tests for stage 5 or introduce an unfinished push UI in stage 1.
   stable ordering; navigation/reload produces no warning; offline snapshots;
   midnight/visibility refresh; filters/deleted targets; keyboard/focus and
   six themes in both modes. Replace old tests requiring repeated toasts.
+- Lead/Conductor agreed verification refinement (2026-11-04): investigate the
+  evidenced empty app-shell cache and full-gate focus/offline failures. S1 may
+  instrument and minimally repair the existing worker lifecycle/browser harness,
+  including the legacy retirement script only if implicated. Keep current cache,
+  privacy, update and one-worker contracts; no dependency/browser-install or
+  production-environment changes. The exact upstream ephemeral-versus-isolated
+  temporary persistent-profile discriminator is authorized; any representative
+  storage-fixture repair must retain assertions and prove profile isolation.
+  Attribute the writer before fixing, use matched common-test comparisons,
+  isolate any proved repair atomically and obtain fresh max diff review/full
+  gates. This is ordinary delivery repair, not a new platform or gate.
 - **Done:** due information is discoverable without repeated interruptions,
-  in all three browser engines; no backend/schema or permission prompt.
+  in all three browser engines; no business API/schema or permission prompt.
 
 ### Stage 2 — Personal policies, dates and previews
 
 **Integration depends on:** reviewed stage 1 and the approved identity/schema/time design.
-Independent backend foundation work may start under the sequencing refinement above.
+Server-only foundations and identity/policy/preview APIs may proceed in reviewed
+milestones under the sequencing refinement above. Frontend and full-stage
+integration still await S1; no scheduler/outbox/push is included in this lane.
 **Unblocks:** stage 3.
 
 - Add installation/enrollment and policy records/API, shared optional due time
@@ -736,8 +827,11 @@ approval. Planning-doc commits have only the existing docs-desk permission.
 ### Approved delivery — in progress
 
 - [x] Owner records choices and explicit implementation/architecture approval.
-- [ ] Stage 1: quiet due center.
-- [ ] Stage 2: personal policies, dates and previews.
+- [x] Stage 1: quiet due center (reviewed and integrated into the isolated
+  delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s1-reviewed-integration--2026-11-04)).
+- [x] Stage 2: personal policies, dates and previews (reviewed and integrated
+  into the isolated delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s2-reviewed-integration--2026-11-04)).
+- [ ] S1/S2 owner polish (2026-11-05): [batch P](batches/reminders-polish.md).
 - [ ] Stage 3: durable in-app reminders and snooze.
 - [ ] Stage 4: phone notifications, if selected and approved.
 - [ ] Stage 5: finish and review package.

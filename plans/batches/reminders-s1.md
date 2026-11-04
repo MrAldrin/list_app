@@ -4,9 +4,22 @@ Lifecycle: tracked
 
 ## Brief — frozen at handoff
 
-**Outcome/scope:** Implement stage 1 of the approved plan: replace navigation/periodic due toasts with the scoped bell/panel, due grouping, list counts, date labels and safe item navigation. Reuse current room data, dialogs, themes and offline snapshots. No backend/schema, personal policies or push prompts.
+**Outcome/scope:** Implement stage 1 of the approved plan: replace navigation/periodic due toasts with the scoped bell/panel, due grouping, list counts, date labels and safe item navigation. Reuse current room data, dialogs, themes and offline snapshots. No business API/schema, personal policies or push prompts.
 
 **Edit seams:** Frontend due-reminders, PageShell, room/list headers, RoomLists, ItemRow and new focused reminder UI modules; corresponding Vitest/browser tests and current behavior/UX docs.
+
+**Agreed verification repair (2026-11-04):** S1 owns narrow diagnosis of the
+observed empty app-shell cache and full-gate offline/focus failures. Allow
+throwaway telemetry and a minimal evidence-backed repair in the existing
+worker, registration, dialog and browser harness; `src/pwa_routes.py` only for
+its legacy retirement script if implicated. Preserve one worker, current
+cache/privacy/update/offline contracts and `/sw.js` retirement; no dependencies
+or environment changes. Attribute cache creation/deletion to a worker/version/
+client timeline, inspecting names before `caches.open` can create a cache.
+Use identical unchanged common tests/build/`-n 4` conditions for comparisons;
+a lower-load baseline cannot prove attribution. Keep a proved repair in a
+separate atomic change, remove throwaway logging, obtain fresh independent
+max diff review and pass relevant full gates. No speculative fix or flake waiver.
 
 **Dependencies:** Implementation is approved; no predecessor stage.
 **Unblocks:** [S2](reminders-s2.md).
@@ -24,8 +37,9 @@ material fixes after independent review.
 - Read `/home/hsa/projects/my_personal_skills/skills/conductor/SKILL.md` and its
   required `../lead/workflow.md` in full before execution. Stay in the Conductor role.
 - Use bounded workers for all implementation and fresh independent reviewers.
-  Subagents: explicitly select Claude Haiku 5.5/medium first, Haiku 5.5/max on
-  escalation; verify effective model/effort and report unsupported levels.
+  Follow the current model/provider exception in the
+  [master delivery contract](../due-date-reminders.md#delivery-coordination);
+  verify effective model/effort and report unsupported settings.
   You may create isolated jj child workspaces and integrate reviewed children
   into your assigned stage workspace without repeated approval.
 - Lead owns your entry workspace lifecycle; you own your child workspaces.
@@ -59,7 +73,9 @@ material fixes after independent review.
 - Creator/lifecycle owner: Lead, session `01a1a2c7-22c9-71e2`.
 - Planned owner: dedicated visible Pi Conductor `listr-reminders-s1`.
 - Verified model: `openai-codex/gpt-6.1-sol`, effective thinking `low`;
-  two-way readiness acknowledged before edits.
+  two-way readiness acknowledged before edits. For the expanded hard
+  lifecycle phase, select Sol/high and verify effective thinking before edits;
+  report unsupported control rather than silently retaining/substituting a level.
 - Repository: `/home/hsa/projects/list_app`.
 - Lead aggregate: `tmp-reminder-delivery`, `/home/hsa/projects/tmp-reminder-delivery`.
 - Entry workspace: `tmp-reminders-s1`, `/home/hsa/projects/tmp-reminders-s1`;
@@ -73,10 +89,97 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: active; two-way readiness and explicit edit handoff received.
-- Next: substantive review fixes, fresh diff-level independent review, then
-  combined full stage gates; no acceptance yet.
-- Candidate: completed `kxumoykk` (`30cf8d1b977f`), empty child `swtpolmk`.
+- State: active, full browser gate blocked. Expanded verification-repair
+  edit handoff received after `ulunnpkv` (`0ad7b06c`); Brief/Assignment frozen.
+- Latest baseline evidence: ONE full unchanged pre-S1 browser suite in owned
+  baseline workspace, `uv run pytest browser_tests -q -n 4`: 398 passed,
+  1 failed (WebKit cold-offline-deep-link: cache entries empty before stop).
+  Log `/tmp/listr-s1-baseline-full.log`. The symptom predates S1; this is
+  neither a root cause nor a gate waiver.
+- Expanded max investigation `a961e904-f3db-4682-a084-94fa71bc6cc7` made
+  no fix. Corrected instrumented run: 440 passed/1 failed/1 error, active cache
+  empty with no observed wrapped-worker delete. Another run was INVALID:
+  diagnostic put wrapper dropped arguments. No eviction attribution accepted.
+- Fresh max causal run `c0d351a1-8998-49bc-a2ac-957fecfcf6e4`: INCOMPLETE.
+  It mapped writer sites and passed clean focused tests (3 cold-link, 30 worker
+  file), but did not implement required attribution instrumentation. It found
+  stale telemetry in the ignored build, rebuilt marker-free, and left source
+  clean. Baseline build had no telemetry markers. No model substitution.
+- Next dispatch, agreed with Lead: fresh shell-capable Haiku 5.5/max worker,
+  instrumentation IMPLEMENTATION ONLY in owned UI child, explicit runtime/
+  checkpoint. Conductor Sol/high owns collector acceptance and later causal
+  analysis. Required: all-page/served-worker/legacy-context collector; names
+  before open; native API success/error timeline; semantic self-tests proving
+  this/all arguments/promise/error/body behavior; fingerprints and one focused
+  targeted external trace. Enumerate blind spots, log no tokens/bodies.
+  Preserve collector patch/self-tests/traces outside shipping changes, remove
+  source telemetry and rebuild clean. No full-suite loop, speculative repair,
+  dependency/environment change or acceptance. Actual proved repair remains
+  separate atomic work requiring fresh independent max review/full gates.
+- Conductor freshly verified from environment: session
+  `01a1a2f1-3b36-7354-b16b-8fe1f4db448c`, cwd
+  `/home/hsa/projects/tmp-reminders-s1`, provider `openai-codex`, model
+  `gpt-6.1-sol`, reasoning `high` for this hard lifecycle phase.
+- Actual completed candidate: `swtpolmk` (`d90bc864`) atop `kxumoykk`;
+  integrated into clean entry `vsoywmwz` (empty child). Fresh max reviewer
+  `863359a7-a6e4-4990-9824-f01cd37ef2be` read the complete 1,813-line
+  base-to-tip diff and approved code conditional on full gates.
+- Combined gates: Python 1,535 passed/9 skipped; Ruff format/check and ty
+  clean; frontend format/lint/check/1,088 unit tests/build passed.
+  Full `uv run pytest browser_tests -q -n 4`: 438 passed, 3 failed, 2 errors.
+  Failures: Chromium keyboard reopen and WebKit saved-notice/legacy offline
+  navigation. Log `/tmp/listr-s1-browser-full.log`; no flake waiver.
+- Diagnostic max worker `589b5d6e-ef2a-42d1-86bc-1eb27d252e9a`, resumed
+  `7a4dea45-cb87-443e-bfdd-50ab389e6fed`, finished without changes.
+  Telemetry caught an activated worker with an empty named cache before
+  shutdown; cache-emptying writer remains unknown. Keyboard did not reproduce
+  in nine instrumented reopens. Lower-load baseline passes do not prove cause.
+- Owned baseline child: `tmp-reminders-s1-baseline`,
+  `/home/hsa/projects/tmp-reminders-s1-baseline`, empty `mznouxzm` from
+  `zpzpvuyl`; Conductor-created/test-only, cleanup retained until evidence safe.
+  UI child remains `tmp-reminders-s1-ui`, empty `xtwzoknt` above candidate;
+  no active writer at this checkpoint. Conductor owns both child lifecycles.
+- Next authorized dispatch: one bounded Haiku 5.5/max telemetry-first worker,
+  verify effective runtime setting, identify cache writer/version/client timeline
+  (names before open), compare identical unchanged common tests if useful,
+  then only a proved minimal repair as a separate atomic change. No environment
+  or dependency change; preserve worker/cache/privacy/update/retirement contracts.
+  Remove throwaway logging, obtain fresh independent max diff review and rerun
+  relevant full gates before completion. No feature acceptance or deployment.
+
+### Collector and paired experiment checkpoint
+
+- Collector-only worker `557d91e4-6116-478b-9ac7-0bcb756e1f8a`, resumed
+  `674b6641-bd41-427b-940e-629888b6028f` and
+  `1710912b-4016-4daa-98dc-1000ca9974c3`, is quiescent.
+  External `/tmp/listr-s1-collector/v2` and `/tmp/listr-s1-collector/v3`
+  preserve tested instrumentation, 26 semantic self-tests (Conductor reran:
+  pass), focused lifecycle trace, served legacy trace and milestone checks.
+  Source restored and ignored build rebuilt marker-free. Accepted case-scoped;
+  Firefox legacy and primary WebKit/Firefox worker console remain blind spots.
+- ONE paired origin-client experiment `ad3e0742-3c4b-4a88-9645-687643900529`
+  completed: 119 passed/1 failed/1 teardown error across 120 cases. All 60 cold
+  cases passed; one WebKit waiting/GAP case failed. INCONCLUSIVE, no cause,
+  fix or waiver. Keeper inertness and actual unrelated-origin/cache/control
+  distinction checked; no sleeps or full-suite loop. Chromium cleanup differs
+  as expected with an uncontrolled client, but WebKit writer events were not
+  observable. Evidence `/tmp/listr-s1-origin-pair/analysis.md` and raw traces.
+- No active workers or test runs at this checkpoint. Candidate remains
+  `swtpolmk` (`d90bc864`), clean entry and UI child; both child workspaces
+  retained, no cleanup/acceptance/deployment.
+- Next owned bounded task: ONE Haiku 5.5/max shell-capable worker implements
+  and proves WebKit metadata transport capability ONLY. Existing disposable
+  test-server sink online plus bounded in-worker buffer/replacement flush may
+  be used; no keeper, diagnostic Cache/IDB, production route, service,
+  dependency or changed native return/waitUntil semantics. Prove actual worker
+  cache/lifecycle events across no-client/replacement before any causal follow-up.
+  Preserve semantic tests/fingerprints/clean rebuild; explicitly report offline,
+  lost-on-termination and observer-effect gaps. External diagnostics only.
+  Causal workloads wait for Conductor acceptance of observable capability.
+
+### Earlier implementation checkpoints
+
+- Initial candidate: completed `kxumoykk` (`30cf8d1b977f`), empty child `swtpolmk`.
   Actual worker environment confirms `claude-code/claude-haiku-5-5`, `medium`.
 - Independent medium review `cdd5ba56-6485-4563-947e-a4be24c8f2a6`: BLOCK.
   Confirmed stale clock on remount, silent conflicting-filter clearing, doc
@@ -113,8 +216,32 @@ material fixes after independent review.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: pending.
-- Assumptions, limits and retained artifacts: pending.
-- Child cleanup/entry cwd release: pending.
-- Owner review/acceptance: pending; no deployment.
+- Result: reviewed Stage 1 delivered to the isolated aggregate, not release.
+  UI tip `swtpolmk/d90bc864`; storage fixture `xtwzoknt/5092264e`;
+  Dialog repair and final tip `tyyvxrul/ab12f9c0`. Own entry is clean above
+  that tip. Lead owns aggregate integration; no bookmarks moved.
+- Independent full-feature review and fresh complete repair-diff review approved.
+  Final gates: 456 browser tests passed in one post-review run; 1,544 Python
+  tests passed; Ruff and ty clean; 1,088 frontend tests passed with format,
+  lint, check and build clean. Own-entry Ruff and ty checks also passed.
+- Earlier browser failures remain evidence, not waivers: native WebKit ephemeral
+  storage lost cached bodies in 3/3 reload pairs while isolated persistent
+  profiles retained them in 3/3. The minimal test fixture preserves original
+  cold/offline/update assertions and native storage-state hydration. Six
+  rapid-dialog-reopen regressions failed before the synchronous close repair;
+  the combined focused repair run passed 99 tests. No worker-cache policy,
+  private API, dependency or production storage behavior changed.
+- Durable evidence lives under the Conductor session's
+  `subagent-artifacts/outputs/`: `f21877d6-5d31-4ebf-b003-e32f301c0ee7`
+  (native discriminator and red/green repair evidence),
+  `5464b01e-58d3-407f-84d7-1f2409faaf66` (compatibility and Python gates),
+  `db09e62c-9744-4927-a346-5740359dee3f` (frontend gates and honest prior
+  449-pass/one-failure run), `d67aeaee-dada-4b3d-880a-3f4d54b24909`
+  (independent repair review), and `b061919f-317c-427f-b6ff-b8885fe6f803`
+  (456-pass final browser gate). Restart-lost temporary telemetry is not
+  claimed as retained causal proof; no further diagnostics are planned.
+- Child cleanup: creator-owned UI and baseline workspaces are being retired
+  after reachability, clean-state, process and durable-artifact checks. The
+  entry session stays available for cross-stage questions.
+- Lead accepted isolated delivery integration only. Owner release acceptance
+  and deployment remain separate; `main` and `integration` are unchanged.

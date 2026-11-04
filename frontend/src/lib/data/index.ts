@@ -543,7 +543,14 @@ export class RoomHandle {
 
 	editItem(
 		item: ItemRef & Pick<Item, 'changed_seq'>,
-		changes: { name: string; description: string; quantity?: number | null; date?: string | null }
+		changes: {
+			name: string;
+			description: string;
+			quantity?: number | null;
+			date?: string | null;
+			due_time?: string | null;
+			due_timezone?: string | null;
+		}
 	): Promise<ActionResult> {
 		return this.#run({
 			type: 'item.edit',
@@ -590,6 +597,8 @@ export class RoomHandle {
 			quantity: item.quantity,
 			completed_at: item.completed_at,
 			date: item.date,
+			due_time: item.due_time,
+			due_timezone: item.due_timezone,
 			add_count: item.add_count,
 			added_at: item.added_at
 		});

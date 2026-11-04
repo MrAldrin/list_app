@@ -106,6 +106,19 @@ function validItem(value: unknown, seq: number): value is Item {
 	if (!value.done && value.completed_at !== null) return false;
 	// Saved before items had dates: a missing date means none.
 	if (value.date !== undefined && value.date !== null && !isItemDate(value.date)) return false;
+	for (const field of ['due_time', 'due_timezone', 'due_at'] as const) {
+		if (value[field] !== undefined && value[field] !== null && typeof value[field] !== 'string')
+			return false;
+	}
+	if (typeof value.due_time === 'string' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(value.due_time))
+		return false;
+	if (typeof value.due_at === 'string' && !Number.isFinite(Date.parse(value.due_at))) return false;
+	if (
+		!!value.due_time !== !!value.due_timezone ||
+		(value.due_time && !value.date) ||
+		(value.due_at && !value.due_time)
+	)
+		return false;
 	// Saved before items were counted: a missing count is 1 and a missing time is none.
 	if (
 		value.add_count !== undefined &&
@@ -152,6 +165,9 @@ function copyItem(item: Item): Item {
 		quantity: item.quantity,
 		description: item.description,
 		date: item.date ?? null,
+		due_time: item.due_time ?? null,
+		due_timezone: item.due_timezone ?? null,
+		due_at: item.due_at ?? null,
 		tags: [...item.tags],
 		add_count: item.add_count ?? 1,
 		added_at: item.added_at ?? null,

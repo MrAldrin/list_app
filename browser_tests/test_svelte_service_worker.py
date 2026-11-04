@@ -28,9 +28,11 @@ def _cache_names(page):
 def _wait_for_controlled_page(page, url: str):
     page.goto(url)
     page.evaluate("navigator.serviceWorker.ready.then(() => true)")
-    context = page.context
+    # Persistent WebKit exits when its last tab closes. Keep the replacement
+    # blank until the old tab closes; it must load the app without warming it.
+    replacement = page.context.new_page()
     page.close()
-    page = context.new_page()
+    page = replacement
     page.goto(url)
     page.wait_for_function(
         "navigator.serviceWorker.controller?.scriptURL.endsWith('/service-worker.js')"
