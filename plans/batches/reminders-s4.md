@@ -102,8 +102,11 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: partial transport foundation independently reviewed and verified in S4
-  entry only; quiescent. Full S4 remains blocked on reviewed S3 integration.
+- State: partial transport and subscriptions foundations independently reviewed
+  and verified in S4 entry only; quiescent. Full S4 waits for reviewed S3.
+- Subscriptions tip `srloqwyv` / `5fc7a6f9`; entry clean empty `twuqsnnx` /
+  `d55b6f12`. Local DDL and router remain unmounted; no runtime hookup.
+  Supersedes the transport-only entry position below.
 - Stable foundation tip: `ooywutkn` / `c23ab8a3`, based on `vyvtntwv` / `f43d01ca`.
   Entry `twuqsnnx` / `bdf37564` is an empty child above it. No Lead aggregate or
   dependent-stage integration; no bookmark moves.
@@ -122,7 +125,41 @@ material fixes after independent review.
 
 ## Closeout — assigned Conductor
 
-### Partial foundation only — full stage still open
+### Subscriptions foundation — full stage still open
+
+- Reviewed stack: merge `vrtrqtzs` / `6515fb6f` combines reviewed identity/cycle
+  `rwswntvl` / `3eb72704` and transport `ooywutkn` / `c23ab8a3`; fixes
+  `zkkrmqtq` / `2c5b6d6e` → `srloqwyv` / `5fc7a6f9`.
+- New modules: `src/reminders/push_subscriptions.py`, unmounted
+  `src/api/push_subscriptions.py`, `tests/test_push_subscriptions.py`.
+  Real installation/room auth, saved grants, revisions/idempotency, unique endpoint
+  ownership/tombstones, one active endpoint/device, secret-free views, room-only
+  and device-wide stops, stale provider invalidation. Own local DDL only.
+  Both parents' dependency versions retained; pywebpush and tzdata reconciled.
+- Owner-directed recovery/model change: interrupted Sol stopped before replacement;
+  checkpoint retained outside `/tmp`. Implementation/fixes and independent reviewer
+  verified native `openai/gpt-6.1-terra`, medium. No automatic Sol escalation.
+- Independent lineage `3ceb9f4e` → `0ada9900` → `d3615f8c`: ACCEPT isolated
+  foundation after fixing quota-blocked effective privacy stops and unbounded
+  repeated no-op stops. Effective stops bypass quota; registrations/re-enablement
+  and already-stopped fresh requests stay bounded. Replay/revision/auth preserved.
+- Parent required Python gates on final S4 entry: **1829 passed, 9 skipped**;
+  Ruff format/fix/check, format-check, ty and `uv lock --check` clean. Independent
+  focused tests **21 passed**. No frontend/browser or physical-device claims.
+- Evidence retained in `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/`:
+  `subscriptions-verification.log`, implementation/fix reports and exact final
+  `s4-subscriptions-independent-review.0ada9900.d3615f8c.md`. Preserve this directory
+  before eventual entry removal. Review opportunity at integration: saturated stop
+  with an actually revoked/expired saved grant and hidden enabled second room.
+  Concurrency tests cover the actual same-process SQLite lock, not multiprocess deployment.
+- Creator cleanup complete: clean subscriptions child, final tip reachability in
+  entry, usable saved artifacts and no live cwd users verified, then
+  `tmp-reminders-s4-subscriptions` forgotten and removed. Entry/evidence retained.
+- No migration runner/S2 active API/init/policy/activation edits, router mount,
+  worker/UI/scheduler hookup, services, real subscriptions/sends/keys or bookmarks.
+  Full S4 remains open pending reviewed predecessors and explicit exact-base handoff.
+
+### Transport foundation evidence
 
 - Result: `rzknzosp` / `ff5401a6` → `yrluorsp` / `43a93cc3` → `ooywutkn` /
   `c23ab8a301167b0a4f47a1bcd88433e46085306b`. Exactly four tracked files:
