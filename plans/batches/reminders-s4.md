@@ -87,12 +87,16 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: preflight accepted; quiescent, blocked by reviewed S3 integration.
-  Two-way readiness verified; brief/master read fully and provisional seams inspected.
-- Next: coordinated entry rebase and exact-base Lead EDIT HANDOFF. No
-  implementation, children, services or notification enrollment/sends yet.
-- Decomposition: subscription/API/security contracts, then sender/outbox;
-  isolated frontend/worker work; fresh independent review and combined gates.
+- State: independent transport/security foundation authorized and starting;
+  full dependent S4 remains blocked by reviewed S3 integration.
+- Exact handoff: entry `twuqsnnx` / `8c7a03fd`, parent amendment `vyvtntwv` /
+  `f43d01ca`; verified clean. Amended brief/master read fully; Sol/high verified.
+- Next: create the recorded child and dispatch one bounded implementation worker,
+  then fresh independent diff review and full Python gates on the partial result.
+  No DB/API/enrollment/UI/worker/scheduler integration, services or real sends.
+- Foundation edit boundary: new `src/reminders/push_transport.py`, focused tests,
+  `pyproject.toml` and `uv.lock` only; no package `__init__` (owned by S2).
+  Retry hints/results are pure transport outputs, not another scheduler.
 - Transport requirement: validate actual-connect DNS/IP/TLS and reject redirects,
   not only pre-resolve an endpoint. Lead approved a small injectable/pinned HTTPS
   transport or maintained crypto/VAPID with separately tested transport; reconfirm
@@ -105,9 +109,14 @@ material fixes after independent review.
 - Assumptions: iOS16.4 installed-app baseline; WebKit18.4 declarative enhancement,
   never silent push. Push remains off without explicit configuration; fake sender
   and test keys only. Physical-device closed-app delivery remains unverified.
-- Children/workspaces: none created; Lead retains entry workspace lifecycle.
-- Docs-desk status-only window granted for this update; release after file-only
-  commit. No bookmark moves; further writes require another coordinated window.
+- Child ownership recorded before launch: planned `tmp-reminders-s4-transport`,
+  `/home/hsa/projects/tmp-reminders-s4-transport`, base `vyvtntwv`; S4 Conductor
+  session `01a1a2ff-4fcb` is creator/lifecycle owner. Lead retains entry lifecycle.
+  One isolated Haiku5.5/medium worker, no fanout; verify effective settings.
+  Runtime 90 minutes with checkpoint 10 minutes before deadline. Run ID will be
+  reported to Lead on launch. Fresh independent review is a separate child.
+- Docs-desk status-only window granted for this ownership update; release after
+  file-only commit. No bookmark moves; later writes need another window.
 
 ## Closeout — assigned Conductor
 
