@@ -112,15 +112,16 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: foundation and identity A reviewed/integrated into S2; proceeding to
-  server-only policy/cycle-cutoff B under existing handoff `yxsowmmv` /
-  `5f187aad` and accepted expiry/activation clarification `vlsuxkvn` /
-  `ac59b242`. Frontend/full-stage integration still awaits S1.
-- Accepted source now includes B cycle-start slice `rwswntvl` / `3eb72704`;
-  clean S2 entry `ooqvyvmw` / `6990d1e6`, still Lead-managed.
-- Remaining B is split into pure rules B2a, policy storage/inheritance/activation
-  B2b, then private API B2c; separate C preview follows reviewed B. No policy
-  storage/API or preview exists yet. Contract/tests and independent review per slice.
+- State: foundation, identity A and complete server-only B reviewed and accepted
+  into the S2 line under handoff `yxsowmmv` / `5f187aad` and clarification
+  `vlsuxkvn` / `ac59b242`. Frontend/full-stage integration still awaits reviewed S1.
+- Accepted B tip: `qpwvmpyv` / `3c265a95`, including policy implementation
+  `pllnspox` / `e8a6566c`; clean S2 entry `ooqvyvmw` / `2bd283f1`.
+  Parent own-line six Python gates: 1,767 passed/nine skipped, Ruff/ty clean.
+- C pure preview is active, not reviewed or ready: sole worker `087d60ce`
+  in the retained policy child, native `openai/gpt-6.1-terra`, medium thinking.
+  All implementation and independent-review children now use owner-authorized
+  Terra/medium; no automatic Sol escalation. No main/integration moves.
 - Retained unfinished child: `tmp-reminders-s2-policies`,
   `/home/hsa/projects/tmp-reminders-s2-policies`, from completed `wyknnmnm`,
   not empty entry. S2 Conductor `01a1a2ff-4ea8-70c1-b611-b0506e7b9929` owns
@@ -203,5 +204,33 @@ material fixes after independent review.
 - External Pi reports retained for `e56a6054`/`600f3a2f`, `0af1150b`/`374eca1b`,
   and doc-only MAX `ee1ca186`. Unreviewed draft rules tests are outside repository
   at `/tmp/policies-worker-drafts/`, not delivered code.
-- No policy/preview/S3-ready contract yet. Lead entry remains open/clean; no
-  cleanup above S2 ownership. B child/results/review/cleanup pending; no deploy.
+- Historical partial reports above are superseded for B by the completed result
+  below. No preview/full-stage handoff yet; no deployment or cleanup above S2 ownership.
+- Complete B: doc correction `potqzyxv` / `2d875515`, rules `ovwlmwsw` /
+  `a123d2eb`, identity-reservation fix `slymqnnn` / `a2b114ba`, policy storage/API
+  `pllnspox` / `e8a6566c`, semantic no-op fix `qpwvmpyv` / `3c265a95`.
+  Migration 18 stores private replacement/off/inherit policies and stable rules;
+  effective-policy and private GET/PUT resources are implemented and documented
+  in source/current API docs. No scheduler/occurrence/dispatch work included.
+- Independent Terra/medium review `eab338f1` found order-only changes incorrectly
+  reset activation. Author `451e6494` fixed it and added room/list/item relative/
+  mixed reorder regressions, populated v17→18 upgrade and private ownership/retry
+  probes. Re-review `16281b14` approved the exact fix, independently preserving
+  past fixed identity with unavailable zone data. Independent and own-line full
+  suites both passed 1,767/nine skipped; all required Ruff/ty gates passed.
+- Reviewed B contracts sent directly to S3: held-transaction effective-policy
+  read and computed saved grant; inclusive historical cutoffs, stable fixed IDs,
+  irrelevant-default exclusion and semantic no-op preservation. S3 retains its
+  separate storage lane; optional grant-clock helper overlap needs completed-line
+  reconciliation. This is not a full-stage code/edit handoff.
+- Durable reports outside child under this session's `subagent-artifacts/outputs/`:
+  `bce2c4e9-36f4-4def-aad5-6f88e80b941d/policies-terra-worker.451e6494.md` and
+  `eab338f1-01bc-43e7-aabf-8180a41b5535/policies-terra-review.16281b14.md`.
+  Claude 429 and retired Codex usage-limit interruptions preserved partial files;
+  explicit owner provider/model corrections resumed work. Sol stopped natively
+  before Terra replacement, with durable recovery notes outside `/tmp`.
+- C preview worker `087d60ce` owns the clean child above accepted B. Preview cap
+  is next five, without an invented one-year fixed-time horizon; draft item policy
+  inherits stored parents. Summary output describes item eligibility, not promised
+  room dispatch. Fresh independent review and own-line gates remain required.
+  Retain the owned child until C completes; then perform lifecycle cleanup.
