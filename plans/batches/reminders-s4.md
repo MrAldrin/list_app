@@ -20,6 +20,20 @@ and retry hints are pure transport outputs, not another retry engine. No real
 provider calls/endpoints/key provisioning. Fresh independent review/Python
 gates are required. Reconcile dependency locks after predecessors; no full
 stage completion claim before integration and remaining behavior.
+**Additional independent handoff (2026-11-04):** Conductor creates/owns
+`tmp-reminders-s4-subscriptions` from reviewed identity/cycle `rwswntvl` /
+`3eb72704`, reconciling the reviewed transport `ooywutkn` / `c23ab8a3` on its
+own line. Implement installation-owned subscription storage/validation and
+private registration/disable ownership contracts with real reviewed auth and
+fake endpoints; a separately tested router may be built but not mounted yet.
+One active endpoint/device, unique endpoint hash, room-only versus device-wide
+opt-out, revisions/idempotency, expiry/revocation and secrecy remain mandatory.
+Do not edit S2's active API/package files or the shared migration runner; keep
+own DDL locally testable until predecessor integration. No real subscribe/send,
+VAPID provisioning, worker/UI/scheduler hookup or second retry engine. Coordinate
+interfaces directly with S2/S3, independently review and run own Python gates.
+Full stage integration still waits for reviewed S3.
+
 **Unblocks:** [S5](reminders-s5.md).
 
 **Done criteria:** Standards-based phone push is implemented with generic/private defaults, supported/needs-install/denied/subscribed states and safe opt-out per room/device. Every push shows a visible fallback and safe same-origin navigation. No real endpoint enrollment, VAPID secret provisioning or external push provider send during implementation/tests.
@@ -35,8 +49,9 @@ material fixes after independent review.
 - Read `/home/hsa/projects/my_personal_skills/skills/conductor/SKILL.md` and its
   required `../lead/workflow.md` in full before execution. Stay in the Conductor role.
 - Use bounded workers for all implementation and fresh independent reviewers.
-  Subagents: explicitly select Claude Haiku 5.5/medium first, Haiku 5.5/max on
-  escalation; verify effective model/effort and report unsupported levels.
+  Follow the current model/provider exception in the
+  [master delivery contract](../due-date-reminders.md#delivery-coordination);
+  verify effective model/effort and report unsupported settings.
   You may create isolated jj child workspaces and integrate reviewed children
   into your assigned stage workspace without repeated approval.
 - Lead owns your entry workspace lifecycle; you own your child workspaces.

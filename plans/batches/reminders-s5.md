@@ -8,7 +8,18 @@ Lifecycle: tracked
 
 **Edit seams:** Only integration issues and missing approved behavior across existing reminder code/tests/docs; no new product features. Current behavior docs/ARCHITECTURE should already be updated by stages; verify completeness. Prepare a useful local preview using existing helpers if safe, without touching production data or taking port 8080 from another process.
 
-**Dependencies:** Stage 4 reviewed and integrated into the Lead line; exact base supplied at dispatch.
+**Runtime dependencies:** Reviewed S4 before complete polish/diagnostics and
+final integration. Independent handoff (2026-11-04): Conductor creates/owns
+`tmp-reminders-s5-restore` from reviewed identity/cycle `rwswntvl` / `3eb72704`.
+Implement the external restore-state persistence/helper that survives SQLite
+file replacement: explicit pause/resume UTC cutoff, atomic file updates,
+strict malformed-state handling and restart/replacement tests using temporary
+files only. Agree its narrow consumed state contract directly with S3; do not
+invent scheduler status or evaluator adapters. No actual restore, production
+file/config changes, server/lifespan/API hookup, shared migration edit or extra
+rehearsal/deployment gate. Fresh independent review/full Python gates required;
+reviewed own-line foundation is partial, not stage completion. Final cutoff
+eligibility integration is tested against real S3 eligible/wake semantics later.
 **Unblocks:** Owner review; acceptance/deployment are separate.
 
 **Done criteria:** All approved stages work together; no blocking findings after fresh independent final review. Complete automated evidence, honest physical push limits and a TLDR of implementation assumptions are ready. Provide a stable completed change ID and preserve any needed artifacts. Leave acceptance/deploy to owner.
@@ -24,8 +35,9 @@ material fixes after independent review.
 - Read `/home/hsa/projects/my_personal_skills/skills/conductor/SKILL.md` and its
   required `../lead/workflow.md` in full before execution. Stay in the Conductor role.
 - Use bounded workers for all implementation and fresh independent reviewers.
-  Subagents: explicitly select Claude Haiku 5.5/medium first, Haiku 5.5/max on
-  escalation; verify effective model/effort and report unsupported levels.
+  Follow the current model/provider exception in the
+  [master delivery contract](../due-date-reminders.md#delivery-coordination);
+  verify effective model/effort and report unsupported settings.
   You may create isolated jj child workspaces and integrate reviewed children
   into your assigned stage workspace without repeated approval.
 - Lead owns your entry workspace lifecycle; you own your child workspaces.

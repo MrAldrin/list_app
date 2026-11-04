@@ -88,9 +88,11 @@ subject to the current bookmark hold recorded below.
   [S4](batches/reminders-s4.md), [S5](batches/reminders-s5.md).
 - Conductors: GPT-6.1 Sol, initially low for S1/S5, high for hard work including
   S2–S4 and S1's expanded lifecycle diagnosis. Verify effective
-  model/thinking before granting edits. Bounded workers/reviewers start on
-  Claude Haiku 5.5/medium; escalate to Haiku 5.5/max if needed. Unsupported
-  levels must be reported, never silently substituted.
+  model/thinking before granting edits. Owner's 2026-11-04 provider exception:
+  Claude quota is exhausted; use `openai-codex/gpt-6.1-sol` workers/reviewers,
+  low for small bounded work and high for hard scheduling/security work.
+  This overrides older Haiku instructions in batch records. Select and verify
+  effective settings; report unsupported levels, never silently substitute.
 - Lead alone writes the backlog, this plan and the owner-review list below.
   Each Conductor owns only its separate batch record's status/closeout; shared
   records are edited/committed on the docs desk with coordinated write windows.
@@ -541,7 +543,13 @@ integration follows the numbered dependencies. Lead-approved sequencing
 refinement (2026-11-04): isolated S2 backend date/time foundations, followed by
 server-only identity/policy/preview APIs after reviewed foundation/own-line gates,
 and S4 pure push-transport/security foundations may proceed while predecessors
-are verified. These lanes do not wire dependent frontend or dispatch paths,
+are verified. Further Lead handoffs allow S3's durable storage repository,
+S4's installation-owned subscription storage/contracts and S5's external
+restore-state helper on reviewed identity/cycle `rwswntvl` / `3eb72704`.
+Their batch briefs bound files, real contracts, review and creator-owned cleanup;
+no guessed evaluator stubs or shared migration-runner changes. They become
+runtime components only after their reviewed predecessors are reconciled.
+These lanes do not wire dependent frontend or dispatch paths,
 bypass review/full-stage gates or integrate into the aggregate before predecessors. Reconcile
 completed, quiescent lines before dependent implementation; never rebase an
 active writer merely for graph tidiness. This is a delivery assumption under
@@ -571,7 +579,10 @@ save all tests for stage 5 or introduce an unfinished push UI in stage 1.
   evidenced empty app-shell cache and full-gate focus/offline failures. S1 may
   instrument and minimally repair the existing worker lifecycle/browser harness,
   including the legacy retirement script only if implicated. Keep current cache,
-  privacy, update and one-worker contracts; no dependency/environment changes.
+  privacy, update and one-worker contracts; no dependency/browser-install or
+  production-environment changes. The exact upstream ephemeral-versus-isolated
+  temporary persistent-profile discriminator is authorized; any representative
+  storage-fixture repair must retain assertions and prove profile isolation.
   Attribute the writer before fixing, use matched common-test comparisons,
   isolate any proved repair atomically and obtain fresh max diff review/full
   gates. This is ordinary delivery repair, not a new platform or gate.

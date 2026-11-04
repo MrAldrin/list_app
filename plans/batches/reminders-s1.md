@@ -37,8 +37,9 @@ material fixes after independent review.
 - Read `/home/hsa/projects/my_personal_skills/skills/conductor/SKILL.md` and its
   required `../lead/workflow.md` in full before execution. Stay in the Conductor role.
 - Use bounded workers for all implementation and fresh independent reviewers.
-  Subagents: explicitly select Claude Haiku 5.5/medium first, Haiku 5.5/max on
-  escalation; verify effective model/effort and report unsupported levels.
+  Follow the current model/provider exception in the
+  [master delivery contract](../due-date-reminders.md#delivery-coordination);
+  verify effective model/effort and report unsupported settings.
   You may create isolated jj child workspaces and integrate reviewed children
   into your assigned stage workspace without repeated approval.
 - Lead owns your entry workspace lifecycle; you own your child workspaces.
