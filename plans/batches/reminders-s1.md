@@ -216,8 +216,32 @@ material fixes after independent review.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: pending.
-- Assumptions, limits and retained artifacts: pending.
-- Child cleanup/entry cwd release: pending.
-- Owner review/acceptance: pending; no deployment.
+- Result: reviewed Stage 1 delivered to the isolated aggregate, not release.
+  UI tip `swtpolmk/d90bc864`; storage fixture `xtwzoknt/5092264e`;
+  Dialog repair and final tip `tyyvxrul/ab12f9c0`. Own entry is clean above
+  that tip. Lead owns aggregate integration; no bookmarks moved.
+- Independent full-feature review and fresh complete repair-diff review approved.
+  Final gates: 456 browser tests passed in one post-review run; 1,544 Python
+  tests passed; Ruff and ty clean; 1,088 frontend tests passed with format,
+  lint, check and build clean. Own-entry Ruff and ty checks also passed.
+- Earlier browser failures remain evidence, not waivers: native WebKit ephemeral
+  storage lost cached bodies in 3/3 reload pairs while isolated persistent
+  profiles retained them in 3/3. The minimal test fixture preserves original
+  cold/offline/update assertions and native storage-state hydration. Six
+  rapid-dialog-reopen regressions failed before the synchronous close repair;
+  the combined focused repair run passed 99 tests. No worker-cache policy,
+  private API, dependency or production storage behavior changed.
+- Durable evidence lives under the Conductor session's
+  `subagent-artifacts/outputs/`: `f21877d6-5d31-4ebf-b003-e32f301c0ee7`
+  (native discriminator and red/green repair evidence),
+  `5464b01e-58d3-407f-84d7-1f2409faaf66` (compatibility and Python gates),
+  `db09e62c-9744-4927-a346-5740359dee3f` (frontend gates and honest prior
+  449-pass/one-failure run), `d67aeaee-dada-4b3d-880a-3f4d54b24909`
+  (independent repair review), and `b061919f-317c-427f-b6ff-b8885fe6f803`
+  (456-pass final browser gate). Restart-lost temporary telemetry is not
+  claimed as retained causal proof; no further diagnostics are planned.
+- Child cleanup: creator-owned UI and baseline workspaces are being retired
+  after reachability, clean-state, process and durable-artifact checks. The
+  entry session stays available for cross-stage questions.
+- Lead accepted isolated delivery integration only. Owner release acceptance
+  and deployment remain separate; `main` and `integration` are unchanged.
