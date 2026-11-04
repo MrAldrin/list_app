@@ -194,7 +194,10 @@ The numbers below are approved product defaults, not claimed industry standards.
   `due_at` is the authoritative resolved instant for this due cycle. The
   frontend uses it instead of inventing a second DST resolver. Offline
   due-time drafts show their wall time and **Waiting to sync**; do not present
-  an unconfirmed draft as a newly server-scheduled instant.
+  an unconfirmed draft as a newly server-scheduled instant. Timed at-due and
+  minute/hour offsets use the stored confirmed `due_at` directly, even if zone
+  data later changes; calendar-day/week offsets use wall intent and the common
+  resolver. Do not silently re-resolve an unchanged timed anchor.
 - Store UTC instants for work/delivery, IANA zones and wall-clock intentions for
   recalculation. Capture the browser zone on setup; do not use a fixed UTC
   offset. If it changes, offer an explicit timezone update with a preview;
@@ -335,7 +338,9 @@ with each implemented stage.
   host-only device cookie (`__Host-` on HTTPS), `SameSite=Lax`, `Path=/`, no
   Domain, one-year lifetime; store only its hash. Set/renew it only through
   explicit enrollment/resume, not background reads. Match the existing
-  plain-HTTP local-test convention. Never expose room tokens to JS.
+  plain-HTTP local-test convention. Persist the installation's UTC expiry on
+  the server as well; cookie Max-Age alone cannot bound background authority.
+  Never expose room tokens to JS.
 - Each device/room enrollment records the authenticating room-token hash and
   room authorization version. Existing room cookie + device cookie are both
   required to read/change that device's room reminder data. The device cookie
@@ -346,7 +351,12 @@ with each implemented stage.
   explicit resume action rather than silently restoring background pushes.
 - At generation and immediately before dispatch, revalidate the saved grant
   against live room tokens/version and room/list/item existence. Room deletion
-  or password reset cancels unsent sends even without a page open.
+  or password reset cancels unsent sends even without a page open. Persist a
+  saved-grant expiry bounded by installation expiry and the original room-token
+  issuance time plus the existing room-cookie lifetime; enrolling later cannot
+  extend that original background deadline. Explicit fresh sign-in/resume can
+  rebind it. GET/validation never renews it. This adds a background-grant bound,
+  not a change to existing room API token-validation semantics.
 - Keep personal policies/history out of shared room feeds, share-link feeds
   and SSE payloads. Own-device refresh signals must not expose another
   installation's settings. No arbitrary device-ID lookup API. Do not add an
@@ -366,11 +376,23 @@ Minimum logical records (final table names can differ):
 | Installation | Hashed device secret; timezone, quiet hours, caps, pause and content privacy |
 | Enrollment | Device + room; authorizing grant/version; active state and selected channels |
 | Policy | Enrollment + room/list/item scope; revision; inherited/off/custom rule set |
-| Item due cycle | Stable revision for date/time/zone changes or done→active, not arbitrary edits |
+| Item due cycle | Server UUID plus UTC cycle-start time for date/time/zone changes or done→active, not arbitrary edits |
 | Occurrence | Relative: enrollment + item/cycle + normalized rule + scheduled UTC instant; fixed: enrollment + item + stable fixed-rule/instant identity, independent of due cycle |
 | Snooze/summary | Item-cycle or summary scope; wake instant; unique summary local-day key |
 | Delivery outbox | Occurrence/group + channel; state, lease, retry/expiry and provider acceptance |
 | Push subscription | Installation-owned endpoint/keys; unique endpoint hash, active state and key version |
+
+Persist server-only `items.due_cycle_started_at` with its UUID. Sample one
+injected UTC clock under the write lock on an actual schedule change or new
+dated active cycle (including restore/uncheck); preserve it on unrelated edits,
+no-ops and retries, and clear it with the date/cycle. Initial migration backfill
+uses one explicit UTC migration instant; it is not historical enrollment.
+Relative activation is bounded by the latest of cycle start, enrollment/resume
+activation and applicable policy activations. First-seen tick time or arbitrary
+`changed_seq` edits cannot substitute for these durable cutoffs. Keep fixed-rule
+identity/activation independent. Test the 10:00 cycle change / 10:05 future rule /
+10:30 catch-up with a 10:10 rename, and suppress a pre-change 09:55 rule.
+Do not accept client cycle/cutoff fields or publish them in shared feeds.
 
 Do not duplicate the whole shared item into every event. Render authorized
 history against current data, marking obsolete/deleted occurrences unavailable.
