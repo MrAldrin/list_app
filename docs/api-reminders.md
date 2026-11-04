@@ -135,9 +135,9 @@ account. Changing a device setting does not change any room's data.
   routes that need an existing device (`PATCH preferences` and `PATCH
   preferences/device`), a forged or expired device cookie is 403
   `not_enrolled`. `GET preferences` and `GET preferences/device` never fail
-  this way: without a usable device they report `not_enrolled` or `null`. `POST enrollment` with such a cookie is different: it
-  bootstraps a new device with the current room authorization. It creates no
-  client-chosen IDs.
+  this way: without a usable device they report `not_enrolled` or `null`.
+  `POST enrollment` with such a cookie is different: it bootstraps a new device
+  with the current room authorization. It creates no client-chosen IDs.
 
 **Lost first response:** a new device's first enrollment creates its cookie
 only in the response. If that response is lost, the client has no device

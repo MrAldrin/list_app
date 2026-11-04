@@ -130,7 +130,8 @@ def normalize_rules(
         raise ValueError(f"At most {MAX_RULES} reminder rules")
     now_utc = _aware_now(now)
     existing_by_id = _index_existing(existing_rules)
-    used_ids: set[str] = set()
+    reserved = _reserve_explicit_ids(inputs, existing_by_id)
+    claimed: set[str] = set()
     rules: list[Rule] = []
     for raw in inputs:
         if not isinstance(raw, Mapping):
@@ -144,7 +145,9 @@ def normalize_rules(
             if not FIXED_REQUIRED_FIELDS <= keys <= FIXED_FIELDS:
                 raise ValueError("A fixed rule takes kind, date, time, timezone and id")
             rules.append(
-                _fixed_rule(raw, existing_by_id, used_ids, now_utc, make_rule_id)
+                _fixed_rule(
+                    raw, existing_by_id, reserved, claimed, now_utc, make_rule_id
+                )
             )
         else:
             raise ValueError("kind must be relative or fixed")
@@ -176,7 +179,7 @@ def _relative_rule(raw: Mapping[str, Any]) -> RelativeRule:
         raise ValueError("amount must be an integer")
     if amount < 0:
         raise ValueError("amount must not be negative")
-    if unit not in RELATIVE_LIMITS:
+    if type(unit) is not str or unit not in RELATIVE_LIMITS:
         raise ValueError("unit must be minutes, hours, days or weeks")
     if amount > RELATIVE_LIMITS[unit]:
         raise ValueError(f"{unit} must be at most {RELATIVE_LIMITS[unit]}")
@@ -191,26 +194,45 @@ def _relative_rule(raw: Mapping[str, Any]) -> RelativeRule:
     return RelativeRule("calendar", amount * 7)
 
 
+def _reserve_explicit_ids(
+    inputs: Sequence[Mapping[str, Any]], existing_by_id: Mapping[str, FixedRule]
+) -> frozenset[str]:
+    """Checks every explicit fixed `id` before any id-less input is matched.
+
+    Each must be a canonical id of a stored rule, named by one input only.
+    """
+    reserved: set[str] = set()
+    for raw in inputs:
+        if (
+            not isinstance(raw, Mapping)
+            or raw.get("kind") != "fixed"
+            or "id" not in raw
+        ):
+            continue
+        given_id = _given_id(raw["id"])
+        if given_id not in existing_by_id:
+            raise ValueError("Unknown fixed reminder id")
+        if given_id in reserved:
+            raise ValueError("A fixed reminder id may be used once")
+        reserved.add(given_id)
+    return frozenset(reserved)
+
+
 def _fixed_rule(
     raw: Mapping[str, Any],
     existing_by_id: Mapping[str, FixedRule],
-    used_ids: set[str],
+    reserved: frozenset[str],
+    claimed: set[str],
     now: datetime,
     new_rule_id: Callable[[], str],
 ) -> FixedRule:
     date_text, time_text, zone_text = _fixed_wall_fields(raw)
-    stored: FixedRule | None = None
+    stored: FixedRule | None
     if "id" in raw:
-        given_id = _given_id(raw["id"])
-        if given_id not in existing_by_id:
-            raise ValueError("Unknown fixed reminder id")
-        if given_id in used_ids:
-            raise ValueError("A fixed reminder id may be used once")
-        used_ids.add(given_id)
-        stored = existing_by_id[given_id]
+        stored = existing_by_id[_given_id(raw["id"])]
     else:
         stored = _stored_by_wall_intent(
-            existing_by_id, used_ids, date_text, time_text, zone_text
+            existing_by_id, reserved, claimed, date_text, time_text, zone_text
         )
     if stored is not None and _same_wall_intent(
         stored, date_text, time_text, zone_text
@@ -258,17 +280,23 @@ def _given_id(value: object) -> str:
 
 def _stored_by_wall_intent(
     existing_by_id: Mapping[str, FixedRule],
-    used_ids: set[str],
+    reserved: frozenset[str],
+    claimed: set[str],
     date_text: str,
     time_text: str,
     zone_text: str,
 ) -> FixedRule | None:
-    """The first unclaimed stored rule with exactly this wall intent, if any."""
+    """The first stored rule with this wall intent that no input has reserved.
+
+    Rules named by an explicit id are reserved; an id-less input never takes them.
+    """
     for rule in existing_by_id.values():
-        if rule.id not in used_ids and _same_wall_intent(
-            rule, date_text, time_text, zone_text
+        if (
+            rule.id not in reserved
+            and rule.id not in claimed
+            and _same_wall_intent(rule, date_text, time_text, zone_text)
         ):
-            used_ids.add(rule.id)
+            claimed.add(rule.id)
             return rule
     return None
 
