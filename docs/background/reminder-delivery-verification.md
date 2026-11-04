@@ -60,9 +60,9 @@ print("IMAGE SMOKE PASS: tzdata=" + importlib.metadata.version("tzdata"))
 '
 ```
 
-## Existing frontend tooling audit — 2026-11-04
+## Existing frontend tooling audit
 
-S5's read-only preflight reproduced `npm audit --json`: 19 affected package
+On 2026-11-04, S5's read-only preflight reproduced `npm audit --json`: 19 affected package
 entries (4 low, 13 moderate, 2 high), not 19 separate advisories. No frontend
 package/lock changed. Installed/locked versions, explicit imports, build paths
 and the advisories' current GitHub API affected/patched ranges were inspected.
@@ -80,7 +80,8 @@ all-platform audit; future tests and Windows collaborators remain unknown.
 
 Keep builds/tests source-trusted. Do not feed attacker-controlled HTML/module
 fixtures into Happy DOM; use real browsers/Python for malicious push payload
-cases. The owner preview uses the built-static Python helper, not exposed Vite.
+cases. Use the built-static Python helper for any later owner preview, not an
+exposed Vite server.
 No automatic audit fix, package upgrade or new reminder release gate is implied.
 Separate reviewed tooling maintenance is recommended; its backlog placement
 awaits the owner's decision in the [delivery coordination list](../../plans/due-date-reminders.md#delivery-coordination).

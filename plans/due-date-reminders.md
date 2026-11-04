@@ -97,7 +97,7 @@ remain owner gates; docs-desk commits retain their standing permission.
   actual push provisioning/phone opt-in. No production configuration or real
   external push will be changed/sent during automated implementation.
 - Owner decision pending: where to place separate frontend tooling maintenance
-  in the backlog (recommend Later). [Audit triage](../docs/background/reminder-delivery-verification.md#existing-frontend-tooling-audit--2026-11-04)
+  in the backlog (recommend Later). [Audit triage](../docs/background/reminder-delivery-verification.md#existing-frontend-tooling-audit)
   found existing dev/test risks, not identified production reachability. No
   upgrades or new reminder release gate are approved; backlog placement needs
   the owner's decision, not an automatic queue addition.
