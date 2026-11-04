@@ -90,6 +90,31 @@ material fixes after independent review.
 
 - State: active, full browser gate blocked. Expanded verification-repair
   edit handoff received after `ulunnpkv` (`0ad7b06c`); Brief/Assignment frozen.
+- Latest baseline evidence: ONE full unchanged pre-S1 browser suite in owned
+  baseline workspace, `uv run pytest browser_tests -q -n 4`: 398 passed,
+  1 failed (WebKit cold-offline-deep-link: cache entries empty before stop).
+  Log `/tmp/listr-s1-baseline-full.log`. The symptom predates S1; this is
+  neither a root cause nor a gate waiver.
+- Expanded max investigation `a961e904-f3db-4682-a084-94fa71bc6cc7` made
+  no fix. Corrected instrumented run: 440 passed/1 failed/1 error, active cache
+  empty with no observed wrapped-worker delete. Another run was INVALID:
+  diagnostic put wrapper dropped arguments. No eviction attribution accepted.
+- Fresh max causal run `c0d351a1-8998-49bc-a2ac-957fecfcf6e4`: INCOMPLETE.
+  It mapped writer sites and passed clean focused tests (3 cold-link, 30 worker
+  file), but did not implement required attribution instrumentation. It found
+  stale telemetry in the ignored build, rebuilt marker-free, and left source
+  clean. Baseline build had no telemetry markers. No model substitution.
+- Next dispatch, agreed with Lead: fresh shell-capable Haiku 5.5/max worker,
+  instrumentation IMPLEMENTATION ONLY in owned UI child, explicit runtime/
+  checkpoint. Conductor Sol/high owns collector acceptance and later causal
+  analysis. Required: all-page/served-worker/legacy-context collector; names
+  before open; native API success/error timeline; semantic self-tests proving
+  this/all arguments/promise/error/body behavior; fingerprints and one focused
+  targeted external trace. Enumerate blind spots, log no tokens/bodies.
+  Preserve collector patch/self-tests/traces outside shipping changes, remove
+  source telemetry and rebuild clean. No full-suite loop, speculative repair,
+  dependency/environment change or acceptance. Actual proved repair remains
+  separate atomic work requiring fresh independent max review/full gates.
 - Conductor freshly verified from environment: session
   `01a1a2f1-3b36-7354-b16b-8fe1f4db448c`, cwd
   `/home/hsa/projects/tmp-reminders-s1`, provider `openai-codex`, model
