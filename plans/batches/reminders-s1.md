@@ -146,6 +146,36 @@ material fixes after independent review.
   Remove throwaway logging, obtain fresh independent max diff review and rerun
   relevant full gates before completion. No feature acceptance or deployment.
 
+### Collector and paired experiment checkpoint
+
+- Collector-only worker `557d91e4-6116-478b-9ac7-0bcb756e1f8a`, resumed
+  `674b6641-bd41-427b-940e-629888b6028f` and
+  `1710912b-4016-4daa-98dc-1000ca9974c3`, is quiescent.
+  External `/tmp/listr-s1-collector/v2` and `/tmp/listr-s1-collector/v3`
+  preserve tested instrumentation, 26 semantic self-tests (Conductor reran:
+  pass), focused lifecycle trace, served legacy trace and milestone checks.
+  Source restored and ignored build rebuilt marker-free. Accepted case-scoped;
+  Firefox legacy and primary WebKit/Firefox worker console remain blind spots.
+- ONE paired origin-client experiment `ad3e0742-3c4b-4a88-9645-687643900529`
+  completed: 119 passed/1 failed/1 teardown error across 120 cases. All 60 cold
+  cases passed; one WebKit waiting/GAP case failed. INCONCLUSIVE, no cause,
+  fix or waiver. Keeper inertness and actual unrelated-origin/cache/control
+  distinction checked; no sleeps or full-suite loop. Chromium cleanup differs
+  as expected with an uncontrolled client, but WebKit writer events were not
+  observable. Evidence `/tmp/listr-s1-origin-pair/analysis.md` and raw traces.
+- No active workers or test runs at this checkpoint. Candidate remains
+  `swtpolmk` (`d90bc864`), clean entry and UI child; both child workspaces
+  retained, no cleanup/acceptance/deployment.
+- Next owned bounded task: ONE Haiku 5.5/max shell-capable worker implements
+  and proves WebKit metadata transport capability ONLY. Existing disposable
+  test-server sink online plus bounded in-worker buffer/replacement flush may
+  be used; no keeper, diagnostic Cache/IDB, production route, service,
+  dependency or changed native return/waitUntil semantics. Prove actual worker
+  cache/lifecycle events across no-client/replacement before any causal follow-up.
+  Preserve semantic tests/fingerprints/clean rebuild; explicitly report offline,
+  lost-on-termination and observer-effect gaps. External diagnostics only.
+  Causal workloads wait for Conductor acceptance of observable capability.
+
 ### Earlier implementation checkpoints
 
 - Initial candidate: completed `kxumoykk` (`30cf8d1b977f`), empty child `swtpolmk`.
