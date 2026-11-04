@@ -87,58 +87,62 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: foundation in review-fix pass; not yet accepted or integrated.
-  Full dependent S4 remains blocked by reviewed S3 integration.
-- Exact handoff: entry `twuqsnnx` / `8c7a03fd`, parent amendment `vyvtntwv` /
-  `f43d01ca`; verified clean. Amended brief/master read fully; Sol/high verified.
-- Next: fresh independent full diff/code/test review, resolve findings, then
-  integrate reviewed child into S4 entry only and run full Python gates.
-  No DB/API/enrollment/UI/worker/scheduler integration, services or real sends.
-- Foundation edit boundary: new `src/reminders/push_transport.py`, focused tests,
-  `pyproject.toml` and `uv.lock` only; no package `__init__` (owned by S2).
-  Retry hints/results are pure transport outputs, not another scheduler.
-- Transport requirement: validate actual-connect DNS/IP/TLS and reject redirects,
-  not only pre-resolve an endpoint. Lead approved a small injectable/pinned HTTPS
-  transport or maintained crypto/VAPID with separately tested transport; reconfirm
-  library APIs at implementation and escalate concrete unresolved seams only.
-- S2 interface: installation cookie/access, revision/idempotency and settings seams.
-  S3 interface: transport results, claims/leases, stable group IDs, expiry,
-  saved-grant cancellation, shared quota/cross-day retries and blocked-push fallback
-  without a duplicate foreground strip. Bind exact symbols after predecessor lands.
-  S5 handoff: config/rotation/recovery notes, safe diagnostics and evidence limits.
-- Assumptions: iOS16.4 installed-app baseline; WebKit18.4 declarative enhancement,
-  never silent push. Push remains off without explicit configuration; fake sender
-  and test keys only. Physical-device closed-app delivery remains unverified.
-- Child: `tmp-reminders-s4-transport`,
-  `/home/hsa/projects/tmp-reminders-s4-transport`, base `vyvtntwv`; S4 Conductor
-  session `01a1a2ff-4fcb` is creator/lifecycle owner. Lead retains entry lifecycle.
-  Worker run `c6da6314-2207-44a7-932f-27517741cbd9` completed, verified actual
-  Haiku5.5/medium. Result `rzknzosp` / `ff5401a6`, four allowed files only;
-  empty child `yrluorsp`. Worker reports 89 focused tests, 1624 full Python tests
-  passed, 9 skipped; repository Ruff format/check and ty clean.
-- Medium reviewer `590717ab-6db0-4e9f-b8cd-c59c5a35fc37` read code/tests/library
-  sources; its toolset lacked shell/committed-diff verification, so review is
-  incomplete. Parent verified effective medium from launch receipt.
-- Accepted fixes: decouple VAPID lifetime from message TTL; process-wide bounded
-  resolver capacity/wait with no late send; remaining-time I/O bounds; elapsed TTL
-  recheck using UTC instants; key predecode size limits; secret-safe error chains;
-  close failures must not replace typed outcomes. Add deterministic regressions.
-  Reject unsupported claim that modern CPython TLS handshake timeout resets per
-  byte: Python 3.13 ssl documentation states total handshake timeout since 3.5.
-- Ownership before dispatch: same child cwd/lifecycle, separate bounded medium fix
-  worker (90 minutes, checkpoint 10 minutes); no fanout. Then fresh independent
-  Haiku5.5/max read-only worker-toolset reviewer with actual diff/test access
-  (60 minutes, checkpoint 10 minutes). Run IDs reported on launch; no integration
-  until review passes. Full Python gates follow in S4 entry only.
-- FCM/Mozilla exact hosts and Apple subdomains remain explicit supported-provider
-  assumptions, not universal support; confirm policy before dependent integration.
-- Docs-desk status-only window granted for this checkpoint; release after
-  file-only commit. No bookmark moves; later writes need another window.
+- State: partial transport foundation independently reviewed and verified in S4
+  entry only; quiescent. Full S4 remains blocked on reviewed S3 integration.
+- Stable foundation tip: `ooywutkn` / `c23ab8a3`, based on `vyvtntwv` / `f43d01ca`.
+  Entry `twuqsnnx` / `bdf37564` is an empty child above it. No Lead aggregate or
+  dependent-stage integration; no bookmark moves.
+- Next: Lead-coordinated reconciliation and exact reviewed S3 base before the
+  remaining DB/enrollment/API/UI/worker/scheduler work. Reconcile dependency locks
+  and rerun combined gates then; current foundation is not full-stage evidence.
+- S2 seam: installation cookie/access, revision/idempotency and settings.
+  S3 seam: transport results, leases, stable groups, expiry, live grant/state
+  revalidation outside DB lock, quota/cross-day retries and blocked-push fallback
+  without duplicate foreground strips. S5 receives operational notes/evidence limits.
+- No live children or services. Owned transport child was removed after its
+  reviewed work and artifacts were preserved. Lead retains S4 entry lifecycle.
+- Sole Status/Closeout window granted after quota-interruption recovery. Earlier
+  timed-out requests granted no edits. Commit this file only and release window;
+  `integration` and `main` remain fixed, including for this docs-only change.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: pending.
-- Assumptions, limits and retained artifacts: pending.
-- Child cleanup/entry cwd release: pending.
-- Owner review/acceptance: pending; no deployment.
+### Partial foundation only — full stage still open
+
+- Result: `rzknzosp` / `ff5401a6` → `yrluorsp` / `43a93cc3` → `ooywutkn` /
+  `c23ab8a301167b0a4f47a1bcd88433e46085306b`. Exactly four tracked files:
+  `src/reminders/push_transport.py`, `tests/test_push_transport.py`,
+  `pyproject.toml`, `uv.lock`. No package `__init__` or dependent runtime changes.
+- Delivered: maintained pywebpush encryption/VAPID with injectable pinned HTTPS,
+  public-only actual-connect DNS/IP validation, original TLS hostname/Host,
+  no redirects/proxies, bounded DNS capacity/I/O, UTC/elapsed-time TTL checked
+  after signing, secret-safe validation and typed outcomes without retry scheduling.
+  Library API/source inspected; pywebpush 2.5.0 locked. No existing package
+  versions changed; sixteen transitive packages added.
+- Workers: implementation `c6da6314`, fixes `05c27137` → `e66334db`; actual
+  Haiku5.5/medium verified. Medium review `590717ab` lacked committed-diff/shell
+  access; escalated to fresh independent max reviewer with worker toolset
+  `9d8195df` → re-review `6a9bebe8`. Actual Haiku5.5/max verified; final verdict
+  ACCEPT for foundation only. Signer-expiry/budget and caller-contract findings
+  fixed and independently re-reviewed; all three new regressions fail on old code.
+- Parent gates on the S4 entry: required Ruff format/check-fix, full pytest
+  **1655 passed, 9 skipped**, then format-check, Ruff and ty clean. Focused
+  transport tests **120 passed**. Formatting/checks left no tracked edits.
+  Frontend/browser lanes not run for this Python-only foundation.
+- Retained evidence: `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/`
+  contains `report.md`, `verification.log`, `final-review.md` and prior reports.
+  These ignored artifacts survive child removal; Lead must preserve them before
+  eventual S4 entry removal. Original subagent reports also remain in session artifacts.
+- Cleanup: S4-created `tmp-reminders-s4-transport` was forgotten and its directory
+  removed after reviewed reachability in entry, clean child, no live cwd users and
+  artifact preservation were verified. No live child remains. S4 entry retained.
+- Limits: exact FCM/Mozilla hosts and Apple push subdomains only; not universal
+  provider support. A stuck resolver occupies at most four process-wide daemon
+  slots; further lookups fail fast until capacity returns. Ambiguous attempts may
+  be repeated by a future caller; acceptance is not delivery or exactly once.
+  TLS tested in-memory, not against a remote provider. Physical iPhone/Android
+  closed-app delivery remains unverified. iOS16.4 baseline/18.4 enhancement and
+  no-silent-push requirements remain for the later worker implementation.
+- Owner review/acceptance: pending for full S4. No real sends, registration,
+  services, secret provisioning, production changes, deployment or bookmarks.
+  Remaining full-stage behavior waits for the explicit reviewed-S3 handoff.
