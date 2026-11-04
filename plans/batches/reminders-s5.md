@@ -86,10 +86,10 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: quiescent, blocked by reviewed predecessor integration. Two-way
-  readiness and read-only preflight accepted by Lead.
-- Next: await exact reviewed S4 base, coordinated entry rebase and explicit
-  edit handoff. No implementation, children or services started.
+- State: independent restore foundation reviewed and integrated into own entry;
+  remaining S5 runtime/polish/combined verification blocked by predecessors.
+- Next: await reviewed predecessor base and explicit remaining-work handoff.
+  No services started; no runtime helper hookup or actual restore performed.
 - Proposed bounded work: integrated-contract gap review; isolated backend
   diagnostics/restore and frontend mobile/accessibility fixes; docs/evidence
   consistency; fresh independent final review and complete combined checks.
@@ -111,14 +111,37 @@ material fixes after independent review.
 - Evidence limits: no attached Android emulator found; physical Android/iPhone
   push, production Serverless and VAPID provisioning remain rollout limits,
   not automated passes. Use fake senders and disposable databases only.
-- Children/workspaces: none created; Lead owns the entry workspace lifecycle.
-- Docs-desk window: status-only preflight record; release immediately after
-  committing this file. Further writes require another coordinated window.
+- Independent restore foundation delivered and reviewed: `opyqvqmy/94c46a30`
+  atop `rwswntvl/3eb72704`; integrated into released empty entry `pysuorwt`
+  under Lead's explicit direction. This is not complete S5 or runtime integration.
+- Children/workspaces: implementation and independent review complete; owned
+  `tmp-reminders-s5-restore` forgotten/removed after preserving evidence and
+  verifying reviewed change reachable from entry. Lead owns entry lifecycle.
+- Docs-desk window: Status/Closeout only; release after file-only commit.
+  Further writes require another coordinated window.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: pending.
-- Assumptions, limits and retained artifacts: pending.
-- Child cleanup/entry cwd release: pending.
-- Owner review/acceptance: pending; no deployment.
+- Partial result: external file guard `opyqvqmy/94c46a30`, four-file delta:
+  persistence helper, focused tests, narrow contract doc and docs-index link.
+  Missing/corrupt state fails closed; explicit pause/resume preserves monotonic
+  UTC cutoff; private atomic durable writes serialize through a stable lock.
+- Implementation `9bf90ffb` and fresh independent review `67615224` verified
+  native `openai/gpt-6.1-terra`, medium. Review found no blockers. Initial
+  restricted reviewer could not verify settings/range and performed no review;
+  its result is not approval. Earlier Sol work was stopped on owner instruction.
+- Full Python gates passed in child and integrated entry: formatting, Ruff,
+  pytest, format/check verification and ty. Entry pytest: 1767 passed, 9 skipped.
+  No frontend/browser/Android or whole-feature review claimed for this lane;
+  entry has no frontend build. Combined S5 gates remain predecessor-blocked.
+- S3 directly received concrete imports and consumer boundary: actual
+  eligible/wake instant strictly before cutoff is suppressed; equality and
+  future wakes retained, attempted history/dedupe/charges preserved. Runtime
+  reconciliation and concurrent pause-versus-send fencing are not implemented.
+- Limits: trusted persistent POSIX directory, all writers use stable advisory
+  lock; readers may see old complete snapshots. Post-publication fsync failure
+  does not promise rollback. No default production path or actual restore.
+- Retained evidence: entry `local_only/restore-foundation/` holds independent
+  review, full child Python log and restart/model-switch checkpoint. Child
+  workspace removed; entry/session retained for remaining S5 work.
+- Owner review/acceptance: pending; no main/integration feature moves or deploy.
