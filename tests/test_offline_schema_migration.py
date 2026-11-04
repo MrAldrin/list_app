@@ -113,6 +113,8 @@ def test_upgrade_from_version_two_keeps_data_and_backfills_uids(tmp_path, monkey
         # `add_count` and `added_at` (migration 10), and `name_key` (migration 12).
         if table == "lists":
             rows = [row[:-4] for row in rows]  # drop the four tag settings
+        if table == "items":
+            rows = [row[:-4] for row in rows]  # drop the due time, zone, UTC and cycle
         width = 6 if table == "items" else 2
         assert [row[:-width] for row in rows] == before[table]
         uids = [row[-width] for row in rows]

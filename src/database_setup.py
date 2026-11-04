@@ -777,6 +777,50 @@ def _migration_13_version_item_name_keys(db: sqlite3.Connection) -> None:
         """)
 
 
+# A due time and zone need a date, and `due_at` exists exactly with a time.
+# Python computes the values (reminders/due_schedule.py); this guard only refuses
+# a combination that cannot come from it.
+_BAD_DUE_SCHEDULE = """(
+    (NEW.date IS NULL AND (
+        NEW.due_time IS NOT NULL OR NEW.due_timezone IS NOT NULL
+        OR NEW.due_at IS NOT NULL))
+    OR (NEW.due_time IS NULL) IS NOT (NEW.due_timezone IS NULL)
+    OR (NEW.due_time IS NULL) IS NOT (NEW.due_at IS NULL)
+    OR (NEW.due_time IS NOT NULL AND (
+        typeof(NEW.due_time) != 'text'
+        OR NEW.due_time NOT GLOB '[0-2][0-9]:[0-5][0-9]'))
+    OR (NEW.due_timezone IS NOT NULL AND typeof(NEW.due_timezone) != 'text')
+    OR (NEW.due_at IS NOT NULL AND typeof(NEW.due_at) != 'text')
+)"""
+
+
+def _migration_15_due_time_and_zone(db: sqlite3.Connection) -> None:
+    """Add an optional shared due time and zone, with the resolved `due_at`.
+
+    `due_time` (HH:MM), `due_timezone` (IANA name) and `due_at` (UTC) exist only
+    with a date. `due_cycle` is a random ID for one due schedule, set by Python
+    (see reminders/due_schedule.py). Existing dated items get a cycle now; that
+    backfill is not a user edit, so the change tracking trigger is recreated.
+    """
+    db.execute("ALTER TABLE items ADD COLUMN due_time TEXT")
+    db.execute("ALTER TABLE items ADD COLUMN due_timezone TEXT")
+    db.execute("ALTER TABLE items ADD COLUMN due_at TEXT")
+    db.execute("ALTER TABLE items ADD COLUMN due_cycle TEXT")
+    db.execute("DROP TRIGGER items_track_update")
+    db.execute(f"UPDATE items SET due_cycle = {_SQL_UUID4} WHERE date IS NOT NULL")
+    db.execute(
+        "CREATE TRIGGER items_track_update "
+        + _CHANGE_TRACKING_TRIGGERS["items_track_update"]
+    )
+    for name, action in (("insert", "INSERT"), ("update", "UPDATE")):
+        db.execute(f"""
+            CREATE TRIGGER items_due_schedule_{name}
+            BEFORE {action} ON items
+            WHEN {_BAD_DUE_SCHEDULE}
+            BEGIN SELECT RAISE(ABORT, 'items: a due time, zone and date must go together'); END
+        """)
+
+
 def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
     """Store each list's tag settings: one or several tags, tag display, colors.
 
@@ -881,6 +925,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_12_preserve_item_name_case,
         _migration_13_version_item_name_keys,
         _migration_14_tag_settings,
+        _migration_15_due_time_and_zone,
     ]
 
 

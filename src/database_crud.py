@@ -25,6 +25,12 @@ from identifiers import make_slug, token_hash
 from item_names import item_name_key, normalize_item_name
 from item_visibility import parse_completion_time, validate_visibility_settings
 from password_hashing import hash_password
+from reminders.due_schedule import (
+    DueSchedule,
+    checked_due_schedule,
+    merge_due_edit,
+    new_due_cycle,
+)
 
 _DB_LOCK = threading.RLock()
 
@@ -480,8 +486,9 @@ def add_or_restore_item_locked(
             return "duplicate_active", existing[0]
         db.execute(
             "UPDATE items SET done = 0, completed_at = NULL, "
-            f"add_count = add_count + 1, added_at = {_NOW_SQL} WHERE id = ?",
-            (existing[0],),
+            f"add_count = add_count + 1, added_at = {_NOW_SQL}, "
+            "due_cycle = CASE WHEN date IS NULL THEN NULL ELSE ? END WHERE id = ?",
+            (new_due_cycle(), existing[0]),
         )
         return "restored", existing[0]
     _check_item_count_locked(list_id)
@@ -506,14 +513,19 @@ def restore_deleted_item_locked(
     date: str | None = None,
     add_count: int = 1,
     added_at: str | None = None,
+    due_time: str | None = None,
+    due_timezone: str | None = None,
 ) -> int | None:
     """Insert a deleted item again as a new row; return its ID.
 
     None (nothing written) when an item with that name exists, ignoring case
     and outer spaces. `completed_at` is kept only when `done`. The add count
-    and time are kept as given: an undo is not an add. In a full list it
-    raises CountLimitReached. Call inside a write transaction.
+    and time are kept as given: an undo is not an add. The due time and zone
+    are kept with the date; the UTC due time is recomputed and the new row gets
+    a new due cycle. Invalid due fields raise ValueError (nothing written). In
+    a full list it raises CountLimitReached. Call inside a write transaction.
     """
+    schedule = checked_due_schedule(date, due_time, due_timezone)
     name = normalize_item_name(name)
     name_key = item_name_key(name)
     if db.execute(
@@ -526,8 +538,9 @@ def restore_deleted_item_locked(
         """
         INSERT INTO items (
             name, name_key, done, list_id, active_tags, description, quantity,
-            completed_at, uid, date, add_count, added_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            completed_at, uid, date, due_time, due_timezone, due_at, due_cycle,
+            add_count, added_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             name,
@@ -539,7 +552,11 @@ def restore_deleted_item_locked(
             quantity,
             completed_at if done else None,
             uid,
-            date,
+            schedule.date,
+            schedule.time,
+            schedule.timezone,
+            schedule.due_at(),
+            new_due_cycle() if schedule.date is not None else None,
             add_count,
             added_at,
         ),
@@ -548,13 +565,13 @@ def restore_deleted_item_locked(
 
 
 def get_item_state_locked(item_id: int) -> dict[str, Any]:
-    """Stored done, name, description, quantity, date and changed_seq of an item.
+    """Stored done, name, description, quantity, due fields and changed_seq.
 
     Read leniently, as the feed reads it. Call inside a write transaction.
     """
     row = db.execute(
-        "SELECT COALESCE(done, 0), name, description, quantity, changed_seq, date "
-        "FROM items WHERE id = ?",
+        "SELECT COALESCE(done, 0), name, description, quantity, changed_seq, "
+        "date, due_time, due_timezone FROM items WHERE id = ?",
         (item_id,),
     ).fetchone()
     return {
@@ -564,7 +581,14 @@ def get_item_state_locked(item_id: int) -> dict[str, Any]:
         "quantity": row[3] if row[3] is not None else 1,
         "changed_seq": row[4],
         "date": row[5],
+        "due_time": row[6],
+        "due_timezone": row[7],
     }
+
+
+def stored_due_schedule(stored: dict[str, Any]) -> DueSchedule:
+    """The due schedule of a row read by get_item_state_locked."""
+    return DueSchedule(stored["date"], stored["due_time"], stored["due_timezone"])
 
 
 def get_item_changed_seq_locked(item_id: int) -> int:
@@ -610,15 +634,16 @@ def update_item_done_locked(
             (_completion_timestamp(now), item_id, list_id),
         )
     else:
-        # Unchecking puts the item back on the list: an add.
+        # Unchecking puts the item back on the list: an add, and a new due cycle.
         db.execute(
             "UPDATE items SET done = 0, completed_at = NULL, "
             "add_count = CASE WHEN COALESCE(done, 0) != 0 "
             "THEN add_count + 1 ELSE add_count END, "
             "added_at = CASE WHEN COALESCE(done, 0) != 0 "
-            f"THEN {_NOW_SQL} ELSE added_at END "
+            f"THEN {_NOW_SQL} ELSE added_at END, "
+            "due_cycle = CASE WHEN date IS NULL THEN NULL ELSE ? END "
             "WHERE id = ? AND list_id = ?",
-            (item_id, list_id),
+            (new_due_cycle(), item_id, list_id),
         )
     return True
 
@@ -632,13 +657,19 @@ def update_item_details_locked(
     *,
     date_given: bool = False,
     date: str | None = None,
+    due_time_given: bool = False,
+    due_time: str | None = None,
+    due_timezone_given: bool = False,
+    due_timezone: str | None = None,
 ) -> Literal["saved", "duplicate", "missing"]:
-    """Save name, description, quantity and date together, or nothing.
+    """Save name, description, quantity and due schedule together, or nothing.
 
     "duplicate": another item of the list has the name (ignoring case and
-    outer spaces). "missing": no such item. None keeps the quantity. The date
-    is saved only when `date_given`; then None clears it. Call inside a write
-    transaction with checked values.
+    outer spaces). "missing": no such item. None keeps the quantity. The date,
+    due time and zone are merged by merge_due_edit: a part not given keeps its
+    stored value, and None clears it. A changed date, time or zone starts a new
+    due cycle; the UTC due time is recomputed in the same write. Call inside a
+    write transaction with checked values (ValueError for a bad schedule).
     """
     name = normalize_item_name(name)
     name_key = item_name_key(name)
@@ -649,24 +680,56 @@ def update_item_details_locked(
     if duplicate:
         return "duplicate"
     stored = db.execute(
-        "SELECT name, description, quantity, date FROM items WHERE id = ? AND list_id = ?",
+        "SELECT name, description, quantity, date, due_time, due_timezone, "
+        "due_at, due_cycle FROM items WHERE id = ? AND list_id = ?",
         (item_id, list_id),
     ).fetchone()
     if stored is None:
         return "missing"
+    stored_schedule = DueSchedule(stored[3], stored[4], stored[5])
+    schedule = merge_due_edit(
+        stored_schedule,
+        date_given=date_given,
+        date=date,
+        time_given=due_time_given,
+        time=due_time,
+        zone_given=due_timezone_given,
+        zone=due_timezone,
+    )
+    schedule_changed = schedule != stored_schedule
     unchanged = (
         stored[0] == name
         and (stored[1] or "") == description
         and (quantity is None or stored[2] == quantity)
-        and (not date_given or stored[3] == date)
+        and not schedule_changed
     )
     if unchanged:
         return "saved"  # Already stored: no write, so no change seq bump.
+    # Only a changed schedule is resolved again; an unchanged one keeps its
+    # stored due_at and cycle, so a name edit never depends on the zone data.
+    if schedule_changed:
+        due_at = schedule.due_at()
+        cycle = new_due_cycle() if schedule.date is not None else None
+    else:
+        due_at, cycle = stored[6], stored[7]
     db.execute(
         "UPDATE items SET name = ?, name_key = ?, description = ?, "
         "quantity = COALESCE(?, quantity), "
-        "date = CASE WHEN ? THEN ? ELSE date END WHERE id = ? AND list_id = ?",
-        (name, name_key, description, quantity, date_given, date, item_id, list_id),
+        "date = ?, due_time = ?, due_timezone = ?, due_at = ?, due_cycle = ? "
+        "WHERE id = ? AND list_id = ?",
+        (
+            name,
+            name_key,
+            description,
+            quantity,
+            schedule.date,
+            schedule.time,
+            schedule.timezone,
+            due_at,
+            cycle,
+            item_id,
+            list_id,
+        ),
     )
     return "saved"
 
@@ -904,7 +967,7 @@ def get_item_changes_locked(
         """
         SELECT i.uid, l.uid, i.name, i.done, i.completed_at, i.quantity,
                i.description, i.active_tags, i.changed_seq, i.date,
-               i.add_count, i.added_at
+               i.add_count, i.added_at, i.due_time, i.due_timezone, i.due_at
         FROM items AS i
         JOIN lists AS l ON l.id = i.list_id
         WHERE l.room_id = :room_id AND i.changed_seq > :since
@@ -931,6 +994,9 @@ def get_item_changes_locked(
                 "date": row[9],
                 "add_count": row[10],
                 "added_at": row[11],
+                "due_time": row[12],
+                "due_timezone": row[13],
+                "due_at": row[14],
             }
         )
     return items

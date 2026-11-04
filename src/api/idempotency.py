@@ -23,11 +23,17 @@ def request_hash(body: BaseModel) -> str:
     """sha256 of the validated body as canonical JSON.
 
     Fields named in the model's `hash_omit_if_null` are left out when null, so
-    an op stored before such a field existed keeps its hash.
+    an op stored before such a field existed keeps its hash. Fields named in
+    `hash_omit_if_unsent` are left out only when the request did not send them,
+    so an explicit null hashes differently from an absent field (absent keeps
+    the stored value; null clears it).
     """
     data = body.model_dump(mode="json")
     for name in getattr(body, "hash_omit_if_null", frozenset()):
         if data.get(name) is None:
+            data.pop(name, None)
+    for name in getattr(body, "hash_omit_if_unsent", frozenset()):
+        if name not in body.model_fields_set:
             data.pop(name, None)
     canonical = json.dumps(
         data,

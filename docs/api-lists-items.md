@@ -19,6 +19,8 @@ Part of the [JSON API](api.md). Data shapes and write operations.
     "uid": "c39f…", "list_uid": "7c0e…", "name": "Milk",
     "done": true, "completed_at": "2026-10-03T09:12:44.123456Z",
     "quantity": 2, "description": "lactose free", "date": "2026-10-18",
+    "due_time": "09:00", "due_timezone": "Europe/Oslo",
+    "due_at": "2026-10-18T07:00:00.000Z",
     "tags": ["Lidl"], "add_count": 2, "added_at": "2026-10-18T08:30:00.000Z",
     "changed_seq": 44
   }
@@ -34,6 +36,10 @@ Part of the [JSON API](api.md). Data shapes and write operations.
 - `hide_done.mode` is `off`, `all`, `age` or `recent`; counts are 1–100,000.
 - `completed_at` is UTC, or `null` when not done or not known (items checked
   before completion times existed).
+- `due_time`, `due_timezone` and `due_at` are all `null` for a date-only item.
+  For a timed item `due_at` is the UTC instant the server computed from the
+  date, time and zone; the client never computes it. See
+  [due times](#due-times).
 - `changed_seq` is the room `seq` of the row's last change.
 - The client sorts items itself (open first, then by name). It computes hidden
   items with the rules in [checked-item visibility](checked-item-visibility.md).
@@ -94,10 +100,10 @@ Unicode-aware `lower()` key.
 | `item.add` | `list_uid`, `name`, `uid`? | `{"item_uid", "outcome", "changed_seq"}`, outcome `added` or `restored`. Add-or-restore: a new item, or an existing checked item is unchecked (its own `uid` is returned). Either one counts as an add: `add_count` +1 (a new item starts at 1) and `added_at` is now. |
 | `item.set_done` | `list_uid`, `item_uid`, `done`, `base_seq`? | Sets the state. Checking an already checked item keeps its `completed_at`. Unchecking a checked item counts as an add (`add_count` +1, `added_at` now); checking, or unchecking an unchecked item, does not. Checked against `base_seq` if sent ([conflicts](#conflicts)). |
 | `item.quantity_delta` | `list_uid`, `item_uid`, `delta` | Adds `delta` to the stored quantity; never below 1. |
-| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `date`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. `date` absent keeps it; `null` clears it. The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
+| `item.edit` | `list_uid`, `item_uid`, `name`, `description`, `quantity`?, `date`?, `due_time`?, `due_timezone`?, `base_seq` | Saves all fields together or none. `quantity` absent or `null` keeps it; below 1 saves 1. `date` absent keeps it; `null` clears it. `due_time` and `due_timezone` follow [due times](#due-times). The description is trimmed. Checked against `base_seq` ([conflicts](#conflicts)). |
 | `item.toggle_tag` | `list_uid`, `item_uid`, `tag`, `active`? | Toggles one tag on the stored item tags. With `active`, sets the tag on (`true`) or off (`false`); already in that state changes nothing, so the op is safe to send twice. In a `single` list, turning a tag on leaves it as the item's only tag. |
 | `item.delete` | `list_uid`, `item_uid` | Applied also when the item is already gone. |
-| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at`, `date`?, `add_count`?, `added_at`? | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. `date` is kept as sent (absent is no date). `add_count` and `added_at` are kept as sent (absent: 1 and no time); an undo is not an add. |
+| `item.restore` | `list_uid`, `uid`?, `name`, `done`, `tags`, `description`, `quantity`, `completed_at`, `date`?, `due_time`?, `due_timezone`?, `add_count`?, `added_at`? | Undo of a delete, with the data the client kept. Creates a new item with a new `uid`: `{"item_uid", "changed_seq"}`. `completed_at` (a time or `null`) is kept only when `done`, and saved as UTC. `date` is kept as sent (absent is no date). `due_time` and `due_timezone` are kept as sent with the date, and `due_at` is recomputed by the server. `add_count` and `added_at` are kept as sent (absent: 1 and no time); an undo is not an add. |
 
 `?` means optional. A client `uid` must be a UUID that was never used by any
 list or item, in any room, even a deleted one; if it was, the server answers
@@ -105,6 +111,29 @@ list or item, in any room, even a deleted one; if it was, the server answers
 `completed_at` is an ISO 8601 time; without a time zone it counts as UTC.
 `date` is a real calendar day as `YYYY-MM-DD`; anything else is a 422.
 `add_count` is a whole number from 1 up; `added_at` is a readable time.
+
+### Due times
+
+A timed item has a `date`, a `due_time` (`HH:MM`, 24-hour) and a
+`due_timezone` (an IANA name such as `Europe/Oslo`). They go together:
+
+- Sending a time or zone needs a date; a time needs a zone; a zone needs a
+  time. Otherwise `item.edit` and `item.restore` answer `invalid_due`.
+- Clearing the date (`null`) clears the time and zone. Clearing the time
+  (`null`) returns the item to date-only and clears the zone.
+- A `due_time` or `due_timezone` that is not sent keeps its stored value. An
+  older page that sends only `date` therefore keeps the time and zone.
+- A zone name the server does not know, or whose data is not installed, answers
+  `time_zone_unavailable`. Nothing is saved, and the rest of the list keeps
+  working.
+- `due_at` is never sent by a client; one sent is a 422.
+- A gap in the zone (such as 02:30 on Oslo's spring-forward day) resolves to
+  the first valid instant after it (03:00); a repeated time resolves to its
+  first occurrence.
+- Changing the date, time or zone starts a new `due_cycle` (a server-side ID,
+  not published) and recomputes `due_at`. Renames, quantity and tag changes do
+  not. Unchecking a dated item, and an add that unchecks it, also start a new
+  cycle. Reminders (a later feature) will use this identity.
 
 ### Conflicts
 
@@ -143,6 +172,8 @@ row. Answers stored before this was added have no `changed_seq`.
 | `list_unavailable` | every op with `list_uid` | The list is no longer available. |
 | `item_not_found` | `item.set_done`, `item.quantity_delta`, `item.edit`, `item.toggle_tag` | The item is no longer available. |
 | `unknown_tag` | `list.tag_color`, `list.tag_rename` | The tag is not on this list. |
+| `invalid_due` | `item.edit`, `item.restore` | A due time and time zone need a date (and a time needs a zone), or the time is not HH:MM. |
+| `time_zone_unavailable` | `item.edit`, `item.restore` | This time zone is not available on this server. |
 
 A list in another room counts as `list_unavailable`, like a deleted one. An
 item in another list counts as `item_not_found` (`item.delete`: applied, no

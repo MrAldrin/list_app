@@ -4,7 +4,7 @@ import sqlite3
 from contextlib import closing
 
 import pytest
-from migration_helpers import migrate_to
+from migration_helpers import LATEST_VERSION, migrate_to
 
 import item_names
 from migrations import MigrationError, schema_version
@@ -44,10 +44,11 @@ def test_migration_preserves_names_and_does_not_mark_backfill_as_an_edit():
         after_item = db.execute(
             "SELECT * FROM items WHERE id = ?", (item_id,)
         ).fetchone()
-        assert after_item[:-1] == before_item
-        assert after_item[-1] == "éggs"
+        # Migrations 12 and 15 append name_key, then the four due columns.
+        assert after_item[:-5] == before_item
+        assert after_item[-5] == "éggs"
         assert db.execute("SELECT change_seq FROM rooms").fetchone()[0] == before_seq
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 14
+        assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
         assert (
             db.execute(
                 "SELECT sql FROM sqlite_master WHERE type = 'index' "

@@ -57,6 +57,7 @@ from database_crud import (
     restore_deleted_item_locked,
     savepoint_locked,
     set_list_tag_color_locked,
+    stored_due_schedule,
     toggle_item_active_tag_locked,
     uid_in_use_locked,
     update_item_details_locked,
@@ -80,6 +81,8 @@ from item_visibility import (
     validate_visibility_settings,
 )
 from live_updates import notify_room_changed
+from reminders.due_schedule import CLOCK_TIME, DueSchedule, merge_due_edit
+from reminders.zoned_time import TimeZoneUnavailable
 
 router = APIRouter()
 
@@ -127,6 +130,21 @@ def _item_date(value: str | None) -> str | None:
 
 # An item's optional date. Null clears it; a missing field keeps it.
 ItemDate = Annotated[StrictStr | None, AfterValidator(_item_date)]
+
+
+def _due_time(value: str | None) -> str | None:
+    """A 24-hour time as `HH:MM`; None clears it."""
+    if value is None:
+        return None
+    if not CLOCK_TIME.fullmatch(value):
+        raise ValueError("time must be HH:MM")
+    return value
+
+
+# An item's optional due time (see reminders/due_schedule.py). Null clears it.
+ItemDueTime = Annotated[StrictStr | None, AfterValidator(_due_time)]
+# An IANA zone name, such as Europe/Oslo. Null clears it.
+ItemDueTimezone = Annotated[StrictStr | None, Field(max_length=64)]
 
 
 def _added_time(value: str | None) -> str | None:
@@ -284,10 +302,15 @@ class ItemEdit(ItemOp):
     quantity: Quantity | None = None
     # Not sent: kept. Sent as null: cleared. See item_edit.
     date: ItemDate = None
+    due_time: ItemDueTime = None
+    due_timezone: ItemDueTimezone = None
     # The item's changed_seq the page saw (see _check_base_seq).
     base_seq: BaseSeq
 
     hash_omit_if_null: ClassVar[frozenset[str]] = frozenset({"date"})
+    hash_omit_if_unsent: ClassVar[frozenset[str]] = frozenset(
+        {"due_time", "due_timezone"}
+    )
 
 
 class ItemToggleTag(ItemOp):
@@ -314,12 +337,17 @@ class ItemRestore(Op):
     quantity: Quantity
     completed_at: CompletedAt
     date: ItemDate = None
+    due_time: ItemDueTime = None
+    due_timezone: ItemDueTimezone = None
     # Kept from the deleted item. Not sent (an older page): 1 and no time.
     add_count: AddCount | None = None
     added_at: AddedAt = None
 
     hash_omit_if_null: ClassVar[frozenset[str]] = frozenset(
         {"date", "add_count", "added_at"}
+    )
+    hash_omit_if_unsent: ClassVar[frozenset[str]] = frozenset(
+        {"due_time", "due_timezone"}
     )
 
 
@@ -375,6 +403,11 @@ EMPTY_NAME = "Name cannot be empty"
 UNDO_NAME_TAKEN = "Cannot undo: item name already exists"
 CHANGED_MEANWHILE = "Someone else changed this meanwhile."
 UNKNOWN_TAG = "The tag is not on this list."
+DUE_PARTS = (
+    "A due time needs a date and a time zone; a time zone needs a due time. "
+    "Clearing the date clears both."
+)
+TIME_ZONE_UNAVAILABLE = "This time zone is not available on this server."
 
 
 @dataclass(frozen=True)
@@ -584,25 +617,75 @@ def item_quantity_delta(scope: OpScope, op: ItemQuantityDelta) -> dict[str, Any]
     return {"changed_seq": get_item_changed_seq_locked(item_id)}
 
 
+def _due_schedule(
+    stored: DueSchedule,
+    *,
+    date_given: bool,
+    date: str | None,
+    time_given: bool,
+    time: str | None,
+    zone_given: bool,
+    zone: str | None,
+) -> DueSchedule:
+    """The schedule an op wants; a rule it breaks is a rejection."""
+    try:
+        return merge_due_edit(
+            stored,
+            date_given=date_given,
+            date=date,
+            time_given=time_given,
+            time=time,
+            zone_given=zone_given,
+            zone=zone,
+        )
+    except ValueError:
+        raise OpRejected("invalid_due", DUE_PARTS) from None
+
+
+def _due_resolved(schedule: DueSchedule) -> None:
+    """Check that a schedule's zone is known, before anything is written."""
+    try:
+        schedule.due_at()
+    except TimeZoneUnavailable:
+        raise OpRejected("time_zone_unavailable", TIME_ZONE_UNAVAILABLE) from None
+    except ValueError:
+        raise OpRejected("invalid_due", DUE_PARTS) from None
+
+
 def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
     list_id = scope.list_id(op.list_uid)
     item_id = _list_item_id(list_id, op.item_uid)
     name = _item_name(op.name)
     description = _description((op.description or "").strip())
     quantity = None if op.quantity is None else clamp_quantity(op.quantity)
-    # A date that was not sent is kept and is not part of what the op wants.
+    # A date, time or zone that was not sent is kept and is not part of what
+    # the op wants.
     date_given = "date" in op.model_fields_set
+    time_given = "due_time" in op.model_fields_set
+    zone_given = "due_timezone" in op.model_fields_set
     stored = get_item_state_locked(item_id)
+    schedule = _due_schedule(
+        stored_due_schedule(stored),
+        date_given=date_given,
+        date=op.date,
+        time_given=time_given,
+        time=op.due_time,
+        zone_given=zone_given,
+        zone=op.due_timezone,
+    )
     # A quantity that was not sent is not part of what the op wants.
     wanted_already_stored = (
         stored["name"] == name
         and stored["description"] == description
         and (quantity is None or stored["quantity"] == quantity)
-        and (not date_given or stored["date"] == op.date)
+        and schedule == stored_due_schedule(stored)
     )
     _check_base_seq(
         op.base_seq, stored["changed_seq"], wanted_already_stored=wanted_already_stored
     )
+    # Only a changed schedule needs its zone: an unchanged one is not resolved.
+    if schedule != stored_due_schedule(stored):
+        _due_resolved(schedule)
     status = update_item_details_locked(
         item_id,
         list_id,
@@ -611,6 +694,10 @@ def item_edit(scope: OpScope, op: ItemEdit) -> dict[str, Any]:
         quantity,
         date_given=date_given,
         date=op.date,
+        due_time_given=time_given,
+        due_time=op.due_time,
+        due_timezone_given=zone_given,
+        due_timezone=op.due_timezone,
     )
     if status == "duplicate":
         raise OpRejected("duplicate_name", f"'{name}' already exists")
@@ -639,6 +726,17 @@ def item_delete(scope: OpScope, op: ItemDelete) -> dict[str, Any]:
 def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
     uid = _new_uid(op.uid)
     list_id = scope.list_id(op.list_uid)
+    # The due time and zone are checked and resolved before the restore writes.
+    schedule = _due_schedule(
+        DueSchedule(),
+        date_given=True,
+        date=op.date,
+        time_given=True,
+        time=op.due_time,
+        zone_given=True,
+        zone=op.due_timezone,
+    )
+    _due_resolved(schedule)
     item_id = restore_deleted_item_locked(
         list_id,
         _item_name(op.name),
@@ -651,6 +749,8 @@ def item_restore(scope: OpScope, op: ItemRestore) -> dict[str, Any]:
         date=op.date,
         add_count=1 if op.add_count is None else op.add_count,
         added_at=op.added_at,
+        due_time=op.due_time,
+        due_timezone=op.due_timezone,
     )
     if item_id is None:
         raise OpRejected("undo_name_taken", UNDO_NAME_TAKEN)
