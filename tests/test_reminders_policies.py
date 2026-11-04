@@ -618,6 +618,9 @@ def test_cross_room_targets_and_forged_cookie_denied_before_retry(policy_home):
             assert response.status_code == 404
             assert "policy" not in response.json()
             assert "set-cookie" not in response.headers
+    assert (
+        client.post(f"{root}/preview", json={"item_id": other_item}).status_code == 404
+    )
     forged = client_for(slug)
     forged.cookies.set(
         "__Host-listapp-device", "forged-secret", domain="testserver.local", path="/"
@@ -625,6 +628,7 @@ def test_cross_room_targets_and_forged_cookie_denied_before_retry(policy_home):
     for response in (
         forged.get(f"{root}/lists/{list_id}/policy"),
         forged.put(f"{root}/lists/{list_id}/policy", json=body),
+        forged.post(f"{root}/preview", json={"item_id": other_item}),
     ):
         assert response.status_code == 403
         assert (
@@ -639,3 +643,60 @@ def test_cross_room_targets_and_forged_cookie_denied_before_retry(policy_home):
     assert (
         db.execute("SELECT count(*) FROM reminder_processed_ops").fetchone()[0] == count
     )
+
+
+def test_preview_draft_is_private_and_read_only(policy_home):
+    home = policy_home
+    _installation, room, _list, item, _clock, client, slug = home
+    before = (
+        db.execute("SELECT * FROM reminder_installations").fetchall(),
+        db.execute("SELECT * FROM reminder_enrollments").fetchall(),
+        db.execute("SELECT * FROM reminder_processed_ops").fetchall(),
+        db.execute("SELECT * FROM reminder_policies").fetchall(),
+        db.execute("SELECT * FROM items").fetchall(),
+        db.execute("SELECT change_seq FROM rooms WHERE id = ?", (room,)).fetchone(),
+    )
+    url = f"/api/v1/rooms/{slug}/reminders/preview"
+    body = {
+        "item_id": item,
+        "draft": {
+            "state": "replace",
+            "preset": "custom",
+            "rules": [{"kind": "relative", "amount": 0, "unit": "days"}],
+        },
+    }
+    response = client.post(url, json=body)
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert "set-cookie" not in response.headers
+    assert response.json()["entries"][0]["keys"] == ["at-due"]
+    assert client.post(url, json={**body, "due_at": "forged"}).status_code == 422
+    assert client.post(url, json={"item_id": item + 999999}).status_code == 404
+    after = (
+        db.execute("SELECT * FROM reminder_installations").fetchall(),
+        db.execute("SELECT * FROM reminder_enrollments").fetchall(),
+        db.execute("SELECT * FROM reminder_processed_ops").fetchall(),
+        db.execute("SELECT * FROM reminder_policies").fetchall(),
+        db.execute("SELECT * FROM items").fetchall(),
+        db.execute("SELECT change_seq FROM rooms WHERE id = ?", (room,)).fetchone(),
+    )
+    assert before == after
+
+
+def test_preview_each_installation_uses_its_own_policy(policy_home):
+    from api_helpers import client_for
+
+    _, _, _, item, _, first, slug = policy_home
+    second = client_for(slug)
+    enrolled = second.post(
+        f"/api/v1/rooms/{slug}/reminders/enrollment",
+        json={"op_id": new_id(), "timezone": "Europe/Oslo", "mode": "quiet"},
+    )
+    assert enrolled.status_code == 200
+    path = f"/api/v1/rooms/{slug}/reminders/preview"
+    a = first.post(path, json={"item_id": item})
+    b = second.post(path, json={"item_id": item})
+    assert a.status_code == b.status_code == 200
+    assert a.json()["entries"]
+    assert b.json()["entries"] == []
+    assert b.json()["disabled_reasons"] == ["policy_off"]

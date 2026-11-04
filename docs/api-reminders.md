@@ -204,3 +204,43 @@ but leaves an unused installation. Clients should not invent device IDs.
 - The server stores the device secret only as a hash. A server operator
   with database access can still read personal settings. Do not treat
   these settings as hidden from the operator.
+
+## Item preview
+
+`POST /preview` requires the room cookie and this device's enrollment. It is
+read-only and accepts exactly `{"item_id": 123, "draft": null}`. Omit `draft`
+for the saved effective policy. A draft is an item override with `state`,
+`preset`, `rules`, and `summary_enabled`, using the policy input format above;
+only `state` is required. Inherit previews the saved list/room parents. It does
+not accept shared due fields, server instants, cycle IDs or activation times.
+Foreign targets return 404; missing device/enrollment returns 403.
+
+The response contains `source`, `state`, `preset`, `timezone`,
+`disabled_reasons`, `provisional_fixed_ids`, and up to five `entries`. Each
+entry has `kind` (`rules` or `summary`), UTC `instant`, sorted `keys`, nullable
+UTC `deferred_until`, and nullable summary `local_day`. Fixed keys are
+`fixed:<id>`; relative keys use the normalized policy key. IDs in
+`provisional_fixed_ids` exist only for this preview and are not saved identities.
+Summary entries represent this item's contribution on an eligible local day,
+not a room aggregate or a promise that a notification will be sent. During
+quiet hours `deferred_until` is the room-summary eligibility time, not a
+promise to send individual alerts. If `timezone_unavailable` is reported, a
+null deferral cannot be interpreted as no quiet adjustment. Quota, spacing,
+other items, history, catch-up and dispatch are not predicted.
+
+Internally `reminders.preview.preview_item(EffectivePolicy, *, now, quiet)`
+returns frozen `PreviewResult` and `PreviewEntry` values. `now` must be aware;
+`quiet` is a `QuietWindow` or null. The function samples no clock and has no
+side effects. It uses inclusive historical activation and strictly future
+preview instants. Stored timed anchors and fixed instants are not re-resolved;
+calendar offsets use wall intent. It merges finite rules with the next five
+eligible summary days and returns the first five, without an arbitrary horizon.
+This seam remains subject to independent review before S3 consumption.
+
+`reminders.preview.resolve_rule(policy, rule)` returns a frozen `ResolvedRule`
+with `instant`, `key`, `cutoffs`, and inclusive `historically_eligible`.
+Historical eligibility is not dispatch eligibility: an actual scheduler must
+also wait until the scheduled instant (or separately stored wake time), check
+current authorization and relevance, and honor existing group/attempt state.
+Preview preserves `instant` independently of `deferred_until`; it implements
+neither wake/snooze nor grouping of sends.

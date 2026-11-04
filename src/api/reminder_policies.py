@@ -179,3 +179,166 @@ def put_item(
     slug: str, target_id: int, request: Request, body: JsonBody
 ) -> dict[str, Any]:
     return _put(slug, request, body, "item", target_id)
+
+
+class PreviewDraft(StrictBody):
+    state: Literal["inherit", "off", "replace"]
+    preset: Literal["quiet", "daily_summary", "scheduled", "custom"] | None = None
+    rules: list[dict[str, Any]] = Field(default_factory=list, max_length=5)
+    summary_enabled: StrictBool = False
+
+
+class PreviewBody(StrictBody):
+    item_id: Annotated[StrictInt, Field(gt=0)]
+    draft: PreviewDraft | None = None
+
+
+@router.post("/rooms/{slug}/reminders/preview")
+def post_preview(slug: str, request: Request, body: JsonBody) -> dict[str, Any]:
+    from dataclasses import replace
+    from uuid import NAMESPACE_URL, uuid5
+
+    from database_setup import db
+    from reminders.preview import QuietWindow, preview_item
+    from reminders.rules import normalize_rules
+
+    data = parse_body(PreviewBody, body)
+    with room_access(request, slug) as room:
+        installation = _authorized(request, room.room_id, "item", data.item_id)
+        now = identity.current_time()
+        effective = policies.effective_policy_locked(
+            installation, room.room_id, data.item_id, now=now
+        )
+        provisional: set[str] = set()
+        if data.draft is not None:
+            draft = data.draft
+            own = policies.policy_locked(
+                installation, room.room_id, "item", data.item_id
+            )
+            if draft.state != "replace":
+                if draft.preset is not None or draft.rules or draft.summary_enabled:
+                    raise ApiError(
+                        422,
+                        "invalid_request",
+                        "Off/inherit takes no preset, rules or summary",
+                    )
+                rules = ()
+                summary = False
+            elif draft.preset == "custom":
+                counter = 0
+
+                def provisional_id() -> str:
+                    nonlocal counter
+                    counter += 1
+                    result = str(
+                        uuid5(
+                            NAMESPACE_URL,
+                            f"preview:{installation}:{room.room_id}:{data.item_id}:{counter}",
+                        )
+                    )
+                    provisional.add(result)
+                    return result
+
+                try:
+                    rules = normalize_rules(
+                        draft.rules,
+                        existing_rules=tuple(
+                            r for r in own.rules if isinstance(r, FixedRule)
+                        ),
+                        now=now,
+                        make_rule_id=provisional_id,
+                    )
+                except ValueError as error:
+                    raise ApiError(422, "invalid_request", str(error)) from None
+                summary = draft.summary_enabled
+            elif draft.preset in ("quiet", "daily_summary", "scheduled"):
+                if draft.rules or draft.summary_enabled:
+                    raise ApiError(
+                        422,
+                        "invalid_request",
+                        "Only custom accepts rules and summary_enabled",
+                    )
+                rules = policies.SCHEDULED if draft.preset == "scheduled" else ()
+                summary = draft.preset == "daily_summary"
+            else:
+                raise ApiError(
+                    422, "invalid_request", "A replacement requires a preset"
+                )
+            enrollment = next(
+                a for a in effective.relative_activations if a.source == "enrollment"
+            )
+            selected_scope = "item"
+            activations = [enrollment, policies.Activation("item", now)]
+            state, preset = draft.state, draft.preset
+            if draft.state == "inherit":
+                list_id = db.execute(
+                    "SELECT list_id FROM items WHERE id = ?", (data.item_id,)
+                ).fetchone()[0]
+                selected, _, parent_cutoffs = policies.resolve_policy_locked(
+                    installation, room.room_id, "list", list_id
+                )
+                activations = [policies.Activation("item", now), *parent_cutoffs]
+                selected_scope, state, preset, rules, summary = (
+                    selected.scope,
+                    selected.state,
+                    selected.preset,
+                    selected.rules,
+                    selected.summary_enabled,
+                )
+            relative = (
+                *activations,
+                *(
+                    a
+                    for a in effective.relative_activations
+                    if a.source in ("cycle", "device_anchor")
+                ),
+            )
+            summary_cutoffs = (
+                *activations,
+                *(
+                    a
+                    for a in effective.summary_activations
+                    if a.source in ("summary_time", "device_timezone")
+                ),
+            )
+            disabled = tuple(x for x in effective.disabled_reasons if x != "policy_off")
+            if state == "off" or preset == "quiet":
+                disabled += ("policy_off",)
+            effective = replace(
+                effective,
+                source=selected_scope,
+                state=state,
+                preset=preset,
+                rules=rules,
+                summary_enabled=summary,
+                relative_activations=relative,
+                summary_activations=summary_cutoffs,
+                disabled_reasons=disabled,
+            )
+        device = identity.installation_settings_locked(installation)
+        quiet = (
+            QuietWindow(device["quiet_start"], device["quiet_end"])
+            if device["quiet_start"] is not None
+            else None
+        )
+        result = preview_item(effective, now=now, quiet=quiet)
+        return {
+            "source": effective.source,
+            "state": effective.state,
+            "preset": effective.preset,
+            "timezone": effective.timezone,
+            "disabled_reasons": list(result.disabled_reasons),
+            "provisional_fixed_ids": sorted(provisional),
+            "entries": [
+                {
+                    "kind": e.kind,
+                    "instant": format_utc(e.instant),
+                    "keys": list(e.keys),
+                    "deferred_until": format_utc(e.deferred_until)
+                    if e.deferred_until
+                    else None,
+                    "local_day": e.local_day,
+                }
+                for e in result.entries
+            ],
+        }
