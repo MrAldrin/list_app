@@ -230,3 +230,54 @@ def test_room_policy_and_enrollment_mode_stay_in_sync(svelte_server, open_sessio
     page.get_by_role("button", name="Personal reminders", exact=True).click()
     settings = page.get_by_role("dialog", name="Personal reminders")
     expect(settings.get_by_label("Room reminder mode")).to_have_value("scheduled")
+
+
+def test_preview_renders_rule_and_summary_at_same_instant(svelte_server, open_session):
+    page = open_session("owner", **PHONE, timezone_id="UTC")
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    sign_in(page, svelte_server)
+    settings = open_settings(page)
+    settings.get_by_label("Time zone for this device").fill("UTC")
+    settings.get_by_role("button", name="Enroll this device").click()
+    expect(settings.get_by_text("Status: Active")).to_be_visible()
+    settings.get_by_role("button", name="Close").click()
+    create_list(page, "Groceries")
+    add_item(page, "milk")
+    page.get_by_role("button", name=re.compile("^milk")).click()
+    item = page.get_by_role("dialog", name="Edit Item")
+    item.get_by_label("Date", exact=True).fill(
+        (date.today() + timedelta(days=10)).isoformat()
+    )
+    item.get_by_label("Due time (optional)").fill("09:00")
+    item.get_by_label("Time zone", exact=False).fill("UTC")
+    item.get_by_role("button", name="Save", exact=True).click()
+    expect(item).to_be_hidden()
+    page.get_by_role("button", name=re.compile("^Due items:")).click()
+    page.get_by_role("dialog", name="Due items").get_by_role(
+        "button", name="Personal reminders for milk"
+    ).click()
+    editor = page.get_by_role("dialog", name="Personal item reminders")
+    editor.get_by_label("Policy").select_option("replace")
+    editor.get_by_label("Schedule").select_option("custom")
+    editor.get_by_label("Include daily summary").check()
+    editor.get_by_role("button", name="Add relative rule").click()
+    editor.get_by_label("Amount before due").fill("0")
+    with page.expect_response(
+        lambda r: r.url.endswith("/reminders/preview") and r.request.method == "POST"
+    ) as response:
+        editor.get_by_role("button", name="Preview next five").click()
+    entries = response.value.json()["entries"]
+    collision = next(e["instant"] for e in entries if e["kind"] == "rules")
+    assert any(e["kind"] == "summary" and e["instant"] == collision for e in entries)
+    expect(
+        editor.locator("li", has_text=f"rules: original UTC {collision}")
+    ).to_be_visible()
+    expect(
+        editor.locator("li", has_text=f"summary: original UTC {collision}")
+    ).to_be_visible()
+    editor.get_by_label("Amount before due").fill("1")
+    editor.get_by_role("button", name="Preview next five").click()
+    expect(editor.get_by_role("heading", name="Preview: item policy")).to_be_visible()
+    expect(editor.locator("li", has_text="rules: original UTC")).to_be_visible()
+    assert not errors

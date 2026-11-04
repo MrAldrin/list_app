@@ -288,7 +288,7 @@
 				) || 'none'}.
 			</p>
 			<ul>
-				{#each shownPreview.entries as entry (entry.instant)}<li>
+				{#each shownPreview.entries as entry, index (index)}<li>
 						{entry.kind}: original UTC {entry.instant}{#if entry.deferred_until}; quiet-hours
 							eligibility {entry.deferred_until}{/if}{#if entry.local_day}; summary day {entry.local_day}{/if}
 					</li>{/each}
