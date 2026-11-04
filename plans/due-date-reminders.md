@@ -75,7 +75,8 @@ IANA timezone data (`tzdata` if needed) and the existing service-worker
 extension. No additional service or spending increase is approved. The Lead
 may integrate reviewed child results into its isolated delivery line under
 the shared role contract. Moving feature work to `integration` and deploying
-remain owner gates; docs-desk commits retain their standing permission.
+remain owner gates; docs-desk commits normally retain their standing permission,
+subject to the current bookmark hold recorded below.
 
 ### Delivery coordination
 
@@ -93,6 +94,10 @@ remain owner gates; docs-desk commits retain their standing permission.
 - Lead alone writes the backlog, this plan and the owner-review list below.
   Each Conductor owns only its separate batch record's status/closeout; shared
   records are edited/committed on the docs desk with coordinated write windows.
+- Owner relay on 2026-11-04: continue authorized isolated integration, verification
+  and creator cleanup; keep `integration` and `main` fixed, including docs-only
+  bookmark advancement, unless separately authorized. Docs-desk records may be
+  committed above the held bookmark; do not mistake them for feature acceptance.
 - Owner review pending: final implementation/UX; feature acceptance; deploy;
   actual push provisioning/phone opt-in. No production configuration or real
   external push will be changed/sent during automated implementation.
@@ -511,10 +516,11 @@ already existing endpoints.
 
 Build each stage with its own tests and affected documentation. Runtime
 integration follows the numbered dependencies. Lead-approved sequencing
-refinement (2026-11-04): isolated S2 backend date/time foundations and S4 pure
-push-transport/security foundations may be developed and independently tested
-while predecessors are verified. They do not expose dependent UI/APIs, bypass
-review/full stage gates or integrate before their predecessors. Reconcile
+refinement (2026-11-04): isolated S2 backend date/time foundations, followed by
+server-only identity/policy/preview APIs after reviewed foundation/own-line gates,
+and S4 pure push-transport/security foundations may proceed while predecessors
+are verified. These lanes do not wire dependent frontend or dispatch paths,
+bypass review/full-stage gates or integrate into the aggregate before predecessors. Reconcile
 completed, quiescent lines before dependent implementation; never rebase an
 active writer merely for graph tidiness. This is a delivery assumption under
 the owner's delegated authority, not added scope.
@@ -553,7 +559,9 @@ save all tests for stage 5 or introduce an unfinished push UI in stage 1.
 ### Stage 2 — Personal policies, dates and previews
 
 **Integration depends on:** reviewed stage 1 and the approved identity/schema/time design.
-Independent backend foundation work may start under the sequencing refinement above.
+Server-only foundations and identity/policy/preview APIs may proceed in reviewed
+milestones under the sequencing refinement above. Frontend and full-stage
+integration still await S1; no scheduler/outbox/push is included in this lane.
 **Unblocks:** stage 3.
 
 - Add installation/enrollment and policy records/API, shared optional due time

@@ -8,16 +8,39 @@ Lifecycle: tracked
 
 **Edit seams:** src/reminders, src/api/reminders and existing item ops/CRUD/migrations/feed; frontend types/validation/offline overlays, reusable reminder editor/settings and previews. Keep personal data out of shared feeds and share-link APIs.
 
-**Integration dependencies:** Stage 1 reviewed/integrated before dependent UI
-or stage integration. Lead sequencing amendment agreed 2026-11-04: the
-independent backend date/time foundation may start first in isolation.
+**Integration dependencies:** Reviewed S1 remains required before frontend
+wiring or full-stage/aggregate integration. Lead/Conductor sequencing amendment
+agreed 2026-11-04: after the date/time foundation's independent review and
+own-line gates, the server-only identity/policy/preview milestone may proceed
+on that stable foundation, without waiting for S1's independent browser repair.
 
-**Current foundation-only handoff:** pure server zoneinfo resolver; shared
-`due_time`/`due_timezone`/canonical `due_at` and stable due-cycle migration,
-CRUD/item ops/feeds; Python tests; approved runtime `tzdata`; directly related
-API docs. No frontend, personal-policy API, scheduler or push yet. Obtain fresh
-independent review and Python gates. Preserve result for reconciliation onto
-reviewed S1; do not rebase active children or claim full stage completion.
+**Current server-only handoff:** Keep the shared date/time/cycle foundation;
+add installation identity, enrollment/saved grants, private settings/policy APIs
+and pure effective-policy/next-five preview. Use current SQLite/FastAPI and
+foundation resolver. No frontend, lifespan scheduler, occurrences/outbox,
+quota dispatch, subscriptions, push or outgoing reminders. Full S2 remains open.
+
+- Contract/tests first: scoped revisions/idempotency, hashed server-issued
+  installation secret, live room-token hash/authorization-version binding,
+  explicit enroll/resume and no silent reactivation. Private APIs need current
+  room plus device authorization; GET/preview must not create/renew installation
+  identity or grants. No arbitrary-installation-ID access or personal feed leaks.
+- Store validated device settings and room/list/item replace/off/inherit/reset
+  policies per approved product contract, including five normalized relative/
+  fixed rules, stable fixed identities and future-only activation. Narrow
+  sign-out/password-reset/deletion hooks only as needed for grant correctness.
+- Pure preview shares the foundation resolver, uses confirmed `due_at`, and
+  reports inheritance, explicit zones, fixed/relative identity, quiet deferral,
+  coalescing and disabled states. No side effects or second scheduling engine.
+  Bind concrete exports for S3 only after independent review; provisional names
+  are not a ready contract. Prefer preview naming distinct from S3's evaluator.
+- Split into reviewable bounded children at stable contract boundaries. Fresh
+  independent full diff/code/test review and full Python gates for each usable
+  milestone; include migration/cookie/privacy/revocation/revision/idempotency,
+  inheritance/rule/DST/quiet/future-only and side-effect tests. API/security docs
+  stay with code. Browser/UI gates remain for the later wired full stage.
+- Preserve reviewed results for later reconciliation onto S1; never rebase an
+  active writer, reduce approved behavior or claim full-stage completion.
 **Unblocks:** [S3](reminders-s3.md).
 
 **Done criteria:** Users can explicitly enroll this installation, save understandable policies/overrides and inspect next-run previews; invalid ownership/rules/timezones fail safely. Time changes use the established shared mutation and offline conflict/restore rules. Phase-2 UI clearly says delivery is not active yet.
@@ -76,7 +99,10 @@ material fixes after independent review.
   `rptqkywz` / `72b25032`. Independent foundation base is amendment change
   `vyvtntwv`, supplied exactly at the Lead edit handoff. Conductor freshly
   confirmed Sol/high, quiescence and Lead entry-update permission. Lead will
-  supply reviewed S1 before dependent implementation/stage integration.
+  supply reviewed S1 before frontend/full-stage integration. Current server-only
+  milestone base: completed `umuktknn` / `62d6834c`, reviewed and verified on the
+  S2 line; empty entry `ooqvyvmw` / `e90bf385`. No entry rebase is needed.
+  Create new owned backend children from that completed tip, not the empty entry.
 - Peer: `01a1a2ff-4ea8-70c1-b611-b0506e7b9929`.
   Zellij `pc-home`, tab 11 **ListR S2 schedules**, pane `terminal_20`.
   Normal Fish shell, target cwd and foreground Pi launch verified.
