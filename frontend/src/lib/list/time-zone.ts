@@ -1,12 +1,12 @@
-/** The shared item API accepts zone names at most 64 characters long. */
-export function usableTimeZone(value: string): boolean {
+/** Canonical spelling for a new wall intent, or null when the browser cannot use it. */
+export function canonicalTimeZone(value: string): string | null {
 	const zone = value.trim();
-	if (!zone || [...zone].length > 64) return false;
+	// The shared item API limits zone names to 64 Unicode characters.
+	if (!zone || [...zone].length > 64 || /^[+-]/.test(zone)) return null;
 	try {
-		new Intl.DateTimeFormat('en', { timeZone: zone });
-		// Intl also accepts bare numeric offsets, which are not IANA zone names.
-		return !/^[+-]/.test(zone);
+		const canonical = new Intl.DateTimeFormat('en', { timeZone: zone }).resolvedOptions().timeZone;
+		return canonical && [...canonical].length <= 64 && !/^[+-]/.test(canonical) ? canonical : null;
 	} catch {
-		return false;
+		return null;
 	}
 }

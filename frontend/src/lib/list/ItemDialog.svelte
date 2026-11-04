@@ -17,7 +17,7 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import { addedLabel, lastAddedLabel, stepQuantity } from './items';
 	import { tagColor } from './tags';
-	import { usableTimeZone } from './time-zone';
+	import { canonicalTimeZone } from './time-zone';
 
 	let {
 		item,
@@ -74,7 +74,8 @@
 			dueTime === (item.due_time ?? '') &&
 			dueTimezone === (item.due_timezone ?? '')
 	);
-	const validZone = $derived(usableTimeZone(dueTimezone) || (unchangedDue && !!item.due_at));
+	const canonicalZone = $derived(canonicalTimeZone(dueTimezone));
+	const validZone = $derived(!!canonicalZone || (unchangedDue && !!item.due_at));
 	const validDue = $derived(!date || !dueTime || validZone);
 </script>
 
@@ -90,7 +91,8 @@
 			quantity,
 			date: date || null,
 			due_time: date && dueTime ? dueTime : null,
-			due_timezone: date && dueTime ? dueTimezone.trim() : null
+			due_timezone:
+				date && dueTime ? (unchangedDue && item.due_at ? dueTimezone : canonicalZone) : null
 		})}
 	{onClose}
 >
@@ -175,6 +177,9 @@
 				<p id="{nameId}-zone-error" class="added" role="alert">
 					Enter a valid IANA time zone, up to 64 characters, such as Europe/Oslo.
 				</p>
+			{/if}
+			{#if canonicalZone && !(unchangedDue && item.due_at) && canonicalZone !== dueTimezone.trim()}
+				<p class="added">Time zone saved as: {canonicalZone}</p>
 			{/if}
 			{#if unchangedDue && item.due_at}
 				<p class="added">Server-confirmed UTC: {item.due_at}</p>
