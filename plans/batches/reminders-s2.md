@@ -111,17 +111,18 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: reviewed foundation complete on S2; server-only identity/policy/preview
-  handoff accepted under amendment `yxsowmmv` / `5f187aad`, authoritative
-  brief/master reread fully. Frontend/full-stage integration still awaits S1.
-- Exact new source base: `umuktknn` / `62d6834c`; clean empty entry `ooqvyvmw`
-  / `e90bf385`. No entry rebase needed. Entry remains Lead-managed.
-- Next bounded milestone: identity/enrollment/grant validation and device
-  settings/private preferences, contract/tests first; then independently review,
-  integrate into S2, run full Python gates and clean its child. Policies and
-  pure preview follow in a separate sequential child on that reviewed result.
-- Planned child before launch: `tmp-reminders-s2-identity`,
-  `/home/hsa/projects/tmp-reminders-s2-identity`, from completed `umuktknn`,
+- State: foundation and identity A reviewed/integrated into S2; proceeding to
+  server-only policy/cycle-cutoff B under existing handoff `yxsowmmv` /
+  `5f187aad` and accepted expiry/activation clarification `vlsuxkvn` /
+  `ac59b242`. Frontend/full-stage integration still awaits S1.
+- Exact B source base: completed `wyknnmnm` / `a8ee483a`; clean empty entry
+  `ooqvyvmw` / `ecaac80f`. Entry remains Lead-managed.
+- Next B: validated room/list/item policy storage/API, inheritance/reset/off,
+  relative/fixed identity and future activation, plus durable shared-cycle start
+  under the mutation lock. Contract/tests first, independent full review/gates;
+  separate sequential C implements pure preview on reviewed B.
+- Planned child before launch: `tmp-reminders-s2-policies`,
+  `/home/hsa/projects/tmp-reminders-s2-policies`, from completed `wyknnmnm`,
   not empty entry. S2 Conductor `01a1a2ff-4ea8-70c1-b611-b0506e7b9929` owns
   child creation, lifecycle, reviewed integration and cleanup. No collision found.
 - One bounded shell-capable `worker`, explicit
@@ -129,9 +130,10 @@ material fixes after independent review.
   No descendants; 90-minute runtime with five-minute checkpoint. Fresh independent
   full diff/code/test review starts medium, escalates max for incomplete results.
   Record exact child/run IDs through peer receipts and next coordinated window.
-- Edit bounds: new reminder identity/settings modules/API, next migration,
-  narrow auth revocation/deletion/router hooks, Python tests and related current
-  API/security docs. No frontend, scheduler/lifespan task, occurrences/outbox,
+- Edit bounds: reminder policy/domain/storage/API, next migration and narrow
+  cycle mutation/restore hooks, Python tests and related current API/security
+  docs. Existing identity/security contracts preserved. No frontend,
+  scheduler/lifespan task, occurrences/outbox,
   quota dispatch, subscriptions, push, production config or real services/sends.
 - Routine assumptions: GET/preview never enroll or renew grants/cookies;
   install-only grants no room access; explicit resume after sign-in; saved grant
@@ -163,5 +165,21 @@ material fixes after independent review.
   all runs complete, no cwd users, clean child/result reachable from S2 first.
   Five author/review reports retained outside that child under this Pi session's
   `subagent-artifacts/outputs/`; no path-dependent artifacts lost.
-- Lead entry remains open/clean; no cleanup above S2 ownership. New backend
-  milestone results/review/cleanup pending. Owner acceptance/deploy remain gated.
+- Identity A partial result: `ozrsznyk` / `f082a8dc`, required fixes
+  `ztyquuxl` / `350f9f55`, room-scoping fix `wyknnmnm` / `a8ee483a`.
+  Medium review `5625b841` found four required fixes; MAX full review
+  `e36aaeab` verified those, found wrong-room sign-out scoping, then MAX
+  delta re-review `b99cd259` approved the exact final tip with mutation/control
+  probes. All author/review runs completed; no source acceptance by self-review.
+- A own-line full Python gates: 1,665 passed/nine skipped (49.01 seconds),
+  Ruff format/lint and ty clean, zero diff. Explicit persisted installation/grant
+  expiry, action-discriminated idempotency, in-lock dynamic replay state and
+  room-scoped atomic revocation are reviewed. No ordinary room-auth age change.
+- A child `tmp-reminders-s2-identity` forgotten/folder removed after clean,
+  reachable result/no cwd users. External Pi artifacts retained:
+  `2b016c10-f314-478c-87b0-8324b59000b3/identity-worker.e5969d2c.a8f9f9b4.md`
+  and `e36aaeab-69fb-4083-9b77-bd2e93b5f72c/identity-final-review.b99cd259.md`.
+- A limits: lost first response may leave an unused installation; token-cap
+  pruning can leave stored status stale, but live grant validation is authoritative.
+  No policy/preview/S3-ready contract yet. Lead entry remains open/clean; no
+  cleanup above S2 ownership. B/C results/review/cleanup pending; no deploy.
