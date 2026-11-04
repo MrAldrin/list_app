@@ -684,3 +684,34 @@ def test_share_stream_with_a_bad_token_is_a_401_json_error(shared):
         assert b'"share_unavailable"' in await stream.body()
 
     run(test)
+
+
+def test_share_feed_publishes_the_due_time_zone_and_utc(shared):
+    # The share feed reads the same item rows as the room feed. A share holder
+    # sees the shared due fields and nothing else new.
+    share_op(
+        public_client(),
+        shared["token"],
+        {
+            "type": "item.edit",
+            "list_uid": shared["list_uid"],
+            "item_uid": shared["item_uid"],
+            "name": "milk",
+            "description": "",
+            "date": "2026-03-29",
+            "due_time": "02:30",
+            "due_timezone": "Europe/Oslo",
+            "base_seq": item_changed_seq(shared["item_uid"]),
+        },
+    )
+    response = share_changes(public_client(), shared["token"])
+    assert response.status_code == 200
+    [item] = response.json()["items"]
+    assert (item["date"], item["due_time"], item["due_timezone"]) == (
+        "2026-03-29",
+        "02:30",
+        "Europe/Oslo",
+    )
+    assert item["due_at"] == "2026-03-29T01:00:00.000Z"
+    assert "due_cycle" not in item
+    assert shared["token"] not in response.text

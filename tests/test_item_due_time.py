@@ -9,6 +9,7 @@ import sqlite3
 import pytest
 from api_helpers import (
     add_item,
+    assert_error,
     changes,
     client_for,
     create_list,
@@ -524,3 +525,163 @@ def test_migration_fifteen_backfills_cycles_without_a_change_seq_bump(tmp_path):
         connection.execute("SELECT change_seq FROM rooms WHERE id = 1").fetchone()
         == seq_before
     )
+
+
+def test_timed_check_and_uncheck_keep_the_source_zone_and_utc(item):
+    # Check and uncheck change only the cycle: the wall time, zone and the
+    # server-computed UTC instant stay the same.
+    list_id, slug, uid, client = item
+    timed_edit(item, "2026-10-18", "09:00", "Europe/Oslo")
+    before = stored(uid)
+    for done in (True, False):
+        op(
+            client,
+            slug,
+            {
+                "op_id": new_id(),
+                "type": "item.set_done",
+                "list_uid": list_uid_of(list_id),
+                "item_uid": uid,
+                "done": done,
+            },
+        )
+        after = stored(uid)
+        assert (after["date"], after["due_time"], after["due_timezone"]) == (
+            "2026-10-18",
+            "09:00",
+            "Europe/Oslo",
+        )
+        assert after["due_at"] == before["due_at"] == "2026-10-18T07:00:00.000Z"
+    assert after["due_cycle"] != before["due_cycle"]
+
+
+def test_add_restore_keeps_the_source_zone_and_utc(item):
+    list_id, slug, uid, client = item
+    timed_edit(item, "2026-10-18", "09:00", "Europe/Oslo")
+    before = stored(uid)
+    op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.set_done",
+            "list_uid": list_uid_of(list_id),
+            "item_uid": uid,
+            "done": True,
+        },
+    )
+    response = op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.add",
+            "list_uid": list_uid_of(list_id),
+            "name": "milk",
+        },
+    )
+    assert response["result"]["outcome"] == "restored"
+    after = stored(uid)
+    assert (after["due_time"], after["due_timezone"], after["due_at"]) == (
+        "09:00",
+        "Europe/Oslo",
+        before["due_at"],
+    )
+    assert after["due_cycle"] != before["due_cycle"]
+
+
+def test_unknown_zone_on_a_time_only_edit_keeps_the_stored_schedule(item):
+    list_id, slug, uid, client = item
+    timed_edit(item, "2026-10-18", "09:00", "Europe/Oslo")
+    before = stored(uid)
+    response = op(
+        client,
+        slug,
+        edit_body(list_id, uid, due_timezone="Nope/Zone"),
+    )
+    assert (response["status"], response["code"]) == (
+        "rejected",
+        "time_zone_unavailable",
+    )
+    assert stored(uid) == before
+
+
+@pytest.mark.parametrize("bad_time", ["9:00", "25:00", "09:60", "09:00:00", "noon"])
+def test_malformed_due_time_is_a_422_and_changes_nothing(item, bad_time):
+    list_id, slug, uid, client = item
+    timed_edit(item, "2026-10-18", "09:00", "Europe/Oslo")
+    before = stored(uid)
+    response = send(
+        client,
+        slug,
+        edit_body(
+            list_id,
+            uid,
+            name="oat milk",
+            date="2026-10-19",
+            due_time=bad_time,
+            due_timezone="Europe/Oslo",
+        ),
+    )
+    assert_error(response, 422, "invalid_request")
+    assert stored(uid) == before
+    [item_row] = [row for row in changes(client, slug, 0)["items"] if row["uid"] == uid]
+    assert item_row["name"] == "milk"
+
+
+def test_malformed_due_time_on_restore_is_a_422_and_restores_nothing(item):
+    list_id, slug, _, client = item
+    response = send(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.restore",
+            "list_uid": list_uid_of(list_id),
+            "name": "eggs",
+            "done": False,
+            "tags": [],
+            "description": "",
+            "quantity": 1,
+            "completed_at": None,
+            "date": "2026-10-18",
+            "due_time": "9:00",
+            "due_timezone": "Europe/Oslo",
+        },
+    )
+    assert response.status_code == 422
+    assert (
+        db.execute("SELECT COUNT(*) FROM items WHERE name = 'eggs'").fetchone()[0] == 0
+    )
+
+
+def test_missing_zone_data_is_refused_without_touching_shared_state(item, monkeypatch):
+    # Simulate a server without the zone's data. Only the name lookup inside
+    # reminders.zoned_time fails: ZoneInfo's cache and the other zones stay as
+    # they were, so later tests and requests are not affected.
+    from zoneinfo import ZoneInfo as RealZoneInfo
+
+    import reminders.zoned_time as zoned_time
+
+    def no_data(key):
+        if key == "Europe/Oslo":
+            raise zoned_time.ZoneInfoNotFoundError(key)
+        return RealZoneInfo(key)
+
+    list_id, slug, uid, client = item
+    monkeypatch.setattr(zoned_time, "ZoneInfo", no_data)
+    response = timed_edit(item, "2026-10-18", "09:00", "Europe/Oslo")
+    assert (response["status"], response["code"]) == (
+        "rejected",
+        "time_zone_unavailable",
+    )
+    assert stored(uid)["date"] is None
+    # Date-only and unchanged-schedule renames still work without zone data.
+    assert op(client, slug, edit_body(list_id, uid, date="2026-10-20"))["status"] == (
+        "applied"
+    )
+    assert op(client, slug, edit_body(list_id, uid, name="oat milk"))["status"] == (
+        "applied"
+    )
+    monkeypatch.undo()
+    assert RealZoneInfo("Europe/Oslo").key == "Europe/Oslo"

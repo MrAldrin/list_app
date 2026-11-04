@@ -82,9 +82,9 @@ def test_minutes_and_hours_are_elapsed_time_from_the_anchor():
 
 
 def test_days_and_weeks_keep_the_local_clock_across_a_dst_change():
-    # The anchor is 2026-03-30 09:00 CEST (07:00 UTC). One calendar day
-    # earlier is 2026-03-29 09:00 CEST too, but the elapsed time is 23 hours.
     zone = load_zone("Europe/Oslo")
+    # Anchor 2026-03-30 09:00 CEST (07:00 UTC). Both candidates are after the
+    # 2026-03-29 transition, so no transition lies between them: 24 hours.
     one_day = reminder_instant(
         date(2026, 3, 30), time(9, 0), zone, unit="days", amount=1
     )
@@ -93,6 +93,29 @@ def test_days_and_weeks_keep_the_local_clock_across_a_dst_change():
         date(2026, 3, 30), time(9, 0), zone, unit="weeks", amount=1
     )
     assert one_week == utc(2026, 3, 23, 8, 0)
+
+
+def test_a_day_reminder_across_the_spring_transition_is_23_elapsed_hours():
+    # Anchor 2026-03-29 09:00 CEST (07:00 UTC). One calendar day earlier is
+    # 2026-03-28 09:00 CET (08:00 UTC): the 2026-03-29 02:00 jump lies between.
+    # The hour-based reminder (24 elapsed hours) is different from the day one.
+    zone = load_zone("Europe/Oslo")
+    anchor = resolve_wall_time(date(2026, 3, 29), time(9, 0), zone)
+    assert anchor == utc(2026, 3, 29, 7, 0)
+    one_day = reminder_instant(
+        date(2026, 3, 29), time(9, 0), zone, unit="days", amount=1
+    )
+    assert one_day == utc(2026, 3, 28, 8, 0)
+    assert anchor - one_day == timedelta(hours=23)
+    one_hour_day = reminder_instant(
+        date(2026, 3, 29), time(9, 0), zone, unit="hours", amount=24
+    )
+    assert one_hour_day == utc(2026, 3, 28, 7, 0)
+    one_week = reminder_instant(
+        date(2026, 3, 29), time(9, 0), zone, unit="weeks", amount=1
+    )
+    assert one_week == utc(2026, 3, 22, 8, 0)
+    assert anchor - one_week == timedelta(days=6, hours=23)
 
 
 def test_reminder_day_in_the_gap_resolves_to_the_gap_end():
