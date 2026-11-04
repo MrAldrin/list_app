@@ -87,8 +87,8 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: isolated transport foundation implemented, awaiting independent review;
-  full dependent S4 remains blocked by reviewed S3 integration.
+- State: foundation in review-fix pass; not yet accepted or integrated.
+  Full dependent S4 remains blocked by reviewed S3 integration.
 - Exact handoff: entry `twuqsnnx` / `8c7a03fd`, parent amendment `vyvtntwv` /
   `f43d01ca`; verified clean. Amended brief/master read fully; Sol/high verified.
 - Next: fresh independent full diff/code/test review, resolve findings, then
@@ -116,12 +116,22 @@ material fixes after independent review.
   Haiku5.5/medium. Result `rzknzosp` / `ff5401a6`, four allowed files only;
   empty child `yrluorsp`. Worker reports 89 focused tests, 1624 full Python tests
   passed, 9 skipped; repository Ruff format/check and ty clean.
-- Reviewer ownership recorded before launch: separate fresh read-only reviewer in
-  frozen child cwd above, managed by S4; Haiku5.5/medium, no edits/fanout, 60-minute
-  deadline with 10-minute checkpoint. Inspect full diff/code/tests, real-library
-  crypto APIs, actual-connect IP/TLS/redirect controls and supported-provider policy.
-  Run ID will be reported to Lead at launch. FCM/Mozilla exact hosts and Apple
-  subdomains are provisional supported-provider assumptions, not universal support.
+- Medium reviewer `590717ab-6db0-4e9f-b8cd-c59c5a35fc37` read code/tests/library
+  sources; its toolset lacked shell/committed-diff verification, so review is
+  incomplete. Parent verified effective medium from launch receipt.
+- Accepted fixes: decouple VAPID lifetime from message TTL; process-wide bounded
+  resolver capacity/wait with no late send; remaining-time I/O bounds; elapsed TTL
+  recheck using UTC instants; key predecode size limits; secret-safe error chains;
+  close failures must not replace typed outcomes. Add deterministic regressions.
+  Reject unsupported claim that modern CPython TLS handshake timeout resets per
+  byte: Python 3.13 ssl documentation states total handshake timeout since 3.5.
+- Ownership before dispatch: same child cwd/lifecycle, separate bounded medium fix
+  worker (90 minutes, checkpoint 10 minutes); no fanout. Then fresh independent
+  Haiku5.5/max read-only worker-toolset reviewer with actual diff/test access
+  (60 minutes, checkpoint 10 minutes). Run IDs reported on launch; no integration
+  until review passes. Full Python gates follow in S4 entry only.
+- FCM/Mozilla exact hosts and Apple subdomains remain explicit supported-provider
+  assumptions, not universal support; confirm policy before dependent integration.
 - Docs-desk status-only window granted for this checkpoint; release after
   file-only commit. No bookmark moves; later writes need another window.
 
