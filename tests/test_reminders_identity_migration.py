@@ -25,9 +25,9 @@ def test_migration_16_adds_personal_tables_and_keeps_existing_rooms(tmp_path: Pa
         db.commit()
         before = db.execute("SELECT id, name, slug FROM rooms ORDER BY id").fetchall()
 
-        assert run_migrations(db, _migrations("pw")) == 17
+        assert run_migrations(db, _migrations("pw")) == 18
 
-        assert schema_version(db) == 17
+        assert schema_version(db) == 18
         tables = {
             row[0]
             for row in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'")

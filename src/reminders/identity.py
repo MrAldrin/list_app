@@ -20,7 +20,7 @@ Time comes from `current_time()`; tests replace it to use a fake clock.
 
 Every function that writes runs inside a write transaction the caller holds
 (`room_access(..., write=True)` or `transaction(write=True)`). The grant check
-(`saved_grant_state_locked`) only reads.
+(`saved_grant_state_locked`) only reads and requires a held transaction.
 """
 
 import secrets
@@ -73,6 +73,8 @@ DEVICE_COLUMNS = (
     "paused",
     "content_privacy",
     "overdue_repeat_days",
+    "anchor_activated_at",
+    "timezone_activated_at",
 )
 
 
@@ -105,17 +107,22 @@ def installation_id_for_secret_locked(secret: str | None) -> int | None:
     return row[0] if row else None
 
 
-def create_installation_locked(secret: str, timezone: str) -> int:
+def create_installation_locked(
+    secret: str, timezone: str, *, now: datetime | None = None
+) -> int:
     """Store a new installation with default device settings. Returns its ID."""
-    now = current_time()
+    now = now or current_time()
     cursor = db.execute(
         "INSERT INTO reminder_installations "
-        "(secret_hash, timezone, created_at, expires_at) VALUES (?, ?, ?, ?)",
+        "(secret_hash, timezone, created_at, expires_at, anchor_activated_at, "
+        "timezone_activated_at) VALUES (?, ?, ?, ?, ?, ?)",
         (
             token_hash(secret),
             timezone,
             stamp(now),
             stamp(now + DEVICE_LIFETIME),
+            stamp(now),
+            stamp(now),
         ),
     )
     if cursor.lastrowid is None:
@@ -123,11 +130,13 @@ def create_installation_locked(secret: str, timezone: str) -> int:
     return cursor.lastrowid
 
 
-def renew_installation_locked(installation_id: int) -> None:
+def renew_installation_locked(
+    installation_id: int, *, now: datetime | None = None
+) -> None:
     """Start a new device lifetime. Only explicit enrollment calls this."""
     db.execute(
         "UPDATE reminder_installations SET expires_at = ? WHERE id = ?",
-        (stamp(current_time() + DEVICE_LIFETIME), installation_id),
+        (stamp((now or current_time()) + DEVICE_LIFETIME), installation_id),
     )
 
 
@@ -141,7 +150,7 @@ def installation_settings_locked(installation_id: int) -> dict[str, Any]:
 
 
 def update_installation_settings_locked(
-    installation_id: int, changes: dict[str, Any]
+    installation_id: int, changes: dict[str, Any], *, now: datetime | None = None
 ) -> None:
     """Set some device settings and bump the installation revision.
 
@@ -150,6 +159,17 @@ def update_installation_settings_locked(
     unknown = set(changes) - set(DEVICE_COLUMNS) - {"revision"}
     if unknown:
         raise ValueError(f"Not a device setting: {sorted(unknown)}")
+    current = installation_settings_locked(installation_id)
+    changes = {key: value for key, value in changes.items() if current[key] != value}
+    if not changes:
+        return
+    if {"timezone", "all_day_time"} & changes.keys():
+        from reminders.zoned_time import format_utc
+
+        activation = format_utc(now or current_time())
+        changes["anchor_activated_at"] = activation
+        if "timezone" in changes:
+            changes["timezone_activated_at"] = activation
     assignments = ", ".join(f"{column} = ?" for column in changes)
     db.execute(
         f"UPDATE reminder_installations SET {assignments}, revision = revision + 1 "
@@ -169,7 +189,8 @@ def enrollment_row_locked(installation_id: int, room_id: int) -> dict[str, Any] 
     """This device's enrollment in one room as a dict, or None. Read only."""
     row = db.execute(
         "SELECT status, token_hash, authorization_version, mode, summary_time, "
-        "revision, activated_at, expires_at FROM reminder_enrollments "
+        "revision, activated_at, expires_at, policy_activated_at, summary_activated_at "
+        "FROM reminder_enrollments "
         "WHERE installation_id = ? AND room_id = ?",
         (installation_id, room_id),
     ).fetchone()
@@ -184,6 +205,8 @@ def enrollment_row_locked(installation_id: int, room_id: int) -> dict[str, Any] 
         "revision",
         "activated_at",
         "expires_at",
+        "policy_activated_at",
+        "summary_activated_at",
     )
     return dict(zip(keys, row, strict=True))
 
@@ -219,7 +242,9 @@ def _token_is_live_locked(room_id: int, saved_hash: str, saved_version: int) -> 
     return row is not None
 
 
-def saved_grant_state_locked(installation_id: int, room_id: int) -> str:
+def saved_grant_state_locked(
+    installation_id: int, room_id: int, *, now: datetime | None = None
+) -> str:
     """The grant state of this device in this room. Pure validation: never writes.
 
     Returns `not_enrolled` (no row), `opted_out`, `active` (the installation and
@@ -227,8 +252,13 @@ def saved_grant_state_locked(installation_id: int, room_id: int) -> str:
     saved room version) or `needs_resume` (revoked, expired, or no longer
     matching the room). The installation's own expiry is checked here as well,
     so a grant cannot read as active after its device has expired. Only an
-    explicit enrollment restores a grant.
+    explicit enrollment restores a grant. The caller must hold a transaction.
+    An injected aware clock is shared with the caller's evaluation/mutation.
     """
+    if not db.in_transaction:
+        raise RuntimeError("Saved grant validation requires a transaction")
+    if now is not None and now.utcoffset() is None:
+        raise ValueError("now must be an aware datetime")
     row = enrollment_row_locked(installation_id, room_id)
     if row is None:
         return STATE_NOT_ENROLLED
@@ -236,14 +266,14 @@ def saved_grant_state_locked(installation_id: int, room_id: int) -> str:
         return STATUS_OPTED_OUT
     if row["status"] == STATUS_REVOKED:
         return STATE_NEEDS_RESUME
-    now = stamp(current_time())
+    now_text = stamp(now or current_time())
     installation_expires_at = db.execute(
         "SELECT expires_at FROM reminder_installations WHERE id = ?",
         (installation_id,),
     ).fetchone()
-    if installation_expires_at is None or installation_expires_at[0] <= now:
+    if installation_expires_at is None or installation_expires_at[0] <= now_text:
         return STATE_NEEDS_RESUME
-    if row["expires_at"] <= now:
+    if row["expires_at"] <= now_text:
         return STATE_NEEDS_RESUME
     if _token_is_live_locked(room_id, row["token_hash"], row["authorization_version"]):
         return STATUS_ACTIVE
@@ -267,10 +297,12 @@ def _token_created_at_locked(room_id: int, authorizing_token_hash: str) -> datet
     return datetime.strptime(row[0], SQLITE_TIME_FORMAT).replace(tzinfo=UTC)
 
 
-def grant_expiry_locked(room_id: int, authorizing_token_hash: str) -> str:
+def grant_expiry_locked(
+    room_id: int, authorizing_token_hash: str, *, now: datetime | None = None
+) -> str:
     """The saved grant's expiry: the earlier of a device lifetime from now and
     a room lifetime from token issue."""
-    now = current_time()
+    now = now or current_time()
     room_bound = _token_created_at_locked(room_id, authorizing_token_hash)
     return stamp(min(now + DEVICE_LIFETIME, room_bound + ROOM_TOKEN_LIFETIME))
 
@@ -281,6 +313,8 @@ def enroll_room_locked(
     authorizing_token_hash: str,
     mode: str | None,
     summary_time: str | None,
+    *,
+    now: datetime | None = None,
 ) -> None:
     """Create or resume this device's enrollment, bound to the authorizing token.
 
@@ -290,9 +324,10 @@ def enroll_room_locked(
     recomputed from this explicit action. The caller has checked the enrollment
     revision and the room authorization.
     """
-    now = stamp(current_time())
+    moment = now or current_time()
+    now_text = stamp(moment)
     version = room_authorization_version_locked(room_id)
-    expires_at = grant_expiry_locked(room_id, authorizing_token_hash)
+    expires_at = grant_expiry_locked(room_id, authorizing_token_hash, now=moment)
     previous = enrollment_row_locked(installation_id, room_id)
     if previous is None:
         db.execute(
@@ -300,8 +335,8 @@ def enroll_room_locked(
             INSERT INTO reminder_enrollments (
                 installation_id, room_id, token_hash, authorization_version,
                 status, mode, summary_time, revision, activated_at, expires_at,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+                created_at, policy_activated_at, summary_activated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
             """,
             (
                 installation_id,
@@ -311,13 +346,17 @@ def enroll_room_locked(
                 STATUS_ACTIVE,
                 mode or DEFAULT_MODE,
                 summary_time or DEFAULT_SUMMARY_TIME,
-                now,
+                now_text,
                 expires_at,
-                now,
+                now_text,
+                now_text,
+                now_text,
             ),
         )
         return
-    was_active = saved_grant_state_locked(installation_id, room_id) == STATUS_ACTIVE
+    was_active = (
+        saved_grant_state_locked(installation_id, room_id, now=moment) == STATUS_ACTIVE
+    )
     db.execute(
         """
         UPDATE reminder_enrollments
@@ -332,16 +371,31 @@ def enroll_room_locked(
             STATUS_ACTIVE,
             mode,
             summary_time,
-            previous["activated_at"] if was_active else now,
+            previous["activated_at"] if was_active else now_text,
             expires_at,
             installation_id,
             room_id,
         ),
     )
 
+    from reminders.policies import sync_enrollment_policy_locked
+
+    sync_enrollment_policy_locked(
+        installation_id,
+        room_id,
+        previous["mode"],
+        mode or previous["mode"],
+        summary_time is not None and summary_time != previous["summary_time"],
+        moment,
+    )
+
 
 def update_enrollment_locked(
-    installation_id: int, room_id: int, changes: dict[str, Any]
+    installation_id: int,
+    room_id: int,
+    changes: dict[str, Any],
+    *,
+    now: datetime | None = None,
 ) -> None:
     """Set some of mode, summary_time and status, and bump the enrollment revision.
 
@@ -351,11 +405,29 @@ def update_enrollment_locked(
     allowed = {"mode", "summary_time", "status"}
     if set(changes) - allowed:
         raise ValueError("Not an enrollment setting")
+    previous = enrollment_row_locked(installation_id, room_id)
+    if previous is None:
+        raise ValueError("An enrollment is required")
+    changes = {key: value for key, value in changes.items() if previous[key] != value}
+    if not changes:
+        return
+    moment = now or current_time()
     assignments = ", ".join(f"{column} = ?" for column in changes)
     db.execute(
         f"UPDATE reminder_enrollments SET {assignments}, revision = revision + 1 "
         "WHERE installation_id = ? AND room_id = ?",
         (*changes.values(), installation_id, room_id),
+    )
+
+    from reminders.policies import sync_enrollment_policy_locked
+
+    sync_enrollment_policy_locked(
+        installation_id,
+        room_id,
+        previous["mode"],
+        changes.get("mode", previous["mode"]),
+        "summary_time" in changes,
+        moment,
     )
 
 

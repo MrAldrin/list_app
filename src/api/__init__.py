@@ -11,6 +11,7 @@ from api import (
     events,
     invitations,
     ops,
+    reminder_policies,
     reminders,
     room,
     session,
@@ -31,6 +32,7 @@ def build_router() -> APIRouter:
     router.include_router(events.router)
     router.include_router(room.router)
     router.include_router(reminders.router)
+    router.include_router(reminder_policies.router)
     router.include_router(share.router)
     router.include_router(admin.router)
     router.include_router(invitations.admin_router)

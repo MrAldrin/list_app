@@ -60,6 +60,9 @@ same-origin and JSON rules in [writes](api.md#writes-same-origin-rule).
 | `PATCH preferences` | yes | Change mode, summary time or opt out of this room. |
 | `GET preferences/device` | optional | Read device-wide settings, or `null`. |
 | `PATCH preferences/device` | yes | Change device-wide settings. |
+| `GET` / `PUT policy` | yes | Read or replace the room default policy. |
+| `GET` / `PUT lists/{id}/policy` | yes | Read or replace a list override. |
+| `GET` / `PUT items/{id}/policy` | yes | Read or replace an item override. |
 
 ### Enrollment (`POST enrollment`)
 
@@ -114,10 +117,59 @@ known IANA zone: an unknown zone is 422 and never falls back to UTC.
 These settings apply to every room this device is enrolled in, not to the
 account. Changing a device setting does not change any room's data.
 
+### Private policies
+
+All policy requests require this device's enrollment, even when its saved grant
+needs resuming. Settings remain drafts and never resume a grant. List and item
+IDs must belong to the authorized room. A missing device or enrollment is 403;
+a target outside the room is 404. Each GET returns `policy` (the requested
+scope) and `effective` (the selected replacement). Item overrides replace list
+overrides, which replace the room default. `off` disables a scope; `inherit`
+resets it to its parent and keeps a durable reset time. Device pause and room
+opt-out always win.
+
+PUT is a full replacement with `op_id`, `base_revision` (0 before the first
+policy row), `state` (`inherit`, `off`, or `replace`), and, for replacement,
+`preset` (`quiet`, `daily_summary`, `scheduled`, or `custom`). The room only
+accepts replacement. `scheduled` means one calendar day before and at due.
+Custom accepts `rules` and `summary_enabled`; `summary_time` (`HH:MM`) belongs
+to the room policy only. Other presets take no rules or summary flag. Off and
+inherit take neither preset, rules nor summary flag.
+
+Each custom rule is `{"kind":"relative","amount":1,"unit":"days"}`
+(units: `minutes`, `hours`, `days`, `weeks`) or
+`{"kind":"fixed","date":"YYYY-MM-DD","time":"HH:MM","timezone":"Europe/Oslo"}`.
+A fixed rule may include its own existing `id`. At most five normalized rules
+are allowed. New or changed fixed wall times must be future; unchanged rules
+keep their server ID, confirmed instant and activation even after they pass.
+Clients must not submit the server's instant or activation.
+
+Each returned policy has `scope`, `state`, `preset`, `summary_enabled`,
+`rules`, `revision` and `activated_at`. Returned relative rules use normalized
+`basis`, `amount`, and `key`; fixed rules include `id`, wall fields, `instant`
+and `activation`. Convert relative rules back to input units when saving; omit
+server-only fields. Policy writes never renew cookies, devices, or grants and
+never update the shared room feed.
+
+## Internal effective policy
+
+Within a held database transaction, `reminders.policies.effective_policy_locked`
+accepts `(installation_id, room_id, item_id, *, now=None)` and returns the typed
+`EffectivePolicy`. It exposes source/state/preset, normalized rules (including
+fixed UUID, confirmed UTC and activation), scope/enrollment/device revisions,
+relative and summary activation entries, summary configuration, device zone and
+all-day time, computed grant state, disabled reasons, and the item's stored due
+fields and cycle. `relative_cutoff` is the latest applicable historical entry;
+boundaries are inclusive. Applicable entries include enrollment, selected
+policy and lower reset rows, the due cycle and, for date-only items, the device
+anchor. Overridden defaults do not contribute a cutoff. Consumers must recheck
+the grant before work. This is not a preview or a delivery authorization.
+
 ## Idempotency and revisions
 
 - Each personal write has its own store (`reminder_processed_ops`), split by
-  scope: `installation` (device settings) and `enrollment` (one room). Shared
+  scope: `installation` (device settings) and `enrollment` (one room, including
+  policies). Policy hashes include their action and target. Shared
   `op_id`s in list and item writes never collide with these.
 - The hash covers the **action** (enrollment POST or preferences PATCH) and the
   body. The same `op_id` with the same body replays the stored result for that

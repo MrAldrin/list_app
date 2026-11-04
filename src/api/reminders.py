@@ -16,6 +16,7 @@ Nothing here changes a room's change sequence or its live stream.
 import hashlib
 import json
 from collections.abc import Callable
+from datetime import datetime
 from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import APIRouter, Request
@@ -264,6 +265,7 @@ def enroll(slug: str, request: Request, body: JsonBody) -> Response:
     body_hash = personal_request_hash(data)
     token_digest = token_hash(room_token(request, slug) or "")
     with room_access(request, slug, write=True) as room:
+        moment = identity.current_time()
         installation_id = installation_for_request(request)
         secret = device_secret(request)
         if installation_id is None:
@@ -273,7 +275,9 @@ def enroll(slug: str, request: Request, body: JsonBody) -> Response:
                 raise ApiError(422, "invalid_request", "A time zone is required.")
             _check_zone(data.timezone)
             secret = identity.new_installation_secret()
-            installation_id = identity.create_installation_locked(secret, data.timezone)
+            installation_id = identity.create_installation_locked(
+                secret, data.timezone, now=moment
+            )
         elif data.timezone is not None:
             stored_zone = identity.installation_settings_locked(installation_id)[
                 "timezone"
@@ -285,7 +289,7 @@ def enroll(slug: str, request: Request, body: JsonBody) -> Response:
                     "Change the device time zone in the device settings.",
                 )
         result, replayed = _enroll_once(
-            installation_id, room.room_id, token_digest, data, body_hash
+            installation_id, room.room_id, token_digest, data, body_hash, moment
         )
         if replayed:
             # Refresh the dynamic grant state inside the same lock. The stored
@@ -306,6 +310,7 @@ def _enroll_once(
     token_digest: str,
     data: EnrollmentBody,
     body_hash: str,
+    moment: datetime,
 ) -> tuple[dict[str, Any], bool]:
     """Run the enrollment once per op, or replay it. Call inside a write block."""
 
@@ -331,9 +336,14 @@ def _enroll_once(
             _check_clock(data.summary_time)
         # Only a real enrollment starts a new device and grant lifetime; a replay
         # returns the stored result and extends nothing.
-        identity.renew_installation_locked(installation_id)
+        identity.renew_installation_locked(installation_id, now=moment)
         identity.enroll_room_locked(
-            installation_id, room_id, token_digest, data.mode, data.summary_time
+            installation_id,
+            room_id,
+            token_digest,
+            data.mode,
+            data.summary_time,
+            now=moment,
         )
         return {"enrollment": _enrollment_view(installation_id, room_id)}
 

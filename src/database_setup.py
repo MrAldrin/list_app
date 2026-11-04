@@ -941,6 +941,98 @@ def _migration_17_due_cycle_start(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_18_personal_policies(db: sqlite3.Connection) -> None:
+    """Private replacements and durable reset/anchor cutoffs; no shared triggers."""
+    db.execute("ALTER TABLE reminder_installations ADD COLUMN anchor_activated_at TEXT")
+    db.execute("UPDATE reminder_installations SET anchor_activated_at = created_at")
+    db.execute(
+        "ALTER TABLE reminder_installations ADD COLUMN timezone_activated_at TEXT"
+    )
+    db.execute("UPDATE reminder_installations SET timezone_activated_at = created_at")
+    db.execute("ALTER TABLE reminder_enrollments ADD COLUMN policy_activated_at TEXT")
+    db.execute("UPDATE reminder_enrollments SET policy_activated_at = activated_at")
+    db.execute("ALTER TABLE reminder_enrollments ADD COLUMN summary_activated_at TEXT")
+    db.execute("UPDATE reminder_enrollments SET summary_activated_at = activated_at")
+    db.execute("""
+        CREATE TABLE reminder_policies (
+            id INTEGER PRIMARY KEY,
+            installation_id INTEGER NOT NULL,
+            room_id INTEGER NOT NULL,
+            scope TEXT NOT NULL CHECK (scope IN ('room', 'list', 'item')),
+            list_id INTEGER REFERENCES lists(id) ON DELETE CASCADE,
+            item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
+            state TEXT NOT NULL CHECK (state IN ('inherit', 'off', 'replace')),
+            preset TEXT CHECK (preset IN ('quiet', 'daily_summary', 'scheduled', 'custom')),
+            summary_enabled INTEGER NOT NULL CHECK (summary_enabled IN (0, 1)),
+            revision INTEGER NOT NULL CHECK (revision >= 1),
+            activated_at TEXT NOT NULL,
+            FOREIGN KEY (installation_id, room_id)
+                REFERENCES reminder_enrollments(installation_id, room_id) ON DELETE CASCADE,
+            CHECK ((scope = 'room' AND list_id IS NULL AND item_id IS NULL
+                    AND preset IS NULL AND state = 'replace')
+                OR (scope = 'list' AND list_id IS NOT NULL AND item_id IS NULL)
+                OR (scope = 'item' AND list_id IS NULL AND item_id IS NOT NULL)),
+            CHECK (scope = 'room' OR (state = 'replace') = (preset IS NOT NULL))
+        )
+    """)
+    for scope, column in (
+        ("room", "room_id"),
+        ("list", "list_id"),
+        ("item", "item_id"),
+    ):
+        db.execute(
+            f"CREATE UNIQUE INDEX idx_reminder_policies_{scope} "
+            f"ON reminder_policies(installation_id, {column}) WHERE scope = '{scope}'"
+        )
+    # Ownership also holds for direct database writes, not just HTTP routing.
+    for event in ("INSERT", "UPDATE"):
+        db.execute(f"""
+            CREATE TRIGGER reminder_policies_ownership_{event.lower()}
+            BEFORE {event} ON reminder_policies
+            WHEN (NEW.scope = 'list' AND NOT EXISTS (
+                SELECT 1 FROM lists WHERE id = NEW.list_id AND room_id = NEW.room_id))
+              OR (NEW.scope = 'item' AND NOT EXISTS (
+                SELECT 1 FROM items i JOIN lists l ON l.id = i.list_id
+                WHERE i.id = NEW.item_id AND l.room_id = NEW.room_id))
+            BEGIN SELECT RAISE(ABORT, 'policy target outside room'); END
+        """)
+    db.execute("""
+        CREATE TABLE reminder_policy_rules (
+            policy_id INTEGER NOT NULL REFERENCES reminder_policies(id) ON DELETE CASCADE,
+            position INTEGER NOT NULL CHECK (position BETWEEN 0 AND 4),
+            kind TEXT NOT NULL CHECK (kind IN ('relative', 'fixed')),
+            basis TEXT,
+            amount INTEGER,
+            fixed_id TEXT UNIQUE,
+            wall_date TEXT,
+            wall_time TEXT,
+            timezone TEXT,
+            instant TEXT,
+            activation TEXT,
+            PRIMARY KEY (policy_id, position),
+            CHECK ((kind = 'relative' AND basis IS NOT NULL AND amount IS NOT NULL AND basis IN ('at_due', 'elapsed', 'calendar')
+                    AND typeof(amount) = 'integer'
+                    AND ((basis = 'at_due' AND amount = 0)
+                      OR (basis = 'elapsed' AND amount BETWEEN 1 AND 525600)
+                      OR (basis = 'calendar' AND amount BETWEEN 1 AND 365))
+                    AND fixed_id IS NULL AND wall_date IS NULL AND wall_time IS NULL
+                    AND timezone IS NULL AND instant IS NULL AND activation IS NULL)
+                OR (kind = 'fixed' AND basis IS NULL AND amount IS NULL
+                    AND fixed_id IS NOT NULL AND wall_date IS NOT NULL
+                    AND wall_time IS NOT NULL AND timezone IS NOT NULL
+                    AND instant IS NOT NULL AND activation IS NOT NULL))
+        )
+    """)
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_rules_relative "
+        "ON reminder_policy_rules(policy_id, basis, amount) WHERE kind = 'relative'"
+    )
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_rules_fixed_instant "
+        "ON reminder_policy_rules(policy_id, instant) WHERE kind = 'fixed'"
+    )
+
+
 def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
     """Store each list's tag settings: one or several tags, tag display, colors.
 
@@ -1048,6 +1140,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_15_due_time_and_zone,
         _migration_16_personal_reminders,
         _migration_17_due_cycle_start,
+        _migration_18_personal_policies,
     ]
 
 

@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from api_helpers import assert_error, client_for, new_id
 
-from database_crud import revoke_room_access_token
+from database_crud import revoke_room_access_token, transaction
 from database_setup import db
 from identifiers import token_hash
 from reminders import identity
@@ -66,11 +66,13 @@ def test_helper_refuses_active_when_installation_expired_and_writes_nothing(
         (installation_id,),
     )
     db.commit()
-    assert identity.saved_grant_state_locked(installation_id, room_id) == "active"
+    with transaction():
+        assert identity.saved_grant_state_locked(installation_id, room_id) == "active"
     clock.advance(hours=1)
     before = _rows()
 
-    state = identity.saved_grant_state_locked(installation_id, room_id)
+    with transaction():
+        state = identity.saved_grant_state_locked(installation_id, room_id)
 
     assert state == "needs_resume"
     assert _rows() == before

@@ -7,7 +7,7 @@ from api_helpers import assert_error, client_for, home, new_id, set_cookies
 from fastapi.testclient import TestClient
 
 import main
-from database_crud import reset_room_password_by_slug
+from database_crud import reset_room_password_by_slug, transaction
 from database_setup import db
 from identifiers import token_hash
 from reminders import identity
@@ -700,7 +700,8 @@ def test_saved_grant_state_is_pure_validation_and_writes_nothing(phone):
     db.commit()
     before = db.execute("SELECT * FROM reminder_enrollments").fetchall()
 
-    state = identity.saved_grant_state_locked(installation_id, room_id)
+    with transaction():
+        state = identity.saved_grant_state_locked(installation_id, room_id)
 
     assert state == "needs_resume"
     assert db.execute("SELECT * FROM reminder_enrollments").fetchall() == before
