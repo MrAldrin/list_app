@@ -87,12 +87,12 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: independent transport/security foundation authorized and starting;
+- State: isolated transport foundation implemented, awaiting independent review;
   full dependent S4 remains blocked by reviewed S3 integration.
 - Exact handoff: entry `twuqsnnx` / `8c7a03fd`, parent amendment `vyvtntwv` /
   `f43d01ca`; verified clean. Amended brief/master read fully; Sol/high verified.
-- Next: create the recorded child and dispatch one bounded implementation worker,
-  then fresh independent diff review and full Python gates on the partial result.
+- Next: fresh independent full diff/code/test review, resolve findings, then
+  integrate reviewed child into S4 entry only and run full Python gates.
   No DB/API/enrollment/UI/worker/scheduler integration, services or real sends.
 - Foundation edit boundary: new `src/reminders/push_transport.py`, focused tests,
   `pyproject.toml` and `uv.lock` only; no package `__init__` (owned by S2).
@@ -109,13 +109,20 @@ material fixes after independent review.
 - Assumptions: iOS16.4 installed-app baseline; WebKit18.4 declarative enhancement,
   never silent push. Push remains off without explicit configuration; fake sender
   and test keys only. Physical-device closed-app delivery remains unverified.
-- Child ownership recorded before launch: planned `tmp-reminders-s4-transport`,
+- Child: `tmp-reminders-s4-transport`,
   `/home/hsa/projects/tmp-reminders-s4-transport`, base `vyvtntwv`; S4 Conductor
   session `01a1a2ff-4fcb` is creator/lifecycle owner. Lead retains entry lifecycle.
-  One isolated Haiku5.5/medium worker, no fanout; verify effective settings.
-  Runtime 90 minutes with checkpoint 10 minutes before deadline. Run ID will be
-  reported to Lead on launch. Fresh independent review is a separate child.
-- Docs-desk status-only window granted for this ownership update; release after
+  Worker run `c6da6314-2207-44a7-932f-27517741cbd9` completed, verified actual
+  Haiku5.5/medium. Result `rzknzosp` / `ff5401a6`, four allowed files only;
+  empty child `yrluorsp`. Worker reports 89 focused tests, 1624 full Python tests
+  passed, 9 skipped; repository Ruff format/check and ty clean.
+- Reviewer ownership recorded before launch: separate fresh read-only reviewer in
+  frozen child cwd above, managed by S4; Haiku5.5/medium, no edits/fanout, 60-minute
+  deadline with 10-minute checkpoint. Inspect full diff/code/tests, real-library
+  crypto APIs, actual-connect IP/TLS/redirect controls and supported-provider policy.
+  Run ID will be reported to Lead at launch. FCM/Mozilla exact hosts and Apple
+  subdomains are provisional supported-provider assumptions, not universal support.
+- Docs-desk status-only window granted for this checkpoint; release after
   file-only commit. No bookmark moves; later writes need another window.
 
 ## Closeout — assigned Conductor
