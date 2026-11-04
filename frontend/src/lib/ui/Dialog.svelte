@@ -1,7 +1,7 @@
 <!--
 	A modal dialog, built on the browser's own <dialog> element. The browser
-	then handles the dark backdrop, keeps keyboard focus inside the dialog and
-	closes it with Escape. A click on the backdrop closes it too, as NiceGUI.
+	then handles the dark backdrop and keeps keyboard focus inside the dialog.
+	Escape or a click on the backdrop closes it, as NiceGUI.
 
 	Show it with {#if …}<Dialog …>…</Dialog>{/if}: it opens when it appears, and
 	calls `onClose` when the user closes it (Escape or a click outside). The parent then hides it.
@@ -45,9 +45,9 @@
 		toastId = id;
 		return () => {
 			untrack(() => toasts.closeDialog(id));
-			// Closing with Escape gives the focus back by itself. A dialog the
-			// page removes (after Save, say) would leave it nowhere, so keyboard
-			// and screen reader users would start again at the top.
+			// Removing a dialog (after Escape or Save, say) can leave focus
+			// nowhere, so keyboard and screen reader users would start again
+			// at the top.
 			const focus = document.activeElement;
 			const lost = !focus || focus === document.body || box.contains(focus);
 			if (lost && opener instanceof HTMLElement && opener.isConnected) {
@@ -55,6 +55,13 @@
 			}
 		};
 	});
+
+	function closeOnCancel(event: Event) {
+		// Native close queues a later `close` event. Update the parent's state
+		// now, or a quick reopen can be lost while it still thinks we're open.
+		event.preventDefault();
+		onClose();
+	}
 
 	// A backdrop click targets the <dialog> itself, but so does a click on its
 	// padding; only a point outside the box closes it.
@@ -66,15 +73,16 @@
 			event.clientX <= box.right &&
 			event.clientY >= box.top &&
 			event.clientY <= box.bottom;
-		if (!inside) dialog.close();
+		if (!inside) onClose();
 	}
 </script>
 
-<!-- The keyboard way to close is Escape, which the browser handles. -->
+<!-- Escape raises `cancel`; handle it before the browser queues `close`. -->
 <dialog
 	bind:this={dialog}
 	aria-labelledby={titleId}
 	tabindex={focusBox ? -1 : undefined}
+	oncancel={closeOnCancel}
 	onclose={onClose}
 	onclick={closeOnBackdrop}
 >
