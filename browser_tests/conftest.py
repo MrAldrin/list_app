@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 from playwright.sync_api import Page, sync_playwright
@@ -108,19 +109,34 @@ class BrowserSessions:
         self.browser = browser
         self.directory = directory
         self.contexts = []
+        self.profiles = []
         self.errors = []
 
     def new_page(self, role: str, **options) -> Page:
         """Open a page in a new context: its own cookies, storage and session."""
-        context = self.browser.new_context(**options)
+        if self.browser.browser_type.name == "webkit":
+            # WebKit's ephemeral CacheStorage does not survive page replacement
+            # (Playwright #41618). Exercise normal-browser storage, not private mode.
+            profile = TemporaryDirectory(prefix="webkit-profile-", dir=self.directory)
+            self.profiles.append(profile)
+            storage_state = options.pop("storage_state", None)
+            context = self.browser.browser_type.launch_persistent_context(
+                profile.name, **options
+            )
+        else:
+            storage_state = None
+            context = self.browser.new_context(**options)
         self.contexts.append((role, context))
+        if storage_state is not None:
+            context.set_storage_state(storage_state)
         # Exercise the copy-dialog fallback, not OS-native sharing dialogs.
         context.add_init_script(
             "Object.defineProperty(navigator, 'share', {value: undefined})"
         )
         context.on("weberror", self.record_error)
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
-        page = context.new_page()
+        # Persistent contexts already have one blank tab; do not leave a keeper.
+        page = context.pages[0] if context.pages else context.new_page()
         track_api_requests(page)
         return page
 
@@ -160,6 +176,11 @@ class BrowserSessions:
                     context.close()
                 except Exception as exc:  # noqa: BLE001 - report cleanup errors
                     cleanup_errors.append(exc)
+        for profile in self.profiles:
+            try:
+                profile.cleanup()
+            except Exception as exc:  # noqa: BLE001 - keep cleaning up
+                cleanup_errors.append(exc)
         if self.errors:
             cleanup_errors.append(
                 AssertionError("Unhandled browser errors:\n" + "\n".join(self.errors))

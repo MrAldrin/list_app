@@ -40,9 +40,10 @@ def controlled_page(page: Page, url: str) -> tuple[Page, dict[str, bool]]:
     )
     assert capabilities["secureContext"]
     assert capabilities["broadcastChannel"]
-    context = page.context
+    # Keep the browser alive without loading the app in the replacement tab.
+    replacement = page.context.new_page()
     page.close()
-    page = context.new_page()
+    page = replacement
     page.goto(url)
     expect(start_heading(page)).to_be_visible()
     page.wait_for_function(
