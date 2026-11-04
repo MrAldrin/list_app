@@ -29,6 +29,7 @@ from reminders.due_schedule import (
     DueSchedule,
     checked_due_schedule,
     merge_due_edit,
+    new_cycle_start,
     new_due_cycle,
 )
 from reminders.identity import (
@@ -491,8 +492,10 @@ def add_or_restore_item_locked(
         db.execute(
             "UPDATE items SET done = 0, completed_at = NULL, "
             f"add_count = add_count + 1, added_at = {_NOW_SQL}, "
-            "due_cycle = CASE WHEN date IS NULL THEN NULL ELSE ? END WHERE id = ?",
-            (new_due_cycle(), existing[0]),
+            "due_cycle = CASE WHEN date IS NULL THEN NULL ELSE ? END, "
+            "due_cycle_started_at = CASE WHEN date IS NULL THEN NULL ELSE ? END "
+            "WHERE id = ?",
+            (new_due_cycle(), new_cycle_start(), existing[0]),
         )
         return "restored", existing[0]
     _check_item_count_locked(list_id)
@@ -543,8 +546,8 @@ def restore_deleted_item_locked(
         INSERT INTO items (
             name, name_key, done, list_id, active_tags, description, quantity,
             completed_at, uid, date, due_time, due_timezone, due_at, due_cycle,
-            add_count, added_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            due_cycle_started_at, add_count, added_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             name,
@@ -561,6 +564,7 @@ def restore_deleted_item_locked(
             schedule.timezone,
             schedule.due_at(),
             new_due_cycle() if schedule.date is not None else None,
+            new_cycle_start() if schedule.date is not None else None,
             add_count,
             added_at,
         ),
@@ -613,6 +617,21 @@ def get_list_changed_seq_locked(list_id: int) -> int:
     return get_list_state_locked(list_id)[1]
 
 
+def get_due_cycle_locked(item_id: int) -> dict[str, str] | None:
+    """The item's due cycle as {"cycle_id", "started_at"}, or None when undated.
+
+    Server-internal: the cycle and its start are never published to clients.
+    Read only; call inside a transaction.
+    """
+    row = db.execute(
+        "SELECT due_cycle, due_cycle_started_at FROM items WHERE id = ?",
+        (item_id,),
+    ).fetchone()
+    if row is None or row[0] is None:
+        return None
+    return {"cycle_id": row[0], "started_at": row[1]}
+
+
 def update_item_done_locked(
     item_id: int, list_id: int, done: bool, *, now: datetime | None = None
 ) -> bool:
@@ -645,9 +664,10 @@ def update_item_done_locked(
             "THEN add_count + 1 ELSE add_count END, "
             "added_at = CASE WHEN COALESCE(done, 0) != 0 "
             f"THEN {_NOW_SQL} ELSE added_at END, "
-            "due_cycle = CASE WHEN date IS NULL THEN NULL ELSE ? END "
+            "due_cycle = CASE WHEN date IS NULL THEN NULL ELSE ? END, "
+            "due_cycle_started_at = CASE WHEN date IS NULL THEN NULL ELSE ? END "
             "WHERE id = ? AND list_id = ?",
-            (new_due_cycle(), item_id, list_id),
+            (new_due_cycle(), new_cycle_start(), item_id, list_id),
         )
     return True
 
@@ -685,7 +705,8 @@ def update_item_details_locked(
         return "duplicate"
     stored = db.execute(
         "SELECT name, description, quantity, date, due_time, due_timezone, "
-        "due_at, due_cycle FROM items WHERE id = ? AND list_id = ?",
+        "due_at, due_cycle, due_cycle_started_at FROM items "
+        "WHERE id = ? AND list_id = ?",
         (item_id, list_id),
     ).fetchone()
     if stored is None:
@@ -713,13 +734,16 @@ def update_item_details_locked(
     # stored due_at and cycle, so a name edit never depends on the zone data.
     if schedule_changed:
         due_at = schedule.due_at()
-        cycle = new_due_cycle() if schedule.date is not None else None
+        dated = schedule.date is not None
+        cycle = new_due_cycle() if dated else None
+        cycle_started_at = new_cycle_start() if dated else None
     else:
-        due_at, cycle = stored[6], stored[7]
+        due_at, cycle, cycle_started_at = stored[6], stored[7], stored[8]
     db.execute(
         "UPDATE items SET name = ?, name_key = ?, description = ?, "
         "quantity = COALESCE(?, quantity), "
-        "date = ?, due_time = ?, due_timezone = ?, due_at = ?, due_cycle = ? "
+        "date = ?, due_time = ?, due_timezone = ?, due_at = ?, due_cycle = ?, "
+        "due_cycle_started_at = ? "
         "WHERE id = ? AND list_id = ?",
         (
             name,
@@ -731,6 +755,7 @@ def update_item_details_locked(
             schedule.timezone,
             due_at,
             cycle,
+            cycle_started_at,
             item_id,
             list_id,
         ),

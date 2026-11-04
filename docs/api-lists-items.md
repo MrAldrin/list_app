@@ -134,6 +134,11 @@ A timed item has a `date`, a `due_time` (`HH:MM`, 24-hour) and a
   not published) and recomputes `due_at`. Renames, quantity and tag changes do
   not. Unchecking a dated item, and an add that unchecks it, also start a new
   cycle. Reminders (a later feature) will use this identity.
+- Each dated cycle also has a server-only start time (UTC). It is set in the
+  same write as the cycle, from one clock reading, and cleared with the date.
+  Existing dated items got one migration instant when migration 17 ran. Neither
+  the cycle nor its start is sent to clients or in feeds, and a client that sends
+  either is a 422.
 
 ### Conflicts
 

@@ -10,11 +10,16 @@ Stored on the item as `date`, `due_time`, `due_timezone`, the derived `due_at`
   changes, and whenever a checked item is unchecked. Name, description,
   quantity, tag and retry changes keep it. A deleted item's undo is a new
   item and gets a new cycle, so an old cycle is never reused.
+- `due_cycle_started_at` (UTC) is when that cycle began. It is set in the same
+  write as `due_cycle` and is NULL exactly when there is no date. It is server
+  only: never sent to clients or published in feeds.
 """
 
 import re
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from datetime import date as calendar_date
 from datetime import time as clock_time
 
@@ -61,6 +66,33 @@ class DueSchedule:
 def new_due_cycle() -> str:
     """A new cycle identity: a random UUID v4 as lowercase text."""
     return str(uuid.uuid4())
+
+
+def cycle_clock() -> datetime:
+    """The UTC clock that dates a due cycle's start. Tests replace it."""
+    return datetime.now(UTC)
+
+
+def new_cycle_start() -> str:
+    """A dated cycle's start as stored, from one `cycle_clock()` sample.
+
+    Call under the write lock, only in the write that starts the cycle, and
+    store it with the new `due_cycle`. Undated writes store NULL instead.
+    """
+    return format_utc(cycle_clock())
+
+
+def relative_rule_is_active(
+    fire_at: datetime, cutoffs: Iterable[datetime | None]
+) -> bool:
+    """True if a relative reminder at `fire_at` is at or after every cutoff.
+
+    A cutoff is the latest of the cycle start, the enrollment activation and the
+    applicable policy activations; a None entry means no activation and is
+    ignored. A reminder earlier than any cutoff was never activated and stays
+    suppressed, even when it is due now.
+    """
+    return all(cutoff is None or fire_at >= cutoff for cutoff in cutoffs)
 
 
 def checked_due_schedule(

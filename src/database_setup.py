@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import unicodedata
 import uuid
+from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -918,6 +919,28 @@ def _migration_16_personal_reminders(db: sqlite3.Connection) -> None:
     )
 
 
+def _migration_17_due_cycle_start(db: sqlite3.Connection) -> None:
+    """Add the server-only start of each dated due cycle (reminders/due_schedule.py).
+
+    `due_cycle_started_at` (UTC) exists exactly with a date; Python sets it in the
+    same write as `due_cycle`. Existing dated items all get one explicit migration
+    instant, because their true start is unknown. This is not a user edit, so the
+    change tracking trigger is dropped for the backfill and created again, as in
+    migration 15: no change sequence moves.
+    """
+    db.execute("ALTER TABLE items ADD COLUMN due_cycle_started_at TEXT")
+    migration_instant = datetime.now(UTC).isoformat(timespec="milliseconds")
+    db.execute("DROP TRIGGER items_track_update")
+    db.execute(
+        "UPDATE items SET due_cycle_started_at = ? WHERE date IS NOT NULL",
+        (migration_instant.replace("+00:00", "Z"),),
+    )
+    db.execute(
+        "CREATE TRIGGER items_track_update "
+        + _CHANGE_TRACKING_TRIGGERS["items_track_update"]
+    )
+
+
 def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
     """Store each list's tag settings: one or several tags, tag display, colors.
 
@@ -1024,6 +1047,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_14_tag_settings,
         _migration_15_due_time_and_zone,
         _migration_16_personal_reminders,
+        _migration_17_due_cycle_start,
     ]
 
 

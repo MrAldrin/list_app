@@ -44,9 +44,10 @@ def test_migration_preserves_names_and_does_not_mark_backfill_as_an_edit():
         after_item = db.execute(
             "SELECT * FROM items WHERE id = ?", (item_id,)
         ).fetchone()
-        # Migrations 12 and 15 append name_key, then the four due columns.
-        assert after_item[:-5] == before_item
-        assert after_item[-5] == "éggs"
+        # Migrations 12, 15 and 17 append name_key, the four due columns and the
+        # due cycle start.
+        assert after_item[:-6] == before_item
+        assert after_item[-6] == "éggs"
         assert db.execute("SELECT change_seq FROM rooms").fetchone()[0] == before_seq
         assert db.execute("PRAGMA user_version").fetchone()[0] == LATEST_VERSION
         assert (
