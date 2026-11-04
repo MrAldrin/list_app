@@ -100,7 +100,10 @@ def _target_locked(
         except ValueError:
             raise ApiError(404, "not_found") from None
         return target_id
-    uid = canonical_uuid(target) if isinstance(target, str) else None
+    try:
+        uid = canonical_uuid(target) if isinstance(target, str) else None
+    except ValueError:
+        uid = None
     if uid is None:
         raise ApiError(404, "not_found")
     if scope == "list":
