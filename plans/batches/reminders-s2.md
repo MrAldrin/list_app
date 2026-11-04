@@ -85,28 +85,38 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: preflight complete and accepted; entry workspace quiescent, blocked
-  on reviewed Stage 1 integration and explicit Lead edit handoff/exact base.
-- Two-way readiness verified; required skills and authoritative brief/master
-  read fully. No implementation edits, children, tests or services started.
-- Next: Lead may update/rebase the quiescent entry workspace; Conductor waits
-  for the exact new base before dispatching bounded implementation workers.
-- Proposed sequence: shared due-time/resolver foundation; personal policy/API;
-  compatible offline client; reusable editor/UI; integrated independent review
-  and full quality gates. Parallel editors get separate child workspaces.
-- Children/workspaces: none yet; entry remains Lead-managed.
+- State: independent backend foundation active under Lead edit handoff;
+  dependent UI/personal-policy work and stage integration remain blocked on
+  reviewed S1 and a further handoff. Amended brief/master reread fully.
+- Exact foundation base: `vyvtntwv` / `f43d01ca`; entry `ooqvyvmw` /
+  `5b7b734b` was clean at handoff. Entry remains Lead-managed.
+- Child created before launch: `tmp-reminders-s2-foundation`,
+  `/home/hsa/projects/tmp-reminders-s2-foundation`; `zystrxzr` / `a52b6b41`
+  initially empty on that base. S2 Conductor session `01a1a2ff-4ea8-70c1-b611-b0506e7b9929`
+  owns its lifecycle, reviewed integration into S2 and safe cleanup.
+- Next: dispatch one bounded `worker` with explicit
+  `claude-code/claude-haiku-5-5:medium`; verify effective model/effort before
+  accepting work. No descendants. Planned run deadline: 90 minutes with a
+  five-minute checkpoint. Run ID follows in peer-message receipt/status.
+- Worker scope: pure server resolver, shared due fields/canonical UTC/cycles,
+  migration/CRUD/item ops/feeds, Python tests, runtime tzdata and related API
+  docs only. No frontend, personal-policy API, scheduler, push or real services.
+- Obtain fresh independent diff review and full Python gates on the combined
+  foundation. Preserve a stable reviewed tip and quiescence for Lead's later
+  reconciliation; never rebase an active writer.
 - Assumptions: add approved runtime `tzdata`; prove resolution with
   `PYTHONTZPATH=''` and verify Dockerfile's locked `uv --no-dev` dependency
-  path includes it. Docker CLI is absent; check Podman if useful. Do not
-  claim image execution without an engine or add a manual predeploy gate.
+  path includes it. Docker CLI is absent; rootless Podman info succeeds.
+  Trusted-Dockerfile/test-data smoke verification is authorized if feasible;
+  no installs/privilege workarounds, unexecuted image claim or manual gate.
 - Compatibility: test absent/null/legacy hashes and undo/conflict semantics;
   use the existing API-version mechanism only if required, with rationale.
 - S3 handoff must document/test concrete resolver/effective-policy exports,
   installation/enrollment grant validation, due-cycle and stable fixed-rule
   identities/instants, revisions/idempotency and future-only activation time.
   S3 owns persisted occurrences/outbox/quotas/leases and the scheduler.
-- Docs-desk: Lead granted this status-only preflight window; future writes
-  require another coordinated window. Brief remains Lead-owned.
+- Docs-desk: ownership recorded in the granted status-only window before
+  worker launch; future writes require another window. Brief remains Lead-owned.
 
 ## Closeout — assigned Conductor
 
