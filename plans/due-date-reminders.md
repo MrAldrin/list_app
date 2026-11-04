@@ -96,6 +96,13 @@ subject to the current bookmark hold recorded below.
   to Sol/high. Preserve handoffs and stop the old writer before replacement.
   Verify effective provider/model/medium; report unsupported settings rather
   than substituting. Claude remains unavailable due to quota.
+- Overnight continuation (owner request, 2026-11-04): continue coordinating
+  approved delivery for up to eight hours or completion, aiming for a reviewed,
+  verified local preview for the owner's morning inspection. Keep ready work
+  moving through real predecessor handoffs; preserve/report genuine blockers.
+  This does not approve release, bookmark moves, real push sends or extra
+  spending. Use existing completion notifications; no reminder/scheduler tool
+  is exposed in the current harness.
 - Lead alone writes the backlog, this plan and the owner-review list below.
   Each Conductor owns only its separate batch record's status/closeout; shared
   records are edited/committed on the docs desk with coordinated write windows.
