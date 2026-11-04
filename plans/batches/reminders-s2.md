@@ -111,58 +111,57 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: backend foundation implemented, not independently accepted; worker
-  quiescent, review pending. Dependent UI/personal-policy work and stage
-  integration remain blocked on reviewed S1 and a further handoff.
-- Exact foundation base: `vyvtntwv` / `f43d01ca`; entry `ooqvyvmw` /
-  `5b7b734b` was clean at handoff. Entry remains Lead-managed.
-- Child created before launch: `tmp-reminders-s2-foundation`,
-  `/home/hsa/projects/tmp-reminders-s2-foundation`; `zystrxzr` / `a52b6b41`
-  initially empty on that base. S2 Conductor session `01a1a2ff-4ea8-70c1-b611-b0506e7b9929`
-  owns its lifecycle, reviewed integration into S2 and safe cleanup.
-- Worker run `104772f9-23a8-4526-9606-d90dbfe0f40e` completed with effective
-  `claude-code/claude-haiku-5-5:medium` verified by receipt and environment;
-  no descendants. Stable tip `zystrxzr` / `2e0f70a4`; clean empty child
-  `umuktknn` / `228afc02`, no background processes. Seventeen changed files
-  inspected: backend/test/runtime dependency/API-doc seams only.
-- Initial fresh reviewer `2c5252fb-8a33-4329-9cf8-2f539ba77920` has medium
-  verified by receipt, but preset lacks shell/env. Its static review is
-  supplemental, not sufficient acceptance. Next: fresh `worker`-toolset
-  read-only independent full base-to-tip review, explicitly Haiku5.5 medium;
-  verify shell access/effective settings. No descendants, 60-minute deadline
-  with five-minute checkpoint. S2 owns review runs, existing cwd and cleanup.
-- Worker scope: pure server resolver, shared due fields/canonical UTC/cycles,
-  migration/CRUD/item ops/feeds, Python tests, runtime tzdata and related API
-  docs only. No frontend, personal-policy API, scheduler, push or real services.
-- Obtain fresh independent diff review and full Python gates on the combined
-  foundation. Preserve a stable reviewed tip and quiescence for Lead's later
-  reconciliation; never rebase an active writer.
-- Python evidence: worker full gates passed; Conductor separately reran
-  Ruff format/lint checks, ty and full pytest: 1,581 passed, nine skipped.
-  Existing absent local frontend-build notice remains; no browser gates run.
-- Image evidence: trusted unchanged Dockerfile built successfully with rootless
-  Podman as `localhost/listr-s2-foundation:zystrxzr`, image `18e87471956c`;
-  locked no-dev install included runtime tzdata 2026.6. Network-disabled,
-  read-only smoke (no mounts/server) passed with `PYTHONTZPATH=''` and empty
-  `zoneinfo.TZPATH`: Oslo gap/fold, canonical UTC, date-only and multiple zones.
-  Existing frontend npm audit summary surfaced during build; no frontend
-  dependency changes attempted.
-- Compatibility: test absent/null/legacy hashes and undo/conflict semantics;
-  use the existing API-version mechanism only if required, with rationale.
-- S3 handoff must document/test concrete resolver/effective-policy exports,
-  installation/enrollment grant validation, due-cycle and stable fixed-rule
-  identities/instants, revisions/idempotency and future-only activation time.
-  S3 owns persisted occurrences/outbox/quotas/leases and the scheduler.
-- Docs-desk: ownership recorded in the granted status-only window before
-  worker launch; future writes require another window. Brief remains Lead-owned.
+- State: reviewed foundation complete on S2; server-only identity/policy/preview
+  handoff accepted under amendment `yxsowmmv` / `5f187aad`, authoritative
+  brief/master reread fully. Frontend/full-stage integration still awaits S1.
+- Exact new source base: `umuktknn` / `62d6834c`; clean empty entry `ooqvyvmw`
+  / `e90bf385`. No entry rebase needed. Entry remains Lead-managed.
+- Next bounded milestone: identity/enrollment/grant validation and device
+  settings/private preferences, contract/tests first; then independently review,
+  integrate into S2, run full Python gates and clean its child. Policies and
+  pure preview follow in a separate sequential child on that reviewed result.
+- Planned child before launch: `tmp-reminders-s2-identity`,
+  `/home/hsa/projects/tmp-reminders-s2-identity`, from completed `umuktknn`,
+  not empty entry. S2 Conductor `01a1a2ff-4ea8-70c1-b611-b0506e7b9929` owns
+  child creation, lifecycle, reviewed integration and cleanup. No collision found.
+- One bounded shell-capable `worker`, explicit
+  `claude-code/claude-haiku-5-5:medium`; verify actual environment/tools.
+  No descendants; 90-minute runtime with five-minute checkpoint. Fresh independent
+  full diff/code/test review starts medium, escalates max for incomplete results.
+  Record exact child/run IDs through peer receipts and next coordinated window.
+- Edit bounds: new reminder identity/settings modules/API, next migration,
+  narrow auth revocation/deletion/router hooks, Python tests and related current
+  API/security docs. No frontend, scheduler/lifespan task, occurrences/outbox,
+  quota dispatch, subscriptions, push, production config or real services/sends.
+- Routine assumptions: GET/preview never enroll or renew grants/cookies;
+  install-only grants no room access; explicit resume after sign-in; saved grant
+  validation and separate installation/enrollment idempotency/revisions tested.
+  Concrete S3 exports remain provisional until milestone review.
+- No bookmarks move, including docs-only `integration`; commit only this batch
+  Status/Closeout during granted windows. Brief/Assignment frozen and Lead-owned.
 
 ## Closeout — assigned Conductor
 
-- Partial result: foundation `zystrxzr` / `2e0f70a4`, not full S2 completion.
-- Independent acceptance/own-line combined checks: pending. Worker and
-  Conductor child checks/image smoke above do not replace independent review.
-- Retained artifact: Pi subagent output `104772f9-23a8-4526-9606-d90dbfe0f40e/foundation-worker.md`.
-  API version stays additive (legacy hashes preserved); resolver exports are
-  provisional until reviewed. No dependent contract readiness claimed.
-- Child cleanup/entry cwd release: pending.
-- Owner review/acceptance: pending; no deployment.
+- Foundation partial result: `zystrxzr` / `2e0f70a4` plus doc/test review fixes
+  `umuktknn` / `62d6834c`. Not full S2 completion or feature acceptance.
+- Author medium run `104772f9` and fix resume `9e6ddf85` complete. Static medium
+  review `2c5252fb` supplemental; shell medium `b0e87a1f` requested doc/test
+  fixes but omitted some test assertions. Fresh shell MAX `a94a73b2` approved
+  the complete final 18-file/1,899-line delta and all new assertions.
+- Own-line checks after reviewed child integration: `uv sync --locked`; all
+  required Python gates passed, 1,593 passed/nine skipped (54.82 seconds),
+  Ruff format/lint and ty clean, zero working-copy diff. Reviewer's two PATH-only
+  deploy-backup failures reproduced on baseline, not in the uv-managed gate run.
+- Nonblocking limits retained: extreme calendar overflow safely rejects with a
+  misleading generic message; timed unchanged-schedule rename under missing
+  zone data independently works but lacks a repository assertion. No UI/browser
+  gates claimed for the server-only lane.
+- Image/audit evidence: [delivery verification](../../docs/background/reminder-delivery-verification.md).
+  Image `18e87471956c` retained; network-disabled/no-mount/read-only zone-data
+  smoke also passed after child deletion. No production services started.
+- Foundation child `tmp-reminders-s2-foundation` forgotten and folder removed:
+  all runs complete, no cwd users, clean child/result reachable from S2 first.
+  Five author/review reports retained outside that child under this Pi session's
+  `subagent-artifacts/outputs/`; no path-dependent artifacts lost.
+- Lead entry remains open/clean; no cleanup above S2 ownership. New backend
+  milestone results/review/cleanup pending. Owner acceptance/deploy remain gated.
