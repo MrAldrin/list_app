@@ -112,42 +112,44 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: foundation, identity A and complete server-only B reviewed and accepted
-  into the S2 line under handoff `yxsowmmv` / `5f187aad` and clarification
-  `vlsuxkvn` / `ac59b242`. Frontend/full-stage integration still awaits reviewed S1.
-- Accepted B tip: `qpwvmpyv` / `3c265a95`, including policy implementation
-  `pllnspox` / `e8a6566c`; clean S2 entry `ooqvyvmw` / `2bd283f1`.
-  Parent own-line six Python gates: 1,767 passed/nine skipped, Ruff/ty clean.
-- C pure preview is active, not reviewed or ready: sole worker `087d60ce`
-  in the retained policy child, native `openai/gpt-6.1-terra`, medium thinking.
-  All implementation and independent-review children now use owner-authorized
-  Terra/medium; no automatic Sol escalation. No main/integration moves.
-- Retained unfinished child: `tmp-reminders-s2-policies`,
-  `/home/hsa/projects/tmp-reminders-s2-policies`, from completed `wyknnmnm`,
-  not empty entry. S2 Conductor `01a1a2ff-4ea8-70c1-b611-b0506e7b9929` owns
-  child creation, lifecycle, reviewed integration and cleanup. Do not remove it
-  while B remains unfinished; no concurrent writers.
+- State: complete S2 source reviewed and own-stage gated; Lead integrated into
+  isolated aggregate `mytytmnv` / `1ad77419` and handed full source to S3.
+  This is not owner acceptance, deployment or reminder delivery activation.
+- Completed source: `kwqutmso` / `3f536353`; clean quiescent Lead-owned S2 entry
+  `ryovswot` / `372b9100`. The reviewed source `kwqutmso` / `2b6193ec` has an
+  identical tree after quiescent reconciliation (verified zero-file diff).
+- Own-stage gates: 567 full three-engine browser tests passed (672.91 seconds);
+  1,111 frontend unit tests, format/lint/check/build passed. Python six gates
+  passed: 1,783/nine build-dependent skips before the frontend build. Author
+  final built-tree Python run passed 1,792. Ruff/ty clean; no source drift.
+- All implementation and independent-review children use owner-authorized native
+  `openai/gpt-6.1-terra`, medium thinking; final reviewer receipt retained below.
+  No active writer, service, bookmark/main/integration/groups move or real send.
+- S2-created policy and UI workspaces were forgotten and folders removed after
+  clean/reachable results, completed runs, no cwd users and external evidence
+  checks. Lead-owned entry retained. No cleanup above S2 ownership.
 - Broad medium `e56a6054` delivered only the cycle-start slice; broad MAX
   `ee1ca186` delivered only GET-cookie doc correction `potqzyxv` / `2d875515`.
   Neither delivered policy code; both completed, no false B completion claim.
-- Active bounded B2a `da82dd80-9dae-4085-a386-936d1feb3737`: fresh shell-capable
+- Historical bounded B2a `da82dd80-9dae-4085-a386-936d1feb3737`: fresh shell-capable
   Haiku5.5 medium (native settings verified), pure `rules.py` and its tests only,
   source base `potqzyxv` / `2d875515`, initial empty `ovwlmwsw` / `782f2b9f`.
   Forty-minute deadline/five-minute checkpoint; no descendants. Source/tests
-  written, not reviewed. Repeated malformed edit arguments were rejected before
+  initially written, then reviewed/fixed in B. Malformed edit arguments were rejected before
   mutation; exact array schema supplied for one retry, otherwise checkpoint/stop.
 - Subsequent reviews read actual source/docs/tests, including the enumerated
   GET-cookie bullet and live GET probe; no inference from an accuracy claim.
   Routine run/check evidence stays in Pi artifacts; batch Status updates here.
-- Edit bounds: reminder policy/domain/storage/API, next migration and narrow
-  cycle mutation/restore hooks, Python tests and related current API/security
-  docs. Existing identity/security contracts preserved. No frontend,
-  scheduler/lifespan task, occurrences/outbox,
-  quota dispatch, subscriptions, push, production config or real services/sends.
+- Full frontend authority followed Lead's reviewed S1 `tyyvxrul` / `ab12f9c0`
+  handoff after C review/gates. Shared time/offline/undo, private settings,
+  room/list/item policy editing, previews and ephemeral device-zone due views
+  are implemented. Existing identity/security contracts preserved; no scheduler,
+  occurrence/outbox, quota dispatch, subscription, push or production work.
 - Routine assumptions: GET/preview never enroll or renew grants/cookies;
   install-only grants no room access; explicit resume after sign-in; saved grant
   validation and separate installation/enrollment idempotency/revisions tested.
-  Concrete S3 exports remain provisional until milestone review.
+  Reviewed effective-policy/resolver/preview contracts and UUID HTTP repair
+  sent directly to S3; S3 owns runtime and completed-line identity reconciliation.
 - No bookmarks move, including docs-only `integration`; commit only this batch
   Status/Closeout during granted windows. Brief/Assignment frozen and Lead-owned.
 
@@ -229,8 +231,45 @@ material fixes after independent review.
   Claude 429 and retired Codex usage-limit interruptions preserved partial files;
   explicit owner provider/model corrections resumed work. Sol stopped natively
   before Terra replacement, with durable recovery notes outside `/tmp`.
-- C preview worker `087d60ce` owns the clean child above accepted B. Preview cap
-  is next five, without an invented one-year fixed-time horizon; draft item policy
-  inherits stored parents. Summary output describes item eligibility, not promised
-  room dispatch. Fresh independent review and own-line gates remain required.
-  Retain the owned child until C completes; then perform lifecycle cleanup.
+- C complete: `tmnqqnsq` / `9fec31eb` plus quiet-fold fix `xtmnuruo` /
+  `98c37a22`; independent Terra `1da7ba58` approved after a four-zone transition
+  probe. Original scheduled instant remains separate from quiet deferral; first
+  fold UTC boundaries cannot reopen completed quiet windows. Pure next-five
+  item contribution preview is not room dispatch or permission to send early.
+- Shared-time UI: `wsntpkpo` / `c7bb30ba`, timed-overdue/zone validation fix
+  `xunsrlvl` / `fef16025`, zone-case fix `yswyvrkk` / `4c3c1105`.
+  Independent `9cf321b8` approved after actual offline three-engine probes.
+  Confirmed UTC determines timed overdue; personal zone determines day groups;
+  unconfirmed wall intent says Waiting to sync. Offline conflict/undo preserves
+  wall fields; unchanged server zone aliases retain identity.
+- Private settings: `uvkpruwv` / `7c23225c`, retry/draft/expiry fixes `nlrposuq` /
+  `5f02d4be` and `volpmsxp` / `9deb7dd6`; independent `ad432602` approved.
+  Corrupt successful responses retain exact pending operation/body. Expiry recovery
+  preserves drafts, GET-checks identity and requires explicit new enrollment;
+  old unknown operations never replay onto a new installation. Drafts/IDs remain
+  memory-only and are lost on reload/navigation, explicitly documented.
+- Private policy editor/device-zone integration `lwqszvmk` / `64cf0977`, visible
+  safety/privacy controls `ypkmsllp` / `f5f78409`, preview collision fix `kwqutmso` /
+  `2b6193ec`. Fresh Terra `02f12347` requested those two UI fixes; `f7fb54a7`
+  approved exact final source after independent actual-server three-engine probes.
+  Controls cover quiet hours, cap, spacing, content privacy and overdue repeat.
+- Approved HTTP repair uses existing public list/item UUIDs, retains validated
+  numeric compatibility, and preview accepts exactly one `item_uid` or `item_id`.
+  Ownership is resolved before replay/revision lookup; action hashes use the
+  resolved numeric target. No shared-feed numeric IDs or lookup service added.
+- Own-stage full browser gate passed 567 on exact final tree; previous intermittent
+  WebKit sign-in interruption remains historically unexplained, not waived as
+  baseline. Author's earlier green full run preceded only a runtime-equivalent
+  test string escape; own-stage run closes that exact-source evidence gap.
+- Durable evidence base:
+  `/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s2--/subagent-artifacts/outputs/`.
+  Final reviewer: `02f12347-f639-4923-9527-fe983f34b4df/policy-editor-ui-review.f7fb54a7.md`.
+  Native parent management receipt (completed run, exact Terra/medium):
+  `s2-own-stage-final/native-final-review-receipt.md`.
+  Own full browser output: `s2-own-stage-final/browser.log`.
+  Author full logs/traces: `2ef9c0c8-review-fix-browser/`; final quality log:
+  `2ef9c0c8-review-fix-gates/gates-final.log`. Evidence remains outside deleted children.
+- Creator cleanup complete: policy child `kxvownqm` and UI child `ttqqopyu`
+  were clean/empty, completed source reachable from S2 and aggregate, with no cwd
+  users before forgetting/deleting. No services remain. Full S2 exact source and
+  public/internal contracts handed to Lead/S3; S2 is idle pending concrete feedback.
