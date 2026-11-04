@@ -1,6 +1,7 @@
 """Private settings require an explicit enrollment and stay out of the shared queue."""
 
 import json
+import sqlite3
 
 import pytest
 from playwright.sync_api import expect
@@ -336,6 +337,158 @@ def test_enroll_other_room_preserves_existing_device_draft(svelte_server, open_s
     dialog.get_by_role("button", name="Enroll this device").click()
     expect(dialog.get_by_text("Status: Active")).to_be_visible()
     assert_device_draft(dialog)
+
+
+@pytest.mark.parametrize("other_room", [False, True])
+@pytest.mark.parametrize("unknown", [False, True])
+def test_enrollment_expiry_recovers_only_after_explicit_action(
+    svelte_server, open_session, other_room, unknown
+):
+    if other_room:
+        admin = open_session("admin", **PHONE)
+        slug = create_room_as_admin(admin, svelte_server, "Cabin", CABIN_PASSWORD)
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_label("Time zone for this device").fill("UTC")
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    if other_room:
+        dialog.get_by_role("button", name="Close").click()
+        page.goto(app_url(svelte_server, f"room/{slug}"))
+        page.get_by_label("Room Password").fill(CABIN_PASSWORD)
+        page.get_by_label("Room Password").press("Enter")
+        expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+        dialog = open_settings(page)
+    else:
+        dialog.get_by_role("button", name="Opt out of this room").click()
+        expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
+    dialog.get_by_label("Room reminder mode").select_option("quiet")
+    dialog.get_by_label("Room summary time").fill("12:34")
+    edit_device_draft(dialog)
+    page.evaluate(
+        """corrupt => {
+        const real = window.fetch;
+        window.enrollmentAttempts = [];
+        window.fetch = async (...args) => {
+            const isEnrollment = String(args[0]).endsWith('/reminders/enrollment') && args[1]?.method === 'POST';
+            if (isEnrollment) window.enrollmentAttempts.push(JSON.parse(args[1].body));
+            const response = await real(...args);
+            if (isEnrollment && corrupt && window.enrollmentAttempts.length === 1) {
+                if (response.status !== 200) throw new Error('First enrollment failed');
+                return new Response('{', {status: 200, headers: {'Content-Type': 'application/json'}});
+            }
+            return response;
+        };
+    }""",
+        unknown,
+    )
+    if unknown:
+        dialog.get_by_role(
+            "button", name="Enroll this device" if other_room else "Resume this room"
+        ).click()
+        expect(dialog.get_by_role("alert")).to_contain_text("result is unknown")
+    with sqlite3.connect(svelte_server.database) as db:
+        db.execute(
+            "UPDATE reminder_installations SET expires_at = '2000-01-01T00:00:00Z'"
+        )
+    dialog.get_by_role(
+        "button",
+        name="Retry request"
+        if unknown
+        else ("Enroll this device" if other_room else "Resume this room"),
+    ).click()
+    expect(dialog.get_by_text("Status: Not enrolled")).to_be_visible()
+    expect(dialog.get_by_role("alert")).to_contain_text("unavailable or expired")
+    attempts = page.evaluate("window.enrollmentAttempts")
+    if unknown:
+        expect(dialog.get_by_role("alert")).to_contain_text(
+            "previous request may have committed"
+        )
+        assert len(attempts) == 2 and attempts[0] == attempts[1]
+    else:
+        assert len(attempts) == 1
+    assert all("timezone" not in body for body in attempts)
+    expect(dialog.get_by_label("Room summary time")).to_have_value("12:34")
+    expect(dialog.get_by_label("Room reminder mode")).to_have_value("quiet")
+    expect(dialog.get_by_label("Time zone for this device")).to_have_value(
+        "Europe/Oslo"
+    )
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(1,)]
+    old_id = attempts[-1]["op_id"]
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    attempts = page.evaluate("window.enrollmentAttempts")
+    assert attempts[-1]["op_id"] != old_id and attempts[-1]["timezone"] == "Europe/Oslo"
+    expect(dialog.get_by_label("All-day reminder time")).to_have_value("13:25")
+    expect(dialog.get_by_label("Pause reminders on this device")).to_be_checked()
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(2,)]
+
+
+def test_enrollment_422_retains_real_validation_error(svelte_server, open_session):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_role("button", name="Opt out of this room").click()
+    expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
+    dialog.get_by_label("Room summary time").fill("")
+    dialog.get_by_role("button", name="Resume this room").click()
+    expect(dialog.get_by_role("alert")).to_have_text("This request is not valid.")
+    expect(dialog.get_by_role("alert")).not_to_contain_text("unavailable or expired")
+    expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
+    expect(dialog.get_by_label("Room summary time")).to_have_value("")
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(1,)]
+
+
+def test_enrollment_expiry_identity_load_failure_keeps_unknown_warning(
+    svelte_server, open_session
+):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_role("button", name="Opt out of this room").click()
+    expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
+    dialog.get_by_label("Room summary time").fill("12:34")
+    page.evaluate("""() => {
+        const real = window.fetch;
+        let corrupt = true;
+        window.failIdentityReads = false;
+        window.fetch = async (...args) => {
+            if (window.failIdentityReads && args[1]?.method === 'GET' && String(args[0]).includes('/reminders/preferences')) throw new TypeError('offline');
+            const response = await real(...args);
+            if (corrupt && String(args[0]).endsWith('/reminders/enrollment') && args[1]?.method === 'POST') {
+                corrupt = false;
+                if (response.status !== 200) throw new Error('First enrollment failed');
+                return new Response('{', {status: 200});
+            }
+            return response;
+        };
+    }""")
+    dialog.get_by_role("button", name="Resume this room").click()
+    expect(dialog.get_by_role("alert")).to_contain_text("result is unknown")
+    with sqlite3.connect(svelte_server.database) as db:
+        db.execute(
+            "UPDATE reminder_installations SET expires_at = '2000-01-01T00:00:00Z'"
+        )
+    page.evaluate("window.failIdentityReads = true")
+    dialog.get_by_role("button", name="Retry request").click()
+    expect(dialog.get_by_role("alert")).to_contain_text(
+        "previous request may have committed"
+    )
+    expect(dialog.get_by_role("button", name="Try loading again")).to_be_visible()
+    expect(dialog.get_by_text("Status: Opted out")).to_have_count(0)
+    page.evaluate("window.failIdentityReads = false")
+    dialog.get_by_role("button", name="Try loading again").click()
+    expect(dialog.get_by_text("Status: Not enrolled")).to_be_visible()
+    expect(dialog.get_by_role("alert")).to_contain_text(
+        "previous request may have committed"
+    )
+    expect(dialog.get_by_label("Room summary time")).to_have_value("12:34")
+    assert svelte_server.query("SELECT COUNT(*) FROM reminder_installations") == [(1,)]
 
 
 def test_conflict_requires_reload_and_preserves_draft(svelte_server, open_session):

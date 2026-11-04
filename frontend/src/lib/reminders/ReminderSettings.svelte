@@ -25,6 +25,9 @@
 	let confirmZone = $state(false);
 	let hasDeviceDraft = false;
 	let recoveringIdentity = $state(false);
+	let enrollmentValidationError: string | null = null;
+	let previousOutcomeUnknown = false;
+	let pendingOutcomeUnknown = false;
 	let loading = $state(true);
 	let busy = $state(false);
 	let online = $state(true);
@@ -60,10 +63,25 @@
 			applyDevice(b.device, initialize);
 			conflict = false;
 			recoveringIdentity = false;
+			if (enrollmentValidationError !== null) {
+				const unknown = previousOutcomeUnknown
+					? ' The previous request may have committed and cannot be replayed on a new installation.'
+					: '';
+				error =
+					b.device === null
+						? `This device enrollment is unavailable or expired.${unknown} Your edits are kept. Explicitly enroll to continue.`
+						: `${enrollmentValidationError}${previousOutcomeUnknown ? ' The previous request may have committed; review the current settings before trying again.' : ''}`;
+				enrollmentValidationError = null;
+				previousOutcomeUnknown = false;
+			}
 			if (!initialize)
 				notice = 'Latest revisions loaded. Your edits remain; review them before saving.';
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Could not load settings.';
+			if (enrollmentValidationError !== null) {
+				error = `Could not check device identity. Try loading again. ${enrollmentValidationError}${previousOutcomeUnknown ? ' The previous request may have committed; it cannot be replayed on a new installation.' : ''}`;
+			} else {
+				error = e instanceof Error ? e.message : 'Could not load settings.';
+			}
 		} finally {
 			loading = false;
 		}
@@ -83,6 +101,7 @@
 	});
 	async function send() {
 		if (!pending || !pendingKind || !canSend) return;
+		const write = pending;
 		busy = true;
 		error = '';
 		notice = '';
@@ -105,6 +124,7 @@
 			}
 			pending = null;
 			pendingKind = null;
+			pendingOutcomeUnknown = false;
 			if (!notice) notice = 'Saved on this device.';
 		} catch (e) {
 			if (
@@ -112,8 +132,26 @@
 				e instanceof NetworkError ||
 				(e instanceof ApiError && e.status >= 500)
 			) {
+				pendingOutcomeUnknown = true;
 				error =
 					'The result is unknown. Retry the same request when connected; your edits are kept.';
+			} else if (
+				pendingKind === 'enroll' &&
+				!('timezone' in write.body) &&
+				e instanceof ApiError &&
+				e.status === 422 &&
+				e.code === 'invalid_request'
+			) {
+				// An existing installation may have expired before enrollment; verify before diagnosing it.
+				enrollmentValidationError = e.message;
+				previousOutcomeUnknown = pendingOutcomeUnknown;
+				pending = null;
+				pendingKind = null;
+				pendingOutcomeUnknown = false;
+				recoveringIdentity = true;
+				enrollment = null;
+				device = null;
+				await load(false);
 			} else if (e instanceof ApiError && e.status === 403 && e.code === 'not_enrolled') {
 				pending = null;
 				pendingKind = null;
@@ -140,6 +178,7 @@
 	}
 	function start(kind: 'enroll' | 'room' | 'device' | 'optout') {
 		if (!canSend || pending || conflict || !enrollment) return;
+		pendingOutcomeUnknown = false;
 		if (kind === 'enroll') {
 			pending = api.prepare('POST', 'enrollment', {
 				base_revision: enrollment.revision,
