@@ -31,6 +31,10 @@ from reminders.due_schedule import (
     merge_due_edit,
     new_due_cycle,
 )
+from reminders.identity import (
+    disable_enrollments_for_token_locked,
+    disable_room_enrollments_locked,
+)
 
 _DB_LOCK = threading.RLock()
 
@@ -1241,7 +1245,10 @@ def authenticate_room_and_issue_token(
 
 
 def revoke_room_access_token(room_slug: str, token: str) -> None:
-    """Revoke a token after the browser could not persist it."""
+    """Revoke a token (sign-out, or a browser that could not keep it).
+
+    Enrollments that were granted by this token need an explicit resume.
+    """
     with transaction(write=True):
         db.execute(
             """
@@ -1252,6 +1259,7 @@ def revoke_room_access_token(room_slug: str, token: str) -> None:
             """,
             (token_hash(token), room_slug),
         )
+        disable_enrollments_for_token_locked(token_hash(token))
 
 
 def _replace_room_password_locked(room_id: int, password_hash: str) -> int | None:
@@ -1272,6 +1280,8 @@ def _replace_room_password_locked(room_id: int, password_hash: str) -> int | Non
     )
     # Deleting old rows avoids an unbounded accumulation after password resets.
     db.execute("DELETE FROM room_access_tokens WHERE room_id = ?", (room_id,))
+    # Every device enrolled in this room needs an explicit resume.
+    disable_room_enrollments_locked(room_id)
     return authorization_version
 
 

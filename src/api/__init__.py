@@ -5,7 +5,17 @@ The contract is in docs/api.md. Register it with `register_api(app)`.
 
 from fastapi import APIRouter, Depends, FastAPI
 
-from api import admin, changes, events, invitations, ops, room, session, share
+from api import (
+    admin,
+    changes,
+    events,
+    invitations,
+    ops,
+    reminders,
+    room,
+    session,
+    share,
+)
 from api.errors import install_error_handlers
 from api.requests import NoStoreMiddleware, check_write_request
 
@@ -20,6 +30,7 @@ def build_router() -> APIRouter:
     router.include_router(ops.router)
     router.include_router(events.router)
     router.include_router(room.router)
+    router.include_router(reminders.router)
     router.include_router(share.router)
     router.include_router(admin.router)
     router.include_router(invitations.admin_router)

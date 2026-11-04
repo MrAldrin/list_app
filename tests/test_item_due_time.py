@@ -502,7 +502,9 @@ def test_restore_helper_rejects_an_invalid_schedule_without_writing(item):
 
 def test_migration_fifteen_backfills_cycles_without_a_change_seq_bump(tmp_path):
     connection = sqlite3.connect(tmp_path / "v14.db")
-    migrate_to(connection, LATEST_VERSION - 1)
+    # Stop at version 14, before migration 15 backfills cycles; later migrations
+    # (such as 16) must not move this test's starting point.
+    migrate_to(connection, LATEST_VERSION - 2)
     connection.execute(
         "INSERT INTO lists (name, slug, room_id, share_token) "
         "VALUES ('Shop', 'shop', 1, 'token')"

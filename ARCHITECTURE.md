@@ -56,6 +56,11 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   The token lives in an HTTP-only room cookie (`__Host-`, Secure on HTTPS);
   JavaScript never sees it and the password is never stored. Plain HTTP
   (local testing) uses a cookie without `Secure`.
+- **Personal reminder settings:** A device (installation) has a random server-issued
+  secret, stored only as a hash in an HTTP-only device cookie. Room enrollments
+  need the room cookie and the device cookie. Explicit enrollment creates or
+  resumes a grant; reads never do. Sign-out or a password change cuts saved
+  grants. See [API: Personal reminder settings](docs/api-reminders.md).
 - **Same-origin writes:** Every API write must come from a page of this exact
   origin and send JSON. CORS is never enabled. The live streams are plain
   same-origin GET requests with the same cookie checks.

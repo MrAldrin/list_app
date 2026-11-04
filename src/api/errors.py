@@ -37,6 +37,8 @@ MESSAGES = {
     "forbidden_origin": "This request must come from this site.",
     "not_found": "Not found.",
     "op_id_reused": "This op_id was already used for another request.",
+    "revision_conflict": "These settings changed in another tab. Refresh and review them.",
+    "not_enrolled": "Turn on reminders on this device first.",
     "too_many_attempts": "Too many attempts. Try again in a minute.",
     "unavailable": "The server is busy. Please try again.",
     "internal_error": "Something went wrong on the server.",

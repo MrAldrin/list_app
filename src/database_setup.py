@@ -821,6 +821,103 @@ def _migration_15_due_time_and_zone(db: sqlite3.Connection) -> None:
         """)
 
 
+def _migration_16_personal_reminders(db: sqlite3.Connection) -> None:
+    """Add this device's installations, room enrollments and personal op results.
+
+    Personal data is kept apart from shared rooms: nothing here is read by the
+    room feeds, share links or change tracking. An installation's secret is
+    stored only as its hash (`secret_hash`). An enrollment binds an installation
+    to one room and the room token and authorization version that granted it.
+    Personal op results have their own table, so they never share the
+    `processed_ops` namespace. Scope `installation` has no room; scope
+    `enrollment` has one. Partial indexes give each scope its own uniqueness,
+    because SQLite treats NULL room IDs as distinct in a plain UNIQUE key.
+    """
+    db.execute(
+        """
+        CREATE TABLE reminder_installations (
+            id INTEGER PRIMARY KEY,
+            secret_hash TEXT NOT NULL UNIQUE,
+            revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+            timezone TEXT NOT NULL,
+            all_day_time TEXT NOT NULL DEFAULT '09:00',
+            quiet_start TEXT DEFAULT '22:00',
+            quiet_end TEXT DEFAULT '08:00',
+            daily_cap INTEGER NOT NULL DEFAULT 10
+                CHECK (daily_cap BETWEEN 1 AND 50),
+            spacing_minutes INTEGER NOT NULL DEFAULT 10
+                CHECK (spacing_minutes BETWEEN 1 AND 60),
+            paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1)),
+            content_privacy TEXT NOT NULL DEFAULT 'generic'
+                CHECK (content_privacy IN ('generic', 'counts', 'names')),
+            overdue_repeat_days INTEGER
+                CHECK (overdue_repeat_days IS NULL
+                       OR overdue_repeat_days BETWEEN 1 AND 30),
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            CHECK ((quiet_start IS NULL) = (quiet_end IS NULL))
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE TABLE reminder_enrollments (
+            installation_id INTEGER NOT NULL
+                REFERENCES reminder_installations(id) ON DELETE CASCADE,
+            room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+            token_hash TEXT NOT NULL,
+            authorization_version INTEGER NOT NULL CHECK (authorization_version >= 1),
+            status TEXT NOT NULL CHECK (status IN ('active', 'opted_out', 'revoked')),
+            mode TEXT NOT NULL DEFAULT 'daily_summary'
+                CHECK (mode IN ('quiet', 'daily_summary', 'scheduled', 'custom')),
+            summary_time TEXT NOT NULL DEFAULT '09:00',
+            revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+            activated_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (installation_id, room_id)
+        )
+        """
+    )
+    db.execute(
+        "CREATE INDEX idx_reminder_enrollments_room ON reminder_enrollments(room_id)"
+    )
+    db.execute(
+        "CREATE INDEX idx_reminder_enrollments_token "
+        "ON reminder_enrollments(token_hash)"
+    )
+    db.execute(
+        """
+        CREATE TABLE reminder_processed_ops (
+            id INTEGER PRIMARY KEY,
+            scope TEXT NOT NULL CHECK (scope IN ('installation', 'enrollment')),
+            installation_id INTEGER NOT NULL
+                REFERENCES reminder_installations(id) ON DELETE CASCADE,
+            room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
+            op_id TEXT NOT NULL,
+            request_hash TEXT NOT NULL,
+            response_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            CHECK ((scope = 'installation') = (room_id IS NULL))
+        )
+        """
+    )
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_processed_ops_installation "
+        "ON reminder_processed_ops(installation_id, op_id) "
+        "WHERE scope = 'installation'"
+    )
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_processed_ops_enrollment "
+        "ON reminder_processed_ops(installation_id, room_id, op_id) "
+        "WHERE scope = 'enrollment'"
+    )
+    db.execute(
+        "CREATE INDEX idx_reminder_processed_ops_created_at "
+        "ON reminder_processed_ops(created_at)"
+    )
+
+
 def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
     """Store each list's tag settings: one or several tags, tag display, colors.
 
@@ -926,6 +1023,7 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_13_version_item_name_keys,
         _migration_14_tag_settings,
         _migration_15_due_time_and_zone,
+        _migration_16_personal_reminders,
     ]
 
 

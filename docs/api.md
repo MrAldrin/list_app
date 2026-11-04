@@ -16,6 +16,7 @@ Write rules live in Python and apply to every write path: see
 | Admin | [api-admin.md](api-admin.md) | Admin sign-in, admin room tools |
 | Lists and items | [api-lists-items.md](api-lists-items.md) | Data shapes, write operations, conflicts, rejection codes |
 | Reading and live updates | [api-sync.md](api-sync.md) | Changes feed, live update stream |
+| Personal reminder settings | [api-reminders.md](api-reminders.md) | This device's enrollment and device settings (not shared) |
 
 ## Basics
 
@@ -89,6 +90,8 @@ HTTP errors use one shape:
 | 404 | `room_unavailable` | Admin password reset or delete: no room has this slug |
 | 404 | `invitation_unavailable` | Creation invitation: unknown, expired, revoked, deleted or at its 5-room limit (identical) |
 | 409 | `op_id_reused` | Same `op_id` sent again with a different body |
+| 409 | `revision_conflict` | Personal reminder settings changed in another tab; refresh and review ([reminders](api-reminders.md#idempotency-and-revisions)) |
+| 403 | `not_enrolled` | Personal reminder settings: no valid device cookie for this room ([reminders](api-reminders.md)) |
 | 500 | `internal_error` | Unexpected server error (a bug); no details are sent |
 | 429 | `too_many_attempts` | Too many failed sign-ins; `Retry-After` gives the seconds (see [sign-in limit](api-rooms.md#sign-in-limit)) |
 | 503 | `unavailable` | Database busy or failing; retry later. Saved access stays. |
