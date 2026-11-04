@@ -115,21 +115,28 @@ material fixes after independent review.
   server-only policy/cycle-cutoff B under existing handoff `yxsowmmv` /
   `5f187aad` and accepted expiry/activation clarification `vlsuxkvn` /
   `ac59b242`. Frontend/full-stage integration still awaits S1.
-- Exact B source base: completed `wyknnmnm` / `a8ee483a`; clean empty entry
-  `ooqvyvmw` / `ecaac80f`. Entry remains Lead-managed.
-- Next B: validated room/list/item policy storage/API, inheritance/reset/off,
-  relative/fixed identity and future activation, plus durable shared-cycle start
-  under the mutation lock. Contract/tests first, independent full review/gates;
-  separate sequential C implements pure preview on reviewed B.
-- Planned child before launch: `tmp-reminders-s2-policies`,
+- Accepted source now includes B cycle-start slice `rwswntvl` / `3eb72704`;
+  clean S2 entry `ooqvyvmw` / `6990d1e6`, still Lead-managed.
+- Remaining B is split into pure rules B2a, policy storage/inheritance/activation
+  B2b, then private API B2c; separate C preview follows reviewed B. No policy
+  storage/API or preview exists yet. Contract/tests and independent review per slice.
+- Retained unfinished child: `tmp-reminders-s2-policies`,
   `/home/hsa/projects/tmp-reminders-s2-policies`, from completed `wyknnmnm`,
   not empty entry. S2 Conductor `01a1a2ff-4ea8-70c1-b611-b0506e7b9929` owns
-  child creation, lifecycle, reviewed integration and cleanup. No collision found.
-- One bounded shell-capable `worker`, explicit
-  `claude-code/claude-haiku-5-5:medium`; verify actual environment/tools.
-  No descendants; 90-minute runtime with five-minute checkpoint. Fresh independent
-  full diff/code/test review starts medium, escalates max for incomplete results.
-  Record exact child/run IDs through peer receipts and next coordinated window.
+  child creation, lifecycle, reviewed integration and cleanup. Do not remove it
+  while B remains unfinished; no concurrent writers.
+- Broad medium `e56a6054` delivered only the cycle-start slice; broad MAX
+  `ee1ca186` delivered only GET-cookie doc correction `potqzyxv` / `2d875515`.
+  Neither delivered policy code; both completed, no false B completion claim.
+- Active bounded B2a `da82dd80-9dae-4085-a386-936d1feb3737`: fresh shell-capable
+  Haiku5.5 medium (native settings verified), pure `rules.py` and its tests only,
+  source base `potqzyxv` / `2d875515`, initial empty `ovwlmwsw` / `782f2b9f`.
+  Forty-minute deadline/five-minute checkpoint; no descendants. Source/tests
+  written, not reviewed. Repeated malformed edit arguments were rejected before
+  mutation; exact array schema supplied for one retry, otherwise checkpoint/stop.
+- Subsequent reviews read actual source/docs/tests, including the enumerated
+  GET-cookie bullet and live GET probe; no inference from an accuracy claim.
+  Routine run/check evidence stays in Pi artifacts; batch Status updates here.
 - Edit bounds: reminder policy/domain/storage/API, next migration and narrow
   cycle mutation/restore hooks, Python tests and related current API/security
   docs. Existing identity/security contracts preserved. No frontend,
@@ -181,5 +188,19 @@ material fixes after independent review.
   and `e36aaeab-69fb-4083-9b77-bd2e93b5f72c/identity-final-review.b99cd259.md`.
 - A limits: lost first response may leave an unused installation; token-cap
   pruning can leave stored status stale, but live grant validation is authoritative.
-  No policy/preview/S3-ready contract yet. Lead entry remains open/clean; no
-  cleanup above S2 ownership. B/C results/review/cleanup pending; no deploy.
+  Lead found an actual doc discrepancy despite `b99cd259`'s accuracy claim:
+  GET device was wrongly listed among 403 routes. Doc-only `potqzyxv` /
+  `2d875515` fixes the enumeration, pending follow-up review with B2a.
+- B cycle slice: `ozkolnnz` / `dd1832db` plus test-only `rwswntvl` / `3eb72704`.
+  Medium independent `0af1150b` source review plus `374eca1b` exact-clock
+  delta approval; four mutations prove wrong clock/per-row/format/undated cases
+  fail. Own-line Python gates: 1,688 passed/nine skipped (55.15 seconds),
+  Ruff/ty clean, zero diff. Only shared cycle-start metadata/cutoff helper done.
+- B slice limits: undated SQL arguments still sample a clock but store NULL;
+  cutoff helper tests are not scheduler end-to-end evidence and require aware
+  timestamps from future callers. Broader B/C remain unimplemented.
+- External Pi reports retained for `e56a6054`/`600f3a2f`, `0af1150b`/`374eca1b`,
+  and doc-only MAX `ee1ca186`. Unreviewed draft rules tests are outside repository
+  at `/tmp/policies-worker-drafts/`, not delivered code.
+- No policy/preview/S3-ready contract yet. Lead entry remains open/clean; no
+  cleanup above S2 ownership. B child/results/review/cleanup pending; no deploy.
