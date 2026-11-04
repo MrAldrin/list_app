@@ -26,6 +26,7 @@ from api_helpers import (
 )
 from migration_helpers import migrate_to
 
+import database_setup
 from database_crud import (
     get_due_cycle_locked,
     restore_deleted_item_locked,
@@ -379,7 +380,23 @@ def test_relative_cutoff_is_the_latest_applicable_activation():
     assert relative_rule_is_active(earlier, [cycle_start, enrollment, policy]) is False
 
 
-def test_migration_17_backfills_one_instant_without_a_change_seq_bump(tmp_path):
+class CountingUtcClock(datetime):
+    """Stands in for database_setup.datetime: one fixed UTC instant, counted."""
+
+    samples: list[datetime] = []  # noqa: RUF012 - reset per test by the fixture
+
+    @classmethod
+    def now(cls, tz=None):
+        CountingUtcClock.samples.append(FIXED_MIGRATION_INSTANT)
+        return FIXED_MIGRATION_INSTANT
+
+
+FIXED_MIGRATION_INSTANT = datetime(2026, 11, 4, 10, 0, tzinfo=UTC)
+
+
+def test_migration_17_backfills_one_instant_without_a_change_seq_bump(
+    tmp_path, monkeypatch
+):
     connection = sqlite3.connect(tmp_path / "v16.db")
     migrate_to(connection, 16)
     connection.execute(
@@ -401,14 +418,21 @@ def test_migration_17_backfills_one_instant_without_a_change_seq_bump(tmp_path):
     )
     cycles_before = dict(connection.execute("SELECT name, due_cycle FROM items"))
 
+    CountingUtcClock.samples = []
+    monkeypatch.setattr(database_setup, "datetime", CountingUtcClock)
     migrate_to(connection)
+    monkeypatch.undo()
 
+    # One clock sample for the whole migration, shared by every dated row.
+    assert len(CountingUtcClock.samples) == 1
     starts = dict(
         connection.execute("SELECT name, due_cycle_started_at FROM items").fetchall()
     )
-    assert starts["eggs"] is None
-    assert starts["milk"] == starts["bread"]
-    assert starts["milk"].endswith("Z") and "T" in starts["milk"]
+    assert starts == {
+        "milk": "2026-11-04T10:00:00.000Z",
+        "bread": "2026-11-04T10:00:00.000Z",
+        "eggs": None,
+    }
     assert (
         connection.execute("SELECT change_seq FROM rooms WHERE id = 1").fetchone()
         == seq_before
@@ -419,3 +443,4 @@ def test_migration_17_backfills_one_instant_without_a_change_seq_bump(tmp_path):
     assert dict(connection.execute("SELECT name, due_cycle FROM items")) == (
         cycles_before
     )
+    connection.close()
