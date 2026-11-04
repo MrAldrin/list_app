@@ -88,10 +88,42 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: active; two-way readiness and explicit edit handoff received.
-- Next: substantive review fixes, fresh diff-level independent review, then
-  combined full stage gates; no acceptance yet.
-- Candidate: completed `kxumoykk` (`30cf8d1b977f`), empty child `swtpolmk`.
+- State: active, full browser gate blocked. Expanded verification-repair
+  edit handoff received after `ulunnpkv` (`0ad7b06c`); Brief/Assignment frozen.
+- Conductor freshly verified from environment: session
+  `01a1a2f1-3b36-7354-b16b-8fe1f4db448c`, cwd
+  `/home/hsa/projects/tmp-reminders-s1`, provider `openai-codex`, model
+  `gpt-6.1-sol`, reasoning `high` for this hard lifecycle phase.
+- Actual completed candidate: `swtpolmk` (`d90bc864`) atop `kxumoykk`;
+  integrated into clean entry `vsoywmwz` (empty child). Fresh max reviewer
+  `863359a7-a6e4-4990-9824-f01cd37ef2be` read the complete 1,813-line
+  base-to-tip diff and approved code conditional on full gates.
+- Combined gates: Python 1,535 passed/9 skipped; Ruff format/check and ty
+  clean; frontend format/lint/check/1,088 unit tests/build passed.
+  Full `uv run pytest browser_tests -q -n 4`: 438 passed, 3 failed, 2 errors.
+  Failures: Chromium keyboard reopen and WebKit saved-notice/legacy offline
+  navigation. Log `/tmp/listr-s1-browser-full.log`; no flake waiver.
+- Diagnostic max worker `589b5d6e-ef2a-42d1-86bc-1eb27d252e9a`, resumed
+  `7a4dea45-cb87-443e-bfdd-50ab389e6fed`, finished without changes.
+  Telemetry caught an activated worker with an empty named cache before
+  shutdown; cache-emptying writer remains unknown. Keyboard did not reproduce
+  in nine instrumented reopens. Lower-load baseline passes do not prove cause.
+- Owned baseline child: `tmp-reminders-s1-baseline`,
+  `/home/hsa/projects/tmp-reminders-s1-baseline`, empty `mznouxzm` from
+  `zpzpvuyl`; Conductor-created/test-only, cleanup retained until evidence safe.
+  UI child remains `tmp-reminders-s1-ui`, empty `xtwzoknt` above candidate;
+  no active writer at this checkpoint. Conductor owns both child lifecycles.
+- Next authorized dispatch: one bounded Haiku 5.5/max telemetry-first worker,
+  verify effective runtime setting, identify cache writer/version/client timeline
+  (names before open), compare identical unchanged common tests if useful,
+  then only a proved minimal repair as a separate atomic change. No environment
+  or dependency change; preserve worker/cache/privacy/update/retirement contracts.
+  Remove throwaway logging, obtain fresh independent max diff review and rerun
+  relevant full gates before completion. No feature acceptance or deployment.
+
+### Earlier implementation checkpoints
+
+- Initial candidate: completed `kxumoykk` (`30cf8d1b977f`), empty child `swtpolmk`.
   Actual worker environment confirms `claude-code/claude-haiku-5-5`, `medium`.
 - Independent medium review `cdd5ba56-6485-4563-947e-a4be24c8f2a6`: BLOCK.
   Confirmed stale clock on remount, silent conflicting-filter clearing, doc
