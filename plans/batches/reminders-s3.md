@@ -89,41 +89,68 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: preflight accepted by Lead; quiescent, blocked on reviewed S2.
-- Two-way readiness verified: assigned session/cwd, Sol high, pc-home tab 12
-  pane 21. Required role contract and authoritative master/brief read fully.
-- Decomposition: independently reviewed 3a durable core; 3b protected summaries,
-  history and claimed strip; 3c full scheduling/actions on the same outbox.
-  Use isolated bounded Haiku 5.5/medium workers after implementation handoff.
-- S2 interfaces needed: pure resolver/effective policy; installation/enrollment
-  authorization helpers; saved-grant validation; policy revisions/idempotency;
-  due-cycle and stable fixed-rule identity; future-only activation timestamp
-  and revocation/deletion hooks. Concrete names arrive with S2 handoff.
-- S4 seam: injectable transport, stable occurrence/group IDs, leased outbox,
-  attempt/acceptance/ambiguity states, expiry and reusable quota reservations.
-  Push-active suppresses strips; disabled/blocked push allows in-app fallback.
-- S5 seams: safe status/switch-reason enums, explicit eligible/wake instants,
-  and injectable reconciliation with an external restore-resume cutoff.
-  Suppress pre-cutoff eligible work while retaining actual future work;
-  restored SQLite cannot remember post-backup sends. No second scheduler.
-  Diagnostics remain authenticated own-device data; /healthz stays DB-only.
-- Next: Lead may update/rebase this released entry; await reviewed predecessor,
-  exact new base and explicit EDIT HANDOFF before code, children or services.
-- Children/workspaces: none; entry remains unchanged on its provisional base.
-- Docs-desk status write: preflight-only window granted; later writes require
-  another coordinated window. Frozen Brief/Assignment remain Lead-owned.
+- State: independent storage foundation reviewed, verified and integrated into
+  own S3 entry only. Full 3a evaluator, 3b/3c and aggregate integration remain
+  pending reviewed full S2 plus exact Lead runtime EDIT HANDOFF.
+- Result tip `ozymolps` / `3e83454d`, based on reviewed identity/cycle
+  `rwswntvl` / `3eb72704`; entry clean `wnyyylyt` / `38322846` above it.
+  Local DDL is unregistered. No scheduler, dispatch, API or UI is enabled.
+- Implemented repository: occurrence/immutable-group/outbox persistence,
+  atomic processed-through cursor and retained dedupe, fenced leases and
+  per-generation attempt/member ledger, device-global quota/spacing,
+  scoped lifecycle cancellation/recovery/pruning and external-cutoff input.
+- Owner model change applied: Sol worker checkpointed/stopped; implementation
+  and independent executable reviews used native `openai/gpt-6.1-terra`,
+  medium, with effective settings verified. Conductor remains Sol/high.
+- Direct dependencies: S2 reviewed policies `qpwvmpyv` / `3c265a95` and
+  preview `xtmnuruo` / `98c37a22` are reported ready server-side; full S2 UI
+  is still active. No unfinished source consumed. Reconcile optional grant
+  clock helper and register local DDL only on the actual reviewed S2 handoff.
+- Binding grouping clarification: atomically reject future scheduled/eligible/
+  wake instants. Future fixed work stays ungrouped; accepted groups never
+  reopen. Negative premature-group, stable fixed reactivation, mixed-member
+  cancellation and accepted-history regressions pass.
+- Future caller obligations: couple item mutation and `cancel_item_locked` in
+  one transaction; commit and use only `mark_attempt_locked`'s exact member
+  snapshot before I/O. Live started claims retain leases through result or
+  recovery. Acceptance is not display; no network under the DB lock.
+- S4 uses the same stable group/topic, attempt ledger and reservations; no
+  uncertainty fallback strip. S5 supplies the external cutoff: strict actual
+  eligible/wake comparison retains equality/future work and attempted charges.
+  Runtime status enums, diagnostics and transport bridge remain unimplemented.
+- Children: `tmp-reminders-s3-store` created/owned by this Conductor, reviewed
+  work preserved in entry; forgotten and folder removed after no-process,
+  reachability, clean-state and ignored-artifact checks. No live children.
+- Entry remains interactive and Lead-managed. Shared-desk Status/Closeout
+  updates require coordinated windows; Brief/Assignment stay Lead-owned.
 
 ## Closeout — assigned Conductor
 
-- Result/change IDs: pending.
-- Independent review and checks: implementation pending. Read-only inspection
-  confirmed empty entry and prepared .env/.venv/frontend dependencies; no
-  runtime suites or services started for preflight.
-- Assumptions: existing single-process SQLite lock, bounded threaded DB batches,
-  no network under transactions, roughly 60-second scan, injectable clock and
-  dispatch switch. No new owner decision, physical-device or hosting gate.
-- Limits: no implementation authority until explicit handoff; no real sends,
-  production configuration, feature acceptance or deployment.
-- Child cleanup/entry cwd release: no children; entry released to Lead for
-  predecessor update, not removal. Keep this interactive session available.
-- Owner review/acceptance: pending; no deployment.
+- Partial result stack: `oprzrxlr` / `861a6faf` (repository/tests),
+  `nzzozpnt` / `d85897d4` (member lifecycle/late acceptance),
+  `ozymolps` / `3e83454d` (live leases and cancellation reservations).
+  Four-file foundation delta; not full S3 completion or feature acceptance.
+- Independent Terra/medium full shell review `33846137` blocked two executed
+  cancellation defects; material re-review `84733408` approved after fixes.
+  Exact retained reports:
+  - `/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/33846137-5794-45fd-893c-e6ddcc9867c6/s3-store-final-review.md`
+  - `/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/33846137-5794-45fd-893c-e6ddcc9867c6/s3-store-final-review.84733408.md`
+- Final author and independent review: 33 targeted repository tests pass;
+  full Python suite 1,721 passed/nine skipped, Ruff format/lint and ty clean.
+  Own-entry integration reran all six Python gates successfully (54.91-second
+  pytest), zero working-copy diff. Missing frontend-build warning retained;
+  frontend/browser gates do not apply to this inactive backend-only lane.
+- Retained local evidence: entry `.pi/reminders-s3-store/ownership.md`,
+  `checks/integrated-pytest.log`, and `child-artifacts/` checkpoints/historical
+  repro scripts; native worker/review reports remain outside the deleted child.
+  Copied artifacts checked equal; scripts parse without child-path imports.
+  Old defect repros are historical evidence, not current passing test cases.
+- Explicit conservative limit: cancellation after an earlier-day attempt also
+  retains a later-day unattempted reservation. No attempted/ambiguous refund
+  or spacing rewind is claimed. Started I/O cannot be recalled; lease-expiry
+  retry can still be ambiguous. No real transport or services were run.
+- Next: reviewed full S2/runtime handoff, schema/helper reconciliation, then
+  actual evaluator/lifespan/protected in-app scheduling and full-stage gates.
+  No fake evaluator adapters, shared migration changes, main/integration moves,
+  deployment, production configuration or real notification enrollment.
+- Child cleanup complete; entry stays available. Owner acceptance/deploy pending.
