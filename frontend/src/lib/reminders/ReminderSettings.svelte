@@ -1,0 +1,258 @@
+<script lang="ts">
+	import { onMount, untrack } from 'svelte';
+	import type { RoomHandle } from '#lib/data/index.ts';
+	import { ApiError, NetworkError } from '#lib/data/types.ts';
+	import Dialog from '#lib/ui/Dialog.svelte';
+	import { ReminderApi, type Device, type Enrollment, type Mode, type PendingWrite } from './api';
+
+	let { room, onClose }: { room: RoomHandle; onClose: () => void } = $props();
+	const api = new ReminderApi(untrack(() => room.slug));
+	const id = $props.id();
+	let enrollment = $state<Enrollment | null>(null);
+	let device = $state<Device | null>(null);
+	let mode = $state<Mode>('daily_summary');
+	let summary = $state('09:00');
+	let timezone = $state('');
+	let allDay = $state('09:00');
+	let paused = $state(false);
+	let confirmZone = $state(false);
+	let loading = $state(true);
+	let busy = $state(false);
+	let online = $state(true);
+	let error = $state('');
+	let notice = $state('');
+	let conflict = $state(false);
+	let pending = $state<PendingWrite | null>(null);
+	let pendingKind = $state<'enroll' | 'room' | 'device' | 'optout' | null>(null);
+	const canSend = $derived(online && room.store.canWrite && !busy && !loading);
+
+	function applyEnrollment(value: Enrollment, initialize: boolean) {
+		enrollment = value;
+		if (initialize) {
+			mode = value.state === 'not_enrolled' ? 'daily_summary' : value.mode;
+			summary = value.state === 'not_enrolled' ? '09:00' : value.summary_time;
+		}
+	}
+	function applyDevice(value: Device | null, initialize: boolean) {
+		device = value;
+		if (initialize) {
+			timezone = value?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+			allDay = value?.all_day_time ?? '09:00';
+			paused = value?.paused ?? false;
+		}
+	}
+	async function load(initialize: boolean) {
+		loading = true;
+		error = '';
+		try {
+			const [a, b] = await Promise.all([api.enrollment(), api.device()]);
+			applyEnrollment(a.enrollment, initialize);
+			applyDevice(b.device, initialize);
+			conflict = false;
+			if (!initialize)
+				notice = 'Latest revisions loaded. Your edits remain; review them before saving.';
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not load settings.';
+		} finally {
+			loading = false;
+		}
+	}
+	onMount(() => {
+		const update = () => {
+			online = navigator.onLine;
+		};
+		update();
+		window.addEventListener('online', update);
+		window.addEventListener('offline', update);
+		void load(true);
+		return () => {
+			window.removeEventListener('online', update);
+			window.removeEventListener('offline', update);
+		};
+	});
+	async function send() {
+		if (!pending || !pendingKind || !canSend) return;
+		busy = true;
+		error = '';
+		notice = '';
+		try {
+			if (pendingKind === 'device') {
+				const result = await api.send<{ device: Device }>(pending);
+				applyDevice(result.device, true);
+				confirmZone = false;
+			} else {
+				const result = await api.send<{ enrollment: Enrollment }>(pending);
+				applyEnrollment(result.enrollment, true);
+				if (pendingKind === 'enroll') {
+					// Enrollment may have created the device; this GET does not renew it.
+					try {
+						applyDevice((await api.device()).device, true);
+					} catch {
+						notice = 'Enrolled. Reopen settings to load device settings.';
+					}
+				}
+			}
+			pending = null;
+			pendingKind = null;
+			if (!notice) notice = 'Saved on this device.';
+		} catch (e) {
+			if (e instanceof NetworkError || (e instanceof ApiError && e.status >= 500)) {
+				error =
+					'The result is unknown. Retry the same request when connected; your edits are kept.';
+			} else {
+				pending = null;
+				pendingKind = null;
+				conflict = e instanceof ApiError && e.code === 'revision_conflict';
+				error = conflict
+					? 'Settings changed elsewhere. Load latest revisions and review your edits.'
+					: e instanceof Error
+						? e.message
+						: 'Could not save settings.';
+			}
+		} finally {
+			busy = false;
+		}
+	}
+	function start(kind: 'enroll' | 'room' | 'device' | 'optout') {
+		if (!canSend || pending || conflict || !enrollment) return;
+		if (kind === 'enroll') {
+			pending = api.prepare('POST', 'enrollment', {
+				base_revision: enrollment.revision,
+				...(device ? {} : { timezone }),
+				mode,
+				summary_time: summary
+			});
+		} else if (kind === 'room') {
+			pending = api.prepare('PATCH', 'preferences', {
+				base_revision: enrollment.revision,
+				mode,
+				summary_time: summary
+			});
+		} else if (kind === 'optout') {
+			pending = api.prepare('PATCH', 'preferences', {
+				base_revision: enrollment.revision,
+				opted_out: true
+			});
+		} else if (device) {
+			if (timezone !== device.timezone && !confirmZone) {
+				error = 'Confirm the time zone change first.';
+				return;
+			}
+			pending = api.prepare('PATCH', 'preferences/device', {
+				base_revision: device.revision,
+				timezone,
+				all_day_time: allDay,
+				paused
+			});
+		} else return;
+		pendingKind = kind;
+		void send();
+	}
+</script>
+
+<Dialog
+	title="Personal reminders"
+	onClose={() => {
+		if (!pending && !busy) onClose();
+	}}
+	focusBox
+>
+	<p>
+		Private to this browser. Room settings apply only here; device settings apply across enrolled
+		rooms. Reminder delivery is not active in phase 2.
+	</p>
+	<p>Due item day groups currently use the browser time zone, not this device setting.</p>
+	{#if loading}<p role="status">Loading settings…</p>{/if}
+	{#if error}<p role="alert">{error}</p>{/if}
+	{#if notice}<p role="status">{notice}</p>{/if}
+	{#if !online || !room.store.canWrite}<p>
+			Connection required. Your edits stay here while this dialog is open.
+		</p>{/if}
+	{#if !loading && !enrollment}
+		<button type="button" disabled={!online} onclick={() => load(true)}>Try loading again</button>
+	{/if}
+	{#if conflict}<button type="button" disabled={!canSend} onclick={() => load(false)}
+			>Load latest revisions</button
+		>{/if}
+	{#if pending}<p>Retry the unchanged request before making more changes.</p>
+		<button type="button" disabled={!canSend} onclick={send}>Retry request</button>{/if}
+	{#if enrollment}
+		<fieldset disabled={busy || !!pending || conflict}>
+			<p>
+				Status: {enrollment.state === 'not_enrolled'
+					? 'Not enrolled'
+					: enrollment.state === 'needs_resume'
+						? 'Needs resume'
+						: enrollment.state === 'opted_out'
+							? 'Opted out'
+							: 'Active'}
+			</p>
+			{#if enrollment.state === 'needs_resume' || enrollment.state === 'opted_out'}<p>
+					Only an explicit resume restores this room's grant.
+				</p>{/if}
+			<label for="{id}-mode">Room reminder mode</label>
+			<select id="{id}-mode" bind:value={mode}>
+				<option value="quiet">Quiet</option><option value="daily_summary">Daily summary</option
+				><option value="scheduled">Scheduled</option><option value="custom">Custom</option>
+			</select>
+			<label for="{id}-summary">Room summary time</label><input
+				id="{id}-summary"
+				type="time"
+				bind:value={summary}
+			/>
+			{#if enrollment.state === 'not_enrolled' || enrollment.state === 'needs_resume' || enrollment.state === 'opted_out'}
+				{#if !device}<label for="{id}-initial-zone">Time zone for this device</label><input
+						id="{id}-initial-zone"
+						bind:value={timezone}
+					/>{/if}
+				<button type="button" disabled={!canSend} onclick={() => start('enroll')}
+					>{enrollment.state === 'not_enrolled' ? 'Enroll this device' : 'Resume this room'}</button
+				>
+			{:else}
+				<button type="button" disabled={!canSend} onclick={() => start('room')}
+					>Save room settings</button
+				>
+				<button type="button" disabled={!canSend} onclick={() => start('optout')}
+					>Opt out of this room</button
+				>
+			{/if}
+			{#if device}
+				<h3>Device settings</h3>
+				<p>These apply to every room enrolled on this device.</p>
+				<label for="{id}-zone">Device time zone</label><input
+					id="{id}-zone"
+					bind:value={timezone}
+				/>
+				{#if timezone !== device.timezone}<label
+						><input type="checkbox" bind:checked={confirmZone} /> Confirm time zone change for all enrolled
+						rooms</label
+					>{/if}
+				<label for="{id}-all-day">All-day reminder time</label><input
+					id="{id}-all-day"
+					type="time"
+					bind:value={allDay}
+				/>
+				<label><input type="checkbox" bind:checked={paused} /> Pause reminders on this device</label
+				>
+				<button type="button" disabled={!canSend} onclick={() => start('device')}
+					>Save device settings</button
+				>
+			{/if}
+		</fieldset>
+	{/if}
+	<div class="actions">
+		<button type="button" disabled={!!pending || busy} onclick={onClose}>Close</button>
+	</div>
+</Dialog>
+
+<style>
+	fieldset {
+		border: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.5rem;
+	}
+	p {
+		margin: 0.5rem 0;
+	}
+</style>

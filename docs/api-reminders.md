@@ -6,6 +6,13 @@ is shared: room feeds, share links and live updates never carry it. Device
 settings apply to every room this device is enrolled in. Delivery of reminders
 is not active yet; these endpoints only store settings.
 
+The room menu's **Personal reminders** dialog reads these settings without
+creating a device. Enroll or resume explicitly there. Room mode and summary
+time, device time zone, all-day time and pause can be changed while online.
+Unsaved edits stay in the open dialog; they are never put in the shared offline
+queue. A request with an unknown result can be retried unchanged in that dialog.
+The due views still use the browser time zone, not the saved device time zone.
+
 ## Device and enrollment
 
 - **Device:** a random secret, issued by the server when this device first

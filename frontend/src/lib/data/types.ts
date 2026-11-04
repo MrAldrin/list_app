@@ -283,6 +283,8 @@ export const API_ERROR_CODES = [
 	'room_unavailable',
 	'invitation_unavailable',
 	'op_id_reused',
+	'revision_conflict',
+	'not_enrolled',
 	'internal_error',
 	'unavailable'
 ] as const;
