@@ -546,3 +546,137 @@ def test_share_visitor_has_no_personal_controls(svelte_server, open_session):
     expect(visitor.get_by_role("heading", name="Groceries")).to_be_visible()
     expect(visitor.get_by_role("button", name="Room menu")).to_have_count(0)
     expect(visitor.get_by_text("Personal reminders")).to_have_count(0)
+
+
+def test_device_controls_persist_and_retry_exact_unknown_write(
+    svelte_server, open_session
+):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    expect(
+        dialog.get_by_text("These apply to every room enrolled on this device.")
+    ).to_be_visible()
+    expect(dialog.get_by_label("Enable quiet hours")).to_be_checked()
+    expect(dialog.get_by_label("Quiet hours start")).to_have_value("22:00")
+    expect(dialog.get_by_label("Quiet hours end")).to_have_value("08:00")
+    expect(dialog.get_by_label("Daily cap (1\u201350)")).to_have_value("10")
+    expect(dialog.get_by_label("Minimum spacing in minutes (1\u201360)")).to_have_value(
+        "10"
+    )
+    expect(dialog.get_by_label("Notification content privacy")).to_have_value("generic")
+    expect(dialog.get_by_label("Enable overdue repeat")).not_to_be_checked()
+    dialog.get_by_label("Quiet hours start").fill("21:15")
+    dialog.get_by_label("Quiet hours end").fill("07:30")
+    dialog.get_by_label("Daily cap (1\u201350)").fill("23")
+    dialog.get_by_label("Minimum spacing in minutes (1\u201360)").fill("17")
+    dialog.get_by_label("Notification content privacy").select_option("names")
+    dialog.get_by_label("Enable overdue repeat").check()
+    dialog.get_by_label("Overdue repeat interval in days (1\u201330)").fill("9")
+    bodies = []
+
+    def corrupt_first(route):
+        if route.request.method != "PATCH":
+            route.continue_()
+            return
+        bodies.append(route.request.post_data)
+        if len(bodies) == 1:
+            response = route.fetch()
+            assert response.status == 200
+            route.fulfill(response=response, body="{}")
+        else:
+            route.continue_()
+
+    page.route("**/reminders/preferences/device", corrupt_first)
+    dialog.get_by_role("button", name="Save device settings").click()
+    expect(dialog.get_by_role("button", name="Retry request")).to_be_visible()
+    expect(dialog.get_by_label("Quiet hours start")).to_be_disabled()
+    expect(dialog.get_by_label("Notification content privacy")).to_be_disabled()
+    dialog.get_by_role("button", name="Retry request").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    assert len(bodies) == 2 and bodies[0] == bodies[1]
+    body = json.loads(bodies[0])
+    assert (
+        body["quiet_hours"],
+        body["daily_cap"],
+        body["spacing_minutes"],
+        body["content_privacy"],
+        body["overdue_repeat_days"],
+    ) == ({"start": "21:15", "end": "07:30"}, 23, 17, "names", 9)
+    page.unroute("**/reminders/preferences/device", corrupt_first)
+    dialog.get_by_role("button", name="Close").click()
+    page.get_by_role("button", name="Room menu").click()
+    page.get_by_role("button", name="Personal reminders", exact=True).click()
+    dialog = page.get_by_role("dialog", name="Personal reminders")
+    expect(dialog.get_by_label("Quiet hours start")).to_have_value("21:15")
+    expect(dialog.get_by_label("Quiet hours end")).to_have_value("07:30")
+    expect(dialog.get_by_label("Daily cap (1\u201350)")).to_have_value("23")
+    expect(dialog.get_by_label("Minimum spacing in minutes (1\u201360)")).to_have_value(
+        "17"
+    )
+    expect(dialog.get_by_label("Notification content privacy")).to_have_value("names")
+    expect(dialog.get_by_label("Enable overdue repeat")).to_be_checked()
+    expect(
+        dialog.get_by_label("Overdue repeat interval in days (1\u201330)")
+    ).to_have_value("9")
+    dialog.get_by_label("Enable quiet hours").uncheck()
+    dialog.get_by_label("Enable overdue repeat").uncheck()
+    dialog.get_by_role("button", name="Save device settings").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    dialog.get_by_role("button", name="Close").click()
+    page.get_by_role("button", name="Room menu").click()
+    page.get_by_role("button", name="Personal reminders", exact=True).click()
+    dialog = page.get_by_role("dialog", name="Personal reminders")
+    expect(dialog.get_by_label("Enable quiet hours")).not_to_be_checked()
+    expect(dialog.get_by_label("Enable overdue repeat")).not_to_be_checked()
+    expect(dialog.get_by_label("Quiet hours start")).to_have_count(0)
+    expect(
+        dialog.get_by_label("Overdue repeat interval in days (1\u201330)")
+    ).to_have_count(0)
+
+
+def test_device_controls_reject_invalid_bounds_and_preserve_offline_draft(
+    svelte_server, open_session
+):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    writes = []
+    page.on(
+        "request",
+        lambda request: (
+            writes.append(request.post_data)
+            if request.method == "PATCH"
+            and request.url.endswith("/reminders/preferences/device")
+            else None
+        ),
+    )
+    dialog.get_by_label("Enable overdue repeat").check()
+    for label, values, valid in (
+        ("Daily cap (1\u201350)", ("0", "51", "1.5", ""), "10"),
+        ("Minimum spacing in minutes (1\u201360)", ("0", "61", "1.5", ""), "10"),
+        ("Overdue repeat interval in days (1\u201330)", ("0", "31", "1.5", ""), "1"),
+    ):
+        for value in values:
+            dialog.get_by_label(label).fill(value)
+            dialog.get_by_role("button", name="Save device settings").click()
+            expect(dialog.get_by_role("alert")).to_contain_text("whole numbers")
+            assert not writes
+        dialog.get_by_label(label).fill(valid)
+    dialog.get_by_label("Quiet hours end").fill("22:00")
+    dialog.get_by_role("button", name="Save device settings").click()
+    expect(dialog.get_by_role("alert")).to_contain_text("different start and end")
+    assert not writes
+    dialog.get_by_label("Quiet hours end").fill("08:00")
+    dialog.get_by_label("Daily cap (1\u201350)").fill("42")
+    page.context.set_offline(True)
+    expect(dialog.get_by_role("button", name="Save device settings")).to_be_disabled()
+    expect(dialog.get_by_label("Daily cap (1\u201350)")).to_have_value("42")
+    page.context.set_offline(False)
+    expect(dialog.get_by_role("button", name="Save device settings")).to_be_enabled()
+    expect(dialog.get_by_label("Daily cap (1\u201350)")).to_have_value("42")
+    assert not writes

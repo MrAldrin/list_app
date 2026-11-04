@@ -234,7 +234,8 @@
 				spacingMinutes > 60 ||
 				(repeatEnabled && (!Number.isInteger(repeatDays) || repeatDays < 1 || repeatDays > 30))
 			) {
-				error = 'Check quiet hours and numeric limits.';
+				error =
+					'Quiet hours need different start and end times. Daily cap must be 1–50, spacing 1–60 minutes, and overdue repeat 1–30 days; use whole numbers.';
 				return;
 			}
 			pending = api.prepare('PATCH', 'preferences/device', {
@@ -340,6 +341,35 @@
 				/>
 				<label><input type="checkbox" bind:checked={paused} /> Pause reminders on this device</label
 				>
+				<label><input type="checkbox" bind:checked={quietEnabled} /> Enable quiet hours</label>
+				{#if quietEnabled}
+					<label for="{id}-quiet-start">Quiet hours start</label>
+					<input id="{id}-quiet-start" type="time" bind:value={quietStart} />
+					<label for="{id}-quiet-end">Quiet hours end</label>
+					<input id="{id}-quiet-end" type="time" bind:value={quietEnd} />
+				{/if}
+				<label for="{id}-daily-cap">Daily cap (1–50)</label>
+				<input id="{id}-daily-cap" type="number" min="1" max="50" step="1" bind:value={dailyCap} />
+				<label for="{id}-spacing">Minimum spacing in minutes (1–60)</label>
+				<input
+					id="{id}-spacing"
+					type="number"
+					min="1"
+					max="60"
+					step="1"
+					bind:value={spacingMinutes}
+				/>
+				<label for="{id}-privacy">Notification content privacy</label>
+				<select id="{id}-privacy" bind:value={contentPrivacy}>
+					<option value="generic">Generic</option>
+					<option value="counts">Counts</option>
+					<option value="names">Names</option>
+				</select>
+				<label><input type="checkbox" bind:checked={repeatEnabled} /> Enable overdue repeat</label>
+				{#if repeatEnabled}
+					<label for="{id}-repeat">Overdue repeat interval in days (1–30)</label>
+					<input id="{id}-repeat" type="number" min="1" max="30" step="1" bind:value={repeatDays} />
+				{/if}
 				<button type="button" disabled={!canSend} onclick={() => start('device')}
 					>Save device settings</button
 				>
