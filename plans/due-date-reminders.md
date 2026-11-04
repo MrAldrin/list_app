@@ -85,7 +85,8 @@ remain owner gates; docs-desk commits retain their standing permission.
 - Five ordered delivery stage briefs: [S1](batches/reminders-s1.md),
   [S2](batches/reminders-s2.md), [S3](batches/reminders-s3.md),
   [S4](batches/reminders-s4.md), [S5](batches/reminders-s5.md).
-- Conductors: GPT-6.1 Sol, low for S1/S5, high for hard S2–S4. Verify effective
+- Conductors: GPT-6.1 Sol, initially low for S1/S5, high for hard work including
+  S2–S4 and S1's expanded lifecycle diagnosis. Verify effective
   model/thinking before granting edits. Bounded workers/reviewers start on
   Claude Haiku 5.5/medium; escalate to Haiku 5.5/max if needed. Unsupported
   levels must be reported, never silently substituted.
@@ -533,8 +534,16 @@ save all tests for stage 5 or introduce an unfinished push UI in stage 1.
   stable ordering; navigation/reload produces no warning; offline snapshots;
   midnight/visibility refresh; filters/deleted targets; keyboard/focus and
   six themes in both modes. Replace old tests requiring repeated toasts.
+- Lead/Conductor agreed verification refinement (2026-11-04): investigate the
+  evidenced empty app-shell cache and full-gate focus/offline failures. S1 may
+  instrument and minimally repair the existing worker lifecycle/browser harness,
+  including the legacy retirement script only if implicated. Keep current cache,
+  privacy, update and one-worker contracts; no dependency/environment changes.
+  Attribute the writer before fixing, use matched common-test comparisons,
+  isolate any proved repair atomically and obtain fresh max diff review/full
+  gates. This is ordinary delivery repair, not a new platform or gate.
 - **Done:** due information is discoverable without repeated interruptions,
-  in all three browser engines; no backend/schema or permission prompt.
+  in all three browser engines; no business API/schema or permission prompt.
 
 ### Stage 2 — Personal policies, dates and previews
 

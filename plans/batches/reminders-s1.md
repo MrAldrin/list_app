@@ -4,9 +4,22 @@ Lifecycle: tracked
 
 ## Brief — frozen at handoff
 
-**Outcome/scope:** Implement stage 1 of the approved plan: replace navigation/periodic due toasts with the scoped bell/panel, due grouping, list counts, date labels and safe item navigation. Reuse current room data, dialogs, themes and offline snapshots. No backend/schema, personal policies or push prompts.
+**Outcome/scope:** Implement stage 1 of the approved plan: replace navigation/periodic due toasts with the scoped bell/panel, due grouping, list counts, date labels and safe item navigation. Reuse current room data, dialogs, themes and offline snapshots. No business API/schema, personal policies or push prompts.
 
 **Edit seams:** Frontend due-reminders, PageShell, room/list headers, RoomLists, ItemRow and new focused reminder UI modules; corresponding Vitest/browser tests and current behavior/UX docs.
+
+**Agreed verification repair (2026-11-04):** S1 owns narrow diagnosis of the
+observed empty app-shell cache and full-gate offline/focus failures. Allow
+throwaway telemetry and a minimal evidence-backed repair in the existing
+worker, registration, dialog and browser harness; `src/pwa_routes.py` only for
+its legacy retirement script if implicated. Preserve one worker, current
+cache/privacy/update/offline contracts and `/sw.js` retirement; no dependencies
+or environment changes. Attribute cache creation/deletion to a worker/version/
+client timeline, inspecting names before `caches.open` can create a cache.
+Use identical unchanged common tests/build/`-n 4` conditions for comparisons;
+a lower-load baseline cannot prove attribution. Keep a proved repair in a
+separate atomic change, remove throwaway logging, obtain fresh independent
+max diff review and pass relevant full gates. No speculative fix or flake waiver.
 
 **Dependencies:** Implementation is approved; no predecessor stage.
 **Unblocks:** [S2](reminders-s2.md).
@@ -59,7 +72,9 @@ material fixes after independent review.
 - Creator/lifecycle owner: Lead, session `01a1a2c7-22c9-71e2`.
 - Planned owner: dedicated visible Pi Conductor `listr-reminders-s1`.
 - Verified model: `openai-codex/gpt-6.1-sol`, effective thinking `low`;
-  two-way readiness acknowledged before edits.
+  two-way readiness acknowledged before edits. For the expanded hard
+  lifecycle phase, select Sol/high and verify effective thinking before edits;
+  report unsupported control rather than silently retaining/substituting a level.
 - Repository: `/home/hsa/projects/list_app`.
 - Lead aggregate: `tmp-reminder-delivery`, `/home/hsa/projects/tmp-reminder-delivery`.
 - Entry workspace: `tmp-reminders-s1`, `/home/hsa/projects/tmp-reminders-s1`;
