@@ -140,6 +140,35 @@ material fixes after independent review.
 
 ## Closeout — assigned Conductor
 
+### Isolated pure payload parity — ready, not wired to sender
+
+- New child `tmp-reminders-s4-payload` from immutable reviewed worker `onqokrwz` /
+  `9f856c92`; builder `xksskwuq` / `af353836`, strict privacy fix `yruntwov` /
+  `b2c438c9`. Clean empty `xszznwzq` / `341e8af4` retained. Both owned worker
+  and payload children stay quiescent for full S3 reconciliation; no active rebase.
+- Pure `src/reminders/push_payload.py` and actual TypeScript builder consume
+  shared finite builder/parser examples. Generic default; private content requires
+  exact boolean true, never truthy strings/integers. Malformed runtime types are
+  rejected consistently. UTF-16 bounds, safe root/room navigation and exact
+  24-character stable group ID (including terminal-newline rejection) tested.
+- Approved visible configured-origin restriction in BOTH languages: canonical
+  HTTPS lowercase ASCII multi-label DNS, valid labels/final label starts letter,
+  optional canonical decimal port 1–65535 with default 443 omitted. No IP literals,
+  localhost/single-label names, Unicode or `xn--` labels, path/trailing slash,
+  credentials, query/fragment, whitespace/controls/backslash/percent escapes.
+  This deliberately avoids divergent WHATWG/urllib/IDNA normalization; no dependency.
+- Native Terra/medium author `6f2564e7` → `7f78ca9d`; fresh independent review
+  `01459b66` → `c11ea3a1` ACCEPT after closing truthy-private-content P1.
+  Parent final Python gates **1804 passed**, frontend **1197 passed**, Ruff
+  format/fix/check, ty, frontend lint/check/build and worker TS clean. Finite
+  shared examples establish tested parity, not universal language equivalence.
+- Evidence: `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/payload/`,
+  exact `s4-payload-independent-review.c11ea3a1.md`, `parent-gates.log` and reports.
+- No sender hookup, user consent/configuration/authentication enforcement or runtime
+  claim. Future sender must supply trusted origin, real DB slug and current grant/
+  consent, invoke builder before every encryption, and retain declarative no-worker
+  platform limits. No real sends/keys/enrollment, migrations or final version assumed.
+
 ### Isolated existing-worker delta — ready, not joined to runtime
 
 - Base reviewed full S2 `kwqutmso` / `3f536353`; implementation `ltwqknlr` /
