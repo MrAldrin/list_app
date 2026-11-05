@@ -200,7 +200,15 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Owner-requested page writers and reviewers: Luna/xhigh.
 - Model-policy conflict: resolved by the current role policy; effective-setting verification remains required at launch.
-- Execution approval: [overnight run](night-run.md#approval-and-outcome). Owner/session and workspaces: not assigned.
+- Execution approval: [overnight run](night-run.md#approval-and-outcome).
+- Conductor: `01a1adbe-bbbd-70a3-9663-4eb1ce3c8a22`, verified
+  `openai/gpt-6.1-sol`, `low`; Zellij tab 18, pane 50 (`list_app-night-docs`).
+- Large batch: all-document inventory, protected-content comparison, parallel
+  page work, and independent original-versus-rewrite review.
+- Workspace: `night-docs`, `/home/hsa/projects/list_app-night-docs`;
+  Lead-created and agent-managed. Base: `night-1-tests-partial` (`oqpnzkyx`).
+  Lead owns entry lifecycle; Conductor owns children. Lead report target:
+  `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 - Shared-document write windows with the other tasks: not agreed.
 

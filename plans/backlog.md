@@ -28,6 +28,8 @@ separate item. Version control keeps the history.
 
 ## In progress
 
+- **Documentation — Rewrite all documentation in STE100 style.** The approved overnight task is active. Cover all first-party prose while preserving facts, evidence, commands, and authority. See the [assignment](documentation-ste100.md) and [run limits](night-run.md).
+  **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers: Luna/xhigh, verified at launch.
 - **Feature — Finish named item groups.** Work is parked on bookmark `groups`. It is not accepted or ready to deploy. See the [group plan](named-item-groups.md).
 
 Owner questions and recorded answers: [decisions for Heming](decisions-for-heming.md).
@@ -39,20 +41,17 @@ continue when needed. The [overnight run record](night-run.md) owns execution
 limits, stack/bookmark authority, and ownership. Conductor selections below use
 provider `openai`; verify the effective model and thinking at launch.
 
-1. **Test — Review and improve the test suite.** Review high-risk coverage, fix clear test defects, investigate unreliable tests, and profile runtime against test value. Write a testing guide. Coverage removals and broader changes need owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and Android decisions.
-   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-2. **Documentation — Rewrite all documentation in STE100 style.** Cover guides, root docs, instructions, plans, and historical prose. Preserve facts, commands, evidence, and approval rules. See the [assignment](documentation-ste100.md). Luna extra-high writers/reviewers match the current role policy; verify their effective settings at launch.
-   **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
-3. **Design — Explore themes and interface directions.** Build a local HTML comparison gallery with twenty drafts: five color-only, five traditional restylings, five broader redesigns, and five unrestricted experiments. No real app changes. See the [assignment](theme-exploration.md).
+1. **Design — Explore themes and interface directions.** Build a local HTML comparison gallery with twenty drafts: five color-only, five traditional restylings, five broader redesigns, and five unrestricted experiments. No real app changes. See the [assignment](theme-exploration.md).
    **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
-4. **Refactor — Review and simplify the jj history.** Explain the graph, provide readable log views, and propose cleanup. Only proven disposable cleanup is permitted within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with S3 recovery and active agents.
+2. **Refactor — Review and simplify the jj history.** Explain the graph, provide readable log views, and propose cleanup. Only proven disposable cleanup is permitted within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with S3 recovery and active agents.
    **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-5. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
+3. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
    **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 
 ## Blocked
 
-None. Dependencies for work in Next or Later are stated with those items.
+- **Test — Complete verification and review product findings.** Owner decision needed. The bounded test review is preserved at `night-1-tests-partial`. Test repairs and targeted checks passed, but the full browser gate remains red. Review the sign-in interruption diagnostic and rejected-change persistence evidence before approving product work. Keep Android decisions open. See the [task plan](test-suite-review.md).
+  **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**. No product repair is approved.
 
 ## Later
 

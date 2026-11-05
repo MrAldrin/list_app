@@ -230,7 +230,22 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
   `integration`. Lead owns this workspace's lifecycle; Conductor owns children.
 - Lead report target: session `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Large batch: cross-layer risk review, bounded fixes, measurements, and review.
-- No child agents/workspaces launched yet. Conductor must record each launch.
+- Child inventory `9b5b5f4f`, repair `88464f31`, diagnostic `f144504a`, and
+  fresh reviews `e1dbfb1e`/`e71ebd08` are complete; all used verified Luna/xhigh.
+  Both child workspaces were forgotten and removed. No owned job remains.
+- Partial candidate: `npnxozpl` then `oqpnzkyx`, bookmarked
+  `night-1-tests-partial`. Full verification is blocked by a final WebKit
+  sign-in interruption (485 passed, one failed, 120 intentional browser skips).
+  Independent review confirms test scope but blocks full verification.
+- Separate diagnostic: `vywxvymk`, outside the candidate ancestry. A controlled
+  schedule fails three UTC and one Oslo run; this does not prove every archived
+  browser failure's cause. Product repair needs a separate owner decision.
+- Python 1,792 passed; frontend 1,115 passed in UTC and Oslo; lint, types, build,
+  Ruff, and ty passed. Lead reran the 20 affected tests in both zones: passed.
+- Evidence: `docs/background/test-suite-review.md` on the candidate line;
+  ignored artifacts remain at `/home/hsa/projects/list_app-night-tests/.night-evidence/`
+  (about 1.4 GiB). Entry retained for the unaccepted partial result, evidence,
+  and live interactive peer. Preserve artifacts before eventual removal.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 
 ## Progress
@@ -238,9 +253,9 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
 - [x] Record the proposed scope and merge the backlog agenda items.
 - [x] Owner approves the execution brief and run limits.
 - [x] Assign task ownership; require recorded ownership for each child.
-- [ ] Inventory the suite, map high-risk behavior, and measure a baseline.
-- [ ] Review and classify findings; implement bounded Bucket A improvements.
-- [ ] Independently review and verify the final candidate.
-- [ ] Write the testing guide, evidence report, and morning handoff.
+- [x] Inventory the suite, map high-risk behavior, and measure a baseline.
+- [x] Review and classify findings; implement bounded Bucket A improvements.
+- [ ] Complete full verification: independent review is done, but the browser gate remains red.
+- [x] Write the testing guide, evidence report, and task closeout.
 - [ ] Record unfinished decisions in the backlog and complete workspace cleanup
   after acceptance. Retire this plan only when its lifecycle conditions hold.

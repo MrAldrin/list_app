@@ -59,6 +59,9 @@ standing project policy.
   finished steps when preparing later ones.
 - The final stack is for owner inspection, not accepted app/test code. Shared
   docs-desk approval records use the existing docs-only standing permission.
+  Desk progress commits remain separate from the unaccepted task line. A later
+  task may join the latest desk changes without rewriting earlier result tips;
+  this preserves the shared-file rules and stable inspection bookmarks.
 - Serialize all jj graph mutations across workspaces. The active Conductor
   coordinates its own workers. The Lead requests quiescence before shared
   docs commits, bookmark creation, workspace creation, or integration changes.
@@ -72,9 +75,9 @@ Conductor selection. All five assignments are now approved within these limits.
 Each is a large batch because it needs a coordinated inventory, specialist work,
 and fresh independent review, even where the selected effort is low.
 
-| Step | Brief | Conductor model/effort | Workspace | Finished bookmark |
+| Step | Brief | Conductor model/effort | Workspace | Result bookmark |
 | --- | --- | --- | --- | --- |
-| 1 | [Test suite](test-suite-review.md) | Sol 6.1/high | `night-tests` | `night-1-tests` |
+| 1 | [Test suite](test-suite-review.md) | Sol 6.1/high | `night-tests` | `night-1-tests-partial` |
 | 2 | [Documentation](documentation-ste100.md) | Sol 6.1/low | `night-docs` | `night-2-docs` |
 | 3 | [Themes](theme-exploration.md) | Sol 6.1/low | `night-themes` | `night-3-themes` |
 | 4 | [jj history](jj-history-review.md) | Sol 6.1/high | `night-history` | `night-4-history` |
@@ -88,11 +91,19 @@ and the remaining run permits it.
 
 ## Status
 
-Task 1 Conductor is ready in tab 16, pane 43 (`list_app-night-tests`), session
-`01a1ad92-275c-776a-8cbd-cb97c67da161`. Verified Sol/high and two-way intercom.
-Task workspace `night-tests` is Lead-created and agent-managed. Its base is the
-shared dispatch record `qmqznusu`. No workers launched yet. Next: execute the
-test review and report checkpoints to the Lead.
+Task 1 is partial and quiescent at `night-1-tests-partial` (`oqpnzkyx` /
+`570b4f8a`), above test repair `npnxozpl` / `d2820186`. Full browser verification
+remains blocked; see its task plan and candidate evidence report. The separate
+red diagnostic is `vywxvymk` / `d2c6a988`. Neither code line is accepted.
+
+Task 2 is assigned to session `01a1adbe-bbbd-70a3-9663-4eb1ce3c8a22`, verified
+Sol/low, tab 18, pane 50 (`list_app-night-docs`). Its Lead-created workspace
+`night-docs` starts from task 1's partial candidate. No workers launched yet.
+Next: perform the all-document inventory, calibration, rewrite, and review.
+
+Task 1 artifacts remain in its entry `.night-evidence/` (about 1.4 GiB).
+Its two child workspaces and job panes are removed; its entry and successful
+interactive peer remain for unaccepted work/evidence. No other task is active.
 
 ## Closeout requirements
 
@@ -106,7 +117,7 @@ stable homes and incoming links are fixed.
 ## Progress
 
 - [x] Record execution approval, operating defaults, stack destination, and limits.
-- [ ] Finish or preserve task 1 with independent review and checks.
+- [x] Preserve task 1 as partial with independent review and failed full-gate evidence.
 - [ ] Finish or preserve task 2 with independent review and checks.
 - [ ] Finish or preserve task 3 with independent review and checks.
 - [ ] Finish or preserve task 4 with independent review and checks.
