@@ -40,6 +40,8 @@ turns them back on, it also does this:
 - Plain-language pass on the reminder settings and editor: no "policy",
   "enrollment", "phase".
 - Phone-width browser checks for these screens, light and dark.
+- Remove P2's module-level browser-test skips (`private_reminders`,
+  `policy_editor` and any others P2 lists) and make those tests pass again.
 - Owner leaning (not decided): trim S3, e.g. drop summary snooze.
 
 **Done criteria:** Configurable in-app reminders, safe dedupe, one tab-claimed strip, snoozes and history survive reload/restarts. No navigation spam or cross-installation action effects. Cancellation/revocation, future-only setup and finite catch-up are explicit and tested.

@@ -51,8 +51,8 @@ preview.
   or falls short, retry on `openai/gpt-6.1-sol` high, or do it directly.
   Independent review is still required.
 - Workspace: `tmp-reminders-p2`, `/home/hsa/projects/tmp-reminders-p2`, new
-  from `reminders-s2` (`wlwznqly`). Conductor creates, owns and removes it after
-  integration.
+  from `reminders-s2` (`wlwznqly`). Lead created it and removes it after
+  integration. The Conductor owns and removes its child workspaces.
 
 ## Status
 
