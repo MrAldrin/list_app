@@ -1,6 +1,6 @@
 # Reminder delivery: overnight status
 
-Snapshot: 2026-11-05 04:05 UTC. This is delivery evidence, not current app
+Snapshot: 2026-11-05 04:10 UTC. This is delivery evidence, not current app
 behavior or permission to deploy. The [master plan](../../plans/due-date-reminders.md)
 owns the approved scope and its progress checkboxes.
 
@@ -53,9 +53,11 @@ unverified; desktop/mock tests do not establish it.
   Its successful Python gates do not accept missing or separate UI/API work.
 - S3's authoritative live recovery note:
   `/home/hsa/projects/tmp-reminders-s3/.pi/reminders-s3-runtime/CURRENT.md`.
-  It records exact accepted components, unaccepted deltas, remaining behavior,
-  review artifacts and process disposition. Check its final timestamp before
-  resuming; the component snapshot in this report may be older.
+  Its definitive window checkpoint is the adjacent `DEADLINE-0410.md`.
+  These record exact accepted components, unaccepted deltas, remaining behavior,
+  review artifacts and process disposition. At 04:10 two bounded correction
+  workers remain active, due to checkpoint by 04:15; final review is pending.
+  Check the final timestamps and appended dispositions before resuming.
 - Lead recovery note outside the repository:
   `/home/hsa/.pi/agent/reminder-delivery-recovery.md`.
   Original review/test reports are retained under the respective Pi session
