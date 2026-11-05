@@ -53,9 +53,23 @@
 		loading = true;
 		try {
 			const latest = (await api.enrollment()).enrollment;
-			if (enrollment && latest.revision !== enrollment.revision && latest.state !== 'not_enrolled')
-				mode = latest.mode;
-			applyEnrollment(latest, false);
+			if (enrollment && latest.state !== 'not_enrolled' && enrollment.state !== 'not_enrolled') {
+				const summaryChanged = latest.summary_time !== enrollment.summary_time;
+				const modeChanged = latest.mode !== enrollment.mode;
+				const summaryConflict =
+					summaryChanged && summary !== enrollment.summary_time && summary !== latest.summary_time;
+				const modeConflict = modeChanged && mode !== enrollment.mode && mode !== latest.mode;
+				if (summaryConflict || modeConflict) {
+					conflict = true;
+					error = 'Room settings changed elsewhere. Load latest revisions and review your edits.';
+				} else {
+					if (summaryChanged && summary === enrollment.summary_time) summary = latest.summary_time;
+					if (modeChanged && mode === enrollment.mode) mode = latest.mode;
+					applyEnrollment(latest, false);
+				}
+			} else {
+				applyEnrollment(latest, false);
+			}
 			policyRefreshFailed = false;
 			await loadCustomSummary();
 		} catch {
@@ -168,6 +182,8 @@
 				const result = await api.sendEnrollment(pending);
 				applyEnrollment(result, false);
 				if (result.state !== 'active') setDeviceZone(room, undefined);
+				if ((pendingKind === 'enroll' || pendingKind === 'room') && result.state === 'active')
+					await loadCustomSummary();
 				if (pendingKind === 'enroll') {
 					// Enrollment may have created the device; this GET does not renew it.
 					try {

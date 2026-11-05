@@ -842,3 +842,105 @@ def test_policy_close_refresh_failure_requires_retry(svelte_server, open_session
     expect(dialog.get_by_label("Room summary time")).to_be_visible()
     dialog.get_by_role("button", name="Save room settings").click()
     expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+
+
+@pytest.mark.parametrize("dirty", [False, True], ids=["clean", "dirty"])
+def test_policy_refresh_concurrent_room_summary(svelte_server, open_session, dirty):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_label("Room reminder mode").select_option("custom")
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_label("All-day reminder time").fill("14:25")
+    dialog.get_by_role("button", name="Edit custom room rules").click()
+    editor = page.get_by_role("dialog", name="Personal room reminders")
+    editor.get_by_label("Include daily summary").check()
+    editor.get_by_role("button", name="Save policy").click()
+    expect(editor.get_by_text("Saved on this device.")).to_be_visible()
+    editor.get_by_role("button", name="Close").click()
+    summary = dialog.get_by_label("Room summary time")
+    expect(summary).to_have_value("09:00")
+    if dirty:
+        summary.fill("11:15")
+    dialog.get_by_role("button", name="Edit custom room rules").click()
+    expect(editor.get_by_label("Schedule")).to_have_value("custom")
+    result = page.evaluate(
+        """async slug => {
+            const url = `/api/v1/rooms/${slug}/reminders/preferences`;
+            const current = await (await fetch(url)).json();
+            const response = await fetch(url, {
+                method: 'PATCH', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({op_id: crypto.randomUUID(), base_revision: current.enrollment.revision, summary_time: '16:30'})
+            });
+            return response.status;
+        }""",
+        svelte_server.room_slug,
+    )
+    assert result == 200
+    editor.get_by_role("button", name="Close").click()
+    if dirty:
+        expect(dialog.get_by_role("alert")).to_contain_text("changed elsewhere")
+        expect(summary).to_have_value("11:15")
+        expect(dialog.get_by_role("button", name="Save room settings")).to_be_disabled()
+    else:
+        expect(summary).to_have_value("16:30")
+        dialog.get_by_role("button", name="Save room settings").click()
+        expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    assert (
+        page.evaluate(
+            """async slug => (await (await fetch(`/api/v1/rooms/${slug}/reminders/preferences`)).json()).enrollment.summary_time""",
+            svelte_server.room_slug,
+        )
+        == "16:30"
+    )
+    expect(dialog.get_by_label("All-day reminder time")).to_have_value("14:25")
+
+
+def test_custom_summary_refreshes_after_mode_saves(svelte_server, open_session):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_label("Room reminder mode").select_option("custom")
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    dialog.get_by_role("button", name="Edit custom room rules").click()
+    editor = page.get_by_role("dialog", name="Personal room reminders")
+    editor.get_by_label("Include daily summary").check()
+    editor.get_by_role("button", name="Save policy").click()
+    expect(editor.get_by_text("Saved on this device.")).to_be_visible()
+    editor.get_by_role("button", name="Close").click()
+    expect(dialog.get_by_label("Room summary time")).to_be_visible()
+    dialog.get_by_label("Room reminder mode").select_option("scheduled")
+    dialog.get_by_role("button", name="Save room settings").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    dialog.get_by_label("Room reminder mode").select_option("custom")
+    dialog.get_by_role("button", name="Save room settings").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    policy = page.evaluate(
+        """async slug => (await (await fetch(`/api/v1/rooms/${slug}/reminders/policy`)).json()).policy""",
+        svelte_server.room_slug,
+    )
+    assert policy["preset"] == "custom" and policy["summary_enabled"] is False
+    expect(dialog.get_by_label("Room summary time")).to_have_count(0)
+
+
+def test_policy_refresh_failure_after_mode_save_is_retryable(
+    svelte_server, open_session
+):
+    page = open_session("owner", **PHONE)
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    page.route("**/reminders/policy", lambda route: route.abort())
+    dialog.get_by_label("Room reminder mode").select_option("scheduled")
+    dialog.get_by_role("button", name="Save room settings").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    dialog.get_by_label("Room reminder mode").select_option("custom")
+    expect(dialog.get_by_role("alert")).to_contain_text("Could not check")
+    expect(dialog.get_by_label("Room summary time")).to_be_visible()
+    page.unroute("**/reminders/policy")
+    dialog.get_by_role("button", name="Retry custom summary check").click()
+    expect(dialog.get_by_role("alert")).to_have_count(0)
+    expect(dialog.get_by_label("Room summary time")).to_have_count(0)
