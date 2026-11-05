@@ -49,7 +49,7 @@ The count uses the same rule as the bell badge, for that list only.
 An item's date shows its label beside the date: **Overdue** in red, **Today**
 and **Tomorrow** in amber. Later dates have no label. The words carry the
 meaning; the color repeats it. Colors come from the theme tokens, which meet
-contrast in every theme and light/dark mode ([app colors test](../frontend/src/app-colors.test.ts)).
+contrast in every theme and light/dark mode (checked by `frontend/src/app-colors.test.ts`).
 
 ## Day changes
 
