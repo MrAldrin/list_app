@@ -56,7 +56,17 @@ checks if Python changed.
 
 ## Status
 
-Active — launched 2026-11-05.
+Active — Conductor `01a1aa85-90f0-7405-a7cd-5ccfc7a1b965` owns execution
+in Lead-created `tmp-reminders-polish` on reviewed S2 `kwqutmso`.
+
+Planned Conductor-created children (Conductor owns integration and cleanup):
+- `tmp-polish-bell`: bounded worker for contextual scope and clear item action.
+- `tmp-polish-time-settings`: bounded worker for mode explanations, 24-hour
+  controls/displays and Europe/Oslo setup defaults without saved-data changes.
+
+All children and fresh independent reviewers use Terra/medium. Next: implement
+isolated seams, independently review, integrate and verify the combined tree.
+Lead retains entry-workspace lifecycle; no deployment or bookmark moves.
 
 ## Closeout
 
