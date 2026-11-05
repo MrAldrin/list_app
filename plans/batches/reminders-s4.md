@@ -34,6 +34,21 @@ VAPID provisioning, worker/UI/scheduler hookup or second retry engine. Coordinat
 interfaces directly with S2/S3, independently review and run own Python gates.
 Full stage integration still waits for reviewed S3.
 
+**Independent worker handoff (2026-11-05):** While S3 finishes, Conductor
+creates/owns `tmp-reminders-s4-worker` from completed reviewed S2
+`kwqutmso` / `3f536353`. Implement only existing-worker push/click handling,
+pure payload validation/building contracts and tests. Recheck current declarative
+format against first-party sources; require visible generic fallback for empty,
+malformed or unknown payloads, safe same-origin allowlisted click navigation,
+no private fetch before display, no duplicate declarative display, and preserve
+all existing cache/update/offline/retirement behavior. Establish the exact
+payload schema for later sender integration; no guessed scheduler adapters,
+server/router/subscription registration UI, migration or transport hookup yet.
+No real permission requests, registration, sends, VAPID provisioning or new
+service worker. Fresh Terra/medium implementation and independent review,
+frontend gates and focused existing worker/browser regressions. Keep this
+reviewed atomic worker delta isolated until full S3 runtime integration.
+
 **Unblocks:** [S5](reminders-s5.md).
 
 **Done criteria:** Standards-based phone push is implemented with generic/private defaults, supported/needs-install/denied/subscribed states and safe opt-out per room/device. Every push shows a visible fallback and safe same-origin navigation. No real endpoint enrollment, VAPID secret provisioning or external push provider send during implementation/tests.

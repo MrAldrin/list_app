@@ -556,6 +556,8 @@ and S4 pure push-transport/security foundations may proceed while predecessors
 are verified. Further Lead handoffs allow S3's durable storage repository,
 S4's installation-owned subscription storage/contracts and S5's external
 restore-state helper on reviewed identity/cycle `rwswntvl` / `3eb72704`.
+S4 may also implement isolated existing-worker push/click/payload handling
+from reviewed full S2 while S3 finishes, with no scheduler/UI/API hookup.
 Their batch briefs bound files, real contracts, review and creator-owned cleanup;
 no guessed evaluator stubs or shared migration-runner changes. They become
 runtime components only after their reviewed predecessors are reconciled.
