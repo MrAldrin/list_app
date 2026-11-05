@@ -70,6 +70,24 @@ unverified; desktop/mock tests do not establish it.
   and reviewed S4 staging children remain intentionally retained. Do not delete
   them merely to make the repository list tidy.
 
+## Owner inspection after closeout
+
+At 06:19 UTC the owner authorized closing the five idle Conductor sessions and
+starting a **partial stages 1–2 preview**. All five Pi sessions exited normally
+back to their shells; their task tabs were then closed. Workspaces and handoffs
+remain saved. No unfinished implementation or reviews were resumed.
+
+- Visible Zellij tab: `ListR partial preview S1–S2`, session `pc-home`,
+  terminal pane `18`. Stop the foreground server there with Ctrl+C.
+- Sample room: `http://localhost:8080/room/cabin-test`, password `cabin`.
+  Bell: due overview. Room menu → Personal reminders: settings.
+- New disposable database:
+  `/home/hsa/projects/tmp-reminder-delivery/local_only/reminder-preview.db`.
+  Source remains completed S2 `3f536353`; no S3 runtime or phone sender.
+- Fresh frontend build and browser smoke check passed: sample room sign-in,
+  grouped due overview and unenrolled settings dialog. This is not a new
+  full-suite pass or evidence that scheduled/phone reminders work.
+
 ## Next delivery sequence
 
 1. Reconcile the final S3 checkpoint and independently accepted source. Finish
