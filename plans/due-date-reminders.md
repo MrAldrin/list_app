@@ -273,7 +273,11 @@ The numbers below are approved product defaults, not claimed industry standards.
   Counts persist after repeats stop. Quiet hours may cross a date boundary.
 - On enrolling or changing rules, show future reminders. Do not replay every
   offset already passed. Offer **Remind me now** for an already-due item as an
-  explicit action, still subject to quiet hours and the shared frequency cap.
+  explicit action for one already-due item, still subject to quiet hours and
+  the shared frequency cap. It cannot override Quiet mode, effective Off,
+  pause, opt-out, invalid authorization or an active current-cycle snooze.
+  Explain the blocked state; never clear or shorten snooze implicitly or add
+  a second wake. Quiet hours can defer an otherwise valid manual reminder.
 - Same-day retries reuse the interruption's quota and spacing reservation;
   they do not consume another slot that day. A retry crossing a local day
   boundary must reserve a slot in the new day before sending; retain any
