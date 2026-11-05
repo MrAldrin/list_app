@@ -44,8 +44,12 @@ def reset_link(page: Page) -> None:
         )
     ).to_be_visible()
     dialog.get_by_role("button", name="Reset share link").click()
-    expect(page.get_by_text("Share link reset", exact=True)).to_be_visible()
+    toast = page.get_by_text("Share link reset", exact=True)
+    expect(toast).to_be_visible()
     expect(dialog).to_have_count(0)
+    # Clear this confirmation so a later reset must produce its own toast.
+    toast.locator("..").get_by_role("button", name="Dismiss").click()
+    expect(toast).to_have_count(0)
 
 
 def list_tags(server) -> list[str]:
@@ -54,6 +58,20 @@ def list_tags(server) -> list[str]:
 
 def share_token(server) -> str:
     return server.query("SELECT share_token FROM lists WHERE name = 'Groceries'")[0][0]
+
+
+def test_repeated_resets_each_confirm_and_rotate_the_link(svelte_server, open_session):
+    member = without_share_sheet(open_session("member", **PHONE))
+    sign_in(member, svelte_server)
+    create_list(member, "Groceries")
+    original = share_token(svelte_server)
+
+    reset_link(member)
+    first = share_token(svelte_server)
+    reset_link(member)
+    second = share_token(svelte_server)
+
+    assert len({original, first, second}) == 3
 
 
 def test_visitor_views_and_edits_by_link_and_reset_stops_it(
