@@ -89,68 +89,36 @@ material fixes after independent review.
 
 ## Status — assigned Conductor writes after handoff
 
-- State: independent storage foundation reviewed, verified and integrated into
-  own S3 entry only. Full 3a evaluator, 3b/3c and aggregate integration remain
-  pending reviewed full S2 plus exact Lead runtime EDIT HANDOFF.
-- Result tip `ozymolps` / `3e83454d`, based on reviewed identity/cycle
-  `rwswntvl` / `3eb72704`; entry clean `wnyyylyt` / `38322846` above it.
-  Local DDL is unregistered. No scheduler, dispatch, API or UI is enabled.
-- Implemented repository: occurrence/immutable-group/outbox persistence,
-  atomic processed-through cursor and retained dedupe, fenced leases and
-  per-generation attempt/member ledger, device-global quota/spacing,
-  scoped lifecycle cancellation/recovery/pruning and external-cutoff input.
-- Owner model change applied: Sol worker checkpointed/stopped; implementation
-  and independent executable reviews used native `openai/gpt-6.1-terra`,
-  medium, with effective settings verified. Conductor remains Sol/high.
-- Direct dependencies: S2 reviewed policies `qpwvmpyv` / `3c265a95` and
-  preview `xtmnuruo` / `98c37a22` are reported ready server-side; full S2 UI
-  is still active. No unfinished source consumed. Reconcile optional grant
-  clock helper and register local DDL only on the actual reviewed S2 handoff.
-- Binding grouping clarification: atomically reject future scheduled/eligible/
-  wake instants. Future fixed work stays ungrouped; accepted groups never
-  reopen. Negative premature-group, stable fixed reactivation, mixed-member
-  cancellation and accepted-history regressions pass.
-- Future caller obligations: couple item mutation and `cancel_item_locked` in
-  one transaction; commit and use only `mark_attempt_locked`'s exact member
-  snapshot before I/O. Live started claims retain leases through result or
-  recovery. Acceptance is not display; no network under the DB lock.
-- S4 uses the same stable group/topic, attempt ledger and reservations; no
-  uncertainty fallback strip. S5 supplies the external cutoff: strict actual
-  eligible/wake comparison retains equality/future work and attempted charges.
-  Runtime status enums, diagnostics and transport bridge remain unimplemented.
-- Children: `tmp-reminders-s3-store` created/owned by this Conductor, reviewed
-  work preserved in entry; forgotten and folder removed after no-process,
-  reachability, clean-state and ignored-artifact checks. No live children.
-- Entry remains interactive and Lead-managed. Shared-desk Status/Closeout
-  updates require coordinated windows; Brief/Assignment stay Lead-owned.
+- **Full S3 unfinished.** No complete local app, full-stage acceptance or
+  deployment. No unreviewed S3 source was merged into Lead's aggregate.
+- Reviewed-component tree `kulntpxm/4ffec984`; own combined working child
+  `smxxkylq/83609b2af045` has identical source. All six Python gates passed:
+  **2,254 tests, zero skips**, format/Ruff/ty clean. Frontend is unchanged
+  from the earlier 1,155-test validated build; not the pending strip UI.
+- Final unreviewed candidates: item API `yoounzxz/3f620969` needs fresh
+  same-626 review; strip UI `syollnqp/38eea306` needs fresh same-204 review.
+  Neither was accepted or consumed into the combined root.
+- Still required: complete causal/grouped cap B26, actual repeat27,
+  cooldown A28, known-absence fallback, summary/manual29 and remaining UI,
+  then latest full combined browser and independent full-stage gates.
+- Entry remains `wnyyylyt/54561d1c`. No main/integration/other bookmark,
+  production or provider changes. Implementation and review children used
+  verified native Terra/medium; no further reviews or source work in this window.
 
 ## Closeout — assigned Conductor
 
-- Partial result stack: `oprzrxlr` / `861a6faf` (repository/tests),
-  `nzzozpnt` / `d85897d4` (member lifecycle/late acceptance),
-  `ozymolps` / `3e83454d` (live leases and cancellation reservations).
-  Four-file foundation delta; not full S3 completion or feature acceptance.
-- Independent Terra/medium full shell review `33846137` blocked two executed
-  cancellation defects; material re-review `84733408` approved after fixes.
-  Exact retained reports:
-  - `/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/33846137-5794-45fd-893c-e6ddcc9867c6/s3-store-final-review.md`
-  - `/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/33846137-5794-45fd-893c-e6ddcc9867c6/s3-store-final-review.84733408.md`
-- Final author and independent review: 33 targeted repository tests pass;
-  full Python suite 1,721 passed/nine skipped, Ruff format/lint and ty clean.
-  Own-entry integration reran all six Python gates successfully (54.91-second
-  pytest), zero working-copy diff. Missing frontend-build warning retained;
-  frontend/browser gates do not apply to this inactive backend-only lane.
-- Retained local evidence: entry `.pi/reminders-s3-store/ownership.md`,
-  `checks/integrated-pytest.log`, and `child-artifacts/` checkpoints/historical
-  repro scripts; native worker/review reports remain outside the deleted child.
-  Copied artifacts checked equal; scripts parse without child-path imports.
-  Old defect repros are historical evidence, not current passing test cases.
-- Explicit conservative limit: cancellation after an earlier-day attempt also
-  retains a later-day unattempted reservation. No attempted/ambiguous refund
-  or spacing rewind is claimed. Started I/O cannot be recalled; lease-expiry
-  retry can still be ambiguous. No real transport or services were run.
-- Next: reviewed full S2/runtime handoff, schema/helper reconciliation, then
-  actual evaluator/lifespan/protected in-app scheduling and full-stage gates.
-  No fake evaluator adapters, shared migration changes, main/integration moves,
-  deployment, production configuration or real notification enrollment.
-- Child cleanup complete; entry stays available. Owner acceptance/deploy pending.
+- Window ended with all child jobs complete and no owned test/preview server
+  remaining. No complete morning preview was started. All 16 extant S3
+  directories and partial changes are retained; no destructive cleanup.
+- Definitive root/gates, exact partial sources, missing behavior and next
+  executable steps are retained under
+  `/home/hsa/projects/tmp-reminders-s3/.pi/reminders-s3-runtime/`:
+  `DEADLINE-0410.md` and `CURRENT.md`. Native reports remain outside
+  `/tmp`; copied logs/probes have a SHA256/source manifest.
+- Evidence gap: an earlier failed WebKit matrix's textual log is retained,
+  but its trace was lost to pytest temporary retention. Later focused green
+  results are not a full-browser gate or proof of the earlier error's cause.
+- Next session: independently review exact `3f620969` and `38eea306`,
+  including the stronger privacy/group proofs and UI test adjustment.
+  Join only approved sources, rerun applicable gates, then complete the
+  missing scope. No fake acceptance or automatic integration.
