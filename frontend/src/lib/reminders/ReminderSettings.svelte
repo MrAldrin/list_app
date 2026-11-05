@@ -35,14 +35,33 @@
 		repeatDays = $state(1);
 	let confirmZone = $state(false);
 	let policyOpen = $state(false);
-	let customSummary = $state(false);
+	let customSummary = $state<boolean | null>(false);
+	let customSummaryError = $state(false);
+	let policyRefreshFailed = $state(false);
+	let savedSummary = '09:00';
 	async function loadCustomSummary() {
 		try {
 			const value = await api.policy('policy');
 			customSummary = value.policy.preset === 'custom' && value.policy.summary_enabled;
+			customSummaryError = false;
 		} catch {
-			customSummary = false;
+			customSummary = null;
+			customSummaryError = true;
 		}
+	}
+	async function refreshAfterPolicy() {
+		loading = true;
+		try {
+			const latest = (await api.enrollment()).enrollment;
+			if (enrollment && latest.revision !== enrollment.revision && latest.state !== 'not_enrolled')
+				mode = latest.mode;
+			applyEnrollment(latest, false);
+			policyRefreshFailed = false;
+			await loadCustomSummary();
+		} catch {
+			policyRefreshFailed = true;
+		}
+		loading = false;
 	}
 	let hasDeviceDraft = false;
 	let recoveringIdentity = $state(false);
@@ -57,10 +76,13 @@
 	let conflict = $state(false);
 	let pending = $state<PendingWrite | null>(null);
 	let pendingKind = $state<'enroll' | 'room' | 'device' | 'optout' | null>(null);
-	const canSend = $derived(online && room.store.canWrite && !busy && !loading);
+	const canSend = $derived(
+		online && room.store.canWrite && !busy && !loading && !policyRefreshFailed
+	);
 
 	function applyEnrollment(value: Enrollment, initialize: boolean) {
 		enrollment = value;
+		savedSummary = value.state === 'not_enrolled' ? '09:00' : value.summary_time;
 		if (value.state !== 'active') setDeviceZone(room, undefined);
 		if (initialize) {
 			mode = value.state === 'not_enrolled' ? 'daily_summary' : value.mode;
@@ -91,7 +113,7 @@
 			const [a, b] = await Promise.all([api.enrollment(), api.device()]);
 			applyEnrollment(a.enrollment, initialize);
 			applyDevice(b.device, initialize);
-			if (a.enrollment.state === 'active') void loadCustomSummary();
+			if (a.enrollment.state === 'active') await loadCustomSummary();
 			conflict = false;
 			recoveringIdentity = false;
 			if (enrollmentValidationError !== null) {
@@ -214,22 +236,25 @@
 	function start(kind: 'enroll' | 'room' | 'device' | 'optout') {
 		if (!canSend || pending || conflict || !enrollment) return;
 		pendingOutcomeUnknown = false;
-		if ((kind === 'enroll' || kind === 'room') && !validTime(summary)) {
+		const summaryApplies =
+			mode === 'daily_summary' || (mode === 'custom' && customSummary !== false);
+		if ((kind === 'enroll' || kind === 'room') && summaryApplies && !validTime(summary)) {
 			error = 'Enter summary time as HH:MM (00:00–23:59).';
 			return;
 		}
+		const summaryToSave = validTime(summary) ? summary : savedSummary;
 		if (kind === 'enroll') {
 			pending = api.prepare('POST', 'enrollment', {
 				base_revision: enrollment.revision,
 				...(device ? {} : { timezone }),
 				mode,
-				summary_time: summary
+				summary_time: summaryToSave
 			});
 		} else if (kind === 'room') {
 			pending = api.prepare('PATCH', 'preferences', {
 				base_revision: enrollment.revision,
 				mode,
-				summary_time: summary
+				summary_time: summaryToSave
 			});
 		} else if (kind === 'optout') {
 			pending = api.prepare('PATCH', 'preferences', {
@@ -297,6 +322,18 @@
 			>Try loading again</button
 		>
 	{/if}
+	{#if policyRefreshFailed}<p role="alert">
+			Could not refresh room settings after editing rules. Your drafts are kept.
+		</p>
+		<button type="button" disabled={!online || loading} onclick={refreshAfterPolicy}
+			>Retry room settings refresh</button
+		>{/if}
+	{#if customSummaryError && mode === 'custom'}<p role="alert">
+			Could not check whether the custom policy includes a summary.
+		</p>
+		<button type="button" disabled={!online || loading} onclick={loadCustomSummary}
+			>Retry custom summary check</button
+		>{/if}
 	{#if conflict}<button type="button" disabled={!canSend} onclick={() => load(false)}
 			>Load latest revisions</button
 		>{/if}
@@ -336,12 +373,12 @@
 					onclick={() => (policyOpen = true)}>Edit custom room rules</button
 				>
 				<p>Save or enroll with Custom first, then edit its rules.</p>{/if}
-			{#if mode === 'daily_summary' || (mode === 'custom' && customSummary)}<label
+			{#if mode === 'daily_summary' || (mode === 'custom' && customSummary !== false)}<label
 					for="{id}-summary">Room summary time</label
 				><input
 					id="{id}-summary"
 					type="text"
-					inputmode="numeric"
+					inputmode="text"
 					placeholder="HH:MM"
 					maxlength="5"
 					bind:value={summary}
@@ -380,7 +417,7 @@
 				<label for="{id}-all-day">All-day reminder time</label><input
 					id="{id}-all-day"
 					type="text"
-					inputmode="numeric"
+					inputmode="text"
 					placeholder="HH:MM"
 					maxlength="5"
 					bind:value={allDay}
@@ -393,7 +430,7 @@
 					<input
 						id="{id}-quiet-start"
 						type="text"
-						inputmode="numeric"
+						inputmode="text"
 						placeholder="HH:MM"
 						maxlength="5"
 						bind:value={quietStart}
@@ -402,7 +439,7 @@
 					<input
 						id="{id}-quiet-end"
 						type="text"
-						inputmode="numeric"
+						inputmode="text"
 						placeholder="HH:MM"
 						maxlength="5"
 						bind:value={quietEnd}
@@ -445,7 +482,7 @@
 		scope="room"
 		onClose={() => {
 			policyOpen = false;
-			void loadCustomSummary();
+			void refreshAfterPolicy();
 		}}
 	/>{/if}
 

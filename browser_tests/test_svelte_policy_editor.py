@@ -84,6 +84,7 @@ def test_fixed_identity_and_explicit_conflict_recovery(svelte_server, open_sessi
     editor.get_by_label("Wall date").fill(
         (date.today() + timedelta(days=800)).isoformat()
     )
+    expect(editor.get_by_label("Wall time")).to_have_attribute("inputmode", "text")
     editor.get_by_label("Wall time").fill("12:00")
     editor.get_by_label("Time zone").fill("UTC")
     with page.expect_response(

@@ -253,7 +253,7 @@
 								<label>Wall date <input type="date" bind:value={rule.date} /></label><label
 									>Wall time <input
 										type="text"
-										inputmode="numeric"
+										inputmode="text"
 										placeholder="HH:MM"
 										maxlength="5"
 										bind:value={rule.time}

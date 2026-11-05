@@ -407,6 +407,9 @@ def test_timed_due_requires_zone_and_shows_server_confirmation(
     page.get_by_role("button", name=re.compile("^milk")).click()
     dialog = page.get_by_role("dialog", name="Edit Item")
     dialog.get_by_label("Date").fill("2026-10-18")
+    expect(dialog.get_by_label("Due time (optional)")).to_have_attribute(
+        "inputmode", "text"
+    )
     dialog.get_by_label("Due time (optional)").fill("09:00")
     expect(dialog.get_by_text("Time zone: Europe/Oslo", exact=True)).to_be_visible()
     expect(dialog.get_by_role("button", name="Save")).to_be_enabled()

@@ -164,7 +164,7 @@
 		<input
 			id="{nameId}-due-time"
 			type="text"
-			inputmode="numeric"
+			inputmode="text"
 			placeholder="HH:MM"
 			maxlength="5"
 			bind:value={dueTime}
