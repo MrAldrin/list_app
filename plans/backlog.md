@@ -26,7 +26,6 @@ separate item. Version control keeps the history.
 
 ## In progress
 
-- **Feature — Accept stage 2: due times and phone layout.** [P2](batches/reminders-polish-2.md) is ready for the owner's preview check. It fixes the bell layout and hides personal reminder settings until stage 3. After acceptance, integrate stage 2 and P2. See the [reminders plan](due-date-reminders.md). **Unblocks:** stage 3 in Next.
 - **Feature — Finish named item groups.** Work is parked on bookmark `groups`. It is not accepted or ready to deploy. See the [group plan](named-item-groups.md).
 
 Owner questions and recorded answers: [decisions for Heming](decisions-for-heming.md).
@@ -34,7 +33,7 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 ## Next
 
 - **Test — Review and improve the test suite.** Review high-risk behavior first. Strengthen useful coverage, fix clear test defects, investigate unreliable tests, and measure runtime against test value. Write a testing guide. Keep coverage removals and broader changes for owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and remaining Android decisions. Execution approval is pending.
-- **Feature — Agree the scope of stage 3, then resume in-app reminders.** Discuss what to keep before restarting implementation. Include the settings polish deferred from P2. **Blocked by:** stage 2 acceptance in In progress and approval of the revised scope. **Unblocks:** stages 4 and 5 in Later. See the [S3 brief](batches/reminders-s3.md) and [reminders plan](due-date-reminders.md). Saved work is recorded in `/home/hsa/projects/reminders-archive/`.
+- **Feature — Agree the scope of stage 3, then resume in-app reminders.** Discuss what to keep before restarting implementation. Include the settings polish deferred from P2. Stages 1 and 2, including P2, are accepted on `main`. **Blocked by:** approval of the revised scope. **Unblocks:** stages 4 and 5 in Later. See the [S3 brief](batches/reminders-s3.md) and [reminders plan](due-date-reminders.md). Saved work is recorded in `/home/hsa/projects/reminders-archive/`.
 
 ## Blocked
 
@@ -49,8 +48,6 @@ None. Dependencies for work in Next or Later are stated with those items.
 - **Infrastructure — Keep the old service-worker removal route.** Keep `/sw.js` until at least 2027-04-06. The new app must use a different worker URL or replace this route safely. The route must not return a missing-page error or the app page. See [decision 159](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - **Documentation — Extend the Allium pilot.** Specify name trimming, letter case, and duplicate-name rules. Then decide whether the specification adds value beyond tests. See the [pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
 - **Feature — Give users more time to undo deletion.** Consider a longer toast or an undo history for items and tags. See [decisions 85 and 87](../docs/background/svelte-frontend-rewrite.md#decisions-log).
-- **Refactor — Use FastAPI's built-in event stream.** Consider `EventSourceResponse` when `src/api/events.py` next changes. It could replace our keep-alive code. See [deferred cleanup](../docs/background/codebase-cleanup.md#not-now).
-- **Data — Try SQLite WAL mode.** Check whether concurrent readers and a writer help this app. The current single lock limits the likely gain. See [deferred cleanup](../docs/background/codebase-cleanup.md#not-now).
 
 ## Ideas
 
@@ -64,14 +61,13 @@ None. Dependencies for work in Next or Later are stated with those items.
 - **Infrastructure — Schedule local production backups.** Pull a verified SQLite copy from Railway to this machine or an always-on home machine. The current plan has no Railway snapshots. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
 - **Infrastructure — Assess continuous integration (CI).** Compare GitHub Actions with local deployment checks. Consider cost, time, maintenance, and safe reuse of checks from the exact revision being deployed. Keep the production backup after checks and immediately before deployment. Before adding CI, replace the broad `.*/` ignore rule with explicit rules that protect databases, backups, and secrets. Railway does not wait for CI unless configured to do so. See the [October review](improvement-ideas.md#tests-and-tooling).
 - **Feature — Compress large JSON responses.** Compression reduced a 1,000-item response from 283 KB to 35 KB in an earlier trial. The gain is small for current lists. Never compress Server-Sent Events. See the [performance review](improvement-ideas.md#performance).
-- **Feature — Limit live updates to the affected room or list.** Avoid refreshing unrelated users.
 - **Feature — Assess sharing between rooms without accounts.** **Owner decision.** No implementation is selected. See the [proposal](cross-room-sharing-without-accounts.md) and [sharing plan](advanced_sharing.md).
 - **Feature — Assess optional accounts.** **Owner decision.** Consider accounts if individual permissions or revocation become necessary. See the [proposal](optional-accounts.md).
 - **Feature — Choose a visual direction.** **Owner decision.** Review the [mockups and feedback](visual-refresh.md). The owner prefers colorful list cards.
 - **Feature — Assess item categories.** **Owner decision.** Categories such as dairy or fruit would divide a list into sections. Tags currently filter items; they do not create sections. See the [owner feedback](visual-refresh.md#owner-feedback-2026-10-19).
 - **Refactor — Turn `src/` into a Python package.** The entry point and server code are already separate.
 - **Refactor — Replace the global SQLite connection.** Consider a connection manager or context manager.
-- **Data — Add timestamps and change versions.** Use them for debugging, conflict detection, or history.
+- **Data — Assess additional timestamps or change history.** Change versions and conflict checks already exist; see [change tracking](../docs/change-tracking.md). Identify a concrete debugging or history need before adding more fields.
 - **Data — Store tags in separate tables.** Consider this if queries or data checks require it.
 - **Data — Reconsider the database when scaling requires it.** Possible reasons include multiple replicas, frequent competing writes, high availability, or multiple regions. Discuss the [architecture](../ARCHITECTURE.md) first.
 

@@ -145,12 +145,15 @@ lead agent. Line numbers are from that date; re-check before editing.
 
 ## Not now
 
-The two open items (built-in SSE and WAL) are tracked in the
-[backlog](../../plans/backlog.md#later). The rest is kept as the record.
+The former SSE and WAL follow-ups are resolved:
 
-- FastAPI built-in SSE (`EventSourceResponse`, FastAPI 0.135+): removes our
-  keep-alive code. Do it next time `src/api/events.py` changes.
-- SQLite WAL: small gain, since `_DB_LOCK` serializes access anyway.
+- FastAPI built-in SSE is implemented in `src/api/events.py` (change
+  `xrtnvrmy`). `EventSourceResponse` handles encoding and keep-alive comments.
+- SQLite WAL was evaluated on disposable databases. The recommendation was to
+  keep it off, not to enable it. Revisit only if concurrent connections or
+  backup costs justify it; see the [findings](sqlite-wal-timeout.md).
+
+The remaining notes below are retained as the historical record.
 - Bounded handle registry, IndexedDB snapshot pruning, periodic op pruning,
   no import-time database open: real but tiny at about 4 users.
 - Rejected: STRICT tables (table rebuild on live data), Svelte attachments (no
