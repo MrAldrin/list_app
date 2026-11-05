@@ -47,7 +47,14 @@ phone-width tests in three engines; owner checks the refreshed preview.
 
 ## Status
 
-Not started (owner placed it first, 2026-11-05).
+Active — Conductor `01a1aa85-90f0-7405-a7cd-5ccfc7a1b965` reuses the
+Lead-created `tmp-reminders-polish`, clean at accepted P `wlwznqly`.
+Conductor creates and owns child `tmp-polish-p2-ui` for one Terra/medium
+implementation worker, then a fresh shell-capable read-only reviewer.
+Scope is reminder UI copy/layout and tests only. Next: implement, review,
+verify one browser matrix at a time. Browser basetemps stay under workspace
+`.pi`; only fully passed basetemps may be removed after keeping logs.
+Lead owns preview refresh, entry-workspace integration and cleanup.
 
 ## Closeout
 
