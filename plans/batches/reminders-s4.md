@@ -140,6 +140,39 @@ material fixes after independent review.
 
 ## Closeout — assigned Conductor
 
+### Isolated existing-worker delta — ready, not joined to runtime
+
+- Base reviewed full S2 `kwqutmso` / `3f536353`; implementation `ltwqknlr` /
+  `54e4f463`, documentation/test fix `onqokrwz` /
+  `9f856c926441bae1cb4b243b3131c1daa5e9879e`. Clean child `oorkmmrt` /
+  `e7a723b9` retained in S4-owned `tmp-reminders-s4-worker` until full S3
+  reconciliation. Deliberately not merged into S4 entry or aggregate.
+- Existing worker only: generic visible fallback, validated private opt-in
+  payload contract, same-origin root/room navigation-only clicks, no private
+  fetch, no duplicate declarative display. Cache/update/offline and old worker
+  retirement preserved. No permission, enrollment, sender or scheduler hookup.
+- First-party W3C/WebKit declarative format checked by author and reviewer.
+  Browser may display/navigate without worker execution. The TypeScript builder
+  is not a Python sender safety boundary: future Python validation before every
+  encryption and cross-language parity tests are mandatory. Trusted configured
+  origin, never request Host. S3 confirmed stable 24-character group IDs and
+  single encoded room-slug route; event IDs are distinct.
+- Verified native Terra/medium implementation `16fc4211` → fix `67a4820b`;
+  fresh independent `47445cb0` → `64a243c3` ACCEPT isolated delta. Review closed
+  durable-contract parity documentation gap; added rejected-show promise
+  propagation test. No runtime fix was needed.
+- Parent inspected builder/handlers/contract; frontend lint/check/unit/build and
+  worker TypeScript gates passed; 3 built-script browser mock cases passed.
+  Independent review also ran full frontend gates (1118 unit tests before added
+  rejection regression), then 8 focused tests on final fix. Author reported 36
+  browser cache/offline/retirement/mock regressions and 1792 Python tests passed.
+  These are case-scoped mocks, not actual declarative UA or OS/phone delivery.
+- Exact retained acceptance and reports:
+  `/home/hsa/projects/tmp-reminders-s4/.pi/reminders-s4-foundation/worker/`,
+  `s4-worker-independent-review.64a243c3.md` and `parent-frontend.log`.
+  No active writers/services. Keep reviewed child and evidence until integration;
+  full phone flow still waits for reviewed full S3 and exact predecessor handoff.
+
 ### Subscriptions foundation — full stage still open
 
 - Reviewed stack: merge `vrtrqtzs` / `6515fb6f` combines reviewed identity/cycle
