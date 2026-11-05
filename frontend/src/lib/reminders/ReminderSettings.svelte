@@ -4,6 +4,8 @@
 	import { ApiError, NetworkError } from '#lib/data/types.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
 	import { setDeviceZone } from './device-zone.svelte';
+	import { DEFAULT_TIME_ZONE, validTime } from '#lib/list/time-zone.ts';
+	import PolicyEditor from './PolicyEditor.svelte';
 	import {
 		ReminderApi,
 		UnknownWriteOutcome,
@@ -32,6 +34,16 @@
 	let repeatEnabled = $state(false),
 		repeatDays = $state(1);
 	let confirmZone = $state(false);
+	let policyOpen = $state(false);
+	let customSummary = $state(false);
+	async function loadCustomSummary() {
+		try {
+			const value = await api.policy('policy');
+			customSummary = value.policy.preset === 'custom' && value.policy.summary_enabled;
+		} catch {
+			customSummary = false;
+		}
+	}
 	let hasDeviceDraft = false;
 	let recoveringIdentity = $state(false);
 	let enrollmentValidationError: string | null = null;
@@ -59,7 +71,7 @@
 		device = value;
 		if (value) hasDeviceDraft = true;
 		if (initialize) {
-			timezone = value?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
+			timezone = value?.timezone ?? DEFAULT_TIME_ZONE;
 			allDay = value?.all_day_time ?? '09:00';
 			paused = value?.paused ?? false;
 			quietEnabled = !!value?.quiet_hours;
@@ -79,6 +91,7 @@
 			const [a, b] = await Promise.all([api.enrollment(), api.device()]);
 			applyEnrollment(a.enrollment, initialize);
 			applyDevice(b.device, initialize);
+			if (a.enrollment.state === 'active') void loadCustomSummary();
 			conflict = false;
 			recoveringIdentity = false;
 			if (enrollmentValidationError !== null) {
@@ -201,6 +214,10 @@
 	function start(kind: 'enroll' | 'room' | 'device' | 'optout') {
 		if (!canSend || pending || conflict || !enrollment) return;
 		pendingOutcomeUnknown = false;
+		if ((kind === 'enroll' || kind === 'room') && !validTime(summary)) {
+			error = 'Enter summary time as HH:MM (00:00–23:59).';
+			return;
+		}
 		if (kind === 'enroll') {
 			pending = api.prepare('POST', 'enrollment', {
 				base_revision: enrollment.revision,
@@ -225,7 +242,9 @@
 				return;
 			}
 			if (
-				(quietEnabled && (!quietStart || !quietEnd || quietStart === quietEnd)) ||
+				!validTime(allDay) ||
+				(quietEnabled &&
+					(!validTime(quietStart) || !validTime(quietEnd) || quietStart === quietEnd)) ||
 				!Number.isInteger(dailyCap) ||
 				dailyCap < 1 ||
 				dailyCap > 50 ||
@@ -235,7 +254,7 @@
 				(repeatEnabled && (!Number.isInteger(repeatDays) || repeatDays < 1 || repeatDays > 30))
 			) {
 				error =
-					'Quiet hours need different start and end times. Daily cap must be 1–50, spacing 1–60 minutes, and overdue repeat 1–30 days; use whole numbers.';
+					'Times must use HH:MM (00:00–23:59); quiet hours need different start and end times. Daily cap must be 1–50, spacing 1–60 minutes, and overdue repeat 1–30 days; use whole numbers.';
 				return;
 			}
 			pending = api.prepare('PATCH', 'preferences/device', {
@@ -266,7 +285,7 @@
 		Private to this browser. Room settings apply only here; device settings apply across enrolled
 		rooms. Reminder delivery is not active in phase 2.
 	</p>
-	<p>Due views use the device time zone when enrolled, otherwise the browser time zone.</p>
+	<p>Due views use the device time zone when enrolled, otherwise Europe/Oslo.</p>
 	{#if loading}<p role="status">Loading settings…</p>{/if}
 	{#if error}<p role="alert">{error}</p>{/if}
 	{#if notice}<p role="status">{notice}</p>{/if}
@@ -302,16 +321,38 @@
 				<option value="quiet">Quiet</option><option value="daily_summary">Daily summary</option
 				><option value="scheduled">Scheduled</option><option value="custom">Custom</option>
 			</select>
-			<label for="{id}-summary">Room summary time</label><input
-				id="{id}-summary"
-				type="time"
-				bind:value={summary}
-			/>
+			<p>
+				{mode === 'quiet'
+					? 'Due information only; no reminders.'
+					: mode === 'daily_summary'
+						? 'One daily summary; no individual reminders.'
+						: mode === 'scheduled'
+							? 'Individual reminders one day before and at due.'
+							: 'Choose your own reminder rules and optional summary.'}
+			</p>
+			{#if mode === 'custom'}<button
+					type="button"
+					disabled={enrollment.state !== 'active'}
+					onclick={() => (policyOpen = true)}>Edit custom room rules</button
+				>
+				<p>Save or enroll with Custom first, then edit its rules.</p>{/if}
+			{#if mode === 'daily_summary' || (mode === 'custom' && customSummary)}<label
+					for="{id}-summary">Room summary time</label
+				><input
+					id="{id}-summary"
+					type="text"
+					inputmode="numeric"
+					placeholder="HH:MM"
+					maxlength="5"
+					bind:value={summary}
+				/>{/if}
 			{#if enrollment.state === 'not_enrolled' || enrollment.state === 'needs_resume' || enrollment.state === 'opted_out'}
-				{#if !device}<label for="{id}-initial-zone">Time zone for this device</label><input
-						id="{id}-initial-zone"
-						bind:value={timezone}
-					/>{/if}
+				{#if !device}<p>Time zone: {timezone}</p>
+					<details>
+						<summary>Change time zone</summary><label for="{id}-initial-zone"
+							>Time zone for this device (IANA)</label
+						><input id="{id}-initial-zone" bind:value={timezone} />
+					</details>{/if}
 				<button type="button" disabled={!canSend} onclick={() => start('enroll')}
 					>{enrollment.state === 'not_enrolled' ? 'Enroll this device' : 'Resume this room'}</button
 				>
@@ -326,17 +367,22 @@
 			{#if device}
 				<h3>Device settings</h3>
 				<p>These apply to every room enrolled on this device.</p>
-				<label for="{id}-zone">Device time zone</label><input
-					id="{id}-zone"
-					bind:value={timezone}
-				/>
+				<p>Device time zone: {device.timezone}</p>
+				<details>
+					<summary>Change device time zone</summary><label for="{id}-zone"
+						>Device time zone (IANA)</label
+					><input id="{id}-zone" bind:value={timezone} />
+				</details>
 				{#if timezone !== device.timezone}<label
 						><input type="checkbox" bind:checked={confirmZone} /> Confirm time zone change for all enrolled
 						rooms</label
 					>{/if}
 				<label for="{id}-all-day">All-day reminder time</label><input
 					id="{id}-all-day"
-					type="time"
+					type="text"
+					inputmode="numeric"
+					placeholder="HH:MM"
+					maxlength="5"
 					bind:value={allDay}
 				/>
 				<label><input type="checkbox" bind:checked={paused} /> Pause reminders on this device</label
@@ -344,9 +390,23 @@
 				<label><input type="checkbox" bind:checked={quietEnabled} /> Enable quiet hours</label>
 				{#if quietEnabled}
 					<label for="{id}-quiet-start">Quiet hours start</label>
-					<input id="{id}-quiet-start" type="time" bind:value={quietStart} />
+					<input
+						id="{id}-quiet-start"
+						type="text"
+						inputmode="numeric"
+						placeholder="HH:MM"
+						maxlength="5"
+						bind:value={quietStart}
+					/>
 					<label for="{id}-quiet-end">Quiet hours end</label>
-					<input id="{id}-quiet-end" type="time" bind:value={quietEnd} />
+					<input
+						id="{id}-quiet-end"
+						type="text"
+						inputmode="numeric"
+						placeholder="HH:MM"
+						maxlength="5"
+						bind:value={quietEnd}
+					/>
 				{/if}
 				<label for="{id}-daily-cap">Daily cap (1–50)</label>
 				<input id="{id}-daily-cap" type="number" min="1" max="50" step="1" bind:value={dailyCap} />
@@ -380,6 +440,14 @@
 		<button type="button" disabled={!!pending || busy} onclick={onClose}>Close</button>
 	</div>
 </Dialog>
+{#if policyOpen}<PolicyEditor
+		{room}
+		scope="room"
+		onClose={() => {
+			policyOpen = false;
+			void loadCustomSummary();
+		}}
+	/>{/if}
 
 <style>
 	fieldset {

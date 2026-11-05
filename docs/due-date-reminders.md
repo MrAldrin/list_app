@@ -13,14 +13,17 @@ An item can also have a time and an explicit IANA time zone. Clearing its date
 clears both. The server confirms the UTC instant; an unsynced change shows
 **Waiting to sync** instead. These shared edits use the existing offline queue.
 Confirmed timed items become overdue after their confirmed instant. Other timed
-items are grouped by that instant in the browser time zone. Until device settings
-are available, the browser time zone is used for day groups. Unconfirmed edits
+items are grouped by that instant in the configured device time zone. Before setup,
+Europe/Oslo is used for day groups. Unconfirmed edits
 use their wall date and never invent a UTC instant.
+
+New reminder setups use Europe/Oslo, while saved time zones stay unchanged.
+Times are entered as 24-hour HH:MM. Advanced time zone controls accept IANA names.
 
 ## What counts as due
 
 An item is due when it is not checked and has a date. "Today" and "Tomorrow"
-are days in the browser time zone. Items without a date never show as due.
+are days in the configured device time zone (Europe/Oslo before setup). Items without a date never show as due.
 
 | Group | Days from today |
 | --- | --- |

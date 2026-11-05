@@ -18,7 +18,8 @@
 	import Icon from '#lib/ui/Icon.svelte';
 	import { addedLabel, lastAddedLabel, stepQuantity } from './items';
 	import { tagColor } from './tags';
-	import { canonicalTimeZone } from './time-zone';
+	import { canonicalTimeZone, DEFAULT_TIME_ZONE, validTime } from './time-zone';
+	import { deviceZone } from '#lib/reminders/device-zone.svelte.ts';
 
 	let {
 		item,
@@ -80,7 +81,7 @@
 	);
 	const canonicalZone = $derived(canonicalTimeZone(dueTimezone));
 	const validZone = $derived(!!canonicalZone || (unchangedDue && !!item.due_at));
-	const validDue = $derived(!date || !dueTime || validZone);
+	const validDue = $derived(!date || !dueTime || (validTime(dueTime) && validZone));
 </script>
 
 <FormDialog
@@ -162,21 +163,33 @@
 		<label for="{nameId}-due-time">Due time (optional)</label>
 		<input
 			id="{nameId}-due-time"
-			type="time"
+			type="text"
+			inputmode="numeric"
+			placeholder="HH:MM"
+			maxlength="5"
 			bind:value={dueTime}
+			oninput={() => {
+				if (dueTime && !dueTimezone)
+					dueTimezone = (reminderRoom && deviceZone(reminderRoom)) || DEFAULT_TIME_ZONE;
+			}}
 			onchange={() => {
 				if (!dueTime) dueTimezone = '';
 			}}
 		/>
 		{#if dueTime}
-			<label for="{nameId}-due-zone">Time zone (IANA, for example Europe/Oslo)</label>
-			<input
-				id="{nameId}-due-zone"
-				bind:value={dueTimezone}
-				autocomplete="off"
-				aria-invalid={!validZone}
-				aria-describedby={!validZone ? `${nameId}-zone-error` : undefined}
-			/>
+			{#if !validTime(dueTime)}<p role="alert">Enter a time as HH:MM (00:00–23:59).</p>{/if}
+			<p class="added">Time zone: {dueTimezone}</p>
+			<details>
+				<summary>Change time zone</summary>
+				<label for="{nameId}-due-zone">Time zone (IANA, for example Europe/Oslo)</label>
+				<input
+					id="{nameId}-due-zone"
+					bind:value={dueTimezone}
+					autocomplete="off"
+					aria-invalid={!validZone}
+					aria-describedby={!validZone ? `${nameId}-zone-error` : undefined}
+				/>
+			</details>
 			{#if !validZone}
 				<p id="{nameId}-zone-error" class="added" role="alert">
 					Enter a valid IANA time zone, up to 64 characters, such as Europe/Oslo.

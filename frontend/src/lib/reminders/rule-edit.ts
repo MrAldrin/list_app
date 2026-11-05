@@ -1,3 +1,4 @@
+import { validTime } from '#lib/list/time-zone.ts';
 import { ruleToInput, type InputRule, type StoredRule } from './rules';
 
 export type EditableRule =
@@ -37,7 +38,10 @@ export function validateEditableRules(rules: EditableRule[]): string | null {
 	const limits = { minutes: 525600, hours: 8760, days: 365, weeks: 52 };
 	const keys = new Set<string>();
 	for (const rule of rules) {
-		if (rule.kind !== 'relative') continue;
+		if (rule.kind !== 'relative') {
+			if (!validTime(rule.time)) return 'Enter fixed time as HH:MM (00:00–23:59).';
+			continue;
+		}
 		if (!Number.isSafeInteger(rule.amount) || rule.amount < 0 || rule.amount > limits[rule.unit])
 			return `Use a whole number from 0 to ${limits[rule.unit]} for ${rule.unit}.`;
 		const key =

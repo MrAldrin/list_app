@@ -21,6 +21,7 @@ def open_item(page):
 def set_due(dialog, day, time, zone):
     dialog.get_by_label("Date").fill(day)
     dialog.get_by_label("Due time (optional)").fill(time)
+    dialog.get_by_text("Change time zone", exact=True).click()
     dialog.get_by_label(re.compile("Time zone")).fill(zone)
     dialog.get_by_role("button", name="Save").click()
     expect(dialog).to_have_count(0)
@@ -148,6 +149,7 @@ def test_zone_case_online_and_offline_are_sent_canonically(svelte_server, open_s
         dialog = open_item(phone)
         dialog.get_by_label("Date").fill("2026-10-18")
         dialog.get_by_label("Due time (optional)").fill("09:00")
+        dialog.get_by_text("Change time zone", exact=True).click()
         dialog.get_by_label(re.compile("Time zone")).fill(spelling)
         expect(dialog.get_by_text(f"Time zone saved as: {canonical}")).to_be_visible()
         dialog.get_by_role("button", name="Save").click()

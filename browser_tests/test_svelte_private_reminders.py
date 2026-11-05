@@ -40,6 +40,7 @@ def test_enrollment_settings_and_offline_draft(svelte_server, open_session):
     dialog.get_by_label("Room reminder mode").select_option("quiet")
     dialog.get_by_role("button", name="Save room settings").click()
     expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    dialog.get_by_label("Room reminder mode").select_option("daily_summary")
     dialog.get_by_label("All-day reminder time").fill("10:15")
     dialog.get_by_role("button", name="Save device settings").click()
     expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
@@ -292,7 +293,8 @@ def assert_device_draft(dialog):
 
 
 def edit_device_draft(dialog):
-    # Choose a different zone regardless of the browser's default.
+    # The initial setup in these tests uses UTC.
+    dialog.get_by_text("Change device time zone", exact=True).click()
     dialog.get_by_label("Device time zone").fill("Europe/Oslo")
     dialog.get_by_label("Confirm time zone change for all enrolled rooms").check()
     dialog.get_by_label("All-day reminder time").fill("13:25")
@@ -303,14 +305,15 @@ def test_optout_resume_preserves_unrelated_drafts(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
     dialog = open_settings(page)
+    dialog.get_by_text("Change time zone", exact=True).click()
     dialog.get_by_label("Time zone for this device").fill("UTC")
     dialog.get_by_role("button", name="Enroll this device").click()
     expect(dialog.get_by_text("Status: Active")).to_be_visible()
-    dialog.get_by_label("Room reminder mode").select_option("quiet")
+    dialog.get_by_label("Room reminder mode").select_option("daily_summary")
     dialog.get_by_label("Room summary time").fill("11:45")
     dialog.get_by_role("button", name="Opt out of this room").click()
     expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
-    expect(dialog.get_by_label("Room reminder mode")).to_have_value("quiet")
+    expect(dialog.get_by_label("Room reminder mode")).to_have_value("daily_summary")
     expect(dialog.get_by_label("Room summary time")).to_have_value("11:45")
     edit_device_draft(dialog)
     dialog.get_by_role("button", name="Resume this room").click()
@@ -324,6 +327,7 @@ def test_enroll_other_room_preserves_existing_device_draft(svelte_server, open_s
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
     dialog = open_settings(page)
+    dialog.get_by_text("Change time zone", exact=True).click()
     dialog.get_by_label("Time zone for this device").fill("UTC")
     dialog.get_by_role("button", name="Enroll this device").click()
     expect(dialog.get_by_text("Status: Active")).to_be_visible()
@@ -350,6 +354,7 @@ def test_enrollment_expiry_recovers_only_after_explicit_action(
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
     dialog = open_settings(page)
+    dialog.get_by_text("Change time zone", exact=True).click()
     dialog.get_by_label("Time zone for this device").fill("UTC")
     dialog.get_by_role("button", name="Enroll this device").click()
     expect(dialog.get_by_text("Status: Active")).to_be_visible()
@@ -363,7 +368,7 @@ def test_enrollment_expiry_recovers_only_after_explicit_action(
     else:
         dialog.get_by_role("button", name="Opt out of this room").click()
         expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
-    dialog.get_by_label("Room reminder mode").select_option("quiet")
+    dialog.get_by_label("Room reminder mode").select_option("daily_summary")
     dialog.get_by_label("Room summary time").fill("12:34")
     edit_device_draft(dialog)
     page.evaluate(
@@ -410,7 +415,8 @@ def test_enrollment_expiry_recovers_only_after_explicit_action(
         assert len(attempts) == 1
     assert all("timezone" not in body for body in attempts)
     expect(dialog.get_by_label("Room summary time")).to_have_value("12:34")
-    expect(dialog.get_by_label("Room reminder mode")).to_have_value("quiet")
+    expect(dialog.get_by_label("Room reminder mode")).to_have_value("daily_summary")
+    dialog.get_by_text("Change time zone", exact=True).click()
     expect(dialog.get_by_label("Time zone for this device")).to_have_value(
         "Europe/Oslo"
     )
@@ -435,7 +441,7 @@ def test_enrollment_422_retains_real_validation_error(svelte_server, open_sessio
     expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
     dialog.get_by_label("Room summary time").fill("")
     dialog.get_by_role("button", name="Resume this room").click()
-    expect(dialog.get_by_role("alert")).to_have_text("This request is not valid.")
+    expect(dialog.get_by_role("alert")).to_contain_text("Enter summary time as HH:MM")
     expect(dialog.get_by_role("alert")).not_to_contain_text("unavailable or expired")
     expect(dialog.get_by_text("Status: Opted out")).to_be_visible()
     expect(dialog.get_by_label("Room summary time")).to_have_value("")
@@ -680,3 +686,24 @@ def test_device_controls_reject_invalid_bounds_and_preserve_offline_draft(
     expect(dialog.get_by_role("button", name="Save device settings")).to_be_enabled()
     expect(dialog.get_by_label("Daily cap (1\u201350)")).to_have_value("42")
     assert not writes
+
+
+def test_time_settings_oslo_and_24_hour_controls(svelte_server, open_session):
+    page = open_session("owner", **PHONE, locale="en-US")
+    sign_in(page, svelte_server)
+    dialog = open_settings(page)
+    expect(dialog.get_by_text("Time zone: Europe/Oslo", exact=True)).to_be_visible()
+    expect(dialog.get_by_label("Room summary time")).to_have_attribute("type", "text")
+    dialog.get_by_label("Room summary time").fill("13:45")
+    dialog.get_by_role("button", name="Enroll this device").click()
+    expect(dialog.get_by_text("Status: Active")).to_be_visible()
+    expect(dialog.get_by_text("Device time zone: Europe/Oslo")).to_be_visible()
+    dialog.get_by_label("Room reminder mode").select_option("quiet")
+    expect(dialog.get_by_label("Room summary time")).to_have_count(0)
+    dialog.get_by_label("Room reminder mode").select_option("custom")
+    expect(dialog.get_by_role("button", name="Edit custom room rules")).to_be_visible()
+    dialog.get_by_role("button", name="Save room settings").click()
+    expect(dialog.get_by_role("status")).to_have_text("Saved on this device.")
+    dialog.get_by_role("button", name="Edit custom room rules").click()
+    editor = page.get_by_role("dialog", name="Personal room reminders")
+    expect(editor.get_by_role("button", name="Add relative rule")).to_be_visible()

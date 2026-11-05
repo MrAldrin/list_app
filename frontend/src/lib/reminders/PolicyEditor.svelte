@@ -4,6 +4,8 @@
 	import { ApiError, NetworkError } from '#lib/data/types.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
 	import ReminderSettings from './ReminderSettings.svelte';
+	import { deviceZone } from './device-zone.svelte';
+	import { DEFAULT_TIME_ZONE } from '#lib/list/time-zone.ts';
 	import {
 		ReminderApi,
 		UnknownWriteOutcome,
@@ -215,7 +217,15 @@
 						></select
 					></label
 				>
-				{#if preset === 'scheduled'}<p>One calendar day before and at due.</p>{/if}
+				<p>
+					{preset === 'quiet'
+						? 'Due information only; no reminders.'
+						: preset === 'daily_summary'
+							? 'One daily summary; no individual reminders.'
+							: preset === 'scheduled'
+								? 'Individual reminders one day before and at due.'
+								: 'Choose your own reminder rules and optional summary.'}
+				</p>
 				{#if preset === 'custom'}
 					<label><input type="checkbox" bind:checked={summary} /> Include daily summary</label>
 					{#each rules as rule, i (rule)}
@@ -241,7 +251,13 @@
 								>
 							{:else}
 								<label>Wall date <input type="date" bind:value={rule.date} /></label><label
-									>Wall time <input type="time" bind:value={rule.time} /></label
+									>Wall time <input
+										type="text"
+										inputmode="numeric"
+										placeholder="HH:MM"
+										maxlength="5"
+										bind:value={rule.time}
+									/></label
 								><label>Time zone <input bind:value={rule.timezone} /></label>
 								{#if rule.original && rule.date === rule.original.date && rule.time === rule.original.time && rule.timezone === rule.original.timezone}<p
 									>
@@ -265,7 +281,7 @@
 								kind: 'fixed',
 								date: '',
 								time: '',
-								timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+								timezone: deviceZone(room) || DEFAULT_TIME_ZONE
 							})}>Add fixed wall time</button
 					>
 				{/if}
