@@ -149,16 +149,26 @@ owner is finished with it.
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Execution approval: [overnight run](night-run.md#approval-and-outcome).
-- Task owner/session, effective model/thinking verification, and workspace: pending.
+- Conductor: `01a1ae1f-51f3-7754-b9c5-ae51d2bdbb75`, verified
+  `openai/gpt-6.1-sol`, `low`; Zellij tab 20, pane 57 (`list_app-night-themes`).
+- Large batch: twenty distinct concepts, shared gallery plumbing, rendered
+  interaction/contrast checks, and fresh independent design review.
+- Workspace: `night-themes`, `/home/hsa/projects/list_app-night-themes`;
+  Lead-created and managed. Base: `night-2-docs` (`nkrslvrx` / `121fb5fd`).
+  Lead owns entry lifecycle; Conductor owns children and its gallery server.
+  Lead report target: `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Work window, concurrent workers, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
-- Preview server/port and browser-work schedule: not agreed.
+- Preview: a static gallery-only server is approved on loopback port 8766,
+  verified free at dispatch. Recheck before binding. Use a visible owned pane,
+  serve only the gallery directory, and leave the existing 8765 preview alone.
+  No competing heavy browser task is active; do not open a user browser tab.
 
 ## Progress
 
 - [x] Scope twenty drafts by four levels of design freedom.
 - [x] Record owner-selected backlog placement and Conductor.
 - [x] Approve execution limits.
-- [ ] Assign task and child ownership.
+- [x] Assign task ownership; record each child's ownership at launch.
 - [ ] Research references and establish the current-app comparison.
 - [ ] Build twenty drafts and the local comparison gallery.
 - [ ] Review rendered designs, run checks, and address clear issues.

@@ -210,15 +210,33 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
   Lead owns entry lifecycle; Conductor owns children. Lead report target:
   `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
-- Shared-document write windows with the other tasks: not agreed.
+- Shared-document write windows: completed and released. Lead committed only
+  the independently reviewed shared plans on the desk.
+- Result: `nkrslvrx` / `121fb5fd`, bookmarked `night-2-docs`; complete style pass,
+  no formal STE100 certification. All 476 baseline paths accounted for; 52
+  rewritten, 285 suitable, 79 protected/partly protected, 60 excluded/no prose.
+  All 90 markup pages had full independent review. Unchanged source-comment
+  independent review was sampled; every rewritten file had full comparison.
+- Final audit `1b4723e1` found a combined privacy omission; restored in the
+  actual entry and passed re-review `4ed40b68`. Raw BLOCK and PASS are retained.
+- Python 1,792 passed; frontend 1,115 passed; formatting, lint, types, and build
+  passed. Final docs build passed with 51 existing warnings, not warning-free.
+  Lead repeated format/lint/type and docs-build checks: passed.
+- Evidence: `docs/background/documentation-ste100-review.md`, inventory TSV,
+  and tracked `documentation-ste100-evidence/` on the result line. Existing
+  settings-visibility and “both apps” contradictions remain recorded, not fixed.
+- Ten owned child workspaces and five job panes removed. Entry/live peer
+  retained pending owner inspection of the stacked result; no child or job is
+  active. The task 1 browser failure remains inherited and unresolved.
 
 ## Progress
 
 - [x] Record the all-document scope, requested models, and fidelity safeguards.
 - [x] Record owner-selected backlog placement and Conductor.
 - [x] Resolve worker-model authority and approve execution limits.
-- [ ] Inventory documents and establish the terminology/style contract.
-- [ ] Calibrate, rewrite batches, and independently review the actual changes.
-- [ ] Finish or explicitly account for active/protected/deferred documents.
-- [ ] Validate the final candidate and deliver the morning report.
-- [ ] Preserve remaining work and complete cleanup after acceptance.
+- [x] Inventory documents and establish the terminology/style contract.
+- [x] Calibrate, rewrite batches, and independently review the actual changes.
+- [x] Finish or explicitly account for active/protected/deferred documents.
+- [x] Validate the final candidate and deliver the task report.
+- [ ] Complete entry cleanup after owner inspection; preserve recorded factual
+  contradictions for later review before retiring this plan.

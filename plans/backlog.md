@@ -28,8 +28,10 @@ separate item. Version control keeps the history.
 
 ## In progress
 
-- **Documentation — Rewrite all documentation in STE100 style.** The approved overnight task is active. Cover all first-party prose while preserving facts, evidence, commands, and authority. See the [assignment](documentation-ste100.md) and [run limits](night-run.md).
-  **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers: Luna/xhigh, verified at launch.
+- **Design — Explore themes and interface directions.** The approved prototype task is active. Build the twenty-draft local HTML gallery; no real app integration or owner design choice is delegated. See the [assignment](theme-exploration.md) and [run limits](night-run.md).
+  **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
+- **Documentation — Inspect the completed STE100-style candidate.** Preserved at `night-2-docs`; all baseline prose accounted for and final independent review passed. Factual contradictions remain recorded, not silently corrected. Entry cleanup waits for owner inspection of the stacked work. See the [assignment](documentation-ste100.md).
+  **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers used verified Luna/xhigh.
 - **Feature — Finish named item groups.** Work is parked on bookmark `groups`. It is not accepted or ready to deploy. See the [group plan](named-item-groups.md).
 
 Owner questions and recorded answers: [decisions for Heming](decisions-for-heming.md).
@@ -41,11 +43,9 @@ continue when needed. The [overnight run record](night-run.md) owns execution
 limits, stack/bookmark authority, and ownership. Conductor selections below use
 provider `openai`; verify the effective model and thinking at launch.
 
-1. **Design — Explore themes and interface directions.** Build a local HTML comparison gallery with twenty drafts: five color-only, five traditional restylings, five broader redesigns, and five unrestricted experiments. No real app changes. See the [assignment](theme-exploration.md).
-   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
-2. **Refactor — Review and simplify the jj history.** Explain the graph, provide readable log views, and propose cleanup. Only proven disposable cleanup is permitted within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with S3 recovery and active agents.
+1. **Refactor — Review and simplify the jj history.** Explain the graph, provide readable log views, and propose cleanup. Only proven disposable cleanup is permitted within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with S3 recovery and active agents.
    **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-3. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
+2. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
    **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 
 ## Blocked

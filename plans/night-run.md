@@ -100,10 +100,19 @@ Task 1 is partial and quiescent at `night-1-tests-partial` (`oqpnzkyx` /
 remains blocked; see its task plan and candidate evidence report. The separate
 red diagnostic is `vywxvymk` / `d2c6a988`. Neither code line is accepted.
 
-Task 2 is assigned to session `01a1adbe-bbbd-70a3-9663-4eb1ce3c8a22`, verified
-Sol/low, tab 18, pane 50 (`list_app-night-docs`). Its Lead-created workspace
-`night-docs` starts from task 1's partial candidate. No workers launched yet.
-Next: perform the all-document inventory, calibration, rewrite, and review.
+Task 2 is complete and quiescent at `night-2-docs` (`nkrslvrx` / `121fb5fd`).
+Its final independent audit passed after a combined privacy omission was
+restored. All 476 baseline paths have dispositions; 52 were rewritten.
+Language/tests/build checks passed. The docs build retained 51 existing
+warnings. The task report and about 1.1 MiB of evidence are tracked on that
+line. Ten child workspaces and five job panes are removed; the entry and
+successful peer remain for owner inspection. No browser acceptance is implied.
+
+Task 3 is assigned to `01a1ae1f-51f3-7754-b9c5-ae51d2bdbb75`, verified
+Sol/low, tab 20, pane 57 (`list_app-night-themes`). Its Lead-created workspace
+starts from task 2. The static gallery-only loopback server may use verified
+free port 8766 in an owned visible pane. Next: build and independently review
+the twenty-draft gallery. The worker cap returns to two.
 
 Task 1 artifacts remain in its entry `.night-evidence/` (about 1.4 GiB).
 Its two child workspaces and job panes are removed; its entry and successful
@@ -122,7 +131,7 @@ stable homes and incoming links are fixed.
 
 - [x] Record execution approval, operating defaults, stack destination, and limits.
 - [x] Preserve task 1 as partial with independent review and failed full-gate evidence.
-- [ ] Finish or preserve task 2 with independent review and checks.
+- [x] Finish task 2 with independent review and required checks.
 - [ ] Finish or preserve task 3 with independent review and checks.
 - [ ] Finish or preserve task 4 with independent review and checks.
 - [ ] Finish or preserve task 5 with independent review and checks.
