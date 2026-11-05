@@ -34,6 +34,7 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 
 - **Test — Review and improve the test suite.** Review high-risk behavior first. Strengthen useful coverage, fix clear test defects, investigate unreliable tests, and measure runtime against test value. Write a testing guide. Keep coverage removals and broader changes for owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and remaining Android decisions. Execution approval is pending.
 - **Research — Review S3 scope and archived work.** Inspect the saved implementation and recommend the smallest useful in-app reminder feature. Prepare options, reuse/rebuild evidence, and clear decisions for the owner. See the [review assignment](reminders-s3-scope-review.md). Stages 1 and 2, including P2, are accepted on `main`. Research execution approval is pending; S3 implementation stays on hold. **Unblocks:** a later S3 implementation decision, then stages 4 and 5 in Later.
+- **Documentation — Rewrite all documentation in STE100 style.** Cover guides, root docs, agent instructions, plans, and historical prose. Preserve facts, commands, evidence, and approval rules. See the [assignment](documentation-ste100.md). Requested agents: Sol 6.1 low Conductor and Luna extra-high page writers. Execution limits and the worker-model policy conflict must be resolved before launch.
 
 ## Blocked
 
