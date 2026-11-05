@@ -82,7 +82,7 @@ same-origin and JSON rules in [writes](api.md#writes-same-origin-rule).
 
 Body (no other fields allowed):
 
-- `op_id` (UUID, required): retry key, see [idempotency](#idempotency).
+- `op_id` (UUID, required): retry key, see [idempotency](#idempotency-and-revisions).
 - `base_revision` (integer or null): `null` for a new enrollment in this
   room; otherwise the enrollment's current `revision`.
 - `timezone` (IANA name): required only for a new device. Once set, the device

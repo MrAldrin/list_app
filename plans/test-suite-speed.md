@@ -2,6 +2,11 @@
 
 Lifecycle: tracked
 
+The [test-suite review and improvement task](test-suite-review.md) owns the
+combined backlog item. This plan retains the earlier measurements and remaining
+speed/device decisions. Linking it does not approve Android changes or expand
+the new task's authority.
+
 ## Goal and scope
 
 Keep useful regression coverage while shortening the development loop. Desktop browser benchmarking and small, verifiable optimizations are authorized; Android scenario removal or consolidation still requires owner approval. Python optimization is lower priority because the default suite is already relatively fast.

@@ -33,7 +33,7 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 
 ## Next
 
-- **Test — Review the test suite.** Check that tests catch real behavior failures, including tests written by AI. Find weak assertions, excessive mocking, tests tied to implementation details, and duplicate coverage. Break selected behavior deliberately to check that tests fail for the right reason. Investigate date-dependent tests and unreliable WebKit sign-in tests. Measure slow tests and propose faster feedback without losing useful coverage. Coordinate with the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work) in Later.
+- **Test — Review and improve the test suite.** Review high-risk behavior first. Strengthen useful coverage, fix clear test defects, investigate unreliable tests, and measure runtime against test value. Write a testing guide. Keep coverage removals and broader changes for owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and remaining Android decisions. Execution approval is pending.
 - **Feature — Agree the scope of stage 3, then resume in-app reminders.** Discuss what to keep before restarting implementation. Include the settings polish deferred from P2. **Blocked by:** stage 2 acceptance in In progress and approval of the revised scope. **Unblocks:** stages 4 and 5 in Later. See the [S3 brief](batches/reminders-s3.md) and [reminders plan](due-date-reminders.md). Saved work is recorded in `/home/hsa/projects/reminders-archive/`.
 
 ## Blocked
@@ -48,7 +48,6 @@ None. Dependencies for work in Next or Later are stated with those items.
 - **Feature — Create lists while offline.** A new list needs a usable address before the server assigns its slug. See [offline use](../docs/offline-viewing.md#what-works-offline).
 - **Infrastructure — Keep the old service-worker removal route.** Keep `/sw.js` until at least 2027-04-06. The new app must use a different worker URL or replace this route safely. The route must not return a missing-page error or the app page. See [decision 159](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - **Documentation — Extend the Allium pilot.** Specify name trimming, letter case, and duplicate-name rules. Then decide whether the specification adds value beyond tests. See the [pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
-- **Test — Resume the test-suite speed work.** Decide which Android scenarios and test tiers to keep. Measure performance before simplifying tests. Coordinate with the test-suite review in Next. See the [remaining work](test-suite-speed.md#resume-here--remaining-work).
 - **Feature — Give users more time to undo deletion.** Consider a longer toast or an undo history for items and tags. See [decisions 85 and 87](../docs/background/svelte-frontend-rewrite.md#decisions-log).
 - **Refactor — Use FastAPI's built-in event stream.** Consider `EventSourceResponse` when `src/api/events.py` next changes. It could replace our keep-alive code. See [deferred cleanup](../docs/background/codebase-cleanup.md#not-now).
 - **Data — Try SQLite WAL mode.** Check whether concurrent readers and a writer help this app. The current single lock limits the likely gain. See [deferred cleanup](../docs/background/codebase-cleanup.md#not-now).
