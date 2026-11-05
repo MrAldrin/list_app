@@ -42,19 +42,14 @@ phone-width tests in three engines; owner checks the refreshed preview.
 
 - Conductor: Pi `reminders-polish-list-app`, GPT-6.1 Sol/medium; subagents
   `openai/gpt-6.1-terra:medium`. Report to Lead.
-- Workspace: new child from accepted P tip `wlwznqly` / `174beac4`, created by
-  the Conductor; Lead integrates into `tmp-reminder-delivery`.
+- Workspace: new workspace from accepted P tip `wlwznqly` (now on top of
+  `integration`). Conductor to be chosen when the owner starts this batch.
 
 ## Status
 
-Active — Conductor `01a1aa85-90f0-7405-a7cd-5ccfc7a1b965` reuses the
-Lead-created `tmp-reminders-polish`, clean at accepted P `wlwznqly`.
-Conductor creates and owns child `tmp-polish-p2-ui` for one Terra/medium
-implementation worker, then a fresh shell-capable read-only reviewer.
-Scope is reminder UI copy/layout and tests only. Next: implement, review,
-verify one browser matrix at a time. Browser basetemps stay under workspace
-`.pi`; only fully passed basetemps may be removed after keeping logs.
-Lead owns preview refresh, entry-workspace integration and cleanup.
+Not started. A launch on 2026-11-05 was stopped by the owner after one
+command; no code was changed and its workspaces were removed. Waits for the
+owner's go.
 
 ## Closeout
 

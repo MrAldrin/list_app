@@ -831,8 +831,12 @@ approval. Planning-doc commits have only the existing docs-desk permission.
   delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s1-reviewed-integration--2026-11-04)).
 - [x] Stage 2: personal policies, dates and previews (reviewed and integrated
   into the isolated delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s2-reviewed-integration--2026-11-04)).
-- [ ] S1/S2 owner polish (2026-11-05): [batch P](batches/reminders-polish.md).
-- [ ] Stage 3: durable in-app reminders and snooze.
-- [ ] Stage 4: phone notifications, if selected and approved.
-- [ ] Stage 5: finish and review package.
+- [x] Stage 1 on `integration` (2026-11-05, owner approved; not deployed).
+- [x] S1/S2 owner polish: [batch P](batches/reminders-polish.md) reviewed.
+- [ ] Owner UX fix: [batch P2](batches/reminders-polish-2.md), not started.
+- [ ] Stage 3: on hold (owner, 2026-11-05). Reviewed parts and resume points:
+  `/home/hsa/projects/reminders-archive/` (`resume-points.md`, S3 runtime
+  records incl. `OWNER-SUMMARY.md`). All S3 workspaces removed; commits kept.
+- [ ] Stage 4: on hold.
+- [ ] Stage 5: on hold.
 - [ ] Owner review/acceptance; deployment separately approved when requested.
