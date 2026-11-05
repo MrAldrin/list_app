@@ -88,7 +88,11 @@ and the remaining run permits it.
 
 ## Status
 
-Approval recorded. No Conductor launched yet. Next: dispatch the test review.
+Task 1 Conductor is ready in tab 16, pane 43 (`list_app-night-tests`), session
+`01a1ad92-275c-776a-8cbd-cb97c67da161`. Verified Sol/high and two-way intercom.
+Task workspace `night-tests` is Lead-created and agent-managed. Its base is the
+shared dispatch record `qmqznusu`. No workers launched yet. Next: execute the
+test review and report checkpoints to the Lead.
 
 ## Closeout requirements
 

@@ -223,15 +223,21 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Approval: recorded in the [overnight run](night-run.md#approval-and-outcome).
-- Task owner/session and effective model/thinking verification: pending.
-- Workspace and child ownership: not assigned.
+- Conductor: session `01a1ad92-275c-776a-8cbd-cb97c67da161`; verified
+  `openai/gpt-6.1-sol`, `high`; Zellij tab 16, pane 43 (`list_app-night-tests`).
+- Workspace: `night-tests`, `/home/hsa/projects/list_app-night-tests`;
+  Lead-created and agent-managed. Base: dispatch record `qmqznusu` on
+  `integration`. Lead owns this workspace's lifecycle; Conductor owns children.
+- Lead report target: session `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
+- Large batch: cross-layer risk review, bounded fixes, measurements, and review.
+- No child agents/workspaces launched yet. Conductor must record each launch.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 
 ## Progress
 
 - [x] Record the proposed scope and merge the backlog agenda items.
 - [x] Owner approves the execution brief and run limits.
-- [ ] Assign task and child ownership.
+- [x] Assign task ownership; require recorded ownership for each child.
 - [ ] Inventory the suite, map high-risk behavior, and measure a baseline.
 - [ ] Review and classify findings; implement bounded Bucket A improvements.
 - [ ] Independently review and verify the final candidate.
