@@ -55,8 +55,14 @@ size, horizontal overflow, keyboard reveal/focus and public-share isolation.
 
 ## Execution artifacts
 
-The Conductor kept gate logs under `.p2-checks/` in `tmp-reminders-p2`.
-Failed full-browser artifacts remain in `.p2-checks/browser-full-temp`; temporary
-data from fully passed focused, Python and serial-rerun checks was removed. Its child workspace `reminders-p2-tests` was integrated, verified with
-the focused browser checks, then forgotten and removed. The Lead owns the entry
-workspace and its final cleanup.
+At owner-requested closeout, gate logs and failed full-browser artifacts were
+moved to `/home/hsa/projects/reminders-archive/p2-closeout-2026-11-05/checks/`.
+The failed-run evidence is in its `browser-full-temp` directory. Temporary data
+from fully passed focused, Python and serial-rerun checks was removed earlier.
+
+The owner accepted P2 (`yvsklvxw`), which is reachable from the accepted
+integration change `nnsymyky`. All child runs and owned servers stopped. The
+child workspace `reminders-p2-tests` and entry workspace `tmp-reminders-p2`
+were forgotten and removed. The Conductor's pane and tab were closed at the
+owner's request. The disposable preview database was removed; the shared
+`.env` target was left untouched.
