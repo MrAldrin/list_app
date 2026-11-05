@@ -1,36 +1,30 @@
-// The clock the due views read. It moves on when the local day changes (checked
-// every minute, and when the page is shown again), so labels and counts follow
-// midnight without a reload. Browsers pause timers in background tabs, which the
-// visibility check covers. It never moves within a day, so views do not redo work.
+// Due views refresh every minute and on visibility or remount, including timed deadlines.
+// Browsers may pause timers in background tabs.
 
-import { localDay } from './due-reminders.ts';
-
-/** How often the clock checks for a new day, in milliseconds. */
+/** How often the clock checks for deadline and day changes, in milliseconds. */
 export const DUE_CLOCK_CHECK_MS = 60_000;
 
 let instant = new Date();
-/** The local day of `instant`. Views read it, so a new day reruns them. */
-let day = $state(localDay(instant));
+/** A reactive generation for the plain Date value. */
+let generation = $state(0);
 
 /** The current time for the due views. Reading it in a `$derived` keeps the view up to date. */
 export const dueClock = {
 	get now(): Date {
-		void day;
+		void generation;
 		return instant;
 	}
 };
 
-/** Moves the clock to `next` when it is on another local day; otherwise nothing changes. */
+/** Refresh even within a day: a confirmed deadline may have passed. */
 export function advanceDueClock(next: Date): void {
-	const nextDay = localDay(next);
-	if (nextDay === day) return;
 	instant = next;
-	day = nextDay;
+	generation = next.getTime();
 }
 
-/** Checks the day now, every minute and when the page is shown again. Returns the function that stops it. */
+/** Checks the time now, every minute and when the page is shown again. Returns the function that stops it. */
 export function startDueClock(): () => void {
-	// A plain Date, not SvelteDate: the day is the reactive state, and SvelteDate ignores fake timers in tests.
+	// A plain Date supports fake timers; the generation supplies reactivity.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const check = () => advanceDueClock(new Date());
 	check();

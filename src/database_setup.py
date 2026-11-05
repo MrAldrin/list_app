@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import unicodedata
 import uuid
+from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -777,6 +778,261 @@ def _migration_13_version_item_name_keys(db: sqlite3.Connection) -> None:
         """)
 
 
+# A due time and zone need a date, and `due_at` exists exactly with a time.
+# Python computes the values (reminders/due_schedule.py); this guard only refuses
+# a combination that cannot come from it.
+_BAD_DUE_SCHEDULE = """(
+    (NEW.date IS NULL AND (
+        NEW.due_time IS NOT NULL OR NEW.due_timezone IS NOT NULL
+        OR NEW.due_at IS NOT NULL))
+    OR (NEW.due_time IS NULL) IS NOT (NEW.due_timezone IS NULL)
+    OR (NEW.due_time IS NULL) IS NOT (NEW.due_at IS NULL)
+    OR (NEW.due_time IS NOT NULL AND (
+        typeof(NEW.due_time) != 'text'
+        OR NEW.due_time NOT GLOB '[0-2][0-9]:[0-5][0-9]'))
+    OR (NEW.due_timezone IS NOT NULL AND typeof(NEW.due_timezone) != 'text')
+    OR (NEW.due_at IS NOT NULL AND typeof(NEW.due_at) != 'text')
+)"""
+
+
+def _migration_15_due_time_and_zone(db: sqlite3.Connection) -> None:
+    """Add an optional shared due time and zone, with the resolved `due_at`.
+
+    `due_time` (HH:MM), `due_timezone` (IANA name) and `due_at` (UTC) exist only
+    with a date. `due_cycle` is a random ID for one due schedule, set by Python
+    (see reminders/due_schedule.py). Existing dated items get a cycle now; that
+    backfill is not a user edit, so the change tracking trigger is recreated.
+    """
+    db.execute("ALTER TABLE items ADD COLUMN due_time TEXT")
+    db.execute("ALTER TABLE items ADD COLUMN due_timezone TEXT")
+    db.execute("ALTER TABLE items ADD COLUMN due_at TEXT")
+    db.execute("ALTER TABLE items ADD COLUMN due_cycle TEXT")
+    db.execute("DROP TRIGGER items_track_update")
+    db.execute(f"UPDATE items SET due_cycle = {_SQL_UUID4} WHERE date IS NOT NULL")
+    db.execute(
+        "CREATE TRIGGER items_track_update "
+        + _CHANGE_TRACKING_TRIGGERS["items_track_update"]
+    )
+    for name, action in (("insert", "INSERT"), ("update", "UPDATE")):
+        db.execute(f"""
+            CREATE TRIGGER items_due_schedule_{name}
+            BEFORE {action} ON items
+            WHEN {_BAD_DUE_SCHEDULE}
+            BEGIN SELECT RAISE(ABORT, 'items: a due time, zone and date must go together'); END
+        """)
+
+
+def _migration_16_personal_reminders(db: sqlite3.Connection) -> None:
+    """Add this device's installations, room enrollments and personal op results.
+
+    Personal data is kept apart from shared rooms: nothing here is read by the
+    room feeds, share links or change tracking. An installation's secret is
+    stored only as its hash (`secret_hash`). An enrollment binds an installation
+    to one room and the room token and authorization version that granted it.
+    Personal op results have their own table, so they never share the
+    `processed_ops` namespace. Scope `installation` has no room; scope
+    `enrollment` has one. Partial indexes give each scope its own uniqueness,
+    because SQLite treats NULL room IDs as distinct in a plain UNIQUE key.
+    """
+    db.execute(
+        """
+        CREATE TABLE reminder_installations (
+            id INTEGER PRIMARY KEY,
+            secret_hash TEXT NOT NULL UNIQUE,
+            revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+            timezone TEXT NOT NULL,
+            all_day_time TEXT NOT NULL DEFAULT '09:00',
+            quiet_start TEXT DEFAULT '22:00',
+            quiet_end TEXT DEFAULT '08:00',
+            daily_cap INTEGER NOT NULL DEFAULT 10
+                CHECK (daily_cap BETWEEN 1 AND 50),
+            spacing_minutes INTEGER NOT NULL DEFAULT 10
+                CHECK (spacing_minutes BETWEEN 1 AND 60),
+            paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1)),
+            content_privacy TEXT NOT NULL DEFAULT 'generic'
+                CHECK (content_privacy IN ('generic', 'counts', 'names')),
+            overdue_repeat_days INTEGER
+                CHECK (overdue_repeat_days IS NULL
+                       OR overdue_repeat_days BETWEEN 1 AND 30),
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            CHECK ((quiet_start IS NULL) = (quiet_end IS NULL))
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE TABLE reminder_enrollments (
+            installation_id INTEGER NOT NULL
+                REFERENCES reminder_installations(id) ON DELETE CASCADE,
+            room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+            token_hash TEXT NOT NULL,
+            authorization_version INTEGER NOT NULL CHECK (authorization_version >= 1),
+            status TEXT NOT NULL CHECK (status IN ('active', 'opted_out', 'revoked')),
+            mode TEXT NOT NULL DEFAULT 'daily_summary'
+                CHECK (mode IN ('quiet', 'daily_summary', 'scheduled', 'custom')),
+            summary_time TEXT NOT NULL DEFAULT '09:00',
+            revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+            activated_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (installation_id, room_id)
+        )
+        """
+    )
+    db.execute(
+        "CREATE INDEX idx_reminder_enrollments_room ON reminder_enrollments(room_id)"
+    )
+    db.execute(
+        "CREATE INDEX idx_reminder_enrollments_token "
+        "ON reminder_enrollments(token_hash)"
+    )
+    db.execute(
+        """
+        CREATE TABLE reminder_processed_ops (
+            id INTEGER PRIMARY KEY,
+            scope TEXT NOT NULL CHECK (scope IN ('installation', 'enrollment')),
+            installation_id INTEGER NOT NULL
+                REFERENCES reminder_installations(id) ON DELETE CASCADE,
+            room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
+            op_id TEXT NOT NULL,
+            request_hash TEXT NOT NULL,
+            response_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            CHECK ((scope = 'installation') = (room_id IS NULL))
+        )
+        """
+    )
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_processed_ops_installation "
+        "ON reminder_processed_ops(installation_id, op_id) "
+        "WHERE scope = 'installation'"
+    )
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_processed_ops_enrollment "
+        "ON reminder_processed_ops(installation_id, room_id, op_id) "
+        "WHERE scope = 'enrollment'"
+    )
+    db.execute(
+        "CREATE INDEX idx_reminder_processed_ops_created_at "
+        "ON reminder_processed_ops(created_at)"
+    )
+
+
+def _migration_17_due_cycle_start(db: sqlite3.Connection) -> None:
+    """Add the server-only start of each dated due cycle (reminders/due_schedule.py).
+
+    `due_cycle_started_at` (UTC) exists exactly with a date; Python sets it in the
+    same write as `due_cycle`. Existing dated items all get one explicit migration
+    instant, because their true start is unknown. This is not a user edit, so the
+    change tracking trigger is dropped for the backfill and created again, as in
+    migration 15: no change sequence moves.
+    """
+    db.execute("ALTER TABLE items ADD COLUMN due_cycle_started_at TEXT")
+    migration_instant = datetime.now(UTC).isoformat(timespec="milliseconds")
+    db.execute("DROP TRIGGER items_track_update")
+    db.execute(
+        "UPDATE items SET due_cycle_started_at = ? WHERE date IS NOT NULL",
+        (migration_instant.replace("+00:00", "Z"),),
+    )
+    db.execute(
+        "CREATE TRIGGER items_track_update "
+        + _CHANGE_TRACKING_TRIGGERS["items_track_update"]
+    )
+
+
+def _migration_18_personal_policies(db: sqlite3.Connection) -> None:
+    """Private replacements and durable reset/anchor cutoffs; no shared triggers."""
+    db.execute("ALTER TABLE reminder_installations ADD COLUMN anchor_activated_at TEXT")
+    db.execute("UPDATE reminder_installations SET anchor_activated_at = created_at")
+    db.execute(
+        "ALTER TABLE reminder_installations ADD COLUMN timezone_activated_at TEXT"
+    )
+    db.execute("UPDATE reminder_installations SET timezone_activated_at = created_at")
+    db.execute("ALTER TABLE reminder_enrollments ADD COLUMN policy_activated_at TEXT")
+    db.execute("UPDATE reminder_enrollments SET policy_activated_at = activated_at")
+    db.execute("ALTER TABLE reminder_enrollments ADD COLUMN summary_activated_at TEXT")
+    db.execute("UPDATE reminder_enrollments SET summary_activated_at = activated_at")
+    db.execute("""
+        CREATE TABLE reminder_policies (
+            id INTEGER PRIMARY KEY,
+            installation_id INTEGER NOT NULL,
+            room_id INTEGER NOT NULL,
+            scope TEXT NOT NULL CHECK (scope IN ('room', 'list', 'item')),
+            list_id INTEGER REFERENCES lists(id) ON DELETE CASCADE,
+            item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
+            state TEXT NOT NULL CHECK (state IN ('inherit', 'off', 'replace')),
+            preset TEXT CHECK (preset IN ('quiet', 'daily_summary', 'scheduled', 'custom')),
+            summary_enabled INTEGER NOT NULL CHECK (summary_enabled IN (0, 1)),
+            revision INTEGER NOT NULL CHECK (revision >= 1),
+            activated_at TEXT NOT NULL,
+            FOREIGN KEY (installation_id, room_id)
+                REFERENCES reminder_enrollments(installation_id, room_id) ON DELETE CASCADE,
+            CHECK ((scope = 'room' AND list_id IS NULL AND item_id IS NULL
+                    AND preset IS NULL AND state = 'replace')
+                OR (scope = 'list' AND list_id IS NOT NULL AND item_id IS NULL)
+                OR (scope = 'item' AND list_id IS NULL AND item_id IS NOT NULL)),
+            CHECK (scope = 'room' OR (state = 'replace') = (preset IS NOT NULL))
+        )
+    """)
+    for scope, column in (
+        ("room", "room_id"),
+        ("list", "list_id"),
+        ("item", "item_id"),
+    ):
+        db.execute(
+            f"CREATE UNIQUE INDEX idx_reminder_policies_{scope} "
+            f"ON reminder_policies(installation_id, {column}) WHERE scope = '{scope}'"
+        )
+    # Ownership also holds for direct database writes, not just HTTP routing.
+    for event in ("INSERT", "UPDATE"):
+        db.execute(f"""
+            CREATE TRIGGER reminder_policies_ownership_{event.lower()}
+            BEFORE {event} ON reminder_policies
+            WHEN (NEW.scope = 'list' AND NOT EXISTS (
+                SELECT 1 FROM lists WHERE id = NEW.list_id AND room_id = NEW.room_id))
+              OR (NEW.scope = 'item' AND NOT EXISTS (
+                SELECT 1 FROM items i JOIN lists l ON l.id = i.list_id
+                WHERE i.id = NEW.item_id AND l.room_id = NEW.room_id))
+            BEGIN SELECT RAISE(ABORT, 'policy target outside room'); END
+        """)
+    db.execute("""
+        CREATE TABLE reminder_policy_rules (
+            policy_id INTEGER NOT NULL REFERENCES reminder_policies(id) ON DELETE CASCADE,
+            position INTEGER NOT NULL CHECK (position BETWEEN 0 AND 4),
+            kind TEXT NOT NULL CHECK (kind IN ('relative', 'fixed')),
+            basis TEXT,
+            amount INTEGER,
+            fixed_id TEXT UNIQUE,
+            wall_date TEXT,
+            wall_time TEXT,
+            timezone TEXT,
+            instant TEXT,
+            activation TEXT,
+            PRIMARY KEY (policy_id, position),
+            CHECK ((kind = 'relative' AND basis IS NOT NULL AND amount IS NOT NULL AND basis IN ('at_due', 'elapsed', 'calendar')
+                    AND typeof(amount) = 'integer'
+                    AND ((basis = 'at_due' AND amount = 0)
+                      OR (basis = 'elapsed' AND amount BETWEEN 1 AND 525600)
+                      OR (basis = 'calendar' AND amount BETWEEN 1 AND 365))
+                    AND fixed_id IS NULL AND wall_date IS NULL AND wall_time IS NULL
+                    AND timezone IS NULL AND instant IS NULL AND activation IS NULL)
+                OR (kind = 'fixed' AND basis IS NULL AND amount IS NULL
+                    AND fixed_id IS NOT NULL AND wall_date IS NOT NULL
+                    AND wall_time IS NOT NULL AND timezone IS NOT NULL
+                    AND instant IS NOT NULL AND activation IS NOT NULL))
+        )
+    """)
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_rules_relative "
+        "ON reminder_policy_rules(policy_id, basis, amount) WHERE kind = 'relative'"
+    )
+    db.execute(
+        "CREATE UNIQUE INDEX idx_reminder_rules_fixed_instant "
+        "ON reminder_policy_rules(policy_id, instant) WHERE kind = 'fixed'"
+    )
+
+
 def _migration_14_tag_settings(db: sqlite3.Connection) -> None:
     """Store each list's tag settings: one or several tags, tag display, colors.
 
@@ -881,6 +1137,10 @@ def _migrations(app_password: str) -> list[Migration]:
         _migration_12_preserve_item_name_case,
         _migration_13_version_item_name_keys,
         _migration_14_tag_settings,
+        _migration_15_due_time_and_zone,
+        _migration_16_personal_reminders,
+        _migration_17_due_cycle_start,
+        _migration_18_personal_policies,
     ]
 
 

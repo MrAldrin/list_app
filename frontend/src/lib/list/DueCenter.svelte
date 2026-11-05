@@ -2,17 +2,20 @@
 	The due bell: a button with the count of unchecked items overdue or due
 	today or tomorrow, and a panel listing every dated, unchecked item in
 	groups (Overdue, Today, Tomorrow, Next 7 days, Later). The panel shows the
-	room, or only the list on screen when `listUid` is set; room users may
-	switch. A tap on an item opens its list with the item revealed. Opening
-	the panel never clears the count. Live updates change the panel's content
+	room, or only the list on screen when `listUid` is set. A tap on an item
+	opens its list with the item revealed. Opening the panel never clears the count. Live updates change the panel's content
 	but never move focus.
 -->
 <script lang="ts">
+	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import Dialog from '#lib/ui/Dialog.svelte';
+	import PolicyEditor from '#lib/reminders/PolicyEditor.svelte';
+	import type { PolicyScope } from '#lib/reminders/api.ts';
 	import Icon from '#lib/ui/Icon.svelte';
+	import { deviceZone } from '#lib/reminders/device-zone.svelte.ts';
 	import { formatItemDate } from './items.ts';
 	import { dueClock } from './due-clock.svelte.ts';
 	import {
@@ -32,26 +35,31 @@
 		roomScope = false
 	}: {
 		room: RoomHandle;
-		/** The list on screen; the panel starts on it. Unset on the room page. */
+		/** The list on screen; unset on the room page. */
 		listUid?: string;
 		/** Whether the room scope may be shown (room pages, not share links). */
 		roomScope?: boolean;
 	} = $props();
 
 	let open = $state(false);
-	/** The scope the user picked; until then the list on screen, or the room. */
-	let picked = $state<'room' | 'list' | null>(null);
-	const scope = $derived(picked ?? (listUid ? 'list' : 'room'));
+	let policyTarget = $state<{ scope: PolicyScope; uid?: string } | null>(null);
 	const headingBase = $props.id();
 
 	const now = $derived(dueClock.now);
 	const scopedItems = $derived(
-		scope === 'list' && listUid
+		listUid
 			? room.store.itemsOf(listUid)
 			: room.store.lists.flatMap((list) => room.store.itemsOf(list.uid))
 	);
-	const tally = $derived(dueTally(scopedItems, now));
-	const rows = $derived(dueRows(scopedItems, (uid) => room.store.list(uid)?.name ?? '', now));
+	const tally = $derived(dueTally(scopedItems, now, roomScope ? deviceZone(room) : undefined));
+	const rows = $derived(
+		dueRows(
+			scopedItems,
+			(uid) => room.store.list(uid)?.name ?? '',
+			now,
+			roomScope ? deviceZone(room) : undefined
+		)
+	);
 	const sections = $derived(dueSections(rows));
 	const badge = $derived(badgeText(tally.count));
 	const bellLabel = $derived(
@@ -70,10 +78,6 @@
 			row.item.uid
 		);
 	}
-
-	function choose(next: 'room' | 'list') {
-		picked = next;
-	}
 </script>
 
 <button
@@ -89,17 +93,33 @@
 	{/if}
 </button>
 
-{#if open}
+{#if policyTarget}
+	<PolicyEditor
+		{room}
+		scope={policyTarget.scope}
+		uid={policyTarget.uid}
+		onClose={() => {
+			policyTarget = null;
+			open = true;
+		}}
+	/>
+{:else if open}
 	<Dialog title="Due items" onClose={() => (open = false)}>
-		{#if listUid && roomScope}
-			<div class="scope" role="group" aria-label="Show">
-				<button type="button" aria-pressed={scope === 'list'} onclick={() => choose('list')}>
-					This list
-				</button>
-				<button type="button" aria-pressed={scope === 'room'} onclick={() => choose('room')}>
-					Whole room
-				</button>
-			</div>
+		{#if PERSONAL_REMINDER_SETTINGS_ENABLED && roomScope}
+			<button
+				type="button"
+				onclick={() => {
+					open = false;
+					policyTarget = { scope: 'room' };
+				}}>Room reminder policy</button
+			>
+			{#if listUid}<button
+					type="button"
+					onclick={() => {
+						open = false;
+						policyTarget = { scope: 'list', uid: listUid };
+					}}>List reminder policy</button
+				>{/if}
 		{/if}
 		{#if room.store.unconfirmedView}
 			<p class="saved" role="note">Saved data. It may not be up to date.</p>
@@ -115,17 +135,24 @@
 					<ul>
 						{#each section.rows as row (row.item.uid)}
 							{@const tag = dueTag(row.group)}
-							<li>
+							<li class="due-entry">
 								<a class="due-row" href={hrefOf(row)} onclick={() => (open = false)}>
 									<span class="name">{row.item.name}</span>
-									{#if scope === 'room'}
-										<span class="where">{row.listName}</span>
-									{/if}
-									<span class="when">{formatItemDate(row.date)}</span>
-									{#if tag}
-										<span class="tag {tag.tone}">{tag.text}</span>
-									{/if}
+									<span class="metadata">
+										{#if !listUid}<span class="where">{row.listName}</span>{/if}
+										<span class="when">{formatItemDate(row.date)}</span>
+										{#if tag}<span class="tag {tag.tone}">{tag.text}</span>{/if}
+									</span>
 								</a>
+								{#if PERSONAL_REMINDER_SETTINGS_ENABLED && roomScope}<button
+										class="item-policy"
+										type="button"
+										aria-label={`Private reminder settings for ${row.item.name}`}
+										onclick={() => {
+											open = false;
+											policyTarget = { scope: 'item', uid: row.item.uid };
+										}}><Icon name="notifications" /><span>Reminder settings</span></button
+									>{/if}
 							</li>
 						{/each}
 					</ul>
@@ -168,22 +195,6 @@
 		color: var(--danger-text);
 	}
 
-	.scope {
-		display: flex;
-		gap: 0.5rem;
-		margin-bottom: 0.75rem;
-	}
-
-	.scope button {
-		flex: 1;
-		min-height: var(--touch);
-	}
-
-	.scope button[aria-pressed='true'] {
-		background: var(--primary);
-		color: var(--primary-text);
-	}
-
 	.saved,
 	.empty {
 		color: var(--text-muted);
@@ -205,22 +216,43 @@
 		padding: 0;
 	}
 
-	.due-row {
+	.due-entry {
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.25rem 0.5rem;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.item-policy {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-height: var(--touch);
+	}
+
+	.due-row {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.25rem;
 		min-height: var(--touch);
 		padding: 0.25rem 0;
-		border-bottom: 1px solid var(--border);
 		color: var(--text);
 		text-decoration: none;
 	}
 
 	.name {
-		flex: 1;
 		min-width: 0;
 		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+
+	.metadata {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 

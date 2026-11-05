@@ -206,6 +206,9 @@ def test_edit_without_date_keeps_its_old_hash():
     }
     old_shape = parse_op(body).model_dump(mode="json")
     old_shape.pop("date")
+    # The due time and zone were added later too; an unsent one is left out.
+    old_shape.pop("due_time")
+    old_shape.pop("due_timezone")
     canonical = json.dumps(
         old_shape, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )

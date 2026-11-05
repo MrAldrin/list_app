@@ -5,6 +5,7 @@
 
 import { compareCodePoints } from '#lib/data/order.ts';
 import type { Item } from '#lib/data/types.ts';
+import { DEFAULT_TIME_ZONE } from './time-zone';
 
 /** Disjoint groups, from the most urgent: overdue, today, tomorrow, days 2–7, then beyond day 7. */
 export type DueGroup = 'overdue' | 'today' | 'tomorrow' | 'next7' | 'later';
@@ -23,7 +24,21 @@ export const DUE_GROUP_TITLES: Record<DueGroup, string> = {
 const DAY_MS = 86_400_000;
 
 /** A day as `YYYY-MM-DD` in the device's own time zone. */
-export function localDay(now: Date): string {
+export function localDay(now: Date, zone = DEFAULT_TIME_ZONE): string {
+	if (zone) {
+		try {
+			const parts = new Intl.DateTimeFormat('en-CA', {
+				timeZone: zone,
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit'
+			}).formatToParts(now);
+			const part = (name: string) => parts.find((p) => p.type === name)?.value;
+			return `${part('year')}-${part('month')}-${part('day')}`;
+		} catch {
+			/* Browser fallback if the configured zone is unavailable. */
+		}
+	}
 	const pad = (value: number) => String(value).padStart(2, '0');
 	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
@@ -53,9 +68,21 @@ export function dueGroupOfDay(date: string, today: string): DueGroup {
 }
 
 /** The due group of an item, or null when it is done or has no date. */
-export function itemDueGroup(item: Pick<Item, 'date' | 'done'>, now: Date): DueGroup | null {
+export function itemDueGroup(
+	item: Pick<Item, 'date' | 'done' | 'due_at'>,
+	now: Date,
+	zone?: string
+): DueGroup | null {
 	if (item.done || item.date === null) return null;
-	return dueGroupOfDay(item.date, localDay(now));
+	if (item.due_at) {
+		const instant = new Date(item.due_at);
+		if (Number.isFinite(instant.valueOf())) {
+			if (instant.valueOf() < now.valueOf()) return 'overdue';
+			return dueGroupOfDay(localDay(instant, zone), localDay(now, zone));
+		}
+	}
+	// Date-only items and unconfirmed wall intents have no invented instant.
+	return dueGroupOfDay(item.date, localDay(now, zone));
 }
 
 /** Unchecked items overdue, due today or due tomorrow; `overdue` is the part past due. */
@@ -65,10 +92,10 @@ export interface DueTally {
 }
 
 /** The counts on the bell and on list cards. */
-export function dueTally(items: readonly Item[], now: Date): DueTally {
+export function dueTally(items: readonly Item[], now: Date, zone?: string): DueTally {
 	const tally: DueTally = { count: 0, overdue: 0 };
 	for (const item of items) {
-		const group = itemDueGroup(item, now);
+		const group = itemDueGroup(item, now, zone);
 		if (group === 'overdue') tally.overdue += 1;
 		if (group === 'overdue' || group === 'today' || group === 'tomorrow') tally.count += 1;
 	}
@@ -97,17 +124,20 @@ export interface DueRow {
 export function dueRows(
 	items: readonly Item[],
 	listName: (listUid: string) => string,
-	now: Date
+	now: Date,
+	zone?: string
 ): DueRow[] {
-	const today = localDay(now);
 	const rows: DueRow[] = [];
 	for (const item of items) {
 		if (item.done || item.date === null) continue;
 		rows.push({
 			item,
-			date: item.date,
+			date:
+				item.due_at && Number.isFinite(Date.parse(item.due_at))
+					? localDay(new Date(item.due_at), zone)
+					: item.date,
 			listName: listName(item.list_uid),
-			group: dueGroupOfDay(item.date, today)
+			group: itemDueGroup(item, now, zone)!
 		});
 	}
 	// `YYYY-MM-DD` text sorts like the days it names.

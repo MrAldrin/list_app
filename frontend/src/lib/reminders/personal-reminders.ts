@@ -1,0 +1,1 @@
+export const PERSONAL_REMINDER_SETTINGS_ENABLED = false;

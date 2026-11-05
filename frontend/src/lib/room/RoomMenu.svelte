@@ -5,11 +5,14 @@
 	closes the menu and opens a dialog. Switching rooms is in RoomSwitcher.
 -->
 <script lang="ts">
+	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { RoomHandle } from '#lib/data/index.ts';
 	import InstallHelpDialog from '#lib/install/InstallHelpDialog.svelte';
 	import MenuButton from '#lib/ui/MenuButton.svelte';
+	import ReminderSettings from '#lib/reminders/ReminderSettings.svelte';
+	import PolicyEditor from '#lib/reminders/PolicyEditor.svelte';
 	import NeedsConnection from '#lib/ui/NeedsConnection.svelte';
 	import ThemeMenuItem from '#lib/ui/ThemeMenuItem.svelte';
 	import NameDialog from '#lib/ui/NameDialog.svelte';
@@ -25,10 +28,15 @@
 	/** Password and delete are checked by the server: they need a connection. */
 	const online = $derived(room.store.canWrite);
 	const hintId = $props.id();
-	let dialog = $state<'share' | 'install' | 'rename' | 'password' | 'delete' | null>(null);
+	let dialog = $state<
+		'share' | 'install' | 'rename' | 'password' | 'delete' | 'reminders' | 'reminder-policy' | null
+	>(null);
 	let shareUrl = $state('');
 
-	function choose(close: () => void, next: 'install' | 'rename' | 'password' | 'delete') {
+	function choose(
+		close: () => void,
+		next: 'install' | 'rename' | 'password' | 'delete' | 'reminders' | 'reminder-policy'
+	) {
 		close();
 		dialog = next;
 	}
@@ -60,6 +68,12 @@
 	{#snippet children(close)}
 		<button type="button" onclick={() => share(close)}>Share Room</button>
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
+		{#if PERSONAL_REMINDER_SETTINGS_ENABLED}
+			<button type="button" onclick={() => choose(close, 'reminders')}>Personal reminders</button>
+			<button type="button" onclick={() => choose(close, 'reminder-policy')}
+				>Personal room reminder policy</button
+			>
+		{/if}
 		<ThemeMenuItem {close} />
 		<hr />
 		<button type="button" disabled={!room.store.canEdit} onclick={() => choose(close, 'rename')}>
@@ -107,6 +121,10 @@
 
 {#if dialog === 'share'}
 	<ShareDialog kind="room" url={shareUrl} onClose={() => (dialog = null)} />
+{:else if dialog === 'reminders'}
+	<ReminderSettings {room} onClose={() => (dialog = null)} />
+{:else if dialog === 'reminder-policy'}
+	<PolicyEditor {room} scope="room" onClose={() => (dialog = null)} />
 {:else if dialog === 'install'}
 	<InstallHelpDialog onClose={() => (dialog = null)} />
 {:else if dialog === 'rename'}

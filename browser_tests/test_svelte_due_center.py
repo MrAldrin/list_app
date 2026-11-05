@@ -155,11 +155,12 @@ def test_share_link_bell_shows_only_its_list(svelte_server, open_session):
     expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
     expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
     expect(panel.get_by_role("button", name="Whole room")).to_have_count(0)
+    expect(
+        panel.get_by_role("button", name=re.compile("Private reminder settings"))
+    ).to_have_count(0)
 
 
-def test_list_bell_switches_between_this_list_and_the_whole_room(
-    svelte_server, open_session
-):
+def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
     sign_in(page, server)
@@ -174,32 +175,35 @@ def test_list_bell_switches_between_this_list_and_the_whole_room(
     page.get_by_role("link", name="Groceries").click()
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
 
-    # On a list the bell starts on that list: only milk counts.
+    # The list bell stays on the current list, with no scope switch.
     bell = page.get_by_role("button", name=BELL)
     expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
     bell.click()
-    panel = page.get_by_role("dialog")
-    expect(panel.get_by_role("button", name="This list")).to_have_attribute(
-        "aria-pressed", "true"
-    )
+    panel = page.get_by_role("dialog", name="Due items")
+    expect(panel.get_by_role("button", name="This list")).to_have_count(0)
+    expect(panel.get_by_role("button", name="Whole room")).to_have_count(0)
+    expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
     expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
     expect(panel.locator(".where")).to_have_count(0)
+    expect(panel.get_by_role("button", name="List reminder policy")).to_have_count(0)
+    expect(
+        panel.get_by_role("button", name="Private reminder settings for milk")
+    ).to_have_count(0)
+    page.keyboard.press("Escape")
 
-    # The whole room shows every due item, each with its list name.
-    panel.get_by_role("button", name="Whole room").click()
-    expect(panel.get_by_role("button", name="Whole room")).to_have_attribute(
-        "aria-pressed", "true"
-    )
-    expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_be_visible()
+    # The room bell shows both items with their list names and room count.
+    page.goto(room_app_url(server))
+    bell = page.get_by_role("button", name=BELL)
+    expect(bell).to_have_accessible_name("Due items: 2 due, 1 overdue")
+    bell.click()
+    panel = page.get_by_role("dialog", name="Due items")
     expect(panel.locator("a", has_text="milk").locator(".where")).to_have_text(
         "Groceries"
     )
     expect(panel.locator("a", has_text="dishes").locator(".where")).to_have_text(
         "Chores"
     )
-
-    panel.get_by_role("button", name="This list").click()
-    expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
+    expect(panel.get_by_role("button", name="Room reminder policy")).to_have_count(0)
 
 
 def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
@@ -381,3 +385,58 @@ def test_reset_share_link_sends_the_old_link_to_unavailable(
         guest.get_by_text("This list was deleted or you no longer have access.")
     ).to_be_visible()
     expect(guest.get_by_role("button", name=BELL)).to_have_count(0)
+
+
+def test_timed_due_requires_zone_and_shows_server_confirmation(
+    svelte_server, open_session
+):
+    page = open_session("phone", **PHONE)
+    sign_in(page, svelte_server)
+    create_list(page, "Groceries")
+    add_item(page, "milk")
+    page.get_by_role("button", name=re.compile("^milk")).click()
+    dialog = page.get_by_role("dialog", name="Edit Item")
+    dialog.get_by_label("Date").fill("2026-10-18")
+    expect(dialog.get_by_label("Due time (optional)")).to_have_attribute(
+        "inputmode", "text"
+    )
+    dialog.get_by_label("Due time (optional)").fill("09:00")
+    expect(dialog.get_by_text("Time zone: Europe/Oslo", exact=True)).to_be_visible()
+    expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
+    dialog.get_by_text("Change time zone", exact=True).click()
+    dialog.get_by_label(re.compile("Time zone")).fill("Europe/Oslo")
+    expect(dialog.get_by_text("The time will be confirmed when saved.")).to_be_visible()
+    with page.expect_response(saved_op):
+        dialog.get_by_role("button", name="Save").click()
+    expect(dialog).to_be_hidden()
+    page.get_by_role("button", name=re.compile("^milk")).click()
+    expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_be_visible()
+    expect(dialog.get_by_label("Due time (optional)")).to_have_value("09:00")
+    expect(dialog.get_by_label(re.compile("Time zone"))).to_have_value("Europe/Oslo")
+
+
+def test_zone_validation_online_and_offline(svelte_server, open_session):
+    page, url = member_with_list(open_session, svelte_server, "zone-validation")
+    for offline in (False, True):
+        if offline:
+            view_offline(page, url)
+        page.get_by_role("button", name="milk", exact=True).click()
+        dialog = page.get_by_role("dialog", name="Edit Item")
+        dialog.get_by_label("Date").fill("2026-10-18")
+        dialog.get_by_label("Due time (optional)").fill("09:00")
+        dialog.get_by_text("Change time zone", exact=True).click()
+        zone = dialog.get_by_label(re.compile("Time zone"))
+        for invalid in ("", "Not/AZone", "a" * 65):
+            zone.fill(invalid)
+            expect(dialog.get_by_role("button", name="Save")).to_be_disabled()
+            expect(zone).to_have_attribute("aria-invalid", "true")
+            expect(
+                dialog.get_by_text(
+                    "Enter a valid time zone, up to 64 characters, such as Europe/Oslo."
+                )
+            ).to_be_visible()
+        for valid in ("UTC", "Asia/Kathmandu"):
+            zone.fill(valid)
+            expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
+        dialog.get_by_role("button", name="Cancel").click()
+        expect(dialog).to_have_count(0)

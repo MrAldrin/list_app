@@ -321,6 +321,9 @@ function projectRestore(
 		description: op.description.trim(),
 		quantity: op.quantity,
 		date: op.date ?? null,
+		due_time: op.date ? (op.due_time ?? null) : null,
+		due_timezone: op.date && op.due_time ? (op.due_timezone ?? null) : null,
+		due_at: null,
 		add_count: op.add_count ?? 1,
 		added_at: op.added_at ?? null
 	});
@@ -342,6 +345,9 @@ function newRow(
 		quantity: 1,
 		description: '',
 		date: null,
+		due_time: null,
+		due_timezone: null,
+		due_at: null,
 		tags: [],
 		add_count: 1,
 		added_at: null,
@@ -367,7 +373,16 @@ function applyItemOp(item: Item, op: SentOp, at: string, singleTag = false): Ite
 			return item.done ? item : { ...item, done: true, completed_at: at };
 		case 'item.quantity_delta':
 			return { ...item, quantity: Math.max(1, item.quantity + op.delta) };
-		case 'item.edit':
+		case 'item.edit': {
+			const date = op.date === undefined ? item.date : op.date;
+			const due_time = date ? (op.due_time === undefined ? item.due_time : op.due_time) : null;
+			const due_timezone = due_time
+				? op.due_timezone === undefined
+					? item.due_timezone
+					: op.due_timezone
+				: null;
+			const changed =
+				date !== item.date || due_time !== item.due_time || due_timezone !== item.due_timezone;
 			return {
 				...item,
 				name: itemName(op.name),
@@ -376,9 +391,12 @@ function applyItemOp(item: Item, op: SentOp, at: string, singleTag = false): Ite
 					op.quantity === undefined || op.quantity === null
 						? item.quantity
 						: Math.max(1, op.quantity),
-				// Absent keeps the date; null clears it.
-				date: op.date === undefined ? item.date : op.date
+				date,
+				due_time,
+				due_timezone,
+				due_at: changed ? null : item.due_at
 			};
+		}
 		case 'item.toggle_tag': {
 			const on = op.active ?? !item.tags.includes(op.tag);
 			if (!on) return { ...item, tags: item.tags.filter((tag) => tag !== op.tag) };

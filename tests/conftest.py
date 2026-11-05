@@ -47,6 +47,9 @@ def clean_db(home_password_hash):
     db.execute("DELETE FROM deletions")
     db.execute("DELETE FROM share_seq_floors")
     db.execute("DELETE FROM processed_ops")
+    # Installations are not owned by a room, so room deletes leave them behind.
+    db.execute("DELETE FROM reminder_processed_ops")
+    db.execute("DELETE FROM reminder_installations")
     room_id = db.execute(
         "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
         ("Home", f"home-{str(uuid.uuid4())[:6]}", home_password_hash),

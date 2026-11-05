@@ -85,6 +85,8 @@ const FIELDS: Record<Op['type'], Checks> = {
 		description: str,
 		quantity: optional(nullable(num)),
 		date: optional(nullable(str)),
+		due_time: optional(nullable(str)),
+		due_timezone: optional(nullable(str)),
 		base_seq: num
 	},
 	'item.toggle_tag': { list_uid: str, item_uid: str, tag: str, active: optional(bool) },
@@ -99,6 +101,8 @@ const FIELDS: Record<Op['type'], Checks> = {
 		quantity: num,
 		completed_at: nullable(str),
 		date: optional(nullable(str)),
+		due_time: optional(nullable(str)),
+		due_timezone: optional(nullable(str)),
 		add_count: optional(num),
 		added_at: optional(nullable(str))
 	}
