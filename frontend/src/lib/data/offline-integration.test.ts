@@ -1734,7 +1734,7 @@ describe('offline editing (6.2d)', () => {
 			list_uid: list.uid,
 			name: 'oat milk'
 		};
-		await queue.add(newStoredEntry(oldQueuedOp, '2026-10-06T17:59:00.000Z'));
+		await queue.add(newStoredEntry(oldQueuedOp, new Date(Date.now() - 60_000).toISOString()));
 		const sent: SentOp[] = [];
 		const api = fakeApi();
 		api.sendOp.mockImplementation(async (_slug, op) => {
