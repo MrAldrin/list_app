@@ -262,9 +262,15 @@ The numbers below are approved product defaults, not claimed industry standards.
   midnight backlog burst. A daily summary replaces matching pending individual
   interruptions for items it covers, without canceling future rule times.
 - Optional overdue repeat: off by default; once per local day at the summary
-  time, for at most seven overdue days (configurable 1–30). If the daily summary
-  already covers it, do not add another interruptive repeat. Counts persist
-  after repeats stop. An overnight quiet window may cross a date boundary.
+  time, for at most seven overdue days (configurable 1–30). Day 1 is the first
+  device-local summary anchor strictly after a timed item's confirmed due
+  instant, or the first local day after a date-only item's date. Count consecutive
+  summary days from that due-derived anchor, not sends or enrollment; pauses,
+  caps and missed days do not extend the window. Quiet deferral does not renumber
+  a repeat day. Future-only activation still prevents backfill, and summary-time
+  or zone edits cannot replay past days or duplicate a local day's repeat.
+  If the daily summary already covers it, do not add another interruptive repeat.
+  Counts persist after repeats stop. Quiet hours may cross a date boundary.
 - On enrolling or changing rules, show future reminders. Do not replay every
   offset already passed. Offer **Remind me now** for an already-due item as an
   explicit action, still subject to quiet hours and the shared frequency cap.
