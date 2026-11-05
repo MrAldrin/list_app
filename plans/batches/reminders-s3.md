@@ -71,6 +71,14 @@ material fixes after independent review.
 
 ## Assignment
 
+**Successor (2026-11-05):** Lead Pi `01a1aa7e`. The original S3 Conductor
+session was closed at owner request. New Conductor `reminders-s3-list-app`
+(GPT-6.1 Sol/medium) takes over ownership of all `tmp-reminders-s3*`
+workspaces and the runtime records in
+`/home/hsa/projects/tmp-reminders-s3/.pi/reminders-s3-runtime/`. Start from the
+latest final disposition in its `DEADLINE-0410.md`/`CURRENT.md`. Details below
+are historical.
+
 - Creator/lifecycle owner: Lead, session `01a1a2c7-22c9-71e2`.
 - Planned owner: dedicated visible Pi Conductor `listr-reminders-s3`.
 - Verified model: `openai-codex/gpt-6.1-sol`, effective thinking `high`;

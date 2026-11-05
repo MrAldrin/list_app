@@ -80,7 +80,8 @@ subject to the current bookmark hold recorded below.
 
 ### Delivery coordination
 
-- Lead: Pi session `01a1a2c7-22c9-71e2-897a-af8ac7de162d`.
+- Lead: Pi session `01a1aa7e-4659-74d2-b51e-a2fb367fdeec` (from 2026-11-05;
+  earlier `01a1a2c7-22c9-71e2-897a-af8ac7de162d`).
 - Aggregate workspace: `tmp-reminder-delivery`,
   `/home/hsa/projects/tmp-reminder-delivery` (Lead-created/managed).
 - Five ordered delivery stage briefs: [S1](batches/reminders-s1.md),
@@ -118,6 +119,16 @@ subject to the current bookmark hold recorded below.
   found existing dev/test risks, not identified production reachability. No
   upgrades or new reminder release gate are approved; backlog placement needs
   the owner's decision, not an automatic queue addition.
+- **Run of 2026-11-05 (Lead Pi `01a1aa7e`, owner away ~9 h).** Order:
+  [polish P](batches/reminders-polish.md) and S3 run in parallel (P is
+  frontend-only on reviewed S2; S3 is mostly server work), then S4, then S5,
+  each started only on its reviewed predecessor. Conductors are visible Pi
+  peers named `reminders-<stage>-list-app` on GPT-6.1 Sol/medium (owner
+  choice, replacing low/high for this run). All implementation and review
+  subagents stay `openai/gpt-6.1-terra:medium`. Lead integrates P, then S3,
+  S4, S5 into `tmp-reminder-delivery` and refreshes the local preview. Same
+  limits: no deployment, held-bookmark moves, real pushes or extra spending.
+  S3 successor Conductor takes over the closed S3 Conductor's workspaces.
 - Lead's combined checks and review evidence:
   [delivery verification](../docs/background/reminder-delivery-verification.md).
 
@@ -128,8 +139,8 @@ The numbers below are approved product defaults, not claimed industry standards.
 ### 1. Always-available due information
 
 - Room bell: all unchecked dated items in that room, with list names.
-  List bell: that list only; authenticated room users can switch to the room
-  scope. A share page cannot expand its scope.
+  List bell: that list only, with no room-scope switch (owner polish
+  2026-11-05). A share page cannot expand its scope.
 - Group into **Overdue**, **Today**, **Tomorrow**, **Next 7 days** and
   **Later**. The last two groups are disjoint: Next 7 days means days 2–7
   after today; Later is beyond day 7. All dated items remain discoverable.
@@ -211,10 +222,11 @@ The numbers below are approved product defaults, not claimed industry standards.
   data later changes; calendar-day/week offsets use wall intent and the common
   resolver. Do not silently re-resolve an unchanged timed anchor.
 - Store UTC instants for work/delivery, IANA zones and wall-clock intentions for
-  recalculation. Capture the browser zone on setup; do not use a fixed UTC
-  offset. If it changes, offer an explicit timezone update with a preview;
+  recalculation. New setup defaults to Europe/Oslo (owner polish 2026-11-05),
+  not the browser zone; do not use a fixed UTC offset. Existing saved zones
+  stay as they are. If it changes, offer an explicit timezone update with a preview;
   do not silently reschedule while the app is closed.
-- For date-only items, buckets use the configured device zone (browser zone
+- For date-only items, buckets use the configured device zone (Europe/Oslo
   before setup). Timed items use their instant for overdue status and the
   device zone for Today/Tomorrow grouping. Display the zone if it differs from
   the current browser zone. A timezone change recomputes future work only.
@@ -819,6 +831,7 @@ approval. Planning-doc commits have only the existing docs-desk permission.
   delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s1-reviewed-integration--2026-11-04)).
 - [x] Stage 2: personal policies, dates and previews (reviewed and integrated
   into the isolated delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s2-reviewed-integration--2026-11-04)).
+- [ ] S1/S2 owner polish (2026-11-05): [batch P](batches/reminders-polish.md).
 - [ ] Stage 3: durable in-app reminders and snooze.
 - [ ] Stage 4: phone notifications, if selected and approved.
 - [ ] Stage 5: finish and review package.
