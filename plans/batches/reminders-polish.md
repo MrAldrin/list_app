@@ -56,18 +56,46 @@ checks if Python changed.
 
 ## Status
 
-Active — Conductor `01a1aa85-90f0-7405-a7cd-5ccfc7a1b965` owns execution
-in Lead-created `tmp-reminders-polish` on reviewed S2 `kwqutmso`.
+Review-ready; accepted by Lead for delivery-line integration. Final tip
+`wlwznqly` / `174beac4`; entry workspace clean on empty child `sxqrnqwu`.
+Conductor `01a1aa85-90f0-7405-a7cd-5ccfc7a1b965` is idle and available.
 
-Planned Conductor-created children (Conductor owns integration and cleanup):
-- `tmp-polish-bell`: bounded worker for contextual scope and clear item action.
-- `tmp-polish-time-settings`: bounded worker for mode explanations, 24-hour
-  controls/displays and Europe/Oslo setup defaults without saved-data changes.
-
-All children and fresh independent reviewers use Terra/medium. Next: implement
-isolated seams, independently review, integrate and verify the combined tree.
-Lead retains entry-workspace lifecycle; no deployment or bookmark moves.
+Conductor-created children `tmp-polish-bell`, `tmp-polish-time-settings`,
+`tmp-polish-share-check` and read-only `tmp-polish-baseline-check` were forgotten
+and removed after reachability/cleanliness and evidence checks. All workers and
+reviewers finished; effective Terra/medium verified. Lead retains
+`tmp-reminders-polish` lifecycle and delivery-line integration.
 
 ## Closeout
 
-(Conductor writes here.)
+Delivered all five polish items, preserving saved zones, confirmed anchors,
+private enrollment/save/retry semantics and share restrictions. Described stack:
+`ynqmrokk` (bell), `lnnlolwq` (settings/time), `xxvrrzww` (test migration),
+`nwzluzlq` and `rsqptosy` (review fixes), `wlwznqly` (share-test confirmations).
+The last change fixes an ambiguous repeated-toast assertion and adds a two-reset
+rotation regression; no share application behavior changed.
+
+Evidence retained outside `/tmp` at
+`/home/hsa/projects/reminders-polish-evidence/`:
+- Independent reviews: `bell-review-shell.md`, `settings-review*.md`,
+  `final-integration-review.md`, `share-fix-review.md`. Initial shell-less review
+  was rejected; subsequent reviewers were shell-capable, read-only and not authors.
+- Final combined checks: frontend lint/check, 1,113 unit tests and build; all six
+  Python checks including 1,792 tests. Logs `final2-*`.
+- Final full UTC browser suite: **600 passed**, 798.70 seconds;
+  `final2-browser-full.log`, traces/logs under `browser-final2/`. Combined share
+  suite also passed all 27 engine cases; mobile/a11y coverage ran before the full suite.
+- Earlier evidence remains: focused run had 202 passes and two WebKit sign-in
+  failures; first full run had 595 passes and two WebKit failures (revalidation
+  timeout, duplicate reset-toast locator). All four passed isolated reruns.
+  Requested five repetitions on P and S2 each: both sign-in tests and revalidation
+  passed 5/5 on each tree; share test passed 4/5 P versus 5/5 S2 before its fix,
+  then 5/5 after. Logs `repeat-{p,s2}-*.log` and `share-fix/`; failures are not
+  erased or labelled proven pre-existing. First focused attempt hit a 200-second
+  command timeout; the complete run and reruns are retained separately.
+
+Limits: no physical phone keyboard, OS notification, deployment or production
+checks; no new dependencies, bookmarks, pushes or port 8080 use. npm reported
+16 existing audit findings. S3 is intentionally absent: Lead must preserve its
+history/privacy-invalidation hooks when merging overlapping components. No
+outstanding product decision; no permission to deploy implied.
