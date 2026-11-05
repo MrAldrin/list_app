@@ -15,9 +15,10 @@ Keep useful regression coverage while shortening the development loop. Desktop b
 
 ## Resume here — remaining work
 
-This plan is **open**. Desktop browser optimizations and the scoped Python
-speed pass are complete locally ([measurements](../docs/background/test-suite-speed.md)); do not repeat them as prerequisites. The
-remaining decisions and checks, in order, are:
+This plan is **open**. The desktop browser optimizations and scoped Python
+speed pass are complete locally. See the
+[measurements](../docs/background/test-suite-speed.md). Do not repeat them as
+prerequisites. The remaining decisions and checks, in order, are:
 
 1. **Owner decision:** agree which existing Android checks belong in the
    baseline (including whether the separate password-prompt smoke case is
@@ -37,9 +38,9 @@ remaining decisions and checks, in order, are:
    on other machines or CI when available, and observe longer-term flakes.
    The ~59s local result is not a cross-machine guarantee.
 
-No Android benchmarks or Android scenario removals, or other-machine browser checks have been performed for these remaining items. The
-[progress checklist](#progress) below tracks completion; do not infer approval
-from a proposed step.
+For these remaining items, no Android benchmarks, Android scenario removals,
+or other-machine browser checks have been performed. The [progress checklist](#progress)
+below tracks completion; a proposed step is not approval.
 
 ## Important distinction: browser workers versus Android workers
 

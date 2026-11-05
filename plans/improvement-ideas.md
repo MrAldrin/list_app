@@ -2,22 +2,15 @@
 
 Lifecycle: tracked
 
-A broad review of ListR on 2026-10-19: code, docs, tests, performance,
-security, UX, competitor features and the access model. Eight research agents
-gathered the evidence; their full reports are linked at the bottom. This tracked
-plan preserves the review and its evidence. Part 1 records work built and
-integrated. Part 2 is an idea catalog with recommendations and recorded
-outcomes; its recommendations and statuses do not select additional work. Part 3
-lists open owner decisions. The backlog remains the sole work agenda.
-
-How to read it:
-
-- **Part 1** lists the work that was built and integrated.
-- **Part 2** is a proposal catalog by area, with evidence, effort and
-  recommendations. Statuses preserve recorded outcomes; wording such as “Do
-  next” or “Good idea” is not approval or selection.
-- **Part 3** lists open decisions for the owner. A choice becomes selected work
-  only when the owner moves it into the backlog.
+This plan records the 2026-10-19 review of ListR's code, docs, tests,
+performance, security, UX, competitor features and access model. Eight research
+agents gathered the evidence; their full reports are linked below. The plan
+preserves the review, not a work queue. Part 1 records built and integrated
+work. Part 2 catalogs ideas by area, with evidence, effort, recommendations and
+recorded outcomes. Statuses preserve those outcomes; labels such as “Do next”
+or “Good idea” are not approval or selection. Part 3 lists open owner decisions.
+A decision becomes selected work only when the owner moves it to the backlog,
+which remains the sole work agenda.
 
 Effort: S = under a day, M = a few days, L = one to two weeks, XL = more.
 
