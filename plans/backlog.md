@@ -1,76 +1,80 @@
 # Backlog
 
-Lifecycle: tracked. The one agenda of unfinished work. Placement is neither
-permission nor strict order. Details live in the linked plans and docs.
+Lifecycle: tracked. This is the agenda for unfinished work. Each linked plan
+contains the details. An item's position does not give permission to start it.
 
-## How to maintain this backlog
+## How to use this page
 
-- **Current focus:** selected work. **Next:** ready, in order, top first.
-  **Blocked:** waiting on a named prerequisite. **Later:** agreed, deferred.
-  **Ideas:** needs shaping or a decision; delete freely. **Manual checks:** rare,
-  see the [risk level](../docs/scope.md#risk-level).
-- Each item starts with a tag, then a short description and a link. Tags:
-  `bug`, `feature`, `infra`, `data`, `security`, `refactor`, `docs`, `test`.
-  Add `[human]` when the item needs substantial owner judgment.
-- "Do this next" goes at the top of Next. For any other new item, ask which
-  section it goes in, and where in Next if chosen. Move items between sections
-  only when the owner decides.
-- Mark work that spans sessions `(in progress)`.
-- Link real dependencies both ways with **Blocked by** and **Unblocks**.
-  Unblocking does not select an item.
-- When work finishes, update the owning docs and any dependents, then remove the
-  item. Record leftover work as its own item. Version control keeps history.
+- **In progress:** work has started, or waits for review or acceptance.
+- **Next:** consider these items next, from top to bottom. Ask before starting.
+- **Blocked:** work cannot continue until the stated condition is met.
+- **Later:** keep this work, but do not start it next.
+- **Ideas:** discuss the proposal before making a plan.
+- **Manual checks:** checks that need a person. See the [risk level](../docs/scope.md#risk-level).
 
-## Current focus
+Use the same bullet format in every section: **Type — Action**, then a short
+explanation and a link where available. Add **Owner decision** when the item
+needs the owner's judgment. State dependencies with **Blocked by** and
+**Unblocks**, and link both items. A cleared dependency does not approve work.
 
-- [ ] [feature] [P2: make stage 2 ready](batches/reminders-polish-2.md): hide personal reminder settings until S3, two-line bell rows on phones, plain text, phone-width checks. Started by owner 2026-11-05. Settings polish moved to S3.
-- [ ] [feature] Implement [configurable due-date and phone reminders](due-date-reminders.md).
-  - **Stage 1 (due bell): ready to deploy** when the owner chooses. It is on `integration`.
-  - **Stage 2 (due times, reminder settings) + polish P: not ready.** Reviewed, on bookmark `reminders-s2` above `integration`. Needs P2 (top item) before it can be integrated.
-  - **Stages 3–5: on hold** (owner, 2026-11-05). S3 resume points: `/home/hsa/projects/reminders-archive/`.
-- [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress) Parked on bookmark `groups` (rebuilt on `integration`, not accepted). Not shipping yet.
+Ask the owner before adding or moving an item. Put “do this next” at the top
+of Next. Keep progress details in the linked plan. When work is complete,
+update its documents and remove the item here. Keep any unfinished part as a
+separate item. Version control keeps the history.
 
-Owner answers and any further questions: [decisions for Heming](decisions-for-heming.md).
+<span id="current-focus"></span>
+
+## In progress
+
+- **Feature — Accept stage 2: due times and phone layout.** [P2](batches/reminders-polish-2.md) is ready for the owner's preview check. It fixes the bell layout and hides personal reminder settings until stage 3. After acceptance, integrate stage 2 and P2. See the [reminders plan](due-date-reminders.md). **Unblocks:** stage 3 in Next.
+- **Feature — Finish named item groups.** Work is parked on bookmark `groups`. It is not accepted or ready to deploy. See the [group plan](named-item-groups.md).
+
+Owner questions and recorded answers: [decisions for Heming](decisions-for-heming.md).
 
 ## Next
 
+- **Test — Review the test suite.** Check that tests catch real behavior failures, including tests written by AI. Find weak assertions, excessive mocking, tests tied to implementation details, and duplicate coverage. Break selected behavior deliberately to check that tests fail for the right reason. Investigate date-dependent tests and unreliable WebKit sign-in tests. Measure slow tests and propose faster feedback without losing useful coverage. Coordinate with the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work) in Later.
+- **Feature — Agree the scope of stage 3, then resume in-app reminders.** Discuss what to keep before restarting implementation. Include the settings polish deferred from P2. **Blocked by:** stage 2 acceptance in In progress and approval of the revised scope. **Unblocks:** stages 4 and 5 in Later. See the [S3 brief](batches/reminders-s3.md) and [reminders plan](due-date-reminders.md). Saved work is recorded in `/home/hsa/projects/reminders-archive/`.
 
 ## Blocked
 
+None. Dependencies for work in Next or Later are stated with those items.
+
 ## Later
 
-- [ ] [feature] Color themes, step 2: a custom theme picker built on step 1. Add an entry to `PALETTES` in `frontend/src/lib/ui/theme.ts`; the contrast test already covers every entry. Start from a ready-made theme and change a few colors (background, accent, text); warn or adjust when text would be hard to read.
-- [ ] [feature] Create a list while offline (needs an address before the server gives a slug). See [offline use](../docs/offline-viewing.md#what-works-offline).
-- [ ] [infra] Keep the `/sw.js` kill switch (it removes the old app's service worker from phones) until at least 2027-04-06. Step 5.1 must use a different worker URL (such as `/service-worker.js`) or replace the route carefully; `/sw.js` must never 404 or return the app page. See decision 159 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
-- [ ] [docs] Expand the Allium pilot with a naming-rules spec (trim edges, keep case, Unicode-aware duplicate lists, lowercase items), then judge whether it adds value beyond the tests. See the [Allium pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
-- [ ] [test] Resume the [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work): decide which Android scenarios and tiers to keep, then benchmark before simplifying.
-- [ ] [test] Review test-suite quality and value against testing best practices, including AI-written tests. Check that assertions catch meaningful behavior failures rather than merely rechecking fixture setup; identify tautologies, over-mocking, implementation-coupled checks and redundant coverage. Use representative deliberate breakages to verify important tests fail for the right reason. Measure slow tests and propose a faster development feedback loop without weakening regression coverage; coordinate with the [test-suite speed work](test-suite-speed.md#resume-here--remaining-work).
-- [ ] [feature] Longer undo for deleted items and tags: a longer toast time, or an undo history. See decisions 85 and 87 in the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md#decisions-log).
-- [ ] [refactor] Switch the live-update stream to FastAPI's built-in Server-Sent Events (`EventSourceResponse`, FastAPI 0.135+) to drop our keep-alive code. Do it next time `src/api/events.py` changes. See [Not now](../docs/background/codebase-cleanup.md#not-now).
-- [ ] [data] Learn and try SQLite WAL mode (readers and a writer at the same time). Small gain today, since one lock serializes database access. See [Not now](../docs/background/codebase-cleanup.md#not-now).
+- **Feature — Add stage 4: phone push notifications.** On hold. **Blocked by:** reviewed stage 3 in Next and approval to resume. **Unblocks:** stage 5 below. See the [S4 brief](batches/reminders-s4.md).
+- **Feature — Complete stage 5: final polish and owner review.** On hold. **Blocked by:** reviewed stage 4 above, or stage 3 for the in-app-only option, and approval to resume. See the [S5 brief](batches/reminders-s5.md) for the full scope.
+- **Feature — Add a custom color-theme picker.** Build on the existing palettes and contrast tests. Start with a ready-made theme. Warn about colors that make text hard to read. See `PALETTES` in `frontend/src/lib/ui/theme.ts`.
+- **Feature — Create lists while offline.** A new list needs a usable address before the server assigns its slug. See [offline use](../docs/offline-viewing.md#what-works-offline).
+- **Infrastructure — Keep the old service-worker removal route.** Keep `/sw.js` until at least 2027-04-06. The new app must use a different worker URL or replace this route safely. The route must not return a missing-page error or the app page. See [decision 159](../docs/background/svelte-frontend-rewrite.md#decisions-log).
+- **Documentation — Extend the Allium pilot.** Specify name trimming, letter case, and duplicate-name rules. Then decide whether the specification adds value beyond tests. See the [pilot](../README.md#allium-pilot-optional) and [UX decisions](../ARCHITECTURE.md#major-ux-decisions).
+- **Test — Resume the test-suite speed work.** Decide which Android scenarios and test tiers to keep. Measure performance before simplifying tests. Coordinate with the test-suite review in Next. See the [remaining work](test-suite-speed.md#resume-here--remaining-work).
+- **Feature — Give users more time to undo deletion.** Consider a longer toast or an undo history for items and tags. See [decisions 85 and 87](../docs/background/svelte-frontend-rewrite.md#decisions-log).
+- **Refactor — Use FastAPI's built-in event stream.** Consider `EventSourceResponse` when `src/api/events.py` next changes. It could replace our keep-alive code. See [deferred cleanup](../docs/background/codebase-cleanup.md#not-now).
+- **Data — Try SQLite WAL mode.** Check whether concurrent readers and a writer help this app. The current single lock limits the likely gain. See [deferred cleanup](../docs/background/codebase-cleanup.md#not-now).
 
 ## Ideas
 
-- [docs] [human] Review remaining proposals in the [October improvement ideas](improvement-ideas.md); the owner's recorded choices are in [decisions for Heming](decisions-for-heming.md).
-- [feature] [human] Assess [rule-based paste with preview](paste-text-to-list.md); plan only, not approved for implementation.
-- [refactor] Evaluate frontend error handling and async workflows: compare [Effect](https://effect.website/) with ordinary TypeScript and, for fetched data/cache management, TanStack Query. Use a small real workflow to compare typed failures, retries, cancellation, debugging and agent maintainability. The Python backend does not block adoption; adopt only if the benefit outweighs added complexity.
-- [infra] Evaluate infrastructure as code, including [Alchemy](https://alchemy.run/) and alternatives, against the current Railway deployment workflow. Check Railway support, secrets, persistent SQLite storage, reproducibility, rollback and maintenance cost before proposing any change.
-- [infra] Review other tooling that could improve implementation and stability as the Svelte frontend matures. Start with concrete gaps in CI, monitoring/error reporting, dependency updates and deployment checks; compare existing tools with new options rather than adding tools for their own sake. See the CI idea below and the [deployment guide](../docs/deployment.md).
-- [security] Raise the four-character password minimum in the future for newly created or changed passwords only. Keep existing passwords valid. Do not redesign login as part of this work. See [password rules](../docs/api.md).
-- [infra] Rehearse a restore on a hosted copy. See [restoration](../docs/deployment.md#restoration-and-rollback).
-- [infra] Scheduled local backup job that pulls a verified SQLite copy from Railway to this machine or an always-on home machine. Railway snapshots are not available on the current plan. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
-- [infra] Evaluate CI for format, lint and tests: compare benefits, costs, runtime and maintenance against the current local deploy checks before deciding whether to adopt it. Consider GitHub Actions and the [October review](improvement-ideas.md#tests-and-tooling). Avoid rerunning checks already passed on the exact revision being deployed; examine how to verify and reuse those results safely. Keep the production backup immediately before deployment, after checks pass. Before adding CI, replace the broad `.*/` ignore rule with explicit runtime-directory rules; keep databases, backups and secrets out of git. Railway deploys regardless unless "Wait for CI" is on.
-- [feature] Gzip large JSON responses (a 1,000-item feed drops from 283 KB to 35 KB). Server-Sent Events must stay uncompressed. Built and dropped in the [October review](improvement-ideas.md#performance); low gain at today's list sizes.
-- [feature] Target realtime refreshes by list/room instead of refreshing all users.
-- [feature] [human] Assess [cross-room sharing without accounts](cross-room-sharing-without-accounts.md); no implementation selected. See also [advanced sharing](advanced_sharing.md).
-- [feature] [human] Assess [optional accounts](optional-accounts.md) if individual permissions or revocation are needed; no implementation selected.
-- [feature] [human] Visual refresh: pick a direction from the [mockups and feedback](visual-refresh.md). The owner likes colorful list cards. The bottom bar and themes are in Next.
-- [feature] [human] Item categories (dairy, dry goods, fruit and veg) that group a list into sections, as in the Aisles mockup. Tags only filter today, so this needs its own design. See [visual refresh](visual-refresh.md#owner-feedback-2026-10-19).
-- [refactor] Move `src/` into a proper Python package. (Splitting `src/main.py` is done: since step 4.3 it is only the entry point, and `src/server.py` and `src/api/` hold the rest.)
-- [refactor] Replace the global SQLite connection with a connection/context-manager layer.
-- [data] Add timestamps and change versions for debugging, conflict detection or audit history.
-- [data] Normalize JSON tags into tables if querying or integrity needs it.
-- [data] Reconsider the database for multiple replicas, heavy write contention, high availability or multiple regions. Discuss against [`ARCHITECTURE.md`](../ARCHITECTURE.md) first.
+- **Documentation — Review the remaining October proposals.** **Owner decision.** See the [proposals](improvement-ideas.md) and [recorded decisions](decisions-for-heming.md).
+- **Feature — Assess paste rules with a preview.** **Owner decision.** This is a proposal, not approved implementation. See the [paste plan](paste-text-to-list.md).
+- **Refactor — Review frontend error handling and asynchronous code.** Compare ordinary TypeScript with [Effect](https://effect.website/). For data fetching and caching, also consider TanStack Query. Compare a small real workflow before adding a tool.
+- **Infrastructure — Assess infrastructure as code.** Compare [Alchemy](https://alchemy.run/) and alternatives with the current Railway workflow. Check secrets, SQLite storage, recovery, cost, and maintenance before proposing adoption.
+- **Infrastructure — Find concrete gaps in development tools.** Review monitoring, error reporting, dependency updates, and deployment checks. Add tools only when they solve a demonstrated problem. See the [deployment guide](../docs/deployment.md) and the CI proposal below.
+- **Security — Increase the minimum password length.** Apply a future increase only to new or changed passwords. Keep existing passwords valid. Do not redesign sign-in. See [password rules](../docs/api.md).
+- **Infrastructure — Practise restoring a hosted copy.** See [restoration and rollback](../docs/deployment.md#restoration-and-rollback).
+- **Infrastructure — Schedule local production backups.** Pull a verified SQLite copy from Railway to this machine or an always-on home machine. The current plan has no Railway snapshots. See [backup options](backup-options.md#scheduled-local-copy-railway-snapshots-blocked).
+- **Infrastructure — Assess continuous integration (CI).** Compare GitHub Actions with local deployment checks. Consider cost, time, maintenance, and safe reuse of checks from the exact revision being deployed. Keep the production backup after checks and immediately before deployment. Before adding CI, replace the broad `.*/` ignore rule with explicit rules that protect databases, backups, and secrets. Railway does not wait for CI unless configured to do so. See the [October review](improvement-ideas.md#tests-and-tooling).
+- **Feature — Compress large JSON responses.** Compression reduced a 1,000-item response from 283 KB to 35 KB in an earlier trial. The gain is small for current lists. Never compress Server-Sent Events. See the [performance review](improvement-ideas.md#performance).
+- **Feature — Limit live updates to the affected room or list.** Avoid refreshing unrelated users.
+- **Feature — Assess sharing between rooms without accounts.** **Owner decision.** No implementation is selected. See the [proposal](cross-room-sharing-without-accounts.md) and [sharing plan](advanced_sharing.md).
+- **Feature — Assess optional accounts.** **Owner decision.** Consider accounts if individual permissions or revocation become necessary. See the [proposal](optional-accounts.md).
+- **Feature — Choose a visual direction.** **Owner decision.** Review the [mockups and feedback](visual-refresh.md). The owner prefers colorful list cards.
+- **Feature — Assess item categories.** **Owner decision.** Categories such as dairy or fruit would divide a list into sections. Tags currently filter items; they do not create sections. See the [owner feedback](visual-refresh.md#owner-feedback-2026-10-19).
+- **Refactor — Turn `src/` into a Python package.** The entry point and server code are already separate.
+- **Refactor — Replace the global SQLite connection.** Consider a connection manager or context manager.
+- **Data — Add timestamps and change versions.** Use them for debugging, conflict detection, or history.
+- **Data — Store tags in separate tables.** Consider this if queries or data checks require it.
+- **Data — Reconsider the database when scaling requires it.** Possible reasons include multiple replicas, frequent competing writes, high availability, or multiple regions. Discuss the [architecture](../ARCHITECTURE.md) first.
 
 ## Manual checks
 
