@@ -56,7 +56,7 @@ repository or expose excluded/private files in the documentation preview.
 
 The owner explicitly requests:
 
-- **Conductor:** `openai/gpt-6.1-sol`, thinking **low**.
+- **Conductor:** use the selection in the [backlog](backlog.md#next).
 - **Page writers:** `openai/gpt-6-luna`, thinking **xhigh** (extra-high), including
   straightforward pages. Do not lower effort based on cost estimates.
 - Fresh independent review, separate from the page's writer. Requested review
@@ -200,8 +200,8 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 
 ## Execution record
 
-- Proposed priority: after the existing test-suite and S3 review items in Next.
-- Owner-requested models: Sol 6.1/low Conductor; Luna/xhigh writers and reviewers.
+- Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
+- Owner-requested page writers and reviewers: Luna/xhigh.
 - Model-policy resolution and effective-setting verification: pending.
 - Execution approval, owner/session, and workspaces: not assigned.
 - Work window, stop time, concurrency, and artifact budget: not agreed.
@@ -210,7 +210,8 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 ## Progress
 
 - [x] Record the all-document scope, requested models, and fidelity safeguards.
-- [ ] Confirm placement, resolve model authority, and approve execution limits.
+- [x] Record owner-selected backlog placement and Conductor.
+- [ ] Resolve worker-model authority and approve execution limits.
 - [ ] Inventory documents and establish the terminology/style contract.
 - [ ] Calibrate, rewrite batches, and independently review the actual changes.
 - [ ] Finish or explicitly account for active/protected/deferred documents.

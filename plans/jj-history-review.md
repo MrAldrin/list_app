@@ -165,8 +165,9 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
 
 ## Execution record
 
-- Backlog placement: append to Next after the existing proposed assignments.
-- Execution approval, task owner/session, model settings, and workspace: pending.
+- Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
+- Execution approval, task owner/session, effective model/thinking verification,
+  and workspace: pending.
 - Work window, stop time, concurrency, and artifact budget: not agreed.
 - Shared-repository mutation window and S3 recovery dependencies: not agreed.
 - Bucket A authority: scoped above; no broader graph rewrite approved.

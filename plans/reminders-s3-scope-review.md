@@ -144,9 +144,9 @@ not when S3 is implemented. Wait for that decision before starting any code work
 
 ## Execution record
 
-- Backlog placement: existing S3 item in Next, after the test-suite review.
+- Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Execution approval: pending; research only when launched.
-- Task owner/session, model settings, and workspace: not assigned.
+- Task owner/session, effective model/thinking verification, and workspace: pending.
 - Work window, stop time, concurrency, and artifact budget: not agreed.
 - Browser/check schedule with other tasks: not agreed.
 

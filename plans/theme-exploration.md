@@ -147,16 +147,17 @@ owner is finished with it.
 
 ## Execution record
 
-- Backlog placement: awaiting owner decision.
+- Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Execution approval: pending.
-- Task owner/session, model settings, and workspace: not assigned.
+- Task owner/session, effective model/thinking verification, and workspace: pending.
 - Work window, stop time, concurrent workers, and artifact budget: not agreed.
 - Preview server/port and browser-work schedule: not agreed.
 
 ## Progress
 
 - [x] Scope twenty drafts by four levels of design freedom.
-- [ ] Agree backlog placement and approve execution limits/ownership.
+- [x] Record owner-selected backlog placement and Conductor.
+- [ ] Approve execution limits/ownership.
 - [ ] Research references and establish the current-app comparison.
 - [ ] Build twenty drafts and the local comparison gallery.
 - [ ] Review rendered designs, run checks, and address clear issues.

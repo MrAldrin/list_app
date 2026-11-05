@@ -222,8 +222,9 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
 
 ## Execution record
 
+- Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Approval: pending.
-- Task owner/session and model settings: not assigned.
+- Task owner/session and effective model/thinking verification: pending.
 - Workspace and child ownership: not assigned.
 - Work window, stop time, concurrency, and artifact budget: not agreed.
 

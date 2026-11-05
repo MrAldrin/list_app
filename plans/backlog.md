@@ -12,9 +12,11 @@ contains the details. An item's position does not give permission to start it.
 - **Ideas:** discuss the proposal before making a plan.
 - **Manual checks:** checks that need a person. See the [risk level](../docs/scope.md#risk-level).
 
-Use the same bullet format in every section: **Type — Action**, then a short
-explanation and a link where available. Add **Owner decision** when the item
-needs the owner's judgment. State dependencies with **Blocked by** and
+Use **Type — Action**, then a short explanation and a link where available.
+Number items in Next to show priority; use bullets in the other sections.
+For assigned preparation work, record difficulty and the selected Conductor
+model/thinking. Selection is not launch verification or execution approval.
+Add **Owner decision** when needed. State dependencies with **Blocked by** and
 **Unblocks**, and link both items. A cleared dependency does not approve work.
 
 Ask the owner before adding or moving an item. Put “do this next” at the top
@@ -32,10 +34,19 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 
 ## Next
 
-- **Test — Review and improve the test suite.** Review high-risk behavior first. Strengthen useful coverage, fix clear test defects, investigate unreliable tests, and measure runtime against test value. Write a testing guide. Keep coverage removals and broader changes for owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and remaining Android decisions. Execution approval is pending.
-- **Research — Review S3 scope and archived work.** Inspect the saved implementation and recommend the smallest useful in-app reminder feature. Prepare options, reuse/rebuild evidence, and clear decisions for the owner. See the [review assignment](reminders-s3-scope-review.md). Stages 1 and 2, including P2, are accepted on `main`. Research execution approval is pending; S3 implementation stays on hold. **Unblocks:** a later S3 implementation decision, then stages 4 and 5 in Later.
-- **Documentation — Rewrite all documentation in STE100 style.** Cover guides, root docs, agent instructions, plans, and historical prose. Preserve facts, commands, evidence, and approval rules. See the [assignment](documentation-ste100.md). Requested agents: Sol 6.1 low Conductor and Luna extra-high page writers. Execution limits and the worker-model policy conflict must be resolved before launch.
-- **Refactor — Review and simplify the jj history.** Explain the confusing graph, prepare readable log views, and propose cleanup of anonymous changes, empty checkpoints, divergence, and conflicts. Allow only proven disposable cleanup within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with the S3 recovery review and active agents. Execution approval is pending.
+All five tasks await execution approval and run limits. Conductor selections
+below use provider `openai`; verify the effective model and thinking at launch.
+
+1. **Test — Review and improve the test suite.** Review high-risk coverage, fix clear test defects, investigate unreliable tests, and profile runtime against test value. Write a testing guide. Coverage removals and broader changes need owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and Android decisions.
+   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
+2. **Documentation — Rewrite all documentation in STE100 style.** Cover guides, root docs, instructions, plans, and historical prose. Preserve facts, commands, evidence, and approval rules. See the [assignment](documentation-ste100.md). The requested Luna extra-high writers/reviewers still need the recorded model-policy conflict resolved before launch.
+   **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
+3. **Design — Explore themes and interface directions.** Build a local HTML comparison gallery with twenty drafts: five color-only, five traditional restylings, five broader redesigns, and five unrestricted experiments. No real app changes. See the [assignment](theme-exploration.md).
+   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
+4. **Refactor — Review and simplify the jj history.** Explain the graph, provide readable log views, and propose cleanup. Only proven disposable cleanup is permitted within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with S3 recovery and active agents.
+   **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
+5. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
+   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 
 ## Blocked
 
