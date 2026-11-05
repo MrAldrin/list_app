@@ -10,9 +10,10 @@ Phone notifications are not built yet
 ## Shared due time
 
 An item can also have a time and an explicit IANA time zone. Clearing its date
-clears both. The server confirms the UTC instant; an unsynced change shows
-**Waiting to sync** instead. These shared edits use the existing offline queue.
-Confirmed timed items become overdue after their confirmed instant. Other timed
+clears both. These shared edits use the existing offline queue. The item dialog
+shows **The time will be confirmed when saved** until the server confirms it,
+then **Saved time (UTC)**. Confirmed timed items become overdue after their
+confirmed instant. Other timed
 items are grouped by that instant in the configured device time zone. Before setup,
 Europe/Oslo is used for day groups. Unconfirmed edits
 use their wall date and never invent a UTC instant.
@@ -43,7 +44,8 @@ are days in the configured device time zone (Europe/Oslo before setup). Items wi
   Zero shows no badge; above 99 it shows `99+`. Overdue items make the badge red.
   Opening the panel does not clear it.
 - The panel groups items as in the table. Empty groups are hidden. Items are
-  sorted by day, then by list name, then by item name.
+  sorted by day, then by list name, then by item name. Each row puts the item
+  name above its list name (on the room page), date and status.
 - Tapping an item opens its list with the item revealed: the tag filter and
   the search text are cleared, and the item is focused. A short status says
   which filter was cleared; nothing is cleared, and no status shows, when
@@ -51,6 +53,15 @@ are days in the configured device time zone (Europe/Oslo before setup). Items wi
 - If the item is no longer on that list, the page says so.
 - The panel is marked "Saved data" when the page cannot confirm the latest data.
 - Updates from other devices change the panel's content without moving focus.
+
+## Personal reminder settings
+
+Personal reminder settings are hidden until phone notifications are ready.
+Due dates, due times and the bell remain available. The settings components,
+API and unit tests remain in place; `PERSONAL_REMINDER_SETTINGS_ENABLED` in
+`frontend/src/lib/reminders/personal-reminders.ts` controls all entry points.
+Verification and paused settings-browser coverage are in the
+[P2 validation record](background/reminders-p2-validation.md).
 
 ## List cards
 

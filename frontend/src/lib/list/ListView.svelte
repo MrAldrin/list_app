@@ -5,6 +5,7 @@
 	browsers that have access to the room.
 -->
 <script lang="ts">
+	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';
 	import {
 		countHiddenChecked,
 		type HideDone,
@@ -390,8 +391,9 @@
 		onAddTag={(tag) => addTag(list, tag)}
 		onDeleteTag={(tag) => deleteTag(list, tag)}
 	/>
-	{#if roomDue}<button type="button" onclick={() => (listRemindersOpen = true)}
-			>Personal list reminders</button
+	{#if PERSONAL_REMINDER_SETTINGS_ENABLED && roomDue}<button
+			type="button"
+			onclick={() => (listRemindersOpen = true)}>Personal list reminders</button
 		>{/if}
 {/if}
 {#if listRemindersOpen && roomDue}<PolicyEditor

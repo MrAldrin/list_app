@@ -5,6 +5,7 @@
 	closes the menu and opens a dialog. Switching rooms is in RoomSwitcher.
 -->
 <script lang="ts">
+	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { RoomHandle } from '#lib/data/index.ts';
@@ -67,10 +68,12 @@
 	{#snippet children(close)}
 		<button type="button" onclick={() => share(close)}>Share Room</button>
 		<button type="button" onclick={() => choose(close, 'install')}>Add to Home Screen</button>
-		<button type="button" onclick={() => choose(close, 'reminders')}>Personal reminders</button>
-		<button type="button" onclick={() => choose(close, 'reminder-policy')}
-			>Personal room reminder policy</button
-		>
+		{#if PERSONAL_REMINDER_SETTINGS_ENABLED}
+			<button type="button" onclick={() => choose(close, 'reminders')}>Personal reminders</button>
+			<button type="button" onclick={() => choose(close, 'reminder-policy')}
+				>Personal room reminder policy</button
+			>
+		{/if}
 		<ThemeMenuItem {close} />
 		<hr />
 		<button type="button" disabled={!room.store.canEdit} onclick={() => choose(close, 'rename')}>

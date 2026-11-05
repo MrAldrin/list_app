@@ -10,6 +10,7 @@
 	that version as `base_seq`.
 -->
 <script lang="ts">
+	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';
 	import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '#lib/ui/field-limits.ts';
 	import { untrack } from 'svelte';
 	import type { Item, RoomHandle, TagSettings } from '#lib/data/index.ts';
@@ -181,7 +182,7 @@
 			<p class="added">Time zone: {dueTimezone}</p>
 			<details>
 				<summary>Change time zone</summary>
-				<label for="{nameId}-due-zone">Time zone (IANA, for example Europe/Oslo)</label>
+				<label for="{nameId}-due-zone">Time zone (for example Europe/Oslo)</label>
 				<input
 					id="{nameId}-due-zone"
 					bind:value={dueTimezone}
@@ -192,20 +193,20 @@
 			</details>
 			{#if !validZone}
 				<p id="{nameId}-zone-error" class="added" role="alert">
-					Enter a valid IANA time zone, up to 64 characters, such as Europe/Oslo.
+					Enter a valid time zone, up to 64 characters, such as Europe/Oslo.
 				</p>
 			{/if}
 			{#if canonicalZone && !(unchangedDue && item.due_at) && canonicalZone !== dueTimezone.trim()}
 				<p class="added">Time zone saved as: {canonicalZone}</p>
 			{/if}
 			{#if unchangedDue && item.due_at}
-				<p class="added">Server-confirmed UTC: {item.due_at}</p>
+				<p class="added">Saved time (UTC): {item.due_at}</p>
 			{:else}
-				<p class="added">Waiting to sync — the server will confirm the UTC time.</p>
+				<p class="added">The time will be confirmed when saved.</p>
 			{/if}
 		{/if}
 	{/if}
-	{#if reminderRoom && item.date}
+	{#if PERSONAL_REMINDER_SETTINGS_ENABLED && reminderRoom && item.date}
 		<button type="button" onclick={() => (remindersOpen = true)}
 			>Personal reminders for this item</button
 		>

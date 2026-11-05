@@ -3,10 +3,15 @@
 import re
 from datetime import date, timedelta
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, sign_in
 from test_svelte_due_center import _set_date
 from test_svelte_private_reminders import open_settings
+
+pytestmark = pytest.mark.skip(
+    reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
+)
 
 
 def test_policy_inheritance_preview_and_retry(svelte_server, open_session):

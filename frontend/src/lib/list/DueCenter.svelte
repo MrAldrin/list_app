@@ -7,6 +7,7 @@
 	but never move focus.
 -->
 <script lang="ts">
+	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { RoomHandle } from '#lib/data/index.ts';
@@ -104,7 +105,7 @@
 	/>
 {:else if open}
 	<Dialog title="Due items" onClose={() => (open = false)}>
-		{#if roomScope}
+		{#if PERSONAL_REMINDER_SETTINGS_ENABLED && roomScope}
 			<button
 				type="button"
 				onclick={() => {
@@ -137,15 +138,13 @@
 							<li class="due-entry">
 								<a class="due-row" href={hrefOf(row)} onclick={() => (open = false)}>
 									<span class="name">{row.item.name}</span>
-									{#if !listUid}
-										<span class="where">{row.listName}</span>
-									{/if}
-									<span class="when">{formatItemDate(row.date)}</span>
-									{#if tag}
-										<span class="tag {tag.tone}">{tag.text}</span>
-									{/if}
+									<span class="metadata">
+										{#if !listUid}<span class="where">{row.listName}</span>{/if}
+										<span class="when">{formatItemDate(row.date)}</span>
+										{#if tag}<span class="tag {tag.tone}">{tag.text}</span>{/if}
+									</span>
 								</a>
-								{#if roomScope}<button
+								{#if PERSONAL_REMINDER_SETTINGS_ENABLED && roomScope}<button
 										class="item-policy"
 										type="button"
 										aria-label={`Private reminder settings for ${row.item.name}`}
@@ -234,9 +233,9 @@
 		flex: 1;
 		min-width: 0;
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.25rem 0.5rem;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.25rem;
 		min-height: var(--touch);
 		padding: 0.25rem 0;
 		color: var(--text);
@@ -244,9 +243,16 @@
 	}
 
 	.name {
-		flex: 1;
 		min-width: 0;
 		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+
+	.metadata {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 

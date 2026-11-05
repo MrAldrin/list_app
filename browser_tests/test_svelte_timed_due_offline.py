@@ -41,8 +41,10 @@ def test_timed_edit_conflict_save_mine_retries_and_reconfirms(
     view_offline(phone, url)
     set_due(open_item(phone), "2026-10-19", "10:30", "Europe/Paris")
     dialog = open_item(phone)
-    expect(dialog.get_by_text(re.compile("Waiting to sync"))).to_be_visible()
-    expect(dialog.get_by_text(re.compile("Server-confirmed UTC"))).to_have_count(0)
+    expect(
+        dialog.get_by_text(re.compile("The time will be confirmed when saved"))
+    ).to_be_visible()
+    expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_have_count(0)
     dialog.get_by_role("button", name="Cancel").click()
     other = open_session("timed-other", **NO_WORKER)
     sign_in(other, server)
@@ -80,7 +82,7 @@ def test_timed_edit_conflict_save_mine_retries_and_reconfirms(
         0, timeout=20000
     )
     dialog = open_item(phone)
-    expect(dialog.get_by_text(re.compile("Server-confirmed UTC"))).to_be_visible(**SLOW)
+    expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_be_visible(**SLOW)
 
 
 def test_timed_delete_undo_offline_reconfirms(svelte_server, open_session):
@@ -99,7 +101,9 @@ def test_timed_delete_undo_offline_reconfirms(svelte_server, open_session):
     dialog = open_item(phone)
     expect(dialog.get_by_label("Due time (optional)")).to_have_value("09:00")
     expect(dialog.get_by_label(re.compile("Time zone"))).to_have_value("Europe/Oslo")
-    expect(dialog.get_by_text(re.compile("Waiting to sync"))).to_be_visible()
+    expect(
+        dialog.get_by_text(re.compile("The time will be confirmed when saved"))
+    ).to_be_visible()
     dialog.get_by_role("button", name="Cancel").click()
     go_online(phone)
     wait_until(
@@ -122,7 +126,7 @@ def test_timed_delete_undo_offline_reconfirms(svelte_server, open_session):
     ) == [("2026-10-18", "09:00", "Europe/Oslo")]
     assert server.query("SELECT due_at FROM items WHERE name='milk'")[0][0]
     dialog = open_item(phone)
-    expect(dialog.get_by_text(re.compile("Server-confirmed UTC"))).to_be_visible(**SLOW)
+    expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_be_visible(**SLOW)
 
 
 def test_zone_case_online_and_offline_are_sent_canonically(svelte_server, open_session):
@@ -206,7 +210,7 @@ def test_unchanged_confirmed_alias_is_preserved(svelte_server, open_session):
     }""")
     dialog = open_item(phone)
     expect(dialog.get_by_label(re.compile("Time zone"))).to_have_value("US/Eastern")
-    expect(dialog.get_by_text(re.compile("Server-confirmed UTC"))).to_be_visible()
+    expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_be_visible()
     original = server.query(
         "SELECT due_timezone, due_at, due_cycle FROM items WHERE name='milk'"
     )[0]

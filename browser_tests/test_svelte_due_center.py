@@ -185,20 +185,10 @@ def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
     expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
     expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
     expect(panel.locator(".where")).to_have_count(0)
-    expect(panel.get_by_role("button", name="List reminder policy")).to_be_visible()
-
-    # The private action is keyboard operable and large enough for a phone.
-    action = panel.get_by_role("button", name="Private reminder settings for milk")
-    expect(action).to_have_text("Reminder settings")
-    size = action.bounding_box()
-    assert size and size["width"] >= 44 and size["height"] >= 44
-    action.focus()
-    page.keyboard.press("Enter")
-    expect(page.get_by_role("dialog", name="Personal item reminders")).to_be_visible()
-    page.get_by_role("dialog", name="Personal item reminders").get_by_role(
-        "button", name="Close"
-    ).click()
-    expect(panel).to_be_visible()
+    expect(panel.get_by_role("button", name="List reminder policy")).to_have_count(0)
+    expect(
+        panel.get_by_role("button", name="Private reminder settings for milk")
+    ).to_have_count(0)
     page.keyboard.press("Escape")
 
     # The room bell shows both items with their list names and room count.
@@ -213,7 +203,7 @@ def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
     expect(panel.locator("a", has_text="dishes").locator(".where")).to_have_text(
         "Chores"
     )
-    expect(panel.get_by_role("button", name="Room reminder policy")).to_be_visible()
+    expect(panel.get_by_role("button", name="Room reminder policy")).to_have_count(0)
 
 
 def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
@@ -415,12 +405,13 @@ def test_timed_due_requires_zone_and_shows_server_confirmation(
     expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
     dialog.get_by_text("Change time zone", exact=True).click()
     dialog.get_by_label(re.compile("Time zone")).fill("Europe/Oslo")
-    expect(dialog.get_by_text(re.compile("Waiting to sync"))).to_be_visible()
+    expect(dialog.get_by_text("The time will be confirmed when saved.")).to_be_visible()
     with page.expect_response(saved_op):
         dialog.get_by_role("button", name="Save").click()
     expect(dialog).to_be_hidden()
     page.get_by_role("button", name=re.compile("^milk")).click()
-    expect(dialog.get_by_text(re.compile("Server-confirmed UTC"))).to_be_visible()
+    expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_be_visible()
+    expect(dialog.get_by_label("Due time (optional)")).to_have_value("09:00")
     expect(dialog.get_by_label(re.compile("Time zone"))).to_have_value("Europe/Oslo")
 
 
@@ -439,7 +430,11 @@ def test_zone_validation_online_and_offline(svelte_server, open_session):
             zone.fill(invalid)
             expect(dialog.get_by_role("button", name="Save")).to_be_disabled()
             expect(zone).to_have_attribute("aria-invalid", "true")
-            expect(dialog.get_by_text(re.compile("Enter a valid IANA"))).to_be_visible()
+            expect(
+                dialog.get_by_text(
+                    "Enter a valid time zone, up to 64 characters, such as Europe/Oslo."
+                )
+            ).to_be_visible()
         for valid in ("UTC", "Asia/Kathmandu"):
             zone.fill(valid)
             expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
