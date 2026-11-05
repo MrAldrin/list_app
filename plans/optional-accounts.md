@@ -59,9 +59,9 @@ passwords. Cross-room links and accounts are separate decisions.
 - Decide how an account becomes a member: an invitation, an existing room
   password, an owner action, or some combination. Signing in is not enough.
 - If someone can still use the shared room password, removing their account
-  membership does **not** fully remove their room access. Changing that password
-  is still needed to revoke the shared credential. State this limitation in the
-  UI and docs if C proceeds.
+  membership does **not** fully remove their room access. Change that password
+  to revoke the shared credential. State this limitation in the UI and docs if
+  C proceeds.
 - Account sessions should be revocable and checked server-side. Do not treat an
   account login as an admin role or as permission to inspect rooms. Keep
   `APP_PASSWORD` as a separate admin path unless the owner explicitly approves
@@ -75,33 +75,34 @@ passwords. Cross-room links and accounts are separate decisions.
 
 An additive schema for users, sessions, and room memberships is a starting
 point, not a final migration. Existing rooms should remain usable without
-accounts; their owners/memberships and historical item actors should not be
-invented. If optional personal rooms or activity history are selected, they
-bring separate room/item schema work and UI beyond the login foundation. Keep
-any migration non-destructive and backfilled values honest.
+accounts. Their owners, memberships, and historical item actors should not be
+invented.
+If the owner selects optional personal rooms or activity history, those require
+separate room/item schema work and UI beyond the login foundation. Keep any
+migration non-destructive. Keep backfilled values honest.
 
-Account sessions add another cookie and sign-in path, and account membership
-must be checked for every private room read/write; cached client state is never
+Account sessions add another cookie and sign-in path. Check account membership
+for every private room read and write; cached client state is never
 authorization. Preserve same-origin write checks and sign-in throttling. A
 username/password endpoint needs a per-account/username strategy in addition to
-global protection; client IP is not a trustworthy limiter key in the current
+global protection. Client IP is not a trustworthy limiter key in the current
 hosting setup. Password recovery is unresolved because there is no email
 provider.
 
 Offline snapshots and queued writes are currently scoped to a room or public
 share link, not an account. Keep pending room changes held until the room is
-reauthorized after sign-out or session expiry; account sign-in must not silently
+reauthorized after sign-out or session expiry. Account sign-in must not silently
 release a queue for a room the account is not a member of. Test cookie transfer
 and logout behavior in installed browsers against the
-[home-screen guide](../docs/home-screen-installation.md) and preserve existing
+[home-screen guide](../docs/home-screen-installation.md). Preserve existing
 room-password users. Decide whether one account sign-out clears cached room
 views, and avoid discarding queued edits without telling the user.
 
 Keep additive API endpoints/fields compatible where possible. Revisit the
 [API-version rule](../docs/api.md#api-version) if existing room request meaning,
 write authorization, or response shapes change. The top-level architecture
-currently documents room-password access and separate admin access; owner
-agreement is needed before changing those security boundaries or updating
+currently documents room-password access and separate admin access. Get the
+owner's agreement before changing those security boundaries or updating
 `ARCHITECTURE.md`.
 
 ## Possible stages if C is approved later
@@ -134,16 +135,16 @@ agreement is needed before changing those security boundaries or updating
 
 ## Tests required before calling a future implementation verified
 
-Cover schema migration while preserving legacy rooms and tokens; signup or
+Cover schema migration while preserving legacy rooms and tokens. Test signup or
 invitation rules; password hashing, rate limits, recovery, cookie flags, expiry,
 revocation, and logout; denied access without membership; room-password and
 public-share compatibility; `APP_PASSWORD` admin isolation; same-origin writes;
 role changes and account removal while sessions are active; and API version
 compatibility. Exercise offline snapshots and held queues across sign-out,
-session expiry, re-login, room deletion, and membership removal. If actor fields
-are chosen, test anonymous actions, old rows, attribution boundaries, and any
-export/deletion behavior. These are recommendations, not tests run by this
-plan.
+session expiry, re-login, room deletion, and membership removal. If the owner
+chooses actor fields, test anonymous actions, old rows, attribution boundaries,
+and any export/deletion behavior. These are recommendations, not tests run by
+this plan.
 
 ## Questions for Lead
 

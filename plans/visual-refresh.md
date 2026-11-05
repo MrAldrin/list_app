@@ -2,8 +2,9 @@
 
 Lifecycle: tracked
 
-Ideas for a new look and a more thumb-friendly layout. Nothing here is
-accepted for building yet; chosen pieces move to the [backlog](backlog.md).
+This page lists ideas for a new look and a more thumb-friendly layout. Nothing
+here is approved for building yet. Chosen pieces move to the
+[backlog](backlog.md).
 
 Mockups (private canvas, reopen any time):
 <https://claude.ai/artifact/GXLUA5Vx8vxaQ3nkvj6Dve>. It shows today's app and

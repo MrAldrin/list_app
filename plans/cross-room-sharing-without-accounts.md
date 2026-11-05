@@ -14,8 +14,8 @@ the existing public share link and not the deferred dashboard pinning idea in
 ## Approval gate
 
 The owner must explicitly reopen B1 from option A and authorize implementation
-before anyone builds it. Settle the room-wide permissions, revocation, and
-offline decisions below first; this assessment does not approve those security
+before anyone builds it. First, settle the room-wide permissions, revocation,
+and offline decisions below. This assessment does not approve those security
 choices.
 
 ## Current state
@@ -26,7 +26,7 @@ choices.
   [room API](../docs/api-rooms.md#room-session), [feed](../docs/api-sync.md#reading-the-changes-feed),
   `src/api/access.py`, `src/api/ops.py`, and `src/database_crud.py`.
 - **Implemented today:** A public `/share/{token}` link can edit one list, but
-  never grants room access. It has separate token reset and list-scoped feed
+  it never grants room access. It has separate token reset and list-scoped feed
   behavior. See [public sharing](../docs/public-sharing.md) and
   [share links](../docs/api-sharing.md#share-links).
 - **Not implemented:** No room-to-room list relation exists. The app has no
@@ -36,39 +36,40 @@ choices.
 
 ## Assessment proposal (not approved)
 
-If B1 is revisited, keep the list owned by its original room and model each
-additional room as an explicit link, rather than copying list data or turning a
-public share URL into a room credential. A browser would need valid access to
-both rooms to create the link. That preserves the current rule that knowing one
-room's password does not grant entry to another, but it also means a person who
-only knows the destination room's password cannot link a source list.
+If B1 is revisited, keep the list owned by its original room. Model each
+additional room as an explicit link, not as copied list data or a public share
+URL used as a room credential. A browser would need valid access to both rooms
+to create the link. This would preserve the current rule that knowing one
+room's password does not grant access to another. It would also mean that a
+person who only knows the destination room's password could not link a source
+list.
 
-A link would make the list visible from the destination room to **all holders
-of that room's password**; it cannot be limited to the person who created it.
-The permissions for those holders are not decided. Decide whether they can
-read, check and edit items, change tags/visibility, rename the list, or delete
-it. A conservative initial policy is to reserve list-level management and
-unlinking to the source room, but that is a proposal, not an owner decision.
-The destination room also needs a clear shared-list marker and a defined way to
-unlink it without deleting the source list.
+A link would make the list visible to **all holders of the destination room's
+password**. It could not be limited to the person who created it. The
+permissions for those holders remain undecided. Decide whether they can read,
+check and edit items, change tags/visibility, rename the list, or delete it.
+One conservative proposal is to reserve list-level management and unlinking to
+the source room. This is a proposal, not an owner decision. The destination
+room also needs a clear shared-list marker and a defined way to unlink the list
+without deleting the source list.
 
 ### Data, feeds, and compatibility
 
 A link table such as `(list_id, destination_room_id)` is a candidate additive
-migration; its exact constraints and unlink behavior remain for implementation
+migration. Its exact constraints and unlink behavior remain for implementation
 design. The difficult work is correct multi-room change tracking, not adding a
 row:
 
 - `changed_seq` and the room `seq` currently belong to the source room.
   Destination feeds must still notice item edits, tags, list settings, and
-  deletions. `deletions` are currently recorded for one room, and live streams
+  deletions. `deletions` are currently recorded for one room. Live streams
   wake by room (`src/database_setup.py`, `src/live_updates.py`).
 - A link or unlink must update the destination feed so its clients add or
   remove the list. Cursors, deletion tombstones, pruning, and stream wakeups
   must not silently miss a change. Existing per-list share sequencing is a
   possible reference, not a proven solution for multiple rooms.
-- Resolve name/slug collisions with a destination room's own list, and decide
-  what happens if one list is linked into several rooms or its source/destination
+- Resolve name/slug collisions with a destination room's own list. Decide what
+  happens if one list is linked into several rooms or its source/destination
   room is deleted. A shared list must not expose the source room name or its
   other lists.
 - All reads and writes must check the right room authorization in the same
@@ -78,46 +79,46 @@ row:
 
 ### Offline and security
 
-Offline pages use device-local snapshots and keep writes in queues keyed to a
-room or public share link; room edits are revalidated before sending. See
+Offline pages use device-local snapshots. They keep writes in queues keyed to
+a room or public share link, and revalidate room edits before sending. See
 [offline use](../docs/offline-viewing.md) and the
 [offline editing rules](../docs/background/offline-editing-details.md). B1
-needs a distinct, documented offline identity for a linked list; a removed link,
+needs a distinct, documented offline identity for a linked list. A removed link,
 revoked room access, or deleted source must not let stale queued edits bypass
 authorization. Define how pending edits are shown and discarded or retried after
-unlink. Do not make a cached snapshot or a destination-room token authorize
-access to the source room's other data.
+unlink. Do not let a cached snapshot or destination-room token authorize access
+to the source room's other data.
 
 A source-room password change revokes its room tokens but currently leaves its
-public list links unchanged. Decide separately whether a B1 link survives a
-source password change; otherwise people must not assume that rotating a room
-password revokes cross-room access. The server administrator can already read
-the database; B1 does not change that boundary.
+public list links unchanged. Decide separately whether a B1 link would survive
+a source password change. Do not assume that rotating a room password revokes
+cross-room access. The server administrator can already read the database. B1
+does not change that boundary.
 
 ## Examples and limitations
 
 - If Alice's browser has valid access to rooms A and B, it may be able to link
-  A's “Groceries” list into B. The household members who know B's shared
-  password then receive whatever permissions the owner approves.
+  A's “Groceries” list into B. Household members who know B's shared password
+  would then receive whatever permissions the owner approves.
 - A partner who knows only B's password cannot link a list from A under the
   two-room-token proposal. Accounts might change that later, but are not part of
   B1.
-- A public `/share/{token}` link remains a separate, single-list bearer link;
-  it does not become a room link or let its holder manage B.
+- A public `/share/{token}` link remains a separate, single-list bearer link.
+  It does not become a room link or let its holder manage B.
 - Password sharing is room-wide, not individual. B1 alone cannot identify who
-  linked, edited, or removed the list, or remove just one person.
+  linked, edited, or removed the list. It also cannot remove just one person.
 
 ## Tests required before calling a future implementation verified
 
-Cover the migration and link/unlink lifecycle; access with source-only,
-destination-only, both-room, stale, and revoked credentials; every permitted and
-forbidden list/item operation; name conflicts; list/room deletion; and proof that
-neither source-room details nor unrelated lists leak. Exercise destination feed
-cursors, item/list deletions, pruning, live updates, and reset/reconnect. Test
-offline edits before and after unlink, queue retry identity, duplicate sends,
-and existing public-share behavior. Add browser coverage for the shared-list
-marker and its actions. These are test recommendations, not tests run by this
-plan.
+Cover the migration and link/unlink lifecycle. Test access with source-only,
+destination-only, both-room, stale, and revoked credentials. Test every
+permitted and forbidden list/item operation, name conflicts, and list/room
+deletion. Confirm that neither source-room details nor unrelated lists leak.
+Exercise destination feed cursors, item/list deletions, pruning, live updates,
+and reset/reconnect. Test offline edits before and after unlink, queue retry
+identity, duplicate sends, and existing public-share behavior. Add browser
+coverage for the shared-list marker and its actions. These are test
+recommendations, not tests run by this plan.
 
 ## Questions for Lead
 

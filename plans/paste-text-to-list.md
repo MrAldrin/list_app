@@ -46,36 +46,37 @@ write is queued. Cancel adds nothing. A first narrow rule set could be:
    item name, rather than guessing. Use the existing name normalization,
    duplicate, length, and add/restore rules when the user confirms.
 
-The preview should make parsing visible (for example, `apples — quantity 2`),
-not imply that the parser understands recipe meaning. It can show the item rows
-in the order they will be submitted. Whether people can edit/remove preview
-rows is an open UX decision. Render pasted text as text, not HTML. Do not persist
-the raw paste; confirmed item operations can use the existing local queue.
+The preview should make parsing visible (for example, `apples — quantity 2`).
+It should not imply that the parser understands recipe meaning. It can show item
+rows in the order they will be submitted. Whether people can edit/remove
+preview rows is an open UX decision. Render pasted text as text, not HTML. Do
+not persist the raw paste. Confirmed item operations can use the existing local
+queue.
 
 ### Quantity interface and partial results
 
 The current `item.add` does not accept an initial quantity. A future
 implementation must resolve this before it can faithfully add a parsed item
 with its requested quantity. The cleaner candidate is an optional initial
-quantity on `item.add`, carried through API validation, client types, optimistic
-state, and offline queue validation. A second candidate is to add then send a
-quantity delta, but that creates a dependent two-op sequence and makes
-duplicate/restored items and partial failures harder to explain. This is an
-interface choice, not an existing capability.
+quantity on `item.add`. The candidate would carry it through API validation,
+client types, optimistic state, and offline queue validation. A second
+candidate is to add then send a quantity delta. This creates a dependent two-op
+sequence and makes duplicate/restored items and partial failures harder to
+explain. This is an interface choice, not an existing capability.
 
 The API applies one operation at a time, so a multi-item paste is not atomic.
-If some rows succeed and others are rejected (for example an item already
-active, an item name too long, or the 1,000-item list cap), the UI must report
-which were saved and which were not; it must not imply that Cancel or a retry
-rolls back earlier writes. The per-item queue should preserve order offline and
-show ordinary waiting/rejected changes. Decide whether the preview warns about
-known duplicates/capacity, while treating its snapshot as staleable and the
-server as final authority.
+If some rows succeed while others are rejected, the UI must report which rows
+were saved and which were not. This may happen because an item is already
+active, its name is too long, or the list reaches the 1,000-item cap. The UI
+must not imply that Cancel or a retry rolls back earlier writes. The per-item
+queue should preserve order offline and show ordinary waiting/rejected
+changes. Decide whether the preview warns about known duplicates or capacity.
+Treat its snapshot as staleable; the server remains the final authority.
 
 This work also intersects the separate approved plan to preserve typed item
 capitalization with case-insensitive duplicate detection. Keep parser output
-and duplicate matching on the app's shared item-name rules; do not create a
-second normalization rule. Coordinate before implementing against the
+and duplicate matching on the app's shared item-name rules. Do not create a
+second normalization rule. Before implementation, coordinate with the
 [recorded owner decision](decisions-for-heming.md#2-capital-letters-in-item-names)
 and the item-name migration plan.
 
@@ -105,15 +106,14 @@ not hidden behind a promise to parse recipes.
 
 Unit-test the parser for comma/newline/CRLF separators, whitespace, blank
 pieces, simple and malformed quantity prefixes, zero/fraction/decimal/unit
-examples, commas within text, and name-length boundaries. Test the preview
-with screen-reader labels, keyboard navigation, cancel, and confirmation on
+examples, commas within text, and name-length boundaries. Test the preview with
+screen-reader labels, keyboard navigation, cancel, and confirmation on
 mobile-sized layouts. Test quantity initialization and duplicate/restore
 behavior through normal operations, offline queue replay and uncertain retries,
-server rejection and partial-success reporting, and the existing 1,000-item
-limit. If the API changes, test legacy clients and API-version behavior. Verify
-that no raw paste leaves the browser before confirmation and that no AI or
-external parser is called. These are recommendations, not tests run by this
-plan.
+server rejection, partial-success reporting, and the existing 1,000-item limit.
+If the API changes, test legacy clients and API-version behavior. Verify that no
+raw paste leaves the browser before confirmation and that no AI or external
+parser is called. These are recommendations, not tests run by this plan.
 
 ## Questions for Lead
 
