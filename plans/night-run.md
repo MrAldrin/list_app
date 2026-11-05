@@ -21,8 +21,12 @@ reactivation, or S4/S5 restart is approved. Existing task exclusions still apply
 - Target: finish within about nine hours, by 2026-11-06 07:14 CET (06:14 UTC).
   Reserve time for independent review, combined checks, and the final report.
   Do not label partial work complete to meet the target.
-- One active visible Conductor. At most two bounded workers/reviewers running
-  at once across this delivery. Each concurrent writer has its own jj workspace.
+- One active visible Conductor. Normally at most two bounded workers/reviewers
+  run at once. Task 2 may use four after its larger prose inventory showed that
+  two agents would constrain complete review. Its target is about 02:30 CET,
+  with a remaining-scope checkpoint at 02:15. Other task limits stay at two.
+  Each concurrent writer has its own jj workspace; only one writer uses the
+  released shared-docs desk at a time.
 - First worker/reviewer attempt: `openai/gpt-6-luna`, `xhigh`. After an
   unsatisfactory attempt, simplify the brief and use
   `claude-code/claude-haiku-5-5`, `max`, if quota is available. On a known
