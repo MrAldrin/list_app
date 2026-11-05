@@ -31,7 +31,7 @@ def test_policy_inheritance_preview_and_retry(svelte_server, open_session):
     editor.get_by_role("button", name="Save policy").click()
     expect(editor.get_by_text("Effective source: room", exact=False)).to_be_visible()
     editor.get_by_role("button", name="Close").click()
-    panel.get_by_role("button", name="Personal reminders for milk").click()
+    panel.get_by_role("button", name="Private reminder settings for milk").click()
     editor = page.get_by_role("dialog", name="Personal item reminders")
     editor.get_by_label("Policy").select_option("replace")
     editor.get_by_label("Schedule").select_option("custom")
@@ -75,7 +75,7 @@ def test_fixed_identity_and_explicit_conflict_recovery(svelte_server, open_sessi
     _set_date(page, "milk", (date.today() + timedelta(days=10)).isoformat())
     page.get_by_role("button", name=re.compile("^Due items:")).click()
     page.get_by_role("dialog", name="Due items").get_by_role(
-        "button", name="Personal reminders for milk"
+        "button", name="Private reminder settings for milk"
     ).click()
     editor = page.get_by_role("dialog", name="Personal item reminders")
     editor.get_by_label("Policy").select_option("replace")
@@ -255,7 +255,7 @@ def test_preview_renders_rule_and_summary_at_same_instant(svelte_server, open_se
     expect(item).to_be_hidden()
     page.get_by_role("button", name=re.compile("^Due items:")).click()
     page.get_by_role("dialog", name="Due items").get_by_role(
-        "button", name="Personal reminders for milk"
+        "button", name="Private reminder settings for milk"
     ).click()
     editor = page.get_by_role("dialog", name="Personal item reminders")
     editor.get_by_label("Policy").select_option("replace")

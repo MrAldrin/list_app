@@ -155,11 +155,12 @@ def test_share_link_bell_shows_only_its_list(svelte_server, open_session):
     expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
     expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
     expect(panel.get_by_role("button", name="Whole room")).to_have_count(0)
+    expect(
+        panel.get_by_role("button", name=re.compile("Private reminder settings"))
+    ).to_have_count(0)
 
 
-def test_list_bell_switches_between_this_list_and_the_whole_room(
-    svelte_server, open_session
-):
+def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
     sign_in(page, server)
@@ -174,32 +175,45 @@ def test_list_bell_switches_between_this_list_and_the_whole_room(
     page.get_by_role("link", name="Groceries").click()
     expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
 
-    # On a list the bell starts on that list: only milk counts.
+    # The list bell stays on the current list, with no scope switch.
     bell = page.get_by_role("button", name=BELL)
     expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
     bell.click()
-    panel = page.get_by_role("dialog")
-    expect(panel.get_by_role("button", name="This list")).to_have_attribute(
-        "aria-pressed", "true"
-    )
+    panel = page.get_by_role("dialog", name="Due items")
+    expect(panel.get_by_role("button", name="This list")).to_have_count(0)
+    expect(panel.get_by_role("button", name="Whole room")).to_have_count(0)
+    expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
     expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
     expect(panel.locator(".where")).to_have_count(0)
+    expect(panel.get_by_role("button", name="List reminder policy")).to_be_visible()
 
-    # The whole room shows every due item, each with its list name.
-    panel.get_by_role("button", name="Whole room").click()
-    expect(panel.get_by_role("button", name="Whole room")).to_have_attribute(
-        "aria-pressed", "true"
-    )
-    expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_be_visible()
+    # The private action is keyboard operable and large enough for a phone.
+    action = panel.get_by_role("button", name="Private reminder settings for milk")
+    expect(action).to_have_text("Reminder settings")
+    size = action.bounding_box()
+    assert size and size["width"] >= 44 and size["height"] >= 44
+    action.focus()
+    page.keyboard.press("Enter")
+    expect(page.get_by_role("dialog", name="Personal item reminders")).to_be_visible()
+    page.get_by_role("dialog", name="Personal item reminders").get_by_role(
+        "button", name="Close"
+    ).click()
+    expect(panel).to_be_visible()
+    page.keyboard.press("Escape")
+
+    # The room bell shows both items with their list names and room count.
+    page.goto(room_app_url(server))
+    bell = page.get_by_role("button", name=BELL)
+    expect(bell).to_have_accessible_name("Due items: 2 due, 1 overdue")
+    bell.click()
+    panel = page.get_by_role("dialog", name="Due items")
     expect(panel.locator("a", has_text="milk").locator(".where")).to_have_text(
         "Groceries"
     )
     expect(panel.locator("a", has_text="dishes").locator(".where")).to_have_text(
         "Chores"
     )
-
-    panel.get_by_role("button", name="This list").click()
-    expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
+    expect(panel.get_by_role("button", name="Room reminder policy")).to_be_visible()
 
 
 def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
