@@ -408,7 +408,9 @@ def test_timed_due_requires_zone_and_shows_server_confirmation(
     dialog = page.get_by_role("dialog", name="Edit Item")
     dialog.get_by_label("Date").fill("2026-10-18")
     dialog.get_by_label("Due time (optional)").fill("09:00")
-    expect(dialog.get_by_role("button", name="Save")).to_be_disabled()
+    expect(dialog.get_by_text("Time zone: Europe/Oslo", exact=True)).to_be_visible()
+    expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
+    dialog.get_by_text("Change time zone", exact=True).click()
     dialog.get_by_label(re.compile("Time zone")).fill("Europe/Oslo")
     expect(dialog.get_by_text(re.compile("Waiting to sync"))).to_be_visible()
     with page.expect_response(saved_op):
@@ -428,6 +430,7 @@ def test_zone_validation_online_and_offline(svelte_server, open_session):
         dialog = page.get_by_role("dialog", name="Edit Item")
         dialog.get_by_label("Date").fill("2026-10-18")
         dialog.get_by_label("Due time (optional)").fill("09:00")
+        dialog.get_by_text("Change time zone", exact=True).click()
         zone = dialog.get_by_label(re.compile("Time zone"))
         for invalid in ("", "Not/AZone", "a" * 65):
             zone.fill(invalid)
