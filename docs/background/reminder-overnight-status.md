@@ -1,6 +1,6 @@
 # Reminder delivery: overnight status
 
-Snapshot: 2026-11-05 04:10 UTC. This is delivery evidence, not current app
+Window closeout: 2026-11-05 04:23 UTC. This is delivery evidence, not current app
 behavior or permission to deploy. The [master plan](../../plans/due-date-reminders.md)
 owns the approved scope and its progress checkboxes.
 
@@ -55,9 +55,13 @@ unverified; desktop/mock tests do not establish it.
   `/home/hsa/projects/tmp-reminders-s3/.pi/reminders-s3-runtime/CURRENT.md`.
   Its definitive window checkpoint is the adjacent `DEADLINE-0410.md`.
   These record exact accepted components, unaccepted deltas, remaining behavior,
-  review artifacts and process disposition. At 04:10 two bounded correction
-  workers remain active, due to checkpoint by 04:15; final review is pending.
-  Check the final timestamps and appended dispositions before resuming.
+  review artifacts and process disposition. Both bounded correction jobs are
+  complete. Final item API `3f620969` and strip UI `38eea306` have author checks
+  but still require fresh independent review; neither is accepted or consumed.
+  No new reviews were launched after the cutoff. Lead's final process scan found
+  no owned test/server processes. Check the appended final dispositions before
+  resuming. One failed UI browser trace was lost to pytest retention; its failed
+  textual log remains. The later focused pass does not establish its cause.
 - Lead recovery note outside the repository:
   `/home/hsa/.pi/agent/reminder-delivery-recovery.md`.
   Original review/test reports are retained under the respective Pi session
