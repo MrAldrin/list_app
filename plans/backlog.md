@@ -23,6 +23,7 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
+- [ ] [feature] Fix the [reminder bell and item-dialog UX](batches/reminders-polish-2.md): two-line bell rows on phones, plain dialog text, phone-width checks. Owner placed first, 2026-11-05. Then discuss S3–S5 scope.
 - [ ] [feature] Implement [configurable due-date and phone reminders](due-date-reminders.md), all five stages. (in progress) Owner approved A/A/A and Lead/Conductor delivery; review before acceptance/deploy.
 - [ ] [feature] Implement [named item groups](named-item-groups.md). (in progress) Parked on bookmark `groups` (rebuilt on `integration`, not accepted). Not shipping yet.
 
