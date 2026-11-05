@@ -4,9 +4,9 @@ Lifecycle: tracked
 
 ## Status and outcome
 
-Proposed design assignment. The owner requested this scope; execution and an
-overnight agent run still need explicit approval. No app implementation is
-approved by this plan.
+The owner approved this design assignment within the [overnight run limits](night-run.md).
+That record owns sequencing, stack destination, and operating limits. No app
+implementation is approved.
 
 Create a local HTML gallery with **20 distinct drafts: five at each of four
 levels of design freedom**. Help the owner compare modest theme changes with
@@ -148,16 +148,17 @@ owner is finished with it.
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Execution approval: pending.
+- Execution approval: [overnight run](night-run.md#approval-and-outcome).
 - Task owner/session, effective model/thinking verification, and workspace: pending.
-- Work window, stop time, concurrent workers, and artifact budget: not agreed.
+- Work window, concurrent workers, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 - Preview server/port and browser-work schedule: not agreed.
 
 ## Progress
 
 - [x] Scope twenty drafts by four levels of design freedom.
 - [x] Record owner-selected backlog placement and Conductor.
-- [ ] Approve execution limits/ownership.
+- [x] Approve execution limits.
+- [ ] Assign task and child ownership.
 - [ ] Research references and establish the current-app comparison.
 - [ ] Build twenty drafts and the local comparison gallery.
 - [ ] Review rendered designs, run checks, and address clear issues.

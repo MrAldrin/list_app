@@ -4,9 +4,10 @@ Lifecycle: tracked
 
 ## Status and outcome
 
-Proposed research assignment. The owner requested a backlog item and a decision
-report. Execution approval, ownership, and overnight limits remain pending.
-This plan does **not** authorize S3 implementation or resume stages 4 and 5.
+The owner approved this research assignment within the [overnight run limits](night-run.md).
+That record owns sequencing, stack destination, and operating limits. Task
+ownership is assigned at dispatch. This plan does **not** authorize S3
+implementation or resume stages 4 and 5.
 
 Inspect the archived S3 work and the accepted app. Recommend the smallest
 useful in-app reminder feature for about five users. Give the owner a short,
@@ -145,15 +146,16 @@ not when S3 is implemented. Wait for that decision before starting any code work
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Execution approval: pending; research only when launched.
+- Execution approval: [overnight run](night-run.md#approval-and-outcome); research only.
 - Task owner/session, effective model/thinking verification, and workspace: pending.
-- Work window, stop time, concurrency, and artifact budget: not agreed.
+- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 - Browser/check schedule with other tasks: not agreed.
 
 ## Progress
 
 - [x] Define the research-only assignment and link it from the backlog.
-- [ ] Approve execution limits and assign ownership.
+- [x] Approve execution limits.
+- [ ] Assign task and child ownership.
 - [ ] Inspect relevant archived work and current-baseline compatibility.
 - [ ] Compare options and write the owner decision report.
 - [ ] Independently review the evidence and recommendation.

@@ -34,12 +34,14 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 
 ## Next
 
-All five tasks await execution approval and run limits. Conductor selections
-below use provider `openai`; verify the effective model and thinking at launch.
+The owner approved the five tasks. Work on one at a time; preserve blockers and
+continue when needed. The [overnight run record](night-run.md) owns execution
+limits, stack/bookmark authority, and ownership. Conductor selections below use
+provider `openai`; verify the effective model and thinking at launch.
 
 1. **Test — Review and improve the test suite.** Review high-risk coverage, fix clear test defects, investigate unreliable tests, and profile runtime against test value. Write a testing guide. Coverage removals and broader changes need owner decisions. See the [task plan](test-suite-review.md), including the supporting speed work and Android decisions.
    **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-2. **Documentation — Rewrite all documentation in STE100 style.** Cover guides, root docs, instructions, plans, and historical prose. Preserve facts, commands, evidence, and approval rules. See the [assignment](documentation-ste100.md). The requested Luna extra-high writers/reviewers still need the recorded model-policy conflict resolved before launch.
+2. **Documentation — Rewrite all documentation in STE100 style.** Cover guides, root docs, instructions, plans, and historical prose. Preserve facts, commands, evidence, and approval rules. See the [assignment](documentation-ste100.md). Luna extra-high writers/reviewers match the current role policy; verify their effective settings at launch.
    **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
 3. **Design — Explore themes and interface directions.** Build a local HTML comparison gallery with twenty drafts: five color-only, five traditional restylings, five broader redesigns, and five unrestricted experiments. No real app changes. See the [assignment](theme-exploration.md).
    **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.

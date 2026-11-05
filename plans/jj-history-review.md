@@ -4,10 +4,10 @@ Lifecycle: tracked
 
 ## Status and outcome
 
-Proposed review and bounded-cleanup assignment. The owner requested a readable
-history, a cleanup proposal, and permission for an assigned agent to do obvious,
-low-risk cleanup without asking about every item. Execution and overnight limits
-still need approval. Writing this plan does not authorize immediate graph edits.
+The owner approved this review and bounded-cleanup assignment within the
+[overnight run limits](night-run.md). The result must explain the history and
+propose cleanup. Only the narrow Bucket A actions below are permitted; execution
+approval does not authorize broader graph edits.
 
 Make it easy for a person to distinguish accepted work, active work, parked
 experiments, and disposable leftovers. Preserve code, recovery points, evidence,
@@ -166,16 +166,17 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Execution approval, task owner/session, effective model/thinking verification,
-  and workspace: pending.
-- Work window, stop time, concurrency, and artifact budget: not agreed.
+- Execution approval: [overnight run](night-run.md#approval-and-outcome).
+- Task owner/session, effective model/thinking verification, and workspace: pending.
+- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 - Shared-repository mutation window and S3 recovery dependencies: not agreed.
 - Bucket A authority: scoped above; no broader graph rewrite approved.
 
 ## Progress
 
 - [x] Define review outputs, bounded cleanup, and explicit approval gates.
-- [ ] Approve execution limits and establish ownership/coordination windows.
+- [x] Approve execution limits.
+- [ ] Establish ownership and coordination windows.
 - [ ] Inventory the current graph, ownership, and recovery dependencies.
 - [ ] Prepare readable log views and classify cleanup candidates.
 - [ ] Perform eligible Bucket A cleanup; independently review results.

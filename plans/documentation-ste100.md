@@ -4,10 +4,9 @@ Lifecycle: tracked
 
 ## Status and outcome
 
-Proposed execution assignment. The owner requested a plan covering **all
-first-party repository documentation**, not only current guides. Writing this
-plan does not approve an overnight run. Execution limits and model authority
-must be resolved before launch.
+The owner approved this assignment for **all first-party repository
+documentation**, not only current guides. The [overnight run record](night-run.md)
+owns execution approval, sequencing, operating limits, and stack destination.
 
 Make the documentation easier to read without changing facts, requirements,
 permissions, historical evidence, or product behavior. Use STE100-style writing:
@@ -65,12 +64,10 @@ The owner explicitly requests:
 Both model IDs appear in the installed model list. Effective thinking settings
 have not been verified in a child run; verify and record them at launch.
 
-**Unresolved instruction conflict:** the active role policy requires Haiku
-medium/max for subagents. The owner's requested Luna exception is recorded
-here, but a repository plan does not override a higher-priority instruction.
-Do not launch a conflicting worker or silently substitute Haiku. Resolve the
-policy conflict before executing this model arrangement. Do not create a
-system-prompt override file as a workaround for an instruction still in force.
+The current role policy uses Luna/xhigh for first-attempt bounded workers and
+reviewers. The earlier Haiku-policy conflict is no longer active. Verify the
+effective model and effort for each launch. Do not silently substitute another
+model for the owner's explicit documentation choice.
 
 ## Style contract
 
@@ -202,16 +199,16 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Owner-requested page writers and reviewers: Luna/xhigh.
-- Model-policy resolution and effective-setting verification: pending.
-- Execution approval, owner/session, and workspaces: not assigned.
-- Work window, stop time, concurrency, and artifact budget: not agreed.
+- Model-policy conflict: resolved by the current role policy; effective-setting verification remains required at launch.
+- Execution approval: [overnight run](night-run.md#approval-and-outcome). Owner/session and workspaces: not assigned.
+- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 - Shared-document write windows with the other tasks: not agreed.
 
 ## Progress
 
 - [x] Record the all-document scope, requested models, and fidelity safeguards.
 - [x] Record owner-selected backlog placement and Conductor.
-- [ ] Resolve worker-model authority and approve execution limits.
+- [x] Resolve worker-model authority and approve execution limits.
 - [ ] Inventory documents and establish the terminology/style contract.
 - [ ] Calibrate, rewrite batches, and independently review the actual changes.
 - [ ] Finish or explicitly account for active/protected/deferred documents.

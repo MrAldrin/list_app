@@ -4,10 +4,9 @@ Lifecycle: tracked
 
 ## Status and approval
 
-Proposed execution assignment. The owner approved writing this plan and merging
-the backlog items. Implementation and an overnight run are **not yet approved**.
-Review this brief with the owner before launching work. Record the execution
-approval, task owner, workspace, model settings, and run limits below.
+Execution is approved within this brief and the [overnight run limits](night-run.md).
+That record owns the approval, sequencing, stack destination, and operating limits.
+Record the task owner, workspace, and effective model settings below at dispatch.
 
 This is one task in the [backlog](backlog.md#next). The
 [test-suite speed plan](test-suite-speed.md#resume-here--remaining-work) is
@@ -223,15 +222,16 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Approval: pending.
+- Approval: recorded in the [overnight run](night-run.md#approval-and-outcome).
 - Task owner/session and effective model/thinking verification: pending.
 - Workspace and child ownership: not assigned.
-- Work window, stop time, concurrency, and artifact budget: not agreed.
+- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 
 ## Progress
 
 - [x] Record the proposed scope and merge the backlog agenda items.
-- [ ] Owner approves the execution brief and run limits; assign ownership.
+- [x] Owner approves the execution brief and run limits.
+- [ ] Assign task and child ownership.
 - [ ] Inventory the suite, map high-risk behavior, and measure a baseline.
 - [ ] Review and classify findings; implement bounded Bucket A improvements.
 - [ ] Independently review and verify the final candidate.
