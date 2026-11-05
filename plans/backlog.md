@@ -23,7 +23,7 @@ permission nor strict order. Details live in the linked plans and docs.
 
 ## Current focus
 
-- [ ] [feature] Fix the [reminder bell and item-dialog UX](batches/reminders-polish-2.md): two-line bell rows on phones, plain dialog text, phone-width checks. Owner placed first, 2026-11-05. Then discuss S3–S5 scope.
+- [ ] [feature] [P2: make stage 2 ready](batches/reminders-polish-2.md): hide personal reminder settings until S3, two-line bell rows on phones, plain text, phone-width checks. Started by owner 2026-11-05. Settings polish moved to S3.
 - [ ] [feature] Implement [configurable due-date and phone reminders](due-date-reminders.md).
   - **Stage 1 (due bell): ready to deploy** when the owner chooses. It is on `integration`.
   - **Stage 2 (due times, reminder settings) + polish P: not ready.** Reviewed, on bookmark `reminders-s2` above `integration`. Needs P2 (top item) before it can be integrated.

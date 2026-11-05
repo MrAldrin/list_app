@@ -25,6 +25,23 @@ Integrate the reviewed foundation into the released empty S3 entry only; full
 stage/aggregate integration still waits for the reviewed predecessors.
 **Unblocks:** [S4](reminders-s4.md).
 
+## Deferred polish from P2
+
+Owner split, 2026-11-05. P2 hid stage 2's personal reminder settings. When S3
+turns them back on, it also does this:
+
+- Turn the hidden entry points back on through P2's switch. Make the bell's
+  per-item settings action a compact icon button with an accessible name
+  ("Reminder settings for <item>").
+- Item reminder dialog when this device is not set up: say it plainly
+  ("Reminders are off on this device. Turn them on to set reminders for this
+  item.") with one **Turn on reminders** action. Show **Try again** only after a
+  real load failure.
+- Plain-language pass on the reminder settings and editor: no "policy",
+  "enrollment", "phase".
+- Phone-width browser checks for these screens, light and dark.
+- Owner leaning (not decided): trim S3, e.g. drop summary snooze.
+
 **Done criteria:** Configurable in-app reminders, safe dedupe, one tab-claimed strip, snoozes and history survive reload/restarts. No navigation spam or cross-installation action effects. Cancellation/revocation, future-only setup and finite catch-up are explicit and tested.
 
 **Verification:** Full Python/frontend/browser gates plus deterministic fake-clock/fake-sender tests for restarts/leases, watermark/prune replay, multiple tabs/rooms, grouped bursts, quiet hours/DST, same-/cross-day retry quotas, fixed-rule identity, snooze coalescing and completion/reset/logout/deletion. Serverless-off is a future rollout precondition, not an instruction to change Railway now. Full commands live in the master plan's

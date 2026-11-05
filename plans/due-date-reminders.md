@@ -833,7 +833,7 @@ approval. Planning-doc commits have only the existing docs-desk permission.
   into the isolated delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s2-reviewed-integration--2026-11-04)).
 - [x] Stage 1 on `integration` (2026-11-05, owner approved; not deployed).
 - [x] S1/S2 owner polish: [batch P](batches/reminders-polish.md) reviewed.
-- [ ] Owner UX fix: [batch P2](batches/reminders-polish-2.md), not started.
+- [ ] Owner UX fix: [batch P2](batches/reminders-polish-2.md), started 2026-11-05 (S2 only; settings polish moved to S3).
 - [ ] Stage 3: on hold (owner, 2026-11-05). Reviewed parts and resume points:
   `/home/hsa/projects/reminders-archive/` (`resume-points.md`, S3 runtime
   records incl. `OWNER-SUMMARY.md`). All S3 workspaces removed; commits kept.
