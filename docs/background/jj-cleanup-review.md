@@ -1,25 +1,37 @@
 # Targeted jj cleanup
 
-## Owner recommendation
+## My recommendation: A first
 
-- **Removed the redundant local `reminders-s2` name.** Its exact tip remains in
-  `main`. This removed one label, not code or a graph head. Fresh independent
-  review, final Lead coordination and all post-action checks passed.
-- **Approve set A:** archive and retire 11 exact empty checkpoints across ten
-  loose lines. The disposable test reduced **28 heads to 18**, without exposing
-  parent heads or rewriting retained descendants. No live abandonment is approved.
-- **Consider set B separately:** archive two unused divergent leaf alternatives.
-  The disposable test reduced **18 heads to 16**. One conflict and both divergence
-  pairs leave the visible graph; the other two conflicts remain. This is archival
-  retirement, not a source merge or feature acceptance.
-- **Keep `groups`: it contains real unfinished feature work.** It needs a new
-  current-baseline port, especially for database migrations; do not rebase it now.
-- **Propose deleting the two obsolete origin feature names**, not their source.
-  Their behavior exists on today's app, but their exact commits are not ancestors
-  of `main`. Keep local `integration` and its origin tracking for now.
-- The Conductor tested a self-contained restore in an isolated repository.
-  Independent reviewers checked the receipts; they did not rerun native restore.
-  This is **not permission to abandon anything**. Exact sets and commands follow.
+**Done:** removed only the local `reminders-s2` label. Its code remains in
+`main`. **Nothing else below is approved or done.**
+
+| Choice | What changes | Recommendation |
+| --- | --- | --- |
+| **A** | Remove 11 empty checkpoints. No source changes. | **Approve first:** least risk, biggest reduction. |
+| **B** | Retire two source versions, including code/test differences. Backed up; not merged or repaired. | **Discuss next.** More risk than A. |
+| **Old origin branches** | Delete `usual-items-redesign` and `wave2-bottom-bar` **from the server**, not just local labels. Behavior exists today; exact commits were not merged. | **Retire the names**, with separate approval. |
+| **`groups`** | Real unfinished work; database migrations clash with today's app. | **Keep.** Port later; do not rebase for tidiness. |
+
+### Tested result — not yet performed
+
+```text
+Now                 After A             After A + B
+28 line ends   ──→  18 line ends   ──→   16 line ends
+```
+
+B would also archive one visible conflict and remove both visible divergent pairs.
+Two parked conflicts would remain. **Keep `main`, local `integration` and
+`integration@origin` unchanged.**
+
+**Recovery:** I ran the isolated restore. Independent reviewers checked the
+receipts, not a native rerun. Both configuration-related incidents were repaired.
+
+---
+
+## Details — open only what you need
+
+<details>
+<summary><strong>1. What changed, what stayed unchanged, and current commands</strong></summary>
 
 Authority: [tracked assignment](../../plans/jj-history-review.md#owner-follow-up-targeted-cleanup).
 Conductor: `01a1afc6-f7c5-76e5-a8cf-9622e5f80bfe`, `openai/gpt-6.1-sol`, `high`.
@@ -46,6 +58,44 @@ a Lead-approved repair of the failed review's config-ID side effect below;
 and the reviewed local `reminders-s2` label removal.
 **Not performed:** abandonment, other bookmark changes, source rewriting,
 fetch/push/server deletion, conflict repair, app/test changes or application tests.
+
+## Local action receipt
+
+Executed only `jj bookmark forget exact:reminders-s2`, exit 0, under the owner's
+conditional permission. Pre-operation `16f184ff…8144`; post-operation
+`dc507677…9258`. Full operation IDs, command output, exact references, workspace
+and tree checks are retained in the
+[protected-state receipt](jj-cleanup-review-evidence/local-forget-protected-check.json)
+and paired before/after records. The action did not remove any source or head.
+Main, integration, groups, all five night results, diagnostic, old workspaces,
+origin refs, both archive checksums and the repaired config ID stayed unchanged.
+
+If the label is needed again, the exact inverse is:
+
+```sh
+jj bookmark set reminders-s2 -r e50da7ce0a5456159f8206513c820e7180abbb8e
+```
+
+Do not run a broader operation restore for this label. No inverse was needed.
+
+## Current commands remain valid without the old name
+
+Repository scripts and configured jj aliases have no `reminders-s2` dependency.
+Coordinated Lead/test agents report no active or queued use. Owner-private aliases
+and external tools are not certified. Historical receipts remain unchanged.
+This current view tolerates the name's removal; run the attention view too:
+
+```sh
+jj --ignore-working-copy --at-op=@ log -r 'main | integration | groups | present(reminders-s2) | bookmarks(glob:"night-*") | @ | parents(@)'
+jj --ignore-working-copy --at-op=@ log -r 'conflicts() | divergent()'
+```
+
+A filtered view does not count as physical cleanup. The exact A/B tests above do.
+
+</details>
+
+<details>
+<summary><strong>2. Exact branch-name decisions and why groups should stay</strong></summary>
 
 ## Named references: exact decisions
 
@@ -124,6 +174,11 @@ For `integration@origin`:
   local integration must stay. This has little benefit and requires an exact
   owner decision. Do not forget local integration to hide its remote label.
 
+</details>
+
+<details>
+<summary><strong>3. A, B and the deferred C option: exact IDs and commands</strong></summary>
+
 ## Physical graph reduction: exact sets, not log filters
 
 The [exact-set manifest](jj-cleanup-review-evidence/proposed-exact-sets.json)
@@ -201,6 +256,11 @@ outliers, the preview merge, all five night result bookmarks, task-1 diagnostic
 exact head, unique tail and ownership boundary; no unrelated empty workspace tip
 is included.
 
+</details>
+
+<details>
+<summary><strong>4. Recovery archive, safeguards and both incidents</strong></summary>
+
 ## Durable recovery and limits
 
 Private local archive, outside both working repositories and the old reminder
@@ -251,38 +311,10 @@ to inspect a private extraction without reconnecting to the live repository.
 Restoring source into the live graph needs a new coordinated, reviewed exact
 plan. Never run a broad `op restore` in the active repository to recover one leaf.
 
-## Local action receipt
+</details>
 
-Executed only `jj bookmark forget exact:reminders-s2`, exit 0, under the owner's
-conditional permission. Pre-operation `16f184ff…8144`; post-operation
-`dc507677…9258`. Full operation IDs, command output, exact references, workspace
-and tree checks are retained in the
-[protected-state receipt](jj-cleanup-review-evidence/local-forget-protected-check.json)
-and paired before/after records. The action did not remove any source or head.
-Main, integration, groups, all five night results, diagnostic, old workspaces,
-origin refs, both archive checksums and the repaired config ID stayed unchanged.
-
-If the label is needed again, the exact inverse is:
-
-```sh
-jj bookmark set reminders-s2 -r e50da7ce0a5456159f8206513c820e7180abbb8e
-```
-
-Do not run a broader operation restore for this label. No inverse was needed.
-
-## Current commands remain valid without the old name
-
-Repository scripts and configured jj aliases have no `reminders-s2` dependency.
-Coordinated Lead/test agents report no active or queued use. Owner-private aliases
-and external tools are not certified. Historical receipts remain unchanged.
-This current view tolerates the name's removal; run the attention view too:
-
-```sh
-jj --ignore-working-copy --at-op=@ log -r 'main | integration | groups | present(reminders-s2) | bookmarks(glob:"night-*") | @ | parents(@)'
-jj --ignore-working-copy --at-op=@ log -r 'conflicts() | divergent()'
-```
-
-A filtered view does not count as physical cleanup. The exact A/B tests above do.
+<details>
+<summary><strong>5. Reviews, checks, budget and retained artifacts</strong></summary>
 
 ## Checks, reviews and owner decisions
 
@@ -326,3 +358,6 @@ A filtered view does not count as physical cleanup. The exact A/B tests above do
   traces, methods and incident/restore receipts. No child workspace was created.
 - Lead owns this entry's lifecycle. The peer and entry stay available while the
   owner discusses exact A/B/remote decisions; no wider action is authorized.
+
+</details>
+
