@@ -1,4 +1,6 @@
 .*/
+# Local Beads runtime access gate (not a task claim)
+/.beads.gate.lock
 
 #agents
 .codex

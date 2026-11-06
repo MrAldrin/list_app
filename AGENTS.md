@@ -36,7 +36,8 @@ Give each fact one home. Link to it instead of copying it.
   are never the primary source for current behavior; current docs link to them.
 - `docs/superpowers/handoffs/`: short-lived notes that carry one task into a new
   session. The receiving agent deletes the note after reading it.
-- `plans/backlog.md`: the one work agenda. It carries its own maintenance rules.
+- Local Beads: the one task-status agenda. Follow the [task guide](docs/beads.md).
+  `plans/backlog.md` is the entry point; plans keep supporting detail.
 - `plans/<item>.md`: details for one larger item, not a second queue. Clearly
   distinguish planned, implemented, and verified work. A plan is not evidence
   that a feature exists. Put progress tracking at the bottom.
@@ -136,6 +137,18 @@ these guardrails after we have tried them. Do not remove them automatically.
   cross-tool coordination.
 - Push back when task ownership, overlapping edits or the integration baseline
   is unclear. Explain the concrete risk and propose the smallest safe next step.
+
+## Local task tracking
+
+- All jj workspaces use `/home/hsa/projects/list_app/.beads`. Follow the
+  [local task guide](docs/beads.md). Run an explicit primary-store `where`
+  check before writes. Do not initialize a separate code-workspace store.
+- Use a unique full-session actor and an atomic claim only for approved work.
+  Stop on ownership rejection; guard closure by the actual claimant and status.
+  Source groups and historical owners are not active claims or approval.
+- Preserve the native store, private runtime evidence and sibling gate lock.
+  Use native backup/recovery, not JSONL-only recovery. No task remote or push
+  is authorized. Existing integration, shared-docs and deployment gates stay.
 
 ## Tools
 

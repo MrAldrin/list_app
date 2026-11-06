@@ -28,11 +28,11 @@ copying it.
 
 ## Work and proposals
 
-The [backlog](../plans/backlog.md) is the sole work agenda. The
-[improvement ideas](../plans/improvement-ideas.md) plan is a proposal catalog;
-its recommendations and open questions do not select work. Backlog placement
-records possible work but does not select or authorize it; the owner decides
-what work is selected.
+[Local Beads](beads.md) holds the sole task-status agenda. The
+[backlog page](../plans/backlog.md) is its entry point; plans keep supporting
+detail. The [improvement ideas](../plans/improvement-ideas.md) plan is a proposal
+catalog, not a second queue. Native state and source placement do not authorize
+work; the owner decides what work is selected.
 
 ## Local site preview only
 

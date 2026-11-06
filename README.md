@@ -15,8 +15,9 @@ same menu: Classic, Nord, Solarized, Gruvbox, Catppuccin or Rosé Pine. Each the
 has light and dark colors. The app saves both choices in that device's browser.
 It does not share them with other devices.
 
-Scope and approval rules: [scope](docs/scope.md). Work starts from the
-[backlog's current focus](plans/backlog.md#current-focus).
+Scope and approval rules: [scope](docs/scope.md). Task status lives in local
+[Beads](docs/beads.md); the [backlog entry point](plans/backlog.md#current-focus)
+links the agenda. Native Ready does not approve work.
 
 ## Local setup
 
@@ -134,7 +135,7 @@ A small spec trial. Setup and status: [Allium pilot](docs/allium/README.md).
 | `browser_tests/`, `android_tests/` | Real-browser and Android emulator suites.                                          |
 | `scripts/`                         | Helpers: deploy with backup, phone serving, test data, icons.                      |
 | `docs/`                            | Current behavior, contracts and guides. Evidence in `docs/background/`.            |
-| `plans/`                           | The [backlog](plans/backlog.md), the one work agenda, and detail for larger items. |
+| `plans/`                           | The [task entry point](plans/backlog.md) and supporting detail for larger items. |
 
 ## Documentation
 
