@@ -28,7 +28,9 @@ separate item. Version control keeps the history.
 
 ## In progress
 
-- **Design — Explore themes and interface directions.** The approved prototype task is active. Build the twenty-draft local HTML gallery; no real app integration or owner design choice is delegated. See the [assignment](theme-exploration.md) and [run limits](night-run.md).
+- **Refactor — Review the jj history.** The approved graph review is active. Preserve all S3 sources and existing work; only the assignment's narrow disposable cleanup is permitted. See the [assignment](jj-history-review.md) and [run limits](night-run.md).
+  **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
+- **Design — Choose gallery directions.** Owner decision. The twenty-draft local gallery is complete at `night-3-themes`; no app design is selected. Inspect <http://127.0.0.1:8766/preview.html> and the [assignment](theme-exploration.md). Preserve its entry/server until owner inspection is finished.
   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
 - **Documentation — Inspect the completed STE100-style candidate.** Preserved at `night-2-docs`; all baseline prose accounted for and final independent review passed. Factual contradictions remain recorded, not silently corrected. Entry cleanup waits for owner inspection of the stacked work. See the [assignment](documentation-ste100.md).
   **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers used verified Luna/xhigh.
@@ -43,9 +45,7 @@ continue when needed. The [overnight run record](night-run.md) owns execution
 limits, stack/bookmark authority, and ownership. Conductor selections below use
 provider `openai`; verify the effective model and thinking at launch.
 
-1. **Refactor — Review and simplify the jj history.** Explain the graph, provide readable log views, and propose cleanup. Only proven disposable cleanup is permitted within the [assignment's limits](jj-history-review.md); broader history changes need approval. Coordinate with S3 recovery and active agents.
-   **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-2. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
+1. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
    **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 
 ## Blocked

@@ -167,16 +167,26 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Execution approval: [overnight run](night-run.md#approval-and-outcome).
-- Task owner/session, effective model/thinking verification, and workspace: pending.
+- Conductor: `01a1ae6e-7f90-737d-9641-3e0947c7cfc9`, verified
+  `openai/gpt-6.1-sol`, `high`; Zellij tab 23, pane 74 (`list_app-night-history`).
+- Large batch: graph/ownership inventory, safe-history classification, recovery
+  protection, readable views, and fresh independent review.
+- Workspace: `night-history`, `/home/hsa/projects/list_app-night-history`;
+  Lead-created and managed. Base: `night-3-themes` (`yuqlozro` / `44686493`).
+  Lead owns entry lifecycle; Conductor owns children. Lead report target:
+  `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
-- Shared-repository mutation window and S3 recovery dependencies: not agreed.
+- Conductor receives the exclusive graph window at dispatch; earlier tasks
+  are quiescent. Shared plans/backlog remain desk-owned. All parked S3 sources,
+  archive/review checkpoints, and task 1 diagnostic must remain unchanged.
+  The S3 recovery review follows this task; do not mutate its possible sources.
 - Bucket A authority: scoped above; no broader graph rewrite approved.
 
 ## Progress
 
 - [x] Define review outputs, bounded cleanup, and explicit approval gates.
 - [x] Approve execution limits.
-- [ ] Establish ownership and coordination windows.
+- [x] Establish ownership and coordination windows.
 - [ ] Inventory the current graph, ownership, and recovery dependencies.
 - [ ] Prepare readable log views and classify cleanup candidates.
 - [ ] Perform eligible Bucket A cleanup; independently review results.

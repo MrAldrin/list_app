@@ -108,11 +108,20 @@ warnings. The task report and about 1.1 MiB of evidence are tracked on that
 line. Ten child workspaces and five job panes are removed; the entry and
 successful peer remain for owner inspection. No browser acceptance is implied.
 
-Task 3 is assigned to `01a1ae1f-51f3-7754-b9c5-ae51d2bdbb75`, verified
-Sol/low, tab 20, pane 57 (`list_app-night-themes`). Its Lead-created workspace
-starts from task 2. The static gallery-only loopback server may use verified
-free port 8766 in an owned visible pane. Next: build and independently review
-the twenty-draft gallery. The worker cap returns to two.
+Task 3 is complete and quiescent at `night-3-themes` (`yuqlozro` / `44686493`).
+The twenty-draft local prototype passed 1,828 combined checks and fresh actual
+source/rendered review. The Lead also inspected three rendered directions and
+verified seven source hashes and JS syntax. No owner design is selected.
+Gallery: <http://127.0.0.1:8766/preview.html>. Conductor session
+`01a1ae1f-51f3-7754-b9c5-ae51d2bdbb75` still owns server pane 72/tab 20.
+Two child workspaces and all check panes are removed. Entry/peer/server and
+about 141 MiB in `.night-evidence/themes/` remain for owner inspection. The
+Haiku retry effort discrepancy is recorded in the task plan/report.
+
+Task 4 is assigned to `01a1ae6e-7f90-737d-9641-3e0947c7cfc9`, verified
+Sol/high, tab 23, pane 74 (`list_app-night-history`). Its Lead-created workspace
+starts from task 3. Next: review the graph and prepare safe views/proposals.
+The cap is two bounded agents. All S3 recovery sources remain protected.
 
 Task 1 artifacts remain in its entry `.night-evidence/` (about 1.4 GiB).
 Its two child workspaces and job panes are removed; its entry and successful
@@ -132,7 +141,7 @@ stable homes and incoming links are fixed.
 - [x] Record execution approval, operating defaults, stack destination, and limits.
 - [x] Preserve task 1 as partial with independent review and failed full-gate evidence.
 - [x] Finish task 2 with independent review and required checks.
-- [ ] Finish or preserve task 3 with independent review and checks.
+- [x] Finish task 3 with combined checks and independent source/rendered review.
 - [ ] Finish or preserve task 4 with independent review and checks.
 - [ ] Finish or preserve task 5 with independent review and checks.
 - [ ] Verify the combined stack, preserve evidence, and give the morning report.

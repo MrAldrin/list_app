@@ -162,6 +162,23 @@ owner is finished with it.
   verified free at dispatch. Recheck before binding. Use a visible owned pane,
   serve only the gallery directory, and leave the existing 8765 preview alone.
   No competing heavy browser task is active; do not open a user browser tab.
+- Result: `yuqlozro` / `44686493`, bookmarked `night-3-themes`; complete as a
+  local prototype, not accepted app work. All twenty drafts and the separate
+  reference are available at <http://127.0.0.1:8766/preview.html>.
+- Final combined checks: exit 0; 1,828 checks, 336 matrix cases, 84 keyboard
+  scenarios, and 252 secondary-list cases; no failed checks or external requests.
+  Fresh actual-entry/rendered review `e14b5e81` passed. Lead inspected three
+  rendered directions and verified all seven source hashes and JS syntax.
+- Evidence: `docs/background/theme-exploration-review.md` and compact JSON on
+  the result line. Full runs, failed evidence, reviews, and Lead captures remain
+  in entry `.night-evidence/themes/` (about 141 MiB); preserve before removal.
+- Worker setting limit: Haiku retry requested/host-reported max, but the child
+  reported low or could not confirm it. Provider-internal effort is unresolved.
+  Final reviewers used verified Luna/xhigh. Do not call Haiku max fully verified.
+- Both child workspaces and check panes are removed. Conductor still owns
+  gallery server pane 72/tab 20, bound only to loopback and the gallery folder.
+  Entry and successful peer remain for owner inspection. Stop/transfer the
+  server and preserve ignored evidence before entry cleanup.
 
 ## Progress
 
@@ -169,9 +186,10 @@ owner is finished with it.
 - [x] Record owner-selected backlog placement and Conductor.
 - [x] Approve execution limits.
 - [x] Assign task ownership; record each child's ownership at launch.
-- [ ] Research references and establish the current-app comparison.
-- [ ] Build twenty drafts and the local comparison gallery.
-- [ ] Review rendered designs, run checks, and address clear issues.
-- [ ] Deliver the morning handoff and await owner shortlist.
+- [x] Research references and establish the current-app comparison.
+- [x] Build twenty drafts and the local comparison gallery.
+- [x] Review rendered designs, run checks, and address clear issues.
+- [x] Deliver the task report and gallery for owner inspection.
+- [ ] Owner chooses a shortlist; no design is selected by this task.
 - [ ] Record refinement/implementation decisions and preserve the gallery
   before workspace cleanup or plan retirement.
