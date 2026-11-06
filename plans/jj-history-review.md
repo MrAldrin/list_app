@@ -248,10 +248,15 @@ inventory still describes the current graph.
 ### Assignment and coordination
 
 - Large batch: history safety, exact recovery/version analysis, remote-reference
-  semantics and owner decisions. Selected Conductor: Sol/high.
+  semantics and owner decisions. Conductor `01a1afc6-f7c5-76e5-a8cf-9622e5f80bfe`,
+  verified `openai/gpt-6.1-sol`, `high`; Zellij tab 18, pane 108
+  (`list_app-jj-cleanup`). Lead report target:
+  `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Workspace: Lead-created/managed `jj-cleanup`, sibling
-  `/home/hsa/projects/list_app-jj-cleanup`. Session identity is recorded after
-  readiness. Keep this new peer open while the owner discusses the cleanup;
+  `/home/hsa/projects/list_app-jj-cleanup`, from accepted `integration` after
+  this assignment record. No `.env` is needed for history inspection; use the
+  README's new-workspace setup before any separately approved app checks.
+  Keep this new peer open while the owner discusses the cleanup;
   do not retain it automatically after completed work and owner handoff.
 - Up to two bounded Luna/xhigh scouts/reviewers. Fresh actual-plan/command and
   post-action verification required. Use the role retry policy on failed work.
@@ -276,7 +281,8 @@ inventory still describes the current graph.
 - [x] Preserve the ignored closeout receipt and remove the entry/session under
   the owner's later cleanup approval, without accepting the task line.
 - [x] Owner reviewed the view-only outcome and requested the targeted follow-up.
-- [ ] Assign and verify the new cleanup Conductor and its coordination window.
+- [x] Assign/verify cleanup Conductor; initially read-only during runtime-docs
+  graph ownership. Obtain explicit graph handoff before mutation.
 - [ ] Refresh exact candidates and ownership; propose reviewed cleanup/recovery.
 - [ ] Obtain itemized decisions for wider actions and perform only approved steps.
 - [ ] Verify retained source, archive and references; record resource cleanup.
