@@ -181,14 +181,35 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
   archive/review checkpoints, and task 1 diagnostic must remain unchanged.
   The S3 recovery review follows this task; do not mutate its possible sources.
 - Bucket A authority: scoped above; no broader graph rewrite approved.
+- Result: `xqptskso` / `4a33175a`, bookmarked `night-4-history`; complete
+  as a view-only report. Zero candidates qualified, so no history cleanup was
+  performed. Report: `docs/background/jj-history-review.md`; tracked evidence
+  directory: `docs/background/jj-history-review-evidence/` (about 1.7 MiB).
+- Frozen entry: 969 visible commits, 28 heads, three conflicts, four divergent
+  versions. All six empty anonymous leaves were workspace-held. All 36 archived
+  exact resume commits remained readable: 26 change IDs visible, ten hidden-only.
+  All 969 entry commits, 60 tree fingerprints, other workspace targets, and
+  bookmarks were preserved; the archive checksum matched.
+- Fresh Luna/xhigh review `9268096d` passed with one citation note, now fixed.
+  It checked receipts, not live commands. The Lead reran the everyday/attention
+  views and pinned full-history command. A Lead probe using `root` failed;
+  the corrected `root()` probe passed. No application test claim is made.
+- Final docs build exited 0 with 51 existing warnings; all 27 report source
+  targets passed separate checks. Report-only source scope was checked by Lead.
+- Both scouts and reviewer finished; no child workspaces. Owned check panes
+  75/76 are closed. Entry/peer retained for inspection. Preserve ignored receipt
+  `.night-evidence/history/closeout-verification.json` before entry removal.
+  Graph coordination returned to Lead; all possible S3 sources remain protected.
 
 ## Progress
 
 - [x] Define review outputs, bounded cleanup, and explicit approval gates.
 - [x] Approve execution limits.
 - [x] Establish ownership and coordination windows.
-- [ ] Inventory the current graph, ownership, and recovery dependencies.
-- [ ] Prepare readable log views and classify cleanup candidates.
-- [ ] Perform eligible Bucket A cleanup; independently review results.
-- [ ] Deliver the report and Bucket B approval list.
-- [ ] Preserve evidence and remove this review's own temporary resources.
+- [x] Inventory the current graph, ownership, and recovery dependencies.
+- [x] Prepare readable log views and classify cleanup candidates.
+- [x] Establish that no Bucket A cleanup qualifies; independently review results.
+- [x] Deliver the report and Bucket B proposal list; no broader action approved.
+- [x] Preserve evidence and remove owned check panes; no child workspaces.
+- [ ] After acceptance/inspection, preserve the ignored closeout receipt and
+  remove the Lead-managed entry. Keep this tracked plan until then.

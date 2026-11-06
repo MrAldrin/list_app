@@ -147,15 +147,32 @@ not when S3 is implemented. Wait for that decision before starting any code work
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Execution approval: [overnight run](night-run.md#approval-and-outcome); research only.
-- Task owner/session, effective model/thinking verification, and workspace: pending.
+- Conductor: `01a1ae93-3d85-77d1-a29d-547cc0850af5`, verified
+  `openai/gpt-6.1-sol`, `high`; Zellij tab 24, pane 78
+  (`list_app-night-s3-review`).
+- Large batch: product-scope analysis, exact archived-source recovery,
+  current-baseline fit, reuse/rebuild evidence, and fresh independent review.
+- Workspace: `night-s3-review`, `/home/hsa/projects/list_app-night-s3-review`;
+  Lead-created and managed. Execution stack base: `night-4-history`
+  (`xqptskso` / `4a33175a`), joined with the current docs desk. Behavioral
+  comparison must use accepted `integration`, not treat stacked candidates or
+  archived code as accepted. Record its exact dispatch baseline in the report.
+  Lead owns entry lifecycle; Conductor owns children. Lead report target:
+  `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
-- Browser/check schedule with other tasks: not agreed.
+- Exclusive graph coordination passes to Conductor at dispatch. All earlier
+  tasks are quiescent. At most two bounded workers/reviewers; no competing
+  heavy checks. No preview server is needed. Existing docs server 38/8765 and
+  gallery server 72/8766 remain untouched.
+- Reuse the task 4 exact source map and protection evidence. All 36 archived
+  exact resume commits resolve. No parked line, archive, existing bookmark,
+  conflict, divergent version, or other workspace may be changed.
 
 ## Progress
 
 - [x] Define the research-only assignment and link it from the backlog.
 - [x] Approve execution limits.
-- [ ] Assign task and child ownership.
+- [x] Assign task ownership; record each child's ownership at launch.
 - [ ] Inspect relevant archived work and current-baseline compatibility.
 - [ ] Compare options and write the owner decision report.
 - [ ] Independently review the evidence and recommendation.

@@ -28,7 +28,9 @@ separate item. Version control keeps the history.
 
 ## In progress
 
-- **Refactor — Review the jj history.** The approved graph review is active. Preserve all S3 sources and existing work; only the assignment's narrow disposable cleanup is permitted. See the [assignment](jj-history-review.md) and [run limits](night-run.md).
+- **Research — Review S3 scope and archived work.** The approved research-only review is active. Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options. S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. See the [assignment](reminders-s3-scope-review.md). **Unblocks:** a later scope/implementation decision, then S4/S5 in Later.
+  **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
+- **Refactor — Inspect the jj history report.** Preserved at `night-4-history`. The result is view-only: no eligible cleanup and no existing history changed. Short/full views and wider proposals are in the [assignment](jj-history-review.md). All S3 sources remain protected; broader cleanup is not approved.
   **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 - **Design — Choose gallery directions.** Owner decision. The twenty-draft local gallery is complete at `night-3-themes`; no app design is selected. Inspect <http://127.0.0.1:8766/preview.html> and the [assignment](theme-exploration.md). Preserve its entry/server until owner inspection is finished.
   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
@@ -45,8 +47,8 @@ continue when needed. The [overnight run record](night-run.md) owns execution
 limits, stack/bookmark authority, and ownership. Conductor selections below use
 provider `openai`; verify the effective model and thinking at launch.
 
-1. **Research — Review S3 scope and archived work.** Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options for the owner. See the [review assignment](reminders-s3-scope-review.md). S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. **Unblocks:** a later S3 implementation decision, then S4/S5 in Later.
-   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
+No unstarted task remains in the approved run. The final research task is above.
+No later implementation is approved.
 
 ## Blocked
 
@@ -55,7 +57,7 @@ provider `openai`; verify the effective model and thinking at launch.
 
 ## Later
 
-- **Feature — Add stage 4: phone push notifications.** On hold. **Blocked by:** reviewed stage 3 in Next and approval to resume. **Unblocks:** stage 5 below. See the [S4 brief](batches/reminders-s4.md).
+- **Feature — Add stage 4: phone push notifications.** On hold. **Blocked by:** an approved stage 3 scope, its reviewed implementation, and approval to resume. **Unblocks:** stage 5 below. See the [S4 brief](batches/reminders-s4.md).
 - **Feature — Complete stage 5: final polish and owner review.** On hold. **Blocked by:** reviewed stage 4 above, or stage 3 for the in-app-only option, and approval to resume. See the [S5 brief](batches/reminders-s5.md) for the full scope.
 - **Feature — Add a custom color-theme picker.** Build on the existing palettes and contrast tests. Start with a ready-made theme. Warn about colors that make text hard to read. See `PALETTES` in `frontend/src/lib/ui/theme.ts`.
 - **Feature — Create lists while offline.** A new list needs a usable address before the server assigns its slug. See [offline use](../docs/offline-viewing.md#what-works-offline).

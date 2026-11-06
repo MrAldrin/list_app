@@ -118,10 +118,22 @@ Two child workspaces and all check panes are removed. Entry/peer/server and
 about 141 MiB in `.night-evidence/themes/` remain for owner inspection. The
 Haiku retry effort discrepancy is recorded in the task plan/report.
 
-Task 4 is assigned to `01a1ae6e-7f90-737d-9641-3e0947c7cfc9`, verified
-Sol/high, tab 23, pane 74 (`list_app-night-history`). Its Lead-created workspace
-starts from task 3. Next: review the graph and prepare safe views/proposals.
-The cap is two bounded agents. All S3 recovery sources remain protected.
+Task 4 is complete and quiescent at `night-4-history` (`xqptskso` / `4a33175a`).
+It is a view-only report: zero eligible cleanup, no existing history changed.
+All 36 archived exact commits resolve; protected trees, bookmarks, and other
+workspace targets matched. Three conflicts/four divergent versions remain.
+Fresh Luna/xhigh review passed after a citation fix. Lead checked actual scope
+and reran the short, attention, and pinned full-history views. Docs build passed
+with 51 existing warnings; 27 report source targets were checked separately.
+About 1.7 MiB evidence is tracked; preserve the ignored post-commit receipt
+before entry removal. No child workspaces; check panes 75/76 are removed.
+
+Task 5 is assigned to `01a1ae93-3d85-77d1-a29d-547cc0850af5`, verified
+Sol/high, tab 24, pane 78 (`list_app-night-s3-review`). Its Lead-created workspace
+starts from task 4 and the current desk. Next: research S3 scope/reuse and
+produce a decision report, not implementation. Compare accepted app behavior
+at the exact dispatch `integration`. The cap is two bounded agents. All old
+sources, parked lines, bookmarks, services, and workspaces remain protected.
 
 Task 1 artifacts remain in its entry `.night-evidence/` (about 1.4 GiB).
 Its two child workspaces and job panes are removed; its entry and successful
@@ -142,7 +154,7 @@ stable homes and incoming links are fixed.
 - [x] Preserve task 1 as partial with independent review and failed full-gate evidence.
 - [x] Finish task 2 with independent review and required checks.
 - [x] Finish task 3 with combined checks and independent source/rendered review.
-- [ ] Finish or preserve task 4 with independent review and checks.
+- [x] Finish task 4 as a view-only report with fresh review and protection checks.
 - [ ] Finish or preserve task 5 with independent review and checks.
 - [ ] Verify the combined stack, preserve evidence, and give the morning report.
 - [ ] Complete safe cleanup and preserve any remaining ownership obligations.
