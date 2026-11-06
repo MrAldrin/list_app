@@ -17,8 +17,9 @@
 - **Propose deleting the two obsolete origin feature names**, not their source.
   Their behavior exists on today's app, but their exact commits are not ancestors
   of `main`. Keep local `integration` and its origin tracking for now.
-- The private recovery archive has passed an independent restore test. It is
-  **not permission to abandon anything**. Exact sets and commands follow.
+- The Conductor tested a self-contained restore in an isolated repository.
+  Independent reviewers checked the receipts; they did not rerun native restore.
+  This is **not permission to abandon anything**. Exact sets and commands follow.
 
 Authority: [tracked assignment](../../plans/jj-history-review.md#owner-follow-up-targeted-cleanup).
 Conductor: `01a1afc6-f7c5-76e5-a8cf-9622e5f80bfe`, `openai/gpt-6.1-sol`, `high`.
