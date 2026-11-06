@@ -202,6 +202,67 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
   `night-history` and its folder. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
   All possible S3 sources remain protected; no historical cleanup was added.
 
+## Owner follow-up: targeted cleanup
+
+Lifecycle remains tracked. On 2026-11-06 the owner requested a new visible
+Conductor to turn the view-only findings into a concrete cleanup discussion
+and safe implementation. This is a new phase, not a claim that the original
+inventory still describes the current graph.
+
+### Outcome and limits
+
+- Inspect the exact local `reminders-s2` and `groups` bookmarks; cached
+  `usual-items-redesign@origin`, `wave2-bottom-bar@origin` and
+  `integration@origin`; conflicted/divergent reminder lines; and loose
+  unbookmarked heads. Distinguish accepted ancestry, equivalent implemented
+  behavior, parked features, obsolete review leaves and unknown ownership.
+- Produce `docs/background/jj-cleanup-review.md`: one-screen recommendation,
+  exact before/after candidate table, recovery method, commands and approval
+  boundaries. Aim for fewer useful working lines without losing recoverable
+  source. A shorter log alone is not the requested physical cleanup proposal.
+- The owner permits removal of the local `reminders-s2` bookmark if its exact
+  tip is proved fully included in `main`, there is no active dependency on the
+  bookmark name, its identity is recorded, and fresh review approves the action.
+  Removing a bookmark is not deleting its commits. Keep its source recoverable.
+- Treat origin references as separate local tracking and remote-server objects.
+  Read-only remote inspection is allowed. Do not fetch while another graph
+  window is active. No push or remote deletion until exact names and commands
+  receive an explicit itemized owner decision. Do not delete local `integration`.
+- Inspect `groups` before deciding whether to keep, retire or update it. A
+  historical position alone does not justify rebasing. Do not move/rewrite its
+  bookmark or original commits yet. An isolated exploratory copy may assess
+  conflicts without changing the original; no product repair is approved.
+- For reminder consolidation, compare exact divergent versions and descendant
+  dependencies. Propose a durable, tested recovery archive before any hiding or
+  abandonment. Do not assume Git objects or an old operation will survive GC.
+  Preserve the external archive and every old exact source alternative until
+  the owner approves the exact consolidation set. No bulk rebase/abandon, GC,
+  artificial all-head merge, or silent conflict resolution.
+- Preserve `main`, the five overnight result bookmarks, task 1's diagnostic,
+  old temporary workspaces, retained `night-tests`, and the active runtime-docs
+  task. Acceptance/deployment and feature completion are separate decisions.
+- Implement only independently reviewed, explicitly permitted local cleanup
+  after obtaining the graph window. Bring wider proposals to the owner first.
+  Record operation IDs, recovery checks and every actual mutation.
+
+### Assignment and coordination
+
+- Large batch: history safety, exact recovery/version analysis, remote-reference
+  semantics and owner decisions. Selected Conductor: Sol/high.
+- Workspace: Lead-created/managed `jj-cleanup`, sibling
+  `/home/hsa/projects/list_app-jj-cleanup`. Session identity is recorded after
+  readiness. Keep this new peer open while the owner discusses the cleanup;
+  do not retain it automatically after completed work and owner handoff.
+- Up to two bounded Luna/xhigh scouts/reviewers. Fresh actual-plan/command and
+  post-action verification required. Use the role retry policy on failed work.
+- Runtime documentation owns docs/nav in `test-runtime-docs`. The cleanup peer
+  may inspect read-only while that task owns the exclusive graph window. It
+  must obtain an explicit handoff before any jj mutation, child workspace,
+  fetch, bookmark change or report commit. Shared backlog/plans stay Lead-owned.
+- No new app/server work. Use fixture data if a bounded isolated compatibility
+  check is later justified. Do not load production/private setup for history
+  inspection. Existing docs preview pane 38/8765 remains untouched.
+
 ## Progress
 
 - [x] Define review outputs, bounded cleanup, and explicit approval gates.
@@ -214,5 +275,8 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
 - [x] Preserve evidence and remove owned check panes; no child workspaces.
 - [x] Preserve the ignored closeout receipt and remove the entry/session under
   the owner's later cleanup approval, without accepting the task line.
-- [ ] Owner inspects the report and any wider proposals. No broader history
-  operation is approved; retain this tracked plan for that review.
+- [x] Owner reviewed the view-only outcome and requested the targeted follow-up.
+- [ ] Assign and verify the new cleanup Conductor and its coordination window.
+- [ ] Refresh exact candidates and ownership; propose reviewed cleanup/recovery.
+- [ ] Obtain itemized decisions for wider actions and perform only approved steps.
+- [ ] Verify retained source, archive and references; record resource cleanup.
