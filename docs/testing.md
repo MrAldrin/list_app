@@ -38,9 +38,10 @@ waits, or skips to hide failures.
 Measure one suite at a time. Record the revision, command, engine, worker count,
 and total elapsed time. Separate dependency setup and builds from test time.
 Parallel per-test durations are worker time, not total elapsed time. Use repeated
-comparable runs before claiming a speed improvement. The
-[measurement record](background/test-suite-review.md) gives commands, findings,
-and limits. Earlier speed evidence is [here](background/test-suite-speed.md).
+comparable runs before claiming a speed improvement. Read the
+[test runtime report](reports/test-suite-runtime-2026-11-05.md) for the overnight
+measurement summary and its limits. The detailed
+[measurement record](background/test-suite-review.md) stays in the repository.
 
 ## Known limits
 

@@ -22,6 +22,7 @@ copying it.
 - [Local setup and app development](../README.md)
 - [Deployment, backups, and recovery](deployment.md)
 - [Testing guide](testing.md): test layers, commands, reliability, and limits
+- [Test runtime results](reports/test-suite-runtime-2026-11-05.md): the overnight review summary
 - [Scope and approval gates](scope.md)
 - [Agent rules](../AGENTS.md)
 
