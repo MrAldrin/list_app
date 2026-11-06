@@ -270,17 +270,23 @@ inventory still describes the current graph.
 
 ### Follow-up result and pending decisions
 
-Reviewed report tip: `sryuqnys` /
-`325a838482fe25eafdecc3d17ecb3bf4fbd8b185`, with prior report/evidence
-`rrlyoxwn` / `dc6d14e63fb16026291601273e850ab7686623b0` unchanged as parent.
+Reviewed report tip: `trmonkrp` /
+`abb53d81a1fdf991a38d9bc0077f49fb1b637480`. Prior reports `629e8884`,
+`325a8384` and `dc6d14e6` remain unchanged ancestors.
 Read `docs/background/jj-cleanup-review.md` at that revision; it is not yet
 accepted into the default workspace. The entry remains for owner discussion.
 
-- Performed: only the reviewed local `reminders-s2` bookmark forget. Exact
-  source `e50da7ce` remains in main. Native protected-state checks passed.
-- Pending owner decisions: set A's 11 empty checkpoints (tested 28 to 18
-  heads); set B's two unused divergent alternatives (18 to 16); two exact
-  obsolete origin feature names. No live abandonment or remote change occurred.
+- Performed: local `reminders-s2` bookmark forget; exact source `e50da7ce`
+  remains in main. The owner then explicitly approved execution of set A.
+- Set A completed: 11 exact empty checkpoints retired in ten operations;
+  heads fell from 28 to 18. Immediate visible inventory fell from 992 to 981.
+  Every operation passed full retained Git-object/tree, native jj metadata,
+  reference, workspace, config and recovery checks. All 67 protected trees,
+  including 36 archived resume sources, matched. Retired source remains
+  readable and archive-matched. Three conflicts/four divergent versions remain.
+- Pending owner decisions: set B's two unused divergent alternatives (tested
+  18 to 16 heads); two exact obsolete origin feature names. No set B, remote,
+  GC, product or additional bookmark action occurred.
 - Keep original `groups` and `integration@origin`. Groups has real unfinished
   work and migration-number collisions; a later port needs its own approval.
 - Private native recovery is retained at
@@ -288,14 +294,21 @@ accepted into the default workspace. The entry remains for owner discussion.
   tested isolated restore; independent reviewers checked receipts, not a fresh
   native rerun. Original blocked review, config-ID side effect, exact approved
   repair, wrapper timeout and later successful validation remain recorded.
-- Haiku/max report/correction/post-action receipt reviews passed; Luna/xhigh
-  `0022561e` checked the final opening clarification. No app tests were needed
-  or claimed. Known final evidence uses 1,956,982,784 allocated bytes; recorded
-  conservative peak 2,705,956,864 bytes is below the 3 GiB run budget.
+- Earlier static report/receipt reviews passed. Set A's initial Luna guard
+  review blocked incomplete metadata claims; the guard was strengthened, then
+  Haiku/max pre-action reviews passed. The post-action Luna review lacked
+  Python capability and blocked without finding a repository failure.
+  Owner-selected Terra 6.1/medium independently ran a static Python audit:
+  43 hashes, ten full maps, 9,864 retained entries and 130 protected fields
+  passed. This is receipt verification, not a fresh native execution.
+- No app tests were needed or claimed. Conservative evidence use is
+  2,777,382,912 bytes, below 3 GiB; free disk remained above 6 GiB.
 - Transient recovery copies and owned scratch files are removed. Durable
   archive/receipts and Lead-created entry remain. No children/jobs are active.
-  Graph released to Lead after the precision-only change; further work needs
-  an explicit window. Report integration and A/B/remotes are not approved.
+  Graph released to Lead after set A closeout; further work needs an explicit
+  window. Report integration, set B and remote actions are not approved.
+  Private raw set A receipts/methods are under the recovery directory's
+  `set-a-20261106/`; the report's receipt index records their hashes and paths.
 
 ## Progress
 
@@ -313,5 +326,7 @@ accepted into the default workspace. The entry remains for owner discussion.
 - [x] Assign/verify cleanup Conductor; initially read-only during runtime-docs
   graph ownership. Obtain explicit graph handoff before mutation.
 - [x] Refresh exact candidates and ownership; propose reviewed cleanup/recovery.
+- [x] Obtain explicit set A execution permission; retire only the 11 selected
+  empty checkpoints and independently audit the actual operation receipts.
 - [ ] Obtain itemized decisions for wider actions and perform only approved steps.
 - [ ] Verify retained source, archive and references; record resource cleanup.
