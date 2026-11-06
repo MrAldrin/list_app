@@ -158,8 +158,9 @@ check job remains active. The gallery server remains intentionally available.
 All earlier result bookmarks are ancestors of the fifth. Their exact targets
 were preserved. `main` remains `250c17b6`; only reviewed shared-desk documentation
 moves `integration`. No app/test candidate is accepted, pushed or deployed.
-The final `night-s3-review` entry joins the completed stack and latest desk
-records in an empty working-copy merge; this is not another accepted feature.
+The final `night-s3-review` entry contains a join of the completed stack and
+latest desk records, below its clean working-copy child. This is not another
+accepted feature.
 
 ### Combined checks and limits
 
