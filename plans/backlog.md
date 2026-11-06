@@ -49,7 +49,7 @@ above; product blockers are below. No later implementation is approved.
 
 ## Blocked
 
-- **Test — Complete verification and review product findings.** Owner decision needed. The bounded test review is preserved at `night-1-tests-partial`. Test repairs and targeted checks passed, but the full browser gate remains red. Review the sign-in interruption diagnostic and rejected-change persistence evidence before approving product work. Keep Android decisions open. See the [task plan](test-suite-review.md).
+- **Test — Complete verification and review product findings.** Owner decision needed. The bounded test review is preserved at `night-1-tests-partial`. Test repairs and targeted checks passed, but the full browser gate remains red. Review the sign-in interruption diagnostic and rejected-change persistence evidence before approving product work. Keep Android decisions open. The [runtime results page](../docs/reports/test-suite-runtime-2026-11-05.md) is approved and live locally; this does not accept the partial test candidate. Runtime optimization and a complete redundancy audit remain undone. Continue the findings discussion with the retained test Conductor. See the [task plan](test-suite-review.md).
   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**. No product repair is approved.
 
 ## Later

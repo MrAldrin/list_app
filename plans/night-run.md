@@ -230,6 +230,20 @@ S3 scope/exposure. Recommended S3 default: A only if an open-app daily prompt is
 wanted; otherwise C. Do not restore broad S3 or reactivate all P2 settings.
 Broader jj cleanup is not recommended now. Android decisions remain open.
 
+## Post-run follow-ups
+
+On 2026-11-06 the owner approved a separate visible runtime-results page and
+local preview refresh. Docs-only `twrnzkzr` / `9bfe56f6` is accepted; the
+[task plan](test-suite-review.md#runtime-report-follow-up) records review,
+checks, URL and resource ownership. The historical test candidate remains
+unaccepted and partial. No new app/browser suite was run for this publication.
+
+The owner also requested concrete targeted jj cleanup after reviewing the
+view-only outcome. The [new phase](jj-history-review.md#owner-follow-up-targeted-cleanup)
+records the exact authority, protected sources and new Conductor. The original
+no-cleanup result is historical, not a rule to keep every old head forever.
+Shared graph operations are serialized with the runtime-page follow-up.
+
 ## Closeout requirements
 
 For each task, record completed/partial/blocked, exact result and bookmark,

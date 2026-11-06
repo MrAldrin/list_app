@@ -248,6 +248,33 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
   and live interactive peer. Preserve artifacts before eventual removal.
 - Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
 
+## Runtime report follow-up
+
+On 2026-11-06 the owner explicitly approved the reader-facing runtime report
+and refresh of the existing local Zensical preview. Reviewed docs-only change
+`twrnzkzr` / `9bfe56f614ffedaf3ed374bead97f6eebeb4e762` is accepted into
+`integration`: one dated report and its nav/guide/hub links. No original test
+candidate, diagnostic or product change is accepted by this action.
+
+- Page: [test runtime results](../docs/reports/test-suite-runtime-2026-11-05.md).
+  Served at `http://127.0.0.1:8765/docs/reports/test-suite-runtime-2026-11-05/`.
+- Fresh Luna/xhigh review `4985582a` found no issues. Candidate and default
+  site builds passed; the Lead's default docs checks passed all 31 tests.
+  Served report bytes matched the rebuilt default site. Existing warning
+  findings remain; background exclusions and browser BLOCK are unchanged.
+- The report distinguishes elapsed/worker time, runtime measurements/deep
+  profiling, selected deep reviews/full assertion audit, and samples/speedup.
+  No runtime optimization or justified coverage reduction was delivered.
+- The Conductor owns its new `test-runtime-docs` workspace and temporary
+  preview pane 109/8766. After default-preview verification it may preserve
+  small receipts under ignored `local_only/test-runtime-docs-2026-11-06/`,
+  stop that preview and remove that new workspace in its own graph window.
+  Retained `night-tests` and its original evidence remain untouched.
+- Lead default build log:
+  `local_only/test-runtime-docs-accept-2026-11-06/default-build.log`.
+  The owner continues the unresolved test-value discussion with the retained
+  test Conductor. New implementation or coverage cuts still need their gates.
+
 ## Progress
 
 - [x] Record the proposed scope and merge the backlog agenda items.
