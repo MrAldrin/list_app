@@ -30,8 +30,6 @@ separate item. Version control keeps the history.
 
 - **Research — Decide S3 scope from the completed review.** Owner decision. Preserved at `night-5-s3-review`. Recommended A: an opt-in foreground daily brief; B adds at-due scheduling; C defers new behavior. Also decide whether limited setup may appear before phone push. No implementation or settings reactivation is approved. See the [assignment and result](reminders-s3-scope-review.md). **Unblocks:** a later implementation brief, then S4/S5 in Later.
   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-- **Refactor — Decide remaining jj cleanup.** Sets A/B and the local `reminders-s2` label cleanup are complete; report at `62b9a607`. Two origin feature names and report integration still need owner decisions. Keep original groups work for a later port. See the [actual results, review limits and safeguards](jj-history-review.md#follow-up-result-and-pending-decisions). No remote action is approved; the Conductor remains available for discussion.
-  **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 - **Design — Choose gallery directions.** Owner decision. The twenty-draft gallery remains at `night-3-themes`; no app design is selected. The preview server and task workspace were removed under the owner's cleanup instruction. Portable gallery source and evidence are preserved; see the [assignment](theme-exploration.md) and [cleanup record](night-run.md#retained-resources-and-next-decisions).
   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
 - **Documentation — Review remaining factual issues.** Published STE100-style documentation is accepted and built in the default preview. Factual contradictions remain recorded, not silently corrected. Source-comment/docstring changes remain in `night-2-docs`; no app/test changes were accepted. The original entry/session were removed under owner approval. See the [assignment](documentation-ste100.md).
@@ -54,6 +52,7 @@ above; product blockers are below. No later implementation is approved.
 
 ## Later
 
+- **Refactor — Review jj history again.** Owner requested another look later; the current cleanup batch is closed. Refresh the graph, ownership and recovery before considering remaining conflicts, loose lines and the two old origin feature names. Keep original groups work for a separate port. No further cleanup, remote deletion or report integration is approved. See the [completed results and recovery](jj-history-review.md#follow-up-result-and-pending-decisions).
 - **Feature — Add stage 4: phone push notifications.** On hold. **Blocked by:** an approved stage 3 scope, its reviewed implementation, and approval to resume. **Unblocks:** stage 5 below. See the [S4 brief](batches/reminders-s4.md).
 - **Feature — Complete stage 5: final polish and owner review.** On hold. **Blocked by:** reviewed stage 4 above, or stage 3 for the in-app-only option, and approval to resume. See the [S5 brief](batches/reminders-s5.md) for the full scope.
 - **Feature — Add a custom color-theme picker.** Build on the existing palettes and contrast tests. Start with a ready-made theme. Warn about colors that make text hard to read. See `PALETTES` in `frontend/src/lib/ui/theme.ts`.

@@ -321,6 +321,26 @@ accepted into the default workspace. The entry remains for owner discussion.
   Private raw receipts/methods are under the recovery directory's
   `set-a-20261106/` and `set-b-20261106/`; report indices record hashes/paths.
 
+### Owner closeout
+
+The owner closed this batch and requested another jj history review in Later.
+No further cleanup or remote action is authorized. The Conductor released all
+ownership; its pane 108 is closed, with no owned job or child remaining.
+An additional user/unknown-owned shell pane 110 still has the entry as cwd.
+Do not close it or remove the workspace/folder without owner approval; that
+last resource cleanup is pending. Retained `night-tests`, old workspaces and
+the docs preview remain untouched.
+
+The exact report chain is also preserved outside the entry in the private
+recovery directory's `completed-report.bundle` (3,116,093 bytes), SHA-256
+`052cb8e67e3b5d03572e53da1ed95668d7085ae46478276ae65127b88ebb3364`.
+Lead imported it into a separate empty bare Git repository and verified full
+ancestry, five exact report commit bodies/trees and all 62 report/evidence
+entries. Temporary export/import repositories were removed. This is backup
+verification, not acceptance of the report into `integration`, nor a new native
+jj restore. `completed-report-bundle.json` holds the receipt. Keep the original
+native tar, private A/B receipts and harness artifacts too.
+
 ## Progress
 
 - [x] Define review outputs, bounded cleanup, and explicit approval gates.
@@ -341,5 +361,6 @@ accepted into the default workspace. The entry remains for owner discussion.
   empty checkpoints and independently audit the actual operation receipts.
 - [x] Obtain explicit set B execution permission; retire only the two selected
   alternatives, verify native retained state and independently audit receipts.
-- [ ] Obtain itemized decisions for wider actions and perform only approved steps.
+- [x] Complete only approved local actions; owner closed this batch and moved
+  another review and remaining decisions to Later. No wider permission carries.
 - [ ] Verify retained source, archive and references; record resource cleanup.
