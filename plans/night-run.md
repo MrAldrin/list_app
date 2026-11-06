@@ -128,16 +128,85 @@ with 51 existing warnings; 27 report source targets were checked separately.
 About 1.7 MiB evidence is tracked; preserve the ignored post-commit receipt
 before entry removal. No child workspaces; check panes 75/76 are removed.
 
-Task 5 is assigned to `01a1ae93-3d85-77d1-a29d-547cc0850af5`, verified
-Sol/high, tab 24, pane 78 (`list_app-night-s3-review`). Its Lead-created workspace
-starts from task 4 and the current desk. Next: research S3 scope/reuse and
-produce a decision report, not implementation. Compare accepted app behavior
-at the exact dispatch `integration`. The cap is two bounded agents. All old
-sources, parked lines, bookmarks, services, and workspaces remain protected.
+Task 5 is complete and quiescent at `night-5-s3-review` (`wlyxnswq` / `55108d0d`).
+Conductor `01a1ae93-3d85-77d1-a29d-547cc0850af5`, verified Sol/high, tab 24,
+pane 78, recommends a proposed opt-in foreground daily brief. The owner still
+chooses scope and any limited setup before phone push. No implementation is
+approved. Fresh source/report and final-packet reviews passed. The later
+closeout-only environment wording correction was independently checked by Lead;
+prior review receipts do not claim to review that later sentence. All archive
+bytes/refs, protected trees, bookmarks and other workspace targets matched.
+Evidence is tracked (about 1.37 MiB); all four child runs finished, and owned
+snapshots, copied dependencies, temporary data and check panes are removed.
+The Lead-managed entry and successful peer remain for inspection.
 
 Task 1 artifacts remain in its entry `.night-evidence/` (about 1.4 GiB).
 Its two child workspaces and job panes are removed; its entry and successful
-interactive peer remain for unaccepted work/evidence. No other task is active.
+interactive peer remain for unaccepted work/evidence. No task, bounded child or
+check job remains active. The gallery server remains intentionally available.
+
+## Final inspection record
+
+| Step | Outcome | Exact preserved result |
+| --- | --- | --- |
+| Tests | Partial; full browser gate failed | `night-1-tests-partial`: `oqpnzkyx` / `570b4f8a` |
+| STE100-style documentation | Complete; not formal compliance certification | `night-2-docs`: `nkrslvrx` / `121fb5fd` |
+| Theme gallery | Complete local prototype; no design accepted | `night-3-themes`: `yuqlozro` / `44686493` |
+| jj history | Complete, view only; zero eligible cleanup | `night-4-history`: `xqptskso` / `4a33175a` |
+| S3 scope | Complete decision report; no implementation | `night-5-s3-review`: `wlyxnswq` / `55108d0d` |
+
+All earlier result bookmarks are ancestors of the fifth. Their exact targets
+were preserved. `main` remains `250c17b6`; only reviewed shared-desk documentation
+moves `integration`. No app/test candidate is accepted, pushed or deployed.
+The final `night-s3-review` entry joins the completed stack and latest desk
+records in an empty working-copy merge; this is not another accepted feature.
+
+### Combined checks and limits
+
+- Actual combined-entry checks: all 13 root/dependency/canonical commands exited
+  0 on their first runs. Python: 1,792 passed, no skips, with the frontend build
+  present. Frontend: 1,115 tests in 54 files in each of UTC and Europe/Oslo;
+  lint, type/Svelte checks and build passed. Ruff format check, Ruff and ty
+  passed. No install, fix, source edit or test weakening was used.
+- Test/import/config roots resolved the actual entry. All 372 source/test/config
+  hashes matched after checks; Lead independently rechecked them. Task 5's 150
+  historical tests remain separate and do not prove a new S3 feature.
+- Full browser result remains **485 passed, 1 failed, 120 intentional skips**.
+  It was not rerun during final composition checks. Preserve sign-in interruption
+  and rejected-change persistence evidence; no product repair is approved.
+- Gallery: twenty drafts plus reference; 1,828 checks and fresh rendered/source
+  review passed. Linux headless engines are not physical Safari/phone proof.
+  Gallery URL and live server ownership remain in the theme plan.
+- Docs builds pass with 51 existing warnings. Background reports are excluded
+  from the site; their authored source links were checked separately. Existing
+  factual contradictions and dependency-audit findings remain in the docs/S3
+  reports. No formal STE100 certification or new security audit is claimed.
+- The Haiku retry's requested/host-reported max effort could not be fully
+  confirmed by the child. This limit remains recorded; final reviewers used
+  verified Luna/xhigh. Other effective launch settings were verified.
+- Generated evidence remains below the 3 GiB budget; about 13 GiB disk is free.
+  Heavy tests are finished. Failed traces/checks remain preserved, not relabeled.
+
+### Retained resources and next decisions
+
+All five Lead-created entry workspaces and successful interactive Conductors
+remain for owner inspection. No child workspace or check pane remains. Task 3
+Conductor still owns gallery server pane 72/tab 20/loopback port 8766. The
+owner-managed docs server pane 38/port 8765 is untouched.
+
+Before entry cleanup: preserve task 1's ignored `.night-evidence/`, task 3's
+`.night-evidence/themes/`, and task 4's ignored post-commit receipt. Task 2/4/5
+compact evidence is tracked. Stop or transfer the gallery server only after
+inspection is finished; release or relocate workspace-held peers before
+forgetting/removing entries. Do not remove old temporary workspaces or sources.
+This temporary run plan remains until that cleanup is complete; task plans
+remain for their owner decisions and acceptance/cleanup obligations.
+
+The backlog owns the follow-up agenda: approve separate product investigations,
+choose gallery directions, inspect candidate documentation/history, and decide
+S3 scope/exposure. Recommended S3 default: A only if an open-app daily prompt is
+wanted; otherwise C. Do not restore broad S3 or reactivate all P2 settings.
+Broader jj cleanup is not recommended now. Android decisions remain open.
 
 ## Closeout requirements
 
@@ -155,6 +224,8 @@ stable homes and incoming links are fixed.
 - [x] Finish task 2 with independent review and required checks.
 - [x] Finish task 3 with combined checks and independent source/rendered review.
 - [x] Finish task 4 as a view-only report with fresh review and protection checks.
-- [ ] Finish or preserve task 5 with independent review and checks.
-- [ ] Verify the combined stack, preserve evidence, and give the morning report.
-- [ ] Complete safe cleanup and preserve any remaining ownership obligations.
+- [x] Finish task 5 with independent source/report and final-packet reviews.
+- [x] Verify the combined stack, preserve evidence and record the morning handoff.
+- [x] Remove bounded children/check jobs and record retained ownership obligations.
+- [ ] After owner inspection/acceptance, preserve ignored evidence, release or
+  transfer the gallery/peers, and remove the five Lead-created entry workspaces.

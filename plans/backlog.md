@@ -28,7 +28,7 @@ separate item. Version control keeps the history.
 
 ## In progress
 
-- **Research — Review S3 scope and archived work.** The approved research-only review is active. Recommend the smallest useful in-app reminder feature, with reuse/rebuild evidence and options. S1/S2/P2 are accepted on `main`; S3 implementation remains on hold. See the [assignment](reminders-s3-scope-review.md). **Unblocks:** a later scope/implementation decision, then S4/S5 in Later.
+- **Research — Decide S3 scope from the completed review.** Owner decision. Preserved at `night-5-s3-review`. Recommended A: an opt-in foreground daily brief; B adds at-due scheduling; C defers new behavior. Also decide whether limited setup may appear before phone push. No implementation or settings reactivation is approved. See the [assignment and result](reminders-s3-scope-review.md). **Unblocks:** a later implementation brief, then S4/S5 in Later.
   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 - **Refactor — Inspect the jj history report.** Preserved at `night-4-history`. The result is view-only: no eligible cleanup and no existing history changed. Short/full views and wider proposals are in the [assignment](jj-history-review.md). All S3 sources remain protected; broader cleanup is not approved.
   **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
@@ -42,13 +42,10 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 
 ## Next
 
-The owner approved the five tasks. Work on one at a time; preserve blockers and
-continue when needed. The [overnight run record](night-run.md) owns execution
-limits, stack/bookmark authority, and ownership. Conductor selections below use
-provider `openai`; verify the effective model and thinking at launch.
-
-No unstarted task remains in the approved run. The final research task is above.
-No later implementation is approved.
+The five-task run is preserved: four completed results and one partial test
+review. See the [run record](night-run.md) for exact bookmarks, checks and retained
+resources. No unstarted task remains in that run. Review/decision items are
+above; product blockers are below. No later implementation is approved.
 
 ## Blocked
 

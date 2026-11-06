@@ -167,14 +167,48 @@ not when S3 is implemented. Wait for that decision before starting any code work
 - Reuse the task 4 exact source map and protection evidence. All 36 archived
   exact resume commits resolve. No parked line, archive, existing bookmark,
   conflict, divergent version, or other workspace may be changed.
+- Result: `wlyxnswq` / `55108d0d`, bookmarked `night-5-s3-review`;
+  complete as research, not implementation. Report:
+  `docs/background/reminders-s3-scope-review.md`; evidence sibling
+  `reminders-s3-scope-review-evidence/` (about 1.37 MiB, tracked).
+- Recommendation: A, an opt-in foreground daily brief, rather than recovery of
+  the whole runtime. B adds at-due scheduling; C defers new behavior. Owner
+  decisions remain: choose A/B/C and allow or refuse limited setup before phone
+  delivery. Neither choice alone approves implementation.
+- Accepted behavior comparison: `9e34df13e5b773ebf88032047fbe26a1088877bb`.
+  Fresh source/report review `24ca43bd` and final-packet review `0d6e64d9`
+  passed, both verified Luna/xhigh. The final closeout-only environment wording
+  correction followed those reviews; Lead checked its exact diff, runner,
+  config and symlink metadata. No secret value was read. Prior review receipts
+  remain tied to their original exact refs, not the later wording.
+- Fresh historical snapshot: 150 selected tests passed on exact `216b2eab`;
+  not current compatibility or full S3 proof. Separately, actual combined-entry
+  gates passed on their first runs: Python 1,792; frontend 1,115 each in UTC
+  and Oslo; Ruff, ty, frontend lint/types/build. All 372 source/test/config
+  hashes matched; Lead independently rechecked them and the unchanged report.
+  No full browser rerun; task 1 remains partial/red. P2's flag remains false.
+- Preservation: all 5,525 archive files (730,350,862 bytes), 36 exact resume
+  refs, 60 source fingerprints, existing bookmarks, conflicts/divergence and
+  other workspace targets matched. Only the report/evidence paths changed.
+  Docs build exited 0 with 51 existing warnings; the excluded report had a
+  separate source check of 48 targets, zero failures. Initial checker failures
+  remain evidence, not passes.
+- All four bounded runs finished. The owned historical snapshot, temporary
+  data, copied dependencies and check panes 79/85/87/88 are removed. Entry and
+  interactive peer remain for inspection. Graph coordination returned to Lead;
+  no product work or archive cleanup is approved.
 
 ## Progress
 
 - [x] Define the research-only assignment and link it from the backlog.
 - [x] Approve execution limits.
 - [x] Assign task ownership; record each child's ownership at launch.
-- [ ] Inspect relevant archived work and current-baseline compatibility.
-- [ ] Compare options and write the owner decision report.
-- [ ] Independently review the evidence and recommendation.
-- [ ] Deliver the morning handoff; await the owner's scope decision.
-- [ ] Preserve evidence, record follow-up work, and clean up owned workspaces.
+- [x] Inspect relevant archived work and current-baseline compatibility.
+- [x] Compare options and write the owner decision report.
+- [x] Independently review the evidence, recommendation and final packet.
+- [x] Deliver the report and recorded checks for the morning handoff.
+- [x] Preserve evidence and remove owned snapshots, temporary data and jobs.
+- [ ] Owner chooses scope and the limited-settings gate. No implementation is
+  approved; keep this tracked plan for that decision.
+- [ ] After inspection/acceptance, release the retained peer and remove the
+  Lead-managed entry under the workspace policy.
