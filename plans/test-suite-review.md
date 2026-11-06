@@ -260,8 +260,10 @@ candidate, diagnostic or product change is accepted by this action.
   Served at `http://127.0.0.1:8765/docs/reports/test-suite-runtime-2026-11-05/`.
 - Fresh Luna/xhigh review `4985582a` found no issues. Candidate and default
   site builds passed; the Lead's default docs checks passed all 31 tests.
-  Served report bytes matched the rebuilt default site. Existing warning
-  findings remain; background exclusions and browser BLOCK are unchanged.
+  Served report bytes matched the rebuilt default site. The default build
+  reported 52 documentation issues, not a warning-free build; wrapper checks
+  validated 39 redirects and 2,999 local links. Background exclusions and the
+  browser BLOCK are unchanged.
 - The report distinguishes elapsed/worker time, runtime measurements/deep
   profiling, selected deep reviews/full assertion audit, and samples/speedup.
   No runtime optimization or justified coverage reduction was delivered.
