@@ -194,9 +194,10 @@ not when S3 is implemented. Wait for that decision before starting any code work
   separate source check of 48 targets, zero failures. Initial checker failures
   remain evidence, not passes.
 - All four bounded runs finished. The owned historical snapshot, temporary
-  data, copied dependencies and check panes 79/85/87/88 are removed. Entry and
-  interactive peer remain for inspection. Graph coordination returned to Lead;
-  no product work or archive cleanup is approved.
+  data, copied dependencies and check panes 79/85/87/88 were removed at handback.
+  Under the owner's later cleanup instruction, Lead closed pane 78/tab 24 and
+  removed `night-s3-review` and its folder. All useful evidence is tracked at
+  the preserved result. No product work, acceptance or S3 archive cleanup occurred.
 
 ## Progress
 
@@ -210,5 +211,5 @@ not when S3 is implemented. Wait for that decision before starting any code work
 - [x] Preserve evidence and remove owned snapshots, temporary data and jobs.
 - [ ] Owner chooses scope and the limited-settings gate. No implementation is
   approved; keep this tracked plan for that decision.
-- [ ] After inspection/acceptance, release the retained peer and remove the
-  Lead-managed entry under the workspace policy.
+- [x] Close the retained peer and remove the Lead-managed entry under the
+  owner's later cleanup instruction. Keep scope decisions open.

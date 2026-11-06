@@ -225,9 +225,11 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 - Evidence: `docs/background/documentation-ste100-review.md`, inventory TSV,
   and tracked `documentation-ste100-evidence/` on the result line. Existing
   settings-visibility and “both apps” contradictions remain recorded, not fixed.
-- Ten owned child workspaces and five job panes removed. Entry/live peer
-  retained pending owner inspection of the stacked result; no child or job is
-  active. The task 1 browser failure remains inherited and unresolved.
+- Ten owned child workspaces and five job panes were removed at handback.
+  On 2026-11-06 the owner approved entry/session cleanup before acceptance.
+  Lead preserved `.night-docs-evidence/`, closed pane 50/tab 18, and removed
+  `night-docs` and its folder. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
+  The bookmarked candidate remains available. Task 1's browser failure remains.
 
 ## Progress
 
@@ -238,5 +240,6 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 - [x] Calibrate, rewrite batches, and independently review the actual changes.
 - [x] Finish or explicitly account for active/protected/deferred documents.
 - [x] Validate the final candidate and deliver the task report.
-- [ ] Complete entry cleanup after owner inspection; preserve recorded factual
-  contradictions for later review before retiring this plan.
+- [x] Preserve ignored evidence and remove the entry/session under owner approval.
+- [ ] Owner inspects the unaccepted candidate and addresses or records the factual
+  contradictions before this tracked plan is retired.

@@ -164,21 +164,22 @@ owner is finished with it.
   No competing heavy browser task is active; do not open a user browser tab.
 - Result: `yuqlozro` / `44686493`, bookmarked `night-3-themes`; complete as a
   local prototype, not accepted app work. All twenty drafts and the separate
-  reference are available at <http://127.0.0.1:8766/preview.html>.
+  reference remain in that bookmark. The former loopback preview is stopped.
 - Final combined checks: exit 0; 1,828 checks, 336 matrix cases, 84 keyboard
   scenarios, and 252 secondary-list cases; no failed checks or external requests.
   Fresh actual-entry/rendered review `e14b5e81` passed. Lead inspected three
   rendered directions and verified all seven source hashes and JS syntax.
 - Evidence: `docs/background/theme-exploration-review.md` and compact JSON on
-  the result line. Full runs, failed evidence, reviews, and Lead captures remain
-  in entry `.night-evidence/themes/` (about 141 MiB); preserve before removal.
+  the result line. Full runs, failures, reviews and Lead captures were relocated
+  with their directory layout and hashes before entry removal. The portable
+  gallery source was also preserved. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
 - Worker setting limit: Haiku retry requested/host-reported max, but the child
   reported low or could not confirm it. Provider-internal effort is unresolved.
   Final reviewers used verified Luna/xhigh. Do not call Haiku max fully verified.
-- Both child workspaces and check panes are removed. Conductor still owns
-  gallery server pane 72/tab 20, bound only to loopback and the gallery folder.
-  Entry and successful peer remain for owner inspection. Stop/transfer the
-  server and preserve ignored evidence before entry cleanup.
+- Both child workspaces and check panes were removed at handback. On
+  2026-11-06 the owner approved entry/session cleanup. Conductor stopped its
+  gallery server; Lead closed pane 57/tab 20 and removed `night-themes` and
+  its folder. No server remains on 8766. No design or app change was accepted.
 
 ## Progress
 
@@ -191,5 +192,6 @@ owner is finished with it.
 - [x] Review rendered designs, run checks, and address clear issues.
 - [x] Deliver the task report and gallery for owner inspection.
 - [ ] Owner chooses a shortlist; no design is selected by this task.
-- [ ] Record refinement/implementation decisions and preserve the gallery
-  before workspace cleanup or plan retirement.
+- [x] Preserve gallery/evidence, stop the server and remove the entry/session
+  under the owner's later cleanup instruction.
+- [ ] Record refinement/implementation decisions before this tracked plan retires.

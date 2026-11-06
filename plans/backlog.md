@@ -32,9 +32,9 @@ separate item. Version control keeps the history.
   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 - **Refactor — Inspect the jj history report.** Preserved at `night-4-history`. The result is view-only: no eligible cleanup and no existing history changed. Short/full views and wider proposals are in the [assignment](jj-history-review.md). All S3 sources remain protected; broader cleanup is not approved.
   **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-- **Design — Choose gallery directions.** Owner decision. The twenty-draft local gallery is complete at `night-3-themes`; no app design is selected. Inspect <http://127.0.0.1:8766/preview.html> and the [assignment](theme-exploration.md). Preserve its entry/server until owner inspection is finished.
+- **Design — Choose gallery directions.** Owner decision. The twenty-draft gallery remains at `night-3-themes`; no app design is selected. The preview server and task workspace were removed under the owner's cleanup instruction. Portable gallery source and evidence are preserved; see the [assignment](theme-exploration.md) and [cleanup record](night-run.md#retained-resources-and-next-decisions).
   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
-- **Documentation — Inspect the completed STE100-style candidate.** Preserved at `night-2-docs`; all baseline prose accounted for and final independent review passed. Factual contradictions remain recorded, not silently corrected. Entry cleanup waits for owner inspection of the stacked work. See the [assignment](documentation-ste100.md).
+- **Documentation — Inspect the completed STE100-style candidate.** Preserved at `night-2-docs`; all baseline prose accounted for and final independent review passed. Factual contradictions remain recorded, not silently corrected. The entry/session were removed under owner approval; the candidate remains bookmarked. See the [assignment](documentation-ste100.md).
   **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers used verified Luna/xhigh.
 - **Feature — Finish named item groups.** Work is parked on bookmark `groups`. It is not accepted or ready to deploy. See the [group plan](named-item-groups.md).
 

@@ -197,9 +197,10 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
 - Final docs build exited 0 with 51 existing warnings; all 27 report source
   targets passed separate checks. Report-only source scope was checked by Lead.
 - Both scouts and reviewer finished; no child workspaces. Owned check panes
-  75/76 are closed. Entry/peer retained for inspection. Preserve ignored receipt
-  `.night-evidence/history/closeout-verification.json` before entry removal.
-  Graph coordination returned to Lead; all possible S3 sources remain protected.
+  75/76 were closed. Under the owner's later cleanup instruction, Lead preserved
+  the ignored post-commit receipt, closed pane 74/tab 23 and removed
+  `night-history` and its folder. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
+  All possible S3 sources remain protected; no historical cleanup was added.
 
 ## Progress
 
@@ -211,5 +212,7 @@ was prepared. Do not claim a tidy view means the entire history is resolved.
 - [x] Establish that no Bucket A cleanup qualifies; independently review results.
 - [x] Deliver the report and Bucket B proposal list; no broader action approved.
 - [x] Preserve evidence and remove owned check panes; no child workspaces.
-- [ ] After acceptance/inspection, preserve the ignored closeout receipt and
-  remove the Lead-managed entry. Keep this tracked plan until then.
+- [x] Preserve the ignored closeout receipt and remove the entry/session under
+  the owner's later cleanup approval, without accepting the task line.
+- [ ] Owner inspects the report and any wider proposals. No broader history
+  operation is approved; retain this tracked plan for that review.
