@@ -1,0 +1,16 @@
+
+> frontend@0.0.1 test
+> vitest run --maxWorkers=2
+
+
+ RUN  v5.0.3 /home/hsa/projects/list_app-night-docs/frontend
+
+
+ Test Files  54 passed (54)
+      Tests  1115 passed (1115)
+   Start at  00:02:02
+   Duration  8.32s (tests 63%, transform 16%, import 13%, environment 6%, worker 2%)
+
+    Isolate  54 workers spawned · ~90ms startup each (spawn + environment, per file)
+             at least ~2.34s faster with isolate: false — reuses workers across files instead of one per file
+

@@ -1,0 +1,67 @@
+[
+  {
+    "path": ".codex",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": ".dockerignore",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": ".python-version",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": "pyproject.toml",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": "skills-lock.json",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": "src/static/icon.svg",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": "src/static/icons/apple-touch-icon.png",
+    "disposition": "protected asset or generated dependency data; excluded; byte-identical",
+    "method": "protected binary/generated type; no prose rewrite; baseline bytes preserved"
+  },
+  {
+    "path": "src/static/icons/favicon-16.png",
+    "disposition": "protected asset or generated dependency data; excluded; byte-identical",
+    "method": "protected binary/generated type; no prose rewrite; baseline bytes preserved"
+  },
+  {
+    "path": "src/static/icons/favicon-32.png",
+    "disposition": "protected asset or generated dependency data; excluded; byte-identical",
+    "method": "protected binary/generated type; no prose rewrite; baseline bytes preserved"
+  },
+  {
+    "path": "src/static/icons/icon-192.png",
+    "disposition": "protected asset or generated dependency data; excluded; byte-identical",
+    "method": "protected binary/generated type; no prose rewrite; baseline bytes preserved"
+  },
+  {
+    "path": "src/static/icons/icon-512.png",
+    "disposition": "protected asset or generated dependency data; excluded; byte-identical",
+    "method": "protected binary/generated type; no prose rewrite; baseline bytes preserved"
+  },
+  {
+    "path": "src/static/manifest.json",
+    "disposition": "no explanatory documentation; actual content read; configuration or empty file unchanged",
+    "method": "actual full text read"
+  },
+  {
+    "path": "uv.lock",
+    "disposition": "protected asset or generated dependency data; excluded; byte-identical",
+    "method": "protected binary/generated type; no prose rewrite; baseline bytes preserved"
+  }
+]

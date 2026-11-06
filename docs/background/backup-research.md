@@ -6,17 +6,18 @@ Research behind the [backup plan](../../plans/backup-options.md), which holds th
 
 ## What we have today
 
-ListR runs one NiceGUI process with SQLite at `DB_PATH=/data/list.db` on one
+ListR runs one NiceGUI process. It uses SQLite at `DB_PATH=/data/list.db` on a
 Railway volume mounted at `/data` (see the [architecture](../../ARCHITECTURE.md)).
-The repository has no recurring backup job; Railway's production backup
-schedule was queried on 2026-09-25 and was empty. Startup may change the schema.
-A local `.env` and `list.db` are **not** the hosted database. Read-only `railway status`
-on 2026-09-24 showed a linked production service with a `/data` volume
-(51 MB used of 500 MB), and the CLI was logged in (version 5.57.2). This is
-volume usage, **not** a measurement of `list.db`; it does not establish the
-volume backup schedule or database integrity. A one-off production backup was
-subsequently made and verified as described below; no production records were
-printed or exported to this repository.
+The repository has no recurring backup job. The production backup schedule was
+queried on 2026-09-25 and was empty. Startup may change the schema. A local
+`.env` and `list.db` are **not** the hosted database.
+
+Read-only `railway status` on 2026-09-24 showed a linked production service
+with a `/data` volume (51 MB used of 500 MB). The CLI was logged in (version
+5.57.2). This reports volume usage, **not** the size of `list.db`. It does not
+establish the volume backup schedule or database integrity. A one-off production
+backup was later made and verified as described below. No production records
+were printed or exported to this repository.
 
 ## Comparison
 
@@ -36,29 +37,30 @@ Neither snapshot scheduling nor off-service storage is verified as configured.
 ## Can we use the Railway CLI for direct queries or backups?
 
 **Yes, from the service container; not via a local `railway run`.** `railway
-ssh` can run a Python command inside the deployed service, where `/data` is
-mounted. After checking the service, environment, path, free space and access,
-an operator could run the deployment guide's Python backup-API procedure
-there with `DB_PATH=/data/list.db` and a **fresh** `BACKUP_PATH` on `/data`.
-SQLite read-only SQL (e.g. `PRAGMA integrity_check` and
-`PRAGMA foreign_key_check`) can be run there too, using the deployment guide's
-checks. Python is available in this app; don't assume the `sqlite3` CLI binary
-is installed in the deployed image. **Do not run queries or download production
-data merely to check whether the CLI works.** The service was sleeping when
-metadata was first checked. SSH access and a one-off backup were subsequently
-tested after waking the service with a normal page request; this is not a
-recurring job.
+ssh` can run Python inside the deployed service, where `/data` is mounted.
+First check the service, environment, path, free space and access. An operator
+could then run the deployment guide's Python backup-API procedure there, with
+`DB_PATH=/data/list.db` and a **fresh** `BACKUP_PATH` on `/data`. The guide's
+read-only checks can also run there, including `PRAGMA integrity_check` and
+`PRAGMA foreign_key_check`. Python is available in this app. Do not assume the
+`sqlite3` CLI binary is installed in the deployed image. **Do not run queries
+or download production data merely to check whether the CLI works.**
 
-After creating and verifying a snapshot file, use
+The service was sleeping when metadata was first checked. After a normal page
+request woke it, SSH access and a one-off backup were tested. This was not a
+test of a recurring job.
+
+Create and verify a snapshot before transferring it. Use
 `railway volume files --volume <volume-id> download /<unique-backup>.db
-<private-path-outside-repo>` or Railway SSH/SFTP/SCP to transfer that **backup
+<private-path-outside-repo>` or Railway SSH/SFTP/SCP to transfer the **backup
 file**, not the live `list.db`. The volume-files CLI supports noninteractive
-download and refuses to overwrite an existing local path by default. Confirm
-that volume-file paths are relative to the volume root; restrict the local
-destination and encrypt before sending to independent off-service storage.
-Verify checksum and SQLite integrity on the received copy. Do not leave
-unbounded copies on the volume. Test that the chosen transfer works with this
-service before automating it.
+download. By default, it refuses to overwrite an existing local path.
+
+Confirm that volume-file paths are relative to the volume root. Restrict the
+local destination, then encrypt the file before sending it to independent
+off-service storage. Verify the checksum and SQLite integrity of the received
+copy. Do not leave unbounded copies on the volume. Test the chosen transfer with
+this service before automating it.
 
 `railway run` injects Railway environment variables into a **local** process;
 it does not mount the remote `/data`. Running SQLite against its `DB_PATH` on

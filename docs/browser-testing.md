@@ -1,8 +1,9 @@
 # Real-browser tests
 
-`browser_tests/` uses Playwright to drive real Chromium, Firefox and WebKit
-against a separate ListR server. Each test has separate room-member and public-visitor
-browser contexts, so cookies, storage and sessions are not shared.
+`browser_tests/` uses Playwright to run tests in Chromium, Firefox and WebKit
+against a separate ListR server. Each test creates separate browser contexts
+for room members and public visitors. They do not share cookies, storage or
+sessions.
 
 ## Run
 
@@ -12,14 +13,15 @@ uv run playwright install chromium firefox webkit
 uv run pytest browser_tests -q -n 4
 ```
 
-- Four workers is the tested setting for the full suite (about one minute).
-  Give a worker count explicitly; pytest's default of eight is for the fast
+- Four workers is the documented local setting for the full suite. Runtime
+  depends on the suite and machine; see [current measurements](background/test-suite-review.md).
+  Give a worker count explicitly; pytest's default of eight is for the Python
   suite.
 - Playwright downloads its own browsers. On Linux, missing system libraries can
   be installed with `uv run playwright install --with-deps chromium firefox webkit`.
-- WebKit is the engine of every iPhone browser. Playwright's Linux WebKit is
-  close to Safari but not identical. It is our Safari check. For device checks, see the
-  [risk level](scope.md#risk-level).
+- WebKit is the engine used by every iPhone browser. Playwright's Linux WebKit
+  is close to Safari but not identical. It is our Safari check. For device
+  checks, see the [risk level](scope.md#risk-level).
 - The plain `uv run pytest -q` does not run these tests.
 
 Smaller runs while debugging:

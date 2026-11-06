@@ -1,22 +1,20 @@
 # Due-date reminders
 
-The due bell shows the items that are due, in the room or on the list on
-screen. It needs no permission and no setup, and works from saved data when
-offline. Nothing interrupts editing: there are no reminder toasts. The bell's count
-and the list counts are the due signals; date labels mark each dated item.
-Phone notifications are not built yet
-(see the [plan](../plans/due-date-reminders.md)).
+The due bell shows the items that are due in the room or list on screen. It
+needs no permission or setup, and works from saved data when offline. Editing is
+not interrupted: there are no reminder toasts. The bell's count and the list
+counts are due signals; date labels mark each dated item. Phone notifications
+are not built yet (see the [plan](../plans/due-date-reminders.md)).
 
 ## Shared due time
 
 An item can also have a time and an explicit IANA time zone. Clearing its date
 clears both. These shared edits use the existing offline queue. The item dialog
-shows **The time will be confirmed when saved** until the server confirms it,
-then **Saved time (UTC)**. Confirmed timed items become overdue after their
-confirmed instant. Other timed
-items are grouped by that instant in the configured device time zone. Before setup,
-Europe/Oslo is used for day groups. Unconfirmed edits
-use their wall date and never invent a UTC instant.
+shows **The time will be confirmed when saved** until the server confirms it. It
+then shows **Saved time (UTC)**. Confirmed timed items become overdue after
+their confirmed instant. Other timed items are grouped by that instant in the
+configured device time zone. Before setup, Europe/Oslo is used for day groups.
+Unconfirmed edits use their wall date and never invent a UTC instant.
 
 New reminder setups use Europe/Oslo, while saved time zones stay unchanged.
 Times are entered as 24-hour HH:MM. Advanced time zone controls accept IANA names.
@@ -47,9 +45,9 @@ are days in the configured device time zone (Europe/Oslo before setup). Items wi
   sorted by day, then by list name, then by item name. Each row puts the item
   name above its list name (on the room page), date and status.
 - Tapping an item opens its list with the item revealed: the tag filter and
-  the search text are cleared, and the item is focused. A short status says
-  which filter was cleared; nothing is cleared, and no status shows, when
-  neither was set.
+  search text are cleared, and the item is focused. A short status says which
+  filter was cleared. Nothing is cleared, and no status shows, when neither
+  filter was set.
 - If the item is no longer on that list, the page says so.
 - The panel is marked "Saved data" when the page cannot confirm the latest data.
 - Updates from other devices change the panel's content without moving focus.

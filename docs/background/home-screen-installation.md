@@ -7,14 +7,14 @@ That page is the source for current behavior.
 
 ## Why the root and admin routes stay separate
 
-Older iOS installs opened an admin login page on every launch. Keeping `/` as a
-public router (not the admin page) fixed that, and still lets older icons and
-non-room pages recover the last remembered room. Admin tools stay at `/admin`
-behind the global app password.
+Older iOS installs opened an admin login page on every launch. Keeping `/` as
+a public router, rather than the admin page, fixed that. It also lets older
+icons and non-room pages return to the last remembered room. Admin tools remain
+at `/admin`, behind the global app password.
 
-Room manifests only override `start_url`. Keeping `id: "/"` and `scope: "/"`
-avoids duplicate installs and keeps navigation between room and list pages
-inside the app. Separate per-room identities were rejected for that reason.
+Room manifests override only `start_url`. Keeping `id: "/"` and `scope: "/"`
+avoids duplicate installs. It also keeps navigation between room and list pages
+inside the app. Separate per-room identities were rejected for this reason.
 
 Cookies are copied into installed apps from iOS/iPadOS 17.2
 ([WebKit, Safari 17.2](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/)).
@@ -24,17 +24,17 @@ afterwards.
 ## Manifest implementation
 
 `src/main.py` serves `/room-manifest/{slug}.json` from the same base manifest
-as `/manifest.json` and `/static/manifest.json`. Room manifest responses are not
-cacheable; unknown or deleted rooms return 404. Each page adds exactly one
-manifest link per client, before any browser-storage awaits, so it is in the
+as `/manifest.json` and `/static/manifest.json`. Room manifest responses are
+not cacheable. Unknown or deleted rooms return 404. Each page adds exactly one
+manifest link per client before any browser-storage awaits. The link is in the
 initial page head.
 
 ## Tokens and authorization
 
 `src/database_crud.py` checks bcrypt room-password hashes and issues opaque
-random tokens. SQLite stores each token's hash, room ID and the room's
-authorization version. A password change or reset increments the version and
-deletes old tokens in the same transaction. Tokens survive server restarts.
+random tokens. SQLite stores each token's hash, room ID and room authorization
+version. A password change or reset increments the version and deletes old
+tokens in the same transaction. Tokens survive server restarts.
 
 `src/room_access.py` builds the private-page authorization context. Private
 reads and writes validate the token against the database instead of trusting

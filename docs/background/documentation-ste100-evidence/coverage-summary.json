@@ -1,0 +1,18 @@
+{
+  "baseline_paths": 476,
+  "baseline_kinds": {
+    "excluded": 59,
+    "source-comment-candidate": 327,
+    "page": 66,
+    "shared-plan": 24
+  },
+  "final_disposition_groups": {
+    "excluded/no explanatory prose": 60,
+    "suitable": 285,
+    "rewritten": 52,
+    "partly protected": 79
+  },
+  "deferred": 0,
+  "blocked_prose_paths": 0,
+  "all_independent_unchanged_source_coverage": "sampled except one full Android file; see per-path rows"
+}

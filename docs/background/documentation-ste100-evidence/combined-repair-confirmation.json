@@ -1,0 +1,62 @@
+[
+  {
+    "repair": "api_general_privacy",
+    "path": "docs/api-reminders.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "Nothing here is shared."
+  },
+  {
+    "repair": "baseline_repair",
+    "path": "AGENTS.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "fix the baseline with approval before starting work."
+  },
+  {
+    "repair": "dialog_not_row_claim",
+    "path": "browser_tests/test_svelte_tags.py",
+    "present_in_combined_candidate": true,
+    "checked_text": "the dialog chips update at once."
+  },
+  {
+    "repair": "passive_historical_attribution",
+    "path": "docs/background/nicegui-test-retirement.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "its business rules were located in the API and unit tests."
+  },
+  {
+    "repair": "general_cookie_consequence",
+    "path": "docs/background/deploy-rehearsal-2026-10-06.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "so no one has to sign in to a room again."
+  },
+  {
+    "repair": "quoted_waited",
+    "path": "docs/background/offline-editing-details.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "\"Waited\" if"
+  },
+  {
+    "repair": "quoted_stale",
+    "path": "docs/item-writes.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "\"stale\""
+  },
+  {
+    "repair": "privacy_condition",
+    "path": "docs/public-sharing.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "For those browsers, nothing on the page or in the API answer names the room."
+  },
+  {
+    "repair": "historical_counterfactual",
+    "path": "docs/background/field-constraints.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "If any row had broken a rule, the migration would have stopped with those counts and rolled back."
+  },
+  {
+    "repair": "original_quoted_hide_mode",
+    "path": "docs/background/field-constraints.md",
+    "present_in_combined_candidate": true,
+    "checked_text": "\"hide after N days\""
+  }
+]

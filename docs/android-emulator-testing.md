@@ -1,9 +1,9 @@
 # Opt-in Android emulator checks
 
-These checks use a **disposable Android virtual phone**, not production or the
-local `list.db`. They do not run in `uv run pytest -q`. Together with the
-[browser suite](browser-testing.md) they are our phone evidence; real-device
-checks: see the [risk level](scope.md#risk-level).
+These checks run on a **disposable Android virtual phone**. They do not use
+production or the local `list.db`, and they do not run in `uv run pytest -q`.
+Along with the [browser suite](browser-testing.md), they provide our phone
+evidence. For real-device checks, see the [risk level](scope.md#risk-level).
 
 ## Local setup
 

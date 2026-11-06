@@ -21,8 +21,7 @@ copying it.
 
 - [Local setup and app development](../README.md)
 - [Deployment, backups, and recovery](deployment.md)
-- Tests: [real browsers](browser-testing.md) and
-  [Android emulator](android-emulator-testing.md)
+- [Testing guide](testing.md): test layers, commands, reliability, and limits
 - [Scope and approval gates](scope.md)
 - [Agent rules](../AGENTS.md)
 

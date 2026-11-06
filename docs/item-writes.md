@@ -1,17 +1,17 @@
 # Item writes and stale pages
 
-Several people can have the same list open. A page can be "stale": it shows an
+Several people can have the same list open. A page is "stale" when it shows an
 older state than the database. These rules stop a stale page from overwriting
 newer changes or writing half an update.
 
 ## Core rules
 
-- **Check identity inside the write.** Room writes find lists and items by
-  their public `uid`, which is never reused. Share links are checked in the same
-  transaction as the change. A stale page gets an error and nothing changes.
+- **Check identity inside the write.** Room writes find lists and items by their
+  public `uid`, which is never reused. Share links are checked in the same
+  transaction as the change. A stale page gets an error, and nothing changes.
 - **Send intent, not a whole value.** Buttons send "add 1" or "toggle tag X",
-  not the full value the page last saw. The database applies it to the current
-  data.
+  not the full value the page last saw. The database applies the intent to the
+  current data.
 - **One transaction per user action.** Multi-field changes either all succeed
   or all roll back. Failed writes leave no open transaction.
 - **Late edits are checked.** A rename, edit or tick carries the `changed_seq`
@@ -40,21 +40,21 @@ their `_locked` variants inside one write transaction, so each rule has one copy
 
 ## Field rules
 
-Text is trimmed first. Item names keep their case; the server derives a
-Python `lower()` key for duplicate checks. Text and count limits, with their
-error codes, are in [rejection codes](api-lists-items.md#rejection-codes). The Svelte
+Text is trimmed first. Item names keep their case. The server derives a Python
+`lower()` key for duplicate checks. Text and count limits, with their error
+codes, are in [rejection codes](api-lists-items.md#rejection-codes). The Svelte
 inputs use the same text limits (`maxlength`).
 
 Unchecking an item, or adding a tag the list already has, still works when the
 list is full.
 
-The database guards the same rules as a safety net: `BEFORE INSERT` and
+The database guards the same rules as a safety net. `BEFORE INSERT` and
 `BEFORE UPDATE` triggers reject blank or untrimmed names, a missing duplicate
 key, missing slugs, quantities below 1, `done` other than 0 or 1, a completion
 time on an unchecked item, and tags that are not a JSON array. The item-name
 guards use registered Python functions to require Python-trimmed names and a
 matching Python `lower()` key. Other SQLite connections can read the database
-and update other item fields; connections that insert or rename items must
+and update other item fields. Connections that insert or rename items must
 register the same functions.
 
 Migration 13 records the key algorithm and Unicode-data versions. Startup backs

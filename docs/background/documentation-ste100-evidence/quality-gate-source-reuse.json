@@ -1,0 +1,1550 @@
+{
+  "gate_source_revision": "ontwsnzu/5d59817d",
+  "comparison": "All386 baseline non-Markdown/Allium paths byte-identical after shared-plan-only merge",
+  "paths": [
+    {
+      "path": ".codex",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": ".dockerignore",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": ".env.example",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": ".gitignore",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": ".python-version",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "Dockerfile",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "android_tests/test_android_chrome.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/conftest.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/svelte_app.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_browser_sessions.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_old_service_worker.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_accessibility.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_admin.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_bottom_bar.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_compat.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_deleted_lists.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_dialog.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_due_center.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_due_center_phone.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_hide_done.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_install_browser.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_invitations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_item_date.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_item_sort.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_items.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_live.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_offline.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_offline_conflicts.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_offline_multidevice.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_offline_reconnect.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_old_urls.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_phone_fixes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_policy_editor.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_private_reminders.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_restart.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_room_management.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_room_switcher.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_rooms.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_service_worker.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_share.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_tags.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_tap_targets.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_theme.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_timed_due_offline.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_times_added.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "browser_tests/test_svelte_toasts.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/.gitignore",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/.node-version",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/.npmrc",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/.prettierignore",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/eslint.config.js",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/package.json",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/prettier.config.js",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/app-colors.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/app.css",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/app.d.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/app.html",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/hooks.client.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/AdminDeleteRoomDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/AdminInvitations.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/AdminLogin.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/AdminRooms.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/CreateRoomDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/InvitationDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/ResetPasswordDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/admin-links.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/admin-links.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/failure.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/invitations.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/admin/invitations.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/add-count.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/admin.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/admin.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/api.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/api.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/backoff.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/compat.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/compat.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/events.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/events.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/feed.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/ids.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/ids.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/index.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/index.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/invitation.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/invitation.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/item-date.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/item-date.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/last-room.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/messages.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/not-saved.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/not-saved.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/offline-integration.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/order.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/order.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/overlay.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/overlay.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/pending-logout.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/queue-entries.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/queue-storage.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/queue-storage.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/queue-view.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/rebase.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/rebase.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/result.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/result.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/room-lifetime.svelte.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/room-signin.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/room-store.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/room-store.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/session-transition.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/share.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/share.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/snapshot-idb.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/snapshot-store.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/snapshot-store.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/snapshot-validate.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/snapshot-validate.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/standalone-session.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/status.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/status.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/test-helpers.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/types.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/visibility.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/visibility.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/write-queue.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/data/write-queue.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/install/InstallHelpDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/install/manifest.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/install/manifest.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/invitation/CreateRoomForm.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/AddItem.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/DueCenter.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/HideDoneSettings.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ItemDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ItemDialog.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ItemRow.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ListHeader.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ListMenu.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ListOptions.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ListTags.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/ListView.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/OptionDialogRow.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/TagDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/TagsDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/due-clock.svelte.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/due-clock.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/due-reminders.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/due-reminders.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/hide-done.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/hide-done.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/hold-order.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/hold-order.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/items.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/items.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/reveal.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/reveal.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/search.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/search.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/tags.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/tags.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/time-zone.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/time-zone.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/visible-items.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/list/visible-items.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/PolicyEditor.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/ReminderSettings.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/api.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/api.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/device-zone.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/personal-reminders.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/rule-edit.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/rule-edit.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/rules.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/reminders/rules.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room-link.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room-link.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/ChangePasswordDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/DeleteRoomDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/PageShell.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/RoomHeader.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/RoomLists.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/RoomLogin.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/RoomMenu.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/RoomSwitcher.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/SavedChanges.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/remembered-rooms.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/room/remembered-rooms.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/service-worker.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/service-worker.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/setup.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/stale-build.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/stale-build.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/AppearanceDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/BackLink.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/BottomBar.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/Brand.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/ConfirmDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/ConnectionStatus.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/Dialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/FormDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/Icon.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/LoadError.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/MenuButton.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/NameDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/NeedsConnection.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/PasswordPrompt.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/SavedViewNotice.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/ShareDialog.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/ThemeMenuItem.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/ThemeToggle.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/Toast.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/UnsentMark.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/UpdateNotice.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/field-limits.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/field-limits.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/focus.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/notice-toasts.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/share.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/share.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/theme.svelte.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/theme.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/theme.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/theme.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/toasts.svelte.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/toasts.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/ui/undo-toast.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/worker-routes.test.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/lib/worker-routes.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/+error.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/+layout.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/+layout.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/admin/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/create-room/[token]/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/list/[slug]/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/room/[slug]/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/room/[slug]/list/[list]/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/routes/share/[token]/+page.svelte",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/src/service-worker.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/static/robots.txt",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/tsconfig.service-worker.json",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "frontend/vite.config.ts",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "pyproject.toml",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "scripts/build_docs_site.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "scripts/deploy_backup.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "scripts/generate_app_icons.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "scripts/seed_test_data.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "scripts/serve_svelte_local.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "skills-lock.json",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/admin_access.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/__init__.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/access.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/admin.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/changes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/cookies.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/errors.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/events.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/idempotency.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/invitations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/ops.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/reminder_policies.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/reminders.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/requests.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/room.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/session.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/share.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/sign_in_limit.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/api/version.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/config.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/database_crud.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/database_setup.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/field_limits.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/health.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/identifiers.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/install_manifest.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/item_names.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/item_visibility.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/live_updates.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/main.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/migrations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/password_hashing.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/pwa_routes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/__init__.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/due_schedule.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/identity.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/policies.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/preview.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/rules.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/reminders/zoned_time.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/room_cookies.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/room_invitations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/security_headers.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/server.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/sign_in_limiter.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/icon.svg",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/icons/apple-touch-icon.png",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/icons/favicon-16.png",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/icons/favicon-32.png",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/icons/icon-192.png",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/icons/icon-512.png",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/static/manifest.json",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "src/svelte_frontend.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/api_helpers.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/conftest.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/migration_helpers.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/server_launcher.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_admin.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_admin_session.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_basics.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_changes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_concurrency.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_conflicts.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_events.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_idempotency.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_invitations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_item_ops.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_list_ops.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_name_case.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_reminders.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_reminders_review.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_room.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_session.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_share.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_tag_ops.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_tag_settings.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_api_version.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_change_tracking.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_config.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_cookie_headers.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_count_limits.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_database_crud.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_database_setup.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_deletion_pruning.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_deploy_backup.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_docs_site_build.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_due_cycle_start.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_field_limits.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_field_rules_migration.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_healthz.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_date.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_due_time.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_edits.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_ids.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_name_capitalization_migration.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_renames.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_undo.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_uniqueness.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_item_visibility.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_list_names.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_list_renames.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_migrations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_offline_schema_migration.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_password_checks_outside_lock.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_password_hashes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_positive_visibility_migration.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_public_share_tokens.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_pwa_routes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_quantity_updates.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_reminders_identity_migration.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_reminders_policies.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_reminders_preview.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_reminders_rules.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_reminders_zoned_time.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_room_cookies.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_room_invitations.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_room_password_minimum.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_room_token_validation.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_rooms.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_security_headers.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_seed_test_data.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_serve_svelte_local.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_server_shutdown.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_share_seq.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_sign_in_limiter.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_sign_in_rate_limit.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_svelte_frontend_routes.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_tag_settings_migration.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_tags.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_times_added.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "tests/test_write_atomicity_cross_path.py",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "uv.lock",
+      "quality_gate_source_bytes_unchanged": true
+    },
+    {
+      "path": "zensical.toml",
+      "quality_gate_source_bytes_unchanged": true
+    }
+  ]
+}

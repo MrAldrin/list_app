@@ -1,0 +1,59 @@
+# Historical prose batch H2 — writer report
+
+Workspace: `/home/hsa/projects/list_app-night-docs-history2`  
+Requested model settings verified at launch: `PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`.  
+Scope: the 18 assigned first-party historical pages only.  
+No formal STE100 compliance claim is made.
+
+## Individual page dispositions
+
+1. `docs/background/improvement-review-2026-10/accounts.md` — **suitable**. Read the full candidate and confirmed its option descriptions, risks, recommendations, and owner decisions are already direct enough for this historical design record. No wording needed changing.
+2. `docs/background/improvement-review-2026-10/backend.md` — **suitable**. This is a deliberately condensed technical issue list. Its proposals, priorities, code identifiers, and verification qualifiers are compact and clear; preserved as written.
+3. `docs/background/improvement-review-2026-10/docs.md` — **partly protected**. The audit findings and proposals are clear in context. Kept the dated audit, estimates, code references, tables, and orchestrator correction intact; no wording change was needed.
+4. `docs/background/improvement-review-2026-10/features.md` — **suitable**. The research caveats, feature matrix, effort/value proposals, and source list are concise. No wording change was needed.
+5. `docs/background/improvement-review-2026-10/frontend.md` — **suitable**. This is a compact technical findings summary with explicit priorities and evidence references. Preserved it as written.
+6. `docs/background/improvement-review-2026-10/perf-security.md` — **rewritten**. Clarified the opening measurement caveat by splitting the single long note into short sentences. Kept the single-run limitation, 16-core machine qualification, `.env` value, reloader-parent qualification, and re-measurement statement unchanged in meaning.
+7. `docs/background/improvement-review-2026-10/tooling.md` — **suitable**. The concise prioritized findings and recommendations are already readable. No wording change was needed.
+8. `docs/background/improvement-review-2026-10/ux.md` — **partly protected**. The findings are already clearly divided into evidence, impact, proposal, effort, and risk. Preserved its measurements, screenshot references, accessibility qualifications, and owner decisions.
+9. `docs/background/offline-editing-details.md` — **rewritten**. Recast two sentences in “Sending waiting changes” in direct active voice and clarified the definition of “waited.” Kept the 10-second boundary, ordering, queue behavior, and rule references unchanged.
+10. `docs/background/offline-viewing-validation.md` — **partly protected**. The historical approval limits, exact source/change references, local-only evidence, failures, and remaining verification are explicit. No prose change was needed.
+11. `docs/background/reminder-delivery-verification.md` — **partly protected**. The dated delivery record distinguishes reviewed stages, local checks, incomplete combined work, and actual-device limitations. Preserved all exact outcomes and qualifications.
+12. `docs/background/reminder-overnight-status.md` — **partly protected**. The stage table and closeout record clearly separate completed evidence from outstanding work and deployment authority. No prose change was needed.
+13. `docs/background/reminder-redesign-research.md` — **suitable**. The research findings, source limitations, recommendations, and unverified claims are stated directly. No wording change was needed.
+14. `docs/background/reminders-p2-validation.md` — **partly protected**. This validation record clearly separates passed checks, the known baseline timeout, skipped browser scenarios, and acceptance state. Preserved all counts and outcomes.
+15. `docs/background/svelte-frontend-rewrite.md` — **partly protected**. The opening history is clear; the long numbered decision log is historical technical evidence. Preserved the complete table, dates, identifiers, and implementation qualifications.
+16. `docs/background/test-suite-review.md` — **partly protected**. The report carefully distinguishes inventory from deep review, first-run failures from reruns, and a mechanism-level diagnostic from a proven cause. No wording change was needed.
+17. `docs/background/test-suite-speed.md` — **partly protected**. The document is a detailed measurement history. Preserved its tables, commands, repeated-run qualifications, recommendations, and explicit uncertainty rather than compressing evidence.
+18. `docs/background/write-atomicity-findings.md` — **partly protected**. The findings table and sequential verification notes preserve distinct confirmed, unresolved, and out-of-scope results. No wording change was needed.
+
+No page was deferred, blocked, or found to contain no prose.
+
+## Changes
+
+- `docs/background/improvement-review-2026-10/perf-security.md`
+- `docs/background/offline-editing-details.md`
+
+The remaining 16 pages were read in full and left unchanged because their prose was already suitable or was tightly coupled to historical evidence and protected technical detail. No headings, anchors, links, URLs, paths, inline code, numbers, tables, checklists, identifiers, quotations, raw evidence, commands, or fenced blocks were edited. No contradiction was resolved and no historical fact was updated to present-day status.
+
+## Preservation and workspace record
+
+- Before editing, read-only `cmp` inspection found all 18 working candidates byte-identical to their corresponding full originals under `/tmp/night-docs-originals/`. Therefore the full original text reviewed was the same text as the initial candidate text.
+- The final read-only `jj diff` showed only the two files listed above and only the three prose-block replacements described above. I inspected those diff hunks to confirm protected content around them stayed unchanged. This was a manual diff review; no automated protected-token extractor was run.
+- No tests, docs build, app, service, dependency installation, or other validation check was run. The task prohibited checks and did not require app runs.
+- `jj status` showed only the two intended working-copy modifications. `git diff --cached --name-only` returned no paths. No files are staged. No jj/git mutation, commit, bookmark move, or shared-plan/report edit was made.
+- The independent review gate remains pending for the parent/reviewer.
+
+## Commands and read-only inspection
+
+- Verified launch environment: `printf 'PI_PROVIDER=%s\\nPI_MODEL=%s\\nPI_REASONING_LEVEL=%s\\n' "$PI_PROVIDER" "$PI_MODEL" "$PI_REASONING_LEVEL"` — observed `openai`, `gpt-6-luna`, `xhigh`.
+- Read-only workspace inspection: `jj status`, `jj bookmark list`, `jj log -r 'heads(::@)' --no-graph`.
+- Baseline original/candidate comparison: `cmp -s` across all 18 assigned paths — no differing paths.
+- Final diff and scope inspection: `jj status`, `jj diff --stat`, `jj diff` — only the two intended files above.
+- Staging inspection: `git diff --cached --name-only` — empty.
+- File-presence inspection confirmed all 18 originals and all 18 candidates were present.
+
+## Risks and next step
+
+Residual risk: the report relies on manual diff inspection rather than a programmatic protected-token comparison. The assigned changes do not touch protected regions, but the independent reviewer should confirm source fidelity and prose meaning. No substantive historical uncertainty or conflict was adjudicated.
+
+Recommended next step: have the independent reviewer compare the two prose diffs with the originals and confirm the 18 dispositions before parent integration.

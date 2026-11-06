@@ -1,0 +1,577 @@
+# First-party prose inventory — approved Task2
+
+## Runtime and inventory boundary
+
+- Effective selection (reported first): `PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`.
+- Inventory baseline: commit `affacd8e`, the approved `night-docs` starting tree. The tracked tree has 476 paths; all Git tree modes are `100644` regular files. No symlink was followed.
+- Inventory paths below are relative to `/home/hsa/projects/list_app-night-docs`; shared plan paths are written as full paths under `/home/hsa/projects/list_app`.
+- This is a coverage inventory, not a semantic review. No page is marked suitable, rewritten, or fact-checked. Manually read for context: `AGENTS.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `README.md`, `docs/scope.md`, `docs/allium/public-sharing.allium`, and `frontend/README.md`; the two required shared task plans were read as instructions. The other 59 non-plan prose bodies are unread/deferred; their word/line/title values are mechanical scan metadata. No source-comment file received a complete semantic review; defer all 327 comment-bearing candidates. Audience/authority labels use paths, titles, and explicit project authority links where read; they do not certify current factual accuracy.
+- The exact shared `plans/documentation-ste100.md` and `plans/night-run.md` were read from `/home/hsa/projects/list_app/plans/` for the assignment and limits. Other shared plan bodies were not reviewed. All 24 shared plan paths remain Lead-owned and await an ownership/write window.
+- `.codex` was checked with `lstat`: tracked regular file, zero bytes. `CLAUDE.md` was checked as a regular file before reading. The ignored `.env` was not opened; `.env.example` is a tracked placeholder file, not a secret.
+- Parent steering received during this run: calibration writer/reviewer is done with one conditional fix. This inventory is the batch-routing input; it does not evaluate that fix or deep-review pages. The parent later advanced the workspace beyond `affacd8e` with the calibration changes (current parent change observed: `f78ffe99`); the final `jj status` was clean and `git diff --cached` was empty. The inventory remains pinned to `affacd8e`; this worker made no repository edits and did not touch the graph or index. Parent changes were not semantically reviewed here.
+
+## Scope totals
+
+| Category | Count | Volume / treatment |
+|---|---:|---|
+| Tracked Markdown / Allium prose paths | 90 | 66 non-plan files are scanned below; 24 shared plans are listed separately and await Lead ownership. |
+| Non-plan Markdown / Allium | 66 | About 79,706 tokenized words across 66 files; includes headings, code blocks, tables and identifiers. |
+| Tracked first-party code/config candidates scanned for comments/docstrings | 374 | 327 have recognized comment/docstring locations; 47 have no recognized marker and are listed as excluded/no prose. |
+| Other tracked assets/config with no prose body | 12 | Paths listed below; executable configuration, versions, binary icons, or empty file. |
+
+Comment scan coverage by path group: `.env.example` 1, `.gitignore` 1, `Dockerfile` 1, `android_tests` 1, `browser_tests` 39, `frontend` 160, `scripts` 3, `src` 46, `tests` 74, `zensical.toml` 1.
+The source marker count is a location count, not a word count or a semantic classification: test section labels, formatter/type directives, suppression comments, and strings resembling comment syntax may need filtering before assignment. Code, configuration values, app UI string literals, tests, and generated files are not prose-edit targets.
+
+Volume bands for the file tables: `S` under 500 words, `M` 500–1,999, `L` 2,000 or more. Word counts are approximate scan counts, not reading-time guarantees.
+
+## Non-plan documentation: path-by-path inventory
+
+Each row is inventory-only and awaiting a page-level semantic review. Protected-content labels identify what must be preserved; exact spans are not mapped here. Apart from the seven manually read paths listed above, the prose in these rows is unread/deferred. `E` means historical evidence; `F` formal specification; `I` instruction fidelity; `P` API/protocol structure; `A` commands, examples, values, identifiers, paths, links, warnings or conditions.
+
+| Path | Audience | Status / authority class | Owner | Volume | Protected material |
+|---|---|---|---|---|---|
+| `AGENTS.md` | Agents, maintainers, task owners | Current instruction / approval authority; **inventory only** | Project instruction authority; Task2 Conductor review; writer not assigned | ~1,282 words / 165 lines (M) | O: obligations, permissions, exceptions, approval boundaries, numbers and links |
+| `ARCHITECTURE.md` | Owner, contributors, app users | Current high-level authority / navigation; **inventory only** | Project documentation; Task2 Conductor inventory; writer not assigned | ~1,287 words / 144 lines (M) | A: stack/security decisions, setup commands, paths, URLs, warnings and examples |
+| `CLAUDE.md` | Agents, maintainers, task owners | Current instruction / approval authority; **inventory only** | Project instruction authority; Task2 Conductor review; writer not assigned | ~118 words / 16 lines (S) | O: obligations, permissions, exceptions, approval boundaries, numbers and links |
+| `README.md` | Owner, contributors, app users | Current high-level authority / navigation; **inventory only** | Project documentation; Task2 Conductor inventory; writer not assigned | ~1,090 words / 175 lines (M) | A: stack/security decisions, setup commands, paths, URLs, warnings and examples |
+| `docs/adding-items.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~294 words / 32 lines (S) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/allium/README.md` | Specification authors and reviewers | Optional pilot / proposal notes; **inventory only** | Task2 Conductor inventory; pilot owner not identified here | ~133 words / 15 lines (S) | P: Allium syntax, examples, named boundaries and links |
+| `docs/allium/public-sharing.allium` | Specification authors and reviewers | Draft / proposed formal specification; **inventory only** | Task2 Conductor inventory; pilot owner not identified here | ~285 words / 86 lines (S) | F: formal structure, constraints, conditions, guarantees and model identifiers |
+| `docs/android-emulator-testing.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~423 words / 66 lines (S) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `docs/api-admin.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~496 words / 54 lines (S) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/api-lists-items.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~1,923 words / 185 lines (M) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/api-reminders.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~2,175 words / 265 lines (L) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/api-rooms.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~741 words / 87 lines (M) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/api-sharing.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~742 words / 91 lines (M) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/api-sync.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~483 words / 71 lines (S) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/api.md` | Frontend and API developers | Current API contract (by document role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~846 words / 111 lines (M) | P: routes, fields, schemas, status/error values, examples and protocol details |
+| `docs/background/android-emulator-testing.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~167 words / 23 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/backup-research.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,070 words / 99 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/browser-test-port-map.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~517 words / 59 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/browser-testing.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~608 words / 77 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/codebase-cleanup.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,309 words / 171 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/deploy-rehearsal-2026-10-06.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~795 words / 70 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/field-constraints.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,444 words / 167 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/fixes-deployment-2026-10-06.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~251 words / 44 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/home-screen-installation.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~576 words / 81 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/accounts.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~3,412 words / 367 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/backend.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~301 words / 16 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/docs.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~3,530 words / 354 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/features.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~2,142 words / 153 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/frontend.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~341 words / 17 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/perf-security.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~2,895 words / 160 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/tooling.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~265 words / 16 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/improvement-review-2026-10/ux.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~2,854 words / 292 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/item-writes.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~497 words / 60 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/nicegui-test-retirement.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~672 words / 62 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/offline-editing-details.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,895 words / 205 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/offline-editing-release-validation.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~240 words / 35 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/offline-findings.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~413 words / 54 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/offline-viewing-validation.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,251 words / 154 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/reminder-delivery-verification.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,317 words / 156 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/reminder-overnight-status.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~966 words / 107 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/reminder-redesign-research.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~1,614 words / 220 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/reminders-p2-validation.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~490 words / 68 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/sqlite-wal-timeout.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~960 words / 108 lines (M) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/staging-environment.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~362 words / 55 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/svelte-frontend-rewrite.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~12,571 words / 242 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/svelte-rollback.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~212 words / 29 lines (S) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/test-suite-review.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~3,711 words / 392 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/test-suite-speed.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~4,751 words / 340 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/background/write-atomicity-findings.md` | Maintainers and future investigators | Historical record / research / validation evidence; **inventory only** | Task2 inventory only; originating authors not identified here | ~2,484 words / 63 lines (L) | E: dates, exact refs, raw commands/logs/measurements, quotes and reported-vs-verified distinctions; exact spans unmapped |
+| `docs/browser-testing.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~753 words / 113 lines (M) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `docs/change-tracking.md` | Developers and maintainers | Current technical behavior guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~537 words / 66 lines (M) | A: identifiers, sequence semantics, examples, numbers and links |
+| `docs/checked-item-visibility.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~409 words / 22 lines (S) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/deployment.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~1,876 words / 273 lines (M) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `docs/due-date-reminders.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~701 words / 90 lines (M) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/home-screen-installation.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~953 words / 115 lines (M) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `docs/index.md` | Owner, contributors, app users | Current high-level authority / navigation; **inventory only** | Project documentation; Task2 Conductor inventory; writer not assigned | ~264 words / 45 lines (S) | A: stack/security decisions, setup commands, paths, URLs, warnings and examples |
+| `docs/item-sorting.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~309 words / 25 lines (S) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/item-writes.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~932 words / 78 lines (M) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/local-network-testing.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~793 words / 120 lines (M) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `docs/offline-viewing.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~710 words / 88 lines (M) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/preview-exclusions.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~166 words / 22 lines (S) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `docs/public-sharing.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~493 words / 59 lines (S) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/room-invitations.md` | List app users; contributors where linked | Current user-facing behavior / help guide (by role/title); **inventory only** | Task2 Conductor inventory; writer not assigned | ~515 words / 37 lines (M) | A: behavior conditions, labels, commands, routes, examples, numbers and links |
+| `docs/scope.md` | Agents, maintainers, task owners | Current instruction / approval authority; **inventory only** | Project instruction authority; Task2 Conductor review; writer not assigned | ~406 words / 57 lines (S) | O: obligations, permissions, exceptions, approval boundaries, numbers and links |
+| `docs/testing.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~440 words / 55 lines (S) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+| `frontend/README.md` | Contributors, testers and operators | Current developer / tester / operator guide; **inventory only** | Task2 Conductor inventory; writer not assigned | ~248 words / 50 lines (S) | A: commands, environment/config values, paths, URLs, numbers, prerequisites and warnings |
+
+### Shared plan ownership queue (authoritative desk paths)
+
+All rows below are Lead-owned per the task handoff. Status: **awaiting ownership/write-window release; not reviewed for wording or suitability**. Byte size is `lstat` metadata only, not a content review. The task brief and overnight run record were read as instructions, not given a page rewrite disposition.
+
+| Authoritative shared path | Owner / status | Volume | Protected / authority note |
+|---|---|---:|---|
+| `/home/hsa/projects/list_app/plans/advanced_sharing.md` | Lead; awaiting release; not reviewed (regular file) | 1,962 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/backlog.md` | Lead; awaiting release; not reviewed (regular file) | 10,086 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/backup-options.md` | Lead; awaiting release; not reviewed (regular file) | 5,170 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/batches/reminders-polish.md` | Lead; awaiting release; not reviewed (regular file) | 5,540 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/batches/reminders-s1.md` | Lead; awaiting release; not reviewed (regular file) | 16,960 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/batches/reminders-s2.md` | Lead; awaiting release; not reviewed (regular file) | 20,341 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/batches/reminders-s3.md` | Lead; awaiting release; not reviewed (regular file) | 9,910 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/batches/reminders-s4.md` | Lead; awaiting release; not reviewed (regular file) | 19,887 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/batches/reminders-s5.md` | Lead; awaiting release; not reviewed (regular file) | 10,676 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/cross-room-sharing-without-accounts.md` | Lead; awaiting release; not reviewed (regular file) | 7,512 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/decisions-for-heming.md` | Lead; awaiting release; not reviewed (regular file) | 2,509 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/documentation-ste100.md` | Lead; awaiting release; not reviewed (regular file) | 12,130 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/due-date-reminders.md` | Lead; awaiting release; not reviewed (regular file) | 55,834 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/improvement-ideas.md` | Lead; awaiting release; not reviewed (regular file) | 15,568 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/jj-history-review.md` | Lead; awaiting release; not reviewed (regular file) | 9,947 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/named-item-groups.md` | Lead; awaiting release; not reviewed (regular file) | 5,078 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/night-run.md` | Lead; awaiting release; not reviewed (regular file) | 7,303 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/optional-accounts.md` | Lead; awaiting release; not reviewed (regular file) | 9,390 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/paste-text-to-list.md` | Lead; awaiting release; not reviewed (regular file) | 7,646 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/reminders-s3-scope-review.md` | Lead; awaiting release; not reviewed (regular file) | 8,255 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/test-suite-review.md` | Lead; awaiting release; not reviewed (regular file) | 14,622 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/test-suite-speed.md` | Lead; awaiting release; not reviewed (regular file) | 9,252 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/theme-exploration.md` | Lead; awaiting release; not reviewed (regular file) | 9,554 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+| `/home/hsa/projects/list_app/plans/visual-refresh.md` | Lead; awaiting release; not reviewed (regular file) | 2,423 bytes | Plan/backlog/execution authority; retain required distinctions and protected values. No wording review. |
+
+## Source comment/docstring candidates: path-by-path scan
+
+The base-tree scan covered Python comments and AST docstrings, JS/TS/Svelte/CSS/HTML comments, plus explanatory hash comments in tracked shell/config files. Candidate volumes are comment/docstring locations, not prose word counts. Every listed file remains owned by its corresponding source/test/config maintainer; no per-file writer is assigned. Do not change executable statements, configuration values, test assertions, or user-facing code strings.
+
+Risk and preservation note: authentication, room access, sharing, offline queues, migrations, service-worker behavior, API boundaries and test comments can encode implementation constraints or evidence. Keep the original code owner and perform an independent behavior/permission fidelity review before any comment rewrite. Test comments are inventory candidates, not permission to alter tests.
+
+| Source path | Comment/docstring locations detected | Audience / authority / owner | Protected material |
+|---|---:|---|---|
+| `.env.example` | 11 | Build/config maintainers; config owner not identified | Configuration values, ignore rules, environment names, and exact policy semantics |
+| `.gitignore` | 7 | Build/config maintainers; config owner not identified | Configuration values, ignore rules, environment names, and exact policy semantics |
+| `Dockerfile` | 3 | Build/config maintainers; config owner not identified | Configuration values, ignore rules, environment names, and exact policy semantics |
+| `android_tests/test_android_chrome.py` | 14 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/conftest.py` | 24 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/svelte_app.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_browser_sessions.py` | 4 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_old_service_worker.py` | 10 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_accessibility.py` | 6 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_admin.py` | 12 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_bottom_bar.py` | 4 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_compat.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_deleted_lists.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_dialog.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_due_center.py` | 16 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_due_center_phone.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_hide_done.py` | 10 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_install_browser.py` | 8 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_invitations.py` | 11 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_item_date.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_item_sort.py` | 12 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_items.py` | 46 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_live.py` | 17 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_offline.py` | 27 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_offline_conflicts.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_offline_multidevice.py` | 23 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_offline_reconnect.py` | 28 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_old_urls.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_phone_fixes.py` | 14 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_policy_editor.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_private_reminders.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_restart.py` | 6 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_room_management.py` | 12 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_room_switcher.py` | 19 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_rooms.py` | 23 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_service_worker.py` | 29 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_share.py` | 25 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_tags.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_tap_targets.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_theme.py` | 15 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_timed_due_offline.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_times_added.py` | 4 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `browser_tests/test_svelte_toasts.py` | 20 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `frontend/.gitignore` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/eslint.config.js` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/prettier.config.js` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/app-colors.test.ts` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/app.css` | 24 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/app.d.ts` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/app.html` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/hooks.client.ts` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/AdminDeleteRoomDialog.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/AdminInvitations.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/AdminLogin.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/AdminRooms.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/CreateRoomDialog.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/InvitationDialog.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/ResetPasswordDialog.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/admin-links.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/failure.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/admin/invitations.ts` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/add-count.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/admin.ts` | 12 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/api.ts` | 29 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/backoff.ts` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/compat.svelte.ts` | 21 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/events.test.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/events.ts` | 39 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/feed.ts` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/ids.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/ids.ts` | 8 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/index.test.ts` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/index.ts` | 105 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/invitation.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/item-date.ts` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/messages.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/not-saved.ts` | 24 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/offline-integration.test.ts` | 24 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/order.ts` | 29 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/overlay.ts` | 42 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/pending-logout.ts` | 14 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/queue-entries.ts` | 26 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/queue-storage.test.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/queue-storage.ts` | 28 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/queue-view.svelte.ts` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/rebase.ts` | 28 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/result.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/room-lifetime.svelte.test.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/room-signin.ts` | 13 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/room-store.svelte.ts` | 111 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/room-store.test.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/session-transition.ts` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/share.test.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/share.ts` | 19 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/snapshot-idb.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/snapshot-store.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/snapshot-store.ts` | 15 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/snapshot-validate.ts` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/standalone-session.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/status.ts` | 20 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/test-helpers.ts` | 17 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/types.ts` | 32 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/visibility.test.ts` | 8 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/visibility.ts` | 19 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/write-queue.test.ts` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/data/write-queue.ts` | 80 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/install/InstallHelpDialog.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/install/manifest.ts` | 10 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/invitation/CreateRoomForm.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/AddItem.svelte` | 19 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/DueCenter.svelte` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/HideDoneSettings.svelte` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ItemDialog.svelte` | 11 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ItemDialog.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ItemRow.svelte` | 24 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ListHeader.svelte` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ListMenu.svelte` | 8 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ListOptions.svelte` | 8 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ListTags.svelte` | 28 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/ListView.svelte` | 54 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/TagDialog.svelte` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/TagsDialog.svelte` | 11 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/due-clock.svelte.test.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/due-clock.svelte.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/due-reminders.test.ts` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/due-reminders.ts` | 28 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/hide-done.ts` | 8 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/hold-order.test.ts` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/hold-order.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/items.test.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/items.ts` | 42 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/reveal.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/search.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/tags.test.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/tags.ts` | 35 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/time-zone.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/list/visible-items.ts` | 11 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/reminders/ReminderSettings.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/reminders/api.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/reminders/device-zone.svelte.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/reminders/rule-edit.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/reminders/rules.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room-link.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/ChangePasswordDialog.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/DeleteRoomDialog.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/PageShell.svelte` | 13 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/RoomHeader.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/RoomLists.svelte` | 11 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/RoomLogin.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/RoomMenu.svelte` | 5 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/RoomSwitcher.svelte` | 11 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/SavedChanges.svelte` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/remembered-rooms.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/room/remembered-rooms.ts` | 20 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/service-worker.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/service-worker.ts` | 29 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/setup.test.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/stale-build.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/stale-build.ts` | 23 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/AppearanceDialog.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/BackLink.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/BottomBar.svelte` | 8 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/Brand.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/ConfirmDialog.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/ConnectionStatus.svelte` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/Dialog.svelte` | 19 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/FormDialog.svelte` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/Icon.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/LoadError.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/MenuButton.svelte` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/NameDialog.svelte` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/NeedsConnection.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/PasswordPrompt.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/SavedViewNotice.svelte` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/ShareDialog.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/ThemeMenuItem.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/ThemeToggle.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/Toast.svelte` | 10 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/UnsentMark.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/UpdateNotice.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/field-limits.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/focus.ts` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/notice-toasts.svelte.ts` | 4 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/share.ts` | 24 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/theme.svelte.test.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/theme.svelte.ts` | 17 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/theme.ts` | 21 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/toasts.svelte.ts` | 18 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/toasts.test.ts` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/ui/undo-toast.ts` | 9 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/lib/worker-routes.ts` | 6 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/+error.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/+layout.svelte` | 10 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/+layout.ts` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/+page.svelte` | 16 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/admin/+page.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/create-room/[token]/+page.svelte` | 1 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/list/[slug]/+page.svelte` | 2 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/room/[slug]/+page.svelte` | 12 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/room/[slug]/list/[list]/+page.svelte` | 3 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/routes/share/[token]/+page.svelte` | 7 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/src/service-worker.ts` | 10 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `frontend/vite.config.ts` | 13 | Frontend maintainers; implementation comments; component owner not identified | Executable UI/behavior, accessibility, API names, and source constraints |
+| `scripts/deploy_backup.py` | 25 | Developer/operator; script maintainer not identified | Commands, paths, side effects, safeguards, and executable statements |
+| `scripts/seed_test_data.py` | 18 | Developer/operator; script maintainer not identified | Commands, paths, side effects, safeguards, and executable statements |
+| `scripts/serve_svelte_local.py` | 14 | Developer/operator; script maintainer not identified | Commands, paths, side effects, safeguards, and executable statements |
+| `src/admin_access.py` | 13 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/__init__.py` | 3 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/access.py` | 10 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/admin.py` | 18 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/changes.py` | 5 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/cookies.py` | 3 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/errors.py` | 10 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/events.py` | 12 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/idempotency.py` | 3 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/invitations.py` | 11 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/ops.py` | 50 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/reminder_policies.py` | 2 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/reminders.py` | 33 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/requests.py` | 8 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/room.py` | 6 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/session.py` | 8 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/share.py` | 8 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/sign_in_limit.py` | 4 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/api/version.py` | 1 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/config.py` | 3 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/database_crud.py` | 97 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/database_setup.py` | 66 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/field_limits.py` | 10 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/health.py` | 3 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/identifiers.py` | 4 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/install_manifest.py` | 3 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/item_names.py` | 6 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/item_visibility.py` | 2 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/live_updates.py` | 13 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/main.py` | 4 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/migrations.py` | 11 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/password_hashing.py` | 2 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/pwa_routes.py` | 10 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/__init__.py` | 1 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/due_schedule.py` | 10 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/identity.py` | 26 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/policies.py` | 7 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/preview.py` | 6 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/rules.py` | 9 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/reminders/zoned_time.py` | 10 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/room_cookies.py` | 5 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/room_invitations.py` | 7 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/security_headers.py` | 1 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/server.py` | 11 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/sign_in_limiter.py` | 11 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `src/svelte_frontend.py` | 23 | Backend maintainers; implementation comments; component owner not identified | Authorization/security, database/API behavior, migrations, and executable code |
+| `tests/api_helpers.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/conftest.py` | 16 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/migration_helpers.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/server_launcher.py` | 7 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_admin.py` | 21 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_admin_session.py` | 15 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_basics.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_changes.py` | 11 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_concurrency.py` | 18 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_conflicts.py` | 22 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_events.py` | 14 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_idempotency.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_invitations.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_item_ops.py` | 15 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_list_ops.py` | 11 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_name_case.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_reminders.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_reminders_review.py` | 21 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_room.py` | 10 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_session.py` | 4 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_share.py` | 29 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_tag_ops.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_tag_settings.py` | 10 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_api_version.py` | 7 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_change_tracking.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_config.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_cookie_headers.py` | 4 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_count_limits.py` | 12 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_database_crud.py` | 8 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_database_setup.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_deletion_pruning.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_deploy_backup.py` | 13 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_due_cycle_start.py` | 9 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_field_limits.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_field_rules_migration.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_healthz.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_date.py` | 8 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_due_time.py` | 19 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_edits.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_ids.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_name_capitalization_migration.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_renames.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_item_undo.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_list_names.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_list_renames.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_migrations.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_offline_schema_migration.py` | 10 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_password_checks_outside_lock.py` | 6 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_password_hashes.py` | 6 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_positive_visibility_migration.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_pwa_routes.py` | 6 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_quantity_updates.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_reminders_identity_migration.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_reminders_policies.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_reminders_preview.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_reminders_rules.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_reminders_zoned_time.py` | 17 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_room_cookies.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_room_invitations.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_room_password_minimum.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_room_token_validation.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_rooms.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_security_headers.py` | 7 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_seed_test_data.py` | 2 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_serve_svelte_local.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_server_shutdown.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_share_seq.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_sign_in_limiter.py` | 6 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_sign_in_rate_limit.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_svelte_frontend_routes.py` | 8 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_tag_settings_migration.py` | 1 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_tags.py` | 3 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_times_added.py` | 7 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `tests/test_write_atomicity_cross_path.py` | 5 | Test maintainers; test intent / fixture context; test owner not identified | Assertion meaning, scenarios, exact expected evidence, and executable test body |
+| `zensical.toml` | 5 | Build/config maintainers; config owner not identified | Configuration values, ignore rules, environment names, and exact policy semantics |
+
+### Source/config paths with zero recognized explanatory-comment markers
+
+47 of 374 scanned tracked code/config paths had no recognized comment or docstring markers in the baseline scan. These are excluded from the prose queue as **no prose located by scan** (this is not a semantic assessment of executable string literals).
+
+```text
+.dockerignore
+frontend/package-lock.json
+frontend/package.json
+frontend/src/lib/admin/admin-links.test.ts
+frontend/src/lib/admin/invitations.test.ts
+frontend/src/lib/data/admin.test.ts
+frontend/src/lib/data/api.test.ts
+frontend/src/lib/data/compat.test.ts
+frontend/src/lib/data/invitation.test.ts
+frontend/src/lib/data/item-date.test.ts
+frontend/src/lib/data/last-room.test.ts
+frontend/src/lib/data/not-saved.test.ts
+frontend/src/lib/data/order.test.ts
+frontend/src/lib/data/overlay.test.ts
+frontend/src/lib/data/rebase.test.ts
+frontend/src/lib/data/result.test.ts
+frontend/src/lib/data/snapshot-validate.test.ts
+frontend/src/lib/data/status.test.ts
+frontend/src/lib/install/manifest.test.ts
+frontend/src/lib/list/OptionDialogRow.svelte
+frontend/src/lib/list/hide-done.test.ts
+frontend/src/lib/list/reveal.test.ts
+frontend/src/lib/list/search.test.ts
+frontend/src/lib/list/time-zone.test.ts
+frontend/src/lib/list/visible-items.test.ts
+frontend/src/lib/reminders/PolicyEditor.svelte
+frontend/src/lib/reminders/api.test.ts
+frontend/src/lib/reminders/personal-reminders.ts
+frontend/src/lib/reminders/rule-edit.test.ts
+frontend/src/lib/reminders/rules.test.ts
+frontend/src/lib/room-link.test.ts
+frontend/src/lib/ui/field-limits.test.ts
+frontend/src/lib/ui/share.test.ts
+frontend/src/lib/ui/theme.test.ts
+frontend/src/lib/worker-routes.test.ts
+frontend/tsconfig.json
+frontend/tsconfig.service-worker.json
+pyproject.toml
+scripts/build_docs_site.py
+scripts/generate_app_icons.py
+skills-lock.json
+src/static/icon.svg
+src/static/manifest.json
+tests/test_docs_site_build.py
+tests/test_item_uniqueness.py
+tests/test_item_visibility.py
+tests/test_public_share_tokens.py
+```
+
+## Remaining tracked non-prose paths and protected assets
+
+These 12 tracked paths contain no separate prose body in the inventory scan. Keep executable/configuration data and assets out of the prose rewrite:
+
+```text
+.codex
+.python-version
+frontend/.node-version
+frontend/.npmrc
+frontend/.prettierignore
+frontend/static/robots.txt
+src/static/icons/apple-touch-icon.png
+src/static/icons/favicon-16.png
+src/static/icons/favicon-32.png
+src/static/icons/icon-192.png
+src/static/icons/icon-512.png
+uv.lock
+```
+- Dependency/package lock data (`uv.lock`, `frontend/package-lock.json`, `skills-lock.json`) is generated or machine-maintained and excluded. Package manifests, TypeScript configs, `.env.example`, robots directives, version selectors and icon assets are configuration/content, not explanatory documentation; preserve their exact values. No tracked standalone `LICENSE`, `NOTICE`, or `COPYING` path was found. No tracked vendor or generated build/site tree was in the base inventory.
+- The 34 baseline `docs/background/` pages are historical/research/validation records, not current authority. Preserve exact dates, source/change references, raw logs or tool output, measurements, quotations, and reported-versus-verified uncertainty. This inventory did not map each protected span or decide which surrounding explanations can be rewritten.
+- The Allium draft is a formal pilot. Preserve the syntax and normative conditions/guarantees exactly unless a separate semantic review establishes a safe prose-only edit.
+
+## Sensible small batches and 2–2.5 hour delivery estimate
+
+Aim for 5–8 ordinary pages or about 3,000–5,000 words per writer batch, with a separate original-versus-rewrite reviewer. Keep high-authority instructions, API contracts and historical evidence in smaller, explicitly protected batches. These are sequencing suggestions, not assignments or authorization to edit Lead-owned plans/source comments.
+
+| Priority batch | Suggested paths / contents | Approx. reading load | Review caution |
+|---|---|---:|---|
+| 0 — authority calibration | `AGENTS.md`, `CLAUDE.md`, `docs/scope.md`, `ARCHITECTURE.md` | ~3,093 words / 13 min at 250 wpm | Compare every permission, exception, security boundary and stack decision; Conductor review. |
+| 1 — user behavior, small | `docs/adding-items.md`, `docs/checked-item-visibility.md`, `docs/item-sorting.md`, `docs/public-sharing.md`, `docs/room-invitations.md` | ~2,020 words / 9 min | Preserve UI labels, conditions, access promises and user-facing examples. |
+| 2 — user behavior, technical | `docs/due-date-reminders.md`, `docs/item-writes.md`, `docs/offline-viewing.md`, `docs/change-tracking.md` | ~2,880 words / 12 min | Preserve conflict, authorization, persistence and sequence semantics. |
+| 3 — API contract, split further | API core: `docs/api.md`, `docs/api-admin.md`, `docs/api-rooms.md`, `docs/api-sharing.md`; then `docs/api-lists-items.md`, `docs/api-sync.md`; keep `docs/api-reminders.md` separate | ~7,406 words / 30 min total | Split into 2–3 writer batches; exact routes, field names, status codes and examples are protected. |
+| 4 — operation guides | `docs/browser-testing.md`, `docs/android-emulator-testing.md`, `docs/testing.md`, `docs/local-network-testing.md`; separate `docs/deployment.md`, `docs/home-screen-installation.md`, `docs/preview-exclusions.md`, `frontend/README.md` | ~5,652 words / 23 min total | Commands, prerequisites, environments, exclusions and recovery instructions must not drift. |
+| 5 — source comments | Split by backend security/API, frontend offline/write queue, UI/accessibility, then test/browser-test suites | Not estimated as prose words; hundreds of candidate files/locations | Ownership is component-specific; comments may encode code contracts and tests. A 2-hour window cannot responsibly sweep these all. |
+| 6 — historical evidence | Split by Svelte rewrite, test evidence, offline, reminders, deployment/backup, October proposals | ~56,883 words / 228 min at 250 wpm | Protected evidence and historical uncertainty make this a later, file-by-file batch. The largest single page is `docs/background/svelte-frontend-rewrite.md` (~12,571 words). |
+| Separate — shared plans | All 24 `/home/hsa/projects/list_app/plans/...` paths above | Not estimated from Lead-owned bodies | Await the Lead’s exclusive handoff before review or writing. |
+
+The 66 non-plan Markdown/Allium pages total about 79,706 words: roughly **319 minutes (5.3 hours) of uninterrupted reading** at 250 words/minute, before rewriting or independent review, and this excludes all source comments and shared plans. Therefore 2–2.5 hours can only deliver a prioritized slice, not an honest all-document rewrite. Start with authority calibration plus a few user-facing pages; reserve review time and explicitly defer the rest. These are rough estimates; structured API tables and code blocks make word-count speed optimistic.
+
+### Mechanical reading-time totals by authority/content group
+
+| Group | Files | Approx. words | Read-only minutes at 250 wpm |
+|---|---:|---:|---:|
+| Instruction / approval authority | 3 | 1,806 | 7.2 |
+| Root authority / navigation | 3 | 2,641 | 10.6 |
+| Current behavior guides | 9 | 4,900 | 19.6 |
+| Allium pilot notes/specification | 2 | 418 | 1.7 |
+| API contracts | 7 | 7,406 | 29.6 |
+| Developer / operator guides | 8 | 5,652 | 22.6 |
+| Historical evidence / research | 34 | 56,883 | 227.5 |
+
+## Disposition and validation boundary
+
+- **Rewritten:** none. **Already suitable:** none claimed. **Reviewed:** none page-by-page. **Protected:** identified by category/rule above; exact regions remain to be marked during semantic review. **Awaiting ownership:** all 24 shared plans and all source-comment candidates until their owner/reviewer is assigned. **Blocked:** no wording decision was requested or taken.
+- No tests, documentation build, formatter, linter, or external/reference site was run; this task is read-only. No tests were added. Inventory scans used the base Git tree and did not execute application code.
+- Commands used for evidence: environment-variable print; `jj status`; `jj bookmark list`; `jj log` (initial template attempt failed; corrected read-only log succeeded); `git ls-tree -r` and `git show` for the pinned base; `git ls-files`/`lstat` path/type scans; `find`/`lstat` of shared plan path names and sizes; Python text/comment scans. No secret file was opened and no repository file or graph was changed by this worker.
+- At final inspection, the working copy was clean and the staged diff was empty. Parent-owned calibration work is committed beyond the inventory baseline; this worker has no staged or unstaged repository edits. No tests or repository changes were made by this worker.

@@ -1,0 +1,32 @@
+# Historical H1 prose re-review
+
+Compared the two current candidate pages with their originals. Both fidelity repairs are present:
+
+- `docs/background/nicegui-test-retirement.md`: “Before each test was deleted, its business rules were located in the API and unit tests.” This retains the original passive attribution without adding “the team.”
+- `docs/background/deploy-rehearsal-2026-10-06.md`: “so no one has to sign in to a room again.” This matches the original general consequence and does not imply that multiple users were observed.
+
+The earlier false alarm about inline-code preservation in `backup-research.md` does not change the page verdict: it was not a content issue. The other 13 page verdicts from the original review remain unchanged.
+
+| Page | Updated verdict |
+|---|---|
+| `docs/background/android-emulator-testing.md` | **PASS** — unchanged; the limited emulator result is preserved. |
+| `docs/background/backup-research.md` | **PASS** — rewritten; backup evidence, limits, and operational and privacy boundaries are preserved. |
+| `docs/background/browser-test-port-map.md` | **PASS** — rewritten; mappings, statuses, and reconnection-versus-reload distinction are preserved. |
+| `docs/background/browser-testing.md` | **PASS** — rewritten; scenarios, measured results, coverage caveat, and test limitations are preserved. |
+| `docs/background/codebase-cleanup.md` | **PASS** — rewritten; dated decisions, checklist states, and historical “Not now” record are preserved. |
+| `docs/background/deploy-rehearsal-2026-10-06.md` | **PASS** — rewritten and repaired; results, outstanding checks, cookie conclusion, conditions, and rollback warning are preserved. |
+| `docs/background/fixes-deployment-2026-10-06.md` | **PASS** — unchanged; verified and unverified outcomes remain distinct. |
+| `docs/background/home-screen-installation.md` | **PASS** — rewritten; authorization conditions, limits, and real-device boundary are preserved. |
+| `docs/background/item-writes.md` | **PASS** — unchanged; safeguards, limits, test scope, and unresolved finding are preserved. |
+| `docs/background/nicegui-test-retirement.md` | **PASS** — rewritten and repaired; the original attribution is preserved without inventing an actor, and counts, tables, and exception remain intact. |
+| `docs/background/offline-editing-release-validation.md` | **PASS** — unchanged; waiver, unverified device behavior, and deployment boundaries are preserved. |
+| `docs/background/offline-findings.md` | **PASS** — rewritten; reported-versus-verified status, unresolved cause, historical references, and recommendations are preserved. |
+| `docs/background/svelte-rollback.md` | **PASS** — unchanged; historical status, rollback order, and data-loss warning are preserved. |
+| `docs/background/staging-environment.md` | **PASS** — unchanged; retired status, conditional setup, unchecked steps, and open questions are preserved. |
+| `docs/background/sqlite-wal-timeout.md` | **PASS** — unchanged; measurements, recommendation, implementation, and limits are preserved. |
+
+**Repairs:** Both requested repairs are confirmed. No further repairs identified.
+
+**No issues found.**
+
+**Merge verdict: OK.**

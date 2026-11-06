@@ -1,0 +1,15 @@
+## Review
+
+- **Correct:** I re-read the frozen original and current `browser_tests/test_svelte_tags.py` with the test body in context. The comment now says “Edit Item saves tag changes immediately, so the dialog chips update at once” (`browser_tests/test_svelte_tags.py:191`). That matches the immediate `aria-pressed` assertions on the dialog chips at lines 197–201. The row chips are checked after Cancel at lines 202–208, and the revised wording no longer claims they update immediately.
+- **PASS — `browser_tests/test_svelte_tags.py`:** The corrected wording resolves the prior finding. No behavior or assertion changed.
+- **PASS — `browser_tests/test_svelte_tap_targets.py:13–14`:** The 0.5 px interval and 40 px bound remain accurately described.
+- **PASS — `browser_tests/test_svelte_toasts.py:3–5, 43–46`:** The historical finding, test scenarios, count condition, and 4 s timing remain accurately described.
+- **PASS — `tests/api_helpers.py:160–162`:** The rewrite preserves the setup-helper description; no helper code changed.
+- **PASS — `tests/test_api_basics.py:333–334`:** The distinction between JSON errors under `/api` and FastAPI’s defaults elsewhere remains.
+- **PASS — `tests/test_api_conflicts.py:3–8`:** The conflict condition, response code, sequence field, and one-client test model remain accurately described.
+
+**Coverage and limits:** My independent unchanged-file coverage remains sample-only; I did not inspect all 117 files. The six rewritten files were independently compared in the previous review, and the corrected tags file has now been re-read against its original. The conductor reports an independent AST and protected-directive comparison for all 117 files; I did not repeat that check. No tests or other checks were run.
+
+**No issues found.**
+
+**Merge verdict: OK**

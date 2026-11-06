@@ -1,0 +1,41 @@
+# Active desk plans: independent prose review
+
+## Scope and coverage
+
+I read the full current contents of all three named files: `plans/backlog.md`, `plans/night-run.md`, and `plans/documentation-ste100.md`. Coverage was full, not sampled; each read reached the end of the document without needing continuation. I inspected the prose and its cross-document meaning, not just status markers. I made no edits and did not compare the files with older versions.
+
+This is a practical prose review, not a formal STE100 compliance assessment. I make no formal-compliance claim.
+
+## Per-page dispositions
+
+### `plans/backlog.md` — Already suitable; partly protected
+
+The instructions are direct and concise. For example, “Use **Type — Action**,” “Ask the owner before adding or moving an item,” and “Keep progress details in the linked plan” each give a clear action. The section descriptions also explain the backlog’s ordering and maintenance rules without excess explanation.
+
+I checked the active agenda wording, including the blocked task’s partial result and red browser gate, the ordered Next items, and the held S4/S5 work and dependencies. The general “Ask before starting” instruction is readable alongside the specific statement that the five overnight tasks were approved; that specific approval should remain intact as an exception, not be generalized into a change to the agenda rule. The item-removal and unfinished-work instructions are also clear.
+
+**Recommendation:** No wording change. There is no material clarity gain that would justify touching this active agenda and its permissions or ordering semantics.
+
+### `plans/night-run.md` — Already suitable; partly protected
+
+The prose is well suited to an operational plan: limits, roles, exceptions, and actions are stated plainly. For example, “If a task is blocked, preserve its result and blocker, then continue to the next task” explains the blocker behavior clearly. “Normally at most two bounded workers/reviewers run at once” and the specific Task 2 allowance make the concurrency rule legible.
+
+I read the run limits, model and fallback rules, delivery-line and graph-ownership instructions, approvals and exclusions, task assignments, status, and closeout requirements. These sections preserve meaningful distinctions, including the maximum-four exception, the separation of Lead and Conductor ownership, quiescence before graph mutations, and the no-push/no-deployment gates.
+
+**Recommendation:** No wording change. Further compression risks obscuring the operational exceptions or ownership boundaries.
+
+### `plans/documentation-ste100.md` — Already suitable; partly protected
+
+The assignment explains its scope and safeguards clearly. For example, “Do not force a change to good text just to make the diff larger” is a concise protection against unnecessary rewrites. The distinction between adopting STE100-style principles and claiming formal compliance is explicit.
+
+I read the scope, requested models, style contract, workflow, historical-record and concurrent-task guidance, authority and limits, checks, handoff, execution record, and progress section. The prose preserves the broad first-party scope, protected evidence, independent-review expectations, model/effort instructions, and limits on product, policy, and implementation changes.
+
+**Recommendation:** No wording change. The current language is clear, and no material improvement justifies risking changes to the assignment’s scope, permissions, or review safeguards.
+
+## Overall recommendation
+
+No BEFORE/AFTER proposals: none of the three documents has a prose issue for which a short rewrite would materially improve clarity without risking a change in meaning or authority. The protected content should remain as written.
+
+**No issues found.**
+
+**Merge verdict: OK** — prose review only; no edits or proposals recommended.

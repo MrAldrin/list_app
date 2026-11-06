@@ -1,0 +1,17 @@
+[
+  {
+    "path": "zensical.toml",
+    "method": "tomllib data equality and exact non-comment lines",
+    "passed": true
+  },
+  {
+    "path": "frontend/src/lib/admin/ResetPasswordDialog.svelte",
+    "method": "exact byte-text identity after removing one leading HTML explanatory comment",
+    "passed": true
+  },
+  {
+    "path": "frontend/eslint.config.js",
+    "method": "TypeScript compiler scanner with trivia skipped",
+    "passed": true
+  }
+]

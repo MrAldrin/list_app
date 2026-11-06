@@ -1,0 +1,257 @@
+[
+  {
+    "path": "scripts/build_docs_site.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "scripts/deploy_backup.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "scripts/generate_app_icons.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "scripts/seed_test_data.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "scripts/serve_svelte_local.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/admin_access.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/__init__.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/access.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/admin.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/changes.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/cookies.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/errors.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/events.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/idempotency.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/invitations.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/ops.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/reminder_policies.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/reminders.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/requests.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/room.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/session.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/share.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/sign_in_limit.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/api/version.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/config.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/database_crud.py",
+    "changed": true,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/database_setup.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/field_limits.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/health.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/identifiers.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/install_manifest.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/item_names.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/item_visibility.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/live_updates.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/main.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/migrations.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/password_hashing.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/pwa_routes.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/__init__.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/due_schedule.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/identity.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/policies.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/preview.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/rules.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/reminders/zoned_time.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/room_cookies.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/room_invitations.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/security_headers.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/server.py",
+    "changed": false,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/sign_in_limiter.py",
+    "changed": true,
+    "executable_ast_equal": true
+  },
+  {
+    "path": "src/svelte_frontend.py",
+    "changed": false,
+    "executable_ast_equal": true
+  }
+]

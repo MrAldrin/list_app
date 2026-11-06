@@ -1,0 +1,29 @@
+# Historical H1 prose review
+
+## Review
+
+Compared the full original and candidate text for all 15 pages. The writer report was context only; I independently reviewed each page. Historical dates, status, reported-versus-verified distinctions, results, conditions, privacy and deployment boundaries, and protected evidence remain intact. No formal STE100 compliance claim was assessed or made.
+
+| Page | Verdict | Evidence |
+|---|---|---|
+| `docs/background/android-emulator-testing.md` | **PASS** — unchanged | The two passed tests and their Android-emulator-only scope remain as written. |
+| `docs/background/backup-research.md` | **PASS** — rewritten | The production schedule query, one-off backup evidence, limits on restore and recurring backups, and transfer/privacy cautions are preserved. |
+| `docs/background/browser-test-port-map.md` | **PASS** — rewritten | The status definitions and test mappings remain intact, including the distinction between reconnection and reload behavior. |
+| `docs/background/browser-testing.md` | **PASS** — rewritten | Scenarios, measurements, dropped-coverage caveat, and the limit that a reload-based test does not prove reload-free reconnection remain explicit. |
+| `docs/background/codebase-cleanup.md` | **PASS** — rewritten | The retrospective framing preserves dated decisions, completed checklist states, and the retained “Not now” record. |
+| `docs/background/deploy-rehearsal-2026-10-06.md` | **PASS** — rewritten | The passed results remain distinct from outstanding owner/device and Railway checks; conditional configuration advice and rollback warning are retained. |
+| `docs/background/fixes-deployment-2026-10-06.md` | **PASS** — unchanged | Shipped and verified items remain separate from unverified production and real-device checks. |
+| `docs/background/home-screen-installation.md` | **PASS** — rewritten | Authorization requirements, known limits, and the distinction between local automation and real-device acceptance are preserved. |
+| `docs/background/item-writes.md` | **PASS** — unchanged | Safeguards, their limits, test scope, and the unresolved item-ID reuse finding remain intact. |
+| `docs/background/nicegui-test-retirement.md` | **PASS** — rewritten | Counts, coverage tables, and the explicit manifest-rule exception remain unchanged. |
+| `docs/background/offline-editing-release-validation.md` | **PASS** — unchanged | The owner waiver, unverified real-device behavior, and deployment approval and backup boundaries remain explicit. |
+| `docs/background/offline-findings.md` | **PASS** — rewritten | The owner-reported rollback remains unverified; unresolved root cause, historical references, and recommendations remain distinct. |
+| `docs/background/svelte-rollback.md` | **PASS** — unchanged | Historical status, required two-step order, and data-loss warning remain intact. |
+| `docs/background/staging-environment.md` | **PASS** — unchanged | The retired/not-planned status, conditional setup, unchecked steps, and open questions remain explicit. |
+| `docs/background/sqlite-wal-timeout.md` | **PASS** — unchanged | The measured comparison, recommendation, implemented change, and limits—including that nothing was measured on Railway—remain intact. |
+
+**Repairs:** None.
+
+**No issues found.**
+
+**Merge verdict: OK.**

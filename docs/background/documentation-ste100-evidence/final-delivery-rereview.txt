@@ -1,0 +1,19 @@
+# Final delivery re-review
+
+## Review
+
+**PASS. No issues found.**
+
+- **Correct — `docs/api-reminders.md`:** I read the complete original and current candidate. The actual combined entry now says: **“Nothing here is shared. Room feeds, share links and live updates never carry them.”** This retains the general privacy guarantee and the named-channel explanation. The wording differs slightly from the original’s punctuation and pronoun, but preserves the reported guarantee. The regenerated `.night-docs-evidence/final-style.diff` shows it in the current composition.
+
+- **Correct — the previous BLOCK is resolved:** The report now records that the reviewed child repair was missing from the combined candidate because the parent squash did not capture that working-copy edit, and that the Conductor restored it in the entry. This accurately describes the failure and correction; it no longer presents the earlier claim as though the guarantee had remained in the combined candidate. The previous BLOCK is retained in `docs/background/documentation-ste100-evidence/final-delivery-review.txt`.
+
+- **Correct — repair and comparison evidence:** `combined-repair-confirmation.json` records ten reviewed repair assertions as present in the combined candidate, including the API privacy guarantee. The refreshed `final-byte-comparison.json` has an updated candidate hash for `docs/api-reminders.md`; the regenerated style diff reflects the restored text.
+
+- **Correct — post-restoration validation evidence:** The updated `docs-build-comparison.json` records an exit-0 build after combined privacy restoration. The final build record reports the same 51 existing warnings, 39 redirects and 2810 generated local links; it does not claim a warning-free build. The source-link check reports 90 pages, no issues, and four renderer-specific fragments; its notes do not claim universal renderer portability. The protected-content disposition records 87 checked paths, 86 exact matches, the documented Part 1/2/3 label-consolidation exception, and no unresolved protected differences.
+
+- **Correct — scope and cleanup reporting:** The report continues to distinguish the 1792 passing Python tests and 1115 passing frontend tests from task 1’s inherited red full-browser gate at `570b4f8a`. It makes no formal STE100-compliance claim. The cleanup evidence records ten removed child workspaces and five closed owned job panes (52–56).
+
+This was a read-only re-review. I did not run checks or VCS commands.
+
+## Merge verdict: OK

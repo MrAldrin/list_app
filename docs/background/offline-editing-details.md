@@ -70,8 +70,8 @@ the Not saved list.
 
 ## Sending waiting changes
 
-- Sent in order, one at a time, after the app checks access and reads the
-  changes feed. Edits made during that check are queued too.
+- The app checks access and reads the changes feed before sending. It sends
+  changes one at a time, in order. Edits made during that check are queued too.
 - A change to a row the page already changed uses the row's new version
   (R3). A change made after someone else changed the row is refused with
   `changed_meanwhile` unless the stored value already matches (R2).
@@ -79,9 +79,9 @@ the Not saved list.
 - An item added offline gets its own id. If the server already has an active
   item of that name, the answer names it (`duplicate_active`, R6). Later changes
   to the new item go to the existing one.
-- A rejection of a waiting change goes to the Not saved list (below). A
-  rejection of an online change that answered within 10 seconds is a toast.
-  "Waited" means: made offline, loaded from storage, or answered more than
+- A rejected waiting change goes to the Not saved list (below). The app shows
+  a toast for an online change rejected within 10 seconds. A change counts as
+  "Waited" if it was made offline, loaded from storage, or answered more than
   10 seconds after it was made.
 - Held (over 30 days) and unreadable entries block later entries of the same
   room until they are sent or discarded. This keeps the order.

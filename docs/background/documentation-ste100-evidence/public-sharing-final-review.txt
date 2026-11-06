@@ -1,0 +1,12 @@
+## Review
+
+**PASS**
+
+- **Correct:** The privacy guarantee is now explicitly limited to browsers with no cookie, another room’s cookie, or a stale cookie. The guide says that “for those browsers” neither room-related control appears and nothing on the page or in the API answer names the room (`docs/public-sharing.md:19–23`).
+- **Correct:** This matches the API contract: a valid room cookie can produce the room’s `slug` and `name`, while a missing, stale, or other room’s cookie produces `null`; no other part of the share answer names the room (`docs/api-sharing.md:20–26`). The guide therefore does not impose a universal ban on naming the room.
+- **Correct:** I compared the full original and candidate. The other behavior, implementation, and rollout statements retain their meaning. Headings and links are unchanged, and the protected inline code, paths, URLs, numbers, and quoted interface labels are preserved.
+- **Checks:** No commands or tests run, as requested for this read-only review.
+
+**No issues found.** No fix needed.
+
+**Merge verdict: OK**

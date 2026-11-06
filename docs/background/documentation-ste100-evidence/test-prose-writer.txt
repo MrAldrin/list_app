@@ -1,0 +1,205 @@
+# Test comment/docstring STE100 inspection
+
+## Scope and method
+
+- Repository/workspace: `/home/hsa/projects/list_app-night-docs-test-prose`.
+- Scope was only tracked Python files under `tests/` and `browser_tests/`.
+- Verified the effective requested model settings: `PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`.
+- Inspected all 117 tracked Python paths. A `tokenize`/AST extraction listed every Python comment token and leading module, class, and function docstring. I reviewed the extracted prose with surrounding source context. Test strings, raw strings, embedded HTML/SQL/JavaScript, and executable statements were protected, not treated as comments.
+- All 117 exact originals were present under `/tmp/night-docs-originals/<path>`. A byte comparison found exactly the six files listed below differ from those originals.
+- No paths were deferred or left uninspected. Dispositions below cover all 117 tracked paths. `partly-protected` means the file contains prose mixed with protected evidence, directives, literal values, or code/command references that were kept unchanged; the prose was still inspected.
+
+## Rewritten prose
+
+1. `browser_tests/test_svelte_tags.py`
+   - Before: Tags in Edit Item save at once, so the chip shows its new state at once.
+   - After: Edit Item saves tag changes immediately, so the row chip updates at once.
+   - Reason: remove the repeated “at once” while retaining the described save and chip behavior.
+
+2. `browser_tests/test_svelte_tap_targets.py`
+   - Before: The tap height of an element: the run of points, half a pixel apart and up to 40 px from its middle, that reach the element (or one inside it).
+   - After: Measure the vertical hit area at points 0.5 px apart, up to 40 px from center. A point counts if it hits the element or one of its children.
+   - Reason: state the vertical sampling method directly and clarify what counts as a hit. The 0.5 px interval and 40 px bound are unchanged.
+
+3. `browser_tests/test_svelte_toasts.py`
+   - Module docstring before: At Gate A the real iPhone showed a toast as tall as the screen; no test had checked the toast size. These checks measure the toasts on a phone screen, also when several are stacked, with a long message, above an open dialog and on a short (landscape) screen.
+   - After: At Gate A, the real iPhone showed a toast as tall as the screen. No test had checked its size. These tests measure toast size on a phone with stacked toasts, a long message, an open dialog and a short landscape screen.
+   - Reason: split the finding from the test scope and shorten the list without changing the historical finding or coverage.
+   - Helper docstring before: Measure the toasts on screen; at least `count` of them. Toasts go after 4 s, so the test waits for a count, not an exact one.
+   - After: Check that at least `count` toasts are small and inside the screen. Toasts disappear after 4 s, so the test waits for a count instead of an exact number.
+   - Reason: say what the helper checks and express the 4-second timeout behavior plainly. The count and timing remain unchanged. (The backticks here stand for the original Markdown backticks around `count`.)
+
+4. `tests/api_helpers.py`
+   - Before: Direct database setup. These replaced `database_crud` helpers that only tests used. Each one calls a live locked helper in one write transaction, or runs the same SQL the live code runs.
+   - After: Direct database setup. These helpers replaced `database_crud` helpers that only tests used. Each calls a live locked helper in one write transaction or runs the same SQL as the live code.
+   - Reason: make the referent explicit and remove repeated wording. The historical replacement and alternatives are retained.
+
+5. `tests/test_api_basics.py`
+   - Before: Every kind of error has a handler that answers JSON under /api and leaves other addresses to FastAPI's defaults.
+   - After: Each error type returns JSON under /api; other addresses use FastAPI's default handlers.
+   - Reason: shorten the sentence and state the two conditions directly.
+
+6. `tests/test_api_conflicts.py`
+   - Before: A "set" op carries the `base_seq` the page saw. When the row changed after that and the stored value differs from what the op wants, the op is rejected with `changed_meanwhile`. Applied answers carry the row's `changed_seq`, so the device can rebase its own queued ops. Two devices are two sequences of ops on one client here: the server only sees the ops and their base seqs.
+   - After: A "set" op carries the page's `base_seq`. If the row changed later and its value differs from the requested value, the server rejects the op with `changed_meanwhile`. Applied answers include the row's `changed_seq`, so the device can rebase its queued ops. These tests model two devices as separate sequences of ops sent by one client. The server sees only the ops and their base sequences.
+   - Reason: clarify the condition for rejection and describe the test model in shorter sentences. The conflict condition, response code, sequence field, and one-client test model are unchanged.
+
+## Path dispositions
+
+Disposition totals: **rewritten 6; suitable 76; partly-protected 31; no-prose 4; deferred/uninspected 0**.
+
+### Rewritten (6)
+
+- `browser_tests/test_svelte_tags.py`
+- `browser_tests/test_svelte_tap_targets.py`
+- `browser_tests/test_svelte_toasts.py`
+- `tests/api_helpers.py`
+- `tests/test_api_basics.py`
+- `tests/test_api_conflicts.py`
+
+### Suitable (76)
+
+- `browser_tests/svelte_app.py`
+- `browser_tests/test_browser_sessions.py`
+- `browser_tests/test_svelte_accessibility.py`
+- `browser_tests/test_svelte_admin.py`
+- `browser_tests/test_svelte_bottom_bar.py`
+- `browser_tests/test_svelte_deleted_lists.py`
+- `browser_tests/test_svelte_dialog.py`
+- `browser_tests/test_svelte_due_center.py`
+- `browser_tests/test_svelte_due_center_phone.py`
+- `browser_tests/test_svelte_hide_done.py`
+- `browser_tests/test_svelte_install_browser.py`
+- `browser_tests/test_svelte_invitations.py`
+- `browser_tests/test_svelte_item_date.py`
+- `browser_tests/test_svelte_item_sort.py`
+- `browser_tests/test_svelte_items.py`
+- `browser_tests/test_svelte_live.py`
+- `browser_tests/test_svelte_phone_fixes.py`
+- `browser_tests/test_svelte_policy_editor.py`
+- `browser_tests/test_svelte_restart.py`
+- `browser_tests/test_svelte_room_management.py`
+- `browser_tests/test_svelte_room_switcher.py`
+- `browser_tests/test_svelte_rooms.py`
+- `browser_tests/test_svelte_share.py`
+- `browser_tests/test_svelte_timed_due_offline.py`
+- `browser_tests/test_svelte_times_added.py`
+- `tests/migration_helpers.py`
+- `tests/server_launcher.py`
+- `tests/test_api_admin.py`
+- `tests/test_api_admin_session.py`
+- `tests/test_api_changes.py`
+- `tests/test_api_concurrency.py`
+- `tests/test_api_item_ops.py`
+- `tests/test_api_list_ops.py`
+- `tests/test_api_name_case.py`
+- `tests/test_api_reminders.py`
+- `tests/test_api_reminders_review.py`
+- `tests/test_api_room.py`
+- `tests/test_api_session.py`
+- `tests/test_api_share.py`
+- `tests/test_api_tag_ops.py`
+- `tests/test_api_tag_settings.py`
+- `tests/test_change_tracking.py`
+- `tests/test_config.py`
+- `tests/test_deletion_pruning.py`
+- `tests/test_field_limits.py`
+- `tests/test_field_rules_migration.py`
+- `tests/test_item_edits.py`
+- `tests/test_item_ids.py`
+- `tests/test_item_name_capitalization_migration.py`
+- `tests/test_item_renames.py`
+- `tests/test_item_undo.py`
+- `tests/test_list_names.py`
+- `tests/test_list_renames.py`
+- `tests/test_migrations.py`
+- `tests/test_password_checks_outside_lock.py`
+- `tests/test_password_hashes.py`
+- `tests/test_positive_visibility_migration.py`
+- `tests/test_quantity_updates.py`
+- `tests/test_reminders_identity_migration.py`
+- `tests/test_reminders_policies.py`
+- `tests/test_reminders_preview.py`
+- `tests/test_reminders_rules.py`
+- `tests/test_room_invitations.py`
+- `tests/test_room_password_minimum.py`
+- `tests/test_room_token_validation.py`
+- `tests/test_rooms.py`
+- `tests/test_security_headers.py`
+- `tests/test_seed_test_data.py`
+- `tests/test_serve_svelte_local.py`
+- `tests/test_share_seq.py`
+- `tests/test_sign_in_limiter.py`
+- `tests/test_sign_in_rate_limit.py`
+- `tests/test_tag_settings_migration.py`
+- `tests/test_tags.py`
+- `tests/test_times_added.py`
+- `tests/test_write_atomicity_cross_path.py`
+
+### Partly protected (31)
+
+- `browser_tests/conftest.py`
+- `browser_tests/test_old_service_worker.py`
+- `browser_tests/test_svelte_compat.py`
+- `browser_tests/test_svelte_offline.py`
+- `browser_tests/test_svelte_offline_conflicts.py`
+- `browser_tests/test_svelte_offline_multidevice.py`
+- `browser_tests/test_svelte_offline_reconnect.py`
+- `browser_tests/test_svelte_old_urls.py`
+- `browser_tests/test_svelte_private_reminders.py`
+- `browser_tests/test_svelte_service_worker.py`
+- `browser_tests/test_svelte_theme.py`
+- `tests/conftest.py`
+- `tests/test_api_events.py`
+- `tests/test_api_idempotency.py`
+- `tests/test_api_invitations.py`
+- `tests/test_api_version.py`
+- `tests/test_cookie_headers.py`
+- `tests/test_count_limits.py`
+- `tests/test_database_crud.py`
+- `tests/test_database_setup.py`
+- `tests/test_deploy_backup.py`
+- `tests/test_due_cycle_start.py`
+- `tests/test_healthz.py`
+- `tests/test_item_date.py`
+- `tests/test_item_due_time.py`
+- `tests/test_offline_schema_migration.py`
+- `tests/test_pwa_routes.py`
+- `tests/test_reminders_zoned_time.py`
+- `tests/test_room_cookies.py`
+- `tests/test_server_shutdown.py`
+- `tests/test_svelte_frontend_routes.py`
+
+### No prose (4)
+
+These paths contain no Python comment tokens or leading module/class/function docstrings.
+
+- `tests/test_docs_site_build.py`
+- `tests/test_item_uniqueness.py`
+- `tests/test_item_visibility.py`
+- `tests/test_public_share_tokens.py`
+
+## Preservation and validation
+
+- **Executable AST identity:** Parsed each changed file and its frozen original. After removing leading module/class/function docstrings from both ASTs, `ast.dump(..., include_attributes=False)` matched for all six changed files. This confirms the executable syntax is unchanged, including assertions, fixture declarations, test names, values, and embedded strings.
+- **Diff review:** `jj diff` showed only comment/docstring wording changes in the six listed files. No test parameters, assertions, fixtures, raw strings, SQL, HTML, or executable statements changed. Existing directives/evidence, including test references and values, were left intact.
+- **Original coverage:** `jj file list` and the filesystem both contained 117 in-scope tracked paths; all 117 frozen originals existed. A SHA-256 byte comparison found exactly the six edited paths differed from their originals.
+- **Tests-added/updated:** none. Tests, lint, type checks, builds, services, and dependency operations were not run, as instructed.
+- **Staging:** no staged files. `git diff --cached --name-only` returned no paths; no jj/git mutations were performed.
+
+## Commands run
+
+Read-only inspection/validation commands included:
+
+- `jj status`, `jj diff --stat`, `jj diff --name-only`, `jj diff`, `jj file list`
+- `find tests browser_tests -type f -name '*.py'` and Python inventory/original-copy comparisons
+- `python3` scripts using `tokenize`, `ast`, and `hashlib` to extract prose, compare the scoped path sets, check original coverage, and check AST identity
+- `git diff --cached --name-only` (empty result)
+
+No test or lint commands were run.
+
+## Residual risks and review handoff
+
+- No behavior or documentation-contract changes are intended. No suspected behavior bug or stale contradiction was resolved.
+- The required fresh independent review has not yet happened; it remains the review gate for these changes.
+- No further edits or staging were made after the listed six-file diff.

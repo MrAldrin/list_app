@@ -9,12 +9,12 @@ stores the password, and JavaScript never sees the token.
 
 ### Room password rule
 
-Every path that sets a room password uses this rule: admin room creation,
+This rule applies whenever a path sets a room password: admin room creation,
 admin password reset, room password change, and room creation from an
 invitation. A password that is blank (only spaces), shorter than 4 characters,
-or longer than 72 UTF-8 bytes is 422 `invalid_request`. The password is saved
-as typed. Sign-in only compares the password and does not apply the rule, so
-older, shorter passwords still open their rooms.
+or longer than 72 UTF-8 bytes returns 422 `invalid_request`. The password is
+saved as typed. Sign-in only compares the password and does not apply the rule,
+so older, shorter passwords still open their rooms.
 
 | Request | Body | Success |
 |---|---|---|
@@ -28,11 +28,12 @@ older, shorter passwords still open their rooms.
 Failed sign-ins are counted in memory, in this one process, for one minute.
 Limits: 10 failures per room, 30 failures for all rooms together, and 10 failed
 admin sign-ins for all clients. A room sign-in uses both room limits.
+
 There is no per-client-address limit: Railway does not document a trustworthy
-client address. A successful sign-in does not count. A full limit answers 429
-`too_many_attempts` with `Retry-After` (seconds) before any password is checked.
-Unknown rooms count the same way, so a 429 does not show whether a room exists.
-Counts reset when the app restarts.
+client address. A successful sign-in does not count. When a limit is full, the
+server answers 429 `too_many_attempts` with `Retry-After` (seconds) before any
+password is checked. Unknown rooms count the same way, so a 429 does not show
+whether a room exists. Counts reset when the app restarts.
 
 Cookies (`SameSite=Lax`, `Path=/`, one year, `HttpOnly`):
 
@@ -59,13 +60,13 @@ names the last room this browser signed in to, not whether access still works.
 
 ## Room management
 
-Rename is an op (`room.rename`,
-see [operation types](api-lists-items.md#operation-types)). Changing the password
-and deleting the room need the room password, so they have their own endpoints: they are
-not ops, are never stored and are not retry-safe. Both need room access (the cookie)
-first; without it the answer is 401 `not_authenticated`, as for an unknown room. The
-password is checked outside the database lock; the change is then written only if the
-room has not changed meanwhile.
+Rename is an op (`room.rename`, see [operation
+types](api-lists-items.md#operation-types)). Changing the password and deleting
+the room need the room password. They have their own endpoints: they are not
+ops, are never stored and are not retry-safe. Both need room access (the cookie)
+first. Without it, the answer is 401 `not_authenticated`, as for an unknown
+room. The password is checked outside the database lock. The change is then
+written only if the room has not changed meanwhile.
 
 | Request | Body | Success |
 |---|---|---|

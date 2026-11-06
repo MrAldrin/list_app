@@ -2,8 +2,8 @@
 
 > Note: parts of this document describe the NiceGUI app, which was removed in the Svelte switch (step 4.3). Read those parts as history.
 
-Supporting detail for [real-browser tests](../browser-testing.md). That page
-is the source for how to run the suite and what it covers today.
+This page gives supporting detail for the [real-browser tests](../browser-testing.md).
+That page is the source for current run instructions and coverage.
 
 ## Public-sharing scenarios
 
@@ -28,32 +28,32 @@ Each runs in both Chromium and Firefox:
 
 ## Design choices
 
-- **Delayed WebSocket updates.** For stale-action tests, Playwright holds back
-  server-to-browser updates during the reset or deletion. The stale tab sends
-  real Socket.IO events, then updates resume and the test checks the saved
-  data. Without this, a test would only see a button disappear.
-- **Matching the event to the control.** Deletion tests check that the outgoing
-  NiceGUI event came from the clicked control (and the toggle value or tag Enter
-  key), not just any event.
-- **Seeded setup.** Seven sharing scenarios and the deletion cases seed their
-  disposable list directly; they still log in and use the real Share dialog.
+- **Delayed WebSocket updates.** In stale-action tests, Playwright holds back
+  server-to-browser updates during a reset or deletion. The stale tab then
+  sends real Socket.IO events. Updates resume, and the test checks the saved
+  data. Without this delay, the test would only see a button disappear.
+- **Matching the event to the control.** Deletion tests check that the
+  outgoing NiceGUI event came from the clicked control. They also check the
+  toggle value or tag Enter key, not just any event.
+- **Seeded setup.** Seven sharing scenarios and the deletion cases seed a
+  disposable list directly. They still log in and use the real Share dialog.
   The two restart journeys create lists end-to-end.
 - **Native sharing disabled** so the copy dialog is used and the URL can be read
   from it.
 - **Restart tests** keep only that test's database, secret, browser contexts,
-  storage and Service Workers. Pages leave for `about:blank` before shutdown.
-  A separate test keeps a room tab open during the restart; the app reloads it
-  and it must show a visitor's new item without the test reloading it. That
-  does not prove a reload-free reconnection.
+  storage and Service Workers. Before shutdown, pages navigate to `about:blank`.
+  A separate test keeps a room tab open during restart. The app reloads the tab.
+  It must show a visitor's new item without the test reloading it. This does not
+  prove reconnection without a reload.
 - **Teardown** tries remaining screenshots, traces and context closure even if
   one step fails, and reports the diagnostic error.
 
 ## Deleted-list matrix
 
-The original 28 cases were cut to 16. All six stale actions run in both
-engines, with room and public roles alternated per engine; the four
-room-deletion cases keep both roles in both engines. A bug that only appears in
-a dropped role/engine pair could be missed. Coverage map and benchmark:
+The original 28 cases were reduced to 16. All six stale actions run in both
+engines, with room and public roles alternated per engine. The four
+room-deletion cases keep both roles in both engines. A bug limited to a dropped
+role/engine pair could be missed. See the coverage map and benchmark in the
 [test-suite speed measurements](test-suite-speed.md#follow-up-reduce-role-by-engine-crossings-2026-09-28).
 
 ## Past measurements (one machine)

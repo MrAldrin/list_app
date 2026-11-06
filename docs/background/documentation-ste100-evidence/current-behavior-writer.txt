@@ -1,0 +1,46 @@
+# Current-behavior writer findings
+
+## Run and scope
+
+- Verified effective settings before editing: `PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`.
+- Worked in `/home/hsa/projects/list_app-night-docs-guides`, on the parent-owned `f78ffe99` base. The workspace was clean before editing.
+- Changed only the 12 assigned documentation pages. Made no jj/git mutations; no files are staged.
+- Read the complete originals from `/tmp/night-docs-originals/`, all 12 candidate pages, the supplied STE100 brief, and relevant architecture, API, offline-editing and item-write context.
+
+## Page dispositions
+
+| Path | Disposition | Findings |
+|---|---|---|
+| `docs/checked-item-visibility.md` | rewritten | Split dense explanations while retaining per-list settings, modes, defaults, counters, offline behavior and completion-time rules. |
+| `docs/item-sorting.md` | rewritten | Clarified screen-local sorting and row movement; retained sort choices, defaults, tie rules and saved-choice behavior. |
+| `docs/public-sharing.md` | rewritten | Shortened behavior and rollout explanations while retaining authorization, reset, token, referrer and rollback safeguards. |
+| `docs/room-invitations.md` | rewritten | Shortened the invitation flow and lifecycle explanation; preserved invitation limits, room-access boundaries, implementation and deployment conditions. Kept “Production should use HTTPS” as a recommendation. |
+| `docs/due-date-reminders.md` | partly-protected | Clarified due-time and bell prose. Preserved the existing statement that personal reminder settings are hidden until phone notifications are ready. |
+| `docs/item-writes.md` | partly-protected | Clarified introductory and field-rule prose. Left the per-action table, test references, identifiers and database contract intact. |
+| `docs/offline-viewing.md` | rewritten | Clarified offline queue, projection, conflict, rejection and deploy behavior. Preserved pending-versus-accepted status, retry choices, and the possibility that old answers can make a retry apply twice. |
+| `docs/change-tracking.md` | partly-protected | Clarified explanatory prose. Left the stored-field inventory, trigger-effect table and code rules intact. |
+| `docs/api.md` | partly-protected | Clarified shared API and security/version explanations. Left the JSON example and HTTP error/status table intact. |
+| `docs/api-admin.md` | partly-protected | Clarified authorization and endpoint explanations. Left the request table and status distinctions intact. |
+| `docs/api-rooms.md` | partly-protected | Clarified password, sign-in-limit and room-management prose. Left endpoint tables, cookie rules and status distinctions intact. |
+| `docs/api-sharing.md` | partly-protected | Clarified share and invitation explanations. Left endpoint tables, JSON example, status distinctions and transaction checks intact. |
+
+No assigned page was blocked or already-suitable without edits.
+
+## Fidelity and protection checks
+
+A `python3` comparison against all 12 files in `/tmp/night-docs-originals/` passed for headings, inline-code multisets, Markdown link targets, fenced blocks, bold text, numeric tokens and Markdown tables. The tables and fenced examples are unchanged. The API error/status distinctions were retained.
+
+The parent’s fidelity steering was applied: recommendation and permission qualifiers remain as written, including `should`, `may`, and `can`. Descriptions were not changed into stronger mandates. Authorization and conditions remain explicit. No headings or anchors changed.
+
+The known cross-page difference remains unchanged by design: `docs/due-date-reminders.md` says personal reminder settings are hidden, while the separately owned `docs/api-reminders.md` describes available settings entry points. This writer did not edit `docs/api-reminders.md` or silently resolve that difference.
+
+## Validation and handoff
+
+- Effective environment check: passed; confirmed `openai/gpt-6-luna/xhigh`.
+- Original-versus-candidate protection comparison: passed for all 12 assigned pages.
+- Markdown table comparison: passed for all 12 assigned pages.
+- `git diff --check`: passed.
+- Scope/status check: passed; only the 12 assigned pages are modified and the staged-file list is empty.
+- No tests were added. No documentation-site build, application tests, services, dependency operations, or heavy checks were run under the task limits.
+- A first attempt to invoke the protection script with `python` could not run because that executable is unavailable; the check was rerun successfully with `python3`.
+- Independent fresh review is still pending. This report records writer self-checks and is not acceptance.

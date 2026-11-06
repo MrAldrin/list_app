@@ -1,24 +1,26 @@
 # API: Personal reminder settings
 
 Part of the [JSON API](api.md). These settings belong to **this device**
-(one browser or installed app), not to the account or the room. Nothing here
-is shared: room feeds, share links and live updates never carry it. Device
-settings apply to every room this device is enrolled in. Delivery of reminders
-is not active yet; these endpoints only store settings.
+(one browser or installed app), not to the account or room. Nothing here is
+shared. Room feeds, share links and live updates never carry them. Device settings apply to every room
+this device is enrolled in. Reminder delivery is not active yet; these endpoints
+only store settings.
 
 The room menu's **Personal reminders** dialog reads these settings without
-creating a device. Enroll or resume explicitly there. Room mode and summary
-time, device time zone, all-day time, quiet hours, privacy and limits can be
-changed while online. Private room, list and dated-item policies are available
-from the due bell; room menu, list options and item editing also offer policy
-entry points. Preview uses the saved item date, not unsaved item edits.
-Unsaved edits stay in the open dialog; they are never put in the shared offline
-queue. Drafts and pending request IDs live only in memory and are lost on page
-reload or navigation. A request with an unknown result can be retried unchanged
-while the dialog remains open; after reload it cannot be retried with that same
-ID and body. Due views use the device time zone while this room is actively
-enrolled; otherwise they use the browser time zone. The zone is held in memory
-only.
+creating a device. Enroll or resume explicitly in that dialog. While online,
+you can change room mode and summary time, device time zone, all-day time, quiet
+hours, privacy and limits. Private room, list and dated-item policies are
+available from the due bell. The room menu, list options and item editing also
+offer policy entry points. Preview uses the saved item date, not unsaved item
+edits.
+
+Unsaved edits stay in the open dialog. They never enter the shared offline
+queue. Drafts and pending request IDs exist only in memory. A page reload or
+navigation loses them. If a request's result is unknown, you can retry it
+unchanged while the dialog remains open. After reload, you cannot retry with
+the same ID and body. Due views use the device time zone while this room is
+actively enrolled. Otherwise they use the browser time zone. The zone exists in
+memory only.
 
 ## Device and enrollment
 

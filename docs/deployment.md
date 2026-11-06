@@ -1,19 +1,19 @@
 # Deployment and recovery
 
-ListR runs as one Python process (FastAPI on uvicorn, serving the Svelte frontend
-and the JSON API) with one SQLite database. Production runs on
-Railway with a persistent volume (storage that survives deployments).
+ListR runs as one Python process and uses one SQLite database. FastAPI on
+uvicorn serves the Svelte frontend and JSON API. Production runs on Railway
+with a persistent volume (storage that survives deployments).
 
 Railway deploys automatically when GitHub `main` changes. Moving the local
-`main` bookmark does nothing until it is pushed, so treat a push to `main` as a
+`main` bookmark does not deploy until you push it. Treat a push to `main` as a
 production deployment and follow the [checklist](#deployment-checklist). For
 local setup, see the [README](../README.md).
 
 ## Railway plan
 
-Production runs on Railway's Hobby plan, so deploys are allowed at any time.
-The workspace has a $10 compute usage limit: Railway stops the app if usage
-reaches it. Raise the limit in the workspace's Usage page if that happens.
+Production runs on Railway's Hobby plan. Deploys are allowed at any time. The
+workspace has a $10 compute usage limit. Railway stops the app if usage reaches
+it. Raise the limit in the workspace's Usage page if that happens.
 
 ## Configuration
 

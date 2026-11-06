@@ -1,0 +1,53 @@
+# Current-behavior fidelity review
+
+## Scope and result
+
+I compared the complete original and candidate for all 12 requested pages. **I found no current-behavior or API-contract changes** in the candidates. Access and privacy boundaries, offline queue and retry behavior, due-time rules and counts, API identifiers, headers, statuses, schemas, limits, and modality remain intact.
+
+One page has a strict protected-content mismatch: `docs/item-writes.md` drops the quotation marks around the original term “stale.” I marked that page **BLOCK** until the quote is restored. This is not a behavior change.
+
+## Page-by-page verdicts
+
+1. **PASS — `docs/checked-item-visibility.md`**  
+   Compared with `/tmp/night-docs-originals/docs/checked-item-visibility.md`. The candidate preserves the per-list shared setting, defaults and mode-switch behavior, counter limits, filtering/count rules, offline client-side application, UTC completion-time behavior, and migration handling. See the candidate’s mode and counter rules at lines 5–10 and existing-list behavior at lines 18–22. No fidelity finding.
+
+2. **PASS — `docs/item-sorting.md`**  
+   Compared with `/tmp/night-docs-originals/docs/item-sorting.md`. The sort choices and defaults, ordering of checked and open items, 1.5-second settling delay, tie-breaking, date handling, add-count meanings, and browser-local saved choice remain intact. See lines 5–27. No fidelity finding.
+
+3. **PASS — `docs/public-sharing.md`**  
+   Compared with `/tmp/night-docs-originals/docs/public-sharing.md`. The candidate preserves who can access and reset links, reset invalidation behavior, room-navigation privacy, room-password independence, token storage and leakage cautions, transaction checks, rollout behavior, and verification claims. See “Behavior,” “Implementation,” and “Rollout and verification” at lines 3, 13, and 30. No fidelity finding.
+
+4. **PASS — `docs/room-invitations.md`**  
+   Compared with `/tmp/night-docs-originals/docs/room-invitations.md`. Invitation reuse, seven-day validity, five-room limit, one-time link display, access boundaries, history cleanup, transaction-time checks, migration details, and privacy cautions remain intact. See lines 1–11 and sections beginning at lines 13, 17, and 32. No fidelity finding.
+
+5. **PASS — `docs/due-date-reminders.md`**  
+   Compared with `/tmp/night-docs-originals/docs/due-date-reminders.md`. The candidate preserves offline saved-data behavior, due-time confirmation, time-zone defaults and grouping, due criteria, bell scope and counts, reveal behavior, update timing, and code references. See “Shared due time” at line 9, “What counts as due” at line 23, “The bell” at line 37, and “Personal reminder settings” at line 47.  
+   **Known discrepancy left unresolved:** the candidate still says personal reminder settings are hidden until phone notifications are ready, while the API overview still references personal-reminder settings. The candidate does not reactivate or silently resolve those entry points.
+
+6. **BLOCK — `docs/item-writes.md`**  
+   Compared with `/tmp/night-docs-originals/docs/item-writes.md`. The write rules, atomicity, conflicts, per-action behavior, field limits, database guards, migration behavior, and item identity remain intact; see lines 7–18 and 35–68.  
+   **P2 — protected quote omitted:** the original’s opening says `A page can be "stale": it shows an older state than the database.` The candidate at line 3 says `A page is stale when it shows an older state than the database.` This preserves the meaning but changes the protected quoted term. **Smallest fix:** restore the original sentence, including `"stale"` and its punctuation.
+
+7. **PASS — `docs/offline-viewing.md`**  
+   Compared with `/tmp/night-docs-originals/docs/offline-viewing.md`. The candidate preserves which actions work offline, access confirmation and send order, lack of background sync, device-local queue and age behavior, merge and conflict rules, rejection/retry actions, access-loss handling, sign-out and room-deletion behavior, and deploy/version handling. See sections beginning at lines 8, 15, 22, 30, 36, 42, and 47. No fidelity finding.
+
+8. **PASS — `docs/change-tracking.md`**  
+   Compared with `/tmp/night-docs-originals/docs/change-tracking.md`. The candidate preserves sequence and identifier rules, pruning windows and floors, snapshot behavior, trigger effects, deletion behavior, exceptions, and migration obligations. See sections beginning at lines 9, 39, and 53. No fidelity finding.
+
+9. **PASS — `docs/api.md`**  
+   Compared with `/tmp/night-docs-originals/docs/api.md`. The candidate preserves base path, JSON and cache/version headers, identifier and token exposure rules, room-access checks, auth boundaries, security headers, versioning behavior, error codes/statuses, and same-origin write requirements. See “Basics” through “Writes: same-origin rule” at lines 22–101. No fidelity finding.
+
+10. **PASS — `docs/api-admin.md`**  
+    Compared with `/tmp/night-docs-originals/docs/api-admin.md`. Cookie names and properties, session duration, token format, password-change effects, endpoint schemas/statuses, sign-in checks, room-management permissions, and invitation behavior remain intact. See “Admin” at line 5 and its endpoint table and rules below it. No fidelity finding.
+
+11. **PASS — `docs/api-rooms.md`**  
+    Compared with `/tmp/night-docs-originals/docs/api-rooms.md`. The candidate preserves room-password rules, session endpoints, rate-limit counts and behavior, cookie variants and lifetimes, token revocation and retention, room-management checks, status codes, and stream behavior. See “Room session” at line 5, “Room password rule” at line 10, “Sign-in limit” at line 26, and “Room management” at line 62. No fidelity finding.
+
+12. **PASS — `docs/api-sharing.md`**  
+    Compared with `/tmp/night-docs-originals/docs/api-sharing.md`. The candidate preserves share-token scope, response privacy and sequence behavior, allowed operations, reset invalidation, room-member requirements, invitation access boundaries, statuses, limits, and token storage. See “Share links” at line 5, the feed rules at line 19, the reset rules at lines 21–31, and “Creation invitations” at line 33 onward. No fidelity finding.
+
+    **Non-blocking editorial note:** candidate line 19 puts the feed’s privacy, snapshot, sequence, and retry details into one 13-sentence bullet paragraph. Consider splitting it into shorter continuation paragraphs within that same bullet. Preserve the facts and do not change headings or anchors. This is a readability note, not a behavior/API-fidelity issue.
+
+## Final disposition
+
+**BLOCK** pending restoration of the quoted term in `docs/item-writes.md`. All other reviewed pages pass current-behavior and API fidelity. No tests or checks were run; this was a read-only comparison. No formal STE100 compliance claim is made.

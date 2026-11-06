@@ -1,0 +1,41 @@
+# Operational/current-reference prose pass: findings
+
+## Run and scope
+
+- Effective model verified from the worker environment: `openai/gpt-6-luna`, reasoning effort `xhigh` (`PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`).
+- Read the authoritative `plans/documentation-ste100.md`, workspace `AGENTS.md`, and the complete originals and current candidates for all nine assigned documents.
+- Originals were read from `/tmp/night-docs-originals/docs/<path>`; candidates were read from this workspace's `docs/<path>`.
+- No application was run. No plan, inventory, product policy, configuration, code, or test file was changed.
+
+## Per-path dispositions
+
+| Path | Disposition | Result |
+|---|---|---|
+| `docs/android-emulator-testing.md` | Rewritten | Clarified the opening description of the disposable emulator, local database and production boundaries, and where to find real-device checks. |
+| `docs/api-lists-items.md` | Already suitable; protected API contract | No prose change. Its content is a detailed API contract; avoid changing precise meanings just to increase the diff. |
+| `docs/api-reminders.md` | Rewritten | Split and simplified the introductory device-settings and dialog prose. Kept the settings entry-point statements unchanged in meaning. |
+| `docs/browser-testing.md` | Rewritten | Clarified the opening description of separate browser contexts and tightened the WebKit/Safari-check explanation. |
+| `docs/deployment.md` | Rewritten | Split the service overview and Railway plan into shorter statements; retained the production deployment boundary and checklist. |
+| `docs/home-screen-installation.md` | Already suitable | No prose change; installation, remembered-access and device-acceptance details were already direct and precise. |
+| `docs/local-network-testing.md` | Rewritten | Clarified the guide's purpose and the Tailscale Serve setup steps. |
+| `docs/preview-exclusions.md` | Already suitable | No prose change; exclusions, redirect behavior and non-publication boundary were already concise and explicit. |
+| `docs/testing.md` | Already suitable | No prose change; test-layer limits, required-check guidance and evidence cautions were already clear. |
+
+## Preservation and review checks
+
+- The API-reminders text still says that policies are available from the due bell and that room menu, list options and item editing offer policy entry points. The separate `docs/due-date-reminders.md` says personal reminder settings are hidden until phone notifications are ready. This known contradiction was deliberately preserved; it was not resolved or used to reactivate an entry point.
+- A source-to-candidate comparison passed for all nine paths: headings, inline code, links and URLs, fenced blocks, digit sequences and quoted text were unchanged. This preserves headings/anchors and technical/protected content in addition to the manual prose-only edits.
+- `git diff --check` passed.
+- Independent reviewer disposition remains for the designated review step; this report records the writer's checks, not an independent review.
+
+## Changed files
+
+Only these five files changed:
+
+- `docs/android-emulator-testing.md`
+- `docs/api-reminders.md`
+- `docs/browser-testing.md`
+- `docs/deployment.md`
+- `docs/local-network-testing.md`
+
+No tests were added or updated. No files are staged. The working tree contains only the five listed documentation edits.

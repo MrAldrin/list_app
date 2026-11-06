@@ -1,0 +1,14 @@
+## Review
+
+Reviewed all six current `plans/` files against their originals in `/tmp/night-docs-originals/plans/`. The three corrected pages were re-read in full.
+
+- **PASS — `backup-options.md`.** The candidate preserves current backup status, blockers, approval conditions, proposed sequence, restore safeguards, evidence date and result, and progress tracking.
+- **PASS — `advanced_sharing.md`.** The candidate is unchanged and suitable as written. It keeps the idea deferred, destination-room authorization explicit, and unresolved design decisions open.
+- **PASS — `cross-room-sharing-without-accounts.md`.** The corrected current-state wording again says room reads, writes, and the incremental feed “are scoped to that room’s access token.” The owner’s option A decision, approval gate, proposed permissions, security boundaries, and future requirements remain intact.
+- **PASS — `optional-accounts.md`.** The candidate again says owners, memberships, and historical actors “should not be invented,” and to “avoid discarding queued edits without telling the user.” The original recommendation modality is preserved. The account, membership, shared-password, admin, migration, and offline boundaries remain intact.
+- **PASS — `paste-text-to-list.md`.** The candidate again says limitations “should be visible before confirming, not hidden behind a promise to parse recipes.” The proposed parsing rules, no-AI boundary, unresolved quantity interface, partial-success behavior, and future requirements remain intact.
+- **PASS — `visual-refresh.md`.** The candidate preserves the unapproved status, mockup URL and directions, dated owner feedback and confirmation note, open questions, and progress tracking.
+
+The identified wording concerns are corrected. **No issues found.**
+
+**Merge verdict: OK**

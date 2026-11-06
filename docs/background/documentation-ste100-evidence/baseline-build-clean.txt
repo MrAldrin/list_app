@@ -1,0 +1,361 @@
+Build started
+Warning: page does not exist
+    ╭─[ ARCHITECTURE.md:28:20 ]
+    │
+ 28 │   [conflict rules](docs/background/offline-editing-details.md#conflict-rules).
+    │                    ────────────────────────────┬────────────────────────────  
+    │                                                ╰────────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ README.md:63:17 ]
+    │
+ 63 │ [phone testing](docs/local-network-testing.md).
+    │                 ──────────────┬──────────────  
+    │                               ╰──────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ README.md:98:18 ]
+    │
+ 98 │ ([phone testing](docs/local-network-testing.md)).
+    │                  ──────────────┬──────────────  
+    │                                ╰──────────────── page does not exist
+────╯
+Warning: page does not exist
+     ╭─[ README.md:121:68 ]
+     │
+ 121 │ Why eight workers and real password hashing: [test speed decision](docs/background/test-suite-speed.md#worker-and-hashing-decision).
+     │                                                                    ───────────────────────────────┬───────────────────────────────  
+     │                                                                                                   ╰───────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+    ╭─[ docs/android-emulator-testing.md:66:14 ]
+    │
+ 66 │ [background](background/android-emulator-testing.md).
+    │              ───────────────────┬──────────────────  
+    │                                 ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/browser-testing.md:16:64 ]
+    │
+ 16 │   depends on the suite and machine; see [current measurements](background/test-suite-review.md).
+    │                                                                ───────────────┬───────────────  
+    │                                                                               ╰───────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/browser-testing.md:85:14 ]
+    │
+ 85 │   [port map](background/browser-test-port-map.md).
+    │              ─────────────────┬─────────────────  
+    │                               ╰─────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/browser-testing.md:94:14 ]
+    │
+ 94 │ [background](background/browser-testing.md).
+    │              ──────────────┬──────────────  
+    │                            ╰──────────────── page does not exist
+────╯
+Warning: page does not exist
+     ╭─[ docs/deployment.md:121:63 ]
+     │
+ 121 │   `database is locked`. Reasons: [WAL and lock-wait findings](background/sqlite-wal-timeout.md).
+     │                                                               ────────────────┬───────────────  
+     │                                                                               ╰───────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ docs/deployment.md:273:24 ]
+     │
+ 273 │ [Svelte deploy record](background/svelte-rollback.md).
+     │                        ──────────────┬──────────────  
+     │                                      ╰──────────────── page does not exist
+─────╯
+Warning: page does not exist
+    ╭─[ docs/due-date-reminders.md:64:24 ]
+    │
+ 64 │ [P2 validation record](background/reminders-p2-validation.md).
+    │                        ──────────────────┬──────────────────  
+    │                                          ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/home-screen-installation.md:49:148 ]
+    │
+ 49 │ - The app's worker is `/service-worker.js` (see [offline viewing](offline-viewing.md)). `/sw.js` only removes the old app's worker ([decision 159](background/svelte-frontend-rewrite.md#decisions-log)).
+    │                                                                                                                                                    ─────────────────────────┬─────────────────────────  
+    │                                                                                                                                                                             ╰─────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/home-screen-installation.md:86:14 ]
+    │
+ 86 │ [background](background/home-screen-installation.md).
+    │              ───────────────────┬──────────────────  
+    │                                 ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/item-writes.md:66:32 ]
+    │
+ 66 │ [field constraints background](background/field-constraints.md). Tests:
+    │                                ───────────────┬───────────────  
+    │                                               ╰───────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/item-writes.md:78:14 ]
+    │
+ 78 │ [background](background/item-writes.md).
+    │              ────────────┬────────────  
+    │                          ╰────────────── page does not exist
+────╯
+Warning: page does not exist
+   ╭─[ docs/offline-viewing.md:6:48 ]
+   │
+ 6 │ Rules and mechanics: [offline editing details](background/offline-editing-details.md).
+   │                                                ──────────────────┬──────────────────  
+   │                                                                  ╰──────────────────── page does not exist
+───╯
+Warning: page does not exist
+    ╭─[ docs/testing.md:42:22 ]
+    │
+ 42 │ [measurement record](background/test-suite-review.md) gives commands, findings,
+    │                      ───────────────┬───────────────  
+    │                                     ╰───────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/testing.md:43:46 ]
+    │
+ 43 │ and limits. Earlier speed evidence is [here](background/test-suite-speed.md).
+    │                                              ───────────────┬──────────────  
+    │                                                             ╰──────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ docs/testing.md:49:19 ]
+    │
+ 49 │   [P2 validation](background/reminders-p2-validation.md#deliberately-paused-browser-checks).
+    │                   ────────────────────────────────────┬───────────────────────────────────  
+    │                                                       ╰───────────────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+   ╭─[ frontend/README.md:4:45 ]
+   │
+ 4 │ step by step following the [rewrite record](../docs/background/svelte-frontend-rewrite.md)
+   │                                             ──────────────────────┬──────────────────────  
+   │                                                                   ╰──────────────────────── page does not exist
+───╯
+Warning: page does not exist
+    ╭─[ plans/backlog.md:62:265 ]
+    │
+ 62 │ - **Infrastructure — Keep the old service-worker removal route.** Keep `/sw.js` until at least 2027-04-06. The new app must use a different worker URL or replace this route safely. The route must not return a missing-page error or the app page. See [decision 159](../docs/background/svelte-frontend-rewrite.md#decisions-log).
+    │                                                                                                                                                                                                                                                                         ─────────────────────────────┬─────────────────────────────  
+    │                                                                                                                                                                                                                                                                                                      ╰─────────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/backlog.md:64:145 ]
+    │
+ 64 │ - **Feature — Give users more time to undo deletion.** Consider a longer toast or an undo history for items and tags. See [decisions 85 and 87](../docs/background/svelte-frontend-rewrite.md#decisions-log).
+    │                                                                                                                                                 ─────────────────────────────┬─────────────────────────────  
+    │                                                                                                                                                                              ╰─────────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+   ╭─[ plans/backup-options.md:9:163 ]
+   │
+ 9 │ Commands are in the [deployment guide](../docs/deployment.md#sqlite-consistent-backups); option comparison, Railway CLI findings and evidence are in [background](../docs/background/backup-research.md).
+   │                                                                                                                                                                   ──────────────────┬──────────────────  
+   │                                                                                                                                                                                     ╰──────────────────── page does not exist
+───╯
+Warning: page does not exist
+    ╭─[ plans/backup-options.md:53:47 ]
+    │
+ 53 │ `Not Authorized`; details are in [background](../docs/background/backup-research.md).
+    │                                               ──────────────────┬──────────────────  
+    │                                                                 ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+     ╭─[ plans/batches/reminders-s2.md:172:49 ]
+     │
+ 172 │ - Image/audit evidence: [delivery verification](../../docs/background/reminder-delivery-verification.md).
+     │                                                 ───────────────────────────┬───────────────────────────  
+     │                                                                            ╰───────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+    ╭─[ plans/cross-room-sharing-without-accounts.md:84:25 ]
+    │
+ 84 │ [offline editing rules](../docs/background/offline-editing-details.md). B1
+    │                         ──────────────────────┬──────────────────────  
+    │                                               ╰──────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/due-date-reminders.md:15:50 ]
+    │
+ 15 │ Evidence and external sources: [research report](../docs/background/reminder-redesign-research.md).
+    │                                                  ────────────────────────┬───────────────────────  
+    │                                                                          ╰───────────────────────── page does not exist
+────╯
+Warning: page does not exist
+     ╭─[ plans/due-date-reminders.md:118:52 ]
+     │
+ 118 │   in the backlog (recommend Later). [Audit triage](../docs/background/reminder-delivery-verification.md#existing-frontend-tooling-audit)
+     │                                                    ──────────────────────────────────────────┬─────────────────────────────────────────  
+     │                                                                                              ╰─────────────────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/due-date-reminders.md:133:27 ]
+     │
+ 133 │   [delivery verification](../docs/background/reminder-delivery-verification.md).
+     │                           ──────────────────────────┬─────────────────────────  
+     │                                                     ╰─────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/due-date-reminders.md:831:42 ]
+     │
+ 831 │   delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s1-reviewed-integration--2026-11-04)).
+     │                                          ────────────────────────────────────────────┬───────────────────────────────────────────  
+     │                                                                                      ╰───────────────────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/due-date-reminders.md:833:60 ]
+     │
+ 833 │   into the isolated delivery line; [verification evidence](../docs/background/reminder-delivery-verification.md#s2-reviewed-integration--2026-11-04)).
+     │                                                            ────────────────────────────────────────────┬───────────────────────────────────────────  
+     │                                                                                                        ╰───────────────────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/due-date-reminders.md:839:35 ]
+     │
+ 839 │   [validation and cleanup record](../docs/background/reminders-p2-validation.md).
+     │                                   ──────────────────────┬──────────────────────  
+     │                                                         ╰──────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:109:124 ]
+     │
+ 109 │ | Retire the staging plan | Its `staging` bookmark conflicts with the bookmark rules | S | **Done**: moved to [background](../docs/background/staging-environment.md) |
+     │                                                                                                                            ────────────────────┬────────────────────  
+     │                                                                                                                                                ╰────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:222:13 ]
+     │
+ 222 │ - [Backend](../docs/background/improvement-review-2026-10/backend.md),
+     │             ────────────────────────────┬───────────────────────────  
+     │                                         ╰───────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:223:14 ]
+     │
+ 223 │   [frontend](../docs/background/improvement-review-2026-10/frontend.md),
+     │              ────────────────────────────┬────────────────────────────  
+     │                                          ╰────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:224:30 ]
+     │
+ 224 │   [performance and security](../docs/background/improvement-review-2026-10/perf-security.md)
+     │                              ───────────────────────────────┬──────────────────────────────  
+     │                                                             ╰──────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:225:16 ]
+     │
+ 225 │ - [Docs audit](../docs/background/improvement-review-2026-10/docs.md),
+     │                ──────────────────────────┬──────────────────────────  
+     │                                          ╰──────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:226:23 ]
+     │
+ 226 │   [tests and tooling](../docs/background/improvement-review-2026-10/tooling.md)
+     │                       ────────────────────────────┬───────────────────────────  
+     │                                                   ╰───────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:227:15 ]
+     │
+ 227 │ - [UX review](../docs/background/improvement-review-2026-10/ux.md),
+     │               ─────────────────────────┬─────────────────────────  
+     │                                        ╰─────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:228:22 ]
+     │
+ 228 │   [feature research](../docs/background/improvement-review-2026-10/features.md),
+     │                      ────────────────────────────┬────────────────────────────  
+     │                                                  ╰────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+     ╭─[ plans/improvement-ideas.md:229:31 ]
+     │
+ 229 │   [accounts, rooms and admin](../docs/background/improvement-review-2026-10/accounts.md)
+     │                               ────────────────────────────┬────────────────────────────  
+     │                                                           ╰────────────────────────────── page does not exist
+─────╯
+Warning: page does not exist
+    ╭─[ plans/optional-accounts.md:36:28 ]
+    │
+ 36 │   [accounts design report](../docs/background/improvement-review-2026-10/accounts.md).
+    │                            ────────────────────────────┬────────────────────────────  
+    │                                                        ╰────────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/paste-text-to-list.md:28:33 ]
+    │
+ 28 │   and [offline editing details](../docs/background/offline-editing-details.md).
+    │                                 ──────────────────────┬──────────────────────  
+    │                                                       ╰──────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/reminders-s3-scope-review.md:57:31 ]
+    │
+ 57 │ - [P2 validation and cleanup](../docs/background/reminders-p2-validation.md).
+    │                               ──────────────────────┬──────────────────────  
+    │                                                     ╰──────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-review.md:72:25 ]
+    │
+ 72 │ [its validation record](../docs/background/reminders-p2-validation.md).
+    │                         ──────────────────────┬──────────────────────  
+    │                                               ╰──────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-review.md:81:25 ]
+    │
+ 81 │ [previous measurements](../docs/background/test-suite-speed.md) before
+    │                         ───────────────────┬──────────────────  
+    │                                            ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-speed.md:19:49 ]
+    │
+ 19 │ speed pass are complete locally ([measurements](../docs/background/test-suite-speed.md)); do not repeat them as prerequisites. The
+    │                                                 ───────────────────┬──────────────────  
+    │                                                                    ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-speed.md:55:369 ]
+    │
+ 55 │ - **Historical only:** the offline experiment adds installed cold launch, saved offline contents, reconnect refresh, and revocation/deletion clearing. Do not import these tests into a branch without the corresponding feature. Review their lessons when the new offline frontend is implemented, rather than restoring the discarded implementation. See [offline findings](../docs/background/offline-findings.md).
+    │                                                                                                                                                                                                                                                                                                                                                                                 ───────────────────┬──────────────────  
+    │                                                                                                                                                                                                                                                                                                                                                                                                    ╰──────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-speed.md:88:60 ]
+    │
+ 88 │ - Preserve the existing [production-cost hashing decision](../docs/background/test-suite-speed.md#worker-and-hashing-decision). Cheaper or hybrid hashing would require an explicit reconsideration, not a silent optimization.
+    │                                                            ─────────────────────────────────┬────────────────────────────────  
+    │                                                                                             ╰────────────────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-speed.md:95:271 ]
+    │
+ 95 │ With about five users, we accept that gap. Linux Playwright WebKit is the iPhone evidence; the owner sees iPhone behavior live after deploys, and we fix problems then. Real-iPhone checks: see the [risk level](../docs/scope.md#risk-level) and the [Svelte rewrite record](../docs/background/svelte-frontend-rewrite.md).
+    │                                                                                                                                                                                                                                                                               ──────────────────────┬──────────────────────  
+    │                                                                                                                                                                                                                                                                                                     ╰──────────────────────── page does not exist
+────╯
+Warning: page does not exist
+    ╭─[ plans/test-suite-speed.md:99:58 ]
+    │
+ 99 │ Completed steps and all measurements are in [background](../docs/background/test-suite-speed.md#completed-steps).
+    │                                                          ───────────────────────────┬──────────────────────────  
+    │                                                                                     ╰──────────────────────────── page does not exist
+────╯
+51 issues found
+Build finished in 1.14s
+Validated 38 fragment-free redirects and 2809 generated local links.

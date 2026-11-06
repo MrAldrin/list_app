@@ -1,0 +1,704 @@
+[
+  {
+    "path": "browser_tests/conftest.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/svelte_app.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_browser_sessions.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_old_service_worker.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_accessibility.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_admin.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_bottom_bar.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_compat.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_deleted_lists.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_dialog.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_due_center.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_due_center_phone.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_hide_done.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_install_browser.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_invitations.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_item_date.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_item_sort.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_items.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_live.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_offline.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_offline_conflicts.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_offline_multidevice.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_offline_reconnect.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_old_urls.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_phone_fixes.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_policy_editor.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_private_reminders.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_restart.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_room_management.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_room_switcher.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_rooms.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_service_worker.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_share.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_tags.py",
+    "changed": true,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_tap_targets.py",
+    "changed": true,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_theme.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_timed_due_offline.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_times_added.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "browser_tests/test_svelte_toasts.py",
+    "changed": true,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/api_helpers.py",
+    "changed": true,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/conftest.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/migration_helpers.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/server_launcher.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_admin.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_admin_session.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_basics.py",
+    "changed": true,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_changes.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_concurrency.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_conflicts.py",
+    "changed": true,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_events.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_idempotency.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_invitations.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_item_ops.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_list_ops.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_name_case.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_reminders.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_reminders_review.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_room.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_session.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_share.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_tag_ops.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_tag_settings.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_api_version.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_change_tracking.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_config.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_cookie_headers.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_count_limits.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_database_crud.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_database_setup.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_deletion_pruning.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_deploy_backup.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_docs_site_build.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_due_cycle_start.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_field_limits.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_field_rules_migration.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_healthz.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_date.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_due_time.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_edits.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_ids.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_name_capitalization_migration.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_renames.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_undo.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_uniqueness.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_item_visibility.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_list_names.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_list_renames.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_migrations.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_offline_schema_migration.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_password_checks_outside_lock.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_password_hashes.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_positive_visibility_migration.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_public_share_tokens.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_pwa_routes.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_quantity_updates.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_reminders_identity_migration.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_reminders_policies.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_reminders_preview.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_reminders_rules.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_reminders_zoned_time.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_room_cookies.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_room_invitations.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_room_password_minimum.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_room_token_validation.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_rooms.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_security_headers.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_seed_test_data.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_serve_svelte_local.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_server_shutdown.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_share_seq.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_sign_in_limiter.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_sign_in_rate_limit.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_svelte_frontend_routes.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_tag_settings_migration.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_tags.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_times_added.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  },
+  {
+    "path": "tests/test_write_atomicity_cross_path.py",
+    "changed": false,
+    "executable_ast_equal": true,
+    "protected_directives_equal": true
+  }
+]

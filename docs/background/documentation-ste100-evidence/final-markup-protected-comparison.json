@@ -1,0 +1,439 @@
+[
+  {
+    "path": "AGENTS.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "ARCHITECTURE.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "CLAUDE.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "README.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/adding-items.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/allium/README.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/allium/public-sharing.allium",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/android-emulator-testing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api-admin.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api-lists-items.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api-reminders.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api-rooms.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api-sharing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api-sync.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/api.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/android-emulator-testing.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/backup-research.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/browser-test-port-map.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/browser-testing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/codebase-cleanup.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/deploy-rehearsal-2026-10-06.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/field-constraints.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/fixes-deployment-2026-10-06.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/home-screen-installation.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/accounts.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/backend.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/docs.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/features.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/frontend.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/perf-security.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/tooling.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/improvement-review-2026-10/ux.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/item-writes.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/nicegui-test-retirement.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/offline-editing-details.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/offline-editing-release-validation.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/offline-findings.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/offline-viewing-validation.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/reminder-delivery-verification.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/reminder-overnight-status.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/reminder-redesign-research.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/reminders-p2-validation.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/sqlite-wal-timeout.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/staging-environment.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/svelte-frontend-rewrite.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/svelte-rollback.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/test-suite-review.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/test-suite-speed.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/background/write-atomicity-findings.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/browser-testing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/change-tracking.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/checked-item-visibility.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/deployment.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/due-date-reminders.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/home-screen-installation.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/index.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/item-sorting.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/item-writes.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/local-network-testing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/offline-viewing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/preview-exclusions.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/public-sharing.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/room-invitations.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/scope.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "docs/testing.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "frontend/README.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/advanced_sharing.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/backup-options.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/batches/reminders-polish.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/batches/reminders-s1.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/batches/reminders-s2.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/batches/reminders-s3.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/batches/reminders-s4.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/batches/reminders-s5.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/cross-room-sharing-without-accounts.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/decisions-for-heming.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/due-date-reminders.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/improvement-ideas.md",
+    "changed": true,
+    "protected_differences": [
+      "numbers"
+    ]
+  },
+  {
+    "path": "plans/jj-history-review.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/named-item-groups.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/optional-accounts.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/paste-text-to-list.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/reminders-s3-scope-review.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/test-suite-review.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/test-suite-speed.md",
+    "changed": true,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/theme-exploration.md",
+    "changed": false,
+    "protected_differences": []
+  },
+  {
+    "path": "plans/visual-refresh.md",
+    "changed": true,
+    "protected_differences": []
+  }
+]

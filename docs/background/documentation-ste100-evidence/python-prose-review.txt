@@ -1,0 +1,20 @@
+## Review
+
+**Context checked**
+- Read the writer disposition report and `plans/documentation-ste100.md`.
+- Compared each rewritten docstring with its original and checked its executable context. The changes make no behavioral claim beyond what the code supports.
+- The writer reports dispositions for all 51 in-scope files: 2 rewritten, 35 already suitable, 12 partly protected, 2 with no explanatory prose, and 0 blocked. I independently sampled unchanged files; I did not reread all unchanged prose.
+
+**Per-file verdicts**
+- **PASS — `src/database_crud.py:229–233`.** The revised sentence accurately describes the ranking fallback in `rank.get(tag, len(list_tags))`: tags absent from the list rank after its tags. It does not claim how those absent tags rank relative to each other. The code that chooses and stores the retained tag is unchanged.
+- **PASS — `src/sign_in_limiter.py:70–71, 87–92`.** The `release` wording matches its use after successful sign-in (`src/api/sign_in_limit.py:36–38`, `src/api/session.py:51–54`). The `_live` wording matches the code: expired timestamps are filtered, an emptied bucket is removed, and the method returns `None` when no timestamps remain. No executable statements changed.
+
+**Unchanged-file coverage**
+- Spot-checked actual prose in files reported as already suitable: `src/item_names.py:1–27` and `src/reminders/policies.py:1–11`.
+- Spot-checked partly protected files: `src/api/access.py:1–5, 57–69`, `scripts/deploy_backup.py:1–10`, and `src/field_limits.py:1–8, 33–39`. Their explanatory prose is clear in the sampled passages, and protected examples or commands remain intact. These are samples, not an independent review of every unchanged file.
+
+No tests or quality gates were run; the parent owns the post-integration checks.
+
+**Finding:** No issues found.
+
+**Merge verdict:** OK.

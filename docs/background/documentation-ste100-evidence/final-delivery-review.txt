@@ -1,0 +1,26 @@
+# Final delivery audit
+
+**Decision: BLOCK pending one targeted privacy-fidelity correction.** This read-only audit did not edit files or run checks or VCS commands.
+
+## Correct
+
+- Read the full `docs/background/documentation-ste100-review.md`, the authoritative `plans/documentation-ste100.md` and `plans/night-run.md`, and all 476 inventory rows in `docs/background/documentation-ste100-inventory.tsv` through EOF.
+- The reported disposition counts reconcile: **52 rewritten + 285 suitable + 79 protected/partly protected + 60 excluded = 476**. The retained batch reviews support full independent prose inspection of all 90 Markdown/Allium pages and review of all 52 rewritten paths. They also distinguish that coverage from the **sampled** independent review of unchanged source comments.
+- The final-composition evidence is appropriately bounded: it records 52 style-rewritten baseline paths plus the separate Lead-owned `plans/night-run.md` run-limit amendment. The final report identifies that amendment separately; it does not present it as one of the style rewrites.
+- The report accurately distinguishes the green checks from the inherited failed gate: **1792 Python tests and 1115 frontend tests passed**, while task 1 remains partial at `570b4f8a` with its full browser gate red. It does not claim full browser acceptance.
+- Build reporting is appropriately qualified: exit 0, **51 existing warnings** with the same per-source distribution, 39 redirects and 2810 generated local links. The report does not call the build warning-free. Its link limitations also match the retained evidence: source fragments need match at least one of the two checked profiles, which is not a universal portability claim, and external URLs were not fetched.
+- The report retains the reminder-entry-point contradiction and the possible stale “both apps” wording as unresolved. It makes no formal STE100-compliance claim.
+
+## Finding
+
+**P1 — The final API-reminders introduction omits a required general privacy guarantee, while the report says it was restored.**
+
+- **Location:** `docs/api-reminders.md:3–5`.
+- **Evidence:** The current introduction says the settings belong to the device, not the account or room, and that room feeds, share links and live updates do not carry them. It does **not** say “Nothing here is shared.” The combined candidate diff confirms that the original sentence was removed: `.night-docs-evidence/final-style.diff:554–558`.
+- **Reporting mismatch:** `docs/background/documentation-ste100-review.md:104–105` says the Conductor restored the general guarantee and that named-channel exclusions do not replace it. The retained `operations-prose-rereview.txt` likewise says the guarantee is explicit in the candidate, but the current combined file does not contain it.
+- **Why this blocks:** The task’s stated privacy correction requires retaining the general guarantee; listing particular channels does not replace it. The final composition therefore does not match its own reported disposition.
+- **Smallest fix:** Restore an explicit general guarantee before the named-channel list, for example: **“Nothing here is shared: room feeds, share links and live updates never carry these settings.”** Then confirm the combined candidate and final report evidence agree.
+
+## Merge verdict: BLOCK
+
+Block pending restoration of the general privacy guarantee in `docs/api-reminders.md` and confirmation that the final report describes the resulting candidate accurately. No formal STE100 compliance claim is made.

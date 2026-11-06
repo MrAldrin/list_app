@@ -1,14 +1,16 @@
 # Field constraints
 
-Background for the field rules, live since 2026-10-14. Current behavior is in
-[item writes](../item-writes.md#field-rules). This was the plan; it is kept
-for the audit and the reasoning.
+Background for the field rules implemented on 2026-10-14. Current behavior is
+in [item writes](../item-writes.md#field-rules). This plan records the audit
+and reasoning.
 
-Goal: make the database reject bad values, not only the app code. Today most
-rules live only in Python. A bug, a script or a future code path could store a
-blank name, a quantity of 0 or broken tag data, and the database would accept it.
+The goal was to make the database reject bad values as well as the app code.
+At the time, most rules lived only in Python. A bug, script, or future code path
+could store a blank name, quantity 0, or broken tag data. The database would
+accept those values.
 
-The rules below were agreed and are now live. Progress at the bottom records the steps.
+The rules below were agreed and implemented. The progress section records the
+steps.
 
 ## Terms in simple words
 
@@ -35,10 +37,12 @@ The rules below were agreed and are now live. Progress at the bottom records the
 
 ## Current state and proposed rules
 
-"App" means validation in `src/database_crud.py` and `src/item_service.py`,
-as audited. The Svelte app now writes through the JSON API in `src/api/`;
-check that path too when adding limits.
-"Bad rows" is the count in the audited copy that would break the proposed rule.
+The tables' "today" columns describe the state when this proposal was written.
+In these tables, "App" means the validation in `src/database_crud.py` and
+`src/item_service.py` that the audit reviewed. The Svelte app wrote through
+the JSON API in `src/api/`, so the plan also considered that path for limits.
+"Bad rows" is the number of rows in the audited copy that would break a
+proposed rule.
 
 ### rooms
 
@@ -73,11 +77,11 @@ check that path too when adding limits.
 | `active_tags` | NOT NULL DEFAULT `'[]'` | written with `json.dumps` | 0 invalid, 0 not an array | CHECK valid JSON array |
 
 The 207 checked items without a time were checked before completion times
-existed. The app treats a missing time as "unknown": "hide after N days" keeps
-them visible, and "keep recent" sorts them as oldest
-([checked-item visibility](../checked-item-visibility.md)). Filling in a
-fake time would change what users see, so the rule only covers the safe
-direction: an unchecked item has no completion time.
+existed. At the time, the app treated a missing time as "unknown". "hide after
+N days" kept these items visible, and "keep recent" sorted them as oldest
+([checked-item visibility](../checked-item-visibility.md)). Filling in a fake
+time would change what users saw. Therefore, the proposed rule covered only the
+safe direction: an unchecked item had no completion time.
 
 ### Not changed
 
@@ -101,21 +105,23 @@ direction: an unchecked item has no completion time.
 
 ## Existing rows
 
-Both audits found no rows that break the rules, so migration 6 repairs
-nothing. It counts the rows that break each rule first. If any do, it stops
-with those counts and rolls back, and the app does not start. The deploy
-rehearsal on a fresh backup copy catches this before production.
+Both audits found no rows that broke the rules, so migration 6 repaired none.
+It counted the rows that broke each rule first. If any row had broken a rule,
+the migration would have stopped with those counts and rolled back. In that
+case, the app would not have started. The deploy rehearsal on a fresh backup
+copy checked for this before production.
 
 ## Migration approach
 
-Production is at schema version 5 (`_migrations` in `src/database_setup.py`).
+At the time of this plan, production used schema version 5 (`_migrations` in
+`src/database_setup.py`).
 
-**Guard triggers, not table rebuilds.** A rebuild of `rooms`, `lists` and
-`items` would have to keep the offline-sync columns and indexes, recreate the
-change-tracking and visibility triggers, and carry over the item ID counter. A
-mistake there could break syncing or bring back item-ID reuse. Guard triggers
-give the same protection without touching the tables. Migration 5 already
-guards the hide-done counters this way.
+**Guard triggers, not table rebuilds.** Rebuilding `rooms`, `lists` and `items`
+would require the migration to keep the offline-sync columns and indexes. It
+would also need to recreate the change-tracking and visibility triggers and
+preserve the item ID counter. A mistake could break syncing or restore item-ID
+reuse. Guard triggers gave the same protection without changing the tables.
+Migration 5 already guarded the hide-done counters this way.
 
 1. First change: app-side length limits with friendly messages (room, list and
    item names 100; description 1000; list tag 30), in the JSON API ops and the

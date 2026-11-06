@@ -1,0 +1,13 @@
+# Android prose review
+
+**PASS**
+
+## Review
+- **Coverage:** Read the complete candidate `android_tests/test_android_chrome.py` and the complete original `/tmp/night-docs-originals/android_tests/test_android_chrome.py`, along with the full writer report and `plans/documentation-ste100.md`. Reviewed all explanatory prose: the module docstring (line 1), fixture comments (lines 53–59), helper docstrings (lines 122 and 159), test docstrings (lines 189 and 223), and inline comments (lines 244–245 and 279–281). On full-text inspection, I found no difference between candidate and original.
+- **Correct:** The prose preserves the emulator-only and not-a-real-phone scope (line 1), local-server and production-safety distinctions (lines 53–54), and the guard against clearing other Chrome shortcuts (lines 58–59). It describes the first test’s browser check separately from the second test’s install, password-entry, and standalone-app checks. The inline comments also explain the accessibility-tree limitation and the offline-check cleanup.
+- **Fixed:** None. This was a read-only review.
+- **Finding:** No issues found.
+
+No tests, checks, app, or emulator were run. This is a prose review, not a claim of formal STE100 compliance.
+
+**Merge verdict: OK (PASS)**

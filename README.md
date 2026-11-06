@@ -9,11 +9,11 @@ Railway. See the [architecture](ARCHITECTURE.md).
 **Anyone with a public list link can view and edit that list.** Room passwords
 protect room controls, not public list links.
 
-Switch between light and dark mode with the moon button, or with **Dark mode**
-in the ⋮ menu on room and list pages. Pick a color theme (Classic, Nord,
-Solarized, Gruvbox, Catppuccin or Rosé Pine) under **Appearance** in the same
-menu; each has light and dark colors. Both choices are saved in that device's browser, not shared with
-other devices.
+Switch between light and dark mode with the moon button or **Dark mode** in the
+⋮ menu on room and list pages. Choose a color theme under **Appearance** in the
+same menu: Classic, Nord, Solarized, Gruvbox, Catppuccin or Rosé Pine. Each theme
+has light and dark colors. The app saves both choices in that device's browser.
+It does not share them with other devices.
 
 Scope and approval rules: [scope](docs/scope.md). Work starts from the
 [backlog's current focus](plans/backlog.md#current-focus).
@@ -72,9 +72,9 @@ uv run python src/main.py
 ```
 
 Open <http://localhost:8080/admin> and sign in with `APP_PASSWORD` to find the
-default room or create room invitations. Room access requires its own password;
-admin login does not bypass it. Without a frontend build the server still
-starts and logs a warning, but it does not serve the app.
+default room or create room invitations. Room access still requires its own
+password; admin login does not bypass it. The server starts without a frontend
+build and logs a warning, but it does not serve the app.
 
 The default database is `list.db` in the repository root, regardless of the
 startup directory. Optional `DB_PATH` overrides it. The port defaults to `8080`;
@@ -157,19 +157,20 @@ python3 -m http.server --bind 127.0.0.1 --directory site 8000
 
 Open <http://127.0.0.1:8000/>. Stop the local server with Ctrl-C. The build
 wrapper makes a temporary staging tree of individual file symlinks to the
-allowed maintained documentation sources, then builds the site from that tree. It does not copy
-or move the maintained source files. It rejects unsafe source/output paths and
-symlinks, discovers excluded pages, writes fragment-free redirects, and checks
-generated links. Treat `zensical.toml` as trusted project code: its exclusions
-are not a security boundary. Review generated output after changing preview
-configuration or source files. The `site/` directory is ignored. The preview
-excludes `docs/local-network-testing.md`
-and all of `docs/background/`; source files stay unchanged. Links to excluded
-pages redirect to a site-specific exclusions notice. Other operational guides
-and planning proposals remain included, so this local preview is not approval to
-publish or expose the site. See the hub for content and privacy limits.
+allowed maintained documentation sources. It builds the site from that tree.
+It does not copy or move the maintained source files. The wrapper rejects unsafe
+source/output paths and symlinks. It discovers excluded pages, writes
+fragment-free redirects, and checks generated links. Treat `zensical.toml` as
+trusted project code; its exclusions are not a security boundary. Review
+generated output after changing preview configuration or source files. The
+`site/` directory is ignored. The preview excludes
+`docs/local-network-testing.md` and all of `docs/background/`; source files stay
+unchanged. Links to excluded pages redirect to a site-specific exclusions
+notice. Other operational guides and planning proposals remain included. This
+local preview is not approval to publish or expose the site. See the hub for
+content and privacy limits.
 
-The preview is a manual snapshot. After editing documentation or its
+The preview is a manual snapshot. After you edit documentation or its
 configuration, rerun `uv run python scripts/build_docs_site.py` and reload the
-browser page. The local HTTP server does not watch the maintained sources or
-rebuild the preview automatically.
+browser page. The local HTTP server does not watch maintained sources or rebuild
+the preview automatically.

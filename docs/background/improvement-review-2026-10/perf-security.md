@@ -3,7 +3,7 @@
 Date: 2026-10-19. Scope: `src/`, `frontend/src/lib/service-worker.ts`, `Dockerfile`, `.dockerignore`, `frontend/build/`.
 Method: code reading plus throwaway measurements. The benchmarks ran the real server (`src/main.py`, uvicorn, `APP_RELOAD=false`) on a temp DB under `scratchpad/bench/data/`. `list.db` and the repo were not changed. Production was not touched. Scripts: `scratchpad/bench/bench.py`, `bench2.py`, `bench3.py`, `bench4.py`, `fill.py`.
 
-Note on measurements: single runs on a 16-core dev box, so treat them as orders of magnitude. The first benchmark runs used the `.env` value `APP_RELOAD=true` (local dev), which made RSS readings belong to the reloader parent. The RSS numbers below were re-measured with reload off.
+Each measurement comes from one run on a 16-core dev box. Treat the results as orders of magnitude. The first benchmark runs used the `.env` value `APP_RELOAD=true` (local dev), so their RSS readings belonged to the reloader parent. The RSS numbers below were re-measured with reload off.
 
 ## Measured numbers
 

@@ -1,0 +1,27 @@
+{
+  "task_created_children_removed": [
+    "night-docs-calibrate",
+    "night-docs-python",
+    "night-docs-current",
+    "night-docs-guides",
+    "night-docs-frontend",
+    "night-docs-history",
+    "night-docs-history2",
+    "night-docs-operations",
+    "night-docs-test-prose",
+    "night-docs-android"
+  ],
+  "owned_job_panes_closed": [
+    52,
+    53,
+    54,
+    55,
+    56
+  ],
+  "existing_preview_pane38_port8765_preserved": true,
+  "entry_lifecycle_owner": "Lead",
+  "retained_task2_evidence_bytes": 985865,
+  "retained_task1_evidence_path": "/home/hsa/projects/list_app-night-tests/.night-evidence",
+  "budget_gib": 3,
+  "free_disk_gib_about": 14
+}

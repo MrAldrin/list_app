@@ -1,10 +1,10 @@
 # Change tracking
 
-The database keeps track of every change to room data, so the
-[changes feed](api-sync.md#reading-the-changes-feed) can send only what changed.
-SQLite triggers do the work (migration 4 in `src/database_setup.py`). They run
-inside the writer's transaction, so every write path (the API, share
-links, admin) is covered, and a rolled-back write leaves no trace.
+The database tracks every change to room data, so the [changes
+feed](api-sync.md#reading-the-changes-feed) can send only what changed. SQLite
+triggers do the work (migration 4 in `src/database_setup.py`). They run inside
+the writer's transaction, covering every write path (the API, share links and
+admin). A rolled-back write leaves no trace.
 
 ## What is stored
 
@@ -25,16 +25,16 @@ links, admin) is covered, and a rolled-back write leaves no trace.
   while it runs.
 
 Deleting a room removes its `deletions` and `processed_ops` rows
-(`ON DELETE CASCADE`). `deletions` rows older than 90 days are pruned when the
-server starts and once a day. Per room, pruning removes every row up to the
-newest old one, and the room keeps that seq as `deletions_pruned_seq`. The
+(`ON DELETE CASCADE`). The server prunes `deletions` rows older than 90 days
+when it starts and once a day. For each room, pruning removes every row up to
+the newest old one. The room keeps that sequence as `deletions_pruned_seq`. The
 changes feed sends a full snapshot to a client behind it.
 
-Share links use a per-list seq instead of the room seq: the highest
+Share links use a per-list seq instead of the room seq. This is the highest
 `changed_seq` of the list row, its items, its deletion rows (by `list_uid`) and
-its floor. Other lists' writes do not change it. It only grows, so the floor
-keeps it from dropping when pruning removes the list's deletion rows. See
-[share links](api-sharing.md#share-links).
+its floor. Writes to other lists do not change it. It only grows, so the floor
+keeps it from dropping when pruning removes the list's deletion rows. See [share
+links](api-sharing.md#share-links).
 
 ## What the triggers do
 
@@ -45,8 +45,8 @@ keeps it from dropping when pruning removes the list's deletion rows. See
 | Delete a list or item | Bump the room, add a `deletions` row |
 | Rename a room | Bump the room |
 
-- An item finds its room through its list. If the list is already gone, the
-  item delete records nothing; clients drop the items of a deleted list.
+- An item finds its room through its list. If the list is already gone, deleting
+  the item records nothing; clients drop the items of a deleted list.
 - Deleting a list with items records each item, then the list.
 - Password, token and room-creation writes do not bump. Resetting a share link
   does (it updates the list row); this is harmless, since the share token is

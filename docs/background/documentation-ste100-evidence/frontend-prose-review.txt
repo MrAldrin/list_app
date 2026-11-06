@@ -1,0 +1,21 @@
+# Frontend/config prose review
+
+**Outcome: PASS.** The three changed files make wording-only edits. I found no unsupported behavior, permission, or preview-scope change.
+
+## Independent per-file verdicts
+
+1. **PASS — `frontend/eslint.config.js:21–22`.** The original “strongly recommend that you do not use” and the rewrite “strongly recommends not using” preserve the same recommendation strength. The `no-undef` rule name, its `'off'` setting, and the URL are unchanged.
+
+2. **PASS — `frontend/src/lib/admin/ResetPasswordDialog.svelte:2–6`.** The comment preserves the current-password exception, revocation of room access tokens, sign-out and re-entry requirement for signed-in devices, continued operation of share and room links, separation of admin sign-in from room access, and the missing-room dialog behavior. The code supports these statements: `src/database_crud.py:1306–1314` replaces the password and deletes the room’s access-token rows; `src/api/admin.py:165–169` handles an unavailable room and wakes the revoked streams; `frontend/src/lib/admin/AdminRooms.svelte:56–58` closes the dialog and reloads the rooms. The reset does not change the share-link token in this path.
+
+3. **PASS — `zensical.toml:7–10`.** The new “Do not … include app code” wording does not grant new authority or change the preview’s effective scope. It states the existing exclusion: `zensical.toml:11–32` selects documentation sources and the frontend README while excluding `frontend/**`, `docs/local-network-testing.md`, `docs/background/**`, and hidden paths, with the stated Allium exceptions. The exclusion rules themselves are unchanged. The local-preview publication limitation also remains explicit in `README.md:169–170` and `docs/index.md:42–44`.
+
+## Coverage and checks
+
+I read the full writer report and the shared plan, and compared the original and candidate versions of all three changed files. Independent review of unchanged prose was **sample-only**—including sampled admin/share-link comments and preview-scope documentation; I did not repeat the writer’s full frontend/config sweep. The five route pages are outside this diff; per the task note, their original exports have been restored and byte-verified unchanged.
+
+No tests, builds, or other checks were run; the parent owns the frontend gates. I did not independently verify the effective model or effort settings; the parent owns that verification.
+
+**No issues found.**
+
+**Merge verdict: OK.**

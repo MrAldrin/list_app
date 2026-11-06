@@ -1,0 +1,13 @@
+## Review
+
+- **Correct:** I independently read each complete original/candidate pair for the six rewritten files, including the continuations for the longer files. I found no changes to executable statements, assertions, fixtures, test inputs, or embedded code. The 0.5 px sampling interval and 40 px limit remain intact; the toast timing and checked conditions also remain unchanged.
+- **PASS — `browser_tests/test_svelte_tap_targets.py:13–14`:** The rewrite preserves the 0.5 px interval and 40 px bound. They match the sampling loop at lines 25–26.
+- **PASS — `browser_tests/test_svelte_toasts.py:3–5, 43–46`:** The historical finding and listed test scenarios remain. The helper’s “at least `count`” description matches its count assertion; the 4 s timing is consistent with `TOAST_DURATION = 4_000` in `frontend/src/lib/ui/toasts.svelte.ts:29`.
+- **PASS — `tests/api_helpers.py:160–162`:** The wording change preserves the stated alternatives for these setup helpers. No helper code changed.
+- **PASS — `tests/test_api_basics.py:333–334`:** The rewrite preserves the distinction between JSON errors under `/api` and FastAPI defaults elsewhere. The surrounding assertions and requests are unchanged.
+- **PASS — `tests/test_api_conflicts.py:3–8`:** The rewrite preserves the base-sequence conflict condition, `changed_meanwhile`, the returned `changed_seq`, and the one-client model. No test code changed.
+- **BLOCK — `browser_tests/test_svelte_tags.py:191–208`:** The new comment says “the row chip updates at once,” but the test checks the tag buttons inside the Edit Item dialog immediately after each click (lines 197–201). It checks the row buttons only after clicking Cancel (lines 202–208). The component comments support that tag changes happen at once (`frontend/src/lib/list/ItemDialog.svelte:4, 39, 56–57`), but this test does not establish that the row chips update before Cancel. Minimal fix: **“Edit Item tag chips update at once; this test checks the row chips after Cancel.”**
+
+- **Coverage and limits:** The writer report says all 117 tracked Python files under `tests/` and `browser_tests/` were inspected, with dispositions of 6 rewritten, 76 suitable, 31 partly protected, 4 without prose, and none deferred. I independently reviewed the full content of the six changed files, not the other 111 paths. I did not run tests, checks, or browser acceptance, and I did not independently repeat the AST proof; those remain with the parent. This review makes no formal STE100 compliance claim.
+
+**Merge verdict: BLOCK** — correct the test-scope wording in `browser_tests/test_svelte_tags.py`; the other five rewritten files pass this review.

@@ -2,8 +2,8 @@
 
 ## Startup
 
-- A small web list app, built as an MVP that grows slowly. It is the owner's
-  first web app: explain the ways of web development in simple terms.
+- This is a small web list app and an MVP that grows slowly. It is the owner's
+  first web app. Explain web development in simple terms.
 - Read the [backlog's current focus](plans/backlog.md#current-focus) before
   choosing work. Placement is not permission; a direct request is.
 - [`docs/scope.md`](docs/scope.md) owns the risk level, the gates that need
@@ -18,41 +18,41 @@
 
 ## Documentation and plans
 
-Each fact has one home. Link to it rather than copying it.
+Give each fact one home. Link to it instead of copying it.
 
 - `README.md`: app introduction, quick start, repo map.
 - `ARCHITECTURE.md`: stack, boundaries, security decisions and major UX
   decisions. Keep implementation mechanics in linked docs.
-- `docs/`: current behavior, contracts and operational guides. Update affected
-  docs when behavior changes. `docs/scope.md` is the standing scope. Start
-  readers at [`docs/index.md`](docs/index.md).
-- The root [`ARCHITECTURE.md`](ARCHITECTURE.md) is authoritative; the Zensical
-  preview reads that file directly instead of maintaining a second copy. The
+- `docs/`: current behavior, contracts, and operational guides. Update the
+  affected docs when behavior changes. `docs/scope.md` is the standing scope.
+  Start readers at [`docs/index.md`](docs/index.md).
+- The root [`ARCHITECTURE.md`](ARCHITECTURE.md) is authoritative. The Zensical
+  preview reads it directly; it does not maintain a second copy. The
   [README's local preview](README.md#documentation-preview-local-only) explains
   the commands and content/privacy limits. Preview configuration does not grant
   permission to publish.
-- `docs/background/`: evidence and reasoning behind current docs: investigations,
-  measurements, audit logs. May be long. Never the primary source for current
-  behavior; current docs link to it.
+- `docs/background/`: evidence and reasoning behind current docs, such as
+  investigations, measurements, and audit logs. These files may be long. They
+  are never the primary source for current behavior; current docs link to them.
 - `docs/superpowers/handoffs/`: short-lived notes that carry one task into a new
   session. The receiving agent deletes the note after reading it.
 - `plans/backlog.md`: the one work agenda. It carries its own maintenance rules.
-- `plans/<item>.md`: detail for one larger item. Not a second queue. Clearly
-  distinguish planned, implemented and verified; a plan is not evidence that a
-  feature exists. Progress tracking goes at the bottom.
+- `plans/<item>.md`: details for one larger item, not a second queue. Clearly
+  distinguish planned, implemented, and verified work. A plan is not evidence
+  that a feature exists. Put progress tracking at the bottom.
 
 ### Plan lifecycle
 
-- Every plan starts with a lifecycle line under its title: `Lifecycle: temporary`
+- Start every plan with a lifecycle line under its title: `Lifecycle: temporary`
   (approved start-to-finish work) or `Lifecycle: tracked` (open-ended or
-  multi-session work). Tell the owner which one. Unlabelled plans count as
-  `tracked`.
-- Before removing a plan, move durable decisions to `AGENTS.md`, `docs/` or the
-  backlog, move evidence worth keeping to `docs/background/`, track unfinished
+  multi-session work). Tell the owner which lifecycle applies. Treat unlabelled
+  plans as `tracked`.
+- Before removing a plan, move durable decisions to `AGENTS.md`, `docs/`, or the
+  backlog. Move evidence worth keeping to `docs/background/`. Track unfinished
   work in the backlog, and fix incoming links.
 - When every progress item is checked and the conditions above hold, the agent
   that finished the work deletes the plan (temporary or tracked) in its own
-  final jj change, without asking, and names the deletion in the summary.
+  final jj change. Do not ask first. Name the deletion in the summary.
 - Retiring other documents (superseded or partly done plans) is a
   [gate](docs/scope.md#gates). Retain plans with unresolved work.
 - Keep documentation updates scoped to the task; this policy does not authorize
@@ -62,37 +62,38 @@ Each fact has one home. Link to it rather than copying it.
 
 Applies to `README.md`, `ARCHITECTURE.md`, and top-level files in `docs/`.
 
-- Current behavior and decisions only. No progress logs, test counts, dated
-  evidence or experiment history; put those in `docs/background/` and link.
-- Short: aim for about one screen. Checklists and step-by-step guides may be
-  longer.
-- Plain language and short sentences. State facts once; do not stack caveats.
-- Unverified or pending work belongs in the backlog, not in the doc.
+- Include current behavior and decisions only. Put progress logs, test counts,
+  dated evidence, and experiment history in `docs/background/`, and link to them.
+- Keep docs short: aim for about one screen. Checklists and step-by-step guides
+  may be longer.
+- Use plain language and short sentences. State each fact once; do not stack
+  caveats.
+- Put unverified or pending work in the backlog, not in the doc.
 - If a doc has grown past these rules, split detail out to `docs/background/`
-  rather than adding more.
+  instead of adding more.
 
 ## Jujutsu development baseline
 
 Approval rules for these steps are [gates in the scope](docs/scope.md#gates).
 
-- `integration` marks accepted work: "keep this, build on it". It is not a
-  promise that the work is deployed. It must include `main`: if it is behind,
-  fix the baseline with approval before starting work. Start independent work
+- `integration` marks accepted work: "keep this, build on it". It does not
+  mean the work is deployed. It must include `main`. If it is behind, fix the
+  baseline with approval before starting work. Start independent work
   from `integration` when it is ahead of `main`; otherwise start from `main`.
   Continue existing work on its own line.
-- `main` is the production line. Pushing it deploys Railway; the owner runs the
+- `main` is the production line. Pushing it deploys Railway. The owner runs the
   [deploy script](docs/deployment.md#deployment-checklist), which moves `main`.
-  Feature bookmarks mark work not yet accepted. There are no other shared
-  bookmarks. Do not repurpose these.
+  Feature bookmarks mark work that is not yet accepted. There are no other
+  shared bookmarks. Do not repurpose these.
 - `integration` may be ahead of `main`. That is normal, not a to-do. Docs-only
-  work goes out with the next code push. To see what a push would deploy:
+  work goes out with the next code push. To see what a push would deploy, run
   `jj diff -r main..integration --stat`.
-- Before starting work, inspect `jj status`, `jj bookmark list` and the graph.
+- Before starting work, inspect `jj status`, `jj bookmark list`, and the graph.
   Preserve existing workspace edits. If `integration` is missing or conflicted,
-  ask rather than choosing another baseline silently.
+  ask instead of choosing another baseline silently.
 - When accepting work, point `integration` at the completed change, not the
   empty working-copy child (`jj bookmark set integration -r @-` when `@` is
-  empty). Inspect the current target and ancestry first; do not overwrite
+  empty). First inspect the current target and ancestry. Do not overwrite
   unrelated accepted work.
 - Never rebase another agent's active work merely to tidy the graph.
 
@@ -101,17 +102,16 @@ Approval rules for these steps are [gates in the scope](docs/scope.md#gates).
 This is a trial, not a permanent workflow. Keep it lightweight; discuss relaxing
 these guardrails after we have tried them. Do not remove them automatically.
 
-- At the start of a new task or session, briefly confirm the target repo,
-  scope, workspace and any known concurrent work with the owner before editing.
-  If the owner or handoff already makes these clear, acknowledge them rather
-  than asking again.
+- Before editing a new task or session, briefly confirm the target repo, scope,
+  workspace, and known concurrent work with the owner. If the owner or handoff
+  already makes these clear, acknowledge that instead of asking again.
 - Treat `/home/hsa/projects/list_app` as the coordination workspace, not the
   `main` production line. Multiple agents may coordinate there, but agree who
   is writing each shared file before editing it.
-- Every agent creates its own new jj workspace for each new task, based on
-  the current development baseline above, and does all implementation there. Never share an
-  implementation workspace with another agent. Keep feature-specific docs and
-  tests with the feature.
+- For each new task, every agent creates its own jj workspace based on the
+  current development baseline above and does all implementation there. Never
+  share an implementation workspace with another agent. Keep feature-specific
+  docs and tests with the feature.
 - When the task's work is integrated, the agent that created the workspace
   removes it (`jj workspace forget <name>`, then delete its folder). Leave
   workspaces that existed before this rule alone.

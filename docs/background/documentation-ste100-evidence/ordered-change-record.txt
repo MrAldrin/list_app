@@ -1,0 +1,15 @@
+mprvvxyswqvlwwwwozlsuslxmlmupkyq c624466fbd1a3cbbec73f4712be825da4544c45b docs - STE100 rewrite: preserve batch reviews and quality evidence
+vmwpypkxkntlnunqquwnmkzulnwlsswt d9c4ac8f6d647d9de0e366df483e36738ac3c43b docs - STE100 rewrite: clarify review and speed plan status
+ontwsnzulltmwkpwvzxztrztlxymvyst 5d59817d469e2aedf66a12f0f79fb48c916e618e docs - STE100 rewrite: clarify test comments and scope
+tpppttwvxntlzplkpvmxptunpkvynmpo e9d4b06b137e86cea2a6cf749c522277a97a1b3f docs - STE100 rewrite: clarify operational and API guides
+tzltuvokuqqsxrqnnzwxloqxowrxplyt 8be5534b904914b71b1734f8066e6477f33c0a71 docs - STE100 rewrite: clarify historical measurement and queue notes
+wtvmntprkruonnvtqtxrzkwkotrzxruz 6f9610f274f52098b404f38e584bdea5708f4e1f docs - STE100 rewrite: clarify historical findings without changing evidence
+zuykpurozpzrvtlntwwnuusmtkylsymz 3ae8680d51606bbe8c5c0728b54760156f499933 docs - STE100 rewrite: clarify user guides and API contracts
+xpmslmtlsruyqovssxzyonpvzttuxopp 8f487d7c02c51c50c8fe61730faf946a1f489698 docs - STE100 rewrite: clarify frontend and preview comments
+mylzwozysqvvpvxprxswprymnszpvrqn f020dd88cf88ed30dff1466f3e5c337745ff2c47 docs - STE100 rewrite: clarify current guides and boundaries
+rzxzvmxwywwwnkxwlvooskmntwnkxokv a3f945ec7c90835c030843eb21ac9a6b861689a6 docs - STE100 rewrite: clarify Python comments and docstrings
+xozzolvrxqmxxqqosylnrrtyqyrusoyt f8597ed5f562ff05546179808a795c5c129e293e docs - STE100 rewrite: preserve review evidence and ledgers
+omyrtsyvrkzonmwwswpttolmlltwxxxy 1b69bb245ee3d6d7acc5a46edb617c20f6e0ba6d docs - STE100 rewrite: record inventory and calibration evidence
+wqsmnxxqopsyuqnnkonmptprnztplmxm a17937c1c27255b693d79cf3cb5eaa033f5e3c28 docs - night run: expand the documentation review pipeline
+nppyqqoxnysrlwwqnlzwtrpnwpsxzmrt 36ab5f82a187f3e6e5b78e7612787b0a7708eddf docs - STE100 rewrite: clarify five planning proposals
+rrtvwtllqmxnoyusmmkrslnwzmtxqwku f78ffe99c6ed251a46a89f3fb10ed4e1e6db5d9e docs - STE100 rewrite: calibrate guide contract and history

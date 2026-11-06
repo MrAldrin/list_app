@@ -1,0 +1,36 @@
+# Task2 historical prose batch H1 — writer findings
+
+## Run and source
+
+- Effective settings verified before reading: `openai/gpt-6-luna`, reasoning `xhigh` (`PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`).
+- Read the brief at `/home/hsa/projects/list_app/plans/documentation-ste100.md`, all 15 originals under `/tmp/night-docs-originals/docs/background/`, and their candidate counterparts under `docs/background/`.
+- The 15 candidate pages matched their originals before editing. I changed only prose in the pages marked `partprotected` below. Tables, protected evidence, code, commands, quotations, links, headings, anchors, numeric values, and checklist states remain unchanged.
+- No jj/git mutations, app checks, dependency operations, services, or fanout were used. This is writer self-check evidence, not independent acceptance review.
+
+## Page dispositions
+
+| Page | Disposition | Work and evidence |
+| --- | --- | --- |
+| `docs/background/android-emulator-testing.md` | read-already-suitable | Short, direct implementation notes and a clearly limited emulator result. Left unchanged. |
+| `docs/background/backup-research.md` | partprotected | Split dense explanation into shorter statements. Preserved the production/local boundary, schedule query, one-off verification, command guidance, warnings, table, evidence, and dates. |
+| `docs/background/browser-test-port-map.md` | partprotected | Made the map's purpose direct. Left the test mapping, status meanings, code references, and exact coverage claims unchanged. |
+| `docs/background/browser-testing.md` | partprotected | Clarified test-mechanism and matrix prose. Preserved all scenarios, measured counts/timings, named tests, platform limits, and historical distinctions. In particular, the restart test still does not establish reload-free reconnection. |
+| `docs/background/codebase-cleanup.md` | partprotected | Made the historical purpose and planned workflow explicit. Left decisions, code references, completed checklist states, and the retained "Not now" record unchanged. |
+| `docs/background/deploy-rehearsal-2026-10-06.md` | partprotected | Shortened the setup and session-survival narration. Preserved the result table, test facts, outstanding owner/device and Railway checks, conditional `FORWARDED_ALLOW_IPS=*` instruction, and rollback warning. No conditional failure was rewritten as an actual failure. |
+| `docs/background/fixes-deployment-2026-10-06.md` | read-already-suitable | Shipped, verified, unverified, and operational notes are already concise and clearly separated. Left unchanged. |
+| `docs/background/home-screen-installation.md` | partprotected | Shortened route, manifest, and authorization explanations. Preserved inline identifiers, authorization conditions and limits, test counts, and the distinction between local automation and real-device checks. |
+| `docs/background/item-writes.md` | read-already-suitable | Existing bullets clearly identify safeguards, limitations, test scope, and the unresolved item-ID reuse finding. Left unchanged. |
+| `docs/background/nicegui-test-retirement.md` | partprotected | Clarified the retirement explanation. Left the test-count and coverage tables, exact test references, and new-test note unchanged. |
+| `docs/background/offline-editing-release-validation.md` | read-already-suitable | Candidate, test evidence, owner waiver, release boundary, and deployment conditions are already concise. Left unchanged. |
+| `docs/background/offline-findings.md` | partprotected | Made the owner-reported rollback and independent-verification limit more explicit. Preserved the reported failure, unresolved root cause, historical revision evidence, and future-direction recommendations as recommendations. |
+| `docs/background/svelte-rollback.md` | read-already-suitable | Historical status, required two-step rollback order, data-loss warning, and current-guide link are already clear. Left unchanged. |
+| `docs/background/staging-environment.md` | read-already-suitable | The retired/not-planned status, conditional setup, unchecked steps, and unresolved questions are already explicit. Left unchanged. |
+| `docs/background/sqlite-wal-timeout.md` | read-already-suitable | The recommendation, measured comparison, reasons, implemented change, and limits are already separated and readable. Left unchanged. |
+
+No page was blocked. No suspected contradiction with current behavior was raised or checked against today's code; this batch preserves the historical record only.
+
+## Writer self-check and remaining review
+
+A local `python3` source-preservation comparison passed for all 15 pages. It compared heading lines, inline-code spans, Markdown link targets, numeric-token multisets, quoted blocks, and table lines to the originals. The comparison confirms those protected structures were preserved; it does not establish factual accuracy, anchor rendering, or semantic equivalence. No application test, site build, or dependency check was run.
+
+An independent original-versus-rewrite reviewer must still assess meaning, including the rewritten prose and the protected evidence around it. No acceptance claim is made by this writer report.

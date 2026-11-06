@@ -1,0 +1,39 @@
+## Review
+
+### Correction to prior report
+
+My previous statement that the baseline wording already matched the original was incorrect. The candidate wording at the earlier inspection said “get approval to fix the baseline,” which did not preserve the explicit repair-before-work requirement.
+
+I re-read the current candidate and `/tmp/night-docs-originals/AGENTS.md`. The current candidate now says:
+
+> “It must include `main`. If it is behind, fix the baseline with approval before starting work.” (`AGENTS.md:78–82`)
+
+The original says:
+
+> “It must include `main`: if it is behind, fix the baseline with approval before starting work.”
+
+The operative requirement now matches the original. This resolves the AGENTS baseline concern. I re-read the other eight candidate pages and their originals; I found no other prior review claims that contradict the current pages.
+
+### Updated page verdicts
+
+- **PASS — `README.md`** (rewritten). Setup information and preview safeguards remain clear, including excluded sources, staging behavior, and lack of publishing authority (`README.md:146–174`).
+- **PASS — `ARCHITECTURE.md`** (rewritten). Security boundaries and technical decisions retain their meaning, including room authorization, public-link limits, cookies, and same-origin writes.
+- **PASS — `AGENTS.md`** (rewritten). The current baseline clause preserves the explicit repair requirement; the other reviewed lifecycle, permission, and workspace rules remain intact.
+- **PASS — `CLAUDE.md`** (rewritten). The cloud-session workflow and acceptance checks retain their meaning.
+- **PASS — `docs/scope.md`** (unchanged; suitable). Risk guidance, approval gates, exceptions, and standing permissions are unchanged.
+- **PASS — `docs/index.md`** (unchanged; suitable). The hub preserves its guidance on work selection and preview publication limits.
+- **PASS — `frontend/README.md`** (unchanged; suitable). Setup and development instructions remain clear.
+- **PASS — `docs/allium/README.md`** (unchanged; suitable). The optional-pilot status and draft caution remain clear.
+- **PASS — `docs/allium/public-sharing.allium`** (unchanged; protected formal specification). Its content is unchanged; no formal STE100 compliance claim is made.
+
+### Fixed
+
+- The owner restored the explicit AGENTS baseline wording; I made no edits.
+
+### Finding
+
+No issues found.
+
+### Merge verdict
+
+**OK** for this current-page review. I did not run tests or VCS commands.

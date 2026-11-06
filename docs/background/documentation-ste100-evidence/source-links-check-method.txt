@@ -1,0 +1,91 @@
+from __future__ import annotations
+
+import csv
+import json
+import re
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+
+import markdown
+
+ROOT = Path('/home/hsa/projects/list_app-night-docs')
+
+
+def github_slug(value: str, separator: str) -> str:
+    """Keep each space as a hyphen after removing heading punctuation."""
+    return re.sub(r'[^\w\- ]', '', value.lower()).replace(' ', separator)
+
+
+class Collector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.ids: set[str] = set()
+        self.links: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        if values.get('id'):
+            self.ids.add(str(values['id']))
+        if tag == 'a' and values.get('href'):
+            self.links.append(str(values['href']))
+        if tag == 'img' and values.get('src'):
+            self.links.append(str(values['src']))
+
+
+def parse(path: Path, github: bool = True) -> Collector:
+    collector = Collector()
+    collector.feed(markdown.markdown(
+        path.read_text(),
+        extensions=['toc', 'fenced_code', 'tables', 'attr_list'],
+        extension_configs={'toc': {'slugify': github_slug}} if github else {},
+    ))
+    return collector
+
+
+rows = list(csv.DictReader((ROOT / 'docs/background/documentation-ste100-inventory.tsv').open(), delimiter='\t'))
+paths = [ROOT / row['path'] for row in rows if row['path'].endswith('.md')]
+paths.append(ROOT / 'docs/background/documentation-ste100-review.md')
+cache = {path: parse(path) for path in paths}
+standard_ids = {path: parse(path, github=False).ids for path in paths}
+issues: list[dict[str, str]] = []
+renderer_specific: list[dict[str, str]] = []
+checked = 0
+external = 0
+for source, collector in cache.copy().items():
+    for link in collector.links:
+        parts = urlsplit(link)
+        if parts.scheme or parts.netloc or parts.path.startswith('/'):
+            external += 1
+            continue
+        target = (source.parent / unquote(parts.path)).absolute() if parts.path else source
+        target = Path(__import__('os').path.normpath(target))
+        try:
+            name = target.relative_to(ROOT).as_posix()
+        except ValueError:
+            issues.append({'source': str(source.relative_to(ROOT)), 'destination': link, 'issue': 'outside repository; not followed'})
+            continue
+        checked += 1
+        if not target.exists():
+            issues.append({'source': str(source.relative_to(ROOT)), 'destination': link, 'issue': 'missing local path'})
+        elif parts.fragment and target.suffix == '.md':
+            if target not in cache:
+                cache[target] = parse(target)
+                standard_ids[target] = parse(target, github=False).ids
+            fragment = unquote(parts.fragment)
+            github_match = fragment in cache[target].ids
+            markdown_match = fragment in standard_ids[target]
+            if not github_match and not markdown_match:
+                issues.append({'source': str(source.relative_to(ROOT)), 'destination': link, 'issue': 'source anchor absent in both checked profiles'})
+            elif github_match != markdown_match:
+                renderer_specific.append({'source': str(source.relative_to(ROOT)), 'destination': link, 'matching_profile': 'GitHub-style' if github_match else 'Python-Markdown'})
+result = {
+    'pages': len(paths),
+    'checked_local_links_and_images': checked,
+    'external_or_host_absolute_links_not_fetched': external,
+    'anchor_profiles': 'GitHub-style and Python-Markdown; a source fragment must match at least one. This is not a cross-renderer portability claim. Generated-site anchors are checked separately by build wrapper.',
+    'renderer_specific_fragments': renderer_specific,
+    'issues': issues,
+}
+print(json.dumps(result, indent=2))
+raise SystemExit(bool(issues))

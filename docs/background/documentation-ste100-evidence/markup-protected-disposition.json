@@ -1,0 +1,18 @@
+{
+  "paths_checked": 87,
+  "exact_protected_match_paths": 86,
+  "reviewed_consolidation_exceptions": [
+    {
+      "path": "plans/improvement-ideas.md",
+      "dimension": "numeric-token occurrence count",
+      "removed_duplicate_part_label_occurrences": {
+        "1": 1,
+        "2": 1,
+        "3": 1
+      },
+      "meaning": "Repeated Part1/Part2/Part3 descriptions consolidated; no quantitative value or requirement changed",
+      "evidence": "desk-plans-batch2-writer.txt; desk-plans-batch2-review.txt; accepted Lead change vmwpypkx/d9c4ac8f"
+    }
+  ],
+  "unresolved_protected_differences": []
+}

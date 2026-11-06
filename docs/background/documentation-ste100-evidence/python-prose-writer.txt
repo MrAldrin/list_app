@@ -1,0 +1,100 @@
+# Task 2: Python-source documentation writer/inspector
+
+**Effective run, verified by the parent:** `openai/gpt-6-luna`, thinking `xhigh`. The parent confirmed this run status at 22:32:26Z. My shell exposed `PI_MODEL=gpt-6-luna`, but not the provider/effort variables; the parent confirmed the runtime uses `PI_PROVIDER` and `PI_REASONING_LEVEL`.
+
+## Scope and outcome
+
+Reviewed all **51** in-scope Python files (`src/**/*.py` and `scripts/*.py`) against `/tmp/night-docs-originals/<path>`. I read the explanatory comments and docstrings, using surrounding code where their meaning depended on it. Marker counts were used only to inventory candidate text; they were not used to decide whether prose was suitable.
+
+I made only three narrow docstring edits across two files. I did not change executable statements, configuration, tests, runtime string literals, commands, or comments. I made no jj/git history, bookmark, or staging changes.
+
+## Exact per-file dispositions
+
+`Partly protected` means the file's explanatory prose was read and found suitable, while exact examples, commands, schemas, API data, or quoted UI labels within the comments/docstrings were retained. It does **not** mean that review was deferred.
+
+### Rewritten — 2 files
+
+- `src/database_crud.py` — Reworded the `_keep_first_item_tag_locked` docstring's second sentence for clarity. Preserved the tag-ranking rule.
+- `src/sign_in_limiter.py` — Reworded the `release` and `_live` docstrings as clear descriptions. Preserved their behavior and return meaning.
+
+### Already suitable — 35 files
+
+After reading their actual comments/docstrings, I found the wording clear and concise enough to leave unchanged.
+
+- `src/admin_access.py`
+- `src/api/__init__.py`
+- `src/api/admin.py`
+- `src/api/changes.py`
+- `src/api/cookies.py`
+- `src/api/events.py`
+- `src/api/idempotency.py`
+- `src/api/invitations.py`
+- `src/api/reminder_policies.py`
+- `src/api/requests.py`
+- `src/api/room.py`
+- `src/api/session.py`
+- `src/api/sign_in_limit.py`
+- `src/api/version.py`
+- `src/config.py`
+- `src/database_setup.py`
+- `src/health.py`
+- `src/identifiers.py`
+- `src/install_manifest.py`
+- `src/item_names.py`
+- `src/item_visibility.py`
+- `src/live_updates.py`
+- `src/migrations.py`
+- `src/password_hashing.py`
+- `src/pwa_routes.py`
+- `src/reminders/__init__.py`
+- `src/reminders/due_schedule.py`
+- `src/reminders/identity.py`
+- `src/reminders/policies.py`
+- `src/reminders/preview.py`
+- `src/room_cookies.py`
+- `src/room_invitations.py`
+- `src/security_headers.py`
+- `src/server.py`
+- `src/svelte_frontend.py`
+
+### No explanatory prose — 2 files
+
+No comments or module/class/function docstrings were present in these in-scope files.
+
+- `scripts/build_docs_site.py`
+- `scripts/generate_app_icons.py`
+
+### Partly protected — 12 files
+
+Explanatory prose was read and left unchanged; the protected material named here was retained exactly.
+
+- `scripts/deploy_backup.py` — CLI usage commands and deployment procedure references.
+- `scripts/seed_test_data.py` — CLI/database command examples and sample credentials/codes.
+- `scripts/serve_svelte_local.py` — CLI usage commands.
+- `src/api/access.py` — The transaction code example and access/error contract.
+- `src/api/errors.py` — The JSON error shape and status-code examples.
+- `src/api/ops.py` — Operation names, codes, and API field examples.
+- `src/api/reminders.py` — Endpoint paths, resource names, and cookie requirements.
+- `src/api/share.py` — Route examples and quoted UI labels.
+- `src/field_limits.py` — The function-call and output example.
+- `src/main.py` — The server startup command.
+- `src/reminders/rules.py` — Request object shapes, identifiers, and numeric limits.
+- `src/reminders/zoned_time.py` — The Oslo date/time example and DST behavior.
+
+### Blocked — 0 files
+
+None. I found no semantic ambiguity that required stopping or escalation, and I made no factual corrections.
+
+## Safeguards and validation
+
+- Compared every scoped candidate file to the corresponding original at `/tmp/night-docs-originals/<path>`.
+- A static check covered all 51 files and passed **AST equality after removing only leading module/class/function docstring expression nodes**.
+- The same check passed **token equality while ignoring comments and docstring string tokens**. It also confirmed that all comment text is unchanged.
+- The check found exactly three changed docstrings: `src/database_crud.py` / `_keep_first_item_tag_locked`; `src/sign_in_limiter.py` / `release`; and `src/sign_in_limiter.py` / `_live`.
+- Reviewed `jj diff`; it contains only those docstring changes in the two named files. `jj status` showed only those two modified files. `git diff --cached --name-only` returned no paths.
+- No tests or test files were added or changed. Per task limits, I did not run Python formatters, linters, type checks, or the app test suite; the parent will run the required gates after combined integration.
+- An initial inventory attempt using bare `python` could not run because the command is unavailable in this workspace. I repeated the inventory and validation with `uv run python` successfully.
+
+## Handoff and open review
+
+No blocked pages or suspected factual errors remain to report. The independent original-versus-candidate review gate is still pending; the parent should send the two changed files and this disposition inventory to the fresh reviewer, then run the required Python quality gates serially after integration.

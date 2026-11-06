@@ -1,0 +1,88 @@
+# Shared-desk plan prose batch 2 — writer report
+
+## Summary
+
+Reviewed all 15 approved plan paths against the live desk copies and the exact captured originals in `/tmp/night-docs-desk-batch2-originals/`. Rewrote explanatory prose in two files only. Left the other 13 unchanged because their wording is already clear enough or their content records frozen scope, ownership, history, or current holds. No backlog, night-run, documentation-ste100, source, or feature-copy file was edited.
+
+The protected reminder briefs and statuses remain unchanged. In particular, S3 is still explicitly unfinished and held; S4 and S5 remain partial and predecessor-blocked; the master plan's S3–S5 holds remain; and the test-suite task remains a partial candidate blocked by its browser gate. No historical approval was converted into current implementation authority. No S3/S4/S5 work was resumed.
+
+Model environment variables were verified as `PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, and `PI_REASONING_LEVEL=xhigh`. This verifies the supplied environment values; no separate runtime metadata check was available here.
+
+## Changed files
+
+1. `plans/improvement-ideas.md` — consolidated the opening explanation and removed the duplicate plain-text “How to read it” list. The replacement retains the review date, coverage, Part 1/2/3 roles, status-versus-approval distinction, owner decision boundary, and backlog as the sole work agenda.
+2. `plans/test-suite-speed.md` — made two explanatory paragraphs easier to scan. They still state that the plan is open, the local desktop/Python work is complete, the remaining items are outstanding, no listed Android or other-machine checks have been performed, and a proposed step is not approval.
+
+No tests were added or updated. No application checks were run for this Markdown-only change.
+
+## Full 15-file dispositions
+
+| Path | Disposition | Reason / protected status |
+| --- | --- | --- |
+| `plans/batches/reminders-polish.md` | Unchanged — frozen historical brief and closeout | The approved P scope, exclusions, delivery record, evidence, and explicit absence of S3 are already clear. Preserve its historical approvals and delivery limits. |
+| `plans/batches/reminders-s1.md` | Unchanged — frozen brief and detailed historical record | Preserve the approved S1 scope and verification-repair boundaries, its earlier blocked checkpoints, and its later closeout. No authority or status wording changed. |
+| `plans/batches/reminders-s2.md` | Unchanged — frozen brief and closeout | Preserve its approved scope, predecessor rules, completed-stage evidence, and explicit distinction between delivered code and owner acceptance/deployment. |
+| `plans/batches/reminders-s3.md` | Unchanged — held, unfinished stage | The brief says full S3 is unfinished and identifies unresolved work. Preserve all frozen scope and holds; do not resume S3. |
+| `plans/batches/reminders-s4.md` | Unchanged — partial foundations; full stage held | Preserve isolated-foundation boundaries, reviewed predecessor dependency, unmounted/runtime limits, and “full stage still open” status. Do not resume S4. |
+| `plans/batches/reminders-s5.md` | Unchanged — partial restore foundation; remaining work blocked | Preserve partial status, predecessor dependency, no-runtime-integration limits, and pending owner acceptance. Do not resume S5. |
+| `plans/decisions-for-heming.md` | Unchanged — owner decision record | Keep the recorded answers and the difference between selected work, plans for later review, and ideas not to build. |
+| `plans/due-date-reminders.md` | Unchanged — authoritative master contract and hold record | This is high-risk authority-bearing text. Its current S3/S4/S5 holds and owner gates remain intact; historical approvals are not treated as permission to restart. |
+| `plans/improvement-ideas.md` | Rewritten — explanatory introduction | The opening repeated the same Part 1/2/3 reading guide twice. Consolidated it while retaining the dated review, catalog/status interpretation, owner decision boundary, and backlog-only agenda. |
+| `plans/jj-history-review.md` | Unchanged — history protection and bounded authority | Keep Bucket A/B limits, recovery requirements, ownership protections, and the rule against broad history cleanup unchanged. No history action was performed. |
+| `plans/named-item-groups.md` | Unchanged — parked draft, not current verified behavior | Preserve the explicit parked-line state, unverified-on-main caveat, and proposed-only implementation details. |
+| `plans/reminders-s3-scope-review.md` | Unchanged — research-only S3 scope decision | It explicitly does not authorize implementation or resumption of S3/S4/S5. Preserve its evidence, protections, and owner-decision boundary. |
+| `plans/test-suite-review.md` | Unchanged — partial candidate, verification blocked | Preserve the partial `night-1-tests-partial` result, the final WebKit interruption, 120 intentional browser skips, and the explicit blocked full-verification status. |
+| `plans/test-suite-speed.md` | Rewritten — explanatory resume text | Clarified which local optimization work is complete and which checks remain. Owner decisions, Android limits, no-approval warning, dates/numbers, checklist, and commands remain unchanged. |
+| `plans/theme-exploration.md` | Unchanged — future design exploration only | Preserve its unimplemented prototype scope and explicit ban on treating drafts as accepted app design or production authority. No design work was resumed. |
+
+## Before/after semantic comparison
+
+### `plans/improvement-ideas.md` — authority-bearing interpretation of the catalog
+
+**Before:** The opening said Part 1 records built/integrated work; Part 2 is a proposal catalog whose recommendations and statuses do not select work; Part 3 contains open owner decisions; and the backlog is the sole agenda. A following “How to read it” list repeated those points and added that “Do next” / “Good idea” labels are not approval and that a choice becomes selected work only when the owner moves it into the backlog.
+
+**After:** One paragraph now says Part 1 records built/integrated work; Part 2 catalogs ideas by area with evidence, effort, recommendations and recorded outcomes; statuses preserve those outcomes, and “Do next” / “Good idea” are not approval or selection; Part 3 lists owner decisions; a decision becomes selected work only when the owner moves it to the backlog, which remains the sole agenda.
+
+**Comparison:** Same authority and conditions. The only structural change is consolidation of repeated explanatory text. The review date `2026-10-19` and all catalog content/statuses remain unchanged. No decision, recommendation, or status was promoted to current work.
+
+### `plans/test-suite-speed.md` — completed work versus remaining work
+
+**Before:** The plan was open; desktop browser optimizations and the scoped Python pass were complete locally and should not be repeated as prerequisites; remaining decisions/checks followed. A later sentence said Android benchmarks/removals and other-machine browser checks had not been performed and warned not to infer approval from a proposed step.
+
+**After:** The same completed work is stated in two short sentences with the measurement link; the remaining decisions/checks are still listed. The later paragraph still records that none of the specified Android or other-machine checks were performed and says a proposed step is not approval.
+
+**Comparison:** No task, permission, exception, condition, result, or status changed. The Android approval requirement, serial benchmark procedure, iPhone decision, and checklist are untouched.
+
+## Protected-content checks
+
+- The six reminder batch briefs (`reminders-polish`, S1, S2, S3, S4, S5) compare byte-for-byte equal to the captured pre-edit originals.
+- `plans/due-date-reminders.md` compares byte-for-byte equal to its captured original. Its master S3/S4/S5 holds and delivery/acceptance gates are untouched.
+- `plans/test-suite-review.md` compares byte-for-byte equal to its captured original. Its partial/BLOCK status, `485 passed`/one failure, `120` intentional skips, and no-waiver rule are untouched.
+- `plans/decisions-for-heming.md`, `plans/reminders-s3-scope-review.md`, `plans/jj-history-review.md`, `plans/named-item-groups.md`, and `plans/theme-exploration.md` compare byte-for-byte equal to their originals. This preserves owner decisions, archive/history protection, research-only S3 boundaries, parked groups state, and future-only theme work.
+- `plans/improvement-ideas.md` and `plans/test-suite-speed.md` were diffed against the originals. Diffs are limited to the two introductory prose regions described above. Headings/anchors, tables, checklists, status entries, quoted evidence, commands, inline code, links, paths, dates, and numbers remain unchanged.
+- All 15 paths were individually compared to the original snapshot. Only the two listed files differ.
+- No formal ASD-STE100 compliance claim is made. The official overview was read as a style reference; this was a bounded prose edit, not a controlled-vocabulary compliance audit.
+
+## Commands and validation
+
+Read-only commands run:
+
+- Environment print of the three requested PI variables — matched the required values.
+- `curl -LfsS --max-time 15 https://www.asd-ste100.org/about_STE.html | sed -n '1,200p'` — fetched the official overview successfully for style context; no compliance claim follows.
+- `diff -u` of each changed file against its captured original — showed only the prose changes described above.
+- `cmp -s` loop over all 15 approved paths and captured originals — confirmed only `plans/improvement-ideas.md` and `plans/test-suite-speed.md` differ.
+
+No `jj` or `git` command, app/test command, dependency installation, service startup, fanout, or staging action was run. No staged files were created by this writer. The parent reported a clean working copy before the edit; post-edit VCS status was not queried because the task explicitly prohibited jj/git checks.
+
+## Review and residual risks
+
+- Fresh independent review is still required by the parent. This report is a writer comparison, not an independent review or a formal STE100 compliance finding.
+- The parent should review the two changed prose blocks against the captured originals and current authority, and may perform any additional link/anchor validation it considers necessary. No headings or anchors changed, and the changed links were present in the originals.
+- No app or Markdown test suite was run; scope was prose-only. No application behavior changed.
+- No other known residual risk. No formal compliance claim.
+
+## Staging / ownership
+
+- Exact changed files: `plans/improvement-ideas.md`, `plans/test-suite-speed.md`.
+- No staged files: true — no staging command/action was used. The pre-edit clean state was parent-verified; it was not re-queried afterward by design.
+- No commits, jj mutations, bookmark moves, or other repository actions were performed. Parent owns review and later commit.

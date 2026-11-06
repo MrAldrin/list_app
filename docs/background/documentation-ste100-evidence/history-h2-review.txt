@@ -1,0 +1,44 @@
+## Review
+
+**Reviewed all 18 original/candidate pairs in full**, using originals under `/tmp/night-docs-originals/` and candidates in `/home/hsa/projects/list_app-night-docs-history2/`. I manually compared the unchanged pages and the prose edits. I did not run checks or make edits. No formal STE100 compliance claim is made.
+
+### Page dispositions
+
+| Page | Result | Independent confirmation |
+|---|---|---|
+| `docs/background/improvement-review-2026-10/accounts.md` | **PASS — suitable** | Original and candidate are unchanged. The option descriptions, risks, recommendations, and owner decisions are clear as historical design prose. |
+| `docs/background/improvement-review-2026-10/backend.md` | **PASS — suitable** | Unchanged. The condensed findings retain their priorities, proposals, identifiers, and verification qualifiers. |
+| `docs/background/improvement-review-2026-10/docs.md` | **PASS — partly protected** | Unchanged. The dated audit and proposals remain readable; its estimates, code references, tables, and orchestrator correction are preserved. |
+| `docs/background/improvement-review-2026-10/features.md` | **PASS — suitable** | Unchanged. Research caveats, feature matrix, proposals, and sources remain concise and clearly qualified. |
+| `docs/background/improvement-review-2026-10/frontend.md` | **PASS — suitable** | Unchanged. The compact findings retain their priorities and evidence references. |
+| `docs/background/improvement-review-2026-10/perf-security.md` | **PASS — rewritten** | At line 6, the measurement note is split into shorter sentences without changing its qualifications: one run per measurement, the 16-core dev machine, orders-of-magnitude interpretation, `.env` reload setting and reloader-parent RSS, and remeasurement with reload off. The surrounding measurements and findings are unchanged. |
+| `docs/background/improvement-review-2026-10/tooling.md` | **PASS — suitable** | Unchanged. Its prioritized findings and recommendations are direct and compact. |
+| `docs/background/improvement-review-2026-10/ux.md` | **PASS — partly protected** | Unchanged. Its findings are already organized clearly; measurements, screenshot references, accessibility qualifications, and owner decisions remain intact. |
+| `docs/background/offline-editing-details.md` | **PASS — rewritten** | In “Sending waiting changes,” lines 73–74 clarify the access/feed check and preserve one-at-a-time order and queued edits during the check. Lines 82–85 retain the toast versus Not saved distinction and the exact 10-second boundary and “waited” definition. |
+| `docs/background/offline-viewing-validation.md` | **PASS — partly protected** | Unchanged. It clearly marks the evidence as local, not production or iPhone verification, and preserves approval limits, exact references, failures, and remaining verification. |
+| `docs/background/reminder-delivery-verification.md` | **PASS — partly protected** | Unchanged. The record distinguishes completed stages, partial work, checks, and outstanding review and device limitations. |
+| `docs/background/reminder-overnight-status.md` | **PASS — partly protected** | Unchanged. The stage table and closeout preserve the difference between completed evidence and unfinished work, including deployment and verification limits. |
+| `docs/background/reminder-redesign-research.md` | **PASS — suitable** | Unchanged. Research recommendations, source limits, unverified claims, and evidence boundaries remain explicit. |
+| `docs/background/reminders-p2-validation.md` | **PASS — partly protected** | Unchanged. Passed checks, the known baseline timeout, skipped browser scenarios, and acceptance state remain distinct. |
+| `docs/background/svelte-frontend-rewrite.md` | **PASS — partly protected** | Unchanged. The historical decision log and its dates, identifiers, numbers, alternatives, and implementation qualifications are preserved. |
+| `docs/background/test-suite-review.md` | **PASS — partly protected** | Unchanged. The record continues to distinguish the partial review, first-run failures, later reruns, and a mechanism-level diagnostic from a proven cause. |
+| `docs/background/test-suite-speed.md` | **PASS — partly protected** | Unchanged. Its detailed chronology preserves measurement qualifiers, failed or unclean runs, single-run limits, worker-time versus wall-time distinctions, and unresolved proposals. |
+| `docs/background/write-atomicity-findings.md` | **PASS — partly protected** | Unchanged. The findings table retains the confirmed unresolved item-ID reuse issue and distinguishes it from protected paths and completed checks. |
+
+### Correct
+
+The two rewritten pages make limited, supported prose changes. The offline-editing rewrite preserves the **10-second** boundary, queue order, and handling distinctions. The other 16 pages were left unchanged; their historical prose is suitable or closely tied to evidence that should not be rewritten.
+
+Protected details—including commands, code, paths, URLs, links, quotations, tables, headings, identifiers, dates, numbers, and checklists—were preserved in the manual comparison. This was not an automated protected-token or byte-level comparison.
+
+### Fixed
+
+None. No edits were made.
+
+### Finding
+
+No issues found.
+
+### Merge verdict: OK
+
+This prose review does not cover checks, lifecycle, integration, or formal STE100 compliance. Those remain with the parent.

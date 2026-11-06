@@ -1,0 +1,45 @@
+# Task 2 calibration writer findings
+
+## Effective model and run context
+
+Verified at launch from the effective environment:
+
+- `PI_PROVIDER=openai`
+- `PI_MODEL=gpt-6-luna`
+- `PI_REASONING_LEVEL=xhigh`
+
+I read `plans/documentation-ste100.md`, `plans/night-run.md`, the three assigned pages, the API/change-tracking references needed for terminology, and the specified Issue 9 excerpts. The working copy started clean at base `affacd8e`. I made no jj graph mutations.
+
+## Per-page disposition
+
+- **`docs/adding-items.md` — rewritten as the user guide.** Shortened user instructions, made actions explicit, and clarified the suggestion and Usual items descriptions. Preserved keyboard, touch, focus, offline, and restore behavior. Kept the W3C links.
+- **`docs/api-sync.md` — rewritten as the API contract.** Split long statements and named the server/client actors. Preserved request paths, fields, error behavior, timings, limits, response headers, and stream behavior. Described `seq` as the room's change cursor; did not conflate it with per-row version fields.
+- **`docs/background/field-constraints.md` — historical prose calibrated.** Reworked explanatory prose while leaving all tables, decisions, dates, audit counts, migration details, and progress evidence unchanged. Reframed the schema-version-5 statement as true at the time of the plan, not as a present-day production claim.
+
+All three pages received wording edits. The separate independent review remains pending; this writer report is not that review.
+
+## Before/after examples
+
+- Guide: “Arrow keys highlight an option while focus stays in the field.” → “Arrow keys highlight a match without moving focus from the field.”
+- API: “Store `seq` and send it as `since` next time.” → “Store `seq` as the room's change cursor. Send it as `since` next time.”
+- Historical page: “Production is at schema version 5…” → “At the time of this plan, production used schema version 5…”
+
+## Protected content and semantic concerns
+
+A comparison against `HEAD` confirmed that each page retained its headings, inline-code tokens, links and URLs, numeric values, fenced code blocks, and tables. This also retained the headings that provide anchors, endpoint paths, field names, dates, counts, status codes, and fixed values. The field-constraints tables are byte-for-byte unchanged.
+
+The guide continues to use “checked” and “unchecked” for item state. It does not replace those terms with “completed.” The sync page labels the room-wide `seq` as a change cursor and makes no new claim that it is a row version. The historical page keeps its migration and audit statements in their original context; the production schema-version statement is now explicitly scoped to the plan's time. No unresolved semantic ambiguity was identified. Independent review should verify these conclusions before acceptance.
+
+## Validation and workspace notes
+
+- `PI_PROVIDER`/`PI_MODEL`/`PI_REASONING_LEVEL` environment check — **passed**: `openai` / `gpt-6-luna` / `xhigh`.
+- `git diff --check` — **passed**.
+- Protected-content comparison using `python3` — **passed** for all three pages: headings, inline code, link destinations/URLs, numbers, fenced code blocks, and tables matched the originals.
+- `git diff --cached --quiet` — **passed**. `git status --short` showed only the three assigned pages as unstaged modifications; no staged files.
+- `jj diff -- docs/adding-items.md docs/api-sync.md docs/background/field-constraints.md` — **not available**: jj reported the workspace was stale. I did not run `jj workspace update-stale`, because the task prohibited jj mutations. I used read-only `git diff` for inspection instead.
+- An initial protected-content command using `python` failed because that executable is unavailable. The same check passed with `python3`.
+- No tests, docs build, or application checks were run. This is a Markdown-only writer batch, and the task explicitly said not to run app checks.
+
+## Remaining review gate
+
+The assigned independent reviewer must compare these candidates with their originals and authoritative context. A stale jj working copy also remains for the parent to handle under the graph-coordination rules. No files were staged, and no out-of-scope files were edited.

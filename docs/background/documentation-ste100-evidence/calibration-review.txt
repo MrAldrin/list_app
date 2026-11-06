@@ -1,0 +1,26 @@
+# Original-versus-rewrite calibration review
+
+**Baseline:** `affacd8e`  
+**Candidate:** current working tree identified as `27ece599`  
+**Reviewer model:** `openai/gpt-6-luna`, thinking `xhigh` (verified by the parent at launch)  
+**Scope:** Read-only review of the complete originals and rewrites for all three pages. No app checks were run.
+
+## Review
+
+- **Correct**
+  - `docs/adding-items.md` — **PASS.** The rewrite preserves the user actions and behavior: suggestion selection, keyboard navigation and focus, usual-item ranking and restoration, and offline queuing and sending. The W3C links are unchanged.
+  - `docs/api-sync.md` — **PASS.** The rewrite preserves the changes-feed and stream rules, including snapshot conditions, client upserts and deletions, access checks, retry behavior, response headers, and numeric limits. The JSON and SSE examples are unchanged.
+  - `docs/background/field-constraints.md` — The other reviewed changes preserve the historical context and proposed rules. In particular, changing “check that path too” to “the plan also considered that path” is supported by the plan’s statement that the first change applied limits in the JSON API ops (lines 126–128).
+  - The headings, tables, code examples, identifiers, paths, links, URLs, dates, and numeric constraints appear unchanged in the original-to-candidate comparison. The task reports that the protected-content scanner found no changes; I did not rerun or inspect a separate scanner report. The prose is generally clearer and more direct. This is a style calibration, not a claim of formal STE100 compliance.
+
+- **Finding — P1:** `docs/background/field-constraints.md:109–111` changes a conditional into wording that can read as a reported startup failure: “If any row broke a rule, the migration stopped with those counts and rolled back. The app did not start.” The preceding text says both audits found no bad rows, and the progress section records a successful rehearsal and deployment (lines 168–173). The original at `affacd8e`, lines 104–106, keeps the consequence conditional. Make the counterfactual explicit.
+
+  **Replace the paragraph under “Existing rows” with:**
+
+  > Both audits found no rows that broke the rules, so migration 6 repaired none. It counted the rows that broke each rule first. If any row had broken a rule, the migration would have stopped with those counts and rolled back. In that case, the app would not have started. The deploy rehearsal on a fresh backup copy checked for this before production.
+
+- **Fixed:** None; this was a read-only review.
+
+**Calibration disposition:** Good direction, with one targeted factual-fidelity correction required before accepting the batch.
+
+**Merge verdict: BLOCK** until the conditional wording in `docs/background/field-constraints.md` is corrected.

@@ -1,0 +1,31 @@
+# Operations/API prose review
+
+**Scope:** Independently compared all nine originals under `/tmp/night-docs-originals/docs/` with their candidates in `/home/hsa/projects/list_app-night-docs-operations/docs/`. This is a prose-fidelity review, not a formal STE100 compliance claim. No files were written and no checks or tests were run.
+
+## Per-page disposition
+
+| Result | Page | Review |
+|---|---|---|
+| **PASS** | `docs/android-emulator-testing.md` (candidate lines 3–7, 23–64) | The opening is clearer without changing the disposable-emulator boundary, the exclusion from the regular pytest command, or the referral for real-device checks. The setup commands, test conditions, cleanup and safety limits remain intact. |
+| **PASS** | `docs/api-lists-items.md` (candidate lines 5, 49–72, 84–117, 163) | Unchanged from the original. The endpoint, retry behavior, operation details, due-time rules and conflict semantics are preserved. |
+| **PASS** | `docs/api-reminders.md` (candidate lines 3–22) | The introduction is split into shorter prose while retaining device-versus-room scope, online conditions, unsaved-edit and retry limits, and the time-zone behavior. The statements that private policies are available from the due bell and that other UI surfaces offer policy entry points remain as in the original (lines 12–14). The known contradiction with `docs/due-date-reminders.md` remains unresolved; this rewrite does not correct or reactivate behavior. |
+| **PASS** | `docs/browser-testing.md` (candidate lines 3–25, 109–111) | The context description is clearer. Browser commands, worker guidance, WebKit/Safari qualification, isolation details and limits on what local HTTP tests establish remain intact. |
+| **PASS** | `docs/deployment.md` (candidate lines 7–9, 135–188) | The service description and Railway-plan prose are split into shorter statements. The deployment and operational boundaries are preserved; the before/after comparison follows. |
+| **PASS** | `docs/home-screen-installation.md` (candidate lines 3–14, 88–end) | Unchanged from the original. Installation and remembered-access behavior, security requirements, and the HTTPS/disposable-room conditions on device testing remain intact. |
+| **PASS** | `docs/local-network-testing.md` (candidate lines 3–20, 68–99, 114–end) | The purpose sentence is clearer and the HTTPS setup identifies Serve explicitly. Tailscale access restrictions, the Funnel warning, the local test database, and the limits versus Railway and production remain intact. |
+| **PASS** | `docs/preview-exclusions.md` (candidate lines 3–22) | Unchanged from the original. The private-content exclusions, redirect behavior, search-index caveat, and explicit lack of publication approval remain intact. |
+| **PASS** | `docs/testing.md` (candidate lines 15–55) | Unchanged from the original. Test-layer limitations, the instruction not to replace required checks, the paused reminder-check condition, and the distinction between Linux WebKit and real-device evidence remain intact. |
+
+## Deployment and operational-authority comparison
+
+- **Deployment trigger and obligation:** Before, a local `main` bookmark move did not deploy; a push to `main` was to be treated as a production deployment and follow the checklist. After, the candidate says the bookmark move “does not deploy until you push it” and retains the instruction to treat a push to `main` as a production deployment and follow the checklist (`docs/deployment.md:7–10`). The obligation is unchanged.
+- **Deployment procedure and permission boundary:** The checklist still requires the deploy backup script rather than a hand push (`docs/deployment.md:135–157`). The script still requires Railway linked to production, stops for another environment, runs checks before backup, treats `--skip-checks` as emergency-only, and pushes only after the user types `y`; `--backup-only` remains explicitly non-pushing (`docs/deployment.md:159–188`). No target, approval step, or authority is broadened or weakened.
+- **Local phone testing:** The rewritten purpose sentence preserves the same local-debugging use (`docs/local-network-testing.md:3–7`). The Tailscale access rules, optional direct HTTP access, disabled Funnel instruction, and use of the local test database rather than Railway remain unchanged in effect (`docs/local-network-testing.md:16–20, 68–99, 114–end`). No new public access or production-testing permission is introduced.
+
+## Finding
+
+No issues found.
+
+## Merge verdict
+
+**OK** for this independent operational/API prose review. The parent session retains responsibility for checks and the broader integration review.

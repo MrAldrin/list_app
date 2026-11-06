@@ -1,0 +1,24 @@
+## Review
+
+- **PASS — `backup-options.md`**  
+  The candidate preserves the current backup status, Railway snapshot blocker, and separation between existing backups and the proposed sequence. It retains the approval condition, restore-drill safeguards, date, `Not Authorized` result, links, and progress checkboxes. No fix required.
+
+- **PASS — `advanced_sharing.md`**  
+  The candidate is unchanged and suitable as written. It clearly marks the idea as deferred, requires valid destination-room authorization for pin changes, and leaves unresolved decisions open. It does not imply implementation or approval. No fix required.
+
+- **BLOCK — `cross-room-sharing-without-accounts.md`**  
+  **Finding — P1, current authorization scope is less explicit.** In `Current state`, the original says room reads, writes, and the incremental feed are “scoped to that room’s access token.” The candidate says they “use that room’s access token.” “Use” does not state as clearly that access is scoped to the token.  
+  **Required fix:** Restore the original wording: “Room reads, writes, and the incremental feed are scoped to that room’s access token.” The owner’s option A decision, approval gate, proposed permissions, revocation and offline risks, and future tests are otherwise preserved.
+
+- **BLOCK — `optional-accounts.md`**  
+  **Finding — P1, two recommendations became imperatives.** In `Data, migration, and offline impact`, the original says owners, memberships, and historical actors “should not be invented”; the candidate says “Do not invent” them. In the same section, the original says “avoid discarding queued edits without telling the user”; the candidate says “Do not discard queued edits without telling the user.” Both changes strengthen the original modality.  
+  **Required fix:** Preserve the original wording for both recommendations. The approval gate, account and admin boundaries, shared-password limitation, membership and session requirements, and remaining future requirements are otherwise preserved.
+
+- **BLOCK — `paste-text-to-list.md`**  
+  **Finding — P1, a recommendation became an imperative.** In `Examples and limitations`, the original says the limitations “should be visible before confirming, not hidden behind a promise to parse recipes.” The candidate says “Show these limitations before confirmation. Do not hide them behind a promise to parse recipes.” This makes the recommendation more directive.  
+  **Required fix:** Restore the original modality, or rephrase while retaining “should.” The no-AI boundary, parsing proposal, unresolved quantity interface, partial-success behavior, examples, and future tests are otherwise preserved.
+
+- **PASS — `visual-refresh.md`**  
+  The candidate preserves the unapproved status, mockup URL and directions, dated owner feedback and confirmation note, open questions, backlog reference, and progress checkboxes. No fix required.
+
+**Merge verdict: BLOCK** — make the targeted wording changes to the three blocked pages, then re-review those pages.

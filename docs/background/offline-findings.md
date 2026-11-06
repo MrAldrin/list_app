@@ -4,18 +4,18 @@
 
 ## Outcome and evidence limits
 
-The owner reports that repeated real-use attempts did not deliver acceptable
-offline behavior and that production was rolled back to `main`. The experimental
-changes remain in Jujutsu history; this is not a claim that the experiment was
-removed from every branch. Production rollback is owner-reported, not independently
-verified here.
+The owner reports two outcomes: repeated real-use attempts did not deliver
+acceptable offline behavior, and production was rolled back to `main`. The
+experimental changes remain in Jujutsu history. This does not mean the
+experiment was removed from every branch. The production rollback is
+owner-reported; it was not independently verified here.
 
 The experiment added a separate read-only browser shell and local snapshots
 alongside the NiceGUI online interface. Its documentation records successful
-narrower desktop and Android-emulator checks, but outstanding physical-device
-acceptance. Those checks did not establish a satisfactory installed-iPhone
-experience. This review did not rerun the tests or establish one specific root
-cause for the real-use failures.
+desktop and Android-emulator checks with narrower coverage. Physical-device
+acceptance remained outstanding. Those checks did not establish a satisfactory
+installed-iPhone experience. This review did not rerun the tests or establish
+a specific root cause for the real-use failures.
 
 Evidence retained at the time of this decision:
 

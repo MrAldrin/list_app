@@ -1,10 +1,11 @@
 # JSON API (Svelte frontend)
 
-The contract between the Python server and the Svelte app. The reference is split
-by area; the table below lists the parts. This page holds what every area shares.
+This is the contract between the Python server and the Svelte app. The reference
+is split by area; the table below lists the parts. This page describes the rules
+shared by every area.
 
-Write rules live in Python and apply to every write path: see
-[item writes](item-writes.md). The client applies checked-item visibility: see
+Write rules live in Python and apply to every write path. See [item
+writes](item-writes.md). The client applies checked-item visibility. See
 [checked-item visibility](checked-item-visibility.md).
 
 ## Parts
@@ -45,10 +46,11 @@ creation invitations never do.
 
 ## Security headers
 
-Every response, API or page, sends `X-Content-Type-Options: nosniff`,
-`X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'`,
-so no other site can frame the app. Code: `src/security_headers.py`. There is
-no full Content-Security-Policy yet: the app shell has an inline theme script.
+Every response, whether API or page, sends `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'`.
+These headers stop other sites from framing the app. The code is in
+`src/security_headers.py`. There is no full Content-Security-Policy yet because
+the app shell has an inline theme script.
 
 ## API version
 
@@ -57,8 +59,8 @@ sends it as `X-Api-Version` on every `/api` answer. The frontend keeps the
 number it was built for as `EXPECTED_API_VERSION` in
 `frontend/src/lib/data/compat.svelte.ts`. A test checks that both are equal.
 
-- Bump both together in a change that would break a frontend that is still open
-  in a browser: a changed meaning, a removed or renamed field, a new rule for
+- Bump both together in a change that would break a frontend still open in a
+  browser: a changed meaning, a removed or renamed field, or a new rule for
   writes. Adding a field or an endpoint needs no bump.
 - A page that sees another number blocks writes and shows a Reload banner (see
   [offline viewing](offline-viewing.md#after-a-deploy)). A missing or unreadable

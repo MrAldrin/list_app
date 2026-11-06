@@ -1,0 +1,15 @@
+# Calibration re-review
+
+**Review:** Read-only check of the updated `Existing rows` paragraph, using the prior complete original-versus-rewrite review for the other page content.
+
+## Review
+
+- **Correct — `docs/adding-items.md`: PASS.** The previous review found the user actions, focus behavior, usual-item rules, offline behavior, and references preserved. No other candidate changes were reported.
+- **Correct — `docs/api-sync.md`: PASS.** The previous review found the changes-feed and event-stream rules, examples, limits, and references preserved. No other candidate changes were reported.
+- **Correct — `docs/background/field-constraints.md`: PASS.** I re-read the actual `Existing rows` section. The replacement now says, “If any row had broken a rule, the migration would have stopped…” and “In that case, the app would not have started.” The counterfactual is explicit and no longer implies that the app actually failed to start. This resolves the P1 finding.
+
+- **Fixed:** The prior P1 is resolved by the applied paragraph. No further finding.
+
+**Calibration disposition:** All three pages now pass. The prior style calibration remains accepted, subject to no other candidate changes.
+
+**Merge verdict: OK.**

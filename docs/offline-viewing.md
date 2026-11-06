@@ -1,18 +1,18 @@
 # Offline use
 
-Saved data opens without a network. Edits made offline are kept on the phone
-and sent when the connection is back.
+Saved data opens without a network. Edits made offline stay on the phone and are
+sent when the connection returns.
 
 Rules and mechanics: [offline editing details](background/offline-editing-details.md).
 
 ## What works offline
 
-- Rooms, lists and share links you opened online are saved on the phone. Offline
-  they open from that copy.
-- Edits work there: add, tick, quantity, edit, tags (including tag settings, colors
-  and rename), delete and undo, hide-done setting, rename and delete a list, rename
-  the room. The change shows at once,
-  with a dot until it is sent.
+- Rooms, lists and share links you opened online are saved on the phone.
+  Offline, they open from that copy.
+- Edits work there: add, tick, quantity, edit, tags (including tag settings,
+  colors and rename), delete and undo, hide-done setting, rename and delete a
+  list, rename the room. Each change appears at once, with a dot until it is
+  sent.
 - Needs a connection: creating a list, changing the password, deleting a room,
   showing or resetting a share link, signing in or out, admin and invitations.
   These controls are disabled with "Needs a connection".
@@ -22,8 +22,8 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
 
 ## Waiting changes
 
-- An offline item add says it is queued, not that the server accepted it. The
-  browser's Unicode lowercase table is only a local estimate; Python decides
+- An offline item add is shown as queued, not as accepted by the server. The
+  browser's Unicode lowercase table is only a local estimate. Python decides
   duplicates when the queued operation is sent. If the tables differ, an item
   can temporarily appear or be hidden as a local duplicate. The server's answer
   settles the projection: an accepted item appears in the feed, while a rejected
@@ -31,7 +31,7 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
 - Changes are sent in order, after the app confirms access. The check runs when
   the app opens, when the connection returns and when the app comes back to the
   screen. There is no background sync.
-- Changes stay on the phone until they are sent, and a reload or closing the app
+- Changes stay on the phone until they are sent. A reload or closing the app
   keeps them. Where the browser cannot store them, they live in the page only,
   and a reload loses them.
 - Changes older than 30 days stay in this room's device-local queue. The server

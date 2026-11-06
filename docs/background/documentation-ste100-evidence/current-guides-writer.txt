@@ -1,0 +1,122 @@
+# Current guides writer findings
+
+## Run and scope
+
+- Effective environment at launch: `openai/gpt-6-luna`, reasoning `xhigh` (`PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, `PI_REASONING_LEVEL=xhigh`).
+- Read the authoritative brief at `/home/hsa/projects/list_app/plans/documentation-ste100.md`, the backlog's current-focus section, all nine assigned current pages, and their full originals under `/tmp/night-docs-originals/`.
+- Worked in `/home/hsa/projects/list_app-night-docs-current`, based on the parent-owned `night-docs-current` workspace. The starting working copy was clean. No jj/git refs or index were changed; no fanout, services, dependency installs, or checks were run.
+- Edited only `README.md`, `ARCHITECTURE.md`, `AGENTS.md`, and `CLAUDE.md`, all within the assigned set. No facts, policy, product behavior, commands, or formal statements were intentionally changed.
+
+## Page dispositions
+
+| Page | Disposition | Findings |
+| --- | --- | --- |
+| `README.md` | Rewritten | Split the display-settings, startup, and preview explanations into shorter sentences. Kept the content, limits, UI labels, and instructions. |
+| `ARCHITECTURE.md` | Rewritten | Split crowded security and UX explanations. Kept the stated authorization, cookie, token, and behavior boundaries. |
+| `AGENTS.md` | Rewritten | Simplified selected lifecycle, documentation, baseline, and workspace wording. Compared each changed obligation and retained the original approval boundaries and exceptions; see the authority comparison below. |
+| `CLAUDE.md` | Rewritten | Split the cloud-session limitation paragraph. Kept branch, PR, check, reporting, and local-acceptance requirements. |
+| `docs/scope.md` | Partly protected; unchanged | The page is already concise. Left all risk statements, gates, exceptions, and standing permissions untouched. |
+| `docs/index.md` | Already suitable; unchanged | Clear hub and preview limits; no wording change was needed. |
+| `frontend/README.md` | Already suitable; unchanged | Setup and command instructions are already direct and grouped by topic. |
+| `docs/allium/README.md` | Already suitable; unchanged | The pilot's status, setup, validation, and implementation boundary are clear. |
+| `docs/allium/public-sharing.allium` | Partly protected; unchanged | Existing explanatory comments are clear. The entire file is unchanged, including every non-comment formal statement and line of syntax. |
+
+## Instruction and authority comparison
+
+### `AGENTS.md`
+
+- **Startup:** Kept the owner-learning context and the instruction to explain web development simply. Kept the requirement to read the backlog's current focus, the distinction that placement is not permission, and the direct-request exception. Kept `docs/scope.md` as the home for risks, gates, and standing permissions. Kept README/architecture ownership, the instruction to report code deviations and agree which source changes, the Python best-practice and small-task guidance, and the new-workspace `.env` reminder.
+- **Documentation ownership:** Kept the one-home/link rule and the same roles for README, architecture, `docs/`, background evidence, handoffs, backlog, and plans. Kept the requirement to distinguish planned, implemented, and verified work. The new wording does not make background evidence current guidance or make a plan evidence that a feature exists.
+- **Plan lifecycle:** Kept `temporary` as approved start-to-finish work and `tracked` as open-ended or multi-session work; the owner must still be told, and unlabelled plans still count as `tracked`. Kept the prerequisites before plan removal: move durable decisions, preserve useful evidence, track unfinished work, and fix incoming links. Deletion still belongs to the agent that finished the work, in its own final jj change, only after every progress item is checked and the stated conditions hold; no prior ask is required. Retiring other superseded or partly done documents remains a gate, and the scoped-update rule remains.
+- **Top-level documentation rules:** Kept the current-behavior-only rule, the same excluded progress/evidence categories and background destination, the one-screen target and longer-checklist exception, the plain-language/short-sentence rule, backlog placement for unverified work, and the existing split-detail condition.
+- **Jujutsu baseline:** Kept `integration` as accepted work, not deployment; its requirement to include `main`; approval before fixing a behind baseline; the same independent-work starting points and existing-work line; `main` as production and the owner's deploy-script responsibility; feature-bookmark and no-repurposing limits; docs-only delivery with a code push; required pre-work inspection and preservation; the request if `integration` is missing/conflicted; the target-and-ancestry inspection before acceptance; prohibition on overwriting unrelated accepted work; and the prohibition on rebasing another agent's active work merely to tidy the graph.
+- **Workspace coordination:** Kept the trial status and non-removal instruction. The revised pre-edit sentence retains the original exception: when the owner or handoff already makes the task details clear, acknowledge that instead of asking again. Kept separate workspaces, cleanup only by the creating agent after integration, the exception for pre-existing workspaces, phone port and stop/ask behavior, docs-desk ownership and commit practice, the standing permission to move `integration` for committed shared-docs edits, rebase sequencing, approval to move a finished feature to `integration`, cross-tool coordination limits, and the push-back instruction. Unchanged remaining coordination text retains its original wording.
+- **Quality commands:** Kept both Python command blocks and their surrounding conditions unchanged. No Python or frontend source was edited.
+
+### `CLAUDE.md`
+
+- Kept the conditional cloud-session context (`may not have jj`) and the instruction to use git there.
+- Kept the requirement to start each task from `integration` on its own branch, open a PR into `integration`, and never push or merge into production `main`.
+- Kept one task per branch and the exact readiness checks.
+- Kept the cloud-container limitation as `may lack`, the instruction to run available checks, exact failure/prerequisite reporting, the rule not to call a failure unrelated without checking the baseline, and the requirement for a local agent to run the full browser suite and remaining checks before acceptance.
+
+### `docs/scope.md`
+
+No candidate wording was introduced. Its risk level, all five gates and their conditions, exceptions, standing permissions, and the distinction between verification and approval remain byte-for-byte as originally supplied.
+
+## Protected-content review
+
+- Preserved all headings and therefore their existing heading anchors in the edited Markdown pages.
+- Preserved the README's code fences and command text, including local setup, secret generation, server/frontend commands, tests, and documentation-preview commands. Inline code values, paths, links, URLs, numbers, and UI labels remain unchanged in the wording edits.
+- Preserved all architecture paths, API/security identifiers, route strings, values, and links. Changes only split surrounding explanatory prose.
+- Preserved the Allium document completely. No non-comment formal statement or syntax line changed.
+- No historical evidence, quotation, license, attribution, dates, or checklist state was changed.
+
+## Review and validation status
+
+- Read-only `jj diff` inspection showed changes only in the four assigned pages listed above. `jj status` showed those four working-copy modifications and no other edited paths.
+- No tests, lint, documentation build, browser runs, or other checks were run, as directed. No tests were added or updated. A fresh independent review is still pending.
+- No blocker was identified in the writer's original-versus-candidate inspection. The separate reviewer should pay particular attention to the instruction rewrites and the unchanged security/permission boundaries.
+
+## Acceptance report
+
+```acceptance-report
+{
+  "criteriaSatisfied": [
+    {
+      "id": "criterion-1",
+      "status": "satisfied",
+      "evidence": "Only README.md, ARCHITECTURE.md, AGENTS.md, and CLAUDE.md were edited. The other assigned pages were retained unchanged; no source or configuration files, policy meaning, or formal Allium statement was changed."
+    },
+    {
+      "id": "criterion-2",
+      "status": "satisfied",
+      "evidence": "This report records each assigned page's disposition, protected-content review, and obligation/exception/permission comparison for AGENTS.md, CLAUDE.md, and docs/scope.md. Read-only diff and workspace status are recorded; independent review remains pending."
+    }
+  ],
+  "changedFiles": [
+    "README.md",
+    "ARCHITECTURE.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "testsAddedOrUpdated": [],
+  "commandsRun": [
+    {
+      "command": "env | sort | grep -Ei '(^|_)(model|provider|reasoning|effort|openai)(_|=)'",
+      "result": "passed",
+      "summary": "Verified PI_PROVIDER=openai, PI_MODEL=gpt-6-luna, and PI_REASONING_LEVEL=xhigh."
+    },
+    {
+      "command": "jj status; jj bookmark list; jj log -r 'all()' -n 8 --no-graph",
+      "result": "passed",
+      "summary": "Read-only workspace and baseline inspection; starting working copy was clean."
+    },
+    {
+      "command": "jj diff -- README.md ARCHITECTURE.md AGENTS.md CLAUDE.md docs/scope.md docs/index.md frontend/README.md docs/allium/README.md docs/allium/public-sharing.allium",
+      "result": "passed",
+      "summary": "Inspected the candidate diff; only the four reported assigned Markdown pages changed."
+    },
+    {
+      "command": "jj status",
+      "result": "passed",
+      "summary": "Final status showed only the four reported modified files; no Git staging operation was performed."
+    }
+  ],
+  "validationOutput": [
+    "Effective environment: openai/gpt-6-luna/xhigh.",
+    "No automated checks or services were run under the task constraint.",
+    "No source/config files outside the assignment were changed."
+  ],
+  "residualRisks": [
+    "Fresh independent review is pending.",
+    "No documentation build or automated checks were run, as directed."
+  ],
+  "noStagedFiles": true,
+  "diffSummary": "Shortened selected explanatory prose on README.md, ARCHITECTURE.md, AGENTS.md, and CLAUDE.md without changing scope; five other assigned pages remain unchanged.",
+  "reviewFindings": [
+    "No blocker identified during writer inspection; independent review remains pending."
+  ],
+  "manualNotes": "The active instructions remained the original frozen instructions during execution. Findings are written only to the authoritative artifact path for this run."
+}
+```

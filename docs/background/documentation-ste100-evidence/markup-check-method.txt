@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+import collections
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+def protected(text: str) -> dict[str, object]:
+    fences = re.findall(r"(?ms)^(```|~~~)[^\n]*\n.*?^\1[^\n]*(?:\n|$)", text)
+    # Match full fenced regions separately; a capture above identifies the delimiter only.
+    regions = re.findall(r"(?ms)^```[^\n]*\n.*?^```[^\n]*(?:\n|$)|^~~~[^\n]*\n.*?^~~~[^\n]*(?:\n|$)", text)
+    remainder = text
+    for region in regions:
+        remainder = remainder.replace(region, "")
+    inline_pattern = re.compile(r"(?<!`)(`+)(?!`)(.*?)\1(?!`)", re.S)
+    inline_values = [match.group(0).replace("\n", " ") for match in inline_pattern.finditer(remainder)]
+    prose = inline_pattern.sub("", remainder)
+    quotations = [" ".join(value.split()) for value in re.findall(r'"([^"\n]*(?:\n[^"\n]*)*)"|“([^”]*)”', prose) for value in value if value]
+    return {
+        "quotations": dict(collections.Counter(quotations)),
+        "fenced_regions": regions,
+        "inline_code": dict(collections.Counter(inline_values)),
+        "link_targets": dict(collections.Counter(re.findall(r"\]\(([^)]+)\)", text))),
+        "headings": re.findall(r"(?m)^#{1,6} .*$", text),
+        "explicit_ids": re.findall(r"\bid=[\"']([^\"']+)", text),
+        "numbers": dict(collections.Counter(re.findall(r"(?<![A-Za-z])\d+(?:[.:/-]\d+)*(?![A-Za-z])", remainder))),
+    }
+
+
+base = sys.argv[1]
+root = Path(sys.argv[2])
+results = []
+for name in sys.argv[3:]:
+    original = subprocess.check_output(["jj", "--ignore-working-copy", "file", "show", "-r", base, name], text=True)
+    candidate = (root / name).read_text()
+    before, after = protected(original), protected(candidate)
+    differences = [key for key in before if key != "quotations" and before[key] != after[key]]
+    missing_quotes = dict(collections.Counter(before["quotations"]) - collections.Counter(after["quotations"]))
+    if missing_quotes:
+        differences.append({"missing_original_quotations": missing_quotes})
+    results.append({"path": name, "changed": original != candidate, "protected_differences": differences})
+print(json.dumps(results, indent=2))
+sys.exit(any(row["protected_differences"] for row in results))

@@ -1,0 +1,53 @@
+# Android Chrome prose inventory: `android_tests/test_android_chrome.py`
+
+## Disposition
+
+**Already suitable; no source rewrite.** I read the authoritative `plans/documentation-ste100.md`, the frozen `/tmp/night-docs-originals/AGENTS.md`, and the full original and candidate source file. I checked every explanatory comment and every leading module/function docstring. The existing prose is concise and preserves useful safety and coverage limits, so a forced rewrite would not improve it.
+
+## Actual test coverage
+
+This opt-in suite requires the dedicated, booted `listapp_api35` Android emulator and tests the real Android Chrome UI. It is explicitly not for a real phone. Its server is a disposable local test server; the Android reverse mapping does not target Railway or a developer database.
+
+- `test_android_chrome_opens_disposable_room` opens the local room URL in Chrome and checks that the room password prompt appears, without displaying the admin login. It fails if Chrome's first-run choices have not been completed.
+- `test_install_from_password_prompt_opens_standalone_room` installs the room from Chrome's password prompt. It checks that installation alone does not unlock a private room, enters the room password, verifies the standalone app after relaunch/reload, checks that a request fails with the disposable server and tunnel stopped and airplane mode enabled, then restores connectivity and checks the app again.
+
+No app, browser, emulator, or pytest tests were run for this prose inventory.
+
+## Prose reviewed
+
+- Module docstring: identifies this as an opt-in emulator smoke test and excludes real phones.
+- Fixture comments: explain Android localhost's secure-context behavior, local-only forwarding, and the condition that prevents clearing other Chrome shortcuts.
+- Helper docstrings: identify waiting for the exact disposable room shortcut and selecting the test icon when older disposable icons exist.
+- Test docstrings: state the real Chrome UI/no-login scope and that installation alone does not grant access to a private room.
+- Inline comments: explain the WebView/accessibility-tree difference on this image and why the server, tunnel, and network state are restored around the failure check.
+
+These comments/docstrings are useful and already brief. I made no prose changes.
+
+## Preservation proof
+
+- Original: `/tmp/night-docs-originals/android_tests/test_android_chrome.py`
+- Candidate: `android_tests/test_android_chrome.py`
+- `cmp -s` confirmed the files are byte-identical. Therefore commands, strings/quotes, evidence, values, directives, numeric limits, emulator-vs-real-device distinctions, local-vs-production distinctions, test coverage, comments, docstrings, and executable code are all unchanged.
+- Python ASTs parsed from both files were identical after removing all leading module/function/class docstrings. This confirms there are no executable-statement, test, assertion, fixture, embedded-string, or other AST changes. Since no source rewrite was made, this is a preservation comparison, not a claim that prose was rewritten.
+
+## Environment, commands, and limits
+
+Verified `PI_PROVIDER=openai`, `PI_MODEL=gpt-6-luna`, and `PI_REASONING_LEVEL=xhigh`. Relevant commands and results:
+
+- Environment print and backlog/.env context check: passed; all three requested environment values matched. `.env` is absent, but this task required no app run.
+- `cmp -s /tmp/night-docs-originals/android_tests/test_android_chrome.py android_tests/test_android_chrome.py`: passed; files are byte-identical.
+- `grep -n '^ *#' android_tests/test_android_chrome.py` and Python 3 AST inventory: passed; inspected all comment lines and leading docstrings.
+- Python 3 AST comparison after removing leading docstrings: passed; original and candidate ASTs match.
+- An initial AST inventory invocation using `python` failed because that executable is unavailable. The same inventory and AST proof passed with `python3`.
+
+No application or emulator run, pytest run, dependency operation, service launch, fanout, or VCS command/check was performed. No staging operation was performed. The workspace's pre-existing staging state was not queried because VCS checks were prohibited. The parent runs separate Python quality gates.
+
+## Exact changes
+
+- Source files changed: none.
+- Tests added or updated: none.
+- Output artifact written: `/home/hsa/.pi/agent/sessions/--home-hsa-projects_list_app-night-docs--/subagent-artifacts/outputs/e1534645-d980-4a6a-92a6-989e1dfc32fc/android-prose-writer.md`.
+
+## Residual risks
+
+None identified in this file's prose. No runtime behavior was evaluated. No staged files were created by this task; pre-existing staging state remains unverified because VCS inspection was prohibited.

@@ -32,21 +32,22 @@ learning, targeting up to four simultaneous users rather than large-scale use.
 
 - **Room:** A password-protected workspace containing lists. Shared room access
   grants management rights; there are no individual owner/member accounts.
-- **List:** Belongs to a room. Its `/share/{token}` URL grants public view/edit
-  access using a high-entropy token, but not room management. Authorized room
-  members can reset the link to revoke it for everyone. `/list/{slug}` is
-  room-authorized navigation, not public access. See [public sharing](docs/public-sharing.md).
-  The share page reveals nothing about the room unless the browser also has
-  room access.
+- **List:** Belongs to a room. Its `/share/{token}` URL uses a high-entropy
+  token and grants public view and edit access, but not room management.
+  Authorized room members can reset the link to revoke it for everyone.
+  `/list/{slug}` is room-authorized navigation, not public access. See
+  [public sharing](docs/public-sharing.md). The share page reveals nothing
+  about the room unless the browser also has room access.
 - **Item:** A list entry, with completion state and optional details/tags for
   organization. Field-level schema details may evolve.
-- **Admin:** `/admin` requires the global app password. A nonblank `APP_PASSWORD`
-  is required before opening the database; there is no password-free fallback.
-  Admins can view the room overview, reset passwords and delete rooms, so rooms
-  are not private from the server administrator. Admin login or `?admin=true` alone does not
-  grant entry to a room. Admin sign-in has its own signed, HTTP-only cookie
-  (`__Host-` on HTTPS). It is stateless, and a changed `APP_PASSWORD` ends all
-  admin sessions. See [API: Admin](docs/api-admin.md#admin).
+- **Admin:** `/admin` requires the global app password. `APP_PASSWORD` must be
+  nonblank before the app opens the database. There is no password-free
+  fallback. Admins can view the room overview, reset passwords, and delete
+  rooms. Rooms are not private from the server administrator. Admin login or
+  `?admin=true` alone does not grant entry to a room. Admin sign-in uses its own
+  signed, HTTP-only cookie (`__Host-` on HTTPS). The cookie is stateless. A
+  changed `APP_PASSWORD` ends all admin sessions. See
+  [API: Admin](docs/api-admin.md#admin).
 - **Room authorization:** Entry requires the room password or a valid token
   issued after checking it. Private reads and operations revalidate access;
   cached UI state is not authorization. Password changes revoke old tokens.
@@ -56,11 +57,12 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   The token lives in an HTTP-only room cookie (`__Host-`, Secure on HTTPS);
   JavaScript never sees it and the password is never stored. Plain HTTP
   (local testing) uses a cookie without `Secure`.
-- **Personal reminder settings:** A device (installation) has a random server-issued
-  secret, stored only as a hash in an HTTP-only device cookie. Room enrollments
-  need the room cookie and the device cookie. Explicit enrollment creates or
-  resumes a grant; reads never do. Sign-out or a password change cuts saved
-  grants. See [API: Personal reminder settings](docs/api-reminders.md).
+- **Personal reminder settings:** Each device (installation) has a random,
+  server-issued secret. The app stores only its hash in an HTTP-only device
+  cookie. Room enrollments need both the room cookie and the device cookie.
+  Explicit enrollment creates or resumes a grant; reads never do. Sign-out or a
+  password change cuts saved grants. See
+  [API: Personal reminder settings](docs/api-reminders.md).
 - **Same-origin writes:** Every API write must come from a page of this exact
   origin and send JSON. CORS is never enabled. The live streams are plain
   same-origin GET requests with the same cookie checks.
@@ -104,9 +106,9 @@ checked items, run in the browser so they work offline.
 - Prioritize quick list editing on mobile, with changes reflected for other
   connected users through the live stream.
 - Thumb reach on phones: the main add control sits in a bar at the bottom of
-  the screen (**Add or Search** on a list, **Add New List** in a room), and
-  toasts show at the top. Back, Options, the title and the ⋮ menus stay in the
-  top bar: they are used less often, and Options opens its panel at the top.
+  the screen: **Add or Search** on a list and **Add New List** in a room. Toasts
+  show at the top. Back, Options, the title, and the ⋮ menus stay in the top bar.
+  These controls are used less often, and Options opens its panel at the top.
 - The add field creates a new item, leaves an existing active item unchanged,
   or unchecks an existing completed item, with feedback to the user. Enter adds
   the typed text unless an arrow key highlights a suggestion; clicking or tapping
@@ -120,8 +122,8 @@ checked items, run in the browser so they work offline.
   case entered, while duplicates remain case-insensitive.
 - `/` is a public remembered-room router; admin tools remain separate at `/admin`.
 - Home-screen installation requests the current room as its launch address,
-  without credentials. ListR remains one installed app identity, not one per room;
-  switching rooms does not deliberately retarget the installed icon.
+  without credentials. ListR remains one installed app identity, not one per
+  room. Switching rooms does not deliberately retarget the installed icon.
 - Installation never grants access. Sign-in carries over only where the browser
   copies cookies into the installed app. See
   [home-screen installation](docs/home-screen-installation.md).
@@ -137,8 +139,8 @@ checked items, run in the browser so they work offline.
 ## Evolution and documentation
 
 This document is the source of truth for high-level architecture. If code differs,
-flag it and agree whether to change the implementation or update the decision.
-Keep current operational details in `docs/`, supporting evidence and history in
-`docs/background/`, proposed work in `plans/`, and unfinished work in the
-[backlog](plans/backlog.md). Follow the documentation
-lifecycle in [AGENTS.md](AGENTS.md).
+flag the difference. Agree whether to change the implementation or update the
+decision. Keep current operational details in `docs/`, supporting evidence and
+history in `docs/background/`, proposed work in `plans/`, and unfinished work in
+the [backlog](plans/backlog.md). Follow the documentation lifecycle in
+[AGENTS.md](AGENTS.md).

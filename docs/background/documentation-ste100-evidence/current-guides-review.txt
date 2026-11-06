@@ -1,0 +1,27 @@
+## Review
+
+Compared each of the nine current pages with `/tmp/night-docs-originals/<path>`. I did not use the writer report, run tests, use VCS tools, or make edits. At final inspection, `AGENTS.md` uses the original baseline wording; the alternate wording noted during steering was not present.
+
+### Correct
+
+- **PASS — `README.md` (rewritten).** The setup commands, paths, links, and app behavior remain intact. The preview section preserves the source-staging explanation, excluded content, redirect behavior, and explicit lack of publishing authority (`README.md:146–174`). Its claims align with the wrapper’s source and staging checks (`scripts/build_docs_site.py:152, 202–231, 360`) and hidden-path exclusions (`zensical.toml:11–27`). It also correctly says the exclusions are not a security boundary.
+- **PASS — `ARCHITECTURE.md` (rewritten).** The security boundaries retain their requirements and exceptions: public links do not grant room management, private access is revalidated, cookie protections remain, API writes stay same-origin, and invitations do not grant access to existing rooms (`ARCHITECTURE.md`, “Domain and security boundaries”). Stack and UX decisions retain their meaning.
+- **PASS — `AGENTS.md` (rewritten).** The plan lifecycle, approval gates, standing permissions, workspace coordination, and cleanup authority remain intact. The current baseline clause at `AGENTS.md:78–82` matches the original wording. No unresolved change to its obligation remains.
+- **PASS — `CLAUDE.md` (rewritten).** The cloud-session branch and PR rules, `main` deployment restriction, required checks, reporting of missing prerequisites, and local-agent acceptance checks are preserved.
+- **PASS — `docs/scope.md` (unchanged; suitable).** The risk guidance, approval gates, exceptions, and standing permissions match the original.
+- **PASS — `docs/index.md` (unchanged; suitable).** The hub remains clear about source-of-truth links, work selection, preview exclusions, and lack of publication approval.
+- **PASS — `frontend/README.md` (unchanged; suitable).** Setup, development, build, and check instructions are clear and preserve commands and paths.
+- **PASS — `docs/allium/README.md` (unchanged; suitable).** It remains a concise optional-pilot guide and retains the draft-behavior caution and instruction not to run an autonomous implementation loop without agreement.
+- **PASS — `docs/allium/public-sharing.allium` (unchanged; protected formal specification).** The formal content is unchanged. No prose rewrite or formal STE100 compliance claim is made.
+
+### Fixed
+
+- None; this was a read-only review.
+
+### Finding
+
+No issues found.
+
+### Merge verdict
+
+**OK** for this current-page review. This is not a test/build result or a full-diff review; the parent’s separate diff inspection remains applicable.

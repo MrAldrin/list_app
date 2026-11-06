@@ -1,0 +1,30 @@
+## Historical prose H2 — independent re-review
+
+Re-read the original and current candidate paragraphs in `docs/background/offline-editing-details.md`, “Sending waiting changes” (original and candidate lines 73–85). The quoted term is now **`"Waited"`** in both; capitalization is preserved exactly. The rewrite retains the 10-second toast boundary and the definition of a waited change. It also preserves queue behavior: edits made during the access/feed check are queued, changes are sent one at a time in order, and held or unreadable entries block later entries of the same room.
+
+The prior full review covered all 18 original/candidate page pairs. This follow-up confirms the correction and updates that page’s result; I made no edits and ran no VCS commands or checks.
+
+| Page | Updated result |
+|---|---|
+| `docs/background/improvement-review-2026-10/accounts.md` | **PASS — suitable** |
+| `docs/background/improvement-review-2026-10/backend.md` | **PASS — suitable** |
+| `docs/background/improvement-review-2026-10/docs.md` | **PASS — partly protected** |
+| `docs/background/improvement-review-2026-10/features.md` | **PASS — suitable** |
+| `docs/background/improvement-review-2026-10/frontend.md` | **PASS — suitable** |
+| `docs/background/improvement-review-2026-10/perf-security.md` | **PASS — rewritten** |
+| `docs/background/improvement-review-2026-10/tooling.md` | **PASS — suitable** |
+| `docs/background/improvement-review-2026-10/ux.md` | **PASS — partly protected** |
+| `docs/background/offline-editing-details.md` | **PASS — rewritten; quoted-term capitalization restored** |
+| `docs/background/offline-viewing-validation.md` | **PASS — partly protected** |
+| `docs/background/reminder-delivery-verification.md` | **PASS — partly protected** |
+| `docs/background/reminder-overnight-status.md` | **PASS — partly protected** |
+| `docs/background/reminder-redesign-research.md` | **PASS — suitable** |
+| `docs/background/reminders-p2-validation.md` | **PASS — partly protected** |
+| `docs/background/svelte-frontend-rewrite.md` | **PASS — partly protected** |
+| `docs/background/test-suite-review.md` | **PASS — partly protected** |
+| `docs/background/test-suite-speed.md` | **PASS — partly protected** |
+| `docs/background/write-atomicity-findings.md` | **PASS — partly protected** |
+
+**Finding:** No issues found.
+
+**Merge verdict: OK.** This is a prose review only; it makes no formal STE100 compliance claim and does not cover parent-owned checks, lifecycle, or integration.

@@ -1,7 +1,8 @@
 # Testing on a Phone before Deployment
 
-Run the app on your laptop and open it on your phone. Use it to debug a
-phone-only problem. For device checks, see the [risk level](scope.md#risk-level).
+Run the app on your laptop and open it on your phone to debug a problem that
+only appears on the phone. For device checks, see the
+[risk level](scope.md#risk-level).
 
 ## How it works
 
@@ -67,8 +68,8 @@ uv run python scripts/serve_svelte_local.py
 ## HTTPS on the phone
 
 Tailscale Serve forwards private HTTPS traffic to the app on local port `8080`.
-It is configured in the background; start the app normally and keep Tailscale
-connected on both devices. Open:
+Serve is configured in the background. Start the app normally and keep
+Tailscale connected on both devices. Then open:
 
 <https://hsa-linux-mint.tail54e8e1.ts.net/>
 

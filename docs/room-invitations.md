@@ -3,34 +3,56 @@
 1. Sign in at `/admin`.
 2. Under **Room invitations**, select **Generate 7-day invitation**.
 3. Copy and save the displayed link; the full link is shown only once.
-4. Share it with your group. Each person can choose a room name and password, then sign into their new room. They should keep the room URL and password.
+4. Share it with your group. Each person can choose a room name and password,
+   then sign in to their new room. They should keep the room URL and password.
 5. Use **Revoke** beside an active invitation to stop further room creation immediately.
 
-An invitation is reusable until seven days after generation, and it can create up to 5 rooms. After the fifth room the link stops working, like an expired one. (Creation and expiry times are displayed in UTC.) If you lose the link, revoke it and generate another. Existing rooms work normally after expiry/revocation. Admin sees newly created rooms in the usual overview; reload if another person has just created one.
+An invitation is reusable until seven days after generation and can create up to
+5 rooms. After the fifth room, the link stops working like an expired one.
+Creation and expiry times are displayed in UTC. If you lose the link, revoke it
+and generate another. Existing rooms work normally after expiry or revocation.
+Admin sees newly created rooms in the usual overview; reload if another person
+has just created one.
 
-Anyone receiving or being forwarded an invitation can create a room. The invitation does not grant access to existing rooms. Room passwords grant management rights to everyone holding them; individual list URLs remain public-by-link. Admin login alone does not grant room access: admins must also use the room password or a valid room-access token. Admins can still view the room overview and reset room passwords, so this is not privacy from the server administrator.
+Anyone who receives or is forwarded an invitation can create a room. The
+invitation does not grant access to existing rooms. Room passwords grant
+management rights to everyone who holds them; individual list URLs remain
+public-by-link. Admin login alone does not grant room access: admins must also
+use the room password or a valid room-access token. Admins can still view the
+room overview and reset room passwords, so rooms are not private from the server
+administrator.
 
 ## Invitation history
 
-Revoked and expired invitations remain visible for seven days after they first become inactive (revocation or expiry, whichever happens first). Opening or refreshing the admin invitation list automatically deletes older invitation records. There is no background scheduler, so records may stay in the database longer if nobody opens the admin page. Deleted invitation links remain invalid; existing rooms and their access tokens are unaffected.
+Revoked and expired invitations remain visible for seven days after they first
+become inactive (revocation or expiry, whichever happens first). Opening or
+refreshing the admin invitation list automatically deletes older invitation
+records. There is no background scheduler, so records may stay in the database
+longer if nobody opens the admin page. Deleted invitation links remain invalid.
+Existing rooms and their access tokens are unaffected.
 
 ## Implementation boundaries
 
-`src/room_invitations.py` stores invitation token hashes and lifecycle timestamps
-in the separate `room_invitations` table. Public creation at
+`src/room_invitations.py` stores invitation token hashes and lifecycle
+timestamps in the separate `room_invitations` table. Public creation at
 `/create-room/{token}` rechecks expiry and revocation inside the room-creation
-transaction, so an earlier valid page load is not enough to authorize creation.
-The invitation API endpoints recheck admin authentication on every call (`src/api/invitations.py`). Creators choose a room password and then use the normal room sign-in
-flow; invitations do not introduce individual accounts. No rate limiting or
-CAPTCHA is implemented for this feature.
+transaction. An earlier valid page load is not enough to authorize creation. The
+invitation API endpoints recheck admin authentication on every call
+(`src/api/invitations.py`). Creators choose a room password, then use the normal
+room sign-in flow. Invitations do not introduce individual accounts. No rate
+limiting or CAPTCHA is implemented for this feature.
 
-The Svelte app has the same flow at `/admin` and `/create-room/{token}`,
-through the [JSON API](api-sharing.md#creation-invitations) and the same rules. Both
-apps share the invitations: a link from either one works in both.
+The Svelte app has the same flow at `/admin` and `/create-room/{token}`, through
+the [JSON API](api-sharing.md#creation-invitations), and follows the same rules.
+Both apps share the invitations: a link from either one works in both.
 
 ## Deployment and migration
 
-The `room_invitations` table is created by the schema migrations (`src/database_setup.py`); no manual SQL is needed. Migration 11 adds a `rooms_created` counter to each invitation. Rooms do not record their invitation, so invitations that existed before this migration start at 0: rooms they made earlier are not counted.
+The `room_invitations` table is created by the schema migrations
+(`src/database_setup.py`); no manual SQL is needed. Migration 11 adds a
+`rooms_created` counter to each invitation. Rooms do not record which invitation
+created them, so invitations that existed before this migration start at 0.
+Rooms they created earlier are not counted.
 
 There is no abuse throttling, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
 

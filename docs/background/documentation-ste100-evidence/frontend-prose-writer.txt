@@ -1,0 +1,265 @@
+# Frontend and assigned root-config prose inspection
+
+## Outcome
+
+Rewrote only explanatory comments in three files. The edits do not change executable code, configuration values, UI strings, CSS rules, or app behavior. The fresh independent review gate is still pending; this report records the writer-side result, not approval.
+
+Effective worker settings were verified from the runtime environment: provider `openai`, model `gpt-6-luna`, effort `xhigh` (`PI_PROVIDER`, `PI_MODEL`, and `PI_REASONING_LEVEL`).
+
+## Scope and reading method
+
+The tracked-file inventory contained 201 `frontend/` files and four assigned root files: `.env.example`, `.gitignore`, `Dockerfile`, and `zensical.toml`. I excluded `frontend/README.md` because the task assigns it to another writer. I read the actual comment text with adjacent code or config context for the 204 files in this batch. The inventory marker map was used only to locate candidate files; marker presence was not treated as evidence that a comment had been read. I also read the short ignore-file section labels and retained them.
+
+I used `/tmp/night-docs-originals/<path>` as the original source where it contained the file. The original snapshots for five tracked route pages listed under **blocked** are zero-byte files; I read their current working-tree comments and left them unchanged. The original snapshot for `frontend/package-lock.json` is absent; its tracked working-tree file contains no comments. These original-source gaps are recorded for the independent reviewer.
+
+## Changes
+
+- `frontend/eslint.config.js`: corrected the recommendation sentence while preserving its strength, rule name, and URL.
+- `frontend/src/lib/admin/ResetPasswordDialog.svelte`: split the long overview into direct sentences. Preserved the current-password exception, token revocation and sign-out, link behavior, admin-access distinction, and missing-room behavior.
+- `zensical.toml`: simplified the preview-scope explanation. Kept the source inventory, Allium exceptions, hidden-path exclusion, and architecture/app-code boundaries.
+
+## Complete per-file dispositions
+
+Every path from the tracked-file list is in exactly one category below. `frontend/README.md` is listed as blocked only to make coverage explicit; it was not read or edited in this batch.
+
+### Rewritten (3)
+
+- `frontend/eslint.config.js`
+- `frontend/src/lib/admin/ResetPasswordDialog.svelte`
+- `zensical.toml`
+
+### Read / already suitable (153)
+
+The comments are clear enough to keep as written, or they contain specific technical constraints that should not be shortened without a separate source-level review.
+
+- `.env.example`
+- `.gitignore`
+- `Dockerfile`
+- `frontend/src/app-colors.test.ts`
+- `frontend/src/app.css`
+- `frontend/src/app.d.ts`
+- `frontend/src/app.html`
+- `frontend/src/hooks.client.ts`
+- `frontend/src/lib/admin/AdminDeleteRoomDialog.svelte`
+- `frontend/src/lib/admin/AdminInvitations.svelte`
+- `frontend/src/lib/admin/AdminLogin.svelte`
+- `frontend/src/lib/admin/AdminRooms.svelte`
+- `frontend/src/lib/admin/CreateRoomDialog.svelte`
+- `frontend/src/lib/admin/InvitationDialog.svelte`
+- `frontend/src/lib/admin/admin-links.ts`
+- `frontend/src/lib/admin/failure.ts`
+- `frontend/src/lib/admin/invitations.ts`
+- `frontend/src/lib/data/add-count.test.ts`
+- `frontend/src/lib/data/admin.ts`
+- `frontend/src/lib/data/api.ts`
+- `frontend/src/lib/data/backoff.ts`
+- `frontend/src/lib/data/compat.svelte.ts`
+- `frontend/src/lib/data/events.test.ts`
+- `frontend/src/lib/data/events.ts`
+- `frontend/src/lib/data/feed.ts`
+- `frontend/src/lib/data/ids.test.ts`
+- `frontend/src/lib/data/ids.ts`
+- `frontend/src/lib/data/index.test.ts`
+- `frontend/src/lib/data/index.ts`
+- `frontend/src/lib/data/invitation.ts`
+- `frontend/src/lib/data/item-date.ts`
+- `frontend/src/lib/data/messages.ts`
+- `frontend/src/lib/data/not-saved.ts`
+- `frontend/src/lib/data/offline-integration.test.ts`
+- `frontend/src/lib/data/order.ts`
+- `frontend/src/lib/data/overlay.ts`
+- `frontend/src/lib/data/pending-logout.ts`
+- `frontend/src/lib/data/queue-entries.ts`
+- `frontend/src/lib/data/queue-storage.test.ts`
+- `frontend/src/lib/data/queue-storage.ts`
+- `frontend/src/lib/data/queue-view.svelte.ts`
+- `frontend/src/lib/data/rebase.ts`
+- `frontend/src/lib/data/result.ts`
+- `frontend/src/lib/data/room-lifetime.svelte.test.ts`
+- `frontend/src/lib/data/room-signin.ts`
+- `frontend/src/lib/data/room-store.svelte.ts`
+- `frontend/src/lib/data/room-store.test.ts`
+- `frontend/src/lib/data/session-transition.ts`
+- `frontend/src/lib/data/share.test.ts`
+- `frontend/src/lib/data/share.ts`
+- `frontend/src/lib/data/snapshot-idb.ts`
+- `frontend/src/lib/data/snapshot-store.test.ts`
+- `frontend/src/lib/data/snapshot-store.ts`
+- `frontend/src/lib/data/snapshot-validate.ts`
+- `frontend/src/lib/data/standalone-session.ts`
+- `frontend/src/lib/data/status.ts`
+- `frontend/src/lib/data/test-helpers.ts`
+- `frontend/src/lib/data/types.ts`
+- `frontend/src/lib/data/visibility.test.ts`
+- `frontend/src/lib/data/visibility.ts`
+- `frontend/src/lib/data/write-queue.test.ts`
+- `frontend/src/lib/data/write-queue.ts`
+- `frontend/src/lib/install/InstallHelpDialog.svelte`
+- `frontend/src/lib/install/manifest.ts`
+- `frontend/src/lib/invitation/CreateRoomForm.svelte`
+- `frontend/src/lib/list/AddItem.svelte`
+- `frontend/src/lib/list/DueCenter.svelte`
+- `frontend/src/lib/list/HideDoneSettings.svelte`
+- `frontend/src/lib/list/ItemDialog.svelte`
+- `frontend/src/lib/list/ItemRow.svelte`
+- `frontend/src/lib/list/ListHeader.svelte`
+- `frontend/src/lib/list/ListMenu.svelte`
+- `frontend/src/lib/list/ListOptions.svelte`
+- `frontend/src/lib/list/ListTags.svelte`
+- `frontend/src/lib/list/ListView.svelte`
+- `frontend/src/lib/list/TagDialog.svelte`
+- `frontend/src/lib/list/TagsDialog.svelte`
+- `frontend/src/lib/list/due-clock.svelte.test.ts`
+- `frontend/src/lib/list/due-clock.svelte.ts`
+- `frontend/src/lib/list/due-reminders.test.ts`
+- `frontend/src/lib/list/due-reminders.ts`
+- `frontend/src/lib/list/hide-done.ts`
+- `frontend/src/lib/list/hold-order.test.ts`
+- `frontend/src/lib/list/hold-order.ts`
+- `frontend/src/lib/list/items.test.ts`
+- `frontend/src/lib/list/items.ts`
+- `frontend/src/lib/list/reveal.ts`
+- `frontend/src/lib/list/search.ts`
+- `frontend/src/lib/list/tags.test.ts`
+- `frontend/src/lib/list/tags.ts`
+- `frontend/src/lib/list/time-zone.ts`
+- `frontend/src/lib/list/visible-items.ts`
+- `frontend/src/lib/reminders/ReminderSettings.svelte`
+- `frontend/src/lib/reminders/api.ts`
+- `frontend/src/lib/reminders/device-zone.svelte.ts`
+- `frontend/src/lib/reminders/rule-edit.ts`
+- `frontend/src/lib/reminders/rules.ts`
+- `frontend/src/lib/room-link.ts`
+- `frontend/src/lib/room/ChangePasswordDialog.svelte`
+- `frontend/src/lib/room/DeleteRoomDialog.svelte`
+- `frontend/src/lib/room/PageShell.svelte`
+- `frontend/src/lib/room/RoomHeader.svelte`
+- `frontend/src/lib/room/RoomLists.svelte`
+- `frontend/src/lib/room/RoomLogin.svelte`
+- `frontend/src/lib/room/RoomMenu.svelte`
+- `frontend/src/lib/room/RoomSwitcher.svelte`
+- `frontend/src/lib/room/SavedChanges.svelte`
+- `frontend/src/lib/room/remembered-rooms.test.ts`
+- `frontend/src/lib/room/remembered-rooms.ts`
+- `frontend/src/lib/service-worker.test.ts`
+- `frontend/src/lib/service-worker.ts`
+- `frontend/src/lib/setup.test.ts`
+- `frontend/src/lib/stale-build.test.ts`
+- `frontend/src/lib/stale-build.ts`
+- `frontend/src/lib/ui/AppearanceDialog.svelte`
+- `frontend/src/lib/ui/BackLink.svelte`
+- `frontend/src/lib/ui/BottomBar.svelte`
+- `frontend/src/lib/ui/Brand.svelte`
+- `frontend/src/lib/ui/ConfirmDialog.svelte`
+- `frontend/src/lib/ui/ConnectionStatus.svelte`
+- `frontend/src/lib/ui/Dialog.svelte`
+- `frontend/src/lib/ui/FormDialog.svelte`
+- `frontend/src/lib/ui/Icon.svelte`
+- `frontend/src/lib/ui/LoadError.svelte`
+- `frontend/src/lib/ui/MenuButton.svelte`
+- `frontend/src/lib/ui/NameDialog.svelte`
+- `frontend/src/lib/ui/NeedsConnection.svelte`
+- `frontend/src/lib/ui/PasswordPrompt.svelte`
+- `frontend/src/lib/ui/SavedViewNotice.svelte`
+- `frontend/src/lib/ui/ShareDialog.svelte`
+- `frontend/src/lib/ui/ThemeMenuItem.svelte`
+- `frontend/src/lib/ui/ThemeToggle.svelte`
+- `frontend/src/lib/ui/Toast.svelte`
+- `frontend/src/lib/ui/UnsentMark.svelte`
+- `frontend/src/lib/ui/UpdateNotice.svelte`
+- `frontend/src/lib/ui/field-limits.ts`
+- `frontend/src/lib/ui/focus.ts`
+- `frontend/src/lib/ui/notice-toasts.svelte.ts`
+- `frontend/src/lib/ui/share.ts`
+- `frontend/src/lib/ui/theme.svelte.test.ts`
+- `frontend/src/lib/ui/theme.svelte.ts`
+- `frontend/src/lib/ui/theme.ts`
+- `frontend/src/lib/ui/toasts.svelte.ts`
+- `frontend/src/lib/ui/toasts.test.ts`
+- `frontend/src/lib/ui/undo-toast.ts`
+- `frontend/src/lib/worker-routes.ts`
+- `frontend/src/routes/+error.svelte`
+- `frontend/src/routes/+layout.svelte`
+- `frontend/src/routes/+layout.ts`
+- `frontend/src/routes/+page.svelte`
+- `frontend/src/routes/admin/+page.svelte`
+- `frontend/src/service-worker.ts`
+- `frontend/vite.config.ts`
+
+### No explanatory prose (41)
+
+These files contain no comments, or only short ignore-file section labels.
+
+- `frontend/.gitignore`
+- `frontend/.node-version`
+- `frontend/.npmrc`
+- `frontend/.prettierignore`
+- `frontend/package-lock.json`
+- `frontend/package.json`
+- `frontend/src/lib/admin/admin-links.test.ts`
+- `frontend/src/lib/admin/invitations.test.ts`
+- `frontend/src/lib/data/admin.test.ts`
+- `frontend/src/lib/data/api.test.ts`
+- `frontend/src/lib/data/compat.test.ts`
+- `frontend/src/lib/data/invitation.test.ts`
+- `frontend/src/lib/data/item-date.test.ts`
+- `frontend/src/lib/data/last-room.test.ts`
+- `frontend/src/lib/data/not-saved.test.ts`
+- `frontend/src/lib/data/order.test.ts`
+- `frontend/src/lib/data/overlay.test.ts`
+- `frontend/src/lib/data/rebase.test.ts`
+- `frontend/src/lib/data/result.test.ts`
+- `frontend/src/lib/data/snapshot-validate.test.ts`
+- `frontend/src/lib/data/status.test.ts`
+- `frontend/src/lib/install/manifest.test.ts`
+- `frontend/src/lib/list/OptionDialogRow.svelte`
+- `frontend/src/lib/list/hide-done.test.ts`
+- `frontend/src/lib/list/reveal.test.ts`
+- `frontend/src/lib/list/search.test.ts`
+- `frontend/src/lib/list/time-zone.test.ts`
+- `frontend/src/lib/list/visible-items.test.ts`
+- `frontend/src/lib/reminders/PolicyEditor.svelte`
+- `frontend/src/lib/reminders/api.test.ts`
+- `frontend/src/lib/reminders/personal-reminders.ts`
+- `frontend/src/lib/reminders/rule-edit.test.ts`
+- `frontend/src/lib/reminders/rules.test.ts`
+- `frontend/src/lib/room-link.test.ts`
+- `frontend/src/lib/ui/field-limits.test.ts`
+- `frontend/src/lib/ui/share.test.ts`
+- `frontend/src/lib/ui/theme.test.ts`
+- `frontend/src/lib/worker-routes.test.ts`
+- `frontend/static/robots.txt`
+- `frontend/tsconfig.json`
+- `frontend/tsconfig.service-worker.json`
+
+### Protected directives only (2)
+
+The Prettier type annotation and Vitest environment comment are tool directives. They remain unchanged.
+
+- `frontend/prettier.config.js`
+- `frontend/src/lib/list/ItemDialog.test.ts`
+
+### Blocked (6)
+
+The README belongs to another writer. For the five route pages, the original snapshots are empty, so I made no wording changes and left them for comparison against an available original or authoritative context.
+
+- `frontend/README.md`
+- `frontend/src/routes/create-room/[token]/+page.svelte`
+- `frontend/src/routes/list/[slug]/+page.svelte`
+- `frontend/src/routes/room/[slug]/+page.svelte`
+- `frontend/src/routes/room/[slug]/list/[list]/+page.svelte`
+- `frontend/src/routes/share/[token]/+page.svelte`
+
+## Validation and limits
+
+- A comment-stripping comparison against the available originals passed for all three changed files: `frontend/eslint.config.js`, `frontend/src/lib/admin/ResetPasswordDialog.svelte`, and `zensical.toml`. It confirmed non-comment content identity.
+- `jj status` showed only those three files modified. `jj diff --stat` showed 3 files, 10 insertions, and 9 deletions.
+- `git diff --cached --exit-code` passed: no staged files.
+- No tests were added. No frontend checks or heavy tests were run; the parent owns the serialized frontend quality gates. No dependency or service was added, and no jj/git mutating command was run.
+- Independent original-versus-candidate review has not yet run. It remains required before acceptance.
+
+## Residual risks
+
+- The independent reviewer cannot use the provided original snapshot for the five blocked route pages because each file is zero bytes. Their unchanged comments were read in the current tree; compare them with the earlier source or authoritative behavior before disposition.
+- `frontend/package-lock.json` also has no original snapshot, but its current content contains no comments and was not edited.
+- `frontend/README.md` is omitted from this batch under its other-writer ownership.

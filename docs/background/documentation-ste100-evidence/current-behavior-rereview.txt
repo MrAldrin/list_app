@@ -1,0 +1,55 @@
+# Current-behavior/API fidelity re-review
+
+## Review
+
+I reviewed the complete original-versus-candidate comparison for all 12 pages in the prior run. For this follow-up, I reread the current `item-writes.md` and `api-sharing.md` alongside their originals, and sampled the current wrapping in `public-sharing.md`, `due-date-reminders.md`, `api-rooms.md`, and `checked-item-visibility.md`.
+
+The earlier `item-writes.md` finding is resolved: the candidate now uses ASCII quotes around `"stale"` at line 3, matching the original quoted term. The API-sharing feed’s continuation paragraphs are indented within the same list item; the following “Ops” bullet remains a sibling bullet. The reflow does not change the reviewed behavior or API meaning. Sampled reflowed pages retain their prior semantic fidelity.
+
+The follow-up’s reported protected-content scans are noted; I did not run scans or other checks. The previous full comparison found no semantic or API-contract differences in the other pages. I make no formal STE100 compliance claim.
+
+### Page verdicts
+
+1. **PASS — `docs/checked-item-visibility.md`**  
+   The candidate retains mode defaults, counter limits, tag-filter-independent counting, offline application, UTC completion times, update timing, and existing-list migration behavior. Relevant sections include the mode and counter rules (lines 5–10) and “Existing lists and verification” (line 18).
+
+2. **PASS — `docs/item-sorting.md`**  
+   Sort choices and defaults, checked/open ordering, settling delay, tie-breaking, date handling, add-count meanings, and browser-local saved choice remain intact. See “Rules for every choice” (line 14) and “Saved choice” (line 23).
+
+3. **PASS — `docs/public-sharing.md`**  
+   Link access and reset authority, reset invalidation, room-navigation privacy, room-password independence, token handling and leakage cautions, transaction checks, and rollout behavior remain intact. See “Behavior” (line 3), “Implementation” (line 13), and “Rollout and verification” (line 30).
+
+4. **PASS — `docs/room-invitations.md`**  
+   Invitation duration and room limit, one-time link display, access boundaries, history cleanup, transaction-time checks, migration details, and privacy cautions remain intact. See “Invitation history” (line 13), “Implementation boundaries” (line 17), and “Deployment and migration” (line 32).
+
+5. **PASS — `docs/due-date-reminders.md`**  
+   Offline behavior, due-time confirmation, time-zone defaults and grouping, due criteria, bell scope and counts, item reveal, and update timing remain intact. See “Shared due time” (line 9), “What counts as due” (line 23), “The bell” (line 37), and “Personal reminder settings” (line 49). The known discrepancy concerning reminder settings remains unresolved; the candidate does not reactivate or silently resolve those entry points.
+
+6. **PASS — `docs/item-writes.md`**  
+   The quoted term is restored at line 3. The stale-write rules, transaction behavior, per-action behavior, field constraints, database guards, migration behavior, and item identity remain intact. See “Core rules” (line 7), “Per action” (line 18), “Field rules” (line 35), and “Item identity” (line 65).
+
+7. **PASS — `docs/offline-viewing.md`**  
+   Offline-capable actions, access confirmation and send order, lack of background sync, device-local queue and age behavior, merge and conflict rules, rejection and retry actions, access-loss handling, sign-out and room-deletion behavior, and deploy/version behavior remain intact. See sections beginning at lines 8, 15, 22, 30, 36, 42, and 47.
+
+8. **PASS — `docs/change-tracking.md`**  
+   Sequence and identifier rules, pruning windows and floors, snapshot behavior, trigger effects, deletion behavior, exceptions, and migration obligations remain intact. See “What is stored” (line 9), “What the triggers do” (line 39), and “Rules for code” (line 53).
+
+9. **PASS — `docs/api.md`**  
+   Base path, JSON and cache/version headers, identifier and token exposure rules, room-access checks, authentication boundaries, security headers, versioning behavior, error codes and statuses, and same-origin write requirements remain intact. Relevant sections begin at lines 22, 35, 47, 55, 69, and 101.
+
+10. **PASS — `docs/api-admin.md`**  
+    Admin cookie properties and duration, token format, password-change effects, endpoint schemas and statuses, sign-in checks, room-management permissions, and invitation behavior remain intact. See “Admin” (line 5) and its endpoint table and rules.
+
+11. **PASS — `docs/api-rooms.md`**  
+    Room-password rules, session endpoints, sign-in limits, cookie variants and lifetimes, token revocation and retention, room-management checks, statuses, and stream behavior remain intact. Relevant sections begin at lines 5, 10, 26, and 62.
+
+12. **PASS — `docs/api-sharing.md`**  
+    Share-token scope, response privacy and sequence behavior, allowed operations, reset invalidation, room-member requirements, invitation access boundaries, statuses, limits, and token storage remain intact. The feed rule begins at line 19. Its indented continuation paragraphs remain part of that same bullet; “Ops” is the next sibling bullet. “Creation invitations” begins at line 33.
+
+## Findings and disposition
+
+- **No current-behavior or API-fidelity findings.**
+- The prior `item-writes.md` quotation finding is resolved in the current candidate.
+- The prior `api-sharing.md` paragraph-structure note is resolved by the indented continuation paragraphs.
+
+**Merge verdict: OK** for current-behavior/API fidelity. No tests or checks were run.

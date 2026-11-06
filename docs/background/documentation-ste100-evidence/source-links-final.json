@@ -1,0 +1,29 @@
+{
+  "pages": 90,
+  "checked_local_links_and_images": 436,
+  "external_or_host_absolute_links_not_fetched": 55,
+  "anchor_profiles": "GitHub-style and Python-Markdown; a source fragment must match at least one. This is not a cross-renderer portability claim. Generated-site anchors are checked separately by build wrapper.",
+  "renderer_specific_fragments": [
+    {
+      "source": "plans/due-date-reminders.md",
+      "destination": "../docs/background/reminder-delivery-verification.md#s1-reviewed-integration--2026-11-04",
+      "matching_profile": "GitHub-style"
+    },
+    {
+      "source": "plans/due-date-reminders.md",
+      "destination": "../docs/background/reminder-delivery-verification.md#s2-reviewed-integration--2026-11-04",
+      "matching_profile": "GitHub-style"
+    },
+    {
+      "source": "plans/test-suite-speed.md",
+      "destination": "#priority-1-decide-coverage-and-test-tiers",
+      "matching_profile": "Python-Markdown"
+    },
+    {
+      "source": "plans/test-suite-speed.md",
+      "destination": "#priority-3-simplify-and-measure-android-checks",
+      "matching_profile": "Python-Markdown"
+    }
+  ],
+  "issues": []
+}

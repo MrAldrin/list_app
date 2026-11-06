@@ -1,0 +1,25 @@
+# Operations/API prose rereview
+
+**Scope:** Re-read the original and current candidate introductions for `docs/api-reminders.md`. The original is `/tmp/night-docs-originals/docs/api-reminders.md`; the candidate is `/home/hsa/projects/list_app-night-docs-operations/docs/api-reminders.md`. The prior independent review covered all nine pages. Per the follow-up, no other pages have changed since then; their prior dispositions stand. No files were written and no checks or tests were run. This is not a formal STE100 compliance claim.
+
+## Updated page dispositions
+
+| Result | Page | Review |
+|---|---|---|
+| **PASS** | `docs/android-emulator-testing.md` | Prior review stands: the disposable-emulator boundary, commands, test conditions, cleanup and safety limits were preserved. |
+| **PASS** | `docs/api-lists-items.md` | Prior review stands: unchanged API contract; endpoint, retry behavior, operation details, due-time rules and conflict semantics remain intact. |
+| **PASS** | `docs/api-reminders.md` | The candidate now explicitly says “Nothing here is shared” before naming room feeds, share links and live updates (candidate line 5). The original states the same general privacy guarantee and then names those channels. The explicit guarantee is present; it is not being inferred from the device-only scope. The known settings-entry-point contradiction remains unresolved. |
+| **PASS** | `docs/browser-testing.md` | Prior review stands: commands, worker guidance, isolation, WebKit/Safari qualification and local-test limitations were preserved. |
+| **PASS** | `docs/deployment.md` | Prior review stands: the production deployment boundary, checklist, backup procedure, target-environment condition, checks and confirmation before pushing were preserved. |
+| **PASS** | `docs/home-screen-installation.md` | Prior review stands: installation and remembered-access behavior, security requirements and real-device checklist conditions were preserved. |
+| **PASS** | `docs/local-network-testing.md` | Prior review stands: Tailscale access restrictions, Funnel warning, local test database and Railway/production limitations were preserved. |
+| **PASS** | `docs/preview-exclusions.md` | Prior review stands: exclusions, redirect behavior, search-index caveat and lack of publication approval were preserved. |
+| **PASS** | `docs/testing.md` | Prior review stands: test-layer limitations, required-check guidance, paused reminder checks and device/WebKit limitations were preserved. |
+
+## Finding
+
+No issues found.
+
+## Merge verdict
+
+**OK** for this independent prose review. The api-reminders introduction’s general privacy guarantee is explicit in the current candidate. The other eight page dispositions remain as previously reviewed, with no intervening edits reported.
