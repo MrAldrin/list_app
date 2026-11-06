@@ -111,7 +111,9 @@ Language/tests/build checks passed. The docs build retained 51 existing
 warnings. The task report and about 1.1 MiB of evidence are tracked on that
 line. Ten child workspaces and five job panes were removed at handback. The
 entry/session were later removed under owner approval; ignored evidence was
-preserved. No browser or candidate acceptance is implied.
+preserved. No browser acceptance is implied. The owner later accepted the
+published documentation into the default preview; source-comment/docstring
+edits remain separate. See the documentation task's acceptance record.
 
 Task 3 is complete and quiescent at `night-3-themes` (`yuqlozro` / `44686493`).
 The twenty-draft local prototype passed 1,828 combined checks and fresh actual

@@ -230,6 +230,11 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
   Lead preserved `.night-docs-evidence/`, closed pane 50/tab 18, and removed
   `night-docs` and its folder. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
   The bookmarked candidate remains available. Task 1's browser failure remains.
+- Later owner approval: published documentation was accepted in `zynznksk`
+  (`6c7b9485`) and rebuilt in the default workspace's existing 8765 preview.
+  Newer shared plans and the accepted cleanup report were preserved. App/test
+  changes were excluded; source-comment/docstring edits remain in the original
+  candidate. Existing factual contradictions and 51 build warnings remain.
 
 ## Progress
 

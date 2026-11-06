@@ -34,7 +34,7 @@ separate item. Version control keeps the history.
   **Difficulty:** High; history-safety risk. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
 - **Design — Choose gallery directions.** Owner decision. The twenty-draft gallery remains at `night-3-themes`; no app design is selected. The preview server and task workspace were removed under the owner's cleanup instruction. Portable gallery source and evidence are preserved; see the [assignment](theme-exploration.md) and [cleanup record](night-run.md#retained-resources-and-next-decisions).
   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
-- **Documentation — Inspect the completed STE100-style candidate.** Preserved at `night-2-docs`; all baseline prose accounted for and final independent review passed. Factual contradictions remain recorded, not silently corrected. The entry/session were removed under owner approval; the candidate remains bookmarked. See the [assignment](documentation-ste100.md).
+- **Documentation — Review remaining factual issues.** Published STE100-style documentation is accepted and built in the default preview. Factual contradictions remain recorded, not silently corrected. Source-comment/docstring changes remain in `night-2-docs`; no app/test changes were accepted. The original entry/session were removed under owner approval. See the [assignment](documentation-ste100.md).
   **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers used verified Luna/xhigh.
 - **Feature — Finish named item groups.** Work is parked on bookmark `groups`. It is not accepted or ready to deploy. See the [group plan](named-item-groups.md).
 
