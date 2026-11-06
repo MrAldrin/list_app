@@ -1,0 +1,9 @@
+{
+  "removed_only_owned_scratch": "/tmp/list-app-jj-cleanup-set-a-01a1afc6",
+  "files_verified_and_removed": 41,
+  "scratch_allocated_before_removal": 8892416,
+  "private_phase_retained": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/set-a-20261106",
+  "all_43_indexed_private_copies_reverified": true,
+  "native_archive_untouched": true,
+  "no_workspace_or_harness_cleanup": true
+}

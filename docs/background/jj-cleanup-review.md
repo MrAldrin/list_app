@@ -1,30 +1,33 @@
 # Targeted jj cleanup
 
-## My recommendation: A first
+## A is complete — discuss B next
 
-**Done:** removed only the local `reminders-s2` label. Its code remains in
-`main`. **Nothing else below is approved or done.**
+**Completed:** the local `reminders-s2` label removal and **Set A: 11 empty
+checkpoints retired**. No app code or protected reference changed.
+**B and remote deletion are still unapproved.**
 
 | Choice | What changes | Recommendation |
 | --- | --- | --- |
-| **A** | Remove 11 empty checkpoints. No source changes. | **Approve first:** least risk, biggest reduction. |
-| **B** | Retire two source versions, including code/test differences. Backed up; not merged or repaired. | **Discuss next.** More risk than A. |
-| **Old origin branches** | Delete `usual-items-redesign` and `wave2-bottom-bar` **from the server**, not just local labels. Behavior exists today; exact commits were not merged. | **Retire the names**, with separate approval. |
+| **A · Done** | Retired 11 empty checkpoints. Ten fewer line ends. | **Complete.** No source changes. |
+| **B · Pending** | Retire two source versions, including code/test differences. Backed up; not merged or repaired. | **Discuss next.** More risk than A. |
+| **Old origin branches · Pending** | Delete `usual-items-redesign` and `wave2-bottom-bar` **from the server**, not just local labels. Behavior exists today; exact commits were not merged. | **Retire the names**, with separate approval. |
 | **`groups`** | Real unfinished work; database migrations clash with today's app. | **Keep.** Port later; do not rebase for tidiness. |
 
-### Tested result — not yet performed
+### Actual result and the remaining proposal
 
 ```text
-Now                 After A             After A + B
+Before A            Now                 If B is approved
 28 line ends   ──→  18 line ends   ──→   16 line ends
+              DONE                NOT APPROVED
 ```
 
-B would also archive one visible conflict and remove both visible divergent pairs.
-Two parked conflicts would remain. **Keep `main`, local `integration` and
-`integration@origin` unchanged.**
+A left the three conflicts and both divergent pairs unchanged. B would archive
+one visible conflict and both divergent pairs; two parked conflicts would remain.
+**`main`, local `integration` and `integration@origin` stayed unchanged.**
 
-**Recovery:** I ran the isolated restore. Independent reviewers checked the
-receipts, not a native rerun. Both configuration-related incidents were repaired.
+**Recovery:** I ran the isolated restore; independent reviewers checked receipts,
+not a native rerun. The archive is unchanged. Both configuration-related incidents
+were repaired.
 
 ---
 
@@ -49,17 +52,53 @@ commits and four divergent versions**. Operation:
 
 `f6e9450d01c4e22635b646e9038ac50980a99903124bfb7e5adc15f6a0cd878d59bf692b1032c78c83c8e49549299b02be248946281f3f58ac1328adf6ce226d`
 
-This operation, not the earlier report's 969/28 snapshot, owns the current counts.
-Report commits and empty working children can change later counts.
+This operation records the recovery baseline, not the later live counts.
+The Set A execution receipt below is newer.
 
 **Performed:** read-only local/remote inspection; own-empty entry rebase;
 private recovery creation and isolated restore/retirement tests; this report;
 a Lead-approved repair of the failed review's config-ID side effect below;
-and the reviewed local `reminders-s2` label removal.
-**Not performed:** abandonment, other bookmark changes, source rewriting,
-fetch/push/server deletion, conflict repair, app/test changes or application tests.
+the reviewed local `reminders-s2` label removal; and owner-approved Set A retirement.
+**Not performed:** B or other abandonment, other bookmark changes, retained-source
+rewriting, fetch/push/server deletion, conflict repair, app/test changes or application tests.
 
-## Local action receipt
+## Set A execution receipt
+
+The owner approved exact Set A and then clarified **execute it now**. The Lead
+granted an exclusive window for A only. All ten operations passed: nine single
+empty leaves, then the two-empty tail together.
+
+- Immediate action counts: **992 → 981 visible commits; 28 → 18 heads**.
+  Report updates and the clean working child can change later commit counts.
+- All retained complete Git commit bodies and tree IDs matched. Full native jj
+  descriptions, change IDs, parents, flags and visibility also matched.
+- All bookmarks, tags, workspace pointers, critical refs and **67 protected exact
+  trees** stayed unchanged, including all 36 archived old resume sources.
+- No retained child was rewritten and no parent became a new head. All 11 retired
+  exact trees still read back and match the unchanged recovery archive.
+- Conflicts/divergent versions stayed **3/4**. B, remote cleanup and GC were not run.
+
+Post-operation:
+`d6c483329ec4aff369885a98e16b3486ff19ac043f8c98d28e94a4a4bcf845e817037e38ac978e51b0a9745a1d2bf4d104358e375ea953660d8e63516084806e`.
+
+The first [static preflight review](jj-cleanup-review-evidence/set-a-blocked-review.md)
+**blocked** an incomplete metadata guard before any retirement. The guard was
+strengthened, not waived. The [escalated review](jj-cleanup-review-evidence/set-a-escalated-review.md)
+and [correction review](jj-cleanup-review-evidence/set-a-correction-review.md)
+passed. These were static reviews, not independent native reruns.
+The first [post-action review](jj-cleanup-review-evidence/set-a-post-action-blocked-review.md)
+was blocked by missing Python capability, not a repository failure. The final
+[Terra/Medium audit](jj-cleanup-review-evidence/set-a-post-action-review.md)
+**passed**: it independently hashed all 43 indexed files and compared all ten
+full state maps, including 9,864 retained entries and 130 protected-field checks.
+It did not rerun native operations, restoration or tree readbacks.
+
+See the [fresh preflight](jj-cleanup-review-evidence/set-a-preflight.json),
+[ten-operation receipt](jj-cleanup-review-evidence/set-a-execution.json) and
+[private raw-receipt index](jj-cleanup-review-evidence/set-a-receipt-index.json).
+The original failed guard, corrected method and per-step states are retained.
+
+## Local action receipt — reminders-s2
 
 Executed only `jj bookmark forget exact:reminders-s2`, exit 0, under the owner's
 conditional permission. Pre-operation `16f184ff…8144`; post-operation
@@ -99,6 +138,10 @@ A filtered view does not count as physical cleanup. The exact A/B tests above do
 
 ## Named references: exact decisions
 
+This table records the recovery snapshot. For Set A, the newer accepted integration
+`37fedeecced9ad63080f7e468aa691b23f4d0b96` was protected and stayed unchanged;
+see the fresh preflight above.
+
 Full change IDs and commits are in the linked evidence. Each row below identifies
 one exact version; a short change ID alone is unsafe for divergence.
 
@@ -109,7 +152,7 @@ one exact version; a short change ID alone is unsafe for divergence.
 | `usual-items-redesign@origin` · `3d1b2711825ef6e9da08d10bf90a76f54e1c8c2f` · `kvwywrsxpktluzqkmzroyzuoqstkspvy` | One unique commit after `a0185e1af6ff6a7c4ee6ffb130e8e6bcf977c519`; four paths, +47/−79. Not literally merged. Current Svelte popup implements the behavior. | Old remote feature name; no current coordinated owner. Source also lies under preview `aa6c85da`. | Propose exact guarded server deletion below, then refreshed tracking cleanup. Source remains visible under preview and in native archive. Merely forgetting the local cache would be temporary. | Exact remote name/command need owner approval. |
 | `wave2-bottom-bar@origin` · `85c93c3428aca4daed9727e624ca176eb3cf3e22` · `vvsnkwnmstlruwxvtslvlqosuoxuwuyv` | One unique commit after the same base; 12 paths, +185/−67. Not literally merged. Current Svelte bar/toasts implement the behavior. | Old remote feature name; no current coordinated owner. Also under preview `aa6c85da`. | Same separate server/cache decision below. No source abandonment. | Exact remote name/command need owner approval. |
 | `integration@origin` · `ddd687e25485c4707ad1ee7952da296e8987531f` · `krnplyqystqvuovpqlssroulzlxwpyxp` | Ancestor of local accepted integration; 139 commits behind at recovery snapshot. Local integration includes all of main and is 25 commits ahead of main. | Published/cached accepted-line position, not a disposable feature. | Keep. Behind does not mean broken. Removing this tracking state does not advance the published branch. Options/costs follow. | No tracking removal or push approved. |
-| local `integration` · `ed08313afb1b4f5fc9571ddfb4d335db2a3266e5` · `rlswsnukyywpqlsrzzyzorypmnknuknz` | Current accepted baseline, including main and accepted runtime documentation. | Lead-owned; protected. | Keep unchanged. | Not moved by this task. |
+| local `integration` · `ed08313afb1b4f5fc9571ddfb4d335db2a3266e5` · `rlswsnukyywpqlsrzzyzorypmnknuknz` | Accepted baseline at the recovery snapshot, including main and accepted runtime documentation. | Lead-owned; protected. | Keep unchanged. | Not moved by this task. |
 | `main` · `250c17b669605cea59bd671ba7e9e49ee3dcbce6` · `xsqznkopupwtxwtwnwosrlksryoxzpmw` | Production line; protected. | Owner-controlled deployment. | Keep unchanged. | No deployment or push approved. |
 
 ### Groups: worth keeping, not ready to replay
@@ -183,10 +226,14 @@ For `integration@origin`:
 
 The [exact-set manifest](jj-cleanup-review-evidence/proposed-exact-sets.json)
 contains full IDs, parents and membership. The native recovery test executed
-sets A and B **only in a disposable repository**. No retained child had a removed
-parent. No descendants were rebased. All exact sources survived in the archive.
+sets A and B in a disposable repository first. **A is now executed live with owner
+approval; B remains a proposal.** Neither test nor live A rewrote a retained child.
+All exact sources survive in the archive.
 
-### Set A — 11 empty checkpoints, ten fewer heads
+### Set A — completed: 11 empty checkpoints, ten fewer heads
+
+The owner released this exact set. All eleven rows below were retired; their
+parent/descendant facts describe the verified pre-action state.
 
 Each single-parent empty leaf has an identical `jj debug tree` fingerprint to
 its parent. The two-empty tail must be retired together: removing only its leaf
@@ -199,23 +246,23 @@ representative. No content is selected for reuse by this cleanup.
 
 | Exact commit | Full change ID | Retained exact parent / representative | Decision / descendants / approval |
 | --- | --- | --- | --- |
-| `2f94b979c91a7031ae821bcb00cfe95b4ec101bb` | `nsxuyuvtrqvlwsupopvzpzwwwpwwwkyp` | Parent `216b2eabfd25b6467d64e97906601879ad723084` under `d10874b5`. | Archive/retire former research checkpoint; no descendants. Owner exact-set approval needed. |
-| `e94ba514857ad7fdb15eebc304dc927c5f281aa5` | `pkwsulktwvnykvnwouyvywslruxnoumu` | Parent `e50da7ce0a5456159f8206513c820e7180abbb8e` under main/integration. | Archive/retire P2 review checkpoint; no descendants. Same gate. |
-| `8bb5563fdf96e060594187d4621ab864bfd78895` | `mzmxtsymsvwsxpypnqqpmtmtoopwpxpx` | Parent `e85156425a66232f0e72078165b4c8f6b3d89092` under `d10874b5`. | Archive/retire reviewed UI/join checkpoint; no descendants. Same gate. |
-| `2b7b53a00395e6ac3526f97e5df58b4f615d290d` | `mtytztrnmsqzszlxqsrssotysttvpswl` | Parent `1b3dd1e9b50eb34af152f966a6248a30cdfaf91a` under `d10874b5`. | Archive/retire combined-source checkpoint; no descendants. Same gate. |
-| `4c653c9ea1e0aee85dee2aa82e89b76873da8f8a` | `xsqtvwmsnztlorpmuozzrknvnusqsxxm` | Parent `ce79907a8fbf837907aada8e7dae4a04fcd62e13` under `d10874b5`. | Archive/retire proof-review checkpoint; no descendants. Same gate. |
-| `0aee179f4691eb701307a4a20c28acccac2bef07` | `rnmzuuypuqppquvlowpkmnynuzvvqvtx` | Parent `551819667e59e7f800648d5c7e354971f849fc1b` under `d10874b5`. | Archive/retire lifecycle checkpoint; no descendants. Same gate. |
-| `d49ce34494232c50ed8b6558dcec7392b7de3153` | `ryovswotrzsxtlqnomxsnwkkzxyxqtlx` | Parent `f42c8ba6d85aa9c83cb562b1c0c17aa833c413a8` under integration. | Archive/retire reconciliation checkpoint; no descendants. Same gate. |
-| `0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b` | `pwoxuuotnqwlpxmmptmuznuyvpknpktp` | Parent `a8ee483af6deacd0331178790442f5edadbe2f60` under integration. | Archive/retire empty milestone; no descendants. Same gate. |
-| `c650413ba10c240af0c50f2359691a2ae8ab3d59` | `rqskqvxzromytkltpvsnxlvuqrlwklsw` | Parent `62d6834c1db1c4faec425b6842ddf92abb088d8f` under integration. | Archive/retire empty foundation checkpoint; no descendants. Same gate. |
-| `095fe95ea6724b191d8d3d6707575e4eca8bd106` | `ynltvomqotrlttrsrpuksntwousosyts` | Parent is the next row. | Archive/retire with its empty parent; no outside descendants. Same gate. |
-| `95b1f504bd343cd74c464d39314ed1efa09d34df` | `qtkqlmwoqpzkloqypqtqroynmskoyozr` | Parent `7d1c05b45183dc2f8e7ea34e43be8a5e2e069a92` survives on retained lines. | Its only child is the preceding row. Retire together; same gate. |
+| `2f94b979c91a7031ae821bcb00cfe95b4ec101bb` | `nsxuyuvtrqvlwsupopvzpzwwwpwwwkyp` | Parent `216b2eabfd25b6467d64e97906601879ad723084` under `d10874b5`. | Retired former research checkpoint; no descendants. Owner-approved; retired. |
+| `e94ba514857ad7fdb15eebc304dc927c5f281aa5` | `pkwsulktwvnykvnwouyvywslruxnoumu` | Parent `e50da7ce0a5456159f8206513c820e7180abbb8e` under main/integration. | Retired P2 review checkpoint; no descendants. Owner-approved; retired. |
+| `8bb5563fdf96e060594187d4621ab864bfd78895` | `mzmxtsymsvwsxpypnqqpmtmtoopwpxpx` | Parent `e85156425a66232f0e72078165b4c8f6b3d89092` under `d10874b5`. | Retired reviewed UI/join checkpoint; no descendants. Owner-approved; retired. |
+| `2b7b53a00395e6ac3526f97e5df58b4f615d290d` | `mtytztrnmsqzszlxqsrssotysttvpswl` | Parent `1b3dd1e9b50eb34af152f966a6248a30cdfaf91a` under `d10874b5`. | Retired combined-source checkpoint; no descendants. Owner-approved; retired. |
+| `4c653c9ea1e0aee85dee2aa82e89b76873da8f8a` | `xsqtvwmsnztlorpmuozzrknvnusqsxxm` | Parent `ce79907a8fbf837907aada8e7dae4a04fcd62e13` under `d10874b5`. | Retired proof-review checkpoint; no descendants. Owner-approved; retired. |
+| `0aee179f4691eb701307a4a20c28acccac2bef07` | `rnmzuuypuqppquvlowpkmnynuzvvqvtx` | Parent `551819667e59e7f800648d5c7e354971f849fc1b` under `d10874b5`. | Retired lifecycle checkpoint; no descendants. Owner-approved; retired. |
+| `d49ce34494232c50ed8b6558dcec7392b7de3153` | `ryovswotrzsxtlqnomxsnwkkzxyxqtlx` | Parent `f42c8ba6d85aa9c83cb562b1c0c17aa833c413a8` under integration. | Retired reconciliation checkpoint; no descendants. Owner-approved; retired. |
+| `0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b` | `pwoxuuotnqwlpxmmptmuznuyvpknpktp` | Parent `a8ee483af6deacd0331178790442f5edadbe2f60` under integration. | Retired empty milestone; no descendants. Owner-approved; retired. |
+| `c650413ba10c240af0c50f2359691a2ae8ab3d59` | `rqskqvxzromytkltpvsnxlvuqrlwklsw` | Parent `62d6834c1db1c4faec425b6842ddf92abb088d8f` under integration. | Retired empty foundation checkpoint; no descendants. Owner-approved; retired. |
+| `095fe95ea6724b191d8d3d6707575e4eca8bd106` | `ynltvomqotrlttrsrpuksntwousosyts` | Parent is the next row. | Retired with its empty parent; no outside descendants. Owner-approved; retired. |
+| `95b1f504bd343cd74c464d39314ed1efa09d34df` | `qtkqlmwoqpzkloqypqtqroynmskoyozr` | Parent `7d1c05b45183dc2f8e7ea34e43be8a5e2e069a92` survives on retained lines. | Its only child is the preceding row. Retired together with owner approval. |
 
 These named review/resume points are not anonymous disposable leaves. Their
 history and receipt identities belong in the archive even when their trees match.
 Ownership/release is this exact-set owner decision, not an inference from age.
-Execution commands, if approved, use one explicit `-r <full commit>` per row,
-with the two-empty tail in one bounded operation. No broad `empty()` revset.
+Execution used one explicit `-r <full commit>` per row, with the two-empty tail
+in one bounded operation. No broad `empty()` revset was used.
 See [exact commands](jj-cleanup-review-evidence/proposed-commands.md).
 
 **Exclude `fb60a3d8`.** Its empty leaf's parent `cd32f708` adds 251 lines and
@@ -275,7 +322,7 @@ archive:
 - No project working files, `.env`, app databases, dependency caches, Git remote
   config or hooks. The portable Git config is minimal and has no remotes. The
   directory is mode 0700; archive/receipts are private. Do not publish the archive.
-- Independent extraction, isolated HOME/config: all **988 visible exact metadata
+- Conductor-run extraction, isolated HOME/config: all **988 visible exact metadata
   records** and **1,024 exact tree fingerprints** matched. These include every
   visible commit and all 36 old exact archive resume commits.
 - After disposable retirement tests, a **new extraction from the archive** again
@@ -340,10 +387,11 @@ plan. Never run a broad `op restore` in the active repository to recover one lea
   `7538d73a` **passed**. Haiku/max independently compared the actual recorded
   metadata, reference, workspace, tree, checksum, cleanup and budget receipts.
   Live checks remain parent-run; no independent native rerun is claimed.
-- No application check is necessary or claimed for history/reference analysis.
-  No Python, frontend, test, dependency or server behavior was changed.
-- Outstanding exact decisions: A, B, the two remote feature names. Keep C and
-  groups-port work separate. Acceptance/deployment remain separate gates.
+- No application check is necessary or claimed for history/reference cleanup.
+  No application Python, frontend, test, dependency or server behavior was changed.
+- Set A is owner-approved and performed. Outstanding exact decisions: B and the
+  two remote feature names. Keep C and groups-port work separate.
+  Report acceptance/deployment remain separate gates.
 - [Final budget/link check](jj-cleanup-review-evidence/final-budget-and-links.json):
   retained overnight evidence plus this task's known generated roots measured
   1,956,982,784 allocated bytes after temporary-copy cleanup. A conservative peak
@@ -356,8 +404,12 @@ plan. Never run a broad `op restore` in the active repository to recover one lea
   HOME after archive verification and process-cwd checks. These were independent
   copies, not registered shared workspaces. Retained the private native archive,
   traces, methods and incident/restore receipts. No child workspace was created.
+- [Set A budget check](jj-cleanup-review-evidence/set-a-budget.json) adds the new
+  receipt copies, review records and a margin to the prior conservative peak.
+  No new native recovery copy was made. The [scratch cleanup receipt](jj-cleanup-review-evidence/set-a-owned-scratch-cleanup.json)
+  records removal of 41 verified temporary files; the private copies remain.
 - Lead owns this entry's lifecycle. The peer and entry stay available while the
-  owner discusses exact A/B/remote decisions; no wider action is authorized.
+  owner discusses the remaining B/remote decisions; no wider action is authorized.
 
 </details>
 

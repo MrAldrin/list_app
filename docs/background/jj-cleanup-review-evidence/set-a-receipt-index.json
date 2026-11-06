@@ -1,0 +1,221 @@
+{
+  "private_phase_directory": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/set-a-20261106",
+  "scope": "Immutable raw phase receipts and preflight reviews; post-action review is linked separately. No new native recovery copy.",
+  "files": [
+    {
+      "path": "after.json",
+      "bytes": 691215,
+      "sha256": "1569e24b34d26af978e4c3828b7e3a384a8385a33f13bf16774d25fa58d1599a"
+    },
+    {
+      "path": "before.blocked.json",
+      "bytes": 354564,
+      "sha256": "f81e136ac4ad7b32f15f655b0404cb17c8b17492db52d71be9cd96166fc105e9"
+    },
+    {
+      "path": "before.json",
+      "bytes": 698766,
+      "sha256": "b68f020d9725ef3f57b6d112bfa40ec0dc05c3015422499c8385373a2dd3e428"
+    },
+    {
+      "path": "clean-status-execute-start.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-preflight.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-01.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-02.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-03.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-04.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-05.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-06.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-07.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-08.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-09.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "clean-status-step-10.json",
+      "bytes": 324,
+      "sha256": "e1dd8c5980d1605ff3916eda86d1e54c425b18bf49f83f698fc78cd40ed13552"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 12181,
+      "sha256": "b580b2aeb5698a73b5fa12a0ffc1845c22aae975e5429be54edc0d41618b5125"
+    },
+    {
+      "path": "preflight.blocked.json",
+      "bytes": 9707,
+      "sha256": "6761c836ef6695e22fe9559316f30cd3616ccc00dd687718dc01d39755fe9f78"
+    },
+    {
+      "path": "preflight.json",
+      "bytes": 10308,
+      "sha256": "8872bf4c62db95612c0df2cf045644ada1f35d5e23d70a771384d4af1a438dc2"
+    },
+    {
+      "path": "reviews/01-blocked.md",
+      "bytes": 1800,
+      "sha256": "91e064877e38950227bfb938d290c44bd76f30f766a10ce88d6dd39a888e9867"
+    },
+    {
+      "path": "reviews/02-escalated.md",
+      "bytes": 4662,
+      "sha256": "3c0b8d09f3f0ff41f576728f823199cbc0d04f030b116589bac7a32eaef9e380"
+    },
+    {
+      "path": "reviews/03-correction.md",
+      "bytes": 2648,
+      "sha256": "37b6530f503dd07b7c5169707048ed7a14407f610d4e04f1723a776944716356"
+    },
+    {
+      "path": "set_a.blocked.py",
+      "bytes": 14590,
+      "sha256": "8ea28288fd7f860e9e6fbe96008eca24500e36af7c27e2b905439ed196aea4c6"
+    },
+    {
+      "path": "set_a.py",
+      "bytes": 18804,
+      "sha256": "38a112ab88418f7e0a9124a35ff77508e91dbd8378b271b0f63e94aa0fd65399"
+    },
+    {
+      "path": "step-01-command.json",
+      "bytes": 729,
+      "sha256": "f046bd63b0e8fdb84e4ef6b8c422f5cf4f2bf254ae8b5a7a63c2c6f53b96871d"
+    },
+    {
+      "path": "step-01-state.json",
+      "bytes": 698067,
+      "sha256": "826bd1ce160998f13459ab21738bdfbcf8733db1290916fcb6de810f30cd3c29"
+    },
+    {
+      "path": "step-02-command.json",
+      "bytes": 748,
+      "sha256": "25e3888e475b33100d34c987e080c1e311af53058982be39ebde95fb465da6f0"
+    },
+    {
+      "path": "step-02-state.json",
+      "bytes": 697397,
+      "sha256": "a3fe00f1d62c3a8998875e171815395507dfc9f1e5a54f91b96f666b317c7c2d"
+    },
+    {
+      "path": "step-03-command.json",
+      "bytes": 815,
+      "sha256": "916ae8f50e865e7bcc967634fd7c532a1e9540d46effb012384b68addd8d6338"
+    },
+    {
+      "path": "step-03-state.json",
+      "bytes": 696708,
+      "sha256": "4230930c7c3aba11be9c83513573d779c6173ea7f11450eaaaddafc5513243c8"
+    },
+    {
+      "path": "step-04-command.json",
+      "bytes": 867,
+      "sha256": "6356c0d18ae74e57f62fce7ada44f8e1b20e40c39fc2782fd3ec6b781847593d"
+    },
+    {
+      "path": "step-04-state.json",
+      "bytes": 696015,
+      "sha256": "5a53dac9dbda6afb44acc5156d934603172779e84a3f32d6f43dab11146a99cc"
+    },
+    {
+      "path": "step-05-command.json",
+      "bytes": 901,
+      "sha256": "de69b972457ebf20def38f5e84ad3eda793b9db9028ae6b13fa0819f205b2af6"
+    },
+    {
+      "path": "step-05-state.json",
+      "bytes": 695336,
+      "sha256": "18e6383e69cea92799fd9c14325ef0a63fd9b3d0f6053b0c30530dc8856068e8"
+    },
+    {
+      "path": "step-06-command.json",
+      "bytes": 973,
+      "sha256": "98a1ecabdadbb6bb3722845f5edf125bf8f7041ba02da97480c4b6a4e0cb6b51"
+    },
+    {
+      "path": "step-06-state.json",
+      "bytes": 694633,
+      "sha256": "453104e1907286a9c5771873e5ed8922321a30d8289f628d7f6e49e901f99267"
+    },
+    {
+      "path": "step-07-command.json",
+      "bytes": 1024,
+      "sha256": "ac1c127ce3a140e7ba01b58461f9e5f0038d864f45466283bd5641ebf694fda5"
+    },
+    {
+      "path": "step-07-state.json",
+      "bytes": 693927,
+      "sha256": "8f6cce6fb65164dd8d50b7fdbcb213d8dee8712195c7603a0b556dfa9ee2fe6d"
+    },
+    {
+      "path": "step-08-command.json",
+      "bytes": 1052,
+      "sha256": "acbe39d10c4746adcbc843fed88cdcfa1a3e3e7a1911c6d1e1ac15fe9f7c4e27"
+    },
+    {
+      "path": "step-08-state.json",
+      "bytes": 693241,
+      "sha256": "a3febdadc4c9fc8b58ec9cb57f83855dc936f63f810f58357900d54f916b4dc0"
+    },
+    {
+      "path": "step-09-command.json",
+      "bytes": 1100,
+      "sha256": "cf096a5e21b8d6451a8f8d4831d7b57d9f9551c6a1791ecf833eab0c159e71a5"
+    },
+    {
+      "path": "step-09-state.json",
+      "bytes": 692555,
+      "sha256": "b0f45078602bacccc855a163c9ebd1be8659ae8b200565a86ee7ce532ebc2f8a"
+    },
+    {
+      "path": "step-10-command.json",
+      "bytes": 1346,
+      "sha256": "d447e1b2863c19b626ca1670fe2f5db66f3362e37a52b3481ba14cbdb5ec7059"
+    },
+    {
+      "path": "step-10-state.json",
+      "bytes": 691215,
+      "sha256": "1569e24b34d26af978e4c3828b7e3a384a8385a33f13bf16774d25fa58d1599a"
+    }
+  ]
+}

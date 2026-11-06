@@ -1,0 +1,281 @@
+{
+  "operation": "877827c0002d4a5b857a4b2926d99f8e9494cc09be4f4096a6d31e9479f0b7c24c4e9cf047ad8195c4ba58ce1845d5f06a7e3b75d036e992b0edf6bb03145e51",
+  "owner_approval": "Owner explicitly approved A and clarified do it; Lead granted Set A exclusive window; earlier later-only message superseded.",
+  "scope": "ONLY exact eleven Set A empty checkpoints; B/remotes/integration/main/groups/other lines excluded.",
+  "candidates": [
+    {
+      "commit": "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+      "change": "nsxuyuvtrqvlwsupopvzpzwwwpwwwkyp",
+      "parents": [
+        "216b2eabfd25b6467d64e97906601879ad723084"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "research - S3 scope: check an isolated historical snapshot\n",
+      "tree_sha256": "f4b65bd0259d488645b4e43c6267e4610a7babb1d83a2d7f031612f236e435db",
+      "parent_tree_sha256": "f4b65bd0259d488645b4e43c6267e4610a7babb1d83a2d7f031612f236e435db",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "e94ba514857ad7fdb15eebc304dc927c5f281aa5",
+      "change": "pkwsulktwvnykvnwouyvywslruxnoumu",
+      "parents": [
+        "e50da7ce0a5456159f8206513c820e7180abbb8e"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - P2: browser tests\n",
+      "tree_sha256": "833d60944e8cc56b7633a5b74bff301ceb2388e18ce864df83fd61361428591d",
+      "parent_tree_sha256": "833d60944e8cc56b7633a5b74bff301ceb2388e18ce864df83fd61361428591d",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "8bb5563fdf96e060594187d4621ab864bfd78895",
+      "change": "mzmxtsymsvwsxpypnqqpmtmtoopwpxpx",
+      "parents": [
+        "e85156425a66232f0e72078165b4c8f6b3d89092"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - verify reviewed UI and repeat27 join\n",
+      "tree_sha256": "3546c66c16281ad59463e8d02f5e1dafc44d7e03942f86321c2879c3c92d5a09",
+      "parent_tree_sha256": "3546c66c16281ad59463e8d02f5e1dafc44d7e03942f86321c2879c3c92d5a09",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+      "change": "mtytztrnmsqzszlxqsrssotysttvpswl",
+      "parents": [
+        "1b3dd1e9b50eb34af152f966a6248a30cdfaf91a"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - verify reviewed repeat27 combined source\n",
+      "tree_sha256": "3c558989f0392994dfb3181a479573603ab461f8422c56277e94f7b175a297f0",
+      "parent_tree_sha256": "3c558989f0392994dfb3181a479573603ab461f8422c56277e94f7b175a297f0",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+      "change": "xsqtvwmsnztlorpmuozzrknvnusqsxxm",
+      "parents": [
+        "ce79907a8fbf837907aada8e7dae4a04fcd62e13"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - postprune proof review tip\n",
+      "tree_sha256": "542e7686ba30cac82da15079bb06f854c2f41b04b1b9d2c9b9a729d55b24d73f",
+      "parent_tree_sha256": "542e7686ba30cac82da15079bb06f854c2f41b04b1b9d2c9b9a729d55b24d73f",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "0aee179f4691eb701307a4a20c28acccac2bef07",
+      "change": "rnmzuuypuqppquvlowpkmnynuzvvqvtx",
+      "parents": [
+        "551819667e59e7f800648d5c7e354971f849fc1b"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - lifecycle: cancel work with grant and item changes\n",
+      "tree_sha256": "b58185de11bf041e5739e4be7b1edb456196de48490fef47b77084d66cea7028",
+      "parent_tree_sha256": "b58185de11bf041e5739e4be7b1edb456196de48490fef47b77084d66cea7028",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "d49ce34494232c50ed8b6558dcec7392b7de3153",
+      "change": "ryovswotrzsxtlqnomxsnwkkzxyxqtlx",
+      "parents": [
+        "f42c8ba6d85aa9c83cb562b1c0c17aa833c413a8"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - schedules: reconcile reviewed server and due overview\n",
+      "tree_sha256": "59fb0b844ba348344a2bcb99efba70ab2cd599534e7bd875217186284baa80bf",
+      "parent_tree_sha256": "59fb0b844ba348344a2bcb99efba70ab2cd599534e7bd875217186284baa80bf",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b",
+      "change": "pwoxuuotnqwlpxmmptmuznuyvpknpktp",
+      "parents": [
+        "a8ee483af6deacd0331178790442f5edadbe2f60"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - schedules: next milestone (empty)\n",
+      "tree_sha256": "5ef7eb86c60cc903d7a5a78302bbee84d09503446964bb84c68f2e0bf6106d73",
+      "parent_tree_sha256": "5ef7eb86c60cc903d7a5a78302bbee84d09503446964bb84c68f2e0bf6106d73",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "c650413ba10c240af0c50f2359691a2ae8ab3d59",
+      "change": "rqskqvxzromytkltpvsnxlvuqrlwklsw",
+      "parents": [
+        "62d6834c1db1c4faec425b6842ddf92abb088d8f"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - schedules: next foundation change\n",
+      "tree_sha256": "4bb945c948f36ca1cd8cde2366c17908b6d4271ab2d382702411bf34556fde69",
+      "parent_tree_sha256": "4bb945c948f36ca1cd8cde2366c17908b6d4271ab2d382702411bf34556fde69",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+      "change": "ynltvomqotrlttrsrpuksntwousosyts",
+      "parents": [
+        "95b1f504bd343cd74c464d39314ed1efa09d34df"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - proven push absence fallback\n",
+      "tree_sha256": "a1192a2abcd338f031ee79d6bab9544a4c35c4c6153336330129d7846ce51772",
+      "parent_tree_sha256": "a1192a2abcd338f031ee79d6bab9544a4c35c4c6153336330129d7846ce51772",
+      "children": [],
+      "archive_fingerprint_match": true
+    },
+    {
+      "commit": "95b1f504bd343cd74c464d39314ed1efa09d34df",
+      "change": "qtkqlmwoqpzkloqypqtqroynmskoyozr",
+      "parents": [
+        "7d1c05b45183dc2f8e7ea34e43be8a5e2e069a92"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "reminders - fallback: honor proven push absence without duplicates\n",
+      "tree_sha256": "a1192a2abcd338f031ee79d6bab9544a4c35c4c6153336330129d7846ce51772",
+      "parent_tree_sha256": "a1192a2abcd338f031ee79d6bab9544a4c35c4c6153336330129d7846ce51772",
+      "children": [
+        "095fe95ea6724b191d8d3d6707575e4eca8bd106"
+      ],
+      "archive_fingerprint_match": true
+    }
+  ],
+  "commands": [
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "2f94b979c91a7031ae821bcb00cfe95b4ec101bb"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "8bb5563fdf96e060594187d4621ab864bfd78895"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "2b7b53a00395e6ac3526f97e5df58b4f615d290d"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "0aee179f4691eb701307a4a20c28acccac2bef07"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "d49ce34494232c50ed8b6558dcec7392b7de3153"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "c650413ba10c240af0c50f2359691a2ae8ab3d59"
+    ],
+    [
+      "jj",
+      "abandon",
+      "-r",
+      "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+      "-r",
+      "95b1f504bd343cd74c464d39314ed1efa09d34df"
+    ]
+  ],
+  "visible_before": 992,
+  "heads_before": 28,
+  "predicted_visible_after": 981,
+  "predicted_heads_after": 18,
+  "predicted_heads": [
+    "2a46f1a4b3d4d588c14349e9f6bd733e3d50bb34",
+    "30e7d18850529e308523c4573c5a7c22bbfa1c3c",
+    "31077a91123572b05e77baa41be804c6347967bb",
+    "5fc7a6f9baccce556b3d740d4d80b39452ab0ee2",
+    "6977d025400f38adcce48a33c9aef78875ce2a8b",
+    "7ef0036e74d91a56793819eb61c63488ec45e5b2",
+    "818759886fa406e91f5319325e5dc904c6989040",
+    "94c46a30c57a7faf406f10b4b615a5608852a07d",
+    "96a59effce2e73bfefa01a3fc3df0f0deb6ad137",
+    "aa6c85dae1b0959ba0d3135420e09eba12e2babc",
+    "ad79662f32ad5c473d0627484ada42afcb571d77",
+    "d10874b5e56eb6f0ada98d11fca22eac1c6fd22b",
+    "d2c6a988b5cc4f4b1c00b79eade03f9c2f4be1bf",
+    "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c",
+    "e05ed4fdb1042e1e3635f658d8d1002b97057b02",
+    "e5c4d060019774771a8ed63e0472726218425195",
+    "eb81e6f1ccb9e27132bb96420edede694bf21084",
+    "fb60a3d8e6a1319f73448a73e0890e951fd5e8db"
+  ],
+  "no_surviving_child_of_removed": true,
+  "no_exposed_parent_heads": true,
+  "archive_sha256": "e703ef0567c351c41f195603656c297af08290d7063cafdf41181fa24ffb604d",
+  "unchanged_archive_matches_prior_native_988_metadata_1024_tree_restore_proof": true,
+  "restore_rerun_this_phase": false,
+  "all_36_archived_exact_trees_match": true,
+  "protected_exact_trees": 67,
+  "current_capture_uses_normal_live_config": true,
+  "complete_git_objects_verified": 992,
+  "complete_git_metadata_and_tree_identity_checked_for_every_visible_commit": true,
+  "native_jj_specific_state_compared_separately": true,
+  "prior_static_review_block_preserved_and_guard_strengthened": true,
+  "clean_working_copy_checked": true,
+  "all_11_selected_full_commit_tree_reads_passed": true,
+  "already_hidden_archived_exact_tree_reads_passed": 36,
+  "selected_current_ids_in_archived_36": [],
+  "free_bytes": 14066069504,
+  "free_floor_bytes": 6442450944,
+  "additional_receipts_limit_bytes": 67108864
+}

@@ -1,0 +1,285 @@
+{
+  "scope": "Only owner-approved Set A",
+  "steps": [
+    {
+      "step": 1,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb"
+      ],
+      "pre_operation": "877827c0002d4a5b857a4b2926d99f8e9494cc09be4f4096a6d31e9479f0b7c24c4e9cf047ad8195c4ba58ce1845d5f06a7e3b75d036e992b0edf6bb03145e51",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  nsxuyuvt 2f94b979 (empty) research - S3 scope: check an isolated historical snapshot\n",
+      "post_operation": "2f238512f0a197b62fa268a0eac961a1794d35e424e8063c77ba373928ad8a470686abc17d3bf80eb58089f3d2f352292aff01b06bd0ce8f5b0ac5e762010d78",
+      "removed_total": [
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 27,
+      "visible_after": 991
+    },
+    {
+      "step": 2,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "pre_operation": "2f238512f0a197b62fa268a0eac961a1794d35e424e8063c77ba373928ad8a470686abc17d3bf80eb58089f3d2f352292aff01b06bd0ce8f5b0ac5e762010d78",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  pkwsulkt e94ba514 (empty) reminders - P2: browser tests\n",
+      "post_operation": "3d8e1bdfdadf3e83161b3cc28386135d140186847fd751c14bde95c94756c24accad9f6bcd2c4f480b848cfd0d57f1bdb4d687fc081590f428c2111647422087",
+      "removed_total": [
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 26,
+      "visible_after": 990
+    },
+    {
+      "step": 3,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "8bb5563fdf96e060594187d4621ab864bfd78895"
+      ],
+      "pre_operation": "3d8e1bdfdadf3e83161b3cc28386135d140186847fd751c14bde95c94756c24accad9f6bcd2c4f480b848cfd0d57f1bdb4d687fc081590f428c2111647422087",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  mzmxtsym 8bb5563f (empty) reminders - verify reviewed UI and repeat27 join\n",
+      "post_operation": "c3742faeb6e20decc8c357700b2e75588a07408476ed0c0d512a8001eb9bb04b2b11883604150dbe8ecd389b1bf9ac8d8efa3cd2aa5f4cfcb83ce50dd970f316",
+      "removed_total": [
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 25,
+      "visible_after": 989
+    },
+    {
+      "step": 4,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d"
+      ],
+      "pre_operation": "c3742faeb6e20decc8c357700b2e75588a07408476ed0c0d512a8001eb9bb04b2b11883604150dbe8ecd389b1bf9ac8d8efa3cd2aa5f4cfcb83ce50dd970f316",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  mtytztrn 2b7b53a0 (empty) reminders - verify reviewed repeat27 combined source\n",
+      "post_operation": "e153eceb813772f3189dcc353bf4539ac5de0d9ff178b87236360be0e207ec232ab50db389e7431bff7986c0f69e9eb9295106e633957c9311097b9f66337451",
+      "removed_total": [
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 24,
+      "visible_after": 988
+    },
+    {
+      "step": 5,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a"
+      ],
+      "pre_operation": "e153eceb813772f3189dcc353bf4539ac5de0d9ff178b87236360be0e207ec232ab50db389e7431bff7986c0f69e9eb9295106e633957c9311097b9f66337451",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  xsqtvwms 4c653c9e (empty) reminders - postprune proof review tip\n",
+      "post_operation": "a1f60263b228c969ffb36300eff420845528d192ecb2caaf63da05dde328b6d24bb2fb7f1c877ade075f0f76a1d6bc0cc17643af0d93a7b280d154a0e83c7df6",
+      "removed_total": [
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 23,
+      "visible_after": 987
+    },
+    {
+      "step": 6,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "0aee179f4691eb701307a4a20c28acccac2bef07"
+      ],
+      "pre_operation": "a1f60263b228c969ffb36300eff420845528d192ecb2caaf63da05dde328b6d24bb2fb7f1c877ade075f0f76a1d6bc0cc17643af0d93a7b280d154a0e83c7df6",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  rnmzuuyp 0aee179f (empty) reminders - lifecycle: cancel work with grant and item changes\n",
+      "post_operation": "07a8d43c0c041f2e2d34bbbd9222a445878380b53d5c5dc68dab64913036a7dcf935dff3b9da91bd386143a685b94baf40eca224b36feab81eeb0efde124a647",
+      "removed_total": [
+        "0aee179f4691eb701307a4a20c28acccac2bef07",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 22,
+      "visible_after": 986
+    },
+    {
+      "step": 7,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "d49ce34494232c50ed8b6558dcec7392b7de3153"
+      ],
+      "pre_operation": "07a8d43c0c041f2e2d34bbbd9222a445878380b53d5c5dc68dab64913036a7dcf935dff3b9da91bd386143a685b94baf40eca224b36feab81eeb0efde124a647",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  ryovswot d49ce344 (empty) reminders - schedules: reconcile reviewed server and due overview\n",
+      "post_operation": "9f61ee58e45ab3ded9bc4782c152104e15fee2212d666950a9a38f6d776e794afc05b28d022649716b4bb8eb0b29057ea9f7724545e41094ed5af08c7c5a9e9e",
+      "removed_total": [
+        "0aee179f4691eb701307a4a20c28acccac2bef07",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "d49ce34494232c50ed8b6558dcec7392b7de3153",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 21,
+      "visible_after": 985
+    },
+    {
+      "step": 8,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b"
+      ],
+      "pre_operation": "9f61ee58e45ab3ded9bc4782c152104e15fee2212d666950a9a38f6d776e794afc05b28d022649716b4bb8eb0b29057ea9f7724545e41094ed5af08c7c5a9e9e",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  pwoxuuot 0ba13f05 (empty) reminders - schedules: next milestone (empty)\n",
+      "post_operation": "6505af4d2ba1dd8b7cd897c9be370e81069579680eaa79486ea8a024f708e062d6b0b4336c8c88db73e9978bdff2557f76de1825dbae70c6d10c6ad2787b4be9",
+      "removed_total": [
+        "0aee179f4691eb701307a4a20c28acccac2bef07",
+        "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "d49ce34494232c50ed8b6558dcec7392b7de3153",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 20,
+      "visible_after": 984
+    },
+    {
+      "step": 9,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "c650413ba10c240af0c50f2359691a2ae8ab3d59"
+      ],
+      "pre_operation": "6505af4d2ba1dd8b7cd897c9be370e81069579680eaa79486ea8a024f708e062d6b0b4336c8c88db73e9978bdff2557f76de1825dbae70c6d10c6ad2787b4be9",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  rqskqvxz c650413b (empty) reminders - schedules: next foundation change\n",
+      "post_operation": "47c6a6f02ab688a3764e54a9fcd30e926d4b4778a0d282a248cc14cbd5b1ec21994c4998d9c9a68599841bff0803fa6c23a1f712b5d89ebfc54ebee24269b7ec",
+      "removed_total": [
+        "0aee179f4691eb701307a4a20c28acccac2bef07",
+        "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "c650413ba10c240af0c50f2359691a2ae8ab3d59",
+        "d49ce34494232c50ed8b6558dcec7392b7de3153",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 19,
+      "visible_after": 983
+    },
+    {
+      "step": 10,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+        "-r",
+        "95b1f504bd343cd74c464d39314ed1efa09d34df"
+      ],
+      "pre_operation": "47c6a6f02ab688a3764e54a9fcd30e926d4b4778a0d282a248cc14cbd5b1ec21994c4998d9c9a68599841bff0803fa6c23a1f712b5d89ebfc54ebee24269b7ec",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 2 commits:\n  ynltvomq 095fe95e (empty) reminders - proven push absence fallback\n  qtkqlmwo 95b1f504 (empty) reminders - fallback: honor proven push absence without duplicates\n",
+      "post_operation": "d6c483329ec4aff369885a98e16b3486ff19ac043f8c98d28e94a4a4bcf845e817037e38ac978e51b0a9745a1d2bf4d104358e375ea953660d8e63516084806e",
+      "removed_total": [
+        "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+        "0aee179f4691eb701307a4a20c28acccac2bef07",
+        "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "95b1f504bd343cd74c464d39314ed1efa09d34df",
+        "c650413ba10c240af0c50f2359691a2ae8ab3d59",
+        "d49ce34494232c50ed8b6558dcec7392b7de3153",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5"
+      ],
+      "protected_checks_passed": true,
+      "heads_after": 18,
+      "visible_after": 981
+    }
+  ],
+  "exact_removed_commits": [
+    "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+    "e94ba514857ad7fdb15eebc304dc927c5f281aa5",
+    "8bb5563fdf96e060594187d4621ab864bfd78895",
+    "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+    "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+    "0aee179f4691eb701307a4a20c28acccac2bef07",
+    "d49ce34494232c50ed8b6558dcec7392b7de3153",
+    "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b",
+    "c650413ba10c240af0c50f2359691a2ae8ab3d59",
+    "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+    "95b1f504bd343cd74c464d39314ed1efa09d34df"
+  ],
+  "visible_before": 992,
+  "visible_after": 981,
+  "heads_before": 28,
+  "heads_after": 18,
+  "all_retained_complete_git_commit_metadata_and_tree_ids_unchanged": true,
+  "all_retained_native_jj_change_ids_parents_flags_descriptions_visibility_unchanged": true,
+  "complete_git_object_count_before": 992,
+  "complete_git_object_count_after": 981,
+  "all_bookmarks_tags_workspaces_and_critical_refs_unchanged": true,
+  "protected_trees_unchanged": 67,
+  "conflicts_unchanged": 3,
+  "divergent_versions_unchanged": 4,
+  "all_36_archived_exact_trees_retained": true,
+  "all_11_retired_exact_trees_still_readable_and_match_archive": true,
+  "durable_archive_sha256_unchanged": "e703ef0567c351c41f195603656c297af08290d7063cafdf41181fa24ffb604d",
+  "no_source_merge_rebase_or_gc": true,
+  "no_B_remote_or_bookmark_cleanup": true,
+  "no_rollback_used": true,
+  "post_operation": "d6c483329ec4aff369885a98e16b3486ff19ac043f8c98d28e94a4a4bcf845e817037e38ac978e51b0a9745a1d2bf4d104358e375ea953660d8e63516084806e"
+}
