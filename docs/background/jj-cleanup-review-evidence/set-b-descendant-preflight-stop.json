@@ -1,0 +1,80 @@
+{
+  "lost_since_A_action": {
+    "e05ed4fdb1042e1e3635f658d8d1002b97057b02": {
+      "change": "tlkxrrmskurztyytowplznpsvoywsnqt",
+      "parents": [
+        "37fedeecced9ad63080f7e468aa691b23f4d0b96"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": ""
+    },
+    "eb81e6f1ccb9e27132bb96420edede694bf21084": {
+      "change": "trmonkrprvtlrxmkqvotrtpmlpryovpo",
+      "parents": [
+        "629e8884bc63d486f17c53dee4dd0da06fad4d66"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "refactor - jj cleanup: retire approved empty checkpoints\n"
+    }
+  },
+  "added_since_A_action": {
+    "9e454f554ae861b6027abcd3705a093e4d0b4548": {
+      "change": "tlkxrrmskurztyytowplznpsvoywsnqt",
+      "parents": [
+        "37fedeecced9ad63080f7e468aa691b23f4d0b96"
+      ],
+      "empty": false,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "docs - jj cleanup: record executed set A and remaining decisions\n"
+    },
+    "fa1e99331bac172d28c94334d4c6f6b36ddfb8f6": {
+      "change": "vuylsqykwtxpqzulurpvoztpsnppwkwy",
+      "parents": [
+        "9e454f554ae861b6027abcd3705a093e4d0b4548"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": ""
+    },
+    "abb53d81a1fdf991a38d9bc0077f49fb1b637480": {
+      "change": "trmonkrprvtlrxmkqvotrtpmlpryovpo",
+      "parents": [
+        "629e8884bc63d486f17c53dee4dd0da06fad4d66"
+      ],
+      "empty": false,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "refactor - jj cleanup: retire approved empty checkpoints\n"
+    },
+    "eb597a69b4a9d36e878adde0c9f2b0e207d32b9d": {
+      "change": "vuvzlzuyywnyxnmqqpxzxtpwwozpoqlm",
+      "parents": [
+        "abb53d81a1fdf991a38d9bc0077f49fb1b637480"
+      ],
+      "empty": true,
+      "conflict": false,
+      "divergent": false,
+      "full_native_description": "refactor - jj cleanup: retire approved source alternatives\n"
+    }
+  },
+  "descendant_counts": {
+    "c5ce1c843766b0a85d3020b27321730c730d9514": {
+      "before_A": 143,
+      "after_A": 136,
+      "current_B": 136
+    },
+    "22ee5525fea92dbfe885cd123ff3d92f556893c6": {
+      "before_A": 135,
+      "after_A": 128,
+      "current_B": 128
+    }
+  },
+  "B_retirement_commands_run": false,
+  "failure": "Historical pre-A descendant counts were incorrectly used as post-A minima; no selected leaf descendant/ref/state condition failed."
+}

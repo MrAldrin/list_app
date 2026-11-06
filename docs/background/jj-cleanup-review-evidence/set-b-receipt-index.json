@@ -1,0 +1,106 @@
+{
+  "private_phase_directory": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/set-b-20261106",
+  "scope": "Frozen B raw execution/preflight receipts, preserved historical-count preflight stop, hash-verified shared A readers and preflight review; final review linked separately. No new native recovery copy.",
+  "files": [
+    {
+      "path": "after.json",
+      "bytes": 692404,
+      "sha256": "52283ac41f5bc8692ac724594196045304c6fbdbf35d75fe8581b73adb59217e"
+    },
+    {
+      "path": "before.json",
+      "bytes": 693921,
+      "sha256": "9736b3fbe303998096ce5424170164e9236b26ed21611c3f04e20c16093b1197"
+    },
+    {
+      "path": "before.stopped.json",
+      "bytes": 693921,
+      "sha256": "9736b3fbe303998096ce5424170164e9236b26ed21611c3f04e20c16093b1197"
+    },
+    {
+      "path": "clean-status-execute-start.json",
+      "bytes": 327,
+      "sha256": "e7d4939172e95ad402110f5a551bda31f44ae3a271877abdf4c851efccd56f1f"
+    },
+    {
+      "path": "clean-status-preflight.json",
+      "bytes": 327,
+      "sha256": "e7d4939172e95ad402110f5a551bda31f44ae3a271877abdf4c851efccd56f1f"
+    },
+    {
+      "path": "clean-status-step-01.json",
+      "bytes": 327,
+      "sha256": "e7d4939172e95ad402110f5a551bda31f44ae3a271877abdf4c851efccd56f1f"
+    },
+    {
+      "path": "clean-status-step-02.json",
+      "bytes": 327,
+      "sha256": "e7d4939172e95ad402110f5a551bda31f44ae3a271877abdf4c851efccd56f1f"
+    },
+    {
+      "path": "descendant-preflight-stop.json",
+      "bytes": 2550,
+      "sha256": "db050bd6495a6ca9fcf25b0e979d9ede0daaa3ab7181dccc08cfc3807f5b3c67"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 3382,
+      "sha256": "77e82fc6e575b044f1cdb2a939e5beebe165a6a231341eb9f2e3842c96bf6d74"
+    },
+    {
+      "path": "pair-31077a91.diff",
+      "bytes": 9569,
+      "sha256": "3f88c32c0ce72b846ad71c4f571b2965031a9d71269ceb8e8c2f481204038acb"
+    },
+    {
+      "path": "pair-d8e8f994.diff",
+      "bytes": 4348,
+      "sha256": "9bbb84fc01fa249d267ba95b0152418ae0ea34f4b92853e76c1f402bc0021643"
+    },
+    {
+      "path": "preflight-review.md",
+      "bytes": 951,
+      "sha256": "adc1fada4a618e0f5e2403c4fbe96f23916e9ba871722e27f434508725c15f9b"
+    },
+    {
+      "path": "preflight.json",
+      "bytes": 20087,
+      "sha256": "e80cb977a974d6b6ec24164547c657d03c1a556d51e0b2a0e86064f11b946aff"
+    },
+    {
+      "path": "set_b.py",
+      "bytes": 15404,
+      "sha256": "fa8e9302df14a7c30d78c8dd43000eeadc329060ac87310dc11e17304efabd8a"
+    },
+    {
+      "path": "set_b.stopped.py",
+      "bytes": 13485,
+      "sha256": "13b940c83ee04021376a1500769f73521a25a96067c80439ad6808d308dbc61f"
+    },
+    {
+      "path": "shared-A-readers.py",
+      "bytes": 18804,
+      "sha256": "38a112ab88418f7e0a9124a35ff77508e91dbd8378b271b0f63e94aa0fd65399"
+    },
+    {
+      "path": "step-01-command.json",
+      "bytes": 764,
+      "sha256": "9412f98e45b2c3b533f8f3ab8c851d0c55079a68cea131b8c07a08bbc76015ec"
+    },
+    {
+      "path": "step-01-state.json",
+      "bytes": 693187,
+      "sha256": "9224429f30f5cac24ea2dc73d9a33463d3bd6a20e2cade85b2e547a9a6c07751"
+    },
+    {
+      "path": "step-02-command.json",
+      "bytes": 886,
+      "sha256": "924a62edcefbf47342abe64ec99aca3fd3ab8f28fc75c3fae0c13c346af95ce2"
+    },
+    {
+      "path": "step-02-state.json",
+      "bytes": 692404,
+      "sha256": "52283ac41f5bc8692ac724594196045304c6fbdbf35d75fe8581b73adb59217e"
+    }
+  ]
+}

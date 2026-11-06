@@ -1,0 +1,80 @@
+{
+  "scope": "Owner-approved exact B only; archival retirement, not merge or code repair",
+  "steps": [
+    {
+      "step": 1,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c"
+      ],
+      "pre_operation": "42774ce557c8dd910aefe8a0047bd3191d5184f60699cf0b36f2cf4c3acd5351e47e76348e44755cad1390968e7af8d4e234f665be146b39914ecefa024672c2",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  oltznxqw/3 d8e8f994 (divergent) (no description set)\n",
+      "post_operation": "2127331682355578350d516b5bdb2ddf5dd4dcc25920f36deed573c333131797268a38ac343822c36b9ceda0568405c787f5cf2aa59f5acc47d5e1b17c9c5fe2",
+      "removed_total": [
+        "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c"
+      ],
+      "heads_after": 17,
+      "visible_after": 982,
+      "conflicts_after": 3,
+      "divergent_versions_after": 2,
+      "all_exact_protected_checks_passed": true
+    },
+    {
+      "step": 2,
+      "command": [
+        "jj",
+        "abandon",
+        "-r",
+        "31077a91123572b05e77baa41be804c6347967bb"
+      ],
+      "pre_operation": "2127331682355578350d516b5bdb2ddf5dd4dcc25920f36deed573c333131797268a38ac343822c36b9ceda0568405c787f5cf2aa59f5acc47d5e1b17c9c5fe2",
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Abandoned 1 commits:\n  qnuqpxvz/3 31077a91 (divergent) (conflict) (no description set)\nExisting conflicts were resolved or abandoned from 1 commits.\n",
+      "post_operation": "c5e4e9f59787f51cf2823d1d8ba9da1470d3177cdf73f4a5f25ee11eb3231c85f641fb1498dce7022209567eaa8661cf936c2f0bcafd04a41f13d6663292d9d4",
+      "removed_total": [
+        "31077a91123572b05e77baa41be804c6347967bb",
+        "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c"
+      ],
+      "heads_after": 16,
+      "visible_after": 981,
+      "conflicts_after": 2,
+      "divergent_versions_after": 0,
+      "all_exact_protected_checks_passed": true
+    }
+  ],
+  "exact_removed_commits": [
+    "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c",
+    "31077a91123572b05e77baa41be804c6347967bb"
+  ],
+  "retained_exact_siblings": {
+    "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c": "c5ce1c843766b0a85d3020b27321730c730d9514",
+    "31077a91123572b05e77baa41be804c6347967bb": "22ee5525fea92dbfe885cd123ff3d92f556893c6"
+  },
+  "visible_before": 983,
+  "visible_after": 981,
+  "heads_before": 18,
+  "heads_after": 16,
+  "conflicts_before": 3,
+  "conflicts_after": 2,
+  "divergent_versions_before": 4,
+  "divergent_versions_after": 0,
+  "only_exact_retained_native_divergence_flags_cleared": [
+    "22ee5525fea92dbfe885cd123ff3d92f556893c6",
+    "c5ce1c843766b0a85d3020b27321730c730d9514"
+  ],
+  "all_other_native_retained_fields_unchanged": true,
+  "all_retained_complete_Git_metadata_and_tree_ids_unchanged": true,
+  "all_bookmarks_tags_workspaces_config_and_critical_refs_unchanged": true,
+  "protected_exact_trees_unchanged": 79,
+  "archived_resume_exact_trees_preserved": 36,
+  "prior_A_retired_exact_trees_preserved": 11,
+  "both_retired_B_exact_trees_read_back_and_match_archive": true,
+  "native_archive_sha256_unchanged": "e703ef0567c351c41f195603656c297af08290d7063cafdf41181fa24ffb604d",
+  "no_remote_bookmark_tracking_GC_merge_rebase_or_app_change": true,
+  "post_operation": "c5e4e9f59787f51cf2823d1d8ba9da1470d3177cdf73f4a5f25ee11eb3231c85f641fb1498dce7022209567eaa8661cf936c2f0bcafd04a41f13d6663292d9d4"
+}

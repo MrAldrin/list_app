@@ -1,29 +1,31 @@
 # Targeted jj cleanup
 
-## A is complete — discuss B next
+## A and B are complete — remote names are next
 
-**Completed:** the local `reminders-s2` label removal and **Set A: 11 empty
-checkpoints retired**. No app code or protected reference changed.
-**B and remote deletion are still unapproved.**
+**Completed:** the local `reminders-s2` label removal, **11 empty checkpoints (A)**
+and **two unused source alternatives (B)**. No app code or protected reference
+changed. **Remote deletion is still unapproved.**
 
-| Choice | What changes | Recommendation |
+| Choice | Status | Recommendation |
 | --- | --- | --- |
-| **A · Done** | Retired 11 empty checkpoints. Ten fewer line ends. | **Complete.** No source changes. |
-| **B · Pending** | Retire two source versions, including code/test differences. Backed up; not merged or repaired. | **Discuss next.** More risk than A. |
+| **A · Done** | Retired 11 empty checkpoints. Ten fewer line ends. | Complete. |
+| **B · Done** | Retired two unused source versions. Their code/test differences remain archived—not merged or repaired. | Complete. Retained versions and descendants stayed unchanged. |
 | **Old origin branches · Pending** | Delete `usual-items-redesign` and `wave2-bottom-bar` **from the server**, not just local labels. Behavior exists today; exact commits were not merged. | **Retire the names**, with separate approval. |
 | **`groups`** | Real unfinished work; database migrations clash with today's app. | **Keep.** Port later; do not rebase for tidiness. |
 
-### Actual result and the remaining proposal
+### Actual result
 
 ```text
-Before A            Now                 If B is approved
+Before              After A             Now: A + B
 28 line ends   ──→  18 line ends   ──→   16 line ends
-              DONE                NOT APPROVED
 ```
 
-A left the three conflicts and both divergent pairs unchanged. B would archive
-one visible conflict and both divergent pairs; two parked conflicts would remain.
+There are now **two parked conflicts and no divergent pairs**. B archived the
+unused alternatives; it did not repair their code.
 **`main`, local `integration` and `integration@origin` stayed unchanged.**
+
+The remaining line ends include protected workspaces and real parked work.
+They are not all candidates for removal.
 
 **Recovery:** I ran the isolated restore; independent reviewers checked receipts,
 not a native rerun. The archive is unchanged. Both configuration-related incidents
@@ -53,14 +55,60 @@ commits and four divergent versions**. Operation:
 `f6e9450d01c4e22635b646e9038ac50980a99903124bfb7e5adc15f6a0cd878d59bf692b1032c78c83c8e49549299b02be248946281f3f58ac1328adf6ce226d`
 
 This operation records the recovery baseline, not the later live counts.
-The Set A execution receipt below is newer.
+The A/B execution receipts below are newer.
 
 **Performed:** read-only local/remote inspection; own-empty entry rebase;
 private recovery creation and isolated restore/retirement tests; this report;
 a Lead-approved repair of the failed review's config-ID side effect below;
-the reviewed local `reminders-s2` label removal; and owner-approved Set A retirement.
-**Not performed:** B or other abandonment, other bookmark changes, retained-source
+the reviewed local `reminders-s2` label removal; and owner-approved A/B retirement.
+**Not performed:** other abandonment, other bookmark changes, retained-source
 rewriting, fetch/push/server deletion, conflict repair, app/test changes or application tests.
+
+## Set B execution receipt
+
+The owner approved exact B and execution after checks. The Lead granted a B-only
+window. Two singleton operations passed, in the original command order:
+`d8e8f9946cce76c82c06ad6c2533cc213a42ca2c`, then
+`31077a91123572b05e77baa41be804c6347967bb`.
+
+- Immediate counts: **983 → 981 visible commits; 18 → 16 heads;
+  3 → 2 conflicts; 4 → 0 divergent versions**.
+- Exact retained siblings `c5ce1c843766b0a85d3020b27321730c730d9514` and
+  `22ee5525fea92dbfe885cd123ff3d92f556893c6` kept all source and descendants.
+  Only their native divergence flags cleared, each after its paired alternative
+  was retired. No other retained native fields changed.
+- Complete retained Git bodies/tree IDs, refs, tags, workspaces, config and
+  **79 protected exact tree fingerprints** stayed unchanged. This includes the
+  36 old resume sources and all 11 earlier A checkpoints.
+- Both retired B exact trees still read back and match the unchanged archive.
+  This is archival retirement—not a merge, code repair or feature acceptance.
+  No remote, tracking, bookmark or GC action was run.
+
+Post-operation:
+`c5e4e9f59787f51cf2823d1d8ba9da1470d3177cdf73f4a5f25ee11eb3231c85f641fb1498dce7022209567eaa8661cf936c2f0bcafd04a41f13d6663292d9d4`.
+
+The first [native preflight stopped](jj-cleanup-review-evidence/set-b-descendant-preflight-stop.json)
+before retirement: historical descendant counts 135/143 were incorrectly used
+as current minima after A. The corrected guard reconciled exact identities
+against frozen A.after and the two attributable report/desk replacements and
+their children. Retained descendant sets are now **128/136**, unchanged since
+A's action; no unexplained dependency change was accepted.
+The [independent static preflight](jj-cleanup-review-evidence/set-b-preflight-review.md)
+passed before action. The original stopped method and state remain preserved.
+The [initial B post-audit](jj-cleanup-review-evidence/set-b-post-action-initial-review.md)
+passed all executed-state checks but blocked on historical-versus-live head IDs.
+The frozen manifest is unchanged; the head-provenance record separates its
+recovery snapshot from the actual B execution. The [Haiku correction](jj-cleanup-review-evidence/set-b-partial-correction-review.md)
+then stopped on a parser schema error; it did not find a repository failure.
+The [independent Lead static correction](jj-cleanup-review-evidence/set-b-lead-correction-review.md)
+**passed** after actually recomputing both projections, both cursor lineages
+and the 14 unchanged head IDs. This closes provenance only; it does not replace
+Haiku's successful executed-state checks or claim a native rerun.
+
+See [fresh B preflight](jj-cleanup-review-evidence/set-b-preflight.json),
+[two-operation receipt](jj-cleanup-review-evidence/set-b-execution.json) and
+[private raw-file index](jj-cleanup-review-evidence/set-b-receipt-index.json).
+Report updates and clean working children can change later commit counts.
 
 ## Set A execution receipt
 
@@ -140,7 +188,8 @@ A filtered view does not count as physical cleanup. The exact A/B tests above do
 
 This table records the recovery snapshot. For Set A, the newer accepted integration
 `37fedeecced9ad63080f7e468aa691b23f4d0b96` was protected and stayed unchanged;
-see the fresh preflight above.
+see the fresh A preflight above. B protected the still newer accepted target
+`9e454f554ae861b6027abcd3705a093e4d0b4548`, also unchanged by cleanup.
 
 Full change IDs and commits are in the linked evidence. Each row below identifies
 one exact version; a short change ID alone is unsafe for divergence.
@@ -225,9 +274,14 @@ For `integration@origin`:
 ## Physical graph reduction: exact sets, not log filters
 
 The [exact-set manifest](jj-cleanup-review-evidence/proposed-exact-sets.json)
-contains full IDs, parents and membership. The native recovery test executed
+contains full IDs, parents and membership. Its head arrays and combined visible
+counts freeze operation `f6e9450d`; they are not later live-head claims.
+The [head-provenance record](jj-cleanup-review-evidence/set-b-head-provenance.json)
+proves the historical projection and the two later workspace-cursor replacements.
+Current projections are in the A/B preflight receipts. The native recovery test executed
 sets A and B in a disposable repository first. **A is now executed live with owner
-approval; B remains a proposal.** Neither test nor live A rewrote a retained child.
+approval; B is now also executed with separate owner approval.** No retained
+child was rewritten.
 All exact sources survive in the archive.
 
 ### Set A — completed: 11 empty checkpoints, ten fewer heads
@@ -269,12 +323,17 @@ See [exact commands](jj-cleanup-review-evidence/proposed-commands.md).
 removes six across five source/test files. Abandoning just that leaf replaces
 one head with another; abandoning the tail would retire real repeat behavior.
 
-### Set B — unused divergent leaf alternatives
+### Set B — completed: two unused divergent leaf alternatives
+
+The owner released both exact alternatives below. The comparison and dependency
+counts in this table describe the recovery snapshot, before A retirement.
+Both retained source trees and Git commit objects remain unchanged. The newer
+B receipt above records the exact native divergence-flag changes.
 
 | Archive/retire exact commit / change ID | Exact retained sibling | Lost-content comparison and dependencies | Gate |
 | --- | --- | --- | --- |
-| `31077a91123572b05e77baa41be804c6347967bb` / `qnuqpxvzsqsrxvkpzlyypqyzmkznlpvw` | `22ee5525fea92dbfe885cd123ff3d92f556893c6` | Retire leaf has no descendants. Retained sibling has 135 descendants. Source/test differences include scheduler wait/exception syntax, fixture naming and three tests absent on the retired alternative; runtime guide is conflicted. Not exact tree equality. Preserve both exact trees in archive. | Separate owner approval; no sibling rewrite. |
-| `d8e8f9946cce76c82c06ad6c2533cc213a42ca2c` / `oltznxqwsylormtlnplowsszmznowuyu` | `c5ce1c843766b0a85d3020b27321730c730d9514` | Retire leaf has no descendants. Retained sibling has 143 descendants. Source/tests match; retained sibling also has a 74-line API guide and one index link. Preserve exact retired identity in archive. | Separate owner approval; no sibling rewrite. |
+| `31077a91123572b05e77baa41be804c6347967bb` / `qnuqpxvzsqsrxvkpzlyypqyzmkznlpvw` | `22ee5525fea92dbfe885cd123ff3d92f556893c6` | Retire leaf has no descendants. Retained sibling had 135 descendants at the recovery snapshot. Source/test differences include scheduler wait/exception syntax, fixture naming and three tests absent on the retired alternative; runtime guide is conflicted. Not exact tree equality. Preserve both exact trees in archive. | Separately owner-approved and retired; no sibling rewrite. |
+| `d8e8f9946cce76c82c06ad6c2533cc213a42ca2c` / `oltznxqwsylormtlnplowsszmznowuyu` | `c5ce1c843766b0a85d3020b27321730c730d9514` | Retire leaf has no descendants. Retained sibling had 143 descendants at the recovery snapshot. Source/tests match; retained sibling also has a 74-line API guide and one index link. Preserve exact retired identity in archive. | Separately owner-approved and retired; no sibling rewrite. |
 
 The descendant sets overlap; do not add their counts. Neither retained sibling
 is claimed to equal later reviewed scheduler/API checkpoints: direct comparisons
@@ -294,7 +353,8 @@ test work. Compared with boundary `e8515642`, 15 paths differ. It is not redunda
 source. It would remove one further head and the early-P conflict, by archival
 retirement, not by repair or product acceptance.
 
-Deep conflict `6addc91115e22a0e8ce7b0c33486d9c0b7bd2e0c` has 153 visible
+At the recovery snapshot, deep conflict
+`6addc91115e22a0e8ce7b0c33486d9c0b7bd2e0c` had 153 visible
 descendants at the first snapshot. Rewriting it can affect most reminder lines.
 Keep it parked. Keep paused manual WIP `d10874b5`, nonempty repeat/push/restore
 outliers, the preview merge, all five night result bookmarks, task-1 diagnostic
@@ -389,7 +449,7 @@ plan. Never run a broad `op restore` in the active repository to recover one lea
   Live checks remain parent-run; no independent native rerun is claimed.
 - No application check is necessary or claimed for history/reference cleanup.
   No application Python, frontend, test, dependency or server behavior was changed.
-- Set A is owner-approved and performed. Outstanding exact decisions: B and the
+- A and B are owner-approved and performed. Outstanding exact decisions: the
   two remote feature names. Keep C and groups-port work separate.
   Report acceptance/deployment remain separate gates.
 - [Final budget/link check](jj-cleanup-review-evidence/final-budget-and-links.json):
@@ -408,8 +468,13 @@ plan. Never run a broad `op restore` in the active repository to recover one lea
   receipt copies, review records and a margin to the prior conservative peak.
   No new native recovery copy was made. The [scratch cleanup receipt](jj-cleanup-review-evidence/set-a-owned-scratch-cleanup.json)
   records removal of 41 verified temporary files; the private copies remain.
+- [Set B budget check](jj-cleanup-review-evidence/set-b-budget.json) includes both
+  receipt copies and later review records. No new native recovery copy was made.
+  [B scratch cleanup](jj-cleanup-review-evidence/set-b-owned-scratch-cleanup.json)
+  removed 19 verified phase files and five auditor-created scripts after their
+  private copies were preserved.
 - Lead owns this entry's lifecycle. The peer and entry stay available while the
-  owner discusses the remaining B/remote decisions; no wider action is authorized.
+  owner discusses the remaining remote-name decisions; no wider action is authorized.
 
 </details>
 

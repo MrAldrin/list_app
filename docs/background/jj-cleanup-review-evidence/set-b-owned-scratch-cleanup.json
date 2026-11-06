@@ -1,0 +1,17 @@
+{
+  "removed_only_owned_phase_directory": "/tmp/list-app-jj-cleanup-set-b-01a1afc6",
+  "phase_files_verified_and_removed": 19,
+  "phase_scratch_peak_allocated_bytes": 3596288,
+  "auditor_extra_scripts_verified_and_removed": [
+    "/tmp/setb-audit-scripts/audit.py",
+    "/tmp/setb-audit-scripts/shape.py",
+    "/tmp/setb-audit-scripts/keys.py",
+    "/tmp/setb-audit-scripts/shape2.py",
+    "/tmp/setb-audit-scripts/diffheads.py"
+  ],
+  "auditor_empty_directory_removed": false,
+  "auditor_file_ownership_basis": "Birth times within owned completed audit run, exact named-file hashes, private copies preserved before removal",
+  "private_records_retained": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/set-b-20261106",
+  "all_20_indexed_private_files_reverified": true,
+  "archive_and_workspaces_and_harness_records_untouched": true
+}

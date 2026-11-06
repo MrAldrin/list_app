@@ -1,0 +1,133 @@
+{
+  "conclusion": "Frozen manifest is correct for explicit source_operation; not a live-head assertion. Preserve unchanged.",
+  "historical_source_operation": "f6e9450d01c4e22635b646e9038ac50980a99903124bfb7e5adc15f6a0cd878d59bf692b1032c78c83c8e49549299b02be248946281f3f58ac1328adf6ce226d",
+  "historical_source_visible": 988,
+  "historical_projection_phases_only": [
+    "A-empty-review",
+    "B-alternates"
+  ],
+  "C_diagnostic_phase_excluded": true,
+  "historical_after_A_B_visible": 975,
+  "historical_after_A_B_heads": [
+    "2a46f1a4b3d4d588c14349e9f6bd733e3d50bb34",
+    "30e7d18850529e308523c4573c5a7c22bbfa1c3c",
+    "343493e08448f2a4b34f7f001332cc18ce24fc06",
+    "3fd900f402ad66192752ae5ac4bd646b4f4e843d",
+    "5fc7a6f9baccce556b3d740d4d80b39452ab0ee2",
+    "6977d025400f38adcce48a33c9aef78875ce2a8b",
+    "7ef0036e74d91a56793819eb61c63488ec45e5b2",
+    "818759886fa406e91f5319325e5dc904c6989040",
+    "94c46a30c57a7faf406f10b4b615a5608852a07d",
+    "96a59effce2e73bfefa01a3fc3df0f0deb6ad137",
+    "aa6c85dae1b0959ba0d3135420e09eba12e2babc",
+    "ad79662f32ad5c473d0627484ada42afcb571d77",
+    "d10874b5e56eb6f0ada98d11fca22eac1c6fd22b",
+    "d2c6a988b5cc4f4b1c00b79eade03f9c2f4be1bf",
+    "e5c4d060019774771a8ed63e0472726218425195",
+    "fb60a3d8e6a1319f73448a73e0890e951fd5e8db"
+  ],
+  "historical_workspaces_file": "docs/background/jj-cleanup-review-evidence/current-workspaces.txt",
+  "current_B_before_operation": "42774ce557c8dd910aefe8a0047bd3191d5184f60699cf0b36f2cf4c3acd5351e47e76348e44755cad1390968e7af8d4e234f665be146b39914ecefa024672c2",
+  "current_B_before_visible": 983,
+  "current_B_after_operation": "c5e4e9f59787f51cf2823d1d8ba9da1470d3177cdf73f4a5f25ee11eb3231c85f641fb1498dce7022209567eaa8661cf936c2f0bcafd04a41f13d6663292d9d4",
+  "current_B_after_visible": 981,
+  "current_B_after_heads": [
+    "2a46f1a4b3d4d588c14349e9f6bd733e3d50bb34",
+    "30e7d18850529e308523c4573c5a7c22bbfa1c3c",
+    "5fc7a6f9baccce556b3d740d4d80b39452ab0ee2",
+    "6977d025400f38adcce48a33c9aef78875ce2a8b",
+    "7ef0036e74d91a56793819eb61c63488ec45e5b2",
+    "818759886fa406e91f5319325e5dc904c6989040",
+    "94c46a30c57a7faf406f10b4b615a5608852a07d",
+    "96a59effce2e73bfefa01a3fc3df0f0deb6ad137",
+    "aa6c85dae1b0959ba0d3135420e09eba12e2babc",
+    "ad79662f32ad5c473d0627484ada42afcb571d77",
+    "d10874b5e56eb6f0ada98d11fca22eac1c6fd22b",
+    "d2c6a988b5cc4f4b1c00b79eade03f9c2f4be1bf",
+    "e5c4d060019774771a8ed63e0472726218425195",
+    "eb597a69b4a9d36e878adde0c9f2b0e207d32b9d",
+    "fa1e99331bac172d28c94334d4c6f6b36ddfb8f6",
+    "fb60a3d8e6a1319f73448a73e0890e951fd5e8db"
+  ],
+  "both_head_counts": 16,
+  "only_head_identity_changes": [
+    {
+      "historical_empty_workspace_head": "343493e08448f2a4b34f7f001332cc18ce24fc06",
+      "historical_native": {
+        "change": "rrlyoxwnkyklumtqoyzkxvqvwwtykrys",
+        "parents": [
+          "ed08313afb1b4f5fc9571ddfb4d335db2a3266e5"
+        ],
+        "empty": true,
+        "conflict": false,
+        "divergent": false,
+        "full_native_description": "refactor - jj cleanup: assess exact cleanup candidates\n"
+      },
+      "current_B_preflight_workspace_head": "eb597a69b4a9d36e878adde0c9f2b0e207d32b9d",
+      "current_native": {
+        "change": "vuvzlzuyywnyxnmqqpxzxtpwwozpoqlm",
+        "parents": [
+          "abb53d81a1fdf991a38d9bc0077f49fb1b637480"
+        ],
+        "empty": true,
+        "conflict": false,
+        "divergent": false,
+        "full_native_description": "refactor - jj cleanup: retire approved source alternatives\n"
+      },
+      "replacement_same_change_id_and_parents": {
+        "dc6d14e63fb16026291601273e850ab7686623b0": {
+          "change": "rrlyoxwnkyklumtqoyzkxvqvwwtykrys",
+          "parents": [
+            "ed08313afb1b4f5fc9571ddfb4d335db2a3266e5"
+          ],
+          "empty": false,
+          "conflict": false,
+          "divergent": false,
+          "full_native_description": "refactor - jj cleanup: record local cleanup and recovery\n\nRemove only the reviewed local reminders-s2 label under conditional permission. Preserve exact source and reviewed recovery evidence. A/B source retirement and remote cleanup remain owner-gated. No application tests are claimed.\n"
+        }
+      }
+    },
+    {
+      "historical_empty_workspace_head": "3fd900f402ad66192752ae5ac4bd646b4f4e843d",
+      "historical_native": {
+        "change": "nmstkvpvqpsolowuoptrytlxvrnosttl",
+        "parents": [
+          "ed08313afb1b4f5fc9571ddfb4d335db2a3266e5"
+        ],
+        "empty": true,
+        "conflict": false,
+        "divergent": false,
+        "full_native_description": ""
+      },
+      "current_B_preflight_workspace_head": "fa1e99331bac172d28c94334d4c6f6b36ddfb8f6",
+      "current_native": {
+        "change": "vuylsqykwtxpqzulurpvoztpsnppwkwy",
+        "parents": [
+          "9e454f554ae861b6027abcd3705a093e4d0b4548"
+        ],
+        "empty": true,
+        "conflict": false,
+        "divergent": false,
+        "full_native_description": ""
+      },
+      "replacement_same_change_id_and_parents": {
+        "37fedeecced9ad63080f7e468aa691b23f4d0b96": {
+          "change": "nmstkvpvqpsolowuoptrytlxvrnosttl",
+          "parents": [
+            "ed08313afb1b4f5fc9571ddfb4d335db2a3266e5"
+          ],
+          "empty": false,
+          "conflict": false,
+          "divergent": false,
+          "full_native_description": "docs - jj cleanup: record reviewed result and pending decisions\n"
+        }
+      }
+    }
+  ],
+  "all_other_14_head_IDs_unchanged": true,
+  "retired_B_membership_unchanged": true,
+  "current_execution_projection_matches_before_minus_exact_B": true,
+  "no_repository_failure_or_additional_cleanup": true,
+  "historical_native_parent_map_path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/set-b-20261106/historical-f6-parent-map.json",
+  "historical_native_parent_map_sha256": "217918abf567e575811a3bae800012c74fcf5442f0aa5161a296a9a055537116"
+}
