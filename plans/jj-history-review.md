@@ -270,9 +270,9 @@ inventory still describes the current graph.
 
 ### Follow-up result and pending decisions
 
-Reviewed report tip: `trmonkrp` /
-`abb53d81a1fdf991a38d9bc0077f49fb1b637480`. Prior reports `629e8884`,
-`325a8384` and `dc6d14e6` remain unchanged ancestors.
+Reviewed report tip: `vuvzlzuy` /
+`62b9a607c506cc39b394ff9a373ddcdb48c49477`. Prior reports `abb53d81`,
+`629e8884`, `325a8384` and `dc6d14e6` remain unchanged ancestors.
 Read `docs/background/jj-cleanup-review.md` at that revision; it is not yet
 accepted into the default workspace. The entry remains for owner discussion.
 
@@ -283,10 +283,15 @@ accepted into the default workspace. The entry remains for owner discussion.
   Every operation passed full retained Git-object/tree, native jj metadata,
   reference, workspace, config and recovery checks. All 67 protected trees,
   including 36 archived resume sources, matched. Retired source remains
-  readable and archive-matched. Three conflicts/four divergent versions remain.
-- Pending owner decisions: set B's two unused divergent alternatives (tested
-  18 to 16 heads); two exact obsolete origin feature names. No set B, remote,
-  GC, product or additional bookmark action occurred.
+  readable and archive-matched. A left three conflicts/four divergent versions.
+- The owner then approved and executed set B: exact unused alternatives
+  `d8e8f994` and `31077a91` retired in two singleton operations. Heads fell
+  from 18 to 16, conflicts from three to two, divergent versions from four to
+  zero. This is archival retirement, not merging or repairing code. Only the
+  exact retained siblings' divergence flags changed; full retained Git/native
+  checks and 79 protected trees passed. Both retired sources are recoverable.
+- Pending owner decisions: two exact obsolete origin feature names and report
+  integration. No remote, GC, product or additional bookmark action occurred.
 - Keep original `groups` and `integration@origin`. Groups has real unfinished
   work and migration-number collisions; a later port needs its own approval.
 - Private native recovery is retained at
@@ -301,14 +306,20 @@ accepted into the default workspace. The entry remains for owner discussion.
   Owner-selected Terra 6.1/medium independently ran a static Python audit:
   43 hashes, ten full maps, 9,864 retained entries and 130 protected fields
   passed. This is receipt verification, not a fresh native execution.
+- B's independent Luna/xhigh Python preflight passed. Haiku/xhigh independently
+  checked 20 hashes, two full maps, exact flags, trees and descendants, but its
+  raw verdict blocked historical/live head provenance. A correction attempt
+  stopped on a Python schema error. Lead independently executed the six-file
+  static correction and passed both projections plus the two documented cursor
+  replacements. Both BLOCKs remain; this is not an independent native rerun.
 - No app tests were needed or claimed. Conservative evidence use is
-  2,777,382,912 bytes, below 3 GiB; free disk remained above 6 GiB.
+  2,841,321,472 bytes, below 3 GiB; free disk remained above 6 GiB.
 - Transient recovery copies and owned scratch files are removed. Durable
   archive/receipts and Lead-created entry remain. No children/jobs are active.
-  Graph released to Lead after set A closeout; further work needs an explicit
-  window. Report integration, set B and remote actions are not approved.
-  Private raw set A receipts/methods are under the recovery directory's
-  `set-a-20261106/`; the report's receipt index records their hashes and paths.
+  Graph released to Lead after set B closeout; further work needs an explicit
+  window. Report integration and remote actions are not approved.
+  Private raw receipts/methods are under the recovery directory's
+  `set-a-20261106/` and `set-b-20261106/`; report indices record hashes/paths.
 
 ## Progress
 
@@ -328,5 +339,7 @@ accepted into the default workspace. The entry remains for owner discussion.
 - [x] Refresh exact candidates and ownership; propose reviewed cleanup/recovery.
 - [x] Obtain explicit set A execution permission; retire only the 11 selected
   empty checkpoints and independently audit the actual operation receipts.
+- [x] Obtain explicit set B execution permission; retire only the two selected
+  alternatives, verify native retained state and independently audit receipts.
 - [ ] Obtain itemized decisions for wider actions and perform only approved steps.
 - [ ] Verify retained source, archive and references; record resource cleanup.
