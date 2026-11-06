@@ -268,6 +268,35 @@ inventory still describes the current graph.
   check is later justified. Do not load production/private setup for history
   inspection. Existing docs preview pane 38/8765 remains untouched.
 
+### Follow-up result and pending decisions
+
+Reviewed report tip: `sryuqnys` /
+`325a838482fe25eafdecc3d17ecb3bf4fbd8b185`, with prior report/evidence
+`rrlyoxwn` / `dc6d14e63fb16026291601273e850ab7686623b0` unchanged as parent.
+Read `docs/background/jj-cleanup-review.md` at that revision; it is not yet
+accepted into the default workspace. The entry remains for owner discussion.
+
+- Performed: only the reviewed local `reminders-s2` bookmark forget. Exact
+  source `e50da7ce` remains in main. Native protected-state checks passed.
+- Pending owner decisions: set A's 11 empty checkpoints (tested 28 to 18
+  heads); set B's two unused divergent alternatives (18 to 16); two exact
+  obsolete origin feature names. No live abandonment or remote change occurred.
+- Keep original `groups` and `integration@origin`. Groups has real unfinished
+  work and migration-number collisions; a later port needs its own approval.
+- Private native recovery is retained at
+  `/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/`. The Conductor
+  tested isolated restore; independent reviewers checked receipts, not a fresh
+  native rerun. Original blocked review, config-ID side effect, exact approved
+  repair, wrapper timeout and later successful validation remain recorded.
+- Haiku/max report/correction/post-action receipt reviews passed; Luna/xhigh
+  `0022561e` checked the final opening clarification. No app tests were needed
+  or claimed. Known final evidence uses 1,956,982,784 allocated bytes; recorded
+  conservative peak 2,705,956,864 bytes is below the 3 GiB run budget.
+- Transient recovery copies and owned scratch files are removed. Durable
+  archive/receipts and Lead-created entry remain. No children/jobs are active.
+  Graph released to Lead after the precision-only change; further work needs
+  an explicit window. Report integration and A/B/remotes are not approved.
+
 ## Progress
 
 - [x] Define review outputs, bounded cleanup, and explicit approval gates.
@@ -283,6 +312,6 @@ inventory still describes the current graph.
 - [x] Owner reviewed the view-only outcome and requested the targeted follow-up.
 - [x] Assign/verify cleanup Conductor; initially read-only during runtime-docs
   graph ownership. Obtain explicit graph handoff before mutation.
-- [ ] Refresh exact candidates and ownership; propose reviewed cleanup/recovery.
+- [x] Refresh exact candidates and ownership; propose reviewed cleanup/recovery.
 - [ ] Obtain itemized decisions for wider actions and perform only approved steps.
 - [ ] Verify retained source, archive and references; record resource cleanup.
