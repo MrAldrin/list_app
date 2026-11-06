@@ -1,0 +1,15 @@
+{
+  "location": "disposable restore-test ONLY",
+  "command": [
+    "jj",
+    "--ignore-working-copy",
+    "bookmark",
+    "forget",
+    "--include-remotes",
+    "exact:usual-items-redesign",
+    "exact:wave2-bottom-bar"
+  ],
+  "exit": 0,
+  "stdout": "",
+  "stderr": "Warning: Your repo appears to have been copied from /home/hsa/projects/list_app/.jj/repo to /home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-test/.jj/repo. The corresponding repo config file has also been copied.\nForgot 2 remote bookmarks.\n"
+}

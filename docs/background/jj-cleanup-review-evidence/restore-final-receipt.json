@@ -1,0 +1,13 @@
+{
+  "reextracted_after_retirement_simulation": true,
+  "restored_from_archive_not_operation_undo": true,
+  "exact_native_metadata_matches": 988,
+  "exact_trees_match": 1024,
+  "restore_path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-final",
+  "archive_sha256": "e703ef0567c351c41f195603656c297af08290d7063cafdf41181fa24ffb604d",
+  "all_1024_lookups_traced": true,
+  "live_repository_workspace_archive_paths_accessed": false,
+  "network_accessed": false,
+  "trace_bytes": 202327524,
+  "outer_trace_command_exit": "timeout after verification receipt; streaming isolation check rerun passed"
+}

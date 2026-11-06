@@ -1,0 +1,237 @@
+diff --git a/docs/reminder-runtime.md b/docs/reminder-runtime.md
+index bdf039af9f..0000000000 100644
+--- a/docs/reminder-runtime.md
++++ b/docs/reminder-runtime.md
+@@ -18,11 +18,18 @@ # Reminder runtime core
+ room, live item, cycle and effective summary policy before returning IDs.
+ Callers must load current authorized item details separately.
+ 
++<<<<<<< conflict 1 of 1
++%%%%%%% diff from: oxrxlyps de51334d "reminders - evaluate and generate due occurrences" (parents of rebased revision)
++\\\\\\\        to: oxrxlyps a9a87d5f "reminders - evaluate and generate due occurrences" (rebase destination)
++ This is an internal core, not an API or a background worker. Overdue repeats,
++ claim/delivery, action APIs and lifecycle integration are not implemented here.
+++
+++Generated groups are not dispatch-ready. Before an attempt, the delivery path
+++must recheck the current saved grant, item and summary membership, quiet hours,
+++pause, caps and spacing. Quiet settings can change after generation. Preserve
+++started attempt snapshots and fence revoked or stale claims.
+++++++++ qnuqpxvz ac3403f1 (rebased revision)
+ The [scheduler](reminder-scheduler.md) runs this core in the app lifespan.
+ Overdue repeats, claim/delivery, action APIs and lifecycle integration remain
+ separate work.
+-
+-Generated groups are not dispatch-ready. Before an attempt, the delivery path
+-must recheck the current saved grant, item and summary membership, quiet hours,
+-pause, caps and spacing. Quiet settings can change after generation. Preserve
+-started attempt snapshots and fence revoked or stale claims.
++>>>>>>> conflict 1 of 1 ends
+diff --git a/src/reminders/scheduler.py b/src/reminders/scheduler.py
+index a2cadaf577..7282d6b363 100644
+--- a/src/reminders/scheduler.py
++++ b/src/reminders/scheduler.py
+@@ -3,7 +3,6 @@
+ import asyncio
+ import os
+ from collections.abc import Callable, Mapping
+-from contextlib import suppress
+ from dataclasses import dataclass
+ from datetime import UTC, datetime, timedelta
+ from enum import StrEnum
+@@ -153,7 +152,7 @@ def _tick(self) -> SchedulerStatus:
+                             ):
+                                 pass
+                 processed += 1
+-            except Exception:  # noqa: BLE001 - isolate faulty scopes without logging secrets
++            except Exception:
+                 failed = True
+         return SchedulerStatus(
+             SchedulerState.SCOPE_ERROR if failed else SchedulerState.READY,
+@@ -169,7 +168,7 @@ async def tick(self) -> SchedulerStatus:
+             except asyncio.CancelledError:
+                 await worker
+                 raise
+-            except Exception:  # noqa: BLE001 - keep the supervised task alive
++            except Exception:
+                 self.status = SchedulerStatus(
+                     SchedulerState.ERROR, last_success=self.status.last_success
+                 )
+@@ -178,8 +177,10 @@ async def run(self) -> None:
+     async def run(self) -> None:
+         while not self._stop.is_set():
+             await self.tick()
+-            with suppress(TimeoutError):
++            try:
+                 await asyncio.wait_for(self._stop.wait(), timeout=self.interval)
++            except TimeoutError:
++                pass
+ 
+     def stop(self) -> None:
+         self._stop.set()
+diff --git a/tests/test_reminders_scheduler.py b/tests/test_reminders_scheduler.py
+index 5172697415..ab32df8797 100644
+--- a/tests/test_reminders_scheduler.py
++++ b/tests/test_reminders_scheduler.py
+@@ -5,8 +5,7 @@
+ from datetime import timedelta
+ 
+ from starlette.testclient import TestClient
+-from test_reminders_generation import add_items
+-from test_reminders_generation import home as generation_home  # noqa: F401
++from test_reminders_generation import add_items, home  # noqa: F401
+ from test_reminders_storage import NOW, store  # noqa: F401
+ 
+ import database_crud
+@@ -23,8 +22,8 @@ def make_scheduler(monkeypatch, conn, **kwargs):
+     )
+ 
+ 
+-def test_real_generation_and_backward_clock(generation_home, monkeypatch):  # noqa: F811
+-    conn, scope, _ = generation_home
++def test_real_generation_and_backward_clock(home, monkeypatch):
++    conn, scope, _ = home
+     with database_crud.transaction(write=True):
+         add_items(conn, scope, 1)
+     worker = make_scheduler(monkeypatch, conn)
+@@ -38,8 +37,8 @@ def test_real_generation_and_backward_clock(home, monkeypatch):
+         assert storage.watermark_locked(scope) == NOW + timedelta(minutes=30)
+ 
+ 
+-def test_scope_failure_rolls_back_and_batch_cycles(generation_home, monkeypatch):  # noqa: F811
+-    conn, scope, _ = generation_home
++def test_scope_failure_rolls_back_and_batch_cycles(home, monkeypatch):
++    conn, scope, _ = home
+     with database_crud.transaction(write=True):
+         add_items(conn, scope, 1)
+         # A second installation shares the same valid saved grant.
+@@ -68,8 +67,8 @@ def fail_first(current, *, now):
+     assert worker._tick().state == scheduler.SchedulerState.SCOPE_ERROR
+ 
+ 
+-def test_switches_restore_and_cutoff(generation_home, monkeypatch, tmp_path):  # noqa: F811
+-    conn, _, _ = generation_home
++def test_switches_restore_and_cutoff(home, monkeypatch, tmp_path):
++    conn, _, _ = home
+     worker = make_scheduler(monkeypatch, conn)
+     assert scheduler.SchedulerConfig.from_env({}).enabled is False
+     assert not scheduler.SchedulerConfig.from_env(
+@@ -136,119 +135,3 @@ def test_lifespan_and_health_with_missing_restore(monkeypatch, tmp_path):
+         worker = app.state.reminder_scheduler
+         assert client.get("/healthz").json() == {"ok": True}
+         assert app.state.reminder_scheduler is worker
+-
+-
+-def test_restore_cutoff_equality_and_future_snooze(
+-    generation_home,  # noqa: F811
+-    monkeypatch,
+-    tmp_path,
+-):
+-    from datetime import date
+-
+-    conn, scope, _ = generation_home
+-    cutoff = NOW + timedelta(minutes=20)
+-    with database_crud.transaction(write=True):
+-        ids = storage.record_batch_locked(
+-            scope,
+-            expected_through=None,
+-            through=NOW,
+-            events=tuple(
+-                storage.EventInput(
+-                    "summary", NOW, eligible, eligible, local_day=date(2026, 1, day)
+-                )
+-                for day, eligible in ((1, NOW), (2, cutoff), (3, NOW))
+-            ),
+-            now=NOW,
+-        )
+-        storage.set_event_state_locked(
+-            scope,
+-            ids[2],
+-            state="snoozed",
+-            now=NOW,
+-            wake_at=cutoff + timedelta(minutes=1),
+-        )
+-        conn.execute("UPDATE reminder_enrollments SET status='revoked'")
+-    path = tmp_path / "guard"
+-    restore_state.initialize_paused(path)
+-    restore_state.resume(path, cutoff)
+-    worker = make_scheduler(monkeypatch, conn)
+-    worker.config = scheduler.SchedulerConfig(True, False, path)
+-    assert worker._tick().state == scheduler.SchedulerState.READY
+-    rows = dict(conn.execute("SELECT id,state FROM reminder_events"))
+-    assert [rows[eid] for eid in ids] == ["suppressed", "pending", "snoozed"]
+-
+-
+-def test_cancel_waits_for_worker(monkeypatch):
+-    async def exercise():
+-        worker = scheduler.Scheduler(scheduler.SchedulerConfig(True, False))
+-        entered = threading.Event()
+-        release = threading.Event()
+-
+-        def slow():
+-            entered.set()
+-            release.wait(2)
+-            return scheduler.SchedulerStatus(scheduler.SchedulerState.READY)
+-
+-        monkeypatch.setattr(worker, "_tick", slow)
+-        task = asyncio.create_task(worker.tick())
+-        assert await asyncio.to_thread(entered.wait, 1)
+-        task.cancel()
+-        await asyncio.sleep(0.01)
+-        assert not task.done()
+-        release.set()
+-        try:
+-            await task
+-        except asyncio.CancelledError:
+-            pass
+-        else:
+-            raise AssertionError("cancellation was lost")
+-
+-    asyncio.run(exercise())
+-
+-
+-def test_recovery_and_pruning_for_revoked_scope(generation_home, monkeypatch):  # noqa: F811
+-    from datetime import date
+-
+-    conn, scope, _ = generation_home
+-    with database_crud.transaction(write=True):
+-        ids = storage.record_batch_locked(
+-            scope,
+-            expected_through=None,
+-            through=NOW,
+-            now=NOW,
+-            events=(
+-                storage.EventInput(
+-                    "summary", NOW, NOW, NOW, local_day=date(2026, 1, 1)
+-                ),
+-                storage.EventInput(
+-                    "summary", NOW, NOW, NOW, local_day=date(2026, 1, 2)
+-                ),
+-            ),
+-        )
+-        storage.set_event_state_locked(scope, ids[0], state="dismissed", now=NOW)
+-        group_id = storage.group_locked(
+-            scope,
+-            (ids[1],),
+-            transport="in_app",
+-            eligible_at=NOW,
+-            wake_at=NOW,
+-            expires_at=NOW + timedelta(days=2),
+-            now=NOW,
+-        )
+-        storage.claim_locked(scope, now=NOW, lease_for=timedelta(minutes=1))
+-        conn.execute("UPDATE reminder_enrollments SET status='revoked'")
+-    worker = make_scheduler(monkeypatch, conn)
+-    worker.clock = lambda: NOW + timedelta(days=31)
+-    assert worker._tick().state == scheduler.SchedulerState.READY
+-    assert (
+-        conn.execute(
+-            "SELECT state FROM reminder_outbox WHERE id=?", (group_id,)
+-        ).fetchone()[0]
+-        == "expired"
+-    )
+-    assert (
+-        conn.execute(
+-            "SELECT count(*) FROM reminder_events WHERE id=?", (ids[0],)
+-        ).fetchone()[0]
+-        == 0
+-    )

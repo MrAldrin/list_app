@@ -1,0 +1,52 @@
+{
+  "source_operation": "f6e9450d01c4e22635b646e9038ac50980a99903124bfb7e5adc15f6a0cd878d59bf692b1032c78c83c8e49549299b02be248946281f3f58ac1328adf6ce226d",
+  "archive_path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/native-history.tar",
+  "archive_sha256": "e703ef0567c351c41f195603656c297af08290d7063cafdf41181fa24ffb604d",
+  "archive_bytes": 160430080,
+  "measured_logical_input_bytes": 68088386,
+  "free_bytes_before": 14424104960,
+  "free_bytes_after": 13765521408,
+  "visible_exact_metadata_match": 988,
+  "exact_trees_match": 1024,
+  "archived_resume_commits": 36,
+  "independent_git_root": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-test/.git",
+  "no_remotes": true,
+  "no_symlinks_or_alternates": true,
+  "isolated_home_and_git_config": true,
+  "original_path_access_in_traced_conflict_lookup": false,
+  "network_access_in_traced_conflict_lookup": false,
+  "disposable_bookmark_forget_restore": true,
+  "simulations": [
+    {
+      "phase": "A-empty-review",
+      "exact_commits": [
+        "2f94b979c91a7031ae821bcb00cfe95b4ec101bb",
+        "e94ba514857ad7fdb15eebc304dc927c5f281aa5",
+        "8bb5563fdf96e060594187d4621ab864bfd78895",
+        "2b7b53a00395e6ac3526f97e5df58b4f615d290d",
+        "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+        "0aee179f4691eb701307a4a20c28acccac2bef07",
+        "d49ce34494232c50ed8b6558dcec7392b7de3153",
+        "0ba13f05e82f9fd9a1dac13a95e2cf5564ad555b",
+        "c650413ba10c240af0c50f2359691a2ae8ab3d59",
+        "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+        "95b1f504bd343cd74c464d39314ed1efa09d34df"
+      ],
+      "before_heads": 28,
+      "after_heads": 18
+    },
+    {
+      "phase": "B-alternates",
+      "exact_commits": [
+        "d8e8f9946cce76c82c06ad6c2533cc213a42ca2c",
+        "31077a91123572b05e77baa41be804c6347967bb"
+      ],
+      "before_heads": 18,
+      "after_heads": 16
+    }
+  ],
+  "source_operation_unchanged": true,
+  "restore_test_path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-test",
+  "staging_path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/staging",
+  "retained_archive_is_immutable_input_to_test": true
+}

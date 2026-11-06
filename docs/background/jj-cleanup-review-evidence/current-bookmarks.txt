@@ -1,0 +1,23 @@
+groups: qwywttmo 2a46f1a4 groups - rebuild: verify migration and fix options layout
+  @git: qwywttmo 2a46f1a4 groups - rebuild: verify migration and fix options layout
+  @origin: qwywttmo 2a46f1a4 groups - rebuild: verify migration and fix options layout
+integration: rlswsnuk ed08313a docs - test runtime: record current build warning count
+  @git: rlswsnuk ed08313a docs - test runtime: record current build warning count
+  @origin (behind by at least 10 commits): krnplyqy ddd687e2 test - browser: suggestions rank by add count and scroll
+main: xsqznkop 250c17b6 docs - test review: define scope and combine backlog items
+  @git: xsqznkop 250c17b6 docs - test review: define scope and combine backlog items
+  @origin: xsqznkop 250c17b6 docs - test review: define scope and combine backlog items
+night-1-tests-partial: oqpnzkyx 570b4f8a test - suite review: document risk and runtime evidence
+  @git: oqpnzkyx 570b4f8a test - suite review: document risk and runtime evidence
+night-2-docs: nkrslvrx 121fb5fd docs - STE100 rewrite: finalize full prose coverage and evidence
+  @git: nkrslvrx 121fb5fd docs - STE100 rewrite: finalize full prose coverage and evidence
+night-3-themes: yuqlozro 44686493 design - themes: record combined verification and handoff
+  @git: yuqlozro 44686493 design - themes: record combined verification and handoff
+night-4-history: xqptskso 4a33175a docs - jj review: record review and preservation checks
+  @git: xqptskso 4a33175a docs - jj review: record review and preservation checks
+night-5-s3-review: wlyxnswq 55108d0d docs - S3 scope: clarify the pre-existing environment link
+  @git: wlyxnswq 55108d0d docs - S3 scope: clarify the pre-existing environment link
+reminders-s2: wlwznqly e50da7ce reminders - polish: isolate reset confirmations in share tests
+  @git: wlwznqly e50da7ce reminders - polish: isolate reset confirmations in share tests
+usual-items-redesign@origin: kvwywrsx 3d1b2711 usual items - add field: show them in the pop-up on blank focus
+wave2-bottom-bar@origin: vvsnkwnm 85c93c34 ui - bottom bar: add/search and Add New List at the bottom, toasts at the top

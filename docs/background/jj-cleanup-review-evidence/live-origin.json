@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-11-06T07:39:45.976288+00:00",
+  "command": "git --git-dir=<shared git root> ls-remote --heads origin",
+  "exit": 0,
+  "heads": [
+    {
+      "commit": "2a46f1a4b3d4d588c14349e9f6bd733e3d50bb34",
+      "ref": "refs/heads/groups"
+    },
+    {
+      "commit": "ddd687e25485c4707ad1ee7952da296e8987531f",
+      "ref": "refs/heads/integration"
+    },
+    {
+      "commit": "250c17b669605cea59bd671ba7e9e49ee3dcbce6",
+      "ref": "refs/heads/main"
+    },
+    {
+      "commit": "3d1b2711825ef6e9da08d10bf90a76f54e1c8c2f",
+      "ref": "refs/heads/usual-items-redesign"
+    },
+    {
+      "commit": "85c93c3428aca4daed9727e624ca176eb3cf3e22",
+      "ref": "refs/heads/wave2-bottom-bar"
+    }
+  ],
+  "stderr_suppressed": false
+}

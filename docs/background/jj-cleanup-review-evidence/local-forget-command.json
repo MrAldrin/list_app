@@ -1,0 +1,14 @@
+{
+  "command": [
+    "jj",
+    "bookmark",
+    "forget",
+    "exact:reminders-s2"
+  ],
+  "exit": 0,
+  "stdout": "",
+  "stderr": "Forgot 1 local bookmarks.\n",
+  "pre_operation": "16f184ff616be9fd0d10ad1235489ef54ea9821decd07858fa45053e1a1ad59430a7ab7006c22de4c3b0458c7d47040e063b43c07e54bb509ecfd87af8158144",
+  "exact_tip_checked": "e50da7ce0a5456159f8206513c820e7180abbb8e",
+  "lead_coordination": "explicit no-block/proceed-only ack in Intercom; conditional permission, no expanded approval"
+}

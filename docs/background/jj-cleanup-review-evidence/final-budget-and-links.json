@@ -1,0 +1,57 @@
+{
+  "measured_roots": [
+    {
+      "path": "/home/hsa/projects/list_app/.night-evidence",
+      "allocated_bytes": 149008384
+    },
+    {
+      "path": "/home/hsa/projects/list_app-night-tests/.night-evidence",
+      "allocated_bytes": 1427861504
+    },
+    {
+      "path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6",
+      "allocated_bytes": 362860544
+    },
+    {
+      "path": "/home/hsa/projects/list_app/local_only",
+      "allocated_bytes": 360448
+    },
+    {
+      "path": "/tmp/list-app-jj-cleanup-01a1afc6",
+      "allocated_bytes": 1949696
+    },
+    {
+      "path": "/tmp/pi-subagents-uid-1000/async-subagent-runs/2e24b414-e2b3-4b37-a64f-14bd176f129f",
+      "allocated_bytes": 5697536
+    },
+    {
+      "path": "docs/background/jj-cleanup-review-evidence",
+      "allocated_bytes": 1167360
+    },
+    {
+      "path": "/home/hsa/projects/list_app/docs/background/documentation-ste100-evidence",
+      "allocated_bytes": 1155072
+    },
+    {
+      "path": "/tmp/pi-subagents-uid-1000/async-subagent-runs/e207218b-a273-43e6-8d75-e528ccc13843",
+      "allocated_bytes": 3137536
+    },
+    {
+      "path": "/tmp/pi-subagents-uid-1000/async-subagent-runs/86787486-dbdf-4ee8-8978-d160129c1218",
+      "allocated_bytes": 3354624
+    },
+    {
+      "path": "/tmp/pi-subagents-uid-1000/async-subagent-runs/fcbe2181-aa5a-4f72-8e22-ee872dce4429",
+      "allocated_bytes": 430080
+    }
+  ],
+  "final_allocated_bytes": 1956982784,
+  "known_pre_cleanup_measurement_bytes": 2693820416,
+  "conservative_peak_upper_bound_bytes": 2705956864,
+  "peak_bound_method": "Prior measured peak plus all later review run directories, full current temp/report evidence (double-counting older portions), and 2 MiB margin; no further full copies were made.",
+  "budget_bytes": 3221225472,
+  "free_bytes": 14047449088,
+  "free_floor_bytes": 6442450944,
+  "report_links_missing": [],
+  "all_delivered_json_parses": true
+}

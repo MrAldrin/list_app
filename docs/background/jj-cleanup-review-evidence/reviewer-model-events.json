@@ -1,0 +1,42 @@
+[
+  {
+    "original_run": "e207218b-a273-43e6-8d75-e528ccc13843",
+    "host_selection_events": [
+      {
+        "type": "model_change",
+        "id": "064ad036",
+        "parentId": null,
+        "timestamp": "2026-11-06T08:09:17.709Z",
+        "provider": "openai",
+        "modelId": "gpt-6-luna"
+      },
+      {
+        "type": "thinking_level_change",
+        "id": "ed57446f",
+        "parentId": "064ad036",
+        "timestamp": "2026-11-06T08:09:17.709Z",
+        "thinkingLevel": "xhigh"
+      }
+    ]
+  },
+  {
+    "original_run": "86787486-dbdf-4ee8-8978-d160129c1218",
+    "host_selection_events": [
+      {
+        "type": "model_change",
+        "id": "1014afd3",
+        "parentId": null,
+        "timestamp": "2026-11-06T08:18:57.798Z",
+        "provider": "claude-code",
+        "modelId": "claude-haiku-5-5"
+      },
+      {
+        "type": "thinking_level_change",
+        "id": "2ba58294",
+        "parentId": "1014afd3",
+        "timestamp": "2026-11-06T08:18:57.798Z",
+        "thinkingLevel": "max"
+      }
+    ]
+  }
+]

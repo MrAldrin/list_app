@@ -1,0 +1,6 @@
+{
+  "disposable_only": true,
+  "after_sets_A_B_heads": 16,
+  "after_sets_A_B_conflicts": 2,
+  "after_sets_A_B_divergent_versions": 0
+}

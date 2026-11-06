@@ -1,0 +1,12 @@
+{
+  "unexpected_effect": "One disposable cache-reference test omitted isolated HOME; jj created a per-repo config copy for that disposable location.",
+  "removed_exact_test_config_directory": "/home/hsa/.config/jj/repos/6837463d852674fdd173",
+  "removed_file_sizes": {
+    "config.toml": 156,
+    "metadata.binpb": 81
+  },
+  "original_repo_config_id_unchanged": "73360a744b7debff796b",
+  "config_contents_never_printed": true,
+  "original_config_not_edited": true,
+  "correction": "All restore and subsequent disposable commands use isolated HOME and config."
+}

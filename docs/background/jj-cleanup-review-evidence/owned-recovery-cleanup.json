@@ -1,0 +1,24 @@
+{
+  "removed_only_owned_independent_test_repositories_and_home": [
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/staging",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-test",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-final",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/isolated-home"
+  ],
+  "not_registered_shared_workspaces": true,
+  "active_processes_using_removed_paths": [],
+  "durable_archive_retained": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/native-history.tar",
+  "archive_sha256_unchanged": "e703ef0567c351c41f195603656c297af08290d7063cafdf41181fa24ffb604d",
+  "retained_paths": [
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/native-history.tar",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/recovery-receipt.json",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/full-restore.strace",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/restore-isolation.strace",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/config-id-incident",
+    "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6/methods"
+  ],
+  "native_restore_previously_verified_988_metadata_1024_trees": true,
+  "all_bounded_children_completed": true,
+  "shared_workspaces_removed": [],
+  "lead_created_entry_not_removed": true
+}

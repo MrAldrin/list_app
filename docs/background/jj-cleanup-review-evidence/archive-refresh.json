@@ -1,0 +1,549 @@
+{
+  "frozen_op": "dcbea95d4cd7b5a7c0a13003e6a3d83320c6d9ac0acafa127bf084f76f9718152bab75bbe5687085196accea1b78628609bfb8dbdd67bdf94b5b7050fe451e7d",
+  "note": "Initial read-only archive-source refresh at operation dcbea95d, before runtime documentation acceptance and own-empty rebase. This is not the f6e9450d native recovery snapshot receipt. Recovery-receipt.json and restore-final-receipt.json record the later snapshot and again cover all 36 exact resume commits.",
+  "resume_sha256": "a959fc2886da1adcf8f1133dd960191ba0f0e59d36090142072aa048cb08ee05",
+  "prior_resume_sha256": "a959fc2886da1adcf8f1133dd960191ba0f0e59d36090142072aa048cb08ee05",
+  "entries": [
+    {
+      "label": "default",
+      "archived_exact": "0d2cb39da96764326e45eb88d702340abe19500a",
+      "tree_sha256": "0fa045abb0e122e9c796570c7ee95d5561853e4ce972d6065af4dcd2bd043f57",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "69a9b3f09e1b8e1798c666ed1f9c178431ae26fd",
+          "change": "zrnqossovmtqxqmokstqxmrqtsnzmmzv",
+          "parents": [
+            "93e64ff177ede9f857d4546eb8f2d83bf78d4a37"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "docs - reminders: integrate stage 1, hold stages 3-5, record cleanup"
+        }
+      ]
+    },
+    {
+      "label": "reminders-s3-a28-review",
+      "archived_exact": "bfdf5c8f265d0a189d85dc5b94cec762751c73ac",
+      "tree_sha256": "a3ff624adb01dc3f1a94aaba6d8106a4ba13336aa67ae4ba8e30b00ca77e781a",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "reminders-s3-cap2",
+      "archived_exact": "7ff2059e6a20cf331879dbefcf27e66ea7a501db",
+      "tree_sha256": "a668fc1c3609fea0e1307ed4f75468b06c008c7a9017c35ecd364864286d9f65",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "280a3874fd564ab9965f2267640e68ebb21cf336",
+          "change": "txrxwnozlnyqqykwornnomrvolosmovu",
+          "parents": [
+            "a970eaa4e03d76eeef4fd68ef18d119e73a9d863"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "reminders-s3-manual-review",
+      "archived_exact": "f8b6ea86c513a26a5bb0107d19556e0a6f34929c",
+      "tree_sha256": "943ca4a6a959e9142dced92c528f5f26f0e6c79138ad05ae8c7b5392c6500b70",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "reminders-s3-p-early",
+      "archived_exact": "f17dc28d39fb783a07412b130421c2c0b5eca5c8",
+      "tree_sha256": "aa41f69a079e8c05d4e491e7c55cf842e4add935623284b756aa6a2d80dc331c",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "ad79662f32ad5c473d0627484ada42afcb571d77",
+          "change": "mpkwkrnqwyvpoytlypqmtnvoqqlltxsv",
+          "parents": [
+            "16b15aea4f8f7483d12a843681e1104a53903aca"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-polish-p2-ui",
+      "archived_exact": "f5bfe16e97d389783d1215e7e5c744dd154fc0e3",
+      "tree_sha256": "f99741d400ca9e3a0a7d9dfb912add7963aecc6a680514f64b2257d8ab9a8a1d",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminder-delivery",
+      "archived_exact": "24470a773974fae4b76f59dcfbd4277768c26d81",
+      "tree_sha256": "f99741d400ca9e3a0a7d9dfb912add7963aecc6a680514f64b2257d8ab9a8a1d",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "e5c4d060019774771a8ed63e0472726218425195",
+          "change": "mytytmnvuyzzrzrqkpsyxprqnunzvwup",
+          "parents": [
+            "e50da7ce0a5456159f8206513c820e7180abbb8e"
+          ],
+          "empty": true,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-polish",
+      "archived_exact": "76afc6d35929f0f1716c810ba232f7e17ada92aa",
+      "tree_sha256": "f99741d400ca9e3a0a7d9dfb912add7963aecc6a680514f64b2257d8ab9a8a1d",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminders-s1",
+      "archived_exact": "ad3fb22d31e616528554645f6c81e8d90cc6b42e",
+      "tree_sha256": "ba0534ec1ed903bdab385ae6f40e14127ed94743f75d0ed54b13c7c5e846eb09",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminders-s2",
+      "archived_exact": "372b910001961550f9062696bd9a8c0d3e6e04b9",
+      "tree_sha256": "3ddb3c8ea5fad4384c9c2a3089489c00e9c92bdb1e628d22abb92bc9ebf06747",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "d49ce34494232c50ed8b6558dcec7392b7de3153",
+          "change": "ryovswotrzsxtlqnomxsnwkkzxyxqtlx",
+          "parents": [
+            "f42c8ba6d85aa9c83cb562b1c0c17aa833c413a8"
+          ],
+          "empty": true,
+          "conflict": false,
+          "description": "reminders - schedules: reconcile reviewed server and due overview"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3",
+      "archived_exact": "54561d1c09a360ce3121a014da3d5b59a60de35a",
+      "tree_sha256": "17f6876957a5f42140fae2d368e7a0a74e8a9ae1a4f99f23af8ede500856de1b",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "6addc91115e22a0e8ce7b0c33486d9c0b7bd2e0c",
+          "change": "wnyyylytpkuunoyqvzzkzlolkoonomzv",
+          "parents": [
+            "f42c8ba6d85aa9c83cb562b1c0c17aa833c413a8",
+            "3e83454d27ac8bf8316ff2720dd11250616867db"
+          ],
+          "empty": true,
+          "conflict": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-absence-proof",
+      "archived_exact": "0e41946de3a5637b281ea4d3f9dae8985b53d38b",
+      "tree_sha256": "b0c02a530370b150d77085162a2a50c84a8e26668661b8df15a8dff5b0f7dedd",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "7ef0036e74d91a56793819eb61c63488ec45e5b2",
+          "change": "tpywztrypwoxsqpmxnpsorutzrxyxopl",
+          "parents": [
+            "0e2c72cf5918805c74b9aa1992f39aacf2a71148"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - release blocked fallback claim"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-actions",
+      "archived_exact": "3f620969f28e7e5a2e1ac0a5a6b81deb9f90de3c",
+      "tree_sha256": "03f501e392916e6a66393a8ccf213431cf372c15596b64f39c35c30986f736f7",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "484a58a7169d7fbc7559926f5f31bf33427183fb",
+          "change": "yoounzxzooltksnmlrxlksnwzsuywqpl",
+          "parents": [
+            "47f8ba3e01ebf8c220e31e85aaa75eb32fd7d3b2"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - validate snooze group projection"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-api",
+      "archived_exact": "8cb330ca49c2366373af79f8560c04061634963a",
+      "tree_sha256": "c2bb7efd98c8f0d38d65fa6624a1b55759e25029be3055e77d6c01c15c091936",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "cc84d698911660280239a120ae679e473d882f6d",
+          "change": "utyklkzquqkylvvzszntoqqssypuyuzz",
+          "parents": [
+            "9ce3eb5db6ad5e0620b5f962ea9b0780e076cd33"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - acknowledge personal occurrences"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-cap-causal",
+      "archived_exact": "79eafadbf02010a54299f6dae2e03861aab0e22d",
+      "tree_sha256": "53dafff88e65fed598210ebabd2477cf942f2fb75ec3b4486190760e7af33933",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "4c653c9ea1e0aee85dee2aa82e89b76873da8f8a",
+          "change": "xsqtvwmsnztlorpmuozzrknvnusqsxxm",
+          "parents": [
+            "ce79907a8fbf837907aada8e7dae4a04fcd62e13"
+          ],
+          "empty": true,
+          "conflict": false,
+          "description": "reminders - postprune proof review tip"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-cap-runtime",
+      "archived_exact": "801078d0bc4d6da58d96bd7f60b5b45c853a90a2",
+      "tree_sha256": "56d8ebd7daeebd7d5b5114aa77fb53eddad4d0318b564fbc85c998fee362ed96",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "d4c6805559eac7ca1e701f46379cbd134df94e00",
+          "change": "ssqtkqklrwulwmzomqzoxypszsxmxtxw",
+          "parents": [
+            "5e46eff06ce9c0052df73bcfa3665ba20e71092b"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - cap: enforce durable exhausted origin windows"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-claims",
+      "archived_exact": "4ffec9847bcfad1bf4d05e91ded35170a86bde1f",
+      "tree_sha256": "1caaf118ba32ab074bd961a195bbfcf4eb1ee2050a132529404829a433db0c8b",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "d46fa533eb09cfc64ce58f51b50618685ca63c21",
+          "change": "kulntpxmzvwsktnqompxkukrmrmtzrwx",
+          "parents": [
+            "ab49855d23c5f480e158a322afd7e0b43afdc198"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-coalesce",
+      "archived_exact": "3a497c8cd10a3889c1bc4e1e54adae2449816c44",
+      "tree_sha256": "89548ff4f0dfa4b2277d97a10bdb5fd38d38d8c6018290959aa167f47125f7e5",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "6d27912059cf10823bf5652bb4da27a7157bc817",
+          "change": "nnpswtsxlpsqypkkrktkoxrrtpqkuxlv",
+          "parents": [
+            "8f73b6b8b1d2f840a7f9fc95d957334c3e574092"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - avoid invented legacy quiet provenance"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-combined",
+      "archived_exact": "8743a470f23f2e246e6a2937c1bf7ab5b67105cb",
+      "tree_sha256": "f137b1d6baa883d9e6f15ae89f417396b509141b528523398eb881876ef6d77c",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "216b2eabfd25b6467d64e97906601879ad723084",
+          "change": "vtlptvvslvnowysooqxtuukvzkuoxrss",
+          "parents": [
+            "e85156425a66232f0e72078165b4c8f6b3d89092",
+            "cbb458b3979de9f31276451beebf49573db61097"
+          ],
+          "empty": true,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-cooldown",
+      "archived_exact": "a547dadceed7be51d2d9297a3a90f28b14af0570",
+      "tree_sha256": "a3ff624adb01dc3f1a94aaba6d8106a4ba13336aa67ae4ba8e30b00ca77e781a",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "cbb458b3979de9f31276451beebf49573db61097",
+          "change": "syqmnxtkkzxpyvyppqtpupyxnmmsunmx",
+          "parents": [
+            "c8e766a6644883e250defc41dfad8d81bb33a39f"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-engine",
+      "archived_exact": "a9a87d5f6329d5608ea2b68a464a1f14026820d3",
+      "tree_sha256": "45e1691ef23c3d38a366b5c87472ddfc464ad9241f6f37f13063bff7e7d9a705",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "6afb105c47da8976c9d61e5ea79c7ca6b1d960a6",
+          "change": "oxrxlypsxmyrxqynzvynnkpukkylrvvp",
+          "parents": [
+            "8e796996562ae078e654f8acf8b6cfaca1379087"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - evaluate and generate due occurrences"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-fallback",
+      "archived_exact": "91b165cb311ba548b018f168469bd423d7b5e122",
+      "tree_sha256": "8dbe25fa7e1717b9adbe466b9800d02fa384afe6a22fffc11a42fd93f894947f",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "095fe95ea6724b191d8d3d6707575e4eca8bd106",
+          "change": "ynltvomqotrlttrsrpuksntwousosyts",
+          "parents": [
+            "95b1f504bd343cd74c464d39314ed1efa09d34df"
+          ],
+          "empty": true,
+          "conflict": false,
+          "description": "reminders - proven push absence fallback"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-frequency",
+      "archived_exact": "9d245380ecbc85dbc367350054c588ab951a8676",
+      "tree_sha256": "a8b9bb5ec061d2e2eb85124ab52aac147cc5ff62c23b9ed5c4e17197ddb01d36",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "5e46eff06ce9c0052df73bcfa3665ba20e71092b",
+          "change": "nozwssykpswomozulkxmunkklpttyyor",
+          "parents": [
+            "5b972518e4d559285493d77764c275a66ae551e7"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - frequency: prepare cooldown provenance and cap windows"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-lifecycle",
+      "archived_exact": "b93cd4a0bd9dec9983270b88ff8875c8275e7514",
+      "tree_sha256": "37fb84cf9bf487f9a5b4d2be7b99290564d107d9ec20e9996ce6858f0db47c6c",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "c1ad4febaab9402480963c12bce867d80dd80fc1",
+          "change": "pnmkqssnkuxnslzukozlrmszrxtknzsn",
+          "parents": [
+            "320488033d803fa4458aa51024e95b8b1c6b1be4",
+            "d2da0b524738b75414e41504a245fb3d6d139c06"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - lifecycle: integrate policy and snooze"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-manual-item",
+      "archived_exact": "08bbd3c873107240aee87a85758c508e169d663e",
+      "tree_sha256": "ff35e8923e2d9a0e91a643ed0b3918ef45c902b6a7f197ece6992af24b84398a",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "d10874b5e56eb6f0ada98d11fca22eac1c6fd22b",
+          "change": "zvkvwkvptuvxmtnvnkyvvqupslynrnqk",
+          "parents": [
+            "2108ffce7cdea65230d3a57ec885c0117a1b122e"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "wip: manual generation guard bridge, paused before review"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-repeat",
+      "archived_exact": "013e8d6a29ba18c36da48a812ebcac6a94db1293",
+      "tree_sha256": "1b24e937e7943e97bcf349e6c3a797b554bf3d47a2ca5bba7a1126b125c948f1",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "fb60a3d8e6a1319f73448a73e0890e951fd5e8db",
+          "change": "rsnqnkzwutlonvnwlqlylquzrvpqunny",
+          "parents": [
+            "cd32f708096b327fcf41199d9d11443e5a208db1"
+          ],
+          "empty": true,
+          "conflict": false,
+          "description": "reminders - repeats: continue after reviewed dependencies"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-repeat-coverage",
+      "archived_exact": "5f970aef666eac74d41c96e10cdda3496c605154",
+      "tree_sha256": "42d5c5694dc4584557bd366730addcdb4ef4b519420b4178c1815366153c9563",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "1b3dd1e9b50eb34af152f966a6248a30cdfaf91a",
+          "change": "nwxnmonvyumlwtsxnswolpxrptmqxupy",
+          "parents": [
+            "c5dcf91c282f6849737729aced3bcaa11ce8bc6f"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-repeat-runtime",
+      "archived_exact": "3c7450d251ec0814022d01514ec370df66dc14dc",
+      "tree_sha256": "f27b80320d823162c57dd8e5f24b255ba7d9d0c62ea277b92e44d7598aa7b9e7",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "316ec3687ea5438d39d3ade140c1cbf02bd5d143",
+          "change": "mwrpwttzuunuwpvsnmpyprtuztwynyml",
+          "parents": [
+            "0f9669082c8a2bbcb33a015f6ec995d43df51fd6"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - preserve per-item repeat coverage"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-scheduler",
+      "archived_exact": "b4fb139ba6e839cbaac10d8bfc0923d37c01cee1",
+      "tree_sha256": "99fe60f5f1a77a0fbf6a74180a7b2255b2da98eb9f0fabe8b408a1c08cce4bc1",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "bc62f6d5e927557354959b9f051ea21c8457d0f6",
+          "change": "vwumlnzlurypnllwnztxzrlsynnksxww",
+          "parents": [
+            "22ee5525fea92dbfe885cd123ff3d92f556893c6"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-snooze",
+      "archived_exact": "6f120c5462c1806024f93f754220cd45772c4caf",
+      "tree_sha256": "ed2ea16c88dbfc5342455dcee876f93e3bd25f0db351941ae21e142653aa143b",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "d2da0b524738b75414e41504a245fb3d6d139c06",
+          "change": "nynmpusxyklwlsvtsskpnwszrvxtkmvl",
+          "parents": [
+            "c0fcf0818003dc612e44dbcf29c8855d4295fc94"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - snooze: preserve live eligibility after quiet end"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-ui",
+      "archived_exact": "ef49557f9eda25b188b2a0cfc76df0f7a28b0635",
+      "tree_sha256": "171d9442cbc55202ee66d2716b41863dc3dc6012d101cf813325728636ec1bb0",
+      "resolves": true,
+      "visible_versions": [
+        {
+          "commit": "ff2d4ddb716ad5a2902edc8df6b7f74bce02a843",
+          "change": "pzsxvnmlrruzxnoqvwlmsptooxkkvlnl",
+          "parents": [
+            "5cf3136ac0ded6cbf8c57c9c61fe49746e66f700"
+          ],
+          "empty": false,
+          "conflict": false,
+          "description": "reminders - retain remote fence across room views"
+        }
+      ]
+    },
+    {
+      "label": "tmp-reminders-s3-verify",
+      "archived_exact": "6458b68d244633b5a547450ba33b5438e731a611",
+      "tree_sha256": "f137b1d6baa883d9e6f15ae89f417396b509141b528523398eb881876ef6d77c",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminders-s4",
+      "archived_exact": "d55b6f1232e0cc5eb5fada4f7d4b9054281c2aff",
+      "tree_sha256": "9d4a93cf81d6526d748adab0ad383d88ab4d8b39af5de99e259be2254bbcea3e",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminders-s4-payload",
+      "archived_exact": "341e8af41bca8b4c7897e5bf98c14f0cdb92c807",
+      "tree_sha256": "80f2fc107e1d6ad73f2a5164f2e1ebee14fffaddf874bcffbdae8fe459a251b0",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminders-s4-worker",
+      "archived_exact": "e7a723b95332c6c2e43ab75a9cd86f959532995a",
+      "tree_sha256": "35f9d31f6442e4b2cc6537df5cdb056b493d8842439c485d0d2526c9324e0fe4",
+      "resolves": true,
+      "visible_versions": []
+    },
+    {
+      "label": "tmp-reminders-s5",
+      "archived_exact": "f4d6be542f0dbfa390e55041228969b7eaac320d",
+      "tree_sha256": "8be2179f9b08652da8efaa9acfe18fe584198179ea07092b88173fe1cb3f98ec",
+      "resolves": true,
+      "visible_versions": []
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "measured_roots": [
+    {
+      "path": "/home/hsa/projects/list_app/.night-evidence",
+      "allocated_bytes": 149008384
+    },
+    {
+      "path": "/home/hsa/projects/list_app-night-tests/.night-evidence",
+      "allocated_bytes": 1427861504
+    },
+    {
+      "path": "/home/hsa/projects/list_app-jj-recovery-20261106-01a1afc6",
+      "allocated_bytes": 1107648512
+    },
+    {
+      "path": "/home/hsa/projects/list_app/local_only",
+      "allocated_bytes": 360448
+    },
+    {
+      "path": "/tmp/list-app-jj-cleanup-01a1afc6",
+      "allocated_bytes": 1458176
+    },
+    {
+      "path": "/tmp/pi-subagents-uid-1000/async-subagent-runs/2e24b414-e2b3-4b37-a64f-14bd176f129f",
+      "allocated_bytes": 5697536
+    },
+    {
+      "path": "docs/background/jj-cleanup-review-evidence",
+      "allocated_bytes": 630784
+    },
+    {
+      "path": "/home/hsa/projects/list_app/docs/background/documentation-ste100-evidence",
+      "allocated_bytes": 1155072
+    }
+  ],
+  "total_allocated_bytes": 2693820416,
+  "budget_bytes": 3221225472,
+  "free_bytes": 13302497280,
+  "free_floor_bytes": 6442450944,
+  "report_links_missing": [],
+  "limits": "Known generated-evidence roots from the run and this task; archive source and dependency caches are pre-existing, not duplicated here."
+}

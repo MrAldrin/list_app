@@ -1,0 +1,92 @@
+diff --git a/docs/api-reminder-inbox.md b/docs/api-reminder-inbox.md
+deleted file mode 100644
+index c120533846..0000000000
+--- a/docs/api-reminder-inbox.md
++++ /dev/null
+@@ -1,74 +0,0 @@ # API: Personal reminder inbox
+-# API: Personal reminder inbox
+-
+-Part of the [JSON API](api.md). This is the current device's private history in
+-one room. It is not a shared feed or a delivery acknowledgement. The settings
+-and cookie rules are in [personal reminders](api-reminders.md).
+-
+-## Read history
+-
+-`GET /api/v1/rooms/{slug}/reminders/inbox?limit=25&cursor=...`
+-
+-A valid room cookie, device cookie and that device's enrollment in the room are
+-required. The saved grant may be inactive: history remains readable, but summary
+-members are empty until the grant is active again. Reading never resumes a grant,
+-generates occurrences, claims an interruption, changes an item or advances a
+-shared change sequence. No cookie is set.
+-
+-`limit` is optional, decimal 1–100; the default is 25. `cursor` is optional and
+-must be the unmodified `next_cursor` from this device and room. Duplicate,
+-unknown, malformed or out-of-range query parameters are rejected. Results are
+-ordered by `scheduled_at` descending, then opaque event `id` descending. Follow
+-`next_cursor` until it is null. Cursors are opaque and scoped to the room and
+-device; do not parse them or reuse them in another scope. New records can appear
+-before a previously returned cursor; reload the first page to see them.
+-
+-Response 200:
+-
+-```json
+-{
+-  "events": [
+-    {
+-      "id": "opaque-event-id",
+-      "kind": "relative",
+-      "state": "pending",
+-      "scheduled_at": "2026-11-04T10:05:00.000000Z",
+-      "eligible_at": "2026-11-04T10:05:00.000000Z",
+-      "wake_at": "2026-11-04T10:05:00.000000Z",
+-      "reason": null,
+-      "revision": 1,
+-      "read_at": null,
+-      "dismissed_at": null,
+-      "item": {"uid": "item-uuid", "list_uid": "list-uuid", "text": "Current item name"},
+-      "summary_member_uids": []
+-    }
+-  ],
+-  "next_cursor": null
+-}
+-```
+-
+-`kind` is `relative`, `fixed`, or `summary`. `state` is the stored occurrence
+-state: `pending`, `deferred`, `snoozed`, `accepted`, `dismissed`, `suppressed`,
+-`canceled`, `expired`, or `failed`. An accepted state is not proof of display.
+-`reason` is null or one of `attempts_exhausted`, `catchup_expired`,
+-`completion`, `empty_summary`, `expiry`, `item_unavailable`, `policy_changed`,
+-`policy_disabled`, `restore_cutoff`; other internal reasons are hidden.
+-
+-`revision`, `read_at`, and `dismissed_at` are the personal receipt, independent
+-of the occurrence state; absent receipts appear as revision 1 with null times.
+-No receipt-changing endpoint is provided here. `item` is current room-authorized
+-metadata, or null when the item is unavailable, completed, has no due date, or
+-has a different due cycle for a relative event. No historical item name is
+-stored in the response. Summary events have null `item` and a sorted list of
+-currently authorized, relevant item UUIDs in `summary_member_uids`; other events
+-have an empty list. Members are rechecked when read and can change between reads.
+-Times are UTC strings; receipt timestamps retain their stored precision.
+-
+-Errors use the [standard JSON error shape](api.md#errors):
+-
+-- 401 `not_authenticated`: missing or invalid room access, including an unknown room.
+-- 403 `not_enrolled`: missing/invalid device or no enrollment in this room.
+-- 400 `invalid_request`: invalid query, including malformed, oversized, altered,
+-  cross-device or cross-room cursor. Authentication is checked first.
+-- 503 `unavailable`: database access failed.
+-
+-No action or strip-claim endpoint is specified by this document.
+diff --git a/docs/api.md b/docs/api.md
+index c93a0988ab..99499e2bb6 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -17,7 +17,6 @@ ## Parts
+ | Lists and items | [api-lists-items.md](api-lists-items.md) | Data shapes, write operations, conflicts, rejection codes |
+ | Reading and live updates | [api-sync.md](api-sync.md) | Changes feed, live update stream |
+ | Personal reminder settings | [api-reminders.md](api-reminders.md) | This device's enrollment and device settings (not shared) |
+-| Personal reminder inbox | [api-reminder-inbox.md](api-reminder-inbox.md) | This device's private, paged reminder history |
+ 
+ ## Basics
+ 

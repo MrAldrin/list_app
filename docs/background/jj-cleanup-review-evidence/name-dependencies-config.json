@@ -1,0 +1,6 @@
+{
+  "command": "jj --ignore-working-copy --at-op=<frozen> config list aliases",
+  "exit": 0,
+  "aliases_using_reminders_s2": 0,
+  "other_config_not_recorded": true
+}

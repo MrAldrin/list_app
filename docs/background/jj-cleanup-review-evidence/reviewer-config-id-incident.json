@@ -1,0 +1,18 @@
+{
+  "approved_repair": "Lead approval in intercom",
+  "original_id": "73360a744b7debff796b",
+  "accidental_id": "933f2e6c443e922f61c5",
+  "staging_archive_original_exact_bytes_agree": true,
+  "original_global_config_directory_exists_metadata_only": true,
+  "source_original_global_config_metadata_path_matches": true,
+  "current_live_mode": "0o600",
+  "saved_staging_mode": "0o600",
+  "configuration_contents_not_read": true,
+  "repair_completed": true,
+  "live_readback_matches_staging_and_tar": true,
+  "live_mode_after": "0o600",
+  "only_new_owned_isolated_metadata_removed": true,
+  "preexisting_jj_process": "2271296 waits on less pager; Lead verified no locks, left untouched",
+  "review_attempt": "BLOCKED/failed safety check, no classification acceptance",
+  "no_active_reviewer_jj_process_at_repair": true
+}
