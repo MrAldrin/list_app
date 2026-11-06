@@ -5,7 +5,7 @@ Lifecycle: tracked
 ## Status and outcome
 
 The owner approved this assignment for **all first-party repository
-documentation**, not only current guides. The [overnight run record](night-run.md)
+documentation**, not only current guides. The [overnight run record](../docs/background/night-run.md)
 owns execution approval, sequencing, operating limits, and stack destination.
 
 Make the documentation easier to read without changing facts, requirements,
@@ -200,7 +200,7 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
 - Owner-requested page writers and reviewers: Luna/xhigh.
 - Model-policy conflict: resolved by the current role policy; effective-setting verification remains required at launch.
-- Execution approval: [overnight run](night-run.md#approval-and-outcome).
+- Execution approval: [overnight run](../docs/background/night-run.md#approval-and-outcome).
 - Conductor: `01a1adbe-bbbd-70a3-9663-4eb1ce3c8a22`, verified
   `openai/gpt-6.1-sol`, `low`; Zellij tab 18, pane 50 (`list_app-night-docs`).
 - Large batch: all-document inventory, protected-content comparison, parallel
@@ -209,7 +209,7 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
   Lead-created and agent-managed. Base: `night-1-tests-partial` (`oqpnzkyx`).
   Lead owns entry lifecycle; Conductor owns children. Lead report target:
   `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
-- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
+- Work window, concurrency, and artifact budget: [overnight run limits](../docs/background/night-run.md#run-limits-and-defaults).
 - Shared-document write windows: completed and released. Lead committed only
   the independently reviewed shared plans on the desk.
 - Result: `nkrslvrx` / `121fb5fd`, bookmarked `night-2-docs`; complete style pass,
@@ -228,7 +228,7 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 - Ten owned child workspaces and five job panes were removed at handback.
   On 2026-11-06 the owner approved entry/session cleanup before acceptance.
   Lead preserved `.night-docs-evidence/`, closed pane 50/tab 18, and removed
-  `night-docs` and its folder. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
+  `night-docs` and its folder. See the [cleanup record](../docs/background/night-run.md#retained-resources-and-next-decisions).
   The bookmarked candidate remains available. Task 1's browser failure remains.
 - Later owner approval: published documentation was accepted in `zynznksk`
   (`6c7b9485`) and rebuilt in the default workspace's existing 8765 preview.

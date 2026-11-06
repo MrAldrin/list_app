@@ -1,5 +1,25 @@
 # Test-suite review evidence
 
+## Archived evidence and current disposition
+
+The owner closed the task session and removed its workspace after evidence
+preservation. The result remains **partial and unaccepted**; browser failures
+and later review work stay in the [backlog](../../plans/backlog.md#blocked).
+The runtime-results page is accepted, not the test candidate.
+
+- Evidence: `.night-evidence/overnight-2026-11-06/partial-tests/evidence/`
+  in the main repository. All 8,299 regular files were moved and SHA-256 checked;
+  1,133 symlinks were preserved without following them. Their targets belong
+  to the archived evidence namespace; original absolute aliases can need the
+  old/new path mapping in `manifest.json`.
+- The archive's `tests-source.bundle` preserves exact candidate `570b4f8a`,
+  separate red diagnostic `d2c6a988`, former workspace child and ancestry.
+  An empty bare Git import verified exact commit bodies and source trees.
+  `preservation.json` records hashes and full IDs. This is not test acceptance
+  or a fresh native jj restoration.
+- Historical commands and paths below describe the original run. Do not replay
+  drivers blindly. First failures and later passes remain distinct.
+
 ## Run and ownership
 
 This is the evidence record for the [test review brief](../../plans/test-suite-review.md).

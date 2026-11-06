@@ -4,7 +4,7 @@ Lifecycle: tracked
 
 ## Status and outcome
 
-The owner approved this design assignment within the [overnight run limits](night-run.md).
+The owner approved this design assignment within the [overnight run limits](../docs/background/night-run.md).
 That record owns sequencing, stack destination, and operating limits. No app
 implementation is approved.
 
@@ -148,7 +148,7 @@ owner is finished with it.
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Execution approval: [overnight run](night-run.md#approval-and-outcome).
+- Execution approval: [overnight run](../docs/background/night-run.md#approval-and-outcome).
 - Conductor: `01a1ae1f-51f3-7754-b9c5-ae51d2bdbb75`, verified
   `openai/gpt-6.1-sol`, `low`; Zellij tab 20, pane 57 (`list_app-night-themes`).
 - Large batch: twenty distinct concepts, shared gallery plumbing, rendered
@@ -157,7 +157,7 @@ owner is finished with it.
   Lead-created and managed. Base: `night-2-docs` (`nkrslvrx` / `121fb5fd`).
   Lead owns entry lifecycle; Conductor owns children and its gallery server.
   Lead report target: `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
-- Work window, concurrent workers, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
+- Work window, concurrent workers, and artifact budget: [overnight run limits](../docs/background/night-run.md#run-limits-and-defaults).
 - Preview: a static gallery-only server is approved on loopback port 8766,
   verified free at dispatch. Recheck before binding. Use a visible owned pane,
   serve only the gallery directory, and leave the existing 8765 preview alone.
@@ -172,7 +172,7 @@ owner is finished with it.
 - Evidence: `docs/background/theme-exploration-review.md` and compact JSON on
   the result line. Full runs, failures, reviews and Lead captures were relocated
   with their directory layout and hashes before entry removal. The portable
-  gallery source was also preserved. See the [cleanup record](night-run.md#retained-resources-and-next-decisions).
+  gallery source was also preserved. See the [cleanup record](../docs/background/night-run.md#retained-resources-and-next-decisions).
 - Worker setting limit: Haiku retry requested/host-reported max, but the child
   reported low or could not confirm it. Provider-internal effort is unresolved.
   Final reviewers used verified Luna/xhigh. Do not call Haiku max fully verified.

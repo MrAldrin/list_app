@@ -4,7 +4,7 @@ Lifecycle: tracked
 
 ## Status and approval
 
-Execution is approved within this brief and the [overnight run limits](night-run.md).
+Execution is approved within this brief and the [overnight run limits](../docs/background/night-run.md).
 That record owns the approval, sequencing, stack destination, and operating limits.
 Record the task owner, workspace, and effective model settings below at dispatch.
 
@@ -222,7 +222,7 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Approval: recorded in the [overnight run](night-run.md#approval-and-outcome).
+- Approval: recorded in the [overnight run](../docs/background/night-run.md#approval-and-outcome).
 - Conductor: session `01a1ad92-275c-776a-8cbd-cb97c67da161`; verified
   `openai/gpt-6.1-sol`, `high`; Zellij tab 16, pane 43 (`list_app-night-tests`).
 - Workspace: `night-tests`, `/home/hsa/projects/list_app-night-tests`;
@@ -242,11 +242,11 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
   browser failure's cause. Product repair needs a separate owner decision.
 - Python 1,792 passed; frontend 1,115 passed in UTC and Oslo; lint, types, build,
   Ruff, and ty passed. Lead reran the 20 affected tests in both zones: passed.
-- Evidence: `docs/background/test-suite-review.md` on the candidate line;
-  ignored artifacts remain at `/home/hsa/projects/list_app-night-tests/.night-evidence/`
-  (about 1.4 GiB). Entry retained for the unaccepted partial result, evidence,
-  and live interactive peer. Preserve artifacts before eventual removal.
-- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
+- Evidence: `docs/background/test-suite-review.md` and the original candidate
+  line. The owner later closed the peer and removed the entry after moving
+  all ignored evidence to the archive recorded below. The test result remains
+  partial and unaccepted; no interactive test Conductor remains.
+- Work window, concurrency, and artifact budget: [overnight run limits](../docs/background/night-run.md#run-limits-and-defaults).
 
 ## Runtime report follow-up
 
@@ -271,11 +271,33 @@ candidate, diagnostic or product change is accepted by this action.
   preview pane 109/8766. After default-preview verification it may preserve
   small receipts under ignored `local_only/test-runtime-docs-2026-11-06/`,
   stop that preview and remove that new workspace in its own graph window.
-  Retained `night-tests` and its original evidence remain untouched.
+  The retained test entry was later closed under the separate owner decision
+  below; its evidence was preserved, not discarded.
 - Lead default build log:
   `local_only/test-runtime-docs-accept-2026-11-06/default-build.log`.
-  The owner continues the unresolved test-value discussion with the retained
-  test Conductor. New implementation or coverage cuts still need their gates.
+  Future test-value discussion starts from the backlog and archived evidence,
+  not an open Conductor. New implementation or cuts still need their gates.
+
+## Session and workspace closeout
+
+The owner closed the retained test session for a clean later start. Pane 43,
+`night-tests` registration and its folder are removed. All 8,299 evidence files
+were moved without duplication to
+`.night-evidence/overnight-2026-11-06/partial-tests/evidence/` and rechecked by
+SHA-256. All 1,133 symlinks were preserved without dereferencing; the manifest
+records old/new paths. Shared `.env` and dependency/build caches were not copied.
+The archive README warns against replaying historical drivers blindly.
+
+`tests-source.bundle` preserves the exact candidate, separate red diagnostic
+and former empty child; Lead verified their bodies/trees and ancestry through
+an empty bare Git import. Full IDs/hash are in `preservation.json`. The existing
+candidate bookmark and diagnostic source remain in shared history too.
+
+The published runtime digest remains accepted. **The test-only candidate is
+not accepted and the browser gate is not cleared.** Keep this tracked plan:
+full verification, product findings, Android decisions and test-value work are
+unresolved in the backlog. No new app check or product change occurred during
+resource cleanup.
 
 ## Progress
 
@@ -286,5 +308,6 @@ candidate, diagnostic or product change is accepted by this action.
 - [x] Review and classify findings; implement bounded Bucket A improvements.
 - [ ] Complete full verification: independent review is done, but the browser gate remains red.
 - [x] Write the testing guide, evidence report, and task closeout.
-- [ ] Record unfinished decisions in the backlog and complete workspace cleanup
-  after acceptance. Retire this plan only when its lifecycle conditions hold.
+- [x] Record unfinished decisions in the backlog; preserve evidence and close
+  the owner-released session/workspace without accepting the partial tests.
+  Retain this plan while full verification and follow-up decisions are open.

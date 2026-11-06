@@ -6,7 +6,7 @@ combined privacy restoration.
 ## Outcome and scope
 
 The [assignment](../../plans/documentation-ste100.md) defines the scope. The
-[run record](../../plans/night-run.md) defines approval and execution limits.
+[run record](night-run.md) defines approval and execution limits.
 This report is evidence, not new implementation or deployment authority.
 
 The pass covers all 476 baseline tracked paths. It rewrote 52 files: 41

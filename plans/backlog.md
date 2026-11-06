@@ -30,7 +30,7 @@ separate item. Version control keeps the history.
 
 - **Research — Decide S3 scope from the completed review.** Owner decision. Preserved at `night-5-s3-review`. Recommended A: an opt-in foreground daily brief; B adds at-due scheduling; C defers new behavior. Also decide whether limited setup may appear before phone push. No implementation or settings reactivation is approved. See the [assignment and result](reminders-s3-scope-review.md). **Unblocks:** a later implementation brief, then S4/S5 in Later.
   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**.
-- **Design — Choose gallery directions.** Owner decision. The twenty-draft gallery remains at `night-3-themes`; no app design is selected. The preview server and task workspace were removed under the owner's cleanup instruction. Portable gallery source and evidence are preserved; see the [assignment](theme-exploration.md) and [cleanup record](night-run.md#retained-resources-and-next-decisions).
+- **Design — Choose gallery directions.** Owner decision. The twenty-draft gallery remains at `night-3-themes`; no app design is selected. The preview server and task workspace were removed under the owner's cleanup instruction. Portable gallery source and evidence are preserved; see the [assignment](theme-exploration.md) and [cleanup record](../docs/background/night-run.md#retained-resources-and-next-decisions).
   **Difficulty:** Medium–high. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**.
 - **Documentation — Review remaining factual issues.** Published STE100-style documentation is accepted and built in the default preview. Factual contradictions remain recorded, not silently corrected. Source-comment/docstring changes remain in `night-2-docs`; no app/test changes were accepted. The original entry/session were removed under owner approval. See the [assignment](documentation-ste100.md).
   **Difficulty:** Medium; high volume. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **low**. Writers/reviewers used verified Luna/xhigh.
@@ -41,18 +41,18 @@ Owner questions and recorded answers: [decisions for Heming](decisions-for-hemin
 ## Next
 
 The five-task run is preserved: four completed results and one partial test
-review. See the [run record](night-run.md) for exact bookmarks, checks and retained
+review. See the [run record](../docs/background/night-run.md) for exact bookmarks, checks and retained
 resources. No unstarted task remains in that run. Review/decision items are
 above; product blockers are below. No later implementation is approved.
 
 ## Blocked
 
-- **Test — Complete verification and review product findings.** Owner decision needed. The bounded test review is preserved at `night-1-tests-partial`. Test repairs and targeted checks passed, but the full browser gate remains red. Review the sign-in interruption diagnostic and rejected-change persistence evidence before approving product work. Keep Android decisions open. The [runtime results page](../docs/reports/test-suite-runtime-2026-11-05.md) is approved and live locally; this does not accept the partial test candidate. Runtime optimization and a complete redundancy audit remain undone. Continue the findings discussion with the retained test Conductor. See the [task plan](test-suite-review.md).
+- **Test — Complete verification and review product findings.** Owner decision needed. The bounded test review is preserved at `night-1-tests-partial`. Test repairs and targeted checks passed, but the full browser gate remains red. Review the sign-in interruption diagnostic and rejected-change persistence evidence before approving product work. Keep Android decisions open. The [runtime results page](../docs/reports/test-suite-runtime-2026-11-05.md) is approved and live locally; this does not accept the partial test candidate. Runtime optimization and a complete redundancy audit remain undone. The test session/workspace are closed; continue from the archived evidence and tracked plan in a new session. See the [task plan](test-suite-review.md).
   **Difficulty:** High. **Conductor:** GPT-6.1 Sol (`gpt-6.1-sol`), thinking **high**. No product repair is approved.
 
 ## Later
 
-- **Refactor — Review jj history again.** Owner requested another look later; the current cleanup batch is closed. Refresh the graph, ownership and recovery before considering remaining conflicts, loose lines and the two old origin feature names. Keep original groups work for a separate port. No further cleanup, remote deletion or report integration is approved. See the [completed results and recovery](jj-history-review.md#follow-up-result-and-pending-decisions).
+- **Refactor — Review jj history again.** Owner requested another look later. The completed report is integrated and its session/workspace are removed. Refresh the graph, ownership and recovery before considering remaining conflicts, loose lines and two old origin feature names. Keep original groups work for a separate port. No further cleanup or remote deletion is approved. See the [completed results and recovery](../docs/background/jj-cleanup-review.md).
 - **Feature — Add stage 4: phone push notifications.** On hold. **Blocked by:** an approved stage 3 scope, its reviewed implementation, and approval to resume. **Unblocks:** stage 5 below. See the [S4 brief](batches/reminders-s4.md).
 - **Feature — Complete stage 5: final polish and owner review.** On hold. **Blocked by:** reviewed stage 4 above, or stage 3 for the in-app-only option, and approval to resume. See the [S5 brief](batches/reminders-s5.md) for the full scope.
 - **Feature — Add a custom color-theme picker.** Build on the existing palettes and contrast tests. Start with a ready-made theme. Warn about colors that make text hard to read. See `PALETTES` in `frontend/src/lib/ui/theme.ts`.

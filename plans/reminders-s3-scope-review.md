@@ -4,7 +4,7 @@ Lifecycle: tracked
 
 ## Status and outcome
 
-The owner approved this research assignment within the [overnight run limits](night-run.md).
+The owner approved this research assignment within the [overnight run limits](../docs/background/night-run.md).
 That record owns sequencing, stack destination, and operating limits. Task
 ownership is assigned at dispatch. This plan does **not** authorize S3
 implementation or resume stages 4 and 5.
@@ -146,7 +146,7 @@ not when S3 is implemented. Wait for that decision before starting any code work
 ## Execution record
 
 - Priority, difficulty, and selected Conductor: see the [backlog](backlog.md#next).
-- Execution approval: [overnight run](night-run.md#approval-and-outcome); research only.
+- Execution approval: [overnight run](../docs/background/night-run.md#approval-and-outcome); research only.
 - Conductor: `01a1ae93-3d85-77d1-a29d-547cc0850af5`, verified
   `openai/gpt-6.1-sol`, `high`; Zellij tab 24, pane 78
   (`list_app-night-s3-review`).
@@ -159,7 +159,7 @@ not when S3 is implemented. Wait for that decision before starting any code work
   archived code as accepted. Record its exact dispatch baseline in the report.
   Lead owns entry lifecycle; Conductor owns children. Lead report target:
   `01a1ad8b-c485-774e-bb47-66e425c18dc4`.
-- Work window, concurrency, and artifact budget: [overnight run limits](night-run.md#run-limits-and-defaults).
+- Work window, concurrency, and artifact budget: [overnight run limits](../docs/background/night-run.md#run-limits-and-defaults).
 - Exclusive graph coordination passes to Conductor at dispatch. All earlier
   tasks are quiescent. At most two bounded workers/reviewers; no competing
   heavy checks. No preview server is needed. Existing docs server 38/8765 and

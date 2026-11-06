@@ -1,6 +1,6 @@
 # Targeted jj cleanup
 
-## A and B are complete — remote names are next
+## Batch closed — further review is deferred
 
 **Completed:** the local `reminders-s2` label removal, **11 empty checkpoints (A)**
 and **two unused source alternatives (B)**. No app code or protected reference
@@ -22,7 +22,8 @@ Before              After A             Now: A + B
 
 There are now **two parked conflicts and no divergent pairs**. B archived the
 unused alternatives; it did not repair their code.
-**`main`, local `integration` and `integration@origin` stayed unchanged.**
+**During A/B execution, `main`, local `integration` and `integration@origin`
+stayed unchanged.** Later report acceptance is recorded below.
 
 The remaining line ends include protected workspaces and real parked work.
 They are not all candidates for removal.
@@ -31,6 +32,28 @@ They are not all candidates for removal.
 not a native rerun. The archive is unchanged. Both configuration-related incidents
 were repaired.
 
+## Closeout
+
+The owner accepted the report and evidence into `integration`, then closed
+this batch. Another history review is in [Later](../../plans/backlog.md#later).
+No remote deletion or additional history cleanup is approved.
+
+- Lead rebased the report-only line onto the accepted baseline. All 62 reviewed
+  report/evidence blobs matched original `62b9a607` exactly before this closeout
+  note. Accepted report tip: `7c3372c41793cb2c2b02969b261e498f46f49376`.
+- The Conductor is closed; `jj-cleanup` registration and folder are removed.
+  Other task sessions/workspaces were closed separately; old pre-existing
+  workspaces and the owner's docs server are untouched.
+- Original report commits remain in the private recovery directory's
+  `completed-report.bundle`, SHA-256
+  `052cb8e67e3b5d03572e53da1ed95668d7085ae46478276ae65127b88ebb3364`.
+  Lead verified an import into an empty bare Git repository, full ancestry,
+  five exact commit bodies/trees and all 62 evidence entries. This is backup
+  verification, not a new native jj restore. Keep the native tar and raw A/B
+  receipts described below too. Do not publish these private files.
+- The completed tracked assignment is retired. Its final pre-integration
+  snapshot remains at `6f91c3fb`, path `plans/jj-history-review.md`.
+
 ---
 
 ## Details — open only what you need
@@ -38,7 +61,8 @@ were repaired.
 <details>
 <summary><strong>1. What changed, what stayed unchanged, and current commands</strong></summary>
 
-Authority: [tracked assignment](../../plans/jj-history-review.md#owner-follow-up-targeted-cleanup).
+Authority: the owner-approved assignment, archived at `6f91c3fb` as
+`plans/jj-history-review.md`. Further work needs fresh owner approval.
 Conductor: `01a1afc6-f7c5-76e5-a8cf-9622e5f80bfe`, `openai/gpt-6.1-sol`, `high`.
 Entry `jj-cleanup` is Lead-created/managed. Shared plans/backlog remain Lead-owned.
 
@@ -473,8 +497,8 @@ plan. Never run a broad `op restore` in the active repository to recover one lea
   [B scratch cleanup](jj-cleanup-review-evidence/set-b-owned-scratch-cleanup.json)
   removed 19 verified phase files and five auditor-created scripts after their
   private copies were preserved.
-- Lead owns this entry's lifecycle. The peer and entry stay available while the
-  owner discusses the remaining remote-name decisions; no wider action is authorized.
+- Lead completed the entry lifecycle at the owner's closeout request. The peer
+  and workspace are removed; remaining decisions are deferred, not approved.
 
 </details>
 

@@ -1,6 +1,17 @@
-# Five-task overnight delivery
+# Overnight run closeout
 
-Lifecycle: temporary
+Closed record. This is evidence for the finished batch, not an active plan.
+Historical approvals below do not authorize new work.
+
+Final owner closeout removed the released `jj-cleanup` and `night-tests`
+workspaces and task sessions. The partial tests remain unaccepted. The jj
+report is accepted; another history review is in the backlog's Later section.
+All test evidence, diagnostic source and native recovery were verified after
+removal. The default docs preview stayed available. Closeout docs checks:
+31 passed; build exited zero with 69 documentation issues (not warning-free),
+60 redirect checks and 2,909 generated local-link checks passed. Logs and the
+resource-preservation receipt are in ignored
+`local_only/final-task-closeout-2026-11-06/`.
 
 ## Approval and outcome
 
@@ -85,11 +96,11 @@ and fresh independent review, even where the selected effort is low.
 
 | Step | Brief | Conductor model/effort | Workspace | Result bookmark |
 | --- | --- | --- | --- | --- |
-| 1 | [Test suite](test-suite-review.md) | Sol 6.1/high | `night-tests` | `night-1-tests-partial` |
-| 2 | [Documentation](documentation-ste100.md) | Sol 6.1/low | `night-docs` | `night-2-docs` |
-| 3 | [Themes](theme-exploration.md) | Sol 6.1/low | `night-themes` | `night-3-themes` |
-| 4 | [jj history](jj-history-review.md) | Sol 6.1/high | `night-history` | `night-4-history` |
-| 5 | [S3 scope](reminders-s3-scope-review.md) | Sol 6.1/high | `night-s3-review` | `night-5-s3-review` |
+| 1 | [Test suite](../../plans/test-suite-review.md) | Sol 6.1/high | `night-tests` | `night-1-tests-partial` |
+| 2 | [Documentation](../../plans/documentation-ste100.md) | Sol 6.1/low | `night-docs` | `night-2-docs` |
+| 3 | [Themes](../../plans/theme-exploration.md) | Sol 6.1/low | `night-themes` | `night-3-themes` |
+| 4 | [jj history](jj-cleanup-review.md) | Sol 6.1/high | `night-history` | `night-4-history` |
+| 5 | [S3 scope](../../plans/reminders-s3-scope-review.md) | Sol 6.1/high | `night-s3-review` | `night-5-s3-review` |
 
 Workspace folders are siblings named `list_app-<workspace>`. The Lead creates
 them only when their task starts. Session/tab identities and exact bases are
@@ -148,10 +159,11 @@ snapshots, copied dependencies, temporary data and check panes are removed.
 The Lead-managed entry and peer were later removed under owner cleanup approval;
 all useful Task 5 evidence is tracked at its bookmark.
 
-Task 1 artifacts remain in its entry `.night-evidence/` (about 1.4 GiB).
-Its two child workspaces and job panes are removed; its entry and successful
-interactive peer remain for unaccepted work/evidence. No task, bounded child or
-check job remains active. The gallery server is stopped.
+Task 1's full `.night-evidence/` was later moved into the main repo's
+`.night-evidence/overnight-2026-11-06/partial-tests/evidence/`, with all regular
+file hashes checked. Its entry, peer, children and job panes are removed.
+The partial result remains unaccepted; no task or check job is active.
+The gallery server is stopped.
 
 ## Final inspection record
 
@@ -218,11 +230,12 @@ workspace name. Task 2/4/5 final compact evidence remains tracked in the result
 bookmarks. The historical source/report paths in those snapshots are not live
 workspace locations now.
 
-Only partial task 1 retains an entry and Conductor (tab 16/pane 43), with its
-ignored `.night-evidence/` and separate diagnostic. The owner-managed docs
-server pane 38/port 8765, main repo, old temporary workspaces and parked sources
-are untouched. This temporary run plan remains for task 1's disposition;
-tracked task plans remain for owner review and product decisions.
+The owner later closed partial task 1's retained entry/Conductor too. Its
+entire evidence directory is archived as recorded above; the manifest and
+`tests-source.bundle` preserve exact source and paths. The separate red
+sign-in diagnostic is preserved, not merged. The owner-managed docs server
+pane 38/port 8765, main repo, old temporary workspaces and parked sources are
+untouched. Tracked task plans retain unresolved review/product decisions.
 
 The backlog owns the follow-up agenda: approve separate product investigations,
 choose gallery directions, inspect candidate documentation/history, and decide
@@ -234,15 +247,16 @@ Broader jj cleanup is not recommended now. Android decisions remain open.
 
 On 2026-11-06 the owner approved a separate visible runtime-results page and
 local preview refresh. Docs-only `twrnzkzr` / `9bfe56f6` is accepted; the
-[task plan](test-suite-review.md#runtime-report-follow-up) records review,
+[task plan](../../plans/test-suite-review.md#runtime-report-follow-up) records review,
 checks, URL and resource ownership. The historical test candidate remains
 unaccepted and partial. No new app/browser suite was run for this publication.
 
 The owner also requested concrete targeted jj cleanup after reviewing the
-view-only outcome. The [new phase](jj-history-review.md#owner-follow-up-targeted-cleanup)
-records the exact authority, protected sources and new Conductor. The original
-no-cleanup result is historical, not a rule to keep every old head forever.
-Shared graph operations are serialized with the runtime-page follow-up.
+view-only outcome. The [accepted cleanup report](jj-cleanup-review.md)
+records the later completed A/B actions, authority, recovery and review limits.
+That Conductor and workspace are now removed; the completed jj plan is retired.
+The original no-cleanup result is historical, not a rule to keep every old head
+forever. Further history review is deferred in the backlog.
 
 ## Closeout requirements
 
@@ -265,5 +279,5 @@ stable homes and incoming links are fixed.
 - [x] Remove bounded children/check jobs and record retained ownership obligations.
 - [x] Under the owner's later approval, preserve completed-task ignored evidence,
   stop the gallery, close the four completed Conductors and remove their entries.
-- [ ] Owner decides the partial task 1 disposition; preserve its ignored evidence
-  before any later entry/session cleanup.
+- [x] Owner closed partial task 1 without accepting its tests; all evidence and
+  exact source were preserved, then the session/workspace were removed.
