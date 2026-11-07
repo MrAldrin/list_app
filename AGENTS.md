@@ -147,8 +147,9 @@ these guardrails after we have tried them. Do not remove them automatically.
   Stop on ownership rejection; guard closure by the actual claimant and status.
   Source groups and historical owners are not active claims or approval.
 - Preserve the native store, private runtime evidence and sibling gate lock.
-  Use native backup/recovery, not JSONL-only recovery. No task remote or push
-  is authorized. Existing integration, shared-docs and deployment gates stay.
+  Use native backup/recovery, not JSONL-only recovery. Existing integration,
+  shared-docs and deployment gates stay.
+- Sync: follow "Sync with GitHub" in the shared PRIME.md. Beads data remote: MrAldrin/list_app-beads (private).
 
 ## Tools
 

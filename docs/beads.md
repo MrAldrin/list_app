@@ -13,11 +13,11 @@ workspace. Do not put this project path in global shell settings.
 Use an explicit store and primary directory on every command. In Fish:
 
 ```text
-env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app --sandbox where
-env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app --sandbox list --all --limit 0
-env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app --sandbox ready --limit 0
-env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app --sandbox list --status blocked --limit 0
-env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app --sandbox list --status deferred --limit 0
+env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app where
+env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app list --all --limit 0
+env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app ready --limit 0
+env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app list --status blocked --limit 0
+env BEADS_DIR=/home/hsa/projects/list_app/.beads bd -C /home/hsa/projects/list_app list --status deferred --limit 0
 ```
 
 Before a write, run `where` yourself and check the exact primary path. Stop if
@@ -52,7 +52,8 @@ unexpected owner, path, symlink or opened private boundary; do not change a
 shared backup parent. Private child work also requires a verified model/tier,
 loaded runtime doctor and a synthetic fresh no-tools canary before source
 reads. Keep task text out of command arguments; use protected files or stdin.
-Do not publish this machine-local store or evidence.
+Keep the local native store and runtime evidence private. Beads data sync uses
+only the private target named in [AGENTS.md](../AGENTS.md).
 
 The database lives in `.beads/embeddeddolt/`. Keep the full native store, its
 configuration and private companions, and the sibling `.beads.gate.lock`.
@@ -61,8 +62,8 @@ Lock files are not task claims. Do not remove them while Beads is in use.
 Native backup destination:
 `/home/hsa/.local/share/beads-backups/list_app/native`.
 Use the same explicit store selection for `backup sync` and `backup status`.
-Automatic push, export, staging and backup are disabled; there is no task
-remote. Do not change Git remotes or push task data as part of normal use.
+Automatic export, staging and backup stay disabled. For task sync, follow
+"Sync with GitHub" in the shared PRIME.md. Keep code Git remotes unchanged.
 
 An issue JSONL export is not a full backup. Recovery needs a native backup and
 a new isolated, initialized destination with an explicit `BEADS_DIR` from its
@@ -73,4 +74,5 @@ journal, provenance and recorded Dolt log. Do not use standalone Dolt during a
 read-only review; inspect the protected preparation evidence instead.
 
 This backup is on the same PC. It does not protect against loss of the machine
-or disk. No remote backup, service, publication or deployment is approved.
+or disk. Private Beads sync follows the shared PRIME.md. No other remote
+backup, service, publication or deployment is approved.

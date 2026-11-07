@@ -1,0 +1,10 @@
+sync:
+    remote: "git+https://github.com/MrAldrin/list_app-beads.git"
+dolt:
+    auto-push: true
+backup:
+    enabled: false
+    git-push: false
+export:
+    auto: false
+    git-add: false
