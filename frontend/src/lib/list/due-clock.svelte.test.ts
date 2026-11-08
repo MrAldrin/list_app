@@ -3,16 +3,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { advanceDueClock, dueClock, startDueClock } from './due-clock.svelte.ts';
 import { localDay } from './due-reminders.ts';
 
+// Fixed UTC instants straddle midnight in the default Europe/Oslo zone.
+
 describe('advanceDueClock', () => {
-	it('moves within a day as well as across days', () => {
-		advanceDueClock(new Date(2026, 10, 2, 12));
+	it('moves within a day as well as across the default-zone day boundary', () => {
+		const noon = new Date('2026-11-02T11:00:00.000Z');
+		advanceDueClock(noon);
 		expect(localDay(dueClock.now)).toBe('2026-11-02');
 
-		advanceDueClock(new Date(2026, 10, 2, 20));
-		expect(dueClock.now).toEqual(new Date(2026, 10, 2, 20));
+		const evening = new Date('2026-11-02T19:00:00.000Z');
+		advanceDueClock(evening);
+		expect(dueClock.now).toEqual(evening);
 
-		advanceDueClock(new Date(2026, 10, 3, 0, 1));
-		expect(dueClock.now).toEqual(new Date(2026, 10, 3, 0, 1));
+		const afterMidnight = new Date('2026-11-02T23:01:00.000Z');
+		advanceDueClock(afterMidnight);
+		expect(dueClock.now).toEqual(afterMidnight);
+		expect(localDay(dueClock.now)).toBe('2026-11-03');
 	});
 });
 
@@ -21,7 +27,7 @@ describe('startDueClock', () => {
 
 	beforeEach(() => {
 		vi.useFakeTimers();
-		vi.setSystemTime(new Date(2026, 10, 4, 23, 59));
+		vi.setSystemTime(new Date('2026-11-04T22:59:00.000Z'));
 		advanceDueClock(new Date());
 	});
 
@@ -33,29 +39,30 @@ describe('startDueClock', () => {
 
 	it('checks the day at once, so a remount after midnight is not stale', () => {
 		stop = startDueClock();
+		expect(localDay(dueClock.now)).toBe('2026-11-04');
 		stop();
 		stop = undefined;
 
-		vi.setSystemTime(new Date(2026, 10, 5, 0, 0));
+		vi.setSystemTime(new Date('2026-11-04T23:00:00.000Z'));
 		stop = startDueClock();
 		expect(localDay(dueClock.now)).toBe('2026-11-05');
 	});
 
 	it('updates within a day when the minute timer runs', () => {
-		vi.setSystemTime(new Date(2026, 10, 4, 12, 0));
+		vi.setSystemTime(new Date('2026-11-04T11:00:00.000Z'));
 		stop = startDueClock();
 		vi.advanceTimersByTime(60_000);
-		expect(dueClock.now).toEqual(new Date(2026, 10, 4, 12, 1));
+		expect(dueClock.now).toEqual(new Date('2026-11-04T11:01:00.000Z'));
 	});
 
 	it('checks every minute and when the page is shown again', () => {
 		stop = startDueClock();
 
-		vi.setSystemTime(new Date(2026, 10, 5, 0, 0));
+		vi.setSystemTime(new Date('2026-11-04T23:00:00.000Z'));
 		vi.advanceTimersByTime(60_000);
 		expect(localDay(dueClock.now)).toBe('2026-11-05');
 
-		vi.setSystemTime(new Date(2026, 10, 6, 9, 0));
+		vi.setSystemTime(new Date('2026-11-05T23:00:00.000Z'));
 		document.dispatchEvent(new Event('visibilitychange'));
 		expect(localDay(dueClock.now)).toBe('2026-11-06');
 	});
@@ -66,7 +73,7 @@ describe('startDueClock', () => {
 		stop = undefined;
 		const dayWhenStopped = localDay(dueClock.now);
 
-		vi.setSystemTime(new Date(2026, 10, 7, 9, 0));
+		vi.setSystemTime(new Date('2026-11-05T23:00:00.000Z'));
 		vi.advanceTimersByTime(60_000);
 		document.dispatchEvent(new Event('visibilitychange'));
 		expect(localDay(dueClock.now)).toBe(dayWhenStopped);

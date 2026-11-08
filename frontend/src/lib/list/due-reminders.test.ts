@@ -12,13 +12,20 @@ import {
 	localDay
 } from './due-reminders';
 
-// Local noon on 2 Nov 2026, so time zones do not shift the day.
-const NOW = new Date(2026, 10, 2, 12, 0);
+// Fixed instant at noon in the pre-setup day-grouping zone.
+const TEST_ZONE = 'Europe/Oslo';
+const NOW = new Date('2026-11-02T11:00:00.000Z');
 
 describe('localDay', () => {
-	it('writes the local day as YYYY-MM-DD', () => {
-		expect(localDay(NOW)).toBe('2026-11-02');
-		expect(localDay(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
+	it('uses the pre-setup Europe/Oslo zone across midnight', () => {
+		expect(localDay(new Date('2026-01-05T22:59:00.000Z'))).toBe('2026-01-05');
+		expect(localDay(new Date('2026-01-05T23:01:00.000Z'))).toBe('2026-01-06');
+	});
+
+	it('writes the configured local day as YYYY-MM-DD across midnight', () => {
+		expect(localDay(NOW, TEST_ZONE)).toBe('2026-11-02');
+		expect(localDay(new Date('2026-01-05T22:59:00.000Z'), TEST_ZONE)).toBe('2026-01-05');
+		expect(localDay(new Date('2026-01-05T23:01:00.000Z'), TEST_ZONE)).toBe('2026-01-06');
 	});
 });
 
@@ -51,8 +58,10 @@ describe('itemDueGroup', () => {
 
 	it('moves an item to the next group when the day rolls over', () => {
 		const tomorrowItem = makeItem(list.uid, { date: '2026-11-03' });
-		expect(itemDueGroup(tomorrowItem, NOW)).toBe('tomorrow');
-		expect(itemDueGroup(tomorrowItem, new Date(2026, 10, 3, 0, 1))).toBe('today');
+		expect(itemDueGroup(tomorrowItem, NOW, TEST_ZONE)).toBe('tomorrow');
+		expect(itemDueGroup(tomorrowItem, new Date('2026-11-02T23:01:00.000Z'), TEST_ZONE)).toBe(
+			'today'
+		);
 	});
 });
 
@@ -133,33 +142,38 @@ describe('dueRows and dueSections', () => {
 
 describe('confirmed timed deadlines', () => {
 	it('uses the instant for overdue strictly after it and for device-local grouping', () => {
-		const deadline = new Date(2026, 10, 2, 12);
+		const deadline = new Date('2026-11-02T11:00:00.000Z');
 		const item = makeItem('l', {
 			date: '2026-11-03',
 			due_time: '01:00',
 			due_timezone: 'Pacific/Kiritimati',
 			due_at: deadline.toISOString()
 		});
-		expect(itemDueGroup(item, new Date(deadline.valueOf() - 1))).toBe('today');
-		expect(itemDueGroup(item, deadline)).toBe('today');
-		expect(itemDueGroup(item, new Date(deadline.valueOf() + 1))).toBe('overdue');
-		expect(dueTally([item], new Date(deadline.valueOf() + 1))).toEqual({ count: 1, overdue: 1 });
-		expect(dueSections(dueRows([item], () => '', new Date(deadline.valueOf() + 1)))[0].group).toBe(
-			'overdue'
+		expect(itemDueGroup(item, new Date(deadline.valueOf() - 1), TEST_ZONE)).toBe('today');
+		expect(itemDueGroup(item, deadline, TEST_ZONE)).toBe('today');
+		expect(itemDueGroup(item, new Date(deadline.valueOf() + 1), TEST_ZONE)).toBe('overdue');
+		expect(dueTally([item], new Date(deadline.valueOf() + 1), TEST_ZONE)).toEqual({
+			count: 1,
+			overdue: 1
+		});
+		expect(
+			dueSections(dueRows([item], () => '', new Date(deadline.valueOf() + 1), TEST_ZONE))[0].group
+		).toBe('overdue');
+		expect(dueTag(itemDueGroup(item, new Date(deadline.valueOf() + 1), TEST_ZONE)!)?.text).toBe(
+			'Overdue'
 		);
-		expect(dueTag(itemDueGroup(item, new Date(deadline.valueOf() + 1))!)?.text).toBe('Overdue');
 	});
 	it('uses the confirmed instant day rather than the wall date at device midnight', () => {
-		const now = new Date(2026, 10, 2, 23, 0);
-		const instant = new Date(2026, 10, 3, 0, 30);
+		const now = new Date('2026-11-02T22:00:00.000Z');
+		const instant = new Date('2026-11-02T23:30:00.000Z');
 		const item = makeItem('l', {
 			date: '2026-11-02',
 			due_time: '12:00',
 			due_timezone: 'America/Adak',
 			due_at: instant.toISOString()
 		});
-		expect(itemDueGroup(item, now)).toBe('tomorrow');
-		expect(itemDueGroup(item, new Date(2026, 10, 3, 0, 1))).toBe('today');
+		expect(itemDueGroup(item, now, TEST_ZONE)).toBe('tomorrow');
+		expect(itemDueGroup(item, new Date('2026-11-02T23:01:00.000Z'), TEST_ZONE)).toBe('today');
 	});
 	it('does not manufacture an instant for an unsynced wall intent', () => {
 		const item = makeItem('l', {
@@ -168,7 +182,7 @@ describe('confirmed timed deadlines', () => {
 			due_timezone: 'Europe/Oslo',
 			due_at: null
 		});
-		expect(itemDueGroup(item, NOW)).toBe('today');
+		expect(itemDueGroup(item, NOW, TEST_ZONE)).toBe('today');
 	});
 });
 
