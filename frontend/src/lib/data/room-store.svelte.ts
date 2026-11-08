@@ -604,13 +604,19 @@ export class RoomStore implements QueueHost, LiveHost {
 		return true;
 	}
 
+	/** Puts a refused or failed change on the Not saved list after it is durable. */
+	admitNotSaved(change: NotSavedChange): void {
+		if (this.notSaved.some((item) => item.key === change.key)) return;
+		this.notSaved = [...this.notSaved, change];
+	}
+
 	/** Puts a refused or failed change on the Not saved list. */
 	#collect(op: SentOp, code: ActionCode, message: string, name: string | null): void {
 		this.#notSavedId += 1;
 		const text = notSavedMessage({ op, code, message, name });
 		const change = { id: this.#notSavedId, key: op.op_id, op, code, message, name, text };
-		this.notSaved = [...this.notSaved, change];
 		this.#persistNotSaved(change, [], true);
+		if (!this.#lifecycle.persistNotSaved) this.admitNotSaved(change);
 	}
 
 	#persistNotSaved(

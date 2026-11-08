@@ -31,7 +31,12 @@ import {
 } from './pending-logout';
 import { failed, type ActionResult, type Failure } from './result';
 import { rowOf } from './rebase';
-import { createRoomStore, RoomStore, type RoomStatus } from './room-store.svelte';
+import {
+	createRoomStore,
+	RoomStore,
+	type NotSavedChange,
+	type RoomStatus
+} from './room-store.svelte';
 import { signInRoom, SIGNIN_INTERRUPTED } from './room-signin';
 import { ShareApi } from './share';
 import {
@@ -249,14 +254,7 @@ export class RoomHandle {
 			},
 			connectionLost: () => this.#queue?.pause(),
 			persistNotSaved: (change, removedKeys, add) => {
-				const write = this.#notSavedWrites.then(() =>
-					change
-						? add
-							? this.#queueStorage.addNotSaved(change)
-							: this.#queueStorage.updateNotSaved(change)
-						: this.#queueStorage.removeNotSaved(removedKeys)
-				);
-				this.#notSavedWrites = write.catch(() => undefined);
+				this.#persistNotSavedWrite(change, removedKeys, add);
 			}
 		});
 		this.#queue = new WriteQueue(slug, this.#api, this.store, {
@@ -304,6 +302,29 @@ export class RoomHandle {
 	#guardEdit(): Failure | null {
 		if (compat.incompatible) return INCOMPATIBLE;
 		return this.store.canEdit ? null : READ_ONLY;
+	}
+
+	#persistNotSavedWrite(
+		change: NotSavedChange | null,
+		removedKeys: readonly string[],
+		add: boolean
+	): void {
+		if (add && change) {
+			const durable = this.#queue.settleRejected(change.key, change);
+			const write = this.#notSavedWrites
+				.then(() => durable)
+				.then(() => {
+					this.store.admitNotSaved(change);
+				});
+			this.#notSavedWrites = write.catch(() => undefined);
+			return;
+		}
+		const write = this.#notSavedWrites.then(() =>
+			change
+				? this.#queueStorage.updateNotSaved(change)
+				: this.#queueStorage.removeNotSaved(removedKeys)
+		);
+		this.#notSavedWrites = write.catch(() => undefined);
 	}
 
 	/** Ops not answered by the server yet. */

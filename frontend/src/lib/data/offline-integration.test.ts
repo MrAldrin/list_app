@@ -27,7 +27,8 @@ import type { Feed, Item, OpResponse, SentOp } from './types';
 import { createSnapshotStore, type SnapshotStore } from './snapshot-store';
 import type { SessionLockManager } from './session-transition';
 import { createQueueStorage, MemoryQueueStorage, type QueueStorage } from './queue-storage';
-import { newStoredEntry } from './queue-entries';
+import { newStoredEntry, type StoredEntry } from './queue-entries';
+import { isRecord } from './snapshot-validate';
 import { usualItemSuggestions } from '#lib/list/items.ts';
 
 const list = makeList({ uid: 'saved-list' });
@@ -1874,6 +1875,61 @@ describe('offline editing (6.2d)', () => {
 });
 
 describe('not-saved changes (6.3)', () => {
+	function notSavedKey(item: unknown): string | undefined {
+		if (!isRecord(item)) return undefined;
+		if (typeof item.key === 'string') return item.key;
+		return isRecord(item.op) && typeof item.op.op_id === 'string' ? item.op.op_id : undefined;
+	}
+
+	/** Records committed IndexedDB bytes after each durable write, using a second connection. */
+	function tracingQueueStorage(
+		inner: QueueStorage,
+		factory: IDBFactory,
+		key: string,
+		databaseName: string,
+		beforeWrite: (method: string) => void
+	) {
+		const snapshots: { method: string; entries: StoredEntry[]; notSaved: unknown[] }[] = [];
+		// Hold the old split-write path if it returns, so the regression cannot
+		// pass merely because addNotSaved wins the race with the observer.
+		const legacyAddWaiters: Array<() => void> = [];
+		const capture = async (method: string) => {
+			const reader = createQueueStorage(key, { indexedDB: factory, databaseName });
+			snapshots.push({
+				method,
+				entries: await reader.read(),
+				notSaved: await reader.readNotSaved()
+			});
+		};
+		return {
+			snapshots,
+			releaseLegacyAdds() {
+				for (const resume of legacyAddWaiters.splice(0)) resume();
+			},
+			storage: new Proxy(inner, {
+				get(target, prop, receiver) {
+					if (prop === 'durable') return target.durable;
+					const value = Reflect.get(target, prop, receiver) as unknown;
+					if (typeof value !== 'function') return value;
+					const method = String(prop);
+					if (method === 'read' || method === 'readNotSaved') return value.bind(target);
+					return async (...args: unknown[]) => {
+						if (method === 'addNotSaved') {
+							await new Promise<void>((resolve) => legacyAddWaiters.push(resolve));
+						}
+						beforeWrite(method);
+						const result = await (value as (...innerArgs: unknown[]) => Promise<unknown>).apply(
+							target,
+							args
+						);
+						await capture(method);
+						return result;
+					};
+				}
+			})
+		};
+	}
+
 	/** A device that saved the list online, then goes offline with its own queue. */
 	async function offlineDevice(queue: QueueStorage = new MemoryQueueStorage()) {
 		const storage = snapshots();
@@ -1930,6 +1986,86 @@ describe('not-saved changes (6.3)', () => {
 		offline.release();
 		device.storage.close();
 	});
+
+	it.each([
+		{
+			name: 'changed_meanwhile reject',
+			answer: (op: SentOp): OpResponse => ({
+				op_id: op.op_id,
+				status: 'rejected',
+				code: 'changed_meanwhile',
+				message: 'Someone else changed this meanwhile.',
+				seq: 8
+			})
+		},
+		{
+			name: 'HTTP failure',
+			answer: (): never => {
+				throw new ApiError(422, 'invalid_request', 'This request is not valid.');
+			}
+		}
+	])(
+		'keeps a waited $name in the same durable record that drops the queue entry',
+		async ({ answer }) => {
+			const factory = new IDBFactory();
+			const key = `room:${ROOM.slug}`;
+			const databaseName = `offline-settle-${++databaseCounter}`;
+			const inner = createQueueStorage(key, { indexedDB: factory, databaseName });
+			const visibleBeforeCommit: number[] = [];
+			const traced = tracingQueueStorage(inner, factory, key, databaseName, (method) => {
+				if (method === 'settleRejected')
+					visibleBeforeCommit.push(device.offline.store.notSaved.length);
+			});
+			let rejectedId = '';
+			const device = await offlineDevice(traced.storage);
+			try {
+				void device.offline.setDone(item, true);
+				const { offlineApi, connectivity } = device;
+				offlineApi.sendOp.mockImplementation(async (_slug, op) => {
+					rejectedId = op.op_id;
+					return answer(op);
+				});
+				offlineApi.whoAmI.mockResolvedValue(ROOM);
+				offlineApi.changes.mockResolvedValue(
+					makeFeed({
+						seq: 8,
+						full: true,
+						lists: [list],
+						items: [{ ...item, done: false, changed_seq: 6 }]
+					})
+				);
+				connectivity.emit('online');
+
+				await waitFor(() => {
+					expect(rejectedId).not.toBe('');
+					const afterDrop = traced.snapshots.filter(
+						(snap) => !snap.entries.some((entry) => entry.opId === rejectedId)
+					);
+					expect(afterDrop.length).toBeGreaterThan(0);
+				});
+				const afterDrop = traced.snapshots.filter(
+					(snap) => !snap.entries.some((entry) => entry.opId === rejectedId)
+				);
+				// No committed snapshot may lose the queued op before it holds the rejection.
+				for (const snap of afterDrop) {
+					expect(snap.notSaved.map(notSavedKey), `${snap.method} dropped ${rejectedId}`).toContain(
+						rejectedId
+					);
+				}
+				traced.releaseLegacyAdds();
+				await waitFor(() => expect(device.offline.store.notSaved).toHaveLength(1));
+				expect(device.offline.store.notSaved[0].key).toBe(rejectedId);
+				const reopened = createQueueStorage(key, { indexedDB: factory, databaseName });
+				expect(await reopened.read()).toEqual([]);
+				expect((await reopened.readNotSaved()).map(notSavedKey)).toEqual([rejectedId]);
+				expect(visibleBeforeCommit).toEqual([0]);
+			} finally {
+				traced.releaseLegacyAdds();
+				device.offline.release();
+				device.storage.close();
+			}
+		}
+	);
 
 	it('restores persisted rejections after a reload and does not retry them automatically', async () => {
 		const queue = createQueueStorage(`room:${ROOM.slug}`, {

@@ -118,6 +118,8 @@ export class WriteQueue {
 	#entries: StoredEntry[] = [];
 	/** Ops whose request was started and not yet answered (in flight or retried). */
 	#sent = new Set<string>();
+	/** Settled into a Not saved row on the queue chain; skip a separate remove. */
+	#durableSettled = new Set<string>();
 	/** Bumped by each local change. A storage read that overlaps a change is repeated. */
 	#version = 0;
 	/** Storage calls run one after another, in the order they were made. */
@@ -338,10 +340,25 @@ export class WriteQueue {
 		this.#onChange?.(summarizeEntries(this.#entries, this.#nowMs(), this.#storage.durable));
 	}
 
-	#removeEntry(opId: string): void {
+	#forgetEntry(opId: string): void {
 		this.#sent.delete(opId);
 		this.#entries = this.#entries.filter((entry) => entry.opId !== opId);
 		this.#mutated();
+	}
+
+	#removeEntry(opId: string): void {
+		this.#forgetEntry(opId);
+		void this.#enqueue(() => this.#storage.remove(opId));
+	}
+
+	/** Drop a settled op and persist its Not saved row on the same storage chain. */
+	settleRejected(opId: string, change: { key: string }): Promise<void> {
+		this.#durableSettled.add(opId);
+		return this.#enqueue(() => this.#storage.settleRejected(opId, change));
+	}
+
+	#finishDurableRemoval(opId: string): void {
+		if (this.#durableSettled.delete(opId)) return;
 		void this.#enqueue(() => this.#storage.remove(opId));
 	}
 
@@ -424,18 +441,20 @@ export class WriteQueue {
 				if (this.#host.authRequired(op) === 'stale') this.#paused = false;
 				return;
 			}
-			this.#removeEntry(op.op_id);
+			this.#forgetEntry(op.op_id);
 			this.#host.opFailed(op, error);
+			this.#finishDurableRemoval(op.op_id);
 			this.#waiters.get(op.op_id)?.reject(error);
 			this.#waiters.delete(op.op_id);
 			return;
 		}
 		if (this.#disposed) return;
 		this.#attempt = 0;
-		this.#removeEntry(op.op_id);
+		this.#forgetEntry(op.op_id);
 		// Planned before the host records the answer: `knownSeq` is the seq before it.
 		const rewrites = this.#planRewrites(op, response);
 		this.#host.opSettled(op, response);
+		this.#finishDurableRemoval(op.op_id);
 		this.#applyRewrites(rewrites);
 		this.#waiters.get(op.op_id)?.resolve(response);
 		this.#waiters.delete(op.op_id);
