@@ -18,6 +18,7 @@ import { LiveUpdates, type EventSourceFactory, type SessionState } from './event
 import { newId } from './ids';
 import {
 	SIGNIN_LOCK_UNAVAILABLE,
+	SIGNIN_STATE_UNAVAILABLE,
 	SIGNIN_REFRESH_FAILED,
 	SNAPSHOT_UNAVAILABLE,
 	LOGOUT_LOCAL_CLEAR_UNCONFIRMED,
@@ -209,6 +210,9 @@ export class RoomHandle {
 	#users = 0;
 	#snapshotGeneration: SnapshotGeneration | null = null;
 	#identityEpoch = 0;
+	/** Identifies only this handle's already-applied 401 clear notification. */
+	readonly #snapshotClearOrigin = {};
+	#snapshotClear: Promise<boolean> = Promise.resolve(true);
 	#sessionValidated = false;
 	#signoutBlocked = false;
 	#volatileAuthorized = false;
@@ -275,6 +279,9 @@ export class RoomHandle {
 		});
 		this.#removeClearHint =
 			this.#snapshotStore?.onClear((hint) => {
+				// The local 401 already revoked this handle. Its echo is not a
+				// newer revocation; all other handles/tabs still check the hint.
+				if (hint.origin === this.#snapshotClearOrigin) return;
 				if (this.#sameIdentity(hint.identity)) void this.#checkClearHint(hint.generation);
 			}) ?? null;
 		this.#removeSigninHint = onRoomSignIn((signedInSlug) => {
@@ -617,6 +624,18 @@ export class RoomHandle {
 			return { ok: false, code: 'read_only', message: 'A share link cannot sign in.' };
 		}
 		const loginEpoch = this.#identityEpoch;
+		// Finish our own durable invalidation before sign-in reads its baseline.
+		// Keep the captured epoch: a newer external revocation must still cancel.
+		if (!(await this.#snapshotClear)) {
+			return {
+				ok: false,
+				code: 'session_transition_unavailable',
+				message: SIGNIN_STATE_UNAVAILABLE
+			};
+		}
+		if (loginEpoch !== this.#identityEpoch) {
+			return { ok: false, code: 'signed_out', message: SIGNIN_INTERRUPTED };
+		}
 		return signInRoom({
 			slug: this.slug,
 			password,
@@ -1002,8 +1021,16 @@ export class RoomHandle {
 		this.#deleted.clear();
 		this.store.clear(status);
 		if (persist && this.#snapshotStore) {
-			void this.#snapshotStore.clear(this.#identity).then((result) => {
-				if (!result.ok) this.#warnSnapshot();
+			const snapshots = this.#snapshotStore;
+			this.#snapshotClear = this.#snapshotClear.then(async () => {
+				try {
+					const result = await snapshots.clear(this.#identity, this.#snapshotClearOrigin);
+					if (result.ok) return true;
+				} catch {
+					// A failed clear must not leave a rejected background promise.
+				}
+				this.#warnSnapshot();
+				return false;
 			});
 		}
 	}

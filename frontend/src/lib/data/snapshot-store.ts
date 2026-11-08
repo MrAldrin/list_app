@@ -52,6 +52,8 @@ export type SnapshotResult<T> =
 export interface SnapshotClearHint {
 	identity: SnapshotIdentity;
 	generation: number;
+	/** Local caller identity only. Never stored or sent to another tab. */
+	origin?: object;
 }
 
 export interface SnapshotClearChannel {
@@ -69,7 +71,7 @@ export interface SnapshotStore {
 		data: SnapshotData,
 		generation: SnapshotGeneration
 	): Promise<SnapshotResult<SavedSnapshot>>;
-	clear(identity: SnapshotIdentity): Promise<SnapshotResult<void>>;
+	clear(identity: SnapshotIdentity, origin?: object): Promise<SnapshotResult<void>>;
 	/** Drops snapshots saved over `SNAPSHOT_MAX_AGE_DAYS` ago, except `keep`. Returns how many. */
 	prune(keep: SnapshotIdentity | null): Promise<SnapshotResult<number>>;
 	localSignOut(identity: RoomIdentity): Promise<SnapshotResult<void>>;
@@ -198,8 +200,8 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 		return databasePromise;
 	}
 
-	function publishClear(identity: SnapshotIdentity, generation: number): void {
-		const hint: SnapshotClearHint = { identity, generation };
+	function publishClear(identity: SnapshotIdentity, generation: number, origin?: object): void {
+		const hint: SnapshotClearHint = { identity, generation, ...(origin ? { origin } : {}) };
 		for (const listener of listeners) {
 			try {
 				listener(hint);
@@ -208,7 +210,7 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 			}
 		}
 		try {
-			channel?.postMessage({ type: 'snapshot-clear', ...hint });
+			channel?.postMessage({ type: 'snapshot-clear', identity, generation });
 		} catch {
 			// Durable IndexedDB state is authoritative; notification failure is harmless.
 		}
@@ -377,7 +379,7 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 			}
 		},
 
-		async clear(identity) {
+		async clear(identity, origin) {
 			const identified = identify(identity);
 			if (!identified) return resultFailure('invalid_identity');
 			try {
@@ -411,7 +413,7 @@ export function createSnapshotStore(options: SnapshotStoreOptions = {}): Snapsho
 					}
 				);
 				if (!result.ok) return result;
-				publishClear(identified.identity, result.value);
+				publishClear(identified.identity, result.value, origin);
 				return resultSuccess(undefined);
 			} catch {
 				return resultFailure('unavailable');

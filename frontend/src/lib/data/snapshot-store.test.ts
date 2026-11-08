@@ -257,7 +257,17 @@ describe('snapshot store', () => {
 		expect(received).toEqual(['room:999']);
 		expect((await second.read(identity)).ok).toBe(true);
 
-		await first.clear(identity);
+		const origin = {};
+		const local = vi.fn();
+		first.onClear(local);
+		const publish = vi.spyOn(firstChannel, 'postMessage');
+		await first.clear(identity, origin);
+		expect(local.mock.calls[0][0].origin).toBe(origin);
+		expect(publish).toHaveBeenCalledWith({
+			type: 'snapshot-clear',
+			identity,
+			generation: 1
+		});
 		expect(received).toEqual(['room:999', 'room:1']);
 		expect(await second.read(identity)).toEqual({ ok: true, value: null });
 	});

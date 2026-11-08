@@ -1355,6 +1355,12 @@ describe('room session transition serialization', () => {
 		expect(await signingIn).toMatchObject({ ok: false, code: 'signed_out' });
 		expect(await logout).toEqual({ ok: true, result: {} });
 		expect(room.store.canWrite).toBe(false);
+		expect(room.store.status).toBe('auth_required');
+		expect(room.store.lists).toEqual([]);
+		expect(await storage.read({ kind: 'room', slug: ROOM.slug })).toMatchObject({
+			ok: false,
+			reason: 'signed_out'
+		});
 		expect(api.whoAmI).not.toHaveBeenCalled();
 		expect(api.changes).not.toHaveBeenCalled();
 		room.release();
