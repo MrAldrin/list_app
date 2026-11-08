@@ -37,6 +37,8 @@ export interface QueueStorage {
 	addNotSaved(change: { key: string }): Promise<void>;
 	updateNotSaved(change: { key: string }): Promise<void>;
 	removeNotSaved(keys: readonly string[]): Promise<void>;
+	/** One write: drop the queued op and keep its Not saved row. */
+	settleRejected(opId: string, change: { key: string }): Promise<void>;
 	/** Removes every entry and rejection of this room or share link. */
 	clear(): Promise<void>;
 }
@@ -79,8 +81,7 @@ export class MemoryQueueStorage implements QueueStorage {
 		return this.#notSaved.slice();
 	}
 	async addNotSaved(change: { key: string }): Promise<void> {
-		if (!this.#notSaved.some((item) => notSavedKey(item) === change.key))
-			this.#notSaved = [...this.#notSaved, change];
+		this.#notSaved = appendNotSaved(this.#notSaved, change);
 	}
 	async updateNotSaved(change: { key: string }): Promise<void> {
 		this.#notSaved = this.#notSaved.map((item) =>
@@ -93,6 +94,10 @@ export class MemoryQueueStorage implements QueueStorage {
 			const key = notSavedKey(item);
 			return key === undefined || !selected.has(key);
 		});
+	}
+	async settleRejected(opId: string, change: { key: string }): Promise<void> {
+		this.#entries = this.#entries.filter((entry) => entry.opId !== opId);
+		this.#notSaved = appendNotSaved(this.#notSaved, change);
 	}
 	async clear(): Promise<void> {
 		this.#entries = [];
@@ -154,6 +159,10 @@ function notSavedKey(item: unknown): string | undefined {
 	if (!isRecord(item)) return undefined;
 	if (typeof item.key === 'string') return item.key;
 	return isRecord(item.op) && typeof item.op.op_id === 'string' ? item.op.op_id : undefined;
+}
+
+function appendNotSaved(raw: unknown[], change: { key: string }): unknown[] {
+	return raw.some((item) => notSavedKey(item) === change.key) ? raw : [...raw, change];
 }
 
 function notSavedOf(record: unknown, key: string): unknown[] {
@@ -283,9 +292,7 @@ class IndexedDbQueueStorage implements QueueStorage {
 	}
 
 	addNotSaved(change: { key: string }): Promise<void> {
-		return this.#changeNotSaved((raw) =>
-			raw.some((item) => notSavedKey(item) === change.key) ? raw : [...raw, change]
-		);
+		return this.#changeNotSaved((raw) => appendNotSaved(raw, change));
 	}
 
 	updateNotSaved(change: { key: string }): Promise<void> {
@@ -302,6 +309,34 @@ class IndexedDbQueueStorage implements QueueStorage {
 				return key === undefined || !selected.has(key);
 			})
 		);
+	}
+
+	async settleRejected(opId: string, change: { key: string }): Promise<void> {
+		if (!this.#failed) {
+			try {
+				const database = await this.#open();
+				this.#memory = await transact(database, QUEUE_STORE, 'readwrite', async (tx) => {
+					const store = tx.objectStore(QUEUE_STORE);
+					const record = await requestValue(store.get(this.#key));
+					const entries = entriesOf(record, this.#key).filter((item) => !sameOp(item, opId));
+					const notSaved = appendNotSaved(notSavedOf(record, this.#key), change);
+					await requestValue(
+						store.put({
+							key: this.#key,
+							entries,
+							...(notSaved.length ? { notSaved } : {})
+						} satisfies StoredRecord)
+					);
+					this.#notSavedMemory = notSaved;
+					return parseEntries(entries);
+				});
+				return;
+			} catch {
+				this.#failed = true;
+			}
+		}
+		this.#memory = this.#memory.filter((entry) => entry.opId !== opId);
+		this.#notSavedMemory = appendNotSaved(this.#notSavedMemory, change);
 	}
 
 	async clear(): Promise<void> {

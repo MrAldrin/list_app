@@ -102,6 +102,48 @@ describe('queue storage in IndexedDB', () => {
 		expect(await room.read()).toEqual([]);
 	});
 
+	it('drops a queue entry and writes Not saved in one record, keeping unknown rows', async () => {
+		const factory = freshFactory();
+		const storage = createQueueStorage('room:home', { indexedDB: factory });
+		const kept = newStoredEntry({ ...op('keep'), op_id: 'keep-1' }, NOW.toISOString());
+		const dropped = newStoredEntry({ ...op('drop'), op_id: 'drop-1' }, NOW.toISOString());
+		const unknownEntry = { opId: 'future-op', format: 2, payload: 'keep-entry' };
+		const unknownNotSaved = { format: 2, payload: 'keep-not-saved', key: 'future' };
+		await storage.add(kept);
+		await storage.add(dropped);
+		await storage.add(unknownEntry as unknown as StoredEntry);
+		await storage.addNotSaved(unknownNotSaved);
+		const change = {
+			key: 'drop-1',
+			code: 'changed_meanwhile',
+			op: dropped.op
+		};
+		await storage.settleRejected('drop-1', change);
+
+		const reopened = createQueueStorage('room:home', { indexedDB: factory });
+		expect(await reopened.read()).toMatchObject([{ opId: 'keep-1' }, { opId: 'future-op' }]);
+		expect(await reopened.readNotSaved()).toEqual([unknownNotSaved, change]);
+		const duplicate = { ...change, code: 'duplicate' };
+		await reopened.settleRejected('drop-1', duplicate);
+		expect(await reopened.readNotSaved()).toEqual([unknownNotSaved, change]);
+	});
+
+	it('falls back to memory for settleRejected when IndexedDB fails', async () => {
+		const broken = {
+			open() {
+				throw new Error('blocked');
+			}
+		} as unknown as IDBFactory;
+		const storage = createQueueStorage('room:home', { indexedDB: broken });
+		const entry = newStoredEntry({ ...op('drop'), op_id: 'drop-1' }, NOW.toISOString());
+		await storage.add(entry);
+		const change = { key: 'drop-1', code: 'invalid_request' };
+		await storage.settleRejected('drop-1', change);
+		expect(storage.durable).toBe(false);
+		expect(await storage.read()).toEqual([]);
+		expect(await storage.readNotSaved()).toEqual([change]);
+	});
+
 	it("merges two tabs' rejections and only removes the dismissed identity", async () => {
 		const factory = freshFactory();
 		const a = createQueueStorage('room:home', { indexedDB: factory });
