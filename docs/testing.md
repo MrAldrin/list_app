@@ -28,6 +28,29 @@ without it, they skip. Build first when checking those routes. Do not replace a
 required engine or device check with a faster layer. Use only disposable
 databases and test credentials.
 
+## Optional change-based feedback
+
+From the repository root, run `uv run python scripts/select_tests.py`.
+Use `--base <revision>` to override `integration`. The script reports resolved
+base and candidate commit IDs, reasons, and shell commands. It prints only;
+it never runs tests. `--candidate` must resolve to the current workspace revision.
+An empty diff means no changes, not a test pass.
+
+The explicit starting sets follow the
+selection map at `docs/background/test-selection-map-2026-11-09.md` on bookmark
+`lr-005.1.2` (read it with `jj file show -r lr-005.1.2 <path>`). This tool covers isolated scripts, theme UI and reminder logic.
+Other source areas conservatively select full feedback. Shared code, unknown
+paths, additions, deletions, renames, missing mapped tests, and invalid diffs
+also select full feedback. Background prose needs no product tests; maintained
+preview Markdown selects the docs build test. Mixed changes use the widest rule.
+Browser commands retain all engines and the machine-wide night-loop lock.
+Check Android relevance separately. These commands do not replace required
+completion or deploy checks and are not proof of complete impact coverage.
+
+Run selector unit tests separately with
+`uv run python scripts/selector_selftest.py`. They use synthetic files and do
+not change the existing product pytest collection.
+
 ## Reliability and measurement
 
 Keep the first failure and its logs and traces. A pass on rerun is a flaky
