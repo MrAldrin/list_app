@@ -507,6 +507,7 @@ def _click_new_link(page, href: str) -> None:
     page.locator("#injected-link").click()
 
 
+@pytest.mark.chromium_only
 def test_failed_link_click_opens_the_link_on_the_new_build(
     built_app_server, open_session, tmp_path
 ):
@@ -532,6 +533,7 @@ def test_failed_link_click_opens_the_link_on_the_new_build(
     expect(page.get_by_text("Could not open this list.")).to_be_visible()
 
 
+@pytest.mark.chromium_only
 def test_unchanged_build_keeps_the_page(built_app_server, open_session):
     """No new version: nothing reloads, so the old behaviour is unchanged."""
     page = open_session("fresh-chunk", service_workers="block")
@@ -574,6 +576,7 @@ def _stale_first_page(server, open_session, tmp_path):
     return page, page_loads
 
 
+@pytest.mark.chromium_only
 def test_failed_first_load_reloads_once_and_recovers(
     built_app_server, open_session, tmp_path
 ):
@@ -586,6 +589,7 @@ def test_failed_first_load_reloads_once_and_recovers(
     assert len(page_loads) == 2  # the load that failed, one reload
 
 
+@pytest.mark.chromium_only
 def test_chunk_that_stays_missing_shows_the_error_without_a_loop(
     built_app_server, open_session
 ):

@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import (
     PHONE,
@@ -17,6 +18,7 @@ def chips(page):
     return page.get_by_role("list", name="Tags")
 
 
+@pytest.mark.chromium_only
 def test_new_tags_come_from_options_not_the_tag_row(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -33,6 +35,7 @@ def test_new_tags_come_from_options_not_the_tag_row(svelte_server, open_session)
     expect(page.get_by_role("button", name="Lidl tag for milk")).to_be_visible()
 
 
+@pytest.mark.chromium_only
 def test_tap_filters_the_items(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -51,6 +54,7 @@ def test_tap_filters_the_items(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
 
+@pytest.mark.chromium_only
 def test_options_click_opens_the_card_and_rename_keeps_the_filter(
     svelte_server, open_session
 ):
@@ -81,6 +85,7 @@ def test_options_click_opens_the_card_and_rename_keeps_the_filter(
     expect(item_names(page)).to_have_text(["milk"])
 
 
+@pytest.mark.chromium_only
 def test_recolor_and_delete_with_undo(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -111,6 +116,7 @@ def test_recolor_and_delete_with_undo(svelte_server, open_session):
     expect(page.get_by_role("button", name="Lidl tag for milk")).to_be_visible()
 
 
+@pytest.mark.chromium_only
 def test_one_tag_mode_asks_first_and_keeps_the_first_tag(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -154,6 +160,7 @@ def test_one_tag_mode_asks_first_and_keeps_the_first_tag(svelte_server, open_ses
     )
 
 
+@pytest.mark.chromium_only
 def test_tag_settings_are_the_same_in_a_second_browser(svelte_server, open_session):
     server = svelte_server
     phone = open_session("phone-a", **PHONE)
@@ -180,6 +187,7 @@ def test_tag_settings_are_the_same_in_a_second_browser(svelte_server, open_sessi
     ).not_to_be_checked()
 
 
+@pytest.mark.chromium_only
 def test_edit_item_tag_chips_light_up_at_once(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

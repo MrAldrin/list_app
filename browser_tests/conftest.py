@@ -35,7 +35,22 @@ def server(tmp_path):
         assert "Traceback (most recent call last)" not in log, log
 
 
-@pytest.fixture(scope="session", params=["chromium", "firefox", "webkit"])
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers", "chromium_only: run this detailed journey on Chromium only"
+    )
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
+    if "browser" not in metafunc.fixturenames:
+        return
+    engines = ["chromium", "firefox", "webkit"]
+    if metafunc.definition.get_closest_marker("chromium_only") is not None:
+        engines = ["chromium"]
+    metafunc.parametrize("browser", engines, indirect=True, scope="session")
+
+
+@pytest.fixture(scope="session")
 def browser(request):
     with sync_playwright() as playwright:
         browser = getattr(playwright, request.param).launch()

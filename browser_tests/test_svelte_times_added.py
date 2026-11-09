@@ -2,11 +2,13 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, sign_in
 from test_svelte_items import saved_op
 
 
+@pytest.mark.chromium_only
 def test_item_dialog_counts_adds_and_unchecks(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)

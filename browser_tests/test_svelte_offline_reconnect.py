@@ -92,6 +92,7 @@ def count_requests(page: Page, pattern: str) -> list[str]:
     return seen
 
 
+@pytest.mark.chromium_only
 def test_online_typing_only_suggests_and_never_filters(svelte_server, open_session):
     page, _ = member_with_list(open_session, svelte_server, "typist")
     page.get_by_role("checkbox", name="milk").check()

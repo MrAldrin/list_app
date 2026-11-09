@@ -3,6 +3,7 @@
 import json
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import (
     PHONE,
@@ -122,6 +123,7 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     expect(usual).to_have_count(0)
 
 
+@pytest.mark.chromium_only
 def test_add_trims_python_whitespace(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -420,6 +422,7 @@ def saved_op(response) -> bool:
     )
 
 
+@pytest.mark.chromium_only
 def test_tags_filter_and_hide_done(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -538,6 +541,7 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     assert mode == "off"
 
 
+@pytest.mark.chromium_only
 def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -560,6 +564,7 @@ def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     assert dairy.evaluate("el => el.style.getPropertyValue('--tag')") == color
 
 
+@pytest.mark.chromium_only
 def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -584,6 +589,7 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["apple", "milk"])
 
 
+@pytest.mark.chromium_only
 def test_suggestions_rank_by_add_count_and_scroll(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

@@ -9,6 +9,7 @@ list counts the checked items that are hidden; it shows nothing at zero.
 
 import re
 
+import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import PHONE, add_item, create_list, sign_in
 from test_svelte_share import share_link, without_share_sheet
@@ -45,6 +46,7 @@ def save_count(page: Page, label: str, value: str) -> None:
         field.press("Tab")
 
 
+@pytest.mark.chromium_only
 def test_hide_done_modes_history_and_shared_updates(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -134,6 +136,7 @@ def hidden_line(page: Page):
     return page.get_by_text(re.compile(r"\d+ checked items? hidden"))
 
 
+@pytest.mark.chromium_only
 def test_hidden_count_line_under_the_list(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))

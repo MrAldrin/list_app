@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import (
     DESKTOP,
@@ -44,6 +45,7 @@ def test_two_phones_see_each_others_changes(svelte_server, open_session):
     expect(phone_a.get_by_role("heading", name="Food")).to_be_visible()
 
 
+@pytest.mark.chromium_only
 def test_suggestion_highlight_tracks_live_item_name(svelte_server, open_session):
     server = svelte_server
     phone_a = open_session("phone-a", **PHONE)
@@ -99,6 +101,7 @@ def test_suggestion_highlight_tracks_live_item_name(svelte_server, open_session)
     expect(phone_a.get_by_text("Added a", exact=True)).to_be_visible()
 
 
+@pytest.mark.chromium_only
 def test_list_deleted_while_open(svelte_server, open_session):
     server = svelte_server
     viewer = open_session("viewer", **PHONE)
@@ -181,6 +184,7 @@ def test_rename_saved_after_a_password_change_changes_nothing(
     assert server.query("SELECT name FROM lists") == [("Groceries",)]
 
 
+@pytest.mark.chromium_only
 def test_tag_deleted_elsewhere_stops_filtering(svelte_server, open_session):
     server = svelte_server
     phone_a = open_session("phone-a", **PHONE)
