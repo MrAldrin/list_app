@@ -141,11 +141,15 @@ breaks live, fix forward or [restore](#restoration-and-rollback).
 
 Before deploying:
 
-- [ ] The automated tests pass (pytest, plus the browser and Android suites
-  when the change touches them).
+- [ ] Run relevant tests with `uv run python scripts/select_tests.py` and
+  execute its printed commands, or choose matching tiers from the
+  [browser-testing guide](browser-testing.md#test-tiers). Run
+  `uv run python scripts/run_test_tier.py smoke` on all three browser engines.
+  A full-browser fallback from selection is feedback, not a deploy blocker.
 - [ ] Push with the [deploy backup script](#backup-before-deploying), not by
-  hand. It runs the checks, takes a fresh backup and shows the revision being
-  replaced.
+  hand. Its built-in checks run pytest and frontend checks, then it takes a
+  fresh backup and shows the revision being replaced. It does not run the
+  change selector or smoke tier.
 - [ ] For schema changes: the migration tests pass. The app also keeps its own
   pre-migration copy.
 
@@ -172,9 +176,12 @@ uv run python scripts/deploy_backup.py --backup-only      # backup, never push
 
 1. Pushing only works if `main` is an ancestor of the revision, and the
    working copy must match the revision (no uncommitted changes).
-2. It runs the checks first (format, lint, types, pytest, frontend lint,
-   check and vitest; `--browser` adds the browser suite). It stops on the first
-   failure, before any backup. `--skip-checks` is for emergencies only.
+2. It runs its built-in checks first (format, lint, types, pytest, frontend
+   lint, type check and Vitest). It does not run the change selector or smoke
+   tier; complete those parts of the deploy gate above separately. `--browser`
+   opts into the full browser suite and a failure stops that script run, but the
+   full suite is not a deploy requirement. Any built-in check failure stops
+   before backup. `--skip-checks` is for emergencies only.
 3. It wakes the app with a web request. A sleeping Railway app does not
    answer `railway ssh`. If ssh still reaches Railway's account service
    instead of the app, it waits and tries again a few times.

@@ -19,8 +19,11 @@ Ship and fix forward.
   breaks something, even the database, we fix it or restore the backup.
 - Work end to end: implement, run the automated tests, then propose the push.
   Do not add extra safety steps, rehearsals or staging.
-- Automated tests are the evidence: pytest, the browser suite (Chromium,
-  Firefox, WebKit for Safari) and the Android emulator suite where relevant.
+- Deploy evidence is `uv run pytest -q`, frontend lint, type and Vitest checks,
+  relevant tests selected with the change selector or test tiers, and the small
+  browser smoke set on Chromium, Firefox and WebKit. Run the Android emulator
+  suite when relevant. The full browser suite is a separate, non-blocking
+  nightly check; see [browser testing](browser-testing.md#test-tiers).
 - Keep manual checks to a minimum. Do not ask the owner to test on a phone,
   over Tailscale or in a staging environment before deploying. The owner sees
   changes live after the push.

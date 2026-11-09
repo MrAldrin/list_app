@@ -48,7 +48,7 @@ engines until lr-gt2.4 is fixed.
 ## Test tiers
 
 Run these optional feedback commands from the repository root. They do not
-replace the required checks in `AGENTS.md` or change release gates.
+replace the required checks in `AGENTS.md`.
 
 | Command (`uv run python scripts/run_test_tier.py …`) | Selection |
 | --- | --- |
@@ -94,6 +94,16 @@ Python tests by the inventory's file layer. `layer_python`, `layer_browser` and
 `layer_android` identify suites. Frontend layers remain Vitest files, not pytest
 markers. A marker does not override pytest's default `tests/` search path;
 request `browser_tests` or `android_tests` explicitly for those suites.
+
+For change-based selection, use `uv run python scripts/select_tests.py` and run
+the commands it prints. That selector prints commands only.
+
+Before a deploy, run the checks and smoke tier listed in the
+[deployment checklist](deployment.md#deployment-checklist). Run the `full` tier
+nightly and after broad or shared changes for feedback. The owner reviews the
+result and follows up on failures. A full-tier failure does not block a deploy.
+
+Do not add retries, skips, longer timeouts or arbitrary waits to hide failures.
 
 ## Isolation
 
