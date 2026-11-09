@@ -3,7 +3,6 @@
 import re
 
 import pytest
-from conftest import wait_for_api_idle
 from playwright.sync_api import expect
 from svelte_app import (
     PHONE,
@@ -14,6 +13,8 @@ from svelte_app import (
     sign_in,
     wait_until,
 )
+
+from conftest import wait_for_api_idle
 
 
 def test_start_page_login_and_remembered_room(svelte_server, open_session):

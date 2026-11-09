@@ -7,10 +7,11 @@ of the phone-testing time all open the Svelte app.
 
 import re
 
-from conftest import wait_for_api_idle
 from playwright.sync_api import expect
 from svelte_app import PHONE, create_list, sign_in
 from test_svelte_invitations import issue_invitation
+
+from conftest import wait_for_api_idle
 
 
 def test_room_and_old_list_address(svelte_server, open_session):

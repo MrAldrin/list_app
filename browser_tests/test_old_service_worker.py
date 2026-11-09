@@ -11,8 +11,9 @@ for its update.
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from conftest import TestServer
 from playwright.sync_api import Error, expect
+
+from conftest import TestServer
 
 # The worker the old app served until step 4.3 (src/static/sw.js, unchanged).
 OLD_SERVICE_WORKER = """\

@@ -12,9 +12,10 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
-from conftest import ROOT
 from playwright.sync_api import expect
 from svelte_app import wait_until
+
+from conftest import ROOT
 
 FRONTEND_BUILD = ROOT / "frontend" / "build"
 WORKER_PREFIX = "listr-app-shell-"

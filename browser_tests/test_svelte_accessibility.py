@@ -3,7 +3,6 @@
 Contrast is checked from app.css by `frontend/src/app-colors.test.ts`.
 """
 
-from conftest import wait_for_api_idle
 from playwright.sync_api import Page, expect
 from svelte_app import (
     PHONE,
@@ -14,6 +13,8 @@ from svelte_app import (
     create_list,
     sign_in,
 )
+
+from conftest import wait_for_api_idle
 
 # Visible buttons, links and fields without a name a screen reader can say.
 UNNAMED_CONTROLS = """() => {

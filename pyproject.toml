@@ -28,6 +28,18 @@ dev = [
 testpaths = ["tests"]
 pythonpath = ["src", "scripts", "tests"]
 addopts = "-n 8"
+markers = [
+    "tier_fast: Python feedback suite (not a measured per-test speed promise)",
+    "tier_smoke: four critical browser journeys on every existing engine",
+    "tier_full: every collected pytest case, including Android when requested",
+    "layer_python: Python tests",
+    "layer_api: API tests",
+    "layer_database: database and migration tests",
+    "layer_service: Python rules and services",
+    "layer_tool: process and tool tests",
+    "layer_browser: real desktop-browser tests",
+    "layer_android: Android emulator tests",
+]
 
 [tool.ruff]
 target-version = "py313"

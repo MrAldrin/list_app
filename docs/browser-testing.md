@@ -45,6 +45,56 @@ which journeys use this opt-in and which engine-specific checks stay on all
 three engines. The timed-due server-confirmation test stays on all three
 engines until lr-gt2.4 is fixed.
 
+## Test tiers
+
+Run these optional feedback commands from the repository root. They do not
+replace the required checks in `AGENTS.md` or change release gates.
+
+| Command (`uv run python scripts/run_test_tier.py …`) | Selection |
+| --- | --- |
+| `python` | All Python tests in `tests/` |
+| `frontend` | All Vitest tests |
+| `fast` | Python, then frontend; a feedback tier, not a per-test speed promise |
+| `smoke` | Four critical browser journeys on all existing engines |
+| `affected-browser browser_tests/test_svelte_items.py` | Explicit paths or node IDs, Chromium plus engine-independent cases |
+| `full` | All Python, frontend and desktop-browser tests, without selection filters |
+
+Use `--collect-only` with any tier to list its selection without test execution.
+Frontend collection uses `vitest list`. Commands stop on the first failure and
+return its exit code; a failed or incomplete full run is not a full-suite pass.
+Unknown or missing affected paths fail rather than selecting nothing. Repeat
+paths to select more than one file. The runner does not infer affected files.
+Check the wrapper and label logic without test execution with
+`uv run python scripts/check_test_tiers.py`. This separate self-check does not
+change the existing pytest suite counts.
+
+Android remains a separate relevant-device run in the
+[Android guide](android-emulator-testing.md); `full` does not run the emulator.
+
+The runner takes the machine-wide browser lock for browser commands:
+`/home/hsa/.local/state/night-loop/list_app/browser.lock`. Do not wrap the runner
+in the same lock. For direct pytest browser commands (including collection),
+prefix the command with `flock` and this lock path; do the same for Android.
+Run only one browser suite
+at a time. Install the existing frontend dependencies and browser binaries first;
+see setup above and the [Android guide](android-emulator-testing.md).
+
+Pytest labels are additive; default collection, assertions, engine parameters
+and existing skips stay unchanged. `tier_fast` labels `tests/`, `tier_full`
+labels all collected pytest cases, and `tier_smoke` labels these exact bodies:
+
+- `test_add_restore_check_quantity_edit_and_undo`
+- `test_visitor_views_and_edits_by_link_and_reset_stops_it`
+- `test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes`
+- `test_bell_counts_overdue_and_today_and_groups_the_panel`
+
+Smoke collection must include all four bodies on Chromium, Firefox and WebKit.
+Use `-m layer_api`, `layer_database`, `layer_service` or `layer_tool` to filter
+Python tests by the inventory's file layer. `layer_python`, `layer_browser` and
+`layer_android` identify suites. Frontend layers remain Vitest files, not pytest
+markers. A marker does not override pytest's default `tests/` search path;
+request `browser_tests` or `android_tests` explicitly for those suites.
+
 ## Isolation
 
 - Each test starts its own server on a random loopback port.
