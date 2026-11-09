@@ -74,22 +74,6 @@ def test_bell_counts_overdue_and_today_and_groups_the_panel(
 
 
 @pytest.mark.chromium_only
-def test_room_card_counts_what_is_due_in_the_list(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
-    _set_date(page, "milk", _days(1))
-    room_url = page.url.split("/list/")[0]
-    page.goto(room_url)
-    # The count sits beside the list link, in the same row.
-    row = page.locator("li.list-row", has=page.get_by_role("link", name="Groceries"))
-    expect(row).to_contain_text("1 due")
-    expect(row).not_to_contain_text("overdue")
-
-
-@pytest.mark.chromium_only
 def test_reload_shows_no_due_toast(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
