@@ -233,8 +233,9 @@ those outcomes and follow-up work are recorded under its lifecycle rules.
 - Later owner approval: published documentation was accepted in `zynznksk`
   (`6c7b9485`) and rebuilt in the default workspace's existing 8765 preview.
   Newer shared plans and the accepted cleanup report were preserved. App/test
-  changes were excluded; source-comment/docstring edits remain in the original
-  candidate. Existing factual contradictions and 51 build warnings remain.
+  changes were excluded. On 2026-11-10 the reviewed source-comment/docstring
+  edits were applied to `integration` with passing checks, and the
+  `night-2-docs` bookmark was removed. Existing factual contradictions and 51 build warnings remain.
 
 ## Progress
 

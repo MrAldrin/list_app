@@ -237,6 +237,10 @@ These are guidance sources, not a requirement to adopt their tools or workflows:
   `night-1-tests-partial`. Full verification is blocked by a final WebKit
   sign-in interruption (485 passed, one failed, 120 intentional browser skips).
   Independent review confirms test scope but blocks full verification.
+- Superseded (2026-11-10): lr-1nn, now in `integration`, carries newer timezone
+  repairs and the extended sign-in diagnostic, and fixes the WebKit sign-in
+  interruption. The `night-1-tests-partial` bookmark, its commits and
+  `vywxvymk` were removed from the visible history.
 - Separate diagnostic: `vywxvymk`, outside the candidate ancestry. A controlled
   schedule fails three UTC and one Oslo run; this does not prove every archived
   browser failure's cause. Product repair needs a separate owner decision.

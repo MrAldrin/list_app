@@ -6,7 +6,7 @@ statement of today's test status.
 
 > **Result at closeout: partial. Full verification was blocked.**
 > The test-only repair passed its checks, but the final browser run failed.
-> The partial candidate is preserved at `night-1-tests-partial` (`oqpnzkyx`).
+> The partial candidate (`oqpnzkyx`) was superseded by lr-1nn and removed from visible history on 2026-11-10.
 > This report does not accept that candidate or approve a product fix.
 
 ## Total time
