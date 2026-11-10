@@ -4,13 +4,14 @@ import re
 
 import pytest
 from playwright.sync_api import expect
-from svelte_app import sign_in, wait_until
-from test_svelte_offline_reconnect import (
+from svelte_app import (
     NO_WORKER,
     SLOW,
+    api_sign_in,
     go_online,
     member_with_list,
     view_offline,
+    wait_until,
 )
 
 
@@ -49,7 +50,7 @@ def test_timed_edit_conflict_save_mine_retries_and_reconfirms(
     expect(dialog.get_by_text(re.compile(r"Saved time \(UTC\):"))).to_have_count(0)
     dialog.get_by_role("button", name="Cancel").click()
     other = open_session("timed-other", **NO_WORKER)
-    sign_in(other, server)
+    api_sign_in(other, server)
     other.goto(url)
     dialog = open_item(other)
     dialog.get_by_label("Description / Notes").fill("other device")

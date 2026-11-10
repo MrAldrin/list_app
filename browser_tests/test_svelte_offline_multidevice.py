@@ -13,22 +13,21 @@ import re
 import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import (
-    add_item,
-    add_list_tag,
-    create_list,
-    item_names,
-    room_app_url,
-    sign_in,
-    wait_until,
-)
-from test_svelte_offline_reconnect import (
     NO_WORKER,
     SLOW,
+    add_item,
+    add_list_tag,
+    api_sign_in,
+    create_list,
     go_offline,
     go_online,
+    item_names,
     member_with_list,
+    room_app_url,
     saved_notice,
+    sign_in,
     view_offline,
+    wait_until,
 )
 
 from api.version import API_VERSION
@@ -69,7 +68,7 @@ def two_devices_on_list(open_session, server, first: str, second: str, items=("m
     """
     phone, url = member_with_list(open_session, server, first, items=items)
     other = open_session(second, **NO_WORKER)
-    sign_in(other, server)
+    api_sign_in(other, server)
     other.goto(url)
     expect(item_names(other)).to_have_text(sorted(items))
     return phone, other, url
@@ -175,7 +174,7 @@ def test_both_offline_add_the_same_tag_to_an_item_once(svelte_server, open_sessi
     expect(phone.get_by_role("button", name="Market tag for milk")).to_be_visible()
 
     other = open_session("r4-b", **NO_WORKER)
-    sign_in(other, server)
+    api_sign_in(other, server)
     other.goto(url)
     expect(other.get_by_role("button", name="Market tag for milk")).to_be_visible()
 

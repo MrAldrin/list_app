@@ -7,17 +7,16 @@ test_svelte_offline_reconnect.py. A second browser context is "another device".
 import pytest
 from playwright.sync_api import expect
 from svelte_app import (
-    add_item,
-    item_names,
-    sign_in,
-    wait_until,
-)
-from test_svelte_offline_reconnect import (
     NO_WORKER,
     SLOW,
+    add_item,
+    api_sign_in,
     go_online,
+    item_names,
     member_with_list,
+    sign_in,
     view_offline,
+    wait_until,
 )
 
 NEW_PASSWORD = "new-room-password"
@@ -75,7 +74,7 @@ def test_refused_tick_is_listed_and_save_mine_anyway_applies(
     ).to_be_visible()
 
     other = open_session("device-b", **NO_WORKER)
-    sign_in(other, server)
+    api_sign_in(other, server)
     other.goto(url)
     expect(other.get_by_role("checkbox", name="milk")).to_be_visible()
     other.get_by_role("button", name="milk", exact=True).click()
@@ -145,7 +144,7 @@ def test_edit_of_an_item_another_device_deleted_is_listed_and_dismissed(
     expect(item_row(phone, "whole milk")).to_be_visible()
 
     other = open_session("device-b2", **NO_WORKER)
-    sign_in(other, server)
+    api_sign_in(other, server)
     other.goto(url)
     other.get_by_role("button", name="Options").click()
     other.get_by_role("button", name="Delete milk", exact=True).click()

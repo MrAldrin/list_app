@@ -17,13 +17,14 @@ from svelte_app import (
     app_url,
     create_list,
     item_names,
+    member_with_list,
     open_list,
     room_app_url,
     share_link,
     sign_in,
+    view_offline,
 )
 from test_svelte_items import saved_op
-from test_svelte_offline_reconnect import member_with_list, view_offline
 from test_svelte_room_switcher import CABIN_PASSWORD, create_room_as_admin
 from test_svelte_share import reset_link, without_share_sheet
 

@@ -10,20 +10,24 @@ import re
 import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import (
-    PHONE,
+    API,
+    NO_WORKER,
+    SLOW,
     add_item,
-    create_list,
+    go_offline,
+    go_online,
     item_names,
+    member_with_list,
+    nudge,
     room_app_url,
+    saved_notice,
     sign_in,
+    view_offline,
     wait_until,
 )
 from test_svelte_offline import share_link
 from test_svelte_share import RESET_MESSAGE, UNAVAILABLE_MESSAGE, reset_link
 
-# Playwright cannot intercept API calls of a worker-controlled page in WebKit,
-# and the worker never handles /api, so these tests run without it.
-NO_WORKER = {**PHONE, "service_workers": "block"}
 RESUME = {
     "visibilitychange": """() => {
         const set = (state) => {
@@ -40,48 +44,6 @@ RESUME = {
         new PageTransitionEvent('pageshow', { persisted: true })
     )""",
 }
-SAVED = "Offline — changes are saved"
-SLOW = {"timeout": 20_000}  # revalidation retries back off: 1 s, 2 s, 5 s, ...
-
-
-def saved_notice(page: Page):
-    return page.get_by_text(SAVED, exact=False)
-
-
-def member_with_list(open_session, server, role: str, items=("milk", "bread")):
-    """A signed-in page on a list that has `items`."""
-    page = open_session(role, **NO_WORKER)
-    sign_in(page, server)
-    url = create_list(page, "Groceries")
-    for name in items:
-        add_item(page, name)
-    return page, url
-
-
-API = "**/api/v1/**"
-
-
-def go_offline(page: Page) -> None:
-    """Every API call fails to connect (`set_offline` breaks WebKit navigation)."""
-    page.context.route(API, lambda route: route.abort())
-
-
-def go_online(page: Page) -> None:
-    """The API works again; the browser's online event nudges the app."""
-    page.context.unroute(API)
-    nudge(page)
-
-
-def nudge(page: Page) -> None:
-    page.evaluate("window.dispatchEvent(new Event('online'))")
-
-
-def view_offline(page: Page, url: str) -> None:
-    """Close the network, then open `url` from the saved view."""
-    go_offline(page)
-    page.goto(url)
-    expect(saved_notice(page)).to_be_visible()
-    expect(page.get_by_role("button", name="Add")).to_be_enabled()
 
 
 def count_requests(page: Page, pattern: str) -> list[str]:

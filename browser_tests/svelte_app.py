@@ -134,6 +134,64 @@ def add_list_tag(page: Page, tag: str) -> None:
     tags_dialog.get_by_role("button", name="Close").click()
 
 
+# Offline set-up shared by the offline, conflict and due tests ---------------
+
+# Playwright cannot intercept API calls of a worker-controlled page in WebKit,
+# and the worker never handles /api, so these tests run without it.
+NO_WORKER = {**PHONE, "service_workers": "block"}
+SAVED = "Offline — changes are saved"
+SLOW = {"timeout": 20_000}  # revalidation retries back off: 1 s, 2 s, 5 s, ...
+
+
+def saved_notice(page: Page):
+    return page.get_by_text(SAVED, exact=False)
+
+
+def member_with_list(open_session, server, role: str, items=("milk", "bread")):
+    """A signed-in page on a list that has `items`.
+
+    The data is built through the API. The page then loads the room and the
+    list online, so it has saved both before a test takes the network away.
+    """
+    page = open_session(role, **NO_WORKER)
+    api_sign_in(page, server)
+    url = api_seed(page, server, {"Groceries": list(items)})["Groceries"]
+    page.goto(room_app_url(server))
+    # A tap on the link, as a user does: a second page load here would cancel
+    # the room page's requests while they are in flight.
+    page.get_by_role("link", name="Groceries").click()
+    expect(page).to_have_url(url)
+    expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
+    expect(item_names(page)).to_have_text(sorted(items))
+    return page, url
+
+
+API = "**/api/v1/**"
+
+
+def go_offline(page: Page) -> None:
+    """Every API call fails to connect (`set_offline` breaks WebKit navigation)."""
+    page.context.route(API, lambda route: route.abort())
+
+
+def go_online(page: Page) -> None:
+    """The API works again; the browser's online event nudges the app."""
+    page.context.unroute(API)
+    nudge(page)
+
+
+def nudge(page: Page) -> None:
+    page.evaluate("window.dispatchEvent(new Event('online'))")
+
+
+def view_offline(page: Page, url: str) -> None:
+    """Close the network, then open `url` from the saved view."""
+    go_offline(page)
+    page.goto(url)
+    expect(saved_notice(page)).to_be_visible()
+    expect(page.get_by_role("button", name="Add")).to_be_enabled()
+
+
 def list_links(page: Page):
     return page.locator("main li a")
 
