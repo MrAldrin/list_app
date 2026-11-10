@@ -1,11 +1,11 @@
 # Overnight stack research
 
-Run `scripts/stack_research.py` in a terminal. It runs only the six Phase 1
-research tasks in `lr-zja`, then stops before the owner decision `lr-25k`.
-Starting the script starts the approved research. It does not approve a rewrite.
+Run `scripts/stack_research.py` from a Zellij terminal. It runs only the six
+Phase 1 tasks in `lr-zja`, then stops before the owner decision `lr-25k`.
+Starting it starts the approved research. It does not approve a rewrite.
 Preparation checks are in the [verification record](background/stack-research-runner-checks.md).
 
-## Start and control
+## Start
 
 From the runner workspace, in Fish or Bash:
 
@@ -14,21 +14,49 @@ uv run python scripts/stack_research.py plan
 uv run python scripts/stack_research.py start
 ```
 
-Keep that terminal and the computer running. Do not add `&`, `nohup`, or a time
-limit. Each agent runs under the foreground runner. The runner uses Pi's JSON
-mode, not an interactive agent chat. Only one runner can run at a time.
+Keep the runner terminal and computer awake. Do not add `&`, `nohup`, or a time
+limit. There is no runtime or spend cap. Only one runner can run at a time.
 
-In another terminal, from the same workspace:
+## Talk to an agent or stop
+
+Each agent opens as **interactive Pi in its own Zellij tab**, named
+`list-<stage>`. The runner prints its tab and pane IDs. New tabs do not take
+focus. Switch to the agent tab to see its work or talk to it.
+
+**Only one runner-managed Pi agent runs at a time**, including workers and
+reviewers. On completion, the runner saves the result, exits Pi back to Fish,
+and closes its owned pane and empty tab before opening the next one. It does
+not close other user panes. Finished chats remain in the saved session files.
+
+Type **`stop`** in the active Pi pane to stop the whole queue. The guard handles
+this directly, without waiting for the model to decide. `please stop`, `pause`,
+`abort`, and `cancel` also work at the start of a message. Interrupting the Pi
+run with Escape, or closing its pane, also prevents the queue from continuing.
+Normal questions go to Pi; a final answer that is not a valid research result
+stops the queue rather than being mistaken for completion.
+
+You can also press Ctrl+C in the runner terminal, or use another terminal in
+the same workspace:
 
 ```sh
 uv run python scripts/stack_research.py status
 uv run python scripts/stack_research.py stop
 ```
 
-Ctrl+C in the runner terminal also stops it. A stop ends the active agent process
-group. Partial logs remain, but the active response might be incomplete. Finished
-reports remain. No later task starts. An update already sent to Beads can finish;
-a stop does not undo it. Claims remain with their recorded owner.
+Stopping preserves completed reports and partial logs. The active response may
+be incomplete. An update already sent to Beads can finish; stop does not undo
+it. Claims remain with their recorded owner. No later task starts.
+
+## Results and recovery
+
+Default private result folder:
+`~/.local/share/list-app-stack-research/phase-one/`.
+
+- `state.json`: progress, baseline, session and active pane IDs.
+- `<bead>.md` and `<bead>.json`: finished report, summary and limitations.
+- Stage folders: prompts, sessions, event logs, terminal snapshots, pane
+  ownership, readiness and review evidence.
+- `interrupted/`: preserved attempts from an explicit retry.
 
 After inspecting an interrupted run:
 
@@ -36,51 +64,33 @@ After inspecting an interrupted run:
 uv run python scripts/stack_research.py resume --retry-partial
 ```
 
-This preserves interrupted-stage files and starts that stage again with fresh
-context. Verified finished stages are reused. Plain `resume` refuses to replay
-an interrupted stage. Ownership changes, invalid reports and review failures
-need inspection; resume does not override them. Do not delete state or force a
-claim to make the run continue.
-
-## Results and limits
-
-The default private result folder is:
-`~/.local/share/list-app-stack-research/phase-one/`.
-
-- `state.json`: progress, exact baseline, sessions and workspace ownership.
-- `<bead>.md`: finished research report; `<bead>.json`: summary and limitations.
-- Stage folders: prompts, Pi sessions, event logs, errors and completion receipts.
-- `interrupted/`: preserved attempts from an explicit retry.
-
+This preserves interrupted files and restarts that stage in a fresh pane.
+Verified finished stages are reused. Plain `resume` refuses to replay an
+interrupted stage. A retained live pane/session, changed ownership, invalid
+report or failed review needs inspection; resume does not override it.
 Use `--run-dir PATH` on every command to select a different result folder.
-A new folder does not bypass existing claims or workspace-name collisions.
 
-Owners use **Sol 6.1/high**. Bounded workers and fresh reviewers use
-**Luna 6/xhigh**. An incomplete worker result or a second fresh review uses
-**Terra 6.1/low**. All are OpenAI models. There is no runtime or spend limit.
-Workers are sequential script-managed sessions, not recursive agent fan-out.
+## Models and boundaries
+
+Owners use **Sol 6.1/high**. Every reviewer, including a fresh second review,
+uses **Sol 6.1/low**. Bounded evidence workers use **Luna 6/xhigh**; an incomplete
+worker result can be retried with **Terra 6.1/low**. All are OpenAI models.
 There is one repair pass after review; unresolved findings stop the queue.
+Agents cannot launch other agents.
 
-Agents can read an explicit list of tracked text sources and research reports,
-and research the web. A run-local Pi guard blocks other file reads, directory
-searches, shell commands, file writes, browser automation, MCP and delegation.
-Web retrieval is limited to unauthenticated HTTPS text; local-file fetches and
-video-model calls are blocked. Search uses OpenAI and rejects obvious code or
-private-path payloads. Generic search queries still require agent judgment;
+Each task reads its own clean jj workspace at the same accepted baseline,
+fixed at run start. Reports and workspaces remain for owner review. No `.env`
+is needed. No app code, bookmarks, dependencies or production data are changed.
+Only Beads data is synced; no code is pushed by the runner.
+
+The run-local guard permits only listed text sources and research reports.
+It blocks shell commands, writes, directory searches, browser automation and
+MCP. Web retrieval is unauthenticated HTTPS text; queries use OpenAI and reject
+obvious code/private-path payloads. Query content still needs agent judgment;
 this is not an OS sandbox or a complete data-loss prevention system.
 
-The script alone manages workspaces, reports, claims and guarded closures. It
-verifies the actual model, reasoning, guard startup, final response and
-fresh-review verdict before closure. Each source-reading session must first run
-the loaded runtime doctor. The guard allows only that diagnostic subagent action;
-it blocks agent launches. Fresh no-tools canaries check all three model tiers. Status checks the runner lock, not only
-saved progress. Resume refuses to start if a retained Pi session is still live.
-
-Each task reads its own clean jj workspace at the same accepted baseline, fixed
-at run start. Reports stay outside the repo. Workspaces are retained for review;
-they need no `.env`. No app code, bookmarks, dependencies or production data are
-changed. Beads data is synced to its configured remote. No code is pushed.
-
-A completed Pi response can leave extensions running. After the explicit
-`agent_settled` event, the runner gives Pi two seconds to exit, then ends that
-owned process group. This does not limit research time.
+Before dispatch, the runner verifies the live Pi session, TUI mode, model,
+reasoning, directory and pane through a two-way file handshake. Each source
+reader must pass the loaded runtime doctor; no other subagent action is allowed.
+Fresh no-tools canaries check all four model/reasoning combinations. A bead closes only after
+valid completion evidence and an independent review.

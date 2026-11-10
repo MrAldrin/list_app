@@ -3,7 +3,7 @@
 Preparation bead: `lr-fgr`. Research epic: `lr-zja`.
 This records preparation on 2026-11-10, not completed Phase 1 research.
 
-## Checks
+## Original non-interactive preparation (`lr-fgr`)
 
 - Full Python suite: 1,820 passed, no skips, with the frontend build present.
 - Ruff format, Ruff lint and ty: passed. ty covers `src/`, as configured.
@@ -40,5 +40,33 @@ Private live evidence is retained at
 `~/.local/share/list-app-stack-research/preparation/`.
 Reports and workspaces from the actual run will be retained for owner review.
 
+## Interactive Zellij revision (`lr-nav`)
+
+The owner then required visible interactive Pi panes, one agent at a time, with
+automatic closure after completion. The revised runner uses a normal Fish shell
+in each new no-focus tab, verifies the Pi session and pane, then releases the
+research prompt. It does not use print, JSON or RPC execution modes.
+
+A disposable live test verified Sol 6.1/high in TUI mode, matching session/cwd/
+pane identity, a completed synthetic response, return to the normal shell and
+closure of the owned pane and empty sidebar tab. An earlier failed test exposed
+Fish's startup directory change; explicit `cd` plus cwd verification fixed it.
+The failed and successful evidence are retained privately under
+`~/.local/share/list-app-stack-research/preparation/interactive/`.
+
+Updated checks: 1,827 Python tests and five Node guard tests passed. Ruff format,
+Ruff lint and ty passed. Unit tests cover shell-first launch, explicit pane
+ownership, no-focus tabs, cwd correction, cleanup, readiness rejection, no
+closure of user-added panes, and direct handling of a typed stop request.
+
+The owner changed all reviewer assignments to Sol 6.1/low. Both review routes,
+their canary and regression assertions now use that pair. A fresh Sol 6.1/low
+review found no issues in the interactive runner, cleanup, stop behavior or
+model routing. Its actual model and tier were verified from the saved session.
+The full checks above were rerun after the model-routing changes. A final local
+check also corrected lease renewal to use native `bd heartbeat`, rather than
+an idempotent claim. A regression test verifies that command; renewal runs at
+each stage start and every two minutes during work.
+
 See the [operator guide](../stack-research-runner.md) for start, status, stop and
-resume. No acceptance, deployment or rewrite was performed during preparation.
+resume. No acceptance, deployment, rewrite or Phase 1 execution was performed.

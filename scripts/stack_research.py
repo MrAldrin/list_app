@@ -16,9 +16,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from stack_research_panes import PaneError, VisiblePane, check_connection, panes
+
 REPO = Path("/home/hsa/projects/list_app")
 HOME = Path.home() / ".local/share/list-app-stack-research"
 OWNER = ("openai/gpt-6.1-sol", "high")
+REVIEWER = ("openai/gpt-6.1-sol", "low")
 WORKER = ("openai/gpt-6-luna", "xhigh")
 RETRY = ("openai/gpt-6.1-terra", "low")
 TASKS = (
@@ -305,6 +308,13 @@ class Runner:
                 "Stop requested. Evidence and claims retained; use resume after inspection."
             )
 
+    def heartbeat(self) -> None:
+        self.check_stop()
+        claim = self.state.get("claim")
+        if claim:
+            store_check()
+            bd(["heartbeat", claim["bead"]], claim["actor"])
+
     def agent(
         self,
         key: str,
@@ -318,6 +328,23 @@ class Runner:
         folder = self.directory / key
         folder.mkdir(exist_ok=True, mode=0o700)
         receipt = folder / "receipt.json"
+        if (folder / "pane.json").exists():
+            retained = load(folder / "pane.json")
+            if not retained.get("closed"):
+                if retained.get("zellij_session") != os.environ.get(
+                    "ZELLIJ_SESSION_NAME"
+                ):
+                    raise RunError(
+                        "Retained pane belongs to another Zellij session; inspect it before resume."
+                    )
+                if any(
+                    p["tab_id"] == retained["tab_id"]
+                    and (retained["pane_id"] is None or p["id"] == retained["pane_id"])
+                    for p in panes()
+                ):
+                    raise RunError(
+                        "A retained agent pane is still open; inspect it before resume."
+                    )
         if receipt.exists():
             data = load(receipt)
             if data["model"] != list(model):
@@ -332,7 +359,7 @@ class Runner:
             return final_response(folder / "events.jsonl", data["session_id"])
         session_id = session_id or str(uuid.uuid4())
         # Preserve failed attempts. Never resume a failed provider context silently.
-        if (folder / "events.jsonl").exists():
+        if (folder / "events.jsonl").exists() or (folder / "pane.json").exists():
             if not self.retry_partial:
                 raise RunError(
                     f"Partial stage {key}; inspect it, then resume --retry-partial if safe."
@@ -357,6 +384,10 @@ class Runner:
                 "thinking": model[1],
                 "receipt": str(folder / "guard-ready.json"),
                 "doctorReceipt": str(folder / "doctor-ready.txt"),
+                "events": str(folder / "events.jsonl"),
+                "dispatch": str(folder / "DISPATCH"),
+                "shutdown": str(folder / "SHUTDOWN"),
+                "stop": str(self.directory / "STOP"),
             },
         )
         if not canary:
@@ -364,9 +395,6 @@ class Runner:
         (folder / "prompt.md").write_text(prompt)
         args = [
             "pi",
-            "--mode",
-            "json",
-            "--print",
             "--provider",
             "openai",
             "--model",
@@ -398,59 +426,55 @@ class Runner:
         }
         self.checkpoint()
         print(f"\nSTART {key}: {model[0]} / {model[1]}", flush=True)
-        with (
-            (folder / "events.jsonl").open("w") as out,
-            (folder / "stderr.log").open("w") as err,
-        ):
-            child = subprocess.Popen(
-                args,
-                cwd=cwd,
-                stdin=subprocess.DEVNULL,
-                stdout=out,
-                stderr=err,
-                start_new_session=True,
-                env={**os.environ, "LISTR_RESEARCH_GUARD": str(config)},
-            )
-            try:
-                settled_at = None
-                last_heartbeat = time.monotonic()
-                # Some installed extensions keep Node alive after agent_settled.
-                # Read complete JSONL records incrementally; never time out active work.
-                with (folder / "events.jsonl").open() as events:
-                    while child.poll() is None:
-                        self.check_stop()
-                        claim = self.state.get("claim")
-                        if claim and time.monotonic() - last_heartbeat >= 120:
-                            store_check()
-                            bd(["update", claim["bead"], "--claim"], claim["actor"])
-                            last_heartbeat = time.monotonic()
-                        position = events.tell()
-                        line = events.readline()
-                        if line.endswith("\n"):
-                            event = json.loads(line)
-                            if event.get("type") == "agent_settled":
-                                settled_at = time.monotonic()
-                        else:
-                            events.seek(position)
-                            if (
-                                settled_at is not None
-                                and time.monotonic() - settled_at > 2
-                            ):
-                                break
-                            time.sleep(0.25)
+        pane = VisiblePane(cwd, folder, f"list-{key}", self.check_stop)
+        try:
+            self.heartbeat()
+            pane.open(args, config)
+            self.state["active"].update(tab_id=pane.tab_id, pane_id=pane.pane_id)
+            self.checkpoint()
+            deadline = time.monotonic() + 120
+            while not (folder / "guard-ready.json").exists():
                 self.check_stop()
-                if child.returncode not in (None, 0):
+                if not pane.current() or time.monotonic() > deadline:
                     raise RunError(
-                        f"{key}: Pi exit {child.returncode}; see {folder}/stderr.log"
+                        "Interactive Pi did not become ready; inspect screen.txt."
                     )
-            finally:
-                if child.poll() is None:
-                    os.killpg(child.pid, signal.SIGTERM)
-                    try:
-                        child.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        os.killpg(child.pid, signal.SIGKILL)
-                        child.wait()
+                time.sleep(0.1)
+            pane.verify_ready(load(folder / "guard-ready.json"), session_id, model)
+            print(
+                f"Interactive agent: Zellij tab {pane.tab_id}, pane {pane.pane_id}. Type stop there to stop the queue.",
+                flush=True,
+            )
+            last_heartbeat = time.monotonic()
+            with (folder / "events.jsonl").open() as events:
+                while True:
+                    self.check_stop()
+                    if not pane.current():
+                        raise RunError("Agent pane was closed; stopping the queue.")
+                    claim = self.state.get("claim")
+                    if claim and time.monotonic() - last_heartbeat >= 120:
+                        self.heartbeat()
+                        last_heartbeat = time.monotonic()
+                    position = events.tell()
+                    line = events.readline()
+                    if line.endswith("\n"):
+                        event = json.loads(line)
+                        if event.get("type") == "agent_settled":
+                            break
+                    else:
+                        events.seek(position)
+                        if pane.is_shell(pane.current() or {}):
+                            raise RunError(
+                                "Pi exited before finishing; inspect screen.txt."
+                            )
+                        time.sleep(0.25)
+            self.check_stop()
+        finally:
+            pane.close()
+            if live_session(session_id):
+                raise RunError(
+                    "The previous Pi process is still live after pane closure. No next agent will start."
+                )
         if not (folder / "guard-ready.json").exists():
             raise RunError("Research guard did not load; no result accepted.")
         if not canary and not (folder / "doctor-ready.txt").exists():
@@ -629,7 +653,7 @@ class Runner:
             f"{bead}-review",
             context + "\n" + REVIEW + "\nDraft:\n" + json.dumps(draft),
             workspace,
-            WORKER,
+            REVIEWER,
             review=True,
         )
         if verdict["verdict"] == "revise":
@@ -651,7 +675,7 @@ class Runner:
                 + "\nFresh final review; verify these earlier gaps were resolved:\n"
                 + json.dumps({"draft": draft, "earlier_review": verdict}),
                 workspace,
-                RETRY,
+                REVIEWER,
                 review=True,
             )
         if verdict["verdict"] != "pass":
@@ -712,7 +736,7 @@ class Runner:
             ]
         ).strip():
             raise RunError("The research baseline contains conflicts.")
-        for index, model in enumerate((OWNER, WORKER, RETRY)):
+        for index, model in enumerate((OWNER, WORKER, RETRY, REVIEWER)):
             answer = self.agent(
                 f"canary-{index}",
                 "Reply with exactly READY. Do not use tools.",
@@ -775,6 +799,7 @@ def main() -> int:
             json.dumps(
                 {
                     "owner": OWNER,
+                    "reviewer": REVIEWER,
                     "worker": WORKER,
                     "retry": RETRY,
                     "tasks": TASKS,
@@ -802,7 +827,7 @@ def main() -> int:
             raise RunError("No run exists at this path.")
         (directory / "STOP").touch(mode=0o600)
         print(
-            "Stop marker saved. A live runner will stop its active Pi group and retain evidence. If the runner crashed, inspect status and retained processes before resume."
+            "Stop marker saved. A live runner will stop and close its owned interactive agent pane. If the runner crashed, inspect its retained pane before resume."
         )
         return 0
     with (HOME / "runner.lock").open("a") as lock:
@@ -810,6 +835,7 @@ def main() -> int:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
             raise RunError("Another stack research runner is active.") from exc
+        check_connection()
         if args.action == "start":
             initialize(directory)
         else:
@@ -834,7 +860,7 @@ def main() -> int:
         runner.checkpoint()
         try:
             runner.run()
-        except (RunError, ValueError, OSError) as exc:
+        except (RunError, PaneError, ValueError, OSError) as exc:
             runner.state["status"] = (
                 "stopped" if isinstance(exc, Stopped) else "blocked"
             )
@@ -848,6 +874,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except (RunError, OSError) as error:
+    except (RunError, PaneError, OSError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         sys.exit(2)

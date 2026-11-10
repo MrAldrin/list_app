@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { checkCall } from './stack_research_guard.mjs';
+import guard, { checkCall } from './stack_research_guard.mjs';
 
 test('only manifest files can be read; symlink escape denied', () => {
   const root = mkdtempSync(join(tmpdir(), 'stack-guard-'));
@@ -28,6 +28,26 @@ test('search forces OpenAI and rejects obvious private payloads', () => {
   assert.equal(input.model, undefined);
   assert.ok(checkCall('web_search', { query: '/home/hsa/.env' }, '/', {}));
   assert.ok(checkCall('source_check', { claim: 'code { private }' }, '/', {}));
+});
+
+test('typing stop in interactive Pi stops the whole queue without another model call', () => {
+  const root = mkdtempSync(join(tmpdir(), 'stack-stop-'));
+  const old = process.env.LISTR_RESEARCH_GUARD;
+  try {
+    const config = join(root, 'guard.json');
+    writeFileSync(config, JSON.stringify({ stop: join(root, 'STOP') }));
+    process.env.LISTR_RESEARCH_GUARD = config;
+    const hooks = {};
+    guard({ on(name, handler) { hooks[name] = handler; } });
+    let aborted = false;
+    assert.deepEqual(hooks.input({ text: 'please stop now' }, { abort() { aborted = true; } }), { action: 'handled' });
+    assert.equal(aborted, true);
+    assert.equal(existsSync(join(root, 'STOP')), true);
+  } finally {
+    if (old === undefined) delete process.env.LISTR_RESEARCH_GUARD;
+    else process.env.LISTR_RESEARCH_GUARD = old;
+    rmSync(root, { recursive: true });
+  }
 });
 
 test('only the runtime doctor management action is permitted', () => {

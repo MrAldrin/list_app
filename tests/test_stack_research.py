@@ -287,6 +287,8 @@ def test_whole_queue_and_no_phase_two(
     assert closed == [bead for bead, _ in sr.TASKS]
     assert all(record["status"] == "closed" for record in records.values())
     assert sum(key.endswith("-review") for key, _ in seen) == 6
+    assert all(model == sr.REVIEWER for key, model in seen if key.endswith("-review"))
+    assert sr.REVIEWER == ("openai/gpt-6.1-sol", "low")
     assert sum("-worker-" in key for key, _ in seen) == 5
     assert obj.state["status"] == "complete"
     for bead, _ in sr.TASKS:
@@ -297,9 +299,11 @@ def test_failed_review_never_closes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     obj, records, closed = fake_queue(tmp_path, monkeypatch)
+    review_models = []
 
     def report(*args: Any, **kwargs: Any) -> dict[str, Any]:
         if kwargs.get("review"):
+            review_models.append(args[3])
             return {
                 "verdict": "revise",
                 "summary": "Missing evidence",
@@ -317,6 +321,7 @@ def test_failed_review_never_closes(
         obj.run_task("lr-ngj", ())
     assert not closed
     assert records["lr-ngj"]["status"] == "in_progress"
+    assert review_models == [sr.REVIEWER, sr.REVIEWER]
 
 
 def test_private_directory_rejects_public_root(tmp_path: Path) -> None:
@@ -361,28 +366,66 @@ def test_stop_during_notes_prevents_close(
     assert records["lr-ngj"]["status"] == "in_progress"
 
 
-def test_stop_terminates_owned_child(
+def test_stop_closes_owned_interactive_pane(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     obj = runner(tmp_path)
-    original = sr.subprocess.Popen
-    children = []
+    closed = []
 
-    def spawn(*args: Any, **kwargs: Any) -> Any:
-        child = original(
-            [sr.sys.executable, "-c", "import time; time.sleep(60)"],
-            start_new_session=True,
-        )
-        children.append(child)
-        return child
+    class FakePane:
+        pane_id = 12
+        tab_id = 34
 
-    monkeypatch.setattr(sr.subprocess, "Popen", spawn)
-    monkeypatch.setattr(sr.time, "sleep", lambda _: setattr(obj, "stop", True))
+        def __init__(self, *args: Any) -> None:
+            pass
+
+        def open(self, args: list[str], guard: Path) -> None:
+            assert "--print" not in args
+            assert "--mode" not in args
+            obj.stop = True
+
+        def close(self) -> None:
+            closed.append(True)
+
+    monkeypatch.setattr(sr, "VisiblePane", FakePane)
     with pytest.raises(sr.Stopped):
         obj.agent("test-stop", "synthetic", tmp_path, sr.OWNER, canary=True)
-    assert len(children) == 1
-    assert children[0].poll() is not None
+    assert closed == [True]
     assert not (tmp_path / "test-stop" / "receipt.json").exists()
+
+
+def test_live_pi_after_pane_closure_prevents_next_stage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    obj = runner(tmp_path)
+    closed = []
+
+    class FakePane:
+        pane_id = 12
+        tab_id = 34
+
+        def __init__(self, cwd: Path, folder: Path, *args: Any) -> None:
+            self.folder = folder
+
+        def open(self, args: list[str], guard: Path) -> None:
+            sr.save(self.folder / "guard-ready.json", {})
+            events(self.folder / "events.jsonl")
+
+        def verify_ready(self, *args: Any) -> None:
+            pass
+
+        def current(self) -> dict[str, int]:
+            return {"id": self.pane_id}
+
+        def close(self) -> None:
+            closed.append(True)
+
+    monkeypatch.setattr(sr, "VisiblePane", FakePane)
+    monkeypatch.setattr(sr, "live_session", lambda _: True)
+    with pytest.raises(sr.RunError, match="still live after pane closure"):
+        obj.agent("leftover", "synthetic", tmp_path, sr.OWNER, canary=True)
+    assert closed == [True]
+    assert not (tmp_path / "leftover" / "receipt.json").exists()
 
 
 def test_status_detects_stale_running_state(
@@ -399,6 +442,18 @@ def test_status_detects_stale_running_state(
     status = json.loads(capsys.readouterr().out)
     assert status["runner_live"] is False
     assert status["status"].startswith("interrupted")
+
+
+def test_heartbeat_uses_native_lease_refresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    obj = runner(tmp_path)
+    obj.state["claim"] = {"bead": "lr-ngj", "actor": "pi-session"}
+    calls = []
+    monkeypatch.setattr(sr, "store_check", lambda: None)
+    monkeypatch.setattr(sr, "bd", lambda args, actor: calls.append((args, actor)))
+    obj.heartbeat()
+    assert calls == [(["heartbeat", "lr-ngj"], "pi-session")]
 
 
 def test_source_list_excludes_secrets_and_symlinks(
