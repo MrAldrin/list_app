@@ -4,7 +4,12 @@ import re
 
 import pytest
 from playwright.sync_api import expect
-from svelte_app import PHONE, add_item, create_list, sign_in
+from svelte_app import (
+    PHONE,
+    api_seed,
+    api_sign_in,
+    open_list,
+)
 from test_svelte_items import saved_op
 
 
@@ -12,9 +17,10 @@ from test_svelte_items import saved_op
 def test_item_date_is_saved_shown_and_cleared(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, server)
+    open_list(
+        page, api_seed(page, server, {"Groceries": ["milk"]})["Groceries"], "Groceries"
+    )
     dates = page.locator("ul.items .date")
     # The row name includes its date once it has one, e.g. "milk 20 Oct".
     milk = page.get_by_role("button", name=re.compile("^milk"))

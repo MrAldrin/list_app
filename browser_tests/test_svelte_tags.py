@@ -5,10 +5,11 @@ import re
 from playwright.sync_api import expect
 from svelte_app import (
     PHONE,
-    add_item,
     add_list_tag,
-    create_list,
+    api_seed,
+    api_sign_in,
     item_names,
+    open_list,
     sign_in,
 )
 
@@ -19,9 +20,12 @@ def chips(page):
 
 def test_new_tags_come_from_options_not_the_tag_row(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
 
     # No tags yet: no tag row, and no "+" chip to add one.
     expect(chips(page)).to_have_count(0)
@@ -35,10 +39,12 @@ def test_new_tags_come_from_options_not_the_tag_row(svelte_server, open_session)
 
 def test_tap_filters_the_items(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
-    add_item(page, "bread")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk", "bread"]})["Groceries"],
+        "Groceries",
+    )
     add_list_tag(page, "Lidl")
     page.get_by_role("button", name="Lidl tag for milk").click()
 
@@ -55,9 +61,12 @@ def test_options_click_opens_the_card_and_rename_keeps_the_filter(
     svelte_server, open_session
 ):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     add_list_tag(page, "Lidl")
     page.get_by_role("button", name="Lidl tag for milk").click()
     page.get_by_role("button", name="Done").click()
@@ -83,9 +92,12 @@ def test_options_click_opens_the_card_and_rename_keeps_the_filter(
 
 def test_recolor_and_delete_with_undo(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     add_list_tag(page, "Lidl")
     milk_lidl = page.get_by_role("button", name="Lidl tag for milk")
 
@@ -113,9 +125,12 @@ def test_recolor_and_delete_with_undo(svelte_server, open_session):
 
 def test_one_tag_mode_asks_first_and_keeps_the_first_tag(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     add_list_tag(page, "Lidl")
     add_list_tag(page, "Market")
     page.get_by_role("button", name="Lidl tag for milk").click()
@@ -157,9 +172,9 @@ def test_one_tag_mode_asks_first_and_keeps_the_first_tag(svelte_server, open_ses
 def test_tag_settings_are_the_same_in_a_second_browser(svelte_server, open_session):
     server = svelte_server
     phone = open_session("phone-a", **PHONE)
-    sign_in(phone, server)
-    list_url = create_list(phone, "Groceries")
-    add_item(phone, "milk")
+    api_sign_in(phone, server)
+    list_url = api_seed(phone, server, {"Groceries": ["milk"]})["Groceries"]
+    open_list(phone, list_url, "Groceries")
     add_list_tag(phone, "Lidl")
     phone.get_by_role("button", name="Tags").click()
     phone.get_by_role("dialog", name="Tags").get_by_role(
@@ -182,9 +197,12 @@ def test_tag_settings_are_the_same_in_a_second_browser(svelte_server, open_sessi
 
 def test_edit_item_tag_chips_light_up_at_once(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     add_list_tag(page, "Lidl")
     add_list_tag(page, "Market")
 

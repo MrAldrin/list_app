@@ -9,8 +9,11 @@ from svelte_app import (
     PHONE,
     add_item,
     add_list_tag,
+    api_seed,
+    api_sign_in,
     create_list,
     item_names,
+    open_list,
     room_app_url,
     sign_in,
     wait_for_live_stream,
@@ -51,8 +54,9 @@ def test_suggestion_highlight_tracks_live_item_name(svelte_server, open_session)
     phone_a = open_session("phone-a", **PHONE)
     phone_b = open_session("phone-b", **PHONE)
     sign_in(phone_a, server)
-    sign_in(phone_b, server)
-    list_url = create_list(phone_b, "Groceries")
+    api_sign_in(phone_b, server)
+    list_url = api_seed(phone_b, server, {"Groceries": []})["Groceries"]
+    open_list(phone_b, list_url, "Groceries")
     phone_a.get_by_role("link", name="Groceries").click()
     expect(phone_a).to_have_url(list_url)
 
@@ -105,9 +109,12 @@ def test_list_deleted_while_open(svelte_server, open_session):
     server = svelte_server
     viewer = open_session("viewer", **PHONE)
     deleter = open_session("deleter", **PHONE)
-    sign_in(viewer, server)
-    create_list(viewer, "Groceries")
-    add_item(viewer, "milk")
+    api_sign_in(viewer, server)
+    open_list(
+        viewer,
+        api_seed(viewer, server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     sign_in(deleter, server)
 
     deleter.get_by_role("button", name="Delete Groceries").click()
@@ -160,8 +167,10 @@ def test_rename_saved_after_a_password_change_changes_nothing(
     other = open_session("other", **PHONE)
     # The live stream never connects, so the page misses the password change.
     stale.route("**/api/v1/rooms/*/events", lambda route: None)
-    sign_in(stale, server)
-    create_list(stale, "Groceries")
+    api_sign_in(stale, server)
+    open_list(
+        stale, api_seed(stale, server, {"Groceries": []})["Groceries"], "Groceries"
+    )
     wait_for_live_stream(stale)
     stale.goto(room_app_url(server))
     stale.get_by_role("button", name="Rename Groceries").click()

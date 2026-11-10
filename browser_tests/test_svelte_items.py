@@ -9,8 +9,11 @@ from svelte_app import (
     PHONE,
     add_item,
     add_list_tag,
+    api_seed,
+    api_sign_in,
     create_list,
     item_names,
+    open_list,
     sign_in,
     wait_until,
 )
@@ -22,8 +25,8 @@ from item_names import item_name_key
 def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
+    api_sign_in(page, server)
+    open_list(page, api_seed(page, server, {"Groceries": []})["Groceries"], "Groceries")
     field = page.get_by_label("Add or Search")
 
     # Enter adds exactly the typed text, even when an existing name is suggested.
@@ -69,9 +72,10 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
 ):
     server = svelte_server
     page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, server)
+    open_list(
+        page, api_seed(page, server, {"Groceries": ["milk"]})["Groceries"], "Groceries"
+    )
 
     checkbox = page.get_by_role("checkbox", name="milk")
     with page.expect_response(saved_op):
@@ -127,8 +131,8 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
 def test_add_trims_python_whitespace(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
+    api_sign_in(page, server)
+    open_list(page, api_seed(page, server, {"Groceries": []})["Groceries"], "Groceries")
     field = page.get_by_label("Add or Search")
 
     field.fill("\u0085Oat Milk\u0085")
@@ -143,8 +147,9 @@ def test_offline_unicode_add_reconciles_to_the_server_mapping(
 ):
     server = svelte_server
     page = open_session("unicode-add", **{**PHONE, "service_workers": "block"})
-    sign_in(page, server)
-    url = create_list(page, "Unicode")
+    api_sign_in(page, server)
+    url = api_seed(page, server, {"Unicode": []})["Unicode"]
+    open_list(page, url, "Unicode")
     old_name = "\u1c89"
     new_name = "\u1c8a"
     add_item(page, old_name)
@@ -202,8 +207,9 @@ def test_offline_unicode_add_is_removed_after_server_rejection(
 ):
     server = svelte_server
     page = open_session("unicode-rejection", **{**PHONE, "service_workers": "block"})
-    sign_in(page, server)
-    url = create_list(page, "Unicode")
+    api_sign_in(page, server)
+    url = api_seed(page, server, {"Unicode": []})["Unicode"]
+    open_list(page, url, "Unicode")
     old_name = "\u1c89"
     new_name = "\u1c8a"
     add_item(page, old_name)
@@ -428,8 +434,8 @@ def test_description_and_tag_save_together(svelte_server, open_session):
     """A settled tag write must not make the open description edit stale."""
     server = svelte_server
     page = open_session("combined-edit", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
+    api_sign_in(page, server)
+    open_list(page, api_seed(page, server, {"Groceries": []})["Groceries"], "Groceries")
     add_list_tag(page, "Shop")
 
     for name in ("existing", "new"):
@@ -465,8 +471,8 @@ def test_description_and_tag_save_together(svelte_server, open_session):
 def test_tags_filter_and_hide_done(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
+    api_sign_in(page, server)
+    open_list(page, api_seed(page, server, {"Groceries": []})["Groceries"], "Groceries")
     for name in ("milk", "bread", "apples", "eggs"):
         add_item(page, name)
     expect(item_names(page)).to_have_count(4)
@@ -582,9 +588,12 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
 
 def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
 
     for tag in ("Dairy", "Dry goods"):
         add_list_tag(page, tag)
@@ -604,8 +613,10 @@ def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
 
 def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page, api_seed(page, svelte_server, {"Groceries": []})["Groceries"], "Groceries"
+    )
     expect(page.get_by_text("No items yet. Type below to add.")).to_be_visible()
     add_item(page, "milk")
     add_item(page, "apple")
@@ -628,8 +639,10 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
 
 def test_suggestions_rank_by_add_count_and_scroll(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page, api_seed(page, svelte_server, {"Groceries": []})["Groceries"], "Groceries"
+    )
     for name in ["tea a", "tea b", "tea c", "tea d", "tea e"]:
         add_item(page, name)
     # Adding a checked item again raises its count, so it ranks first.

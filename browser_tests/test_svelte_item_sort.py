@@ -5,7 +5,14 @@ rules (open items first, ties, dates, no time) are covered by unit tests.
 """
 
 from playwright.sync_api import expect
-from svelte_app import PHONE, add_item, create_list, item_names, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    api_seed,
+    api_sign_in,
+    item_names,
+    open_list,
+)
 
 NAME_Z_TO_A = "Z\N{EN DASH}A"
 
@@ -19,8 +26,8 @@ def open_options(page):
 def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
-    sign_in(page, server)
-    create_list(page, "Groceries")
+    api_sign_in(page, server)
+    open_list(page, api_seed(page, server, {"Groceries": []})["Groceries"], "Groceries")
     # Added in this order: milk is the oldest, zucchini the newest.
     add_item(page, "milk")
     add_item(page, "apple")
@@ -54,8 +61,10 @@ def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_sessio
 
 def test_checked_rows_wait_for_the_taps_to_settle(svelte_server, open_session):
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page, api_seed(page, svelte_server, {"Groceries": []})["Groceries"], "Groceries"
+    )
     for name in ("apple", "milk", "zucchini"):
         add_item(page, name)
     expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])

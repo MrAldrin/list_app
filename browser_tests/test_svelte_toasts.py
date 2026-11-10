@@ -10,7 +10,15 @@ import zlib
 
 import pytest
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, create_list, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    api_seed,
+    api_sign_in,
+    create_list,
+    open_list,
+    sign_in,
+)
 
 # One line of text with the 2rem buttons; well under two lines.
 MAX_TOAST_HEIGHT = 48
@@ -139,10 +147,12 @@ def test_a_toast_can_be_used_while_a_dialog_is_open(svelte_server, open_session)
     backdrop and closed the dialog, which lost the typed text.
     """
     page = open_session("phone", **PHONE)
-    sign_in(page, svelte_server)
-    create_list(page, "Groceries")
-    add_item(page, "milk")
-    add_item(page, "bread")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk", "bread"]})["Groceries"],
+        "Groceries",
+    )
     expect(toasts(page)).to_have_count(0, timeout=10_000)
 
     page.get_by_role("button", name="milk", exact=True).click()

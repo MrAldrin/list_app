@@ -15,10 +15,13 @@ from svelte_app import (
     PHONE,
     add_item,
     add_list_tag,
+    api_seed,
+    api_sign_in,
     app_url,
     create_list,
     hold_live_updates,
     item_names,
+    open_list,
     share_link,
     sign_in,
     wait_until,
@@ -63,8 +66,12 @@ def share_token(server) -> str:
 
 def test_repeated_resets_each_confirm_and_rotate_the_link(svelte_server, open_session):
     member = without_share_sheet(open_session("member", **PHONE))
-    sign_in(member, svelte_server)
-    create_list(member, "Groceries")
+    api_sign_in(member, svelte_server)
+    open_list(
+        member,
+        api_seed(member, svelte_server, {"Groceries": []})["Groceries"],
+        "Groceries",
+    )
     original = share_token(svelte_server)
 
     reset_link(member)
@@ -148,9 +155,12 @@ def test_writes_sent_after_a_reset_change_nothing(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    create_list(member, "Groceries")
-    add_item(member, "undo target")
+    api_sign_in(member, server)
+    open_list(
+        member,
+        api_seed(member, server, {"Groceries": ["undo target"]})["Groceries"],
+        "Groceries",
+    )
     link = share_link(member)
 
     # Undo of a delete, after the reset.
@@ -188,9 +198,12 @@ def test_invalid_links_show_no_list(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    create_list(member, "Groceries")
-    add_item(member, "private contents")
+    api_sign_in(member, server)
+    open_list(
+        member,
+        api_seed(member, server, {"Groceries": ["private contents"]})["Groceries"],
+        "Groceries",
+    )
     link = share_link(member)
     list_slug = server.query("SELECT slug FROM lists WHERE name = 'Groceries'")[0][0]
 
@@ -230,9 +243,9 @@ def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    list_url = create_list(member, "Groceries")
-    add_item(member, "milk")
+    api_sign_in(member, server)
+    list_url = api_seed(member, server, {"Groceries": ["milk"]})["Groceries"]
+    open_list(member, list_url, "Groceries")
     link = share_link(member)
 
     # The room's own list address asks a visitor for the room password.
@@ -271,9 +284,12 @@ def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
 def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
-    sign_in(member, server)
-    create_list(member, "Groceries")
-    add_item(member, "milk")
+    api_sign_in(member, server)
+    open_list(
+        member,
+        api_seed(member, server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
 
     # An item edit from a dialog that was open during the reset.
     editor = open_session("editor", **PHONE)
@@ -323,9 +339,12 @@ def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    create_list(member, "Groceries")
-    add_item(member, "milk")
+    api_sign_in(member, server)
+    open_list(
+        member,
+        api_seed(member, server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     link = share_link(member)
 
     # The member opens the link: the back arrow and the reset are there.
@@ -364,8 +383,10 @@ def test_without_room_access_the_share_page_reveals_nothing_about_the_room(
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    create_list(member, "Groceries")
+    api_sign_in(member, server)
+    open_list(
+        member, api_seed(member, server, {"Groceries": []})["Groceries"], "Groceries"
+    )
     link = share_link(member)
     slug = server.room_slug
 

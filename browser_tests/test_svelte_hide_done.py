@@ -10,7 +10,13 @@ list counts the checked items that are hidden; it shows nothing at zero.
 import re
 
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, create_list, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    api_seed,
+    api_sign_in,
+    open_list,
+)
 from test_svelte_share import share_link, without_share_sheet
 
 SAVED = re.compile(r"/api/v1/(rooms|share)/[^/]+/ops$")
@@ -49,9 +55,12 @@ def test_hide_done_modes_history_and_shared_updates(svelte_server, open_session)
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    create_list(member, "Groceries")
-    add_item(member, "milk")
+    api_sign_in(member, server)
+    open_list(
+        member,
+        api_seed(member, server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
     milk(member).check()
     expect(milk(member)).to_be_checked()
 
@@ -138,8 +147,10 @@ def test_hidden_count_line_under_the_list(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
-    sign_in(member, server)
-    create_list(member, "Groceries")
+    api_sign_in(member, server)
+    open_list(
+        member, api_seed(member, server, {"Groceries": []})["Groceries"], "Groceries"
+    )
     for name in ["milk", "eggs", "bread"]:
         add_item(member, name)
     milk(member).check()
