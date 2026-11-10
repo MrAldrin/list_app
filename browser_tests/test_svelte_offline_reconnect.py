@@ -16,6 +16,7 @@ from svelte_app import (
     add_item,
     go_offline,
     go_online,
+    hold_live_updates,
     item_names,
     member_with_list,
     nudge,
@@ -255,7 +256,7 @@ def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     sign_in(other, server)
     other.get_by_role("link", name="Groceries").click()
     # The page's live stream never answers, so only a resume can refresh it.
-    page.route("**/api/v1/rooms/*/events", lambda route: None)
+    hold_live_updates(page)
     page.reload()
     expect(item_names(page)).to_have_text(["bread", "milk"])
     add_item(other, "eggs")

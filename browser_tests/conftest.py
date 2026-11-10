@@ -148,6 +148,11 @@ def track_api_requests(page: Page) -> None:
     """Remember which API requests of the page have not answered yet.
 
     A live stream counts as answered when its response starts.
+
+    A request of a document that the page has left never answers: a page load
+    cancels it, often without a failure event. It is dropped when the new
+    document arrives. Keeping it made each close wait the full
+    `wait_for_api_idle` time.
     """
     pending: set = set()
     page.api_pending = pending
@@ -156,9 +161,22 @@ def track_api_requests(page: Page) -> None:
     def touch():
         page.api_last_activity = time.monotonic()
 
+    leaving = False
+
     def started(request):
-        if API_PREFIX in request.url:
+        nonlocal leaving
+        if request.is_navigation_request() and request.frame == page.main_frame:
+            leaving = True
+        elif API_PREFIX in request.url:
             pending.add(request)
+            touch()
+
+    def navigated(frame):
+        # A new document: every request of the old one is cancelled now.
+        nonlocal leaving
+        if leaving and frame == page.main_frame:
+            leaving = False
+            pending.clear()
             touch()
 
     def ended(request):
@@ -167,6 +185,7 @@ def track_api_requests(page: Page) -> None:
             touch()
 
     page.on("request", started)
+    page.on("framenavigated", navigated)
     page.on("response", lambda response: ended(response.request))
     page.on("requestfinished", ended)
     page.on("requestfailed", ended)
@@ -184,7 +203,12 @@ def wait_for_api_idle(page: Page, timeout_ms: int = 5_000) -> None:
     waited = 0
     while waited < timeout_ms and not page.is_closed():
         quiet = time.monotonic() - page.api_last_activity >= API_QUIET_SECONDS
-        if quiet and not page.api_pending:
+        # A live stream that the test holds on purpose never answers.
+        held = getattr(page, "live_stream_held", False)
+        waiting = [
+            r for r in page.api_pending if not (held and r.url.endswith("/events"))
+        ]
+        if quiet and not waiting:
             return
         page.wait_for_timeout(25)
         waited += 25

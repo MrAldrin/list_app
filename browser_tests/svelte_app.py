@@ -220,6 +220,7 @@ def hold_live_updates(page: Page) -> None:
     Its next write is then sent with the old link, as from a phone that was
     asleep while the link was reset.
     """
+    page.live_stream_held = True  # the fixture does not wait for it at close
     page.route(re.compile(r"/api/v1/(rooms|share)/[^/]+/events"), lambda route: None)
 
 

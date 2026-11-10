@@ -12,6 +12,7 @@ from svelte_app import (
     api_seed,
     api_sign_in,
     create_list,
+    hold_live_updates,
     item_names,
     open_list,
     room_app_url,
@@ -166,7 +167,7 @@ def test_rename_saved_after_a_password_change_changes_nothing(
     stale = open_session("stale", service_workers="block", **PHONE)
     other = open_session("other", **PHONE)
     # The live stream never connects, so the page misses the password change.
-    stale.route("**/api/v1/rooms/*/events", lambda route: None)
+    hold_live_updates(stale)
     api_sign_in(stale, server)
     open_list(
         stale, api_seed(stale, server, {"Groceries": []})["Groceries"], "Groceries"
