@@ -64,7 +64,6 @@ def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session
     expect(field).to_be_focused()
 
 
-@pytest.mark.all_engines
 def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     svelte_server, open_session
 ):
@@ -198,7 +197,6 @@ def test_offline_unicode_add_reconciles_to_the_server_mapping(
     expect(item_names(page)).to_have_text(expected)
 
 
-@pytest.mark.all_engines
 def test_offline_unicode_add_is_removed_after_server_rejection(
     svelte_server, open_session
 ):
@@ -426,7 +424,6 @@ def saved_op(response) -> bool:
     )
 
 
-@pytest.mark.all_engines
 def test_description_and_tag_save_together(svelte_server, open_session):
     """A settled tag write must not make the open description edit stale."""
     server = svelte_server

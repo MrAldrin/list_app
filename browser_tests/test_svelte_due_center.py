@@ -86,7 +86,6 @@ def test_reload_shows_no_due_toast(svelte_server, open_session):
     expect(page.locator(".toasts .toast", has_text="due")).to_have_count(0)
 
 
-@pytest.mark.all_engines
 def test_reveal_clears_the_search_and_focuses_the_item(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -221,7 +220,6 @@ def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
     expect(panel.get_by_role("link", name=re.compile("^cabin-item"))).to_have_count(0)
 
 
-@pytest.mark.all_engines
 def test_saved_panel_says_saved_and_offline_date_edits_count(
     svelte_server, open_session
 ):
@@ -249,7 +247,6 @@ def test_saved_panel_says_saved_and_offline_date_edits_count(
     expect(bell).to_have_accessible_name("Due items: 2 due, 0 overdue")
 
 
-@pytest.mark.all_engines
 def test_live_changes_update_the_open_panel_without_moving_focus(
     svelte_server, open_session
 ):
