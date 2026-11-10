@@ -2,6 +2,7 @@
 room page sit at the bottom of a phone screen, within thumb reach.
 """
 
+import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import PHONE, add_item, create_list, sign_in
 
@@ -21,6 +22,7 @@ def assert_at_bottom(page: Page, locator) -> None:
     assert box["y"] > viewport["height"] - 120, (box, viewport)
 
 
+@pytest.mark.all_engines
 def test_add_controls_sit_at_the_bottom_and_suggestions_open_upwards(
     svelte_server, open_session
 ):

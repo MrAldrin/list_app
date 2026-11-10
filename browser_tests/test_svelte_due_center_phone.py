@@ -10,6 +10,7 @@ from test_svelte_share import without_share_sheet
 
 
 @pytest.mark.parametrize("theme", ["light", "dark"])
+@pytest.mark.all_engines
 def test_phone_bell_rows_and_hidden_settings(svelte_server, open_session, theme):
     page = without_share_sheet(open_session("owner", **PHONE, color_scheme=theme))
     sign_in(page, svelte_server)

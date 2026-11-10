@@ -7,6 +7,7 @@ for its password. The room menu (⋮) has no Rooms list.
 import hashlib
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, admin_sign_in, app_url, room_app_url, sign_in
 
@@ -40,6 +41,7 @@ def create_room_as_admin(owner, server, name: str, password: str) -> str:
     return server.query("SELECT slug FROM rooms WHERE name = ?", (name,))[0][0]
 
 
+@pytest.mark.all_engines
 def test_room_menu_switches_between_remembered_rooms(svelte_server, open_session):
     server = svelte_server
     owner = open_session("owner", **PHONE)
@@ -76,6 +78,7 @@ def test_room_menu_switches_between_remembered_rooms(svelte_server, open_session
     expect(page.get_by_role("heading", name="Cabin")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_switching_to_a_room_without_access_asks_for_its_password(
     svelte_server, open_session
 ):
@@ -105,6 +108,7 @@ def test_switching_to_a_room_without_access_asks_for_its_password(
     expect(page.get_by_role("heading", name="Cabin")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_logging_out_of_a_room_removes_it_from_the_list(svelte_server, open_session):
     server = svelte_server
     owner = open_session("owner", **PHONE)
@@ -129,6 +133,7 @@ def test_logging_out_of_a_room_removes_it_from_the_list(svelte_server, open_sess
     expect(room_buttons(page)).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_add_room_opens_the_start_page_and_both_rooms_link_to_each_other(
     svelte_server, open_session
 ):
@@ -184,6 +189,7 @@ def test_add_room_opens_the_start_page_and_both_rooms_link_to_each_other(
     expect(page.get_by_role("heading", name="Cabin")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_room_menu_has_no_rooms_and_the_switcher_shows_the_current_room(
     svelte_server, open_session
 ):

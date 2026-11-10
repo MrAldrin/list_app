@@ -5,6 +5,7 @@ with a larger tap area (a pseudo-element) counts with that area, and a control
 that another control covers counts less.
 """
 
+import pytest
 from playwright.sync_api import Locator, expect
 from svelte_app import PHONE, add_item, add_list_tag, create_list, sign_in
 
@@ -36,6 +37,7 @@ def assert_tap_height(name: str, locator: Locator) -> None:
         assert height >= TOUCH, f"{name} is {height} px tall, needs {TOUCH}"
 
 
+@pytest.mark.all_engines
 def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

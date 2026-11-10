@@ -11,6 +11,7 @@ for its update.
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import pytest
 from playwright.sync_api import Error, expect
 
 from conftest import TestServer
@@ -81,6 +82,7 @@ def cache_names(page) -> list[str]:
     return page.evaluate("caches.keys()")
 
 
+@pytest.mark.all_engines
 def test_the_old_service_worker_is_removed_before_the_new_shell_is_saved(
     svelte_build, open_session, tmp_path
 ):

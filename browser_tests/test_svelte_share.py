@@ -61,7 +61,6 @@ def share_token(server) -> str:
     return server.query("SELECT share_token FROM lists WHERE name = 'Groceries'")[0][0]
 
 
-@pytest.mark.chromium_only
 def test_repeated_resets_each_confirm_and_rotate_the_link(svelte_server, open_session):
     member = without_share_sheet(open_session("member", **PHONE))
     sign_in(member, svelte_server)
@@ -76,6 +75,7 @@ def test_repeated_resets_each_confirm_and_rotate_the_link(svelte_server, open_se
     assert len({original, first, second}) == 3
 
 
+@pytest.mark.all_engines
 def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     svelte_server, open_session
 ):
@@ -144,6 +144,7 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     expect(visitor.get_by_role("link", name="Groceries")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_writes_sent_after_a_reset_change_nothing(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -184,7 +185,6 @@ def test_writes_sent_after_a_reset_change_nothing(svelte_server, open_session):
     assert server.query("SELECT name FROM items") == [("room still works",)]
 
 
-@pytest.mark.chromium_only
 def test_invalid_links_show_no_list(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -207,7 +207,6 @@ def test_invalid_links_show_no_list(svelte_server, open_session):
         expect(visitor.get_by_label("Add or Search")).to_have_count(0)
 
 
-@pytest.mark.chromium_only
 def test_room_menu_shares_the_room_link(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -226,7 +225,6 @@ def test_room_menu_shares_the_room_link(svelte_server, open_session):
     expect(dialog).to_have_count(0)
 
 
-@pytest.mark.chromium_only
 def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
     svelte_server, open_session
 ):
@@ -271,7 +269,6 @@ def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
     assert server.query("SELECT name FROM lists") == [("Groceries",)]
 
 
-@pytest.mark.chromium_only
 def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -320,7 +317,6 @@ def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_se
     ]
 
 
-@pytest.mark.chromium_only
 def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     svelte_server, open_session
 ):
@@ -363,7 +359,6 @@ def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     ]
 
 
-@pytest.mark.chromium_only
 def test_without_room_access_the_share_page_reveals_nothing_about_the_room(
     svelte_server, open_session
 ):

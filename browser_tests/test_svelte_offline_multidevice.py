@@ -10,6 +10,7 @@ too, on one device.
 import json
 import re
 
+import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import (
     add_item,
@@ -74,6 +75,7 @@ def two_devices_on_list(open_session, server, first: str, second: str, items=("m
     return phone, other, url
 
 
+@pytest.mark.all_engines
 def test_both_offline_quantity_taps_both_count(svelte_server, open_session):
     """R1: a +1 on each device, both offline, make +2 in total."""
     server = svelte_server
@@ -109,6 +111,7 @@ def test_both_offline_quantity_taps_both_count(svelte_server, open_session):
         expect(page.get_by_text("was not saved")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_both_offline_ticks_on_one_item_apply_without_a_conflict(
     svelte_server, open_session
 ):
@@ -135,6 +138,7 @@ def test_both_offline_ticks_on_one_item_apply_without_a_conflict(
         expect(page.get_by_text("was not saved")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_one_device_offline_ticks_then_edits_the_same_item(svelte_server, open_session):
     """R3: the device's own tick and edit on one item are both saved, no conflict."""
     server = svelte_server
@@ -165,6 +169,7 @@ def test_one_device_offline_ticks_then_edits_the_same_item(svelte_server, open_s
     expect(other.get_by_role("checkbox", name="milk")).to_be_checked(**SLOW)
 
 
+@pytest.mark.all_engines
 def test_both_offline_add_the_same_tag_to_an_item_once(svelte_server, open_session):
     """R4: the same tag added on two devices is on the item once, no conflict."""
     server = svelte_server
@@ -199,6 +204,7 @@ def test_both_offline_add_the_same_tag_to_an_item_once(svelte_server, open_sessi
     assert tags_of(server, "milk") == ["Market"]
 
 
+@pytest.mark.all_engines
 def test_edit_of_an_item_deleted_elsewhere_refuses_a_tick_offline(
     svelte_server, open_session
 ):
@@ -236,6 +242,7 @@ def test_edit_of_an_item_deleted_elsewhere_refuses_a_tick_offline(
     assert server.query("SELECT count(*) FROM items WHERE name = 'milk'") == [(0,)]
 
 
+@pytest.mark.all_engines
 def test_both_offline_add_the_same_new_item_makes_one_item(svelte_server, open_session):
     """R6: both add "bread" offline; B then ticks its own "bread", which lands on the one item."""
     server = svelte_server
@@ -297,6 +304,7 @@ def rename_list(page: Page, current: str, new_name: str) -> None:
     expect(page.get_by_role("dialog")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_both_offline_rename_two_lists_to_one_name_refuses_the_second(
     svelte_server, open_session
 ):
@@ -343,6 +351,7 @@ def test_both_offline_rename_two_lists_to_one_name_refuses_the_second(
     expect(phone.get_by_role("button", name="Rename Shopping")).to_be_visible(**SLOW)
 
 
+@pytest.mark.all_engines
 def test_cleared_site_data_drops_waiting_changes_and_the_page_still_loads(
     svelte_server, open_session
 ):
@@ -371,6 +380,7 @@ def test_cleared_site_data_drops_waiting_changes_and_the_page_still_loads(
     expect(phone.get_by_text("was not saved")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_waiting_change_survives_a_reload_onto_a_new_version(
     svelte_server, open_session
 ):

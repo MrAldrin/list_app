@@ -7,6 +7,7 @@ navigation changes the one link. See docs/home-screen-installation.md.
 
 import re
 
+import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import PHONE, app_url, create_list, room_app_url, sign_in
 
@@ -32,6 +33,7 @@ def expect_manifest(page: Page, href: str) -> None:
     expect(page.locator(MANIFEST)).to_have_attribute("href", href)
 
 
+@pytest.mark.all_engines
 def test_manifest_follows_the_page(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug
@@ -66,6 +68,7 @@ def test_manifest_follows_the_page(svelte_server, open_session):
     expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
 
 
+@pytest.mark.all_engines
 def test_page_declares_the_home_screen_icon(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     page.goto(app_url(svelte_server))
@@ -80,6 +83,7 @@ def test_page_declares_the_home_screen_icon(svelte_server, open_session):
     expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).to_have_count(1)
 
 
+@pytest.mark.all_engines
 def test_room_menu_shows_install_help(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

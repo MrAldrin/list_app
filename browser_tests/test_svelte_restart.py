@@ -4,6 +4,7 @@ The server restarts with the same database; the browsers keep their cookies.
 An open page reconnects its live stream without a reload.
 """
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, app_url, create_list, item_names, sign_in
 from test_svelte_share import share_link, without_share_sheet
@@ -12,6 +13,7 @@ from test_svelte_share import share_link, without_share_sheet
 RECONNECT_TIMEOUT = 30_000
 
 
+@pytest.mark.all_engines
 def test_remembered_room_and_share_link_survive_a_restart(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -39,6 +41,7 @@ def test_remembered_room_and_share_link_survive_a_restart(svelte_server, open_se
     expect(item_names(member)).to_have_text(["after restart", "milk"])
 
 
+@pytest.mark.all_engines
 def test_open_list_page_recovers_after_a_restart(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))

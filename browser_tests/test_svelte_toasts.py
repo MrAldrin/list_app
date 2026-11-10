@@ -8,6 +8,7 @@ toasts, a long message, an open dialog and a short landscape screen.
 import struct
 import zlib
 
+import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import PHONE, add_item, create_list, sign_in
 
@@ -72,6 +73,7 @@ def expect_small_and_on_screen(page: Page, count: int = 1) -> None:
         assert top >= header["y"] + header["height"], (top, header)
 
 
+@pytest.mark.all_engines
 def test_toasts_are_small_and_inside_the_screen(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -128,6 +130,7 @@ def test_toasts_are_small_and_inside_the_screen(svelte_server, open_session):
     expect_small_and_on_screen(page)
 
 
+@pytest.mark.all_engines
 def test_a_toast_can_be_used_while_a_dialog_is_open(svelte_server, open_session):
     """Pressing a toast's x over a dialog closes the toast, not the dialog.
 

@@ -7,6 +7,7 @@ of the phone-testing time all open the Svelte app.
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, create_list, sign_in
 from test_svelte_invitations import issue_invitation
@@ -14,6 +15,7 @@ from test_svelte_invitations import issue_invitation
 from conftest import wait_for_api_idle
 
 
+@pytest.mark.all_engines
 def test_room_and_old_list_address(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug
@@ -38,6 +40,7 @@ def test_room_and_old_list_address(svelte_server, open_session):
     expect(page.get_by_role("heading", name="Home")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_old_share_address(svelte_server, open_session):
     server = svelte_server
     member = open_session("member", **PHONE)
@@ -57,6 +60,7 @@ def test_old_share_address(svelte_server, open_session):
     expect(visitor.get_by_role("heading", name="Groceries")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_old_admin_addresses(svelte_server, open_session):
     server = svelte_server
     page = open_session("admin", **PHONE)
@@ -72,6 +76,7 @@ def test_old_admin_addresses(svelte_server, open_session):
     expect(page.get_by_label("Admin Password")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_old_invitation_addresses(svelte_server, open_session):
     server = svelte_server
     owner = open_session("admin", **PHONE)
@@ -86,6 +91,7 @@ def test_old_invitation_addresses(svelte_server, open_session):
     expect(visitor.get_by_label("Room name")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_app_prefix_redirects_keep_the_query(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug
@@ -102,6 +108,7 @@ def test_app_prefix_redirects_keep_the_query(svelte_server, open_session):
     expect(page).to_have_url(f"{server.url}/")
 
 
+@pytest.mark.all_engines
 def test_server_addresses_are_not_the_page(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)

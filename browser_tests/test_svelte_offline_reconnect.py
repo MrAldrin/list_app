@@ -92,7 +92,6 @@ def count_requests(page: Page, pattern: str) -> list[str]:
     return seen
 
 
-@pytest.mark.chromium_only
 def test_online_typing_only_suggests_and_never_filters(svelte_server, open_session):
     page, _ = member_with_list(open_session, svelte_server, "typist")
     page.get_by_role("checkbox", name="milk").check()
@@ -111,6 +110,7 @@ def test_online_typing_only_suggests_and_never_filters(svelte_server, open_sessi
     expect(item_names(page)).to_have_text(["bread"])
 
 
+@pytest.mark.all_engines
 def test_typing_during_an_online_revalidation_does_not_filter(
     svelte_server, open_session
 ):
@@ -136,6 +136,7 @@ def test_typing_during_an_online_revalidation_does_not_filter(
     field.fill("")
 
 
+@pytest.mark.all_engines
 def test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes(
     svelte_server, open_session
 ):
@@ -185,6 +186,7 @@ def test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes(
     wait_until(page, lambda: bool(sent), "the kept tick was not sent")
 
 
+@pytest.mark.all_engines
 def test_revoked_password_clears_saved_room_on_reconnect(svelte_server, open_session):
     server = svelte_server
     page, url = member_with_list(open_session, server, "revoked")
@@ -211,6 +213,7 @@ def test_revoked_password_clears_saved_room_on_reconnect(svelte_server, open_ses
     expect(saved_notice(page)).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_session):
     server = svelte_server
     page, list_url = member_with_list(open_session, server, "share-viewer")
@@ -241,6 +244,7 @@ def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_sessi
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
 
+@pytest.mark.all_engines
 def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
     svelte_server, open_session
 ):
@@ -285,6 +289,7 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
 
 
 @pytest.mark.parametrize("signal", ["visibilitychange", "pageshow"])
+@pytest.mark.all_engines
 def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     server = svelte_server
     page, _ = member_with_list(open_session, server, "resumer")
@@ -306,6 +311,7 @@ def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     assert len(changes) > before[1]
 
 
+@pytest.mark.all_engines
 def test_server_errors_without_a_snapshot_do_not_say_connect(
     svelte_server, open_session
 ):
@@ -330,6 +336,7 @@ def test_server_errors_without_a_snapshot_do_not_say_connect(
     expect(page.get_by_text("Connect to load this room.")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_losing_the_network_keeps_the_open_page_editable_then_back(
     svelte_server, open_session
 ):

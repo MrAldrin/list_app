@@ -8,6 +8,7 @@ from svelte_app import PHONE, sign_in
 
 
 @pytest.mark.parametrize("close_action", ["cancel", "backdrop"])
+@pytest.mark.all_engines
 def test_dialog_reopens_before_a_queued_native_close_event(
     svelte_server, open_session, close_action
 ):

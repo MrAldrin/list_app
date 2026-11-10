@@ -37,16 +37,19 @@ def server(tmp_path):
 
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
-        "markers", "chromium_only: run this detailed journey on Chromium only"
+        "markers",
+        "all_engines: also run on Firefox and WebKit; the engine can change the result",
     )
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     if "browser" not in metafunc.fixturenames:
         return
-    engines = ["chromium", "firefox", "webkit"]
-    if metafunc.definition.get_closest_marker("chromium_only") is not None:
-        engines = ["chromium"]
+    # Chromium is the default. See docs/browser-testing.md for when to add
+    # all_engines.
+    engines = ["chromium"]
+    if metafunc.definition.get_closest_marker("all_engines") is not None:
+        engines = ["chromium", "firefox", "webkit"]
     metafunc.parametrize("browser", engines, indirect=True, scope="session")
 
 

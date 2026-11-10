@@ -21,6 +21,7 @@ def open_settings(page):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_enrollment_settings_and_offline_draft(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -76,6 +77,7 @@ def test_enrollment_settings_and_offline_draft(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_lost_response_retries_same_operation(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -116,6 +118,7 @@ def test_lost_response_retries_same_operation(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_unusable_success_retries_committed_operation(
     svelte_server, open_session, action, malformed
 ):
@@ -175,6 +178,7 @@ def test_unusable_success_retries_committed_operation(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_body_read_failure_after_server_commit(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -218,6 +222,7 @@ def test_body_read_failure_after_server_commit(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_expired_device_identity_preserves_draft_and_requires_enrollment(
     svelte_server, open_session, retry
 ):
@@ -262,6 +267,7 @@ def test_expired_device_identity_preserves_draft_and_requires_enrollment(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_revoked_grant_needs_explicit_resume(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -290,6 +296,7 @@ def test_revoked_grant_needs_explicit_resume(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_opt_out_requires_explicit_resume(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -325,6 +332,7 @@ def edit_device_draft(dialog):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_optout_resume_preserves_unrelated_drafts(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -348,6 +356,7 @@ def test_optout_resume_preserves_unrelated_drafts(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_enroll_other_room_preserves_existing_device_draft(svelte_server, open_session):
     admin = open_session("admin", **PHONE)
     slug = create_room_as_admin(admin, svelte_server, "Cabin", CABIN_PASSWORD)
@@ -375,6 +384,7 @@ def test_enroll_other_room_preserves_existing_device_draft(svelte_server, open_s
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_enrollment_expiry_recovers_only_after_explicit_action(
     svelte_server, open_session, other_room, unknown
 ):
@@ -464,6 +474,7 @@ def test_enrollment_expiry_recovers_only_after_explicit_action(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_enrollment_422_retains_real_validation_error(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -484,6 +495,7 @@ def test_enrollment_422_retains_real_validation_error(svelte_server, open_sessio
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_enrollment_expiry_identity_load_failure_keeps_unknown_warning(
     svelte_server, open_session
 ):
@@ -536,6 +548,7 @@ def test_enrollment_expiry_identity_load_failure_keeps_unknown_warning(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_conflict_requires_reload_and_preserves_draft(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -567,6 +580,7 @@ def test_conflict_requires_reload_and_preserves_draft(svelte_server, open_sessio
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_device_settings_are_private_to_each_installation(svelte_server, open_session):
     first = open_session("first", **PHONE)
     second = open_session("second", **PHONE)
@@ -585,6 +599,7 @@ def test_device_settings_are_private_to_each_installation(svelte_server, open_se
     expect(first_dialog.get_by_label("All-day reminder time")).to_have_value("13:25")
 
 
+@pytest.mark.all_engines
 def test_share_visitor_has_no_personal_controls(svelte_server, open_session):
     member = without_share_sheet(open_session("member", **PHONE))
     visitor = open_session("visitor", **PHONE)
@@ -599,6 +614,7 @@ def test_share_visitor_has_no_personal_controls(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_device_controls_persist_and_retry_exact_unknown_write(
     svelte_server, open_session
 ):
@@ -691,6 +707,7 @@ def test_device_controls_persist_and_retry_exact_unknown_write(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_device_controls_reject_invalid_bounds_and_preserve_offline_draft(
     svelte_server, open_session
 ):
@@ -739,6 +756,7 @@ def test_device_controls_reject_invalid_bounds_and_preserve_offline_draft(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_time_settings_oslo_and_24_hour_controls(svelte_server, open_session):
     page = open_session("owner", **PHONE, locale="en-US")
     sign_in(page, svelte_server)
@@ -766,6 +784,7 @@ def test_time_settings_oslo_and_24_hour_controls(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_custom_summary_and_invalid_24_hour_time(svelte_server, open_session):
     page = open_session("owner", **PHONE, locale="en-US")
     sign_in(page, svelte_server)
@@ -799,6 +818,7 @@ def test_custom_summary_and_invalid_24_hour_time(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_custom_policy_refresh_preserves_device_draft_and_room_saves(
     svelte_server, open_session
 ):
@@ -838,6 +858,7 @@ def test_custom_policy_refresh_preserves_device_draft_and_room_saves(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_hidden_invalid_summary_does_not_block_enroll_or_room_save(
     svelte_server, open_session
 ):
@@ -862,6 +883,7 @@ def test_hidden_invalid_summary_does_not_block_enroll_or_room_save(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_custom_summary_read_failure_is_visible_and_retryable(
     svelte_server, open_session
 ):
@@ -887,6 +909,7 @@ def test_custom_summary_read_failure_is_visible_and_retryable(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_policy_close_refresh_failure_requires_retry(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -914,6 +937,7 @@ def test_policy_close_refresh_failure_requires_retry(svelte_server, open_session
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_policy_refresh_concurrent_room_summary(svelte_server, open_session, dirty):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -969,6 +993,7 @@ def test_policy_refresh_concurrent_room_summary(svelte_server, open_session, dir
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_custom_summary_refreshes_after_mode_saves(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -1000,6 +1025,7 @@ def test_custom_summary_refreshes_after_mode_saves(svelte_server, open_session):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.all_engines
 def test_policy_refresh_failure_after_mode_save_is_retryable(
     svelte_server, open_session
 ):

@@ -18,6 +18,7 @@ from svelte_app import (
 from item_names import item_name_key
 
 
+@pytest.mark.all_engines
 def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -63,6 +64,7 @@ def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session
     expect(field).to_be_focused()
 
 
+@pytest.mark.all_engines
 def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     svelte_server, open_session
 ):
@@ -123,7 +125,6 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     expect(usual).to_have_count(0)
 
 
-@pytest.mark.chromium_only
 def test_add_trims_python_whitespace(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -137,6 +138,7 @@ def test_add_trims_python_whitespace(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["Oat Milk"])
 
 
+@pytest.mark.all_engines
 def test_offline_unicode_add_reconciles_to_the_server_mapping(
     svelte_server, open_session
 ):
@@ -196,6 +198,7 @@ def test_offline_unicode_add_reconciles_to_the_server_mapping(
     expect(item_names(page)).to_have_text(expected)
 
 
+@pytest.mark.all_engines
 def test_offline_unicode_add_is_removed_after_server_rejection(
     svelte_server, open_session
 ):
@@ -260,6 +263,7 @@ def test_offline_unicode_add_is_removed_after_server_rejection(
     assert server.query("SELECT name FROM items ORDER BY id") == [(old_name,)]
 
 
+@pytest.mark.all_engines
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -422,6 +426,7 @@ def saved_op(response) -> bool:
     )
 
 
+@pytest.mark.all_engines
 def test_description_and_tag_save_together(svelte_server, open_session):
     """A settled tag write must not make the open description edit stale."""
     server = svelte_server
@@ -460,7 +465,6 @@ def test_description_and_tag_save_together(svelte_server, open_session):
     ]
 
 
-@pytest.mark.chromium_only
 def test_tags_filter_and_hide_done(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -579,7 +583,6 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     assert mode == "off"
 
 
-@pytest.mark.chromium_only
 def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -602,7 +605,6 @@ def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
     assert dairy.evaluate("el => el.style.getPropertyValue('--tag')") == color
 
 
-@pytest.mark.chromium_only
 def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -627,7 +629,6 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["apple", "milk"])
 
 
-@pytest.mark.chromium_only
 def test_suggestions_rank_by_add_count_and_scroll(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

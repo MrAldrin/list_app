@@ -4,6 +4,7 @@ The sort is personal like "Show quantities": it is kept after a reload. The
 rules (open items first, ties, dates, no time) are covered by unit tests.
 """
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in
 
@@ -16,6 +17,7 @@ def open_options(page):
     return page.get_by_label("Sort"), page.get_by_role("button", name="Order:")
 
 
+@pytest.mark.all_engines
 def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -52,6 +54,7 @@ def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_sessio
     expect(item_names(page)).to_have_text(["zucchini", "milk", "apple"])
 
 
+@pytest.mark.all_engines
 def test_checked_rows_wait_for_the_taps_to_settle(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

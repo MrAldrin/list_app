@@ -194,6 +194,7 @@ def _wait_for_waiting_worker(page) -> None:
     page.wait_for_function("window.__appRegistration?.waiting?.state === 'installed'")
 
 
+@pytest.mark.all_engines
 def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     svelte_server, open_session
 ):
@@ -246,6 +247,7 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     )
 
 
+@pytest.mark.all_engines
 def test_real_build_swap_waits_for_a_stored_room_change(
     built_app_server, open_session, tmp_path
 ):
@@ -311,6 +313,7 @@ def test_real_build_swap_waits_for_a_stored_room_change(
     assert _cache_names(page) == [f"{WORKER_PREFIX}test-waiting-change-B"]
 
 
+@pytest.mark.all_engines
 def test_waiting_version_takes_over_when_the_app_opens_offline(
     built_app_server, open_session, tmp_path
 ):
@@ -366,6 +369,7 @@ def _come_back_to_the_app(page) -> None:
     page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
 
 
+@pytest.mark.all_engines
 def test_coming_back_to_the_app_fetches_and_then_switches_version(
     built_app_server, open_session, tmp_path
 ):
@@ -399,6 +403,7 @@ def test_coming_back_to_the_app_fetches_and_then_switches_version(
     expect(page.get_by_label("Room link or code")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     built_app_server, open_session, tmp_path
 ):
@@ -448,6 +453,7 @@ def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     assert _cache_names(new_page) == [cache_b]
 
 
+@pytest.mark.all_engines
 def test_interrupted_update_keeps_last_complete_version_usable(
     built_app_server, open_session, tmp_path
 ):
@@ -508,7 +514,6 @@ def _click_new_link(page, href: str) -> None:
     page.locator("#injected-link").click()
 
 
-@pytest.mark.chromium_only
 def test_failed_link_click_opens_the_link_on_the_new_build(
     built_app_server, open_session, tmp_path
 ):
@@ -534,7 +539,6 @@ def test_failed_link_click_opens_the_link_on_the_new_build(
     expect(page.get_by_text("Could not open this list.")).to_be_visible()
 
 
-@pytest.mark.chromium_only
 def test_unchanged_build_keeps_the_page(built_app_server, open_session):
     """No new version: nothing reloads, so the old behaviour is unchanged."""
     page = open_session("fresh-chunk", service_workers="block")
@@ -577,7 +581,6 @@ def _stale_first_page(server, open_session, tmp_path):
     return page, page_loads
 
 
-@pytest.mark.chromium_only
 def test_failed_first_load_reloads_once_and_recovers(
     built_app_server, open_session, tmp_path
 ):
@@ -590,7 +593,6 @@ def test_failed_first_load_reloads_once_and_recovers(
     assert len(page_loads) == 2  # the load that failed, one reload
 
 
-@pytest.mark.chromium_only
 def test_chunk_that_stays_missing_shows_the_error_without_a_loop(
     built_app_server, open_session
 ):

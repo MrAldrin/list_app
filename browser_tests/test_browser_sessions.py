@@ -8,6 +8,7 @@ from conftest import BrowserSessions
 
 
 @pytest.mark.parametrize("with_origin", [False, True])
+@pytest.mark.all_engines
 def test_browser_sessions_hydrate_storage_state_without_sharing(
     browser, svelte_server, tmp_path, with_origin
 ):
@@ -41,6 +42,7 @@ def test_browser_sessions_hydrate_storage_state_without_sharing(
         sessions.close()
 
 
+@pytest.mark.all_engines
 def test_browser_sessions_preserve_storage_without_sharing_profiles(
     browser, svelte_server, tmp_path
 ):

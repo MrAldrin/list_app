@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in
 
@@ -26,6 +27,7 @@ def _answer_with_version(version: str):
     return handler
 
 
+@pytest.mark.all_engines
 def test_new_server_version_blocks_writes_until_reload(svelte_server, open_session):
     server = svelte_server
     page = open_session("compat", **PHONE)
@@ -78,6 +80,7 @@ def test_new_server_version_blocks_writes_until_reload(svelte_server, open_sessi
     expect(item_names(page)).to_have_text(["apples", "bread", "milk"])
 
 
+@pytest.mark.all_engines
 def test_answers_without_a_version_do_not_block_anything(svelte_server, open_session):
     page = open_session("compat-missing", **PHONE)
     sign_in(page, svelte_server)
@@ -95,6 +98,7 @@ def test_answers_without_a_version_do_not_block_anything(svelte_server, open_ses
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
 
+@pytest.mark.all_engines
 def test_notice_says_where_a_waiting_change_is_kept(svelte_server, open_session):
     page = open_session("compat-waiting", **PHONE)
     sign_in(page, svelte_server)

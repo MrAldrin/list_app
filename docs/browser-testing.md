@@ -35,15 +35,17 @@ uv run pytest browser_tests -q -k svelte  # Svelte app only
 
 ## Engine selection
 
-Tests run on all three engines by default. Add `@pytest.mark.chromium_only`
-to an individual test to run an approved detailed journey on Chromium only.
-The collection hook selects engines before execution; it does not skip cases.
-Do not use a module-wide marker or change the default engine list.
+Tests run on Chromium only by default. Add `@pytest.mark.all_engines` to an
+individual test to run it on Firefox and WebKit too. Use it when the engine can
+change the result, for example storage, offline behavior, native inputs, focus
+or layout. The collection hook selects engines before execution; it does not
+skip cases. Do not use a module-wide marker.
 
-The [approved matrix](background/engine-matrix-review-2026-11-08.md) records
-which journeys use this opt-in and which engine-specific checks stay on all
-three engines. The timed-due server-confirmation test stays on all three
-engines until lr-gt2.4 is fixed.
+The owner chose Chromium as the default on 10 November 2026. Each test that
+ran on three engines before that date keeps the marker until its review in
+lr-347.9.2. The [earlier matrix](background/engine-matrix-review-2026-11-08.md)
+records the first engine review. The timed-due server-confirmation test stays
+on all three engines until lr-gt2.4 is fixed.
 
 ## Test tiers
 

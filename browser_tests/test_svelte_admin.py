@@ -4,12 +4,14 @@ create a room and reset a room password. Admin never opens a room by itself.
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, admin_sign_in, app_url, sign_in
 
 RESET_PASSWORD = "an-admin-reset-password"
 
 
+@pytest.mark.all_engines
 def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug
@@ -101,6 +103,7 @@ def test_admin_sign_in_rooms_create_and_reset(svelte_server, open_session):
     expect(owner.get_by_label("Admin Password")).to_be_visible()
 
 
+@pytest.mark.all_engines
 def test_admin_deletes_a_room_from_the_list(svelte_server, open_session):
     server = svelte_server
     owner = open_session("admin", **PHONE)

@@ -40,6 +40,7 @@ def _set_date(page, name: str, day: str) -> None:
     expect(dialog).to_be_hidden()
 
 
+@pytest.mark.all_engines
 def test_bell_counts_overdue_and_today_and_groups_the_panel(
     svelte_server, open_session
 ):
@@ -73,7 +74,6 @@ def test_bell_counts_overdue_and_today_and_groups_the_panel(
     expect(bell.locator(".badge")).to_have_text("2")
 
 
-@pytest.mark.chromium_only
 def test_reload_shows_no_due_toast(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -86,6 +86,7 @@ def test_reload_shows_no_due_toast(svelte_server, open_session):
     expect(page.locator(".toasts .toast", has_text="due")).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_reveal_clears_the_search_and_focuses_the_item(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -104,7 +105,6 @@ def test_reveal_clears_the_search_and_focuses_the_item(svelte_server, open_sessi
     expect(page.get_by_text("Showing the item. Cleared the search.")).to_be_visible()
 
 
-@pytest.mark.chromium_only
 def test_reveal_of_a_missing_item_says_so(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -116,7 +116,6 @@ def test_reveal_of_a_missing_item_says_so(svelte_server, open_session):
     expect(page.get_by_text("no longer on this list")).to_be_visible()
 
 
-@pytest.mark.chromium_only
 def test_share_link_bell_shows_only_its_list(svelte_server, open_session):
     server = svelte_server
     owner = open_session("owner", **PHONE)
@@ -149,7 +148,6 @@ def test_share_link_bell_shows_only_its_list(svelte_server, open_session):
     ).to_have_count(0)
 
 
-@pytest.mark.chromium_only
 def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -196,7 +194,6 @@ def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
     expect(panel.get_by_role("button", name="Room reminder policy")).to_have_count(0)
 
 
-@pytest.mark.chromium_only
 def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
     server = svelte_server
     admin = open_session("admin", **PHONE)
@@ -224,6 +221,7 @@ def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
     expect(panel.get_by_role("link", name=re.compile("^cabin-item"))).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_saved_panel_says_saved_and_offline_date_edits_count(
     svelte_server, open_session
 ):
@@ -251,6 +249,7 @@ def test_saved_panel_says_saved_and_offline_date_edits_count(
     expect(bell).to_have_accessible_name("Due items: 2 due, 0 overdue")
 
 
+@pytest.mark.all_engines
 def test_live_changes_update_the_open_panel_without_moving_focus(
     svelte_server, open_session
 ):
@@ -278,6 +277,7 @@ def test_live_changes_update_the_open_panel_without_moving_focus(
     assert viewer.evaluate("document.activeElement.dataset.keep") == "1"
 
 
+@pytest.mark.all_engines
 def test_bell_opens_and_closes_from_the_keyboard(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -304,7 +304,6 @@ def test_bell_opens_and_closes_from_the_keyboard(svelte_server, open_session):
     expect(page.get_by_role("button", name=re.compile("^eggs"))).to_be_focused()
 
 
-@pytest.mark.chromium_only
 def test_due_views_move_to_the_new_day_when_the_page_is_shown_again(
     svelte_server, open_session
 ):
@@ -333,7 +332,6 @@ def test_due_views_move_to_the_new_day_when_the_page_is_shown_again(
     page.keyboard.press("Escape")
 
 
-@pytest.mark.chromium_only
 def test_deleting_the_last_due_list_clears_the_room_bell(svelte_server, open_session):
     server = svelte_server
     viewer = open_session("viewer", **PHONE)
@@ -355,7 +353,6 @@ def test_deleting_the_last_due_list_clears_the_room_bell(svelte_server, open_ses
     )
 
 
-@pytest.mark.chromium_only
 def test_reset_share_link_sends_the_old_link_to_unavailable(
     svelte_server, open_session
 ):
@@ -381,6 +378,7 @@ def test_reset_share_link_sends_the_old_link_to_unavailable(
     expect(guest.get_by_role("button", name=BELL)).to_have_count(0)
 
 
+@pytest.mark.all_engines
 def test_timed_due_requires_zone_and_shows_server_confirmation(
     svelte_server, open_session
 ):
@@ -409,6 +407,7 @@ def test_timed_due_requires_zone_and_shows_server_confirmation(
     expect(dialog.get_by_label(re.compile("Time zone"))).to_have_value("Europe/Oslo")
 
 
+@pytest.mark.all_engines
 def test_zone_validation_online_and_offline(svelte_server, open_session):
     page, url = member_with_list(open_session, svelte_server, "zone-validation")
     for offline in (False, True):

@@ -108,6 +108,7 @@ def send_stale_action(stale: Page, fire, role: str) -> None:
     ],
     ids=["add", "edit", "toggle", "quantity", "tag", "undo"],
 )
+@pytest.mark.all_engines
 def test_stale_page_cannot_write_after_list_deletion(
     svelte_server, open_session, browser, action, chromium_role
 ):
@@ -143,6 +144,7 @@ def test_stale_page_cannot_write_after_list_deletion(
 
 
 @pytest.mark.parametrize("role", ["room", "public"])
+@pytest.mark.all_engines
 def test_stale_page_after_room_deletion_has_no_room_navigation(
     svelte_server, open_session, role
 ):
