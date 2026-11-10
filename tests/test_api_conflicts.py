@@ -1,10 +1,11 @@
 """Late writes from two devices (docs/api.md, "Writing: operations"; plan 6.1).
 
-A "set" op carries the `base_seq` the page saw. When the row changed after
-that and the stored value differs from what the op wants, the op is rejected
-with `changed_meanwhile`. Applied answers carry the row's `changed_seq`, so
-the device can rebase its own queued ops. Two devices are two sequences of ops
-on one client here: the server only sees the ops and their base seqs.
+A "set" op carries the page's `base_seq`. If the row changed later and its
+value differs from the requested value, the server rejects the op with
+`changed_meanwhile`. Applied answers include the row's `changed_seq`, so the
+device can rebase its queued ops. These tests model two devices as separate
+sequences of ops sent by one client. The server sees only the ops and their
+base sequences.
 """
 
 import hashlib

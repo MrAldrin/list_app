@@ -157,9 +157,9 @@ def row_counts() -> tuple[int, int, int]:
     )
 
 
-# Direct database setup. These replaced `database_crud` helpers that only tests
-# used. Each one calls a live locked helper in one write transaction, or runs
-# the same SQL the live code runs.
+# Direct database setup. These helpers replaced `database_crud` helpers that
+# only tests used. Each calls a live locked helper in one write transaction or
+# runs the same SQL as the live code.
 
 
 def write_locked(fn, *args, **kwargs):

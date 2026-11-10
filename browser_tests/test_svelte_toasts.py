@@ -1,9 +1,8 @@
 """Svelte toasts stay small and inside the screen.
 
-At Gate A the real iPhone showed a toast as tall as the screen; no test had
-checked the toast size. These checks measure the toasts on a phone screen,
-also when several are stacked, with a long message, above an open dialog and
-on a short (landscape) screen.
+At Gate A, the real iPhone showed a toast as tall as the screen. No test had
+checked its size. These tests measure toast size on a phone with stacked
+toasts, a long message, an open dialog and a short landscape screen.
 """
 
 import struct
@@ -41,9 +40,10 @@ def toasts(page: Page):
 
 
 def expect_small_and_on_screen(page: Page, count: int = 1) -> None:
-    """Measure the toasts on screen; at least `count` of them.
+    """Check that at least `count` toasts are small and inside the screen.
 
-    Toasts go after 4 s, so the test waits for a count, not an exact one.
+    Toasts disappear after 4 s, so the test waits for a count instead of an
+    exact number.
     """
     expect(toasts(page).nth(count - 1)).to_be_visible()
     viewport = page.viewport_size

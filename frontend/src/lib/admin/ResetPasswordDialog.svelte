@@ -1,8 +1,9 @@
 <!--
-	"Admin reset of room password: {room}": a new room password, without the
-	current one. Every device signed in to the room is logged out and must use
-	the new password (the server revokes all room access tokens). Share links
-	and the room link keep working. Admin sign-in is not room access. A room that is gone closes the dialog and reloads the rooms.
+	"Admin reset of room password: {room}": sets a new room password without
+	requiring the current one. The server revokes all room access tokens. This
+	logs out every signed-in device, which must use the new password. Share links
+	and the room link keep working. Admin sign-in does not grant room access. If
+	the room is gone, the dialog closes and reloads the rooms.
 -->
 <script lang="ts">
 	import { admin, type Room } from '#lib/data/index.ts';

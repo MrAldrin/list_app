@@ -68,7 +68,7 @@ class SignInLimiter:
             return Reservation(tuple(key for key, _limit in limits), now)
 
     def release(self, reservation: Reservation) -> None:
-        """A successful attempt: give its slots back."""
+        """This releases the slots reserved for a successful attempt."""
         with self._lock:
             for key in reservation.keys:
                 stamps = self._buckets.get(key)
@@ -85,7 +85,10 @@ class SignInLimiter:
             self._buckets.clear()
 
     def _live(self, key: Hashable, now: float) -> deque[float] | None:
-        """The bucket's timestamps inside the window; drops it when empty."""
+        """Return the bucket's timestamps within the window, or None if none remain.
+
+        This removes an empty bucket.
+        """
         stamps = self._buckets.get(key)
         if stamps is None:
             return None

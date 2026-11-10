@@ -196,7 +196,7 @@ def test_edit_item_tag_chips_light_up_at_once(svelte_server, open_session):
     add_list_tag(page, "Lidl")
     add_list_tag(page, "Market")
 
-    # Tags in Edit Item save at once, so the chip shows its new state at once.
+    # Edit Item saves tag changes immediately, so the dialog chips update at once.
     page.get_by_role("button", name="milk", exact=True).click()
     dialog = page.get_by_role("dialog", name="Edit Item")
     lidl = dialog.get_by_role("button", name="Lidl", exact=True)

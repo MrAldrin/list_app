@@ -330,8 +330,8 @@ def test_real_app_serves_json_404_under_api():
 
 
 def test_real_app_keeps_html_errors_off_the_api_and_json_errors_on_it():
-    # Every kind of error has a handler that answers JSON under /api and leaves
-    # other addresses to FastAPI's defaults.
+    # Each error type returns JSON under /api; other addresses use FastAPI's
+    # default handlers.
     assert 404 in main.app.exception_handlers
     assert StarletteHTTPException in main.app.exception_handlers
     assert Exception in main.app.exception_handlers

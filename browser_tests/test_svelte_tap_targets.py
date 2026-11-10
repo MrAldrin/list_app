@@ -10,8 +10,8 @@ from svelte_app import PHONE, add_item, add_list_tag, create_list, sign_in
 
 TOUCH = 44
 
-# The tap height of an element: the run of points, half a pixel apart and up
-# to 40 px from its middle, that reach the element (or one inside it).
+# Measure the vertical hit area at points 0.5 px apart, up to 40 px from center.
+# A point counts if it hits the element or one of its children.
 TAP_HEIGHT = """(element) => {
   const box = element.getBoundingClientRect();
   const x = box.left + box.width / 2;

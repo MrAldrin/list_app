@@ -229,7 +229,7 @@ def update_list_tag_settings_locked(
 def _keep_first_item_tag_locked(list_id: int) -> None:
     """Single mode: each item keeps only its first tag in the list's tag order.
 
-    Tags the list no longer has rank after the list's tags.
+    Tags that are not in the list rank after its tags.
     """
     list_tags = _decode_tags(
         db.execute("SELECT list_tags FROM lists WHERE id = ?", (list_id,)).fetchone()[0]
