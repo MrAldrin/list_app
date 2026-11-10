@@ -1,0 +1,14 @@
+cwd=/home/hsa/projects/list_app-night-s3-review/frontend
+TZ=UTC
+command=npm run check 
+Fri Nov  6 02:28:41 UTC 2026
+
+> frontend@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /home/hsa/projects/list_app-night-s3-review/frontend
+Getting Svelte diagnostics...
+
+svelte-check found 0 errors and 0 warnings
+Fri Nov  6 02:28:46 UTC 2026
+EXIT=0

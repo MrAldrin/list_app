@@ -1,0 +1,19 @@
+{
+  "exit": "0",
+  "warnings": 51,
+  "previous_task4_warnings": 51,
+  "tail": [
+    "     \u2502",
+    " 100 \u2502 Completed steps and all measurements are in [background](../docs/background/test-suite-speed.md#completed-steps).",
+    "     \u2502                                                          \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500  ",
+    "     \u2502                                                                                     \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 page does not exist",
+    "\u2500\u2500\u2500\u2500\u2500\u256f",
+    "51 issues found",
+    "Build finished in 1.09s",
+    "Validated 54 fragment-free redirects and 2824 generated local links.",
+    "Fri Nov  6 02:21:15 AM UTC 2026",
+    "DOCS BUILD EXIT: 0"
+  ],
+  "report_rendered": false,
+  "reason": "docs/background is excluded from the docs site; report source links checked separately"
+}

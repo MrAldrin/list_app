@@ -1,0 +1,3 @@
+# Disposable test databases and files. Retain failed evidence locally.
+historical-temp/
+composition-temp/

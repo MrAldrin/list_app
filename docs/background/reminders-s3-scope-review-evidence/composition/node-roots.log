@@ -1,0 +1,15 @@
+cwd=/home/hsa/projects/list_app-night-s3-review/frontend
+TZ=UTC
+command=node --input-type=module - 
+Fri Nov  6 02:28:31 UTC 2026
+{
+  "cwd": "/home/hsa/projects/list_app-night-s3-review/frontend",
+  "node": "v24.15.0",
+  "package": "/home/hsa/projects/list_app-night-s3-review/frontend/package.json",
+  "viteConfig": "/home/hsa/projects/list_app-night-s3-review/frontend/vite.config.ts",
+  "svelte": "/home/hsa/projects/list_app-night-s3-review/frontend/node_modules/svelte/package.json",
+  "vitest": "/home/hsa/projects/list_app-night-s3-review/frontend/node_modules/vitest/package.json",
+  "typescript": "/home/hsa/projects/list_app-night-s3-review/frontend/node_modules/typescript/package.json"
+}
+Fri Nov  6 02:28:31 UTC 2026
+EXIT=0

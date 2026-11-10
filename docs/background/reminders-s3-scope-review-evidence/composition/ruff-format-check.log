@@ -1,0 +1,7 @@
+cwd=/home/hsa/projects/list_app-night-s3-review
+TZ=UTC
+command=uv run --offline --no-sync ruff format --check . 
+Fri Nov  6 02:29:07 UTC 2026
+274 files already formatted
+Fri Nov  6 02:29:07 UTC 2026
+EXIT=0

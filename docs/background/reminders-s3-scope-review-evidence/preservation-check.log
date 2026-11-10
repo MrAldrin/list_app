@@ -1,0 +1,15 @@
+{
+  "elapsed_seconds": 5.65,
+  "archive_files_checked": 5525,
+  "archive_bytes_checked": 730350862,
+  "checks": {
+    "all_bookmark_targets_unchanged": true,
+    "other_workspace_revisions_unchanged": true,
+    "conflict_identities_unchanged": true,
+    "divergent_identities_unchanged": true
+  },
+  "exact_resume_refs_checked": 36,
+  "protected_trees_checked": 60,
+  "failures": [],
+  "pass": true
+}

@@ -1,0 +1,47 @@
+{
+  "time_utc": "2026-11-06T02:53:48.670724+00:00",
+  "result_change_id": "pmrtztpxknwrnqvovloypolzwpvvuvoy",
+  "reviewed_report_commit": "961bb2f086bafe68e5ae2c67dbd472fcb0fa95ad",
+  "reviewed_closed_packet_commit": "644f1ad5f461a6552a9079ebea9cb4a5ce863446",
+  "final_packet_reviewer_run": "0d6e64d9-12a3-4cfc-9c72-20bdcb5b9ef0",
+  "final_packet_verdict": "PASS; no material blockers",
+  "review_receipt_source": "/home/hsa/.pi/agent/sessions/--home-hsa-projects-list_app-night-s3-review--/subagent-artifacts/outputs/0d6e64d9-12a3-4cfc-9c72-20bdcb5b9ef0/s3-final-packet-review.md",
+  "review_receipt_sha256": "8d300af548e0a9b6aebb3579c2ebc7db6d71640bb2d34a9ef88336f181382906",
+  "review_artifact_routing_note": "Retained routed response includes the complete review body and a noncanonical external path in its wrapper. This tracked copy is the delivery receipt; no external path is required to read it.",
+  "frozen_main_report_sha256_unchanged": "233ee1246606133cb1ef542f0aa8fb53894deac77959f2580618ca830929b5c9",
+  "app_source_hashes_rechecked_unchanged": 372,
+  "all_bookmarks_unchanged": true,
+  "other_workspace_revisions_unchanged": true,
+  "workspaces": "default: ../list_app zrpvtqtt 7ad295b8 (empty) (no description set)\nnight-docs: ../list_app-night-docs suwwrror abc58c34 (empty) (no description set)\nnight-history: ../list_app-night-history nxlppqnk 711c2a2d (empty) (no description set)\nnight-s3-review: . pmrtztpx 4f97dc00 research - S3 scope: record final packet review and handback\nnight-tests: ../list_app-night-tests nksvvyyu 30e7d188 (empty) (no description set)\nnight-themes: ../list_app-night-themes ytyzptul 8b0c047e (empty) (no description set)\ntmp-fix-queue-date: ../tmp-fix-queue-date zrmlxvul 96a59eff (empty) (no description set)\ntmp-reminder-delivery: ../tmp-reminder-delivery mytytmnv e5c4d060 (empty) (no description set)\n",
+  "owned_snapshot_absent": true,
+  "owned_finished_panes_absent": [
+    79,
+    85,
+    87,
+    88
+  ],
+  "interactive_conductor_pane_retained": 78,
+  "protected_existing_panes": [
+    {
+      "id": 38,
+      "title": "List app docs preview :8765",
+      "exited": false
+    },
+    {
+      "id": 72,
+      "title": "theme-gallery-8766",
+      "exited": false
+    }
+  ],
+  "owned_app_processes": [],
+  "child_run_state": "All four runs complete from native notices; final status confirms complete, process terminal observed, active async capacity 0 used.",
+  "free_disk_bytes": 13341954048,
+  "evidence_bytes_before_this_certificate": 1365837,
+  "post_review_append_only_files": [
+    "child-model-receipts.json",
+    "final-packet-review.md",
+    "terminal-checks.json"
+  ],
+  "remaining_actions": "Snapshot only these receipt/certificate files, create a clean empty child, send exact final IDs and explicit graph-control handback to Lead, then no further mutations.",
+  "authorization": "Research/evidence complete only. Owner scope/setup choices remain open; Task1 remains red. Lead owns bookmarks, acceptance and entry cleanup."
+}

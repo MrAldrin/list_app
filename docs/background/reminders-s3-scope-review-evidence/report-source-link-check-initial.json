@@ -1,0 +1,160 @@
+{
+  "root": "/home/hsa/projects/list_app-night-s3-review",
+  "parser": "Python Markdown 3.11.2; tables/fenced_code/toc",
+  "scope": "authored Task5 Markdown; raw scout/inherited evidence preserved, not rewritten or render-approved; generated main docs checked separately by canonical site wrapper",
+  "sources": {
+    "docs/background/reminders-s3-scope-review.md": "1de5a35d1044385636c85317543416a82573376057d424180d4c5b3089b5ee92",
+    "docs/background/reminders-s3-scope-review-evidence/ownership.md": "528146347893fc05c77b7eaf9bf4d7cc784896fb4708d6b49b9d133927408ec8",
+    "docs/background/reminders-s3-scope-review-evidence/research-checks.md": "6d118f841979e2443dd8df27266a6dceb8ffb419a229f5b66768ffb920954064",
+    "docs/background/reminders-s3-scope-review-evidence/scout-disposition.md": "6f9de307996e38663f266aa37876dbb19f8dec5c674bfe15546d40771b0adf49"
+  },
+  "local_links_checked": 27,
+  "links": [
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../../plans/reminders-s3-scope-review.md",
+      "target": "plans/reminders-s3-scope-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../../plans/night-run.md",
+      "target": "plans/night-run.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "#material-owner-choices",
+      "target": "docs/background/reminders-s3-scope-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/current-source-analysis.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/current-source-analysis.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/baseline-fit-manifest.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/baseline-fit-manifest.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../due-date-reminders.md",
+      "target": "docs/due-date-reminders.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../../ARCHITECTURE.md",
+      "target": "ARCHITECTURE.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../api-reminders.md",
+      "target": "docs/api-reminders.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/source-register.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/source-register.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "jj-history-review-evidence/inventory.tsv",
+      "target": "docs/background/jj-history-review-evidence/inventory.tsv"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/reviewed-version-comparisons.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/reviewed-version-comparisons.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/scout-disposition.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/scout-disposition.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/inherited-reviews/scheduler-review.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-reviews/scheduler-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/inherited-reviews/ui-review.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-reviews/ui-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/archive-analysis.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/archive-analysis.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/research-checks.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/research-checks.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/protection-before.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/protection-before.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/archive-before.tsv",
+      "target": "docs/background/reminders-s3-scope-review-evidence/archive-before.tsv"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/protected-source-fingerprints.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/protected-source-fingerprints.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/ownership.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/ownership.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "run-historical-check.sh",
+      "target": "docs/background/reminders-s3-scope-review-evidence/run-historical-check.sh"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "historical-check.log",
+      "target": "docs/background/reminders-s3-scope-review-evidence/historical-check.log"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "historical-check.exit",
+      "target": "docs/background/reminders-s3-scope-review-evidence/historical-check.exit"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "baseline-fit-manifest.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/baseline-fit-manifest.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "historical-vs-accepted.stat",
+      "target": "docs/background/reminders-s3-scope-review-evidence/historical-vs-accepted.stat"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "inherited-review-manifest.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-review-manifest.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "reviewed-version-comparisons.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/reviewed-version-comparisons.json"
+    }
+  ],
+  "external_not_fetched": [],
+  "failures": [
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "inherited-reviews/",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-reviews",
+      "error": "missing file or path escapes repo"
+    }
+  ],
+  "report_html_tables": 5,
+  "report_html_headings": 16
+}

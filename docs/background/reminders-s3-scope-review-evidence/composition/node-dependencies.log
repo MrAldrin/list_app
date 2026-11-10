@@ -1,0 +1,28 @@
+cwd=/home/hsa/projects/list_app-night-s3-review/frontend
+TZ=UTC
+command=npm ls --depth=0 
+Fri Nov  6 02:28:31 UTC 2026
+frontend@0.0.1 /home/hsa/projects/list_app-night-s3-review/frontend
+├── @eslint/js@10.0.1
+├── @sveltejs/adapter-static@4.0.0
+├── @sveltejs/kit@3.0.0
+├── @sveltejs/vite-plugin-svelte@7.3.1
+├── @types/node@24.19.1
+├── $app@ extraneous
+├── eslint-config-prettier@10.1.8
+├── eslint-plugin-svelte@3.23.0
+├── eslint@10.11.0
+├── fake-indexeddb@6.2.5
+├── globals@17.13.0
+├── happy-dom@20.14.5
+├── prettier-plugin-svelte@4.1.1
+├── prettier@3.9.9
+├── svelte-check@4.7.6
+├── svelte@5.57.1
+├── typescript-eslint@8.71.0
+├── typescript@6.0.3
+├── vite@8.3.2
+└── vitest@5.0.3
+
+Fri Nov  6 02:28:31 UTC 2026
+EXIT=0

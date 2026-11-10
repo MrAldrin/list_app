@@ -1,0 +1,26 @@
+[
+  {
+    "component": "scheduler",
+    "reviewed_archived_commit": "b4fb139ba6e839cbaac10d8bfc0923d37c01cee1",
+    "inspected_visible_commit": "bc62f6d5e927557354959b9f051ea21c8457d0f6",
+    "diff_summary": "M docs/background/reminder-delivery-verification.md\nA docs/background/reminder-overnight-status.md\nM plans/backlog.md\nA plans/batches/reminders-polish-2.md\nA plans/batches/reminders-polish.md\nM plans/batches/reminders-s1.md\nM plans/batches/reminders-s2.md\nM plans/batches/reminders-s3.md\nM plans/batches/reminders-s4.md\nM plans/batches/reminders-s5.md\nM plans/due-date-reminders.md\n",
+    "exit": 0,
+    "stderr": ""
+  },
+  {
+    "component": "ui",
+    "reviewed_archived_commit": "ef49557f9eda25b188b2a0cfc76df0f7a28b0635",
+    "inspected_visible_commit": "ff2d4ddb716ad5a2902edc8df6b7f74bce02a843",
+    "diff_summary": "M docs/background/reminder-delivery-verification.md\nA docs/background/reminder-overnight-status.md\nM plans/backlog.md\nA plans/batches/reminders-polish-2.md\nA plans/batches/reminders-polish.md\nM plans/batches/reminders-s1.md\nM plans/batches/reminders-s2.md\nM plans/batches/reminders-s3.md\nM plans/batches/reminders-s4.md\nM plans/batches/reminders-s5.md\nM plans/due-date-reminders.md\n",
+    "exit": 0,
+    "stderr": ""
+  },
+  {
+    "component": "combined",
+    "reviewed_archived_commit": "8743a470f23f2e246e6a2937c1bf7ab5b67105cb",
+    "inspected_visible_commit": "216b2eabfd25b6467d64e97906601879ad723084",
+    "diff_summary": "M docs/background/reminder-delivery-verification.md\nA docs/background/reminder-overnight-status.md\nM plans/backlog.md\nA plans/batches/reminders-polish-2.md\nA plans/batches/reminders-polish.md\nM plans/batches/reminders-s1.md\nM plans/batches/reminders-s2.md\nM plans/batches/reminders-s3.md\nM plans/batches/reminders-s4.md\nM plans/batches/reminders-s5.md\nM plans/due-date-reminders.md\n",
+    "exit": 0,
+    "stderr": ""
+  }
+]

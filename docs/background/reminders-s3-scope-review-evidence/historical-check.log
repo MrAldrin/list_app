@@ -1,0 +1,17 @@
+Exact parent: 216b2eabfd25b6467d64e97906601879ad723084
+No source changes; no .env; shared pre-existing environment; no sync/install.
+Selected tests: generation, scheduler, strip claims, external restore state.
+Tests use :memory: plus pytest temporary SQLite/files; no listening server/provider.
+Fri Nov  6 02:07:20 AM UTC 2026
+The working copy has no changes.
+Working copy  (@) : nsxuyuvt 2f94b979 (empty) research - S3 scope: check an isolated historical snapshot
+Parent commit (@-): vtlptvvs 216b2eab (empty) (no description set)
+........................................................................ [ 48%]
+........................................................................ [ 96%]
+......                                                                   [100%]
+150 passed in 18.18s
+The working copy has no changes.
+Working copy  (@) : nsxuyuvt 2f94b979 (empty) research - S3 scope: check an isolated historical snapshot
+Parent commit (@-): vtlptvvs 216b2eab (empty) (no description set)
+Fri Nov  6 02:07:40 AM UTC 2026
+CHECK EXIT: 0

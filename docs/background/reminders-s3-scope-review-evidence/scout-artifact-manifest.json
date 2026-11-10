@@ -1,0 +1,10 @@
+[
+  {
+    "source": "/home/hsa/.pi/agent/sessions/--home-hsa-projects-list_app-night-s3-review--/subagent-artifacts/outputs/b0dde2fd-c65c-49ad-a2d2-ab65508962cd/s3-current-baseline-analysis.md",
+    "sha256": "ee091fd4e4ba8eda58b9472a7b5ed65f3c66520e5976354a9ee8cab772543ab4"
+  },
+  {
+    "source": "/home/hsa/.pi/agent/sessions/--home-hsa-projects_list_app-night-s3-review--/subagent-artifacts/outputs/f3520805-92dc-4af9-8817-c71d44b82b16/s3-archive-component-analysis.md",
+    "sha256": "d4456e96ba568f7c121721c44286b22ac539897aa5550beb8b1e49489b474751"
+  }
+]

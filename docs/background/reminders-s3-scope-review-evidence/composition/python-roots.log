@@ -1,0 +1,33 @@
+cwd=/home/hsa/projects/list_app-night-s3-review
+TZ=UTC
+command=uv run --offline --no-sync python - 
+Fri Nov  6 02:28:30 UTC 2026
+Svelte build not found: /home/hsa/projects/list_app-night-s3-review/frontend/build/index.html. Run `npm run build` in frontend/.
+{
+  "cwd": "/home/hsa/projects/list_app-night-s3-review",
+  "executable": "/home/hsa/projects/list_app/.venv/bin/python",
+  "module_origins": {
+    "config": "/home/hsa/projects/list_app-night-s3-review/src/config.py",
+    "database_setup": "/home/hsa/projects/list_app-night-s3-review/src/database_setup.py",
+    "server": "/home/hsa/projects/list_app-night-s3-review/src/server.py",
+    "reminders.identity": "/home/hsa/projects/list_app-night-s3-review/src/reminders/identity.py",
+    "api.reminders": "/home/hsa/projects/list_app-night-s3-review/src/api/reminders.py",
+    "server_launcher": "/home/hsa/projects/list_app-night-s3-review/tests/server_launcher.py"
+  },
+  "pytest_root": "/home/hsa/projects/list_app-night-s3-review",
+  "pytest_config": "/home/hsa/projects/list_app-night-s3-review/pyproject.toml",
+  "testpaths": [
+    "tests"
+  ],
+  "pythonpath": [
+    "/home/hsa/projects/list_app-night-s3-review/src",
+    "/home/hsa/projects/list_app-night-s3-review/scripts",
+    "/home/hsa/projects/list_app-night-s3-review/tests"
+  ],
+  "addopts": [
+    "-n",
+    "8"
+  ]
+}
+Fri Nov  6 02:28:31 UTC 2026
+EXIT=0

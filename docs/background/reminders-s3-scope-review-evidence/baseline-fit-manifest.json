@@ -1,0 +1,132 @@
+{
+  "accepted": {
+    "commit": "9e34df13e5b773ebf88032047fbe26a1088877bb",
+    "files": {
+      "src/reminders/identity.py": {
+        "exists": true,
+        "sha256": "5802c485e7287751a4f189cfe7aa5dc410328a128e35c6bc3ba4a85677c18ecc",
+        "lines": 494
+      },
+      "src/reminders/policies.py": {
+        "exists": true,
+        "sha256": "e0dcdd1d58ff23a34d2e2dd4d75b6edb8649e59c4db1a59284c729ee7be63c86",
+        "lines": 428
+      },
+      "src/reminders/preview.py": {
+        "exists": true,
+        "sha256": "fd7ae65d4f0bcc54e7ae2f911ea5ec0f2d78c543d91c8f6a60578282698ad5cb",
+        "lines": 196
+      },
+      "src/reminders/rules.py": {
+        "exists": true,
+        "sha256": "31d8278c1baa8ed4f430f31860b274214c3a92a3cb5979bace91cb2807b047ed",
+        "lines": 343
+      },
+      "src/reminders/due_schedule.py": {
+        "exists": true,
+        "sha256": "38ba36ea9e7d710b3fb5ddd26f884fe8eed24a91930ca5fae57495025d1c5cad",
+        "lines": 151
+      },
+      "src/reminders/zoned_time.py": {
+        "exists": true,
+        "sha256": "e70c3f544d9399f32c17f38f0e9757d9892266f1670d66b4983ed0c43fa14aca",
+        "lines": 105
+      },
+      "src/api/reminders.py": {
+        "exists": true,
+        "sha256": "eb1dfe22e252cf5a03b794a4d10b58e21427179bfb98d9be793bdad1515cf35f",
+        "lines": 468
+      },
+      "src/server.py": {
+        "exists": true,
+        "sha256": "40edc2b1d754fa057386fc20bb46b3bd7cbd8ddefb6c94f386be67ddfc967f65",
+        "lines": 83
+      },
+      "src/database_setup.py": {
+        "exists": true,
+        "sha256": "c66bf8e2a76517280fb80ebf30224cf1a33b82c5a1a4bc768e7b8374b690c26a",
+        "lines": 1196
+      },
+      "frontend/src/lib/list/DueCenter.svelte": {
+        "exists": true,
+        "sha256": "4d539ec03a1eda5e5c3f8444492d760555e823c1a9917f1b72cd00444a51638c",
+        "lines": 279
+      },
+      "frontend/src/lib/reminders/personal-reminders.ts": {
+        "exists": true,
+        "sha256": "77c30f2a5f0ee37a0aae4e976941476ca2889917a9aec92d1877301f4029acf6",
+        "lines": 1
+      },
+      "frontend/src/lib/reminders/ReminderSettings.svelte": {
+        "exists": true,
+        "sha256": "3bf07eb60ac45e0bb2f99cfef973efd7bf4951daf0921008b9c7159f28d263e5",
+        "lines": 515
+      }
+    }
+  },
+  "historical_combined": {
+    "commit": "216b2eabfd25b6467d64e97906601879ad723084",
+    "files": {
+      "src/reminders/identity.py": {
+        "exists": true,
+        "sha256": "6f266fde5dfb9cefea532bdd2d3adccc9d43e3e8c6f389c67dc379faf5092731",
+        "lines": 617
+      },
+      "src/reminders/policies.py": {
+        "exists": true,
+        "sha256": "9118b470bd42fbee8750b6aefa71cd600d0b5da62dfed26d8cf1e7b8461d4535",
+        "lines": 448
+      },
+      "src/reminders/preview.py": {
+        "exists": true,
+        "sha256": "b6dcd91590cef806044bd89addb1d05af61881bc6145168b65bd3569ee065181",
+        "lines": 242
+      },
+      "src/reminders/rules.py": {
+        "exists": true,
+        "sha256": "31d8278c1baa8ed4f430f31860b274214c3a92a3cb5979bace91cb2807b047ed",
+        "lines": 343
+      },
+      "src/reminders/due_schedule.py": {
+        "exists": true,
+        "sha256": "98f2e190d8916be4d80d92746da23e0ac605c435c660bb347a6f0b9d768b8a00",
+        "lines": 151
+      },
+      "src/reminders/zoned_time.py": {
+        "exists": true,
+        "sha256": "e70c3f544d9399f32c17f38f0e9757d9892266f1670d66b4983ed0c43fa14aca",
+        "lines": 105
+      },
+      "src/api/reminders.py": {
+        "exists": true,
+        "sha256": "eb1dfe22e252cf5a03b794a4d10b58e21427179bfb98d9be793bdad1515cf35f",
+        "lines": 468
+      },
+      "src/server.py": {
+        "exists": true,
+        "sha256": "05b9ac3bcce268c49ddf25d884bf12f4c1a23038d01b471c250dacdf9b968b5b",
+        "lines": 89
+      },
+      "src/database_setup.py": {
+        "exists": true,
+        "sha256": "222aa3ad0cbbd0dc372c2f05a475cb31ae35d0080071c7acc98e3819a630db30",
+        "lines": 1450
+      },
+      "frontend/src/lib/list/DueCenter.svelte": {
+        "exists": true,
+        "sha256": "4e102801a97326ba1062f8ff5baf0edf8a85c432dce572caf68027e7ac93e6f7",
+        "lines": 307
+      },
+      "frontend/src/lib/reminders/personal-reminders.ts": {
+        "exists": false,
+        "sha256": null,
+        "lines": 0
+      },
+      "frontend/src/lib/reminders/ReminderSettings.svelte": {
+        "exists": true,
+        "sha256": "1f8c4b803f8cded4b9b2fa7ccb89bf085d51074c75ec0ccc6cd5530bd0202e5c",
+        "lines": 437
+      }
+    }
+  }
+}

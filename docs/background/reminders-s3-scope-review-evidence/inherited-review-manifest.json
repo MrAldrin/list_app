@@ -1,0 +1,20 @@
+[
+  {
+    "local": "inherited-reviews/scheduler-review.md",
+    "original": "/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/8d035e0b-1dc5-4614-9267-0b3515d474bc/s3-scheduler-independent-review.342406ba.md",
+    "sha256": "5ca08b91d128bc0d4bbcec2773b0be2a985aa35cdbe390cdf9a71c9eebb1a954",
+    "classification": "inherited historical evidence, not a fresh Task5 check"
+  },
+  {
+    "local": "inherited-reviews/ui-review.md",
+    "original": "/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/2b42592b-1e63-4911-aac4-ccc1c9fee0ff/.pi/reminders-s3-runtime/reviews/successor-strip-ui.cef1b0cd.429496a0.e5e3d172.28f55ddc.51dc70df.md",
+    "sha256": "3832090877f749173d4fe55c43771cb15d8716a36884d2f180a41dfd4d7e2320",
+    "classification": "inherited historical evidence, not a fresh Task5 check"
+  },
+  {
+    "local": "inherited-reviews/combined-gates.md",
+    "original": "/home/hsa/.pi/agent/sessions/--home-hsa-projects-tmp-reminders-s3--/subagent-artifacts/outputs/96bbe407-a03c-4514-8bad-4f6e85248990/.pi/reminders-s3-runtime/reports/b26-combined-gates.c073081f.65d91fbb.bea988be.md",
+    "sha256": "b7d527cbc6892f4d39359c921bc36a4f7c5ee4af9862d2944d46bedce2fbebe9",
+    "classification": "inherited historical evidence, not a fresh Task5 check"
+  }
+]

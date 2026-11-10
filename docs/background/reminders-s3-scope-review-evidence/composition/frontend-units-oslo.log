@@ -1,0 +1,23 @@
+cwd=/home/hsa/projects/list_app-night-s3-review/frontend
+TZ=Europe/Oslo
+command=npm test 
+Fri Nov  6 02:28:58 UTC 2026
+
+> frontend@0.0.1 test
+> vitest run
+
+
+ RUN  v5.0.3 /home/hsa/projects/list_app-night-s3-review/frontend
+
+
+ Test Files  54 passed (54)
+      Tests  1115 passed (1115)
+   Start at  03:28:59
+   Duration  7.69s (transform 51%, tests 30%, import 12%, environment 6%, worker 1%)
+
+  Transform  transforming modules took 13.43s · 51% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
+Fri Nov  6 02:29:06 UTC 2026
+EXIT=0

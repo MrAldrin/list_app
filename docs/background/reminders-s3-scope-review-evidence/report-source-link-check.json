@@ -1,0 +1,260 @@
+{
+  "root": "/home/hsa/projects/list_app-night-s3-review",
+  "parser": "Python Markdown 3.11.2; tables/fenced_code/toc",
+  "scope": "authored Task5 Markdown; raw scout/inherited evidence preserved, not rewritten or render-approved; generated main docs checked separately by canonical site wrapper",
+  "sources": {
+    "docs/background/reminders-s3-scope-review.md": "233ee1246606133cb1ef542f0aa8fb53894deac77959f2580618ca830929b5c9",
+    "docs/background/reminders-s3-scope-review-evidence/ownership.md": "62f9c266a5c67a471875506c097ce94d59030621226eb92fcb67e93f31b5595e",
+    "docs/background/reminders-s3-scope-review-evidence/research-checks.md": "6d118f841979e2443dd8df27266a6dceb8ffb419a229f5b66768ffb920954064",
+    "docs/background/reminders-s3-scope-review-evidence/scout-disposition.md": "6f9de307996e38663f266aa37876dbb19f8dec5c674bfe15546d40771b0adf49",
+    "docs/background/reminders-s3-scope-review-evidence/closeout.md": "32cc1705ae590f6f6f3686579dd4db9275f52e2e79c3f610d9aaa32e1096019c"
+  },
+  "local_links_checked": 48,
+  "links": [
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../../plans/reminders-s3-scope-review.md",
+      "target": "plans/reminders-s3-scope-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../../plans/night-run.md",
+      "target": "plans/night-run.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "#material-owner-choices",
+      "target": "docs/background/reminders-s3-scope-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/current-source-analysis.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/current-source-analysis.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/baseline-fit-manifest.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/baseline-fit-manifest.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../due-date-reminders.md",
+      "target": "docs/due-date-reminders.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../../ARCHITECTURE.md",
+      "target": "ARCHITECTURE.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "../api-reminders.md",
+      "target": "docs/api-reminders.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/source-register.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/source-register.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "jj-history-review-evidence/inventory.tsv",
+      "target": "docs/background/jj-history-review-evidence/inventory.tsv"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/reviewed-version-comparisons.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/reviewed-version-comparisons.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/scout-disposition.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/scout-disposition.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/inherited-reviews/scheduler-review.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-reviews/scheduler-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/inherited-reviews/ui-review.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-reviews/ui-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/archive-analysis.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/archive-analysis.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/research-checks.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/research-checks.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/final-independent-review.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/final-independent-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/closeout.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/closeout.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/protection-before.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/protection-before.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/archive-before.tsv",
+      "target": "docs/background/reminders-s3-scope-review-evidence/archive-before.tsv"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/protected-source-fingerprints.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/protected-source-fingerprints.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review.md",
+      "href": "reminders-s3-scope-review-evidence/ownership.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/ownership.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "run-historical-check.sh",
+      "target": "docs/background/reminders-s3-scope-review-evidence/run-historical-check.sh"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "historical-check.log",
+      "target": "docs/background/reminders-s3-scope-review-evidence/historical-check.log"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "historical-check.exit",
+      "target": "docs/background/reminders-s3-scope-review-evidence/historical-check.exit"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "baseline-fit-manifest.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/baseline-fit-manifest.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "historical-vs-accepted.stat",
+      "target": "docs/background/reminders-s3-scope-review-evidence/historical-vs-accepted.stat"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "inherited-reviews/",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-reviews",
+      "kind": "existing source directory; not a rendered page"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "inherited-review-manifest.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/inherited-review-manifest.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/research-checks.md",
+      "href": "reviewed-version-comparisons.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/reviewed-version-comparisons.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "final-independent-review.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/final-independent-review.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "child-model-receipts.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/child-model-receipts.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "scout-disposition.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/scout-disposition.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "run-composition-checks.sh",
+      "target": "docs/background/reminders-s3-scope-review-evidence/run-composition-checks.sh"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "composition/exits.tsv",
+      "target": "docs/background/reminders-s3-scope-review-evidence/composition/exits.tsv"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "composition-source-before.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/composition-source-before.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "composition-source-after.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/composition-source-after.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "run-docs-check.sh",
+      "target": "docs/background/reminders-s3-scope-review-evidence/run-docs-check.sh"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "docs-build.log",
+      "target": "docs/background/reminders-s3-scope-review-evidence/docs-build.log"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "docs-build-summary.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/docs-build-summary.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "run-report-link-check.sh",
+      "target": "docs/background/reminders-s3-scope-review-evidence/run-report-link-check.sh"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "report-source-link-check-initial.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/report-source-link-check-initial.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "report-source-link-check.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/report-source-link-check.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "research-checks.md",
+      "target": "docs/background/reminders-s3-scope-review-evidence/research-checks.md"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "protection-after.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/protection-after.json"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "run-preservation-check.sh",
+      "target": "docs/background/reminders-s3-scope-review-evidence/run-preservation-check.sh"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "preservation-check.log",
+      "target": "docs/background/reminders-s3-scope-review-evidence/preservation-check.log"
+    },
+    {
+      "source": "docs/background/reminders-s3-scope-review-evidence/closeout.md",
+      "href": "cleanup.json",
+      "target": "docs/background/reminders-s3-scope-review-evidence/cleanup.json"
+    }
+  ],
+  "external_not_fetched": [],
+  "failures": [],
+  "report_html_tables": 5,
+  "report_html_headings": 16
+}

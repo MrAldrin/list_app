@@ -1,0 +1,76 @@
+{
+  "removed": [
+    {
+      "path": "docs/background/reminders-s3-scope-review-evidence/composition-temp",
+      "bytes": 17917675,
+      "purpose": "own passed-test data or copied/generated frontend verification files"
+    },
+    {
+      "path": "frontend/node_modules",
+      "bytes": 121872103,
+      "purpose": "own passed-test data or copied/generated frontend verification files"
+    },
+    {
+      "path": "frontend/build",
+      "bytes": 369107,
+      "purpose": "own passed-test data or copied/generated frontend verification files"
+    },
+    {
+      "path": "frontend/.svelte-kit",
+      "bytes": 2581435,
+      "purpose": "own passed-test data or copied/generated frontend verification files"
+    }
+  ],
+  "preservation_pane_before_close": {
+    "id": 88,
+    "is_plugin": false,
+    "is_focused": false,
+    "is_fullscreen": false,
+    "is_floating": true,
+    "is_suppressed": false,
+    "title": "S3-final-preservation",
+    "exited": true,
+    "exit_status": 0,
+    "is_held": true,
+    "pane_x": 64,
+    "pane_content_x": 65,
+    "pane_y": 14,
+    "pane_content_y": 15,
+    "pane_rows": 28,
+    "pane_content_rows": 26,
+    "pane_columns": 127,
+    "pane_content_columns": 125,
+    "cursor_coordinates_in_pane": [
+      1,
+      2
+    ],
+    "terminal_command": "bash -c bash docs/background/reminders-s3-scope-review-evidence/run-preservation-check.sh > docs/background/reminders-s3-scope-review-evidence/preservation-check.log 2>&1; code=$?; printf \"%s\\n\" \"$code\" > docs/background/reminders-s3-scope-review-evidence/preservation-check.exit; printf \"Preservation exit: %s\\n\" \"$code\"",
+    "plugin_url": null,
+    "is_selectable": true,
+    "index_in_pane_group": {},
+    "default_fg": null,
+    "default_bg": null,
+    "tab_id": 24,
+    "tab_position": 13,
+    "tab_name": "list_app-night-s3-review"
+  },
+  "composition_pane87_closed": true,
+  "historical_snapshot_removed": true,
+  "historical_snapshot_passed_temp_bytes_removed": 42194635,
+  "historical_pane79_and_docs_pane85_closed": true,
+  "protected_existing_panes": [
+    {
+      "id": 38,
+      "title": "List app docs preview :8765",
+      "exited": false
+    },
+    {
+      "id": 72,
+      "title": "theme-gallery-8766",
+      "exited": false
+    }
+  ],
+  "entry_lifecycle": "Lead-owned workspace retained; interactive Conductor pane78 retained",
+  "shared_environments": "no dependency installation or configuration changes; shared cache bytes not audited; matching node_modules copy removed",
+  "disk_free_bytes_after_cleanup": 13356920832
+}

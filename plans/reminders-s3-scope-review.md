@@ -167,10 +167,11 @@ not when S3 is implemented. Wait for that decision before starting any code work
 - Reuse the task 4 exact source map and protection evidence. All 36 archived
   exact resume commits resolve. No parked line, archive, existing bookmark,
   conflict, divergent version, or other workspace may be changed.
-- Result: `wlyxnswq` / `55108d0d`, bookmarked `night-5-s3-review`;
-  complete as research, not implementation. Report:
-  `docs/background/reminders-s3-scope-review.md`; evidence sibling
-  `reminders-s3-scope-review-evidence/` (about 1.37 MiB, tracked).
+- Result: `wlyxnswq` / `55108d0d`; complete as research, not implementation.
+  Report: [S3 scope review](../docs/background/reminders-s3-scope-review.md);
+  evidence sibling `reminders-s3-scope-review-evidence/` (about 1.37 MiB). On
+  2026-11-10 both were copied into `integration` and the `night-5-s3-review`
+  bookmark was removed.
 - Recommendation: A, an opt-in foreground daily brief, rather than recovery of
   the whole runtime. B adds at-due scheduling; C defers new behavior. Owner
   decisions remain: choose A/B/C and allow or refuse limited setup before phone
