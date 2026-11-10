@@ -68,7 +68,6 @@ def test_manifest_follows_the_page(svelte_server, open_session):
     expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
 
 
-@pytest.mark.all_engines
 def test_page_declares_the_home_screen_icon(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     page.goto(app_url(svelte_server))
@@ -83,7 +82,6 @@ def test_page_declares_the_home_screen_icon(svelte_server, open_session):
     expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).to_have_count(1)
 
 
-@pytest.mark.all_engines
 def test_room_menu_shows_install_help(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

@@ -248,7 +248,6 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     )
 
 
-@pytest.mark.all_engines
 def test_real_build_swap_waits_for_a_stored_room_change(
     built_app_server, open_session, tmp_path
 ):
@@ -370,7 +369,6 @@ def _come_back_to_the_app(page) -> None:
     page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
 
 
-@pytest.mark.all_engines
 def test_coming_back_to_the_app_fetches_and_then_switches_version(
     built_app_server, open_session, tmp_path
 ):
@@ -404,7 +402,6 @@ def test_coming_back_to_the_app_fetches_and_then_switches_version(
     expect(page.get_by_label("Room link or code")).to_be_visible()
 
 
-@pytest.mark.all_engines
 def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     built_app_server, open_session, tmp_path
 ):
@@ -454,7 +451,6 @@ def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     assert _cache_names(new_page) == [cache_b]
 
 
-@pytest.mark.all_engines
 def test_interrupted_update_keeps_last_complete_version_usable(
     built_app_server, open_session, tmp_path
 ):
