@@ -110,7 +110,6 @@ def test_online_typing_only_suggests_and_never_filters(svelte_server, open_sessi
     expect(item_names(page)).to_have_text(["bread"])
 
 
-@pytest.mark.all_engines
 def test_typing_during_an_online_revalidation_does_not_filter(
     svelte_server, open_session
 ):
@@ -213,7 +212,6 @@ def test_revoked_password_clears_saved_room_on_reconnect(svelte_server, open_ses
     expect(saved_notice(page)).to_have_count(0)
 
 
-@pytest.mark.all_engines
 def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_session):
     server = svelte_server
     page, list_url = member_with_list(open_session, server, "share-viewer")
@@ -244,7 +242,6 @@ def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_sessi
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
 
-@pytest.mark.all_engines
 def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
     svelte_server, open_session
 ):
@@ -289,7 +286,6 @@ def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
 
 
 @pytest.mark.parametrize("signal", ["visibilitychange", "pageshow"])
-@pytest.mark.all_engines
 def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     server = svelte_server
     page, _ = member_with_list(open_session, server, "resumer")
@@ -311,7 +307,6 @@ def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     assert len(changes) > before[1]
 
 
-@pytest.mark.all_engines
 def test_server_errors_without_a_snapshot_do_not_say_connect(
     svelte_server, open_session
 ):

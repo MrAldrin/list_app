@@ -200,7 +200,6 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
     )
 
 
-@pytest.mark.all_engines
 @pytest.mark.own_server
 def test_offline_logout_clears_room_but_keeps_share_and_marker(
     svelte_server, open_session
@@ -256,7 +255,6 @@ def test_offline_logout_clears_room_but_keeps_share_and_marker(
     assert server.query("SELECT name FROM items") == [("milk",)]
 
 
-@pytest.mark.all_engines
 @pytest.mark.own_server
 def test_legacy_private_list_route_opens_from_room_snapshot_offline(
     svelte_server, open_session
@@ -304,7 +302,6 @@ NOTICE_RECORDER = """
 """
 
 
-@pytest.mark.all_engines
 @pytest.mark.own_server
 def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
     """Online, opening a page never shows the offline notice, not even briefly.
