@@ -43,11 +43,29 @@ change the result, for example storage, offline behavior, native inputs, focus
 or layout. The collection hook selects engines before execution; it does not
 skip cases. Do not use a module-wide marker.
 
-The owner chose Chromium as the default on 10 November 2026. Each test that
-ran on three engines before that date keeps the marker until its review in
-lr-347.9.2. The [earlier matrix](background/engine-matrix-review-2026-11-08.md)
-records the first engine review. The timed-due server-confirmation test stays
-on all three engines until lr-gt2.4 is fixed.
+One broad journey for each engine-dependent feature keeps the marker. Other
+cases of the same feature run on Chromium only. A test that failed on Firefox
+or WebKit before also keeps it.
+
+| Feature | Tests on all engines (file, without `test_svelte_`) |
+| --- | --- |
+| Service worker, Cache Storage | `service_worker` (cold offline deep link; waiting version), `old_service_worker` |
+| Saved view, offline queue, IndexedDB | `offline` (saved views; edits survive a reload), `offline_conflicts` (refused tick), `offline_multidevice` (cleared site data) |
+| Reconnect, real network loss | `offline_reconnect` (reconnect journey; revoked password; losing the network) |
+| Cookies, sign-in, sign-out | `rooms` (start page and remembered room), `admin` (sign-in, create, reset) |
+| Live stream | `live` (two phones), `restart` (open page recovers), `share` (visitor journey) |
+| Native date, time zone | `item_date`, `due_center` (timed due; zone validation), `timed_due_offline` (all four, until lr-gt2.4 is fixed) |
+| Keyboard, focus, native dialog | `items` (suggestion keyboard and touch; core list journey), `due_center` (bell journey; bell keyboard), `accessibility` (control names; focus returns), `dialog` |
+| Layout, scroll, tap size | `bottom_bar`, `phone_fixes` (list top bar), `due_center_phone`, `tap_targets`, `toasts` (both) |
+| Stored theme, first paint | `theme` (saved theme paints first) |
+| Unicode case rules | `items` (offline Unicode add) |
+| Install manifest | `install_browser` (manifest follows the page) |
+| Role split by engine | `deleted_lists` (stale write after list deletion) |
+| Test harness | `browser_sessions` (WebKit profile storage) |
+
+`grep -rn all_engines browser_tests` shows the exact list. The
+[earlier matrix](background/engine-matrix-review-2026-11-08.md) records the
+first engine review.
 
 ## Test tiers
 

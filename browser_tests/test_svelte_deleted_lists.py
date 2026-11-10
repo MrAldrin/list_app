@@ -96,6 +96,8 @@ def send_stale_action(stale: Page, fire, role: str) -> None:
 
 # Each action runs in every engine, with the room and share pages alternated
 # per engine (as in `test_deleted_lists.py`). WebKit takes Chromium's role.
+# Firefox runs the other role for each action, so all engines stay.
+@pytest.mark.all_engines
 @pytest.mark.parametrize(
     "action, chromium_role",
     [
