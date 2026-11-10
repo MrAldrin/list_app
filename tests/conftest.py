@@ -2,6 +2,9 @@ import os
 import uuid
 
 import bcrypt
+
+# Before the app is imported: the import hashes the first room's password.
+import low_cost_bcrypt
 import pytest
 from starlette.testclient import TestClient
 
@@ -23,9 +26,14 @@ from sign_in_limiter import SignInLimiter
 
 @pytest.fixture(scope="session")
 def home_password_hash():
-    # Reuse only the expensive hash, never mutable database state.
-    # Keep bcrypt's production-default cost; room-creation tests still hash normally.
+    # Reuse only the hash, never mutable database state.
     return bcrypt.hashpw(b"pw", bcrypt.gensalt()).decode("utf-8")
+
+
+@pytest.fixture
+def production_bcrypt_cost(monkeypatch):
+    """Hash at the real cost in this test (slow: about 0.2 s for each hash)."""
+    monkeypatch.setattr(bcrypt, "gensalt", low_cost_bcrypt.REAL_GENSALT)
 
 
 @pytest.fixture(autouse=True)

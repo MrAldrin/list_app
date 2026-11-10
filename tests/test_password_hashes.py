@@ -13,6 +13,13 @@ from api_helpers import (
 
 from database_crud import authenticate_room_and_issue_token, create_room
 from database_setup import db
+from password_hashing import hash_password
+
+
+def test_new_password_hashes_keep_the_production_bcrypt_cost(production_bcrypt_cost):
+    # Other tests hash at a low cost (tests/conftest.py). This one uses the
+    # real function, so a lower cost in the app fails here.
+    assert hash_password("pw").startswith("$2b$12$")
 
 
 @pytest.mark.parametrize(
