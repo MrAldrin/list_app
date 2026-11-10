@@ -8,6 +8,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BROWSER_LOCK = Path("/home/hsa/.local/state/night-loop/list_app/browser.lock")
+# Measured limits for this machine; see docs/browser-testing.md.
+MIXED_ENGINE_WORKERS = 4
+CHROMIUM_WORKERS = 6
 
 
 def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]:
@@ -25,13 +28,15 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
         )
 
     def browser(selection: list[str], extra: list[str]) -> list[str]:
+        chromium_only = extra[:2] == ["--tier-engine", "chromium"]
+        workers = CHROMIUM_WORKERS if chromium_only else MIXED_ENGINE_WORKERS
         return [
             "flock",
             str(BROWSER_LOCK),
             *pytest,
             *selection,
             "-n",
-            "4",
+            str(workers),
             *extra,
             *collection,
         ]

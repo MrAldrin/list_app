@@ -62,6 +62,12 @@ def main() -> None:
                 assert "--collect-only" in command
             if "browser_tests" in command:
                 assert command[:2] == ["flock", str(runner.BROWSER_LOCK)]
+    # Chromium-only runs use more workers than mixed-engine runs.
+    affected = runner.commands("affected-browser", ["browser_tests"], False)[0]
+    assert affected[affected.index("-n") + 1] == str(runner.CHROMIUM_WORKERS)
+    for tier in ["smoke", "full"]:
+        mixed = runner.commands(tier, [], False)[-1]
+        assert mixed[mixed.index("-n") + 1] == str(runner.MIXED_ENGINE_WORKERS)
     for paths in [
         [],
         ["tests"],

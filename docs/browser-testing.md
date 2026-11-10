@@ -13,8 +13,10 @@ uv run playwright install chromium firefox webkit
 uv run pytest browser_tests -q -n 4
 ```
 
-- Four workers is the documented local setting for the full suite. Runtime
-  depends on the suite and machine; see [current measurements](background/test-suite-review.md).
+- Four workers is the documented local setting for the full suite. A
+  Chromium-only run (`--tier-engine chromium`) can use six workers; eight makes
+  this machine swap. Runtime depends on the suite and machine; see
+  [current measurements](background/test-suite-review.md).
   Give a worker count explicitly; pytest's default of eight is for the Python
   suite.
 - Playwright downloads its own browsers. On Linux, missing system libraries can
