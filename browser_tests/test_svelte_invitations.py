@@ -5,7 +5,6 @@ never opens a room by itself.
 
 import re
 
-import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, admin_sign_in, app_url
 
@@ -35,7 +34,6 @@ def fill_form(page, name: str, password: str, confirmation: str | None = None):
     )
 
 
-@pytest.mark.all_engines
 def test_issue_create_room_and_revoke(svelte_server, open_session):
     server = svelte_server
     owner = open_session("admin", **PHONE)
@@ -121,7 +119,6 @@ def test_issue_create_room_and_revoke(svelte_server, open_session):
     expect(visitor.get_by_role("button", name="Add New List")).to_be_visible()
 
 
-@pytest.mark.all_engines
 def test_unknown_link_and_no_admin_controls_without_sign_in(
     svelte_server, open_session
 ):

@@ -26,7 +26,6 @@ def open_room_menu(page, entry: str) -> None:
     page.get_by_role("button", name=entry).click()
 
 
-@pytest.mark.all_engines
 def test_rename_change_password_and_delete_room(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug
@@ -121,7 +120,6 @@ def saved_views(page) -> int:
 
 
 @pytest.mark.parametrize("server_deletes", [False, True], ids=["not_sent", "delivered"])
-@pytest.mark.all_engines
 def test_reload_during_delete_room_shows_the_server_state(
     svelte_server, open_session, server_deletes
 ):

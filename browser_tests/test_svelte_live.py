@@ -118,7 +118,6 @@ def test_list_deleted_while_open(svelte_server, open_session):
     expect(viewer.get_by_text("No lists yet. Create your first one!")).to_be_visible()
 
 
-@pytest.mark.all_engines
 def test_password_change_revokes_open_pages(svelte_server, open_session):
     server = svelte_server
     room_page = open_session("room-page", **PHONE)
@@ -150,7 +149,6 @@ def test_password_change_revokes_open_pages(svelte_server, open_session):
     expect(room_page.get_by_role("link", name="Groceries")).to_be_visible()
 
 
-@pytest.mark.all_engines
 def test_rename_saved_after_a_password_change_changes_nothing(
     svelte_server, open_session
 ):

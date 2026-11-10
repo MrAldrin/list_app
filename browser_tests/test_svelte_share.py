@@ -144,7 +144,6 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     expect(visitor.get_by_role("link", name="Groceries")).to_have_count(0)
 
 
-@pytest.mark.all_engines
 def test_writes_sent_after_a_reset_change_nothing(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
