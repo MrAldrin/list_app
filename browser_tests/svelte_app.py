@@ -1,7 +1,9 @@
 """Shared steps for the Svelte browser tests (`test_svelte_*.py`)."""
 
 import re
+import uuid
 from collections.abc import Callable
+from typing import Any
 
 from playwright.sync_api import Page, expect
 
@@ -26,6 +28,71 @@ def sign_in(page: Page, server, password: str | None = None) -> None:
     page.get_by_label("Room Password").fill(password or server.password)
     page.get_by_label("Room Password").press("Enter")
     expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+
+
+def api_sign_in(page: Page, server, password: str | None = None) -> None:
+    """Sign in to the room without the UI; the cookie lands in the page's context.
+
+    Use it for set-up only. The sign-in page itself is tested through the UI.
+    """
+    response = page.context.request.post(
+        f"{server.url}/api/v1/rooms/{server.room_slug}/session",
+        data={"password": password or server.password},
+        headers={"Origin": server.url},
+    )
+    assert response.status == 200, response.text()
+
+
+def _api_op(page: Page, server, op_type: str, **fields: Any) -> dict[str, Any]:
+    response = page.context.request.post(
+        f"{server.url}/api/v1/rooms/{server.room_slug}/ops",
+        data={"op_id": str(uuid.uuid4()), "type": op_type, **fields},
+        headers={"Origin": server.url},
+    )
+    assert response.status == 200, response.text()
+    answer = response.json()
+    assert answer["status"] == "applied", answer
+    return answer["result"]
+
+
+def api_seed(
+    page: Page, server, lists: dict[str, list[str | dict[str, str]]]
+) -> dict[str, str]:
+    """Create lists and items without the UI; return the list page URLs by name.
+
+    An item is a name, or {"name": ..., "date": "YYYY-MM-DD"}. The page must be
+    signed in (`api_sign_in` or `sign_in`). Use it for set-up only: creating a
+    list, adding an item and setting a date each keep a test through the UI.
+    """
+    urls = {}
+    for list_name, items in lists.items():
+        created = _api_op(page, server, "list.create", name=list_name)
+        list_uid = created["list_uid"]
+        for item in items:
+            fields = {"name": item} if isinstance(item, str) else item
+            added = _api_op(
+                page, server, "item.add", list_uid=list_uid, name=fields["name"]
+            )
+            if "date" in fields:
+                _api_op(
+                    page,
+                    server,
+                    "item.edit",
+                    list_uid=list_uid,
+                    item_uid=added["item_uid"],
+                    name=fields["name"],
+                    description="",
+                    date=fields["date"],
+                    base_seq=added["changed_seq"],
+                )
+        urls[list_name] = f"{room_app_url(server)}/list/{created['slug']}"
+    return urls
+
+
+def open_list(page: Page, url: str, name: str) -> None:
+    """Open a list page by its URL and wait until it shows the list."""
+    page.goto(url)
+    expect(page.get_by_role("heading", name=name)).to_be_visible()
 
 
 def create_list(page: Page, name: str) -> str:
