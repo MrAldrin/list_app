@@ -11,6 +11,27 @@ import { itemName, itemNameKey } from '#lib/data/overlay.ts';
 import type { Item } from '#lib/data/index.ts';
 import type { ToastKind } from '#lib/ui/toasts.svelte.ts';
 
+/** Keep a dialog's conflict base unless only tags changed while it was open. */
+export function itemEditBase(opened: Item, current: Item | undefined): Item {
+	if (!current) return opened;
+	const fields = [
+		'uid',
+		'list_uid',
+		'name',
+		'description',
+		'quantity',
+		'date',
+		'due_time',
+		'due_timezone',
+		'due_at',
+		'done',
+		'completed_at',
+		'add_count',
+		'added_at'
+	] as const satisfies readonly (keyof Item)[];
+	return fields.every((field) => opened[field] === current[field]) ? current : opened;
+}
+
 /** Shown when the list is gone or not in this room. */
 export const UNAVAILABLE_LIST_MESSAGE = 'List not found. It may have been deleted.';
 

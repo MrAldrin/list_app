@@ -43,6 +43,9 @@ Rules and mechanics: [offline editing details](background/offline-editing-detail
 Changes merge when they can:
 
 - Two +1 taps add up. Two ticks, or the same tag added twice, end in one result.
+- Tags in Edit Item save immediately. A tag-only update does not block Save
+  for the other fields. If another field changed while the dialog was open,
+  Save keeps the original version check.
 - Adding an item that someone else added keeps one item. Later changes to your
   copy go to that item.
 - A change is refused when someone else changed the same thing in a different

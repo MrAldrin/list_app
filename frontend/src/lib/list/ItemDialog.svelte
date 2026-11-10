@@ -6,8 +6,8 @@
 	A muted line shows how often the item was added and when it was last added
 	(it is not editable).
 	The delete button deletes the item (with undo).
-	It starts with the item as it was when the dialog opened; the save sends
-	that version as `base_seq`.
+	It starts with the item as it was when the dialog opened. Save keeps that
+	version as `base_seq` unless only tags changed; see `itemEditBase`.
 -->
 <script lang="ts">
 	import { PERSONAL_REMINDER_SETTINGS_ENABLED } from '#lib/reminders/personal-reminders.ts';

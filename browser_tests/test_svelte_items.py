@@ -422,6 +422,44 @@ def saved_op(response) -> bool:
     )
 
 
+def test_description_and_tag_save_together(svelte_server, open_session):
+    """A settled tag write must not make the open description edit stale."""
+    server = svelte_server
+    page = open_session("combined-edit", **PHONE)
+    sign_in(page, server)
+    create_list(page, "Groceries")
+    add_list_tag(page, "Shop")
+
+    for name in ("existing", "new"):
+        add_item(page, name)
+        if name == "existing":
+            page.reload()
+        page.get_by_role("button", name=name, exact=True).click()
+        dialog = page.get_by_role("dialog", name="Edit Item")
+        dialog.get_by_label("Description / Notes").fill("Keep cold")
+        with page.expect_response(saved_op) as tag_response:
+            dialog.get_by_role("button", name="Shop", exact=True).click()
+        assert tag_response.value.json()["status"] == "applied"
+        expect(dialog.get_by_label("Description / Notes")).to_have_value("Keep cold")
+        expect(dialog.get_by_role("button", name="Save")).to_be_enabled()
+        with page.expect_response(saved_op) as edit_response:
+            dialog.get_by_role("button", name="Save").click()
+        assert edit_response.value.json()["status"] == "applied"
+        expect(dialog).to_be_hidden()
+        page.reload()
+        page.get_by_role("button", name=f"{name} (has notes)").click()
+        expect(dialog.get_by_label("Description / Notes")).to_have_value("Keep cold")
+        expect(dialog.get_by_role("button", name="Shop", exact=True)).to_have_attribute(
+            "aria-pressed", "true"
+        )
+        dialog.get_by_role("button", name="Cancel").click()
+
+    assert server.query("SELECT description FROM items ORDER BY name") == [
+        ("Keep cold",),
+        ("Keep cold",),
+    ]
+
+
 @pytest.mark.chromium_only
 def test_tags_filter_and_hide_done(svelte_server, open_session):
     server = svelte_server

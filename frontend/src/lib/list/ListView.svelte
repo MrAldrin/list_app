@@ -36,6 +36,7 @@
 	import {
 		addFeedback,
 		checkFeedback,
+		itemEditBase,
 		loadItemSort,
 		loadShowQuantities,
 		saveItemSort,
@@ -329,7 +330,11 @@
 			due_timezone: string | null;
 		}
 	) {
-		const result = await room.editItem(item, changes);
+		// Tag chips save immediately. Their settled row version must not make
+		// this dialog conflict with itself. Keep the opening base if any other
+		// field changed, so another user's edit is still protected.
+		const base = itemEditBase(item, room.store.item(item.uid));
+		const result = await room.editItem(base, changes);
 		// A blank or duplicate name keeps the dialog open to fix it (the store
 		// shows why). It closes when the item or the list is gone.
 		if (result.ok || result.code === 'item_not_found' || result.code === 'list_unavailable') {
