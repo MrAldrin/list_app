@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-mode="light">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<title>ListR — Theme gallery</title>
+		<link rel="stylesheet" href="gallery.css" />
+		<script src="gallery.js" defer></script>
+	</head>
+	<body>
+		<div class="site-shell" id="gallery-app">
+			<header class="gallery-header">
+				<a class="wordmark" href="#top" aria-label="ListR theme gallery home">ListR <span>FIELD STUDY</span></a>
+				<div class="header-controls" aria-label="Gallery view settings">
+					<label class="mode-control">Preview mode
+						<select id="mode-select" aria-label="Preview color mode">
+							<option value="light">Light</option>
+							<option value="dark">Dark</option>
+						</select>
+					</label>
+					<a class="skip-link" href="#drafts">Skip to the 20 drafts</a>
+				</div>
+			</header>
+
+			<main id="top">
+				<section class="intro" aria-labelledby="page-title">
+					<p class="eyebrow">A local design exploration · synthetic list data</p>
+					<h1 id="page-title">Twenty ways to make a list feel like yours.</h1>
+					<p class="intro-copy">Compare safe color shifts with bigger layout experiments. Every direction keeps the same room, lists, items, dates, quantities, and tags. Nothing here changes the app.</p>
+					<div class="intro-rules">
+						<span><b>01</b> Color-only, exact geometry</span>
+						<span><b>02</b> Familiar placements, new styling</span>
+						<span><b>03–04</b> Wider experiments</span>
+					</div>
+				</section>
+
+				<section class="gallery-tools" aria-label="Compare and preview controls">
+					<p id="selection-count" role="status">Choose two to four drafts to compare, or open one focused preview.</p>
+					<button id="compare-button" class="action-button" type="button" disabled>Compare selected</button>
+				</section>
+				<div id="draft-groups" class="draft-groups" aria-label="Drafts grouped by design freedom"></div>
+
+				<section id="viewer" class="viewer" data-preview-region="gallery-focus" aria-live="polite" aria-label="Selected prototype preview" hidden></section>
+			</main>
+			<footer class="page-footer">
+				<p>Prototype only. All edits reset on reload. No app account, backend, storage, or network calls.</p>
+				<a href="README.md">Gallery notes and local setup</a>
+			</footer>
+		</div>
+
+		<dialog id="edit-dialog" class="edit-dialog" aria-labelledby="edit-title">
+			<form id="edit-form">
+				<h2 id="edit-title">Edit Item</h2>
+				<label for="edit-name">Item Name</label>
+				<input id="edit-name" name="name" required maxlength="160" autocomplete="off" />
+				<label for="edit-notes">Description / Notes</label>
+				<textarea id="edit-notes" name="notes" rows="3" maxlength="500"></textarea>
+				<div class="quantity-editor"><span id="quantity-label">Quantity</span><div class="quantity-stepper" role="group" aria-labelledby="quantity-label"><button type="button" data-quantity-delta="-1" aria-label="Less">−</button><output id="edit-quantity" aria-live="polite">1</output><button type="button" data-quantity-delta="1" aria-label="More">+</button></div></div>
+				<label for="edit-due">Date</label>
+				<div class="date-row"><input id="edit-due" name="due" type="date" /><button type="button" class="clear-date" data-clear-date>Clear</button></div>
+				<div id="due-fields" hidden>
+					<label for="edit-time">Due time (optional)</label><input id="edit-time" name="time" type="text" inputmode="text" placeholder="HH:MM" maxlength="5" />
+					<label for="edit-zone">Time zone</label><input id="edit-zone" name="zone" type="text" maxlength="64" autocomplete="off" />
+				</div>
+				<fieldset class="edit-tags"><legend>Tags</legend><div id="edit-tag-options" class="tag-options"></div></fieldset>
+				<div class="edit-dialog-actions">
+					<button type="button" class="quiet-button" data-close-dialog>Cancel</button>
+					<button type="submit" class="action-button">Save</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog id="list-dialog" class="edit-dialog" aria-labelledby="list-dialog-title">
+			<form id="list-form">
+				<div class="dialog-head"><p class="eyebrow">Local mock interaction</p><h2 id="list-dialog-title">Add a list</h2></div>
+				<label for="new-list-name">List name</label>
+				<input id="new-list-name" name="name" required maxlength="120" />
+				<div class="dialog-actions">
+					<button class="quiet-button" type="button" data-close-dialog>Cancel</button>
+					<button class="action-button" type="submit">Add list</button>
+				</div>
+			</form>
+		</dialog>
+	</body>
+</html>

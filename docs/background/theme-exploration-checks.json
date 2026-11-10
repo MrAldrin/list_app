@@ -1,0 +1,172 @@
+{
+  "fullEvidence": ".night-evidence/themes/",
+  "note": "Full failed and successful evidence is local and ignored. Preserve it before entry workspace cleanup. Final combined source checks and independent actual-entry review passed.",
+  "runs": [
+    {
+      "run": "pass1",
+      "status": "failed",
+      "matrixRuns": 0,
+      "interactionRuns": 0,
+      "checks": 2,
+      "failures": 2,
+      "externalRequests": 0,
+      "pageErrors": 4,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass2",
+      "status": "failed",
+      "matrixRuns": 2,
+      "interactionRuns": 0,
+      "checks": 72,
+      "failures": 50,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass3",
+      "status": "failed",
+      "matrixRuns": 336,
+      "interactionRuns": 42,
+      "checks": 1444,
+      "failures": 276,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass4",
+      "status": "failed",
+      "matrixRuns": 336,
+      "interactionRuns": 42,
+      "checks": 1444,
+      "failures": 64,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass5",
+      "status": "failed",
+      "matrixRuns": 336,
+      "interactionRuns": 42,
+      "checks": 1444,
+      "failures": 14,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass6",
+      "status": "passed",
+      "matrixRuns": 336,
+      "interactionRuns": 42,
+      "checks": 1444,
+      "failures": 0,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass7",
+      "status": "failed",
+      "matrixRuns": 336,
+      "interactionRuns": 84,
+      "checks": 1572,
+      "failures": 170,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass8",
+      "status": "passed",
+      "matrixRuns": 336,
+      "interactionRuns": 84,
+      "checks": 1572,
+      "failures": 0,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    {
+      "run": "pass9",
+      "status": "passed",
+      "matrixRuns": 336,
+      "interactionRuns": 84,
+      "checks": 1572,
+      "failures": 0,
+      "externalRequests": 0,
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  ],
+  "combined": {
+    "status": "passed",
+    "observedProcessExit": 0,
+    "checks": 1828,
+    "matrixRuns": 336,
+    "interactionRuns": 84,
+    "secondaryListRuns": 252,
+    "failures": 0,
+    "externalRequests": 0,
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "startedAt": "2026-11-06T01:05:54.831Z",
+    "finishedAt": "2026-11-06T01:07:03.546Z"
+  },
+  "tooling": {
+    "playwright": "1.63.0",
+    "packagedBrowserMetadata": [
+      {
+        "name": "chromium-headless-shell",
+        "revision": "1243",
+        "version": "153.0.8010.12"
+      },
+      {
+        "name": "webkit",
+        "revision": "2359",
+        "version": "26.6"
+      }
+    ],
+    "note": "Linux headless Playwright engines; not actual Safari/device verification."
+  },
+  "sourceSHA256": [
+    {
+      "file": "prototypes/theme-gallery/gallery.css",
+      "sha256": "1778f9b529e9ec7fb0315c4e4d6ec9a64f86c10fb52211dd9b7c2d05014da2c4"
+    },
+    {
+      "file": "prototypes/theme-gallery/gallery.js",
+      "sha256": "4064c0fd508ce742cf3441361d05b6c6bb1e92de6a72420a803c8f6ecfb63d89"
+    },
+    {
+      "file": "prototypes/theme-gallery/index.html",
+      "sha256": "eea872ecfac22d3a62af076f6c1849eca6217f43553d721f159ee2078997daf9"
+    },
+    {
+      "file": "prototypes/theme-gallery/LICENSE-MATERIAL.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "prototypes/theme-gallery/preview.html",
+      "sha256": "e00d8f948d92439a96f85eec2e83f68089835987c27e4e189d7f6277142f135a"
+    },
+    {
+      "file": "prototypes/theme-gallery/README.md",
+      "sha256": "b4f321ab513203fca46167abfe2db1ba2572829950ee17aebc01acd8adf90533"
+    },
+    {
+      "file": "prototypes/theme-gallery-check.cjs",
+      "sha256": "6199acc35fba197e9a4a5ec4848da7ca99171c86b439caabf667809a2aca6414"
+    }
+  ],
+  "independentReview": {
+    "run": "e14b5e81-c163-45e9-988f-5db4c1c4684a",
+    "model": "openai/gpt-6-luna",
+    "reasoning": "xhigh",
+    "verdict": "OK; no issues found",
+    "scope": "Integrated source, harness, rendered phone/desktop views, combined result; not a production accessibility or compatibility audit."
+  }
+}

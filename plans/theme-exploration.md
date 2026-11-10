@@ -162,15 +162,16 @@ owner is finished with it.
   verified free at dispatch. Recheck before binding. Use a visible owned pane,
   serve only the gallery directory, and leave the existing 8765 preview alone.
   No competing heavy browser task is active; do not open a user browser tab.
-- Result: `yuqlozro` / `44686493`, bookmarked `night-3-themes`; complete as a
-  local prototype, not accepted app work. All twenty drafts and the separate
-  reference remain in that bookmark. The former loopback preview is stopped.
+- Result: `yuqlozro` / `44686493`; complete as a local prototype, not accepted
+  app work. On 2026-11-10 the gallery and review were copied into `integration`
+  for inspection and the `night-3-themes` bookmark was removed. Open the gallery
+  with `prototypes/theme-gallery/README.md`.
 - Final combined checks: exit 0; 1,828 checks, 336 matrix cases, 84 keyboard
   scenarios, and 252 secondary-list cases; no failed checks or external requests.
   Fresh actual-entry/rendered review `e14b5e81` passed. Lead inspected three
   rendered directions and verified all seven source hashes and JS syntax.
-- Evidence: `docs/background/theme-exploration-review.md` and compact JSON on
-  the result line. Full runs, failures, reviews and Lead captures were relocated
+- Evidence: [theme review](../docs/background/theme-exploration-review.md) and
+  `docs/background/theme-exploration-checks.json`. Full runs, failures, reviews and Lead captures were relocated
   with their directory layout and hashes before entry removal. The portable
   gallery source was also preserved. See the [cleanup record](../docs/background/night-run.md#retained-resources-and-next-decisions).
 - Worker setting limit: Haiku retry requested/host-reported max, but the child
