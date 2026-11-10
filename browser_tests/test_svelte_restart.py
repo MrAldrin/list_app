@@ -14,6 +14,7 @@ RECONNECT_TIMEOUT = 30_000
 
 
 @pytest.mark.all_engines
+@pytest.mark.own_server
 def test_remembered_room_and_share_link_survive_a_restart(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -42,6 +43,7 @@ def test_remembered_room_and_share_link_survive_a_restart(svelte_server, open_se
 
 
 @pytest.mark.all_engines
+@pytest.mark.own_server
 def test_open_list_page_recovers_after_a_restart(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))

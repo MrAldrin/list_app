@@ -195,6 +195,7 @@ def _wait_for_waiting_worker(page) -> None:
 
 
 @pytest.mark.all_engines
+@pytest.mark.own_server
 def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     svelte_server, open_session
 ):

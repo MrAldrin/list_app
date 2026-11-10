@@ -109,7 +109,10 @@ Do not add retries, skips, longer timeouts or arbitrary waits to hide failures.
 
 ## Isolation
 
-- Each test starts its own server on a random loopback port.
+- Each pytest worker starts one server on a random loopback port. Before each
+  test, the test setup empties its database and adds a new Home room. A test
+  that stops or restarts the server, or needs an unused server, gets its own
+  with `@pytest.mark.own_server`.
 - The database, storage, logs, screenshots and traces live in pytest's temp
   folder. `.env` is ignored and test-only secrets are used. Real databases are
   never touched.

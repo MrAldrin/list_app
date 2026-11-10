@@ -3,8 +3,11 @@
 import fcntl
 import os
 import shutil
+import sqlite3
 import subprocess
 import time
+import uuid
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -22,20 +25,95 @@ class TestServer(AppServer):
     __test__ = False
     password = PASSWORD
 
+    def reset_data(self) -> None:
+        """Empty the database and add a new Home room, as after a first start.
 
-@pytest.fixture
-def server(tmp_path):
-    server = TestServer(tmp_path)
+        The new room has a new ID and slug, so nothing the server remembers
+        about an earlier test's room (live streams, failed sign-ins) fits it.
+        """
+        with closing(sqlite3.connect(self.database, timeout=10)) as db:
+            db.execute("PRAGMA foreign_keys = OFF")
+            if self._home_hash is None:
+                [(self._home_hash,)] = db.execute(
+                    "SELECT password_hash FROM rooms WHERE name = 'Home'"
+                )
+            tables = [
+                name
+                for (name,) in db.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                )
+                if name not in KEPT_TABLES
+            ]
+            # Twice: deleting lists and items writes rows to `deletions`.
+            for _ in range(2):
+                for table in tables:
+                    db.execute(f'DELETE FROM "{table}"')
+            db.execute(
+                "INSERT INTO rooms (name, slug, password_hash) VALUES (?, ?, ?)",
+                ("Home", f"home-{uuid.uuid4().hex[:6]}", self._home_hash),
+            )
+            db.commit()
+
+    _home_hash: str | None = None
+
+
+# Not test data: SQLite's ID counters and the item-name key version.
+KEPT_TABLES = frozenset({"sqlite_sequence", "item_name_key_metadata"})
+
+
+def _assert_no_traceback(log: str) -> None:
+    assert "Traceback (most recent call last)" not in log, log
+
+
+@pytest.fixture(scope="session")
+def shared_server(tmp_path_factory):
+    """One app server for all tests of this pytest-xdist worker."""
+    server = TestServer(tmp_path_factory.mktemp("shared-server"))
     try:
         server.start()
         yield server
     finally:
         server.stop()
-        log = server.log_path.read_text() if server.log_path.exists() else ""
-        assert "Traceback (most recent call last)" not in log, log
+
+
+@pytest.fixture
+def server(request, tmp_path):
+    """The app server with an empty database and a new Home room.
+
+    Tests share one server process per worker; starting one takes about a
+    second. A test that stops or restarts the server, or needs a server that
+    no earlier test has used, asks for its own with `@pytest.mark.own_server`.
+    """
+    if request.node.get_closest_marker("own_server") is not None:
+        server = TestServer(tmp_path)
+        try:
+            server.start()
+            yield server
+        finally:
+            server.stop()
+            _assert_no_traceback(
+                server.log_path.read_text() if server.log_path.exists() else ""
+            )
+        return
+    server = request.getfixturevalue("shared_server")
+    server.reset_data()
+    log_start = server.log_path.stat().st_size
+    yield server
+    running = server.process is not None and server.process.poll() is None
+    with server.log_path.open() as log:
+        log.seek(log_start)
+        new_log = log.read()
+    if not running:
+        # Keep the worker's later tests usable, then fail this one.
+        server.start()
+    assert running, "The test stopped the shared server; mark it own_server."
+    _assert_no_traceback(new_log)
 
 
 def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers", "own_server: start a separate app server for this test"
+    )
     config.addinivalue_line(
         "markers",
         "all_engines: also run on Firefox and WebKit; the engine can change the result",
