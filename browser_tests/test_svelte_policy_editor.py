@@ -9,12 +9,13 @@ from svelte_app import PHONE, add_item, create_list, sign_in
 from test_svelte_due_center import _set_date
 from test_svelte_private_reminders import open_settings
 
+# Paused until S3, so these run on Chromium only. When S3 enables them, choose
+# engines by the rule in docs/browser-testing.md (lr-347.9.2).
 pytestmark = pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
 
 
-@pytest.mark.all_engines
 def test_policy_inheritance_preview_and_retry(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -69,7 +70,6 @@ def test_policy_inheritance_preview_and_retry(svelte_server, open_session):
     page.context.set_offline(False)
 
 
-@pytest.mark.all_engines
 def test_fixed_identity_and_explicit_conflict_recovery(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -131,7 +131,6 @@ def test_fixed_identity_and_explicit_conflict_recovery(svelte_server, open_sessi
     expect(editor.get_by_label("Wall time")).to_have_value("14:00")
 
 
-@pytest.mark.all_engines
 def test_device_zone_updates_due_views_without_reload(svelte_server, open_session):
     page = open_session("owner", **PHONE, timezone_id="UTC")
     page.clock.install(time="2035-01-01T23:30:00Z")
@@ -169,7 +168,6 @@ def test_device_zone_updates_due_views_without_reload(svelte_server, open_sessio
     expect(page.locator(".row", has_text="milk")).to_contain_text("Today")
 
 
-@pytest.mark.all_engines
 def test_two_installations_and_share_link_do_not_leak_policy(
     svelte_server, open_session
 ):
@@ -223,7 +221,6 @@ def test_two_installations_and_share_link_do_not_leak_policy(
     ).to_be_visible()
 
 
-@pytest.mark.all_engines
 def test_room_policy_and_enrollment_mode_stay_in_sync(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -246,7 +243,6 @@ def test_room_policy_and_enrollment_mode_stay_in_sync(svelte_server, open_sessio
     expect(settings.get_by_label("Room reminder mode")).to_have_value("scheduled")
 
 
-@pytest.mark.all_engines
 def test_preview_renders_rule_and_summary_at_same_instant(svelte_server, open_session):
     page = open_session("owner", **PHONE, timezone_id="UTC")
     errors = []
