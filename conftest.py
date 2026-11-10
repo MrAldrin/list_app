@@ -44,8 +44,11 @@ TOOL_FILES = frozenset(
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--tier-engine",
-        choices=["chromium"],
-        help="Select Chromium parameter cases; retain engine-independent cases.",
+        choices=["chromium", "cross-engine"],
+        help=(
+            "chromium: Chromium cases and engine-independent cases. "
+            "cross-engine: Firefox and WebKit cases only."
+        ),
     )
 
 
@@ -78,10 +81,11 @@ def pytest_collection_modifyitems(
             item.add_marker(getattr(pytest.mark, label))
         params = getattr(getattr(item, "callspec", None), "params", {})
         engine = params.get("browser")
-        if (
-            config.getoption("--tier-engine")
-            and suite == "browser_tests"
-            and engine in {"firefox", "webkit"}
+        tier_engine = config.getoption("--tier-engine")
+        other_engine = engine in {"firefox", "webkit"}
+        if suite == "browser_tests" and (
+            (tier_engine == "chromium" and other_engine)
+            or (tier_engine == "cross-engine" and not other_engine)
         ):
             deselected.append(item)
         else:

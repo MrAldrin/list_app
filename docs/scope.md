@@ -21,7 +21,7 @@ Ship and fix forward.
   Do not add extra safety steps, rehearsals or staging.
 - Deploy evidence is `uv run pytest -q`, frontend lint, type and Vitest checks,
   relevant tests selected with the change selector or test tiers, and the small
-  browser smoke set on Chromium, Firefox and WebKit. Run the Android emulator
+  browser smoke set on Chromium. Run the Android emulator
   suite when relevant. The full browser suite is a separate, non-blocking
   nightly check; see [browser testing](browser-testing.md#test-tiers).
 - Keep manual checks to a minimum. Do not ask the owner to test on a phone,

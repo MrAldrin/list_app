@@ -144,7 +144,9 @@ Before deploying:
 - [ ] Run relevant tests with `uv run python scripts/select_tests.py` and
   execute its printed commands, or choose matching tiers from the
   [browser-testing guide](browser-testing.md#test-tiers). Run
-  `uv run python scripts/run_test_tier.py smoke` on all three browser engines.
+  `uv run python scripts/run_test_tier.py smoke`. It runs on Chromium only.
+  Firefox and WebKit cases (`cross-engine` tier) are not part of the deploy
+  gate, so a fault that shows only in those engines can arrive after a deploy.
   A full-browser fallback from selection is feedback, not a deploy blocker.
 - [ ] Push with the [deploy backup script](#backup-before-deploying), not by
   hand. Its built-in checks run pytest and frontend checks, then it takes a
@@ -179,8 +181,8 @@ uv run python scripts/deploy_backup.py --backup-only      # backup, never push
 2. It runs its built-in checks first (format, lint, types, pytest, frontend
    lint, type check and Vitest). It does not run the change selector or smoke
    tier; complete those parts of the deploy gate above separately. `--browser`
-   opts into the full browser suite and a failure stops that script run, but the
-   full suite is not a deploy requirement. Any built-in check failure stops
+   opts into all browser tests on Chromium and a failure stops that script run,
+   but that run is not a deploy requirement. Any built-in check failure stops
    before backup. `--skip-checks` is for emergencies only.
 3. It wakes the app with a web request. A sleeping Railway app does not
    answer `railway ssh`. If ssh still reaches Railway's account service

@@ -11,6 +11,7 @@ BROWSER_LOCK = Path("/home/hsa/.local/state/night-loop/list_app/browser.lock")
 # Measured limits for this machine; see docs/browser-testing.md.
 MIXED_ENGINE_WORKERS = 4
 CHROMIUM_WORKERS = 6
+CHROMIUM = ["--tier-engine", "chromium"]
 
 
 def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]:
@@ -28,7 +29,7 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
         )
 
     def browser(selection: list[str], extra: list[str]) -> list[str]:
-        chromium_only = extra[:2] == ["--tier-engine", "chromium"]
+        chromium_only = "chromium" in extra
         workers = CHROMIUM_WORKERS if chromium_only else MIXED_ENGINE_WORKERS
         return [
             "flock",
@@ -49,7 +50,11 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
         case "fast":
             return [python(), frontend()]
         case "smoke":
-            return [browser(["browser_tests"], ["-m", "tier_smoke"])]
+            return [browser(["browser_tests"], ["-m", "tier_smoke", *CHROMIUM])]
+        case "browser":
+            return [browser(["browser_tests"], CHROMIUM)]
+        case "cross-engine":
+            return [browser(["browser_tests"], ["--tier-engine", "cross-engine"])]
         case "affected-browser":
             if not paths:
                 raise ValueError(
@@ -59,7 +64,7 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
                 path = (ROOT / node.split("::", 1)[0]).resolve()
                 if not path.is_relative_to(ROOT / "browser_tests") or not path.exists():
                     raise ValueError(f"Not an existing browser test path: {node}")
-            return [browser(paths, ["--tier-engine", "chromium"])]
+            return [browser(paths, CHROMIUM)]
         case "full":
             return [
                 python(),
@@ -74,7 +79,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "tier",
-        choices=["python", "frontend", "fast", "smoke", "affected-browser", "full"],
+        choices=[
+            "python",
+            "frontend",
+            "fast",
+            "smoke",
+            "browser",
+            "cross-engine",
+            "affected-browser",
+            "full",
+        ],
     )
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--collect-only", action="store_true")

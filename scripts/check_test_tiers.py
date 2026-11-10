@@ -55,7 +55,7 @@ def main() -> None:
     assert all(
         command.count("-m") == (1 if "pytest" in command else 0) for command in full
     )
-    for tier in ["smoke", "affected-browser", "full"]:
+    for tier in ["smoke", "browser", "cross-engine", "affected-browser", "full"]:
         paths = ["browser_tests"] if tier == "affected-browser" else []
         for command in runner.commands(tier, paths, True):
             if "pytest" in command:
@@ -65,8 +65,13 @@ def main() -> None:
     # Chromium-only runs use more workers than mixed-engine runs.
     affected = runner.commands("affected-browser", ["browser_tests"], False)[0]
     assert affected[affected.index("-n") + 1] == str(runner.CHROMIUM_WORKERS)
-    for tier in ["smoke", "full"]:
-        mixed = runner.commands(tier, [], False)[-1]
+    for tier in ["smoke", "browser"]:
+        chromium = runner.commands(tier, [], False)[0]
+        assert chromium[chromium.index("--tier-engine") + 1] == "chromium"
+        assert chromium[chromium.index("-n") + 1] == str(runner.CHROMIUM_WORKERS)
+    cross = runner.commands("cross-engine", [], False)[0]
+    assert cross[cross.index("--tier-engine") + 1] == "cross-engine"
+    for mixed in [cross, runner.commands("full", [], False)[-1]]:
         assert mixed[mixed.index("-n") + 1] == str(runner.MIXED_ENGINE_WORKERS)
     for paths in [
         [],
@@ -116,6 +121,18 @@ def main() -> None:
     assert all("tier_full" in i.marks and "layer_browser" in i.marks for i in items)
     assert any(i.callspec.params == {} for i in items)
     assert any(i.callspec.params == {"browser": "future-engine"} for i in items)
+    config.getoption = lambda name: "cross-engine"
+    removed.clear()
+    items = [
+        Item("browser_tests", "test_unknown.py", engine)
+        for engine in ["chromium", "firefox", "webkit", None]
+    ]
+    labels.pytest_collection_modifyitems(config, items)
+    assert [i.callspec.params["browser"] for i in items] == ["firefox", "webkit"]
+    assert len(removed) == 2
+    python_item = [Item("tests", "test_api_basics.py")]
+    labels.pytest_collection_modifyitems(config, python_item)
+    assert len(python_item) == 1  # The engine option never cuts other suites.
     config.getoption = lambda name: None
     all_engines = [
         Item("browser_tests", "test_unknown.py", engine)

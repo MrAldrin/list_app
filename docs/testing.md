@@ -9,7 +9,7 @@ The [scope](scope.md#risk-level) owns release risk and acceptance rules.
 | --- | --- | --- |
 | Python (`tests/`) | API authorization, data rules, transactions, migrations, and server helpers against disposable data | It does not run the browser UI. |
 | Frontend (`frontend/src/**/*.test.ts`) | Client state, offline storage and queue rules, synchronization, and selected component behavior | Simulated browser APIs do not prove real engine behavior. |
-| Browser (`browser_tests/`) | Real UI journeys, separate member/visitor sessions, live updates, offline behavior, and stale access across Chromium, Firefox, and WebKit | Local HTTP is not production HTTPS or a real phone installation. |
+| Browser (`browser_tests/`) | Real UI journeys, separate member/visitor sessions, live updates, offline behavior, and stale access. Chromium runs every test; Firefox and WebKit run one journey for each [engine-dependent feature](browser-testing.md#engine-selection) | Local HTTP is not production HTTPS or a real phone installation. Firefox and WebKit run outside the deploy gate, so their findings can arrive after a deploy. |
 | Android (`android_tests/`) | Chrome and installed-app journeys on the dedicated emulator | It does not establish iPhone behavior. Run serially. |
 
 ## Commands and isolation

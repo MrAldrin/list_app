@@ -81,7 +81,19 @@ CHECKS: list[tuple[str, list[str]]] = [
 ]
 BROWSER_CHECK = (
     "Browser tests",
-    ["uv", "run", "pytest", "browser_tests", "-q", "-n", "2"],
+    # Chromium only (owner decision, lr-347.9.2). Firefox and WebKit cases run
+    # with `scripts/run_test_tier.py cross-engine`, outside the deploy check.
+    [
+        "uv",
+        "run",
+        "pytest",
+        "browser_tests",
+        "-q",
+        "-n",
+        "6",
+        "--tier-engine",
+        "chromium",
+    ],
 )
 
 Runner = Callable[[list[str]], str]

@@ -77,7 +77,9 @@ replace the required checks in `AGENTS.md`.
 | `python` | All Python tests in `tests/` |
 | `frontend` | All Vitest tests |
 | `fast` | Python, then frontend; a feedback tier, not a per-test speed promise |
-| `smoke` | Four critical browser journeys on all existing engines |
+| `smoke` | Four critical browser journeys on Chromium |
+| `browser` | All browser tests on Chromium |
+| `cross-engine` | Only the Firefox and WebKit cases of the [all-engine tests](#engine-selection) |
 | `affected-browser browser_tests/test_svelte_items.py` | Explicit paths or node IDs, Chromium plus engine-independent cases |
 | `full` | All Python, frontend and desktop-browser tests, without selection filters |
 
@@ -110,7 +112,9 @@ labels all collected pytest cases, and `tier_smoke` labels these exact bodies:
 - `test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes`
 - `test_bell_counts_overdue_and_today_and_groups_the_panel`
 
-Smoke collection must include all four bodies on Chromium, Firefox and WebKit.
+Smoke collection must include all four bodies on Chromium. The smoke bodies
+also keep the all-engines marker, so `cross-engine` and `full` run them on
+Firefox and WebKit.
 Use `-m layer_api`, `layer_database`, `layer_service` or `layer_tool` to filter
 Python tests by the inventory's file layer. `layer_python`, `layer_browser` and
 `layer_android` identify suites. Frontend layers remain Vitest files, not pytest
