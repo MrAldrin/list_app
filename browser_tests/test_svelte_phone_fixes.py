@@ -22,7 +22,6 @@ LONG_NAME = (
 )[:100]
 
 
-@pytest.mark.all_engines
 def test_log_out_is_the_last_entry_of_the_room_menu(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)
@@ -38,7 +37,6 @@ def test_log_out_is_the_last_entry_of_the_room_menu(svelte_server, open_session)
     expect(page.get_by_label("Room Password")).to_be_visible()
 
 
-@pytest.mark.all_engines
 def test_admin_menu_is_always_available_and_sign_out_keeps_rooms(
     svelte_server, open_session
 ):

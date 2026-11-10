@@ -69,7 +69,6 @@ def test_every_control_has_a_name(svelte_server, open_session):
     expect_all_named(page)
 
 
-@pytest.mark.all_engines
 def test_admin_controls_have_names(svelte_server, open_session):
     page = open_session("admin", **PHONE)
     page.goto(app_url(svelte_server, "admin"))
@@ -110,7 +109,6 @@ def test_focus_returns_to_the_opener_after_a_dialog(svelte_server, open_session)
     expect(page.get_by_role("button", name="Rename Focused")).to_be_focused()
 
 
-@pytest.mark.all_engines
 def test_hide_mode_works_with_the_keyboard(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

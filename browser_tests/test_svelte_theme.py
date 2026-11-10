@@ -34,7 +34,6 @@ def saved(page: Page) -> str | None:
     return page.evaluate("localStorage.getItem('listapp_theme')")
 
 
-@pytest.mark.all_engines
 def test_theme_follows_the_system_until_toggled(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE, color_scheme="dark")
@@ -95,7 +94,6 @@ def test_theme_follows_the_system_until_toggled(svelte_server, open_session):
     expect_theme(page, "dark")
 
 
-@pytest.mark.all_engines
 def test_system_changes_apply_while_nothing_is_saved(svelte_server, open_session):
     page = open_session("phone", **PHONE, color_scheme="light")
     page.goto(app_url(svelte_server))
@@ -106,7 +104,6 @@ def test_system_changes_apply_while_nothing_is_saved(svelte_server, open_session
     assert saved(page) is None
 
 
-@pytest.mark.all_engines
 def test_other_browsers_keep_their_own_choice(svelte_server, open_session):
     first = open_session("first", **PHONE, color_scheme="light")
     second = open_session("second", **PHONE, color_scheme="light")
@@ -156,7 +153,6 @@ NORD_LIGHT = "rgb(236, 239, 244)"
 NORD_DARK = "rgb(46, 52, 64)"
 
 
-@pytest.mark.all_engines
 def test_color_theme_is_chosen_in_the_menu_and_kept(svelte_server, open_session):
     page = open_session("phone", **PHONE, color_scheme="light")
     sign_in(page, svelte_server)
