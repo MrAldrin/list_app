@@ -144,8 +144,11 @@ API_PREFIX = "/api/v1/"
 API_QUIET_SECONDS = 0.3
 
 
-def track_api_requests(page: Page) -> None:
+def track_api_requests(page: Page, lost: list[str] | None = None) -> None:
     """Remember which API requests of the page have not answered yet.
+
+    `lost` collects each request that failed or that a page load cancelled. A
+    teardown error shows the list, so a cancelled request has a name.
 
     A live stream counts as answered when its response starts.
 
@@ -176,6 +179,11 @@ def track_api_requests(page: Page) -> None:
         nonlocal leaving
         if leaving and frame == page.main_frame:
             leaving = False
+            if lost is not None:
+                lost.extend(
+                    f"{r.method} {r.url} (open when the page loaded {frame.url})"
+                    for r in pending
+                )
             pending.clear()
             touch()
 
@@ -188,7 +196,13 @@ def track_api_requests(page: Page) -> None:
     page.on("framenavigated", navigated)
     page.on("response", lambda response: ended(response.request))
     page.on("requestfinished", ended)
-    page.on("requestfailed", ended)
+
+    def failed(request):
+        if lost is not None and API_PREFIX in request.url:
+            lost.append(f"{request.method} {request.url} ({request.failure})")
+        ended(request)
+
+    page.on("requestfailed", failed)
 
 
 def wait_for_api_idle(page: Page, timeout_ms: int = 5_000) -> None:
@@ -231,6 +245,7 @@ class BrowserSessions:
         self.contexts = []
         self.profiles = []
         self.errors = []
+        self.lost_requests: list[str] = []
 
     def new_page(self, role: str, **options) -> Page:
         """Open a page in a new context: its own cookies, storage and session."""
@@ -257,7 +272,7 @@ class BrowserSessions:
         context.tracing.start(screenshots=True, snapshots=True, sources=True)
         # Persistent contexts already have one blank tab; do not leave a keeper.
         page = context.pages[0] if context.pages else context.new_page()
-        track_api_requests(page)
+        track_api_requests(page, self.lost_requests)
         return page
 
     def record_error(self, error) -> None:
@@ -303,7 +318,12 @@ class BrowserSessions:
                 cleanup_errors.append(exc)
         if self.errors:
             cleanup_errors.append(
-                AssertionError("Unhandled browser errors:\n" + "\n".join(self.errors))
+                AssertionError(
+                    "Unhandled browser errors:\n"
+                    + "\n".join(self.errors)
+                    + "\nAPI requests that failed or that a page load cancelled:\n"
+                    + "\n".join(self.lost_requests[-20:])
+                )
             )
         if cleanup_errors:
             raise ExceptionGroup(

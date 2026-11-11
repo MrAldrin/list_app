@@ -57,6 +57,10 @@ def test_start_page_login_and_remembered_room(svelte_server, open_session):
     ):
         page.get_by_role("button", name="Log out").click()
     expect(page.get_by_label("Room Password")).to_be_visible()
+    # The answer's first bytes are not the end of the request: the reload came
+    # 4 ms after them. (Chromium reports no "requestfinished" for this request
+    # through the service worker, so the test cannot wait for that event.)
+    wait_for_api_idle(page)
     page.reload()
     expect(page.get_by_label("Room Password")).to_be_visible()
 
