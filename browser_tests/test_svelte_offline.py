@@ -14,6 +14,7 @@ from svelte_app import (
     room_app_url,
     share_link,
     sign_in,
+    wait_for_stored_changes,
     wait_until,
 )
 
@@ -365,6 +366,7 @@ def test_offline_edits_survive_a_reload_and_reach_the_server(
     expect(page.get_by_text("2 changes waiting to be sent.")).to_be_visible()
 
     # A reload while still offline keeps both changes on the phone.
+    wait_for_stored_changes(page, 2)
     page.reload()
     expect(page.get_by_text("Offline — 2 changes waiting to be sent.")).to_be_visible()
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])

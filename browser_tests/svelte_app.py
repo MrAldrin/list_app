@@ -192,6 +192,39 @@ def view_offline(page: Page, url: str) -> None:
     expect(page.get_by_role("button", name="Add")).to_be_enabled()
 
 
+def wait_for_stored_changes(page: Page, count: int) -> None:
+    """Wait until the phone's storage holds `count` waiting changes.
+
+    The notice counts a change at once; the write to IndexedDB ends about
+    15 ms later. A reload inside that gap cancels the write. A person cannot
+    reload that fast, but a test can, so it waits here before it reloads.
+    """
+    page.evaluate(
+        """async (count) => {
+            const db = await new Promise((resolve, reject) => {
+                const request = indexedDB.open('listr-queue', 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            let stored = 0;
+            for (let attempt = 0; attempt < 500; attempt += 1) {
+                const records = await new Promise((resolve, reject) => {
+                    const request = db.transaction('queue').objectStore('queue').getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                stored = records.reduce((sum, record) => sum + record.entries.length, 0);
+                if (stored === count) break;
+                await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+            db.close();
+            if (stored !== count)
+                throw new Error(`storage holds ${stored} waiting changes, not ${count}`);
+        }""",
+        count,
+    )
+
+
 def list_links(page: Page):
     return page.locator("main li a")
 

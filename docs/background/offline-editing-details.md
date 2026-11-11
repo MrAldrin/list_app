@@ -63,6 +63,9 @@ the Not saved list.
   the user's choice after sign-out). `sent` is set before the request goes out,
   so after a reload an op may be shown as uncertain. Not-saved rejections are
   stored in the same room-or-share record.
+- The notice counts a change at once. The write to IndexedDB ends about 15 ms
+  later (measured on Chromium). A page that closes inside that gap loses the
+  change. This is accepted: a person cannot tap and reload that fast.
 - Without IndexedDB, or after a storage failure, entries live in memory and are
   lost on reload. The page asks the browser for persistent storage once.
 - Web Locks let one tab send a room's queue at a time. Without Web Locks, the
