@@ -9,6 +9,7 @@ from svelte_app import (
     add_item,
     add_list_tag,
     create_list,
+    dismiss_toasts,
     item_names,
     list_links,
     room_app_url,
@@ -78,6 +79,7 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
         )
     ):
         page.get_by_role("checkbox", name="milk").check()
+    dismiss_toasts(page)
     with page.expect_response(
         lambda response: (
             response.request.method == "POST" and response.url.endswith("/ops")
@@ -322,6 +324,7 @@ def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
     for _ in range(2):
         page.get_by_role("link", name="Back to room").click()
         expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+        dismiss_toasts(page)
         list_links(page).filter(has_text="Groceries").click()
         expect(item_names(page)).to_have_text(["milk"])
         # Kept: the recorder covers the whole page life, so this window only

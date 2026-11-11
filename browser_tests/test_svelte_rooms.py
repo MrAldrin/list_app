@@ -8,6 +8,7 @@ from svelte_app import (
     PHONE,
     app_url,
     create_list,
+    dismiss_toasts,
     list_links,
     room_app_url,
     sign_in,
@@ -85,6 +86,7 @@ def test_room_page_creates_renames_and_deletes_lists(svelte_server, open_session
     expect(list_links(page)).to_have_text(["apples", "Groceries"])
 
     # Rename: a duplicate is refused and the dialog stays open.
+    dismiss_toasts(page)
     page.get_by_role("button", name="Rename apples").click()
     page.get_by_label("List Name").fill("groceries")
     page.get_by_label("List Name").press("Enter")
@@ -95,6 +97,7 @@ def test_room_page_creates_renames_and_deletes_lists(svelte_server, open_session
     expect(list_links(page)).to_have_text(["Bakery", "Groceries"])
 
     # Delete asks first; Cancel keeps the list.
+    dismiss_toasts(page)
     page.get_by_role("button", name="Delete Bakery").click()
     expect(page.get_by_text("Delete 'Bakery' and its 0 items?")).to_be_visible()
     page.get_by_role("button", name="Cancel").click()

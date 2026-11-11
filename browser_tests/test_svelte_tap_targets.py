@@ -7,7 +7,14 @@ that another control covers counts less.
 
 import pytest
 from playwright.sync_api import Locator, expect
-from svelte_app import PHONE, add_item, add_list_tag, create_list, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    add_list_tag,
+    create_list,
+    dismiss_toasts,
+    sign_in,
+)
 
 TOUCH = 44
 
@@ -49,6 +56,8 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     for tag in ("Lidl", "Market"):
         add_list_tag(page, tag)
     page.get_by_role("button", name="Lidl tag for milk").click()
+    dismiss_toasts(page)
+    dismiss_toasts(page)
     page.get_by_role("switch", name="Show quantities").click()
     page.get_by_role("switch", name="Hide checked-off items").click()
     page.locator(".modes label", has_text="After X days").click()

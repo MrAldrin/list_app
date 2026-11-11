@@ -12,6 +12,7 @@ from svelte_app import (
     admin_sign_in,
     app_url,
     create_list,
+    dismiss_toasts,
     sign_in,
 )
 
@@ -59,6 +60,7 @@ def test_every_control_has_a_name(svelte_server, open_session):
     add_item(page, "milk")
     add_list_tag(page, "Shop")
     expect(page.get_by_role("button", name="Shop tag for milk")).to_be_visible()
+    dismiss_toasts(page)
     page.get_by_role("switch", name="Show quantities").check()
     page.get_by_role("switch", name="Hide checked-off items").check()
     page.get_by_text("Keep last X").click()

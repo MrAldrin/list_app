@@ -16,6 +16,7 @@ from svelte_app import (
     api_sign_in,
     app_url,
     create_list,
+    dismiss_toasts,
     item_names,
     member_with_list,
     open_list,
@@ -45,6 +46,7 @@ def _days(offset: int) -> str:
 
 
 def _set_date(page, name: str, day: str) -> None:
+    dismiss_toasts(page)
     page.get_by_role("button", name=re.compile(f"^{name}")).click()
     dialog = page.get_by_role("dialog")
     dialog.get_by_label("Date").fill(day)

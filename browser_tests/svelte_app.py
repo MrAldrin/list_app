@@ -112,6 +112,24 @@ def add_item(page: Page, name: str) -> None:
     expect(field).to_have_value("")
 
 
+def dismiss_toasts(page: Page) -> None:
+    """Close every toast on the page, as a user does with its Dismiss button.
+
+    A toast lies over the top of the page for about 4 s. A tap on a control
+    below it waits that long. Call this before such a tap, and only after the
+    test has checked the toasts it wants to see. Not inside `add_item`: many
+    tests check the toast of an add.
+    """
+    page.evaluate(
+        """() => {
+            for (const button of document.querySelectorAll(
+                ".toasts button[aria-label='Dismiss']"
+            )) button.click();
+        }"""
+    )
+    expect(page.locator(".toasts .toast")).to_have_count(0)
+
+
 def item_names(page: Page):
     return page.locator("ul.items > li .name")
 

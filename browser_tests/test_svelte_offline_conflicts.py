@@ -11,6 +11,7 @@ from svelte_app import (
     SLOW,
     add_item,
     api_sign_in,
+    dismiss_toasts,
     go_online,
     item_names,
     member_with_list,
@@ -215,6 +216,7 @@ def test_unsent_marks_and_connection_hints_while_offline(svelte_server, open_ses
         item_row(phone, "bread").get_by_role("img", name="Not sent yet")
     ).to_have_count(0)
 
+    dismiss_toasts(phone)
     phone.get_by_role("button", name="List menu").click()
     expect(phone.get_by_text("Needs a connection")).to_be_visible()
     described = phone.get_by_role("button", name="Share List").get_attribute(
@@ -293,6 +295,7 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
         phone.get_by_text("1 change is held in this room's queue on this device.")
     ).to_be_visible(**SLOW)
     assert server.query("SELECT done FROM items WHERE name = 'milk'") == [(0,)]
+    dismiss_toasts(phone)
     phone.get_by_role("button", name="Review").click()
     dialog = phone.get_by_role("dialog")
     expect(dialog.get_by_text("Changes held after sign-out")).to_be_visible()

@@ -12,6 +12,7 @@ from svelte_app import (
     api_seed,
     api_sign_in,
     create_list,
+    dismiss_toasts,
     item_names,
     open_list,
     sign_in,
@@ -33,6 +34,7 @@ def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session
     field.fill("milk")
     field.press("Enter")
     expect(page.get_by_text("Added milk")).to_be_visible()
+    dismiss_toasts(page)
     page.get_by_role("checkbox", name="milk").check()
 
     field.fill("mil")
@@ -59,6 +61,7 @@ def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session
     expect(page.get_by_role("checkbox", name="milk")).not_to_be_checked()
 
     # A touch tap on an option selects it too, without moving focus off the field.
+    dismiss_toasts(page)
     page.get_by_role("checkbox", name="milk").check()
     field.fill("ilk")
     option.tap()
@@ -85,6 +88,7 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     with page.expect_response(saved_op):
         field.press("Enter")
     expect(page.get_by_text("Restored milk!")).to_be_visible()
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         checkbox.check()
     assert server.query("SELECT done, add_count FROM items") == [(1, 2)]
@@ -107,6 +111,7 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     expect(usual).to_have_count(0)
 
     # With the checked item back on the list, a touch tap restores it too.
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         checkbox.check()
     field.focus()
@@ -117,6 +122,7 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     expect(usual).to_have_count(0)
 
     # Escape closes it; typing shows the normal suggestions instead.
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         checkbox.check()
     field.focus()
@@ -292,6 +298,7 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(item_names(page)).to_have_count(3)
 
     # Check off: the item moves below the open items; uncheck moves it back.
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()
     expect(item_names(page)).to_have_text(["bread", "Milk", "apples"])
@@ -301,6 +308,7 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     # Each check and uncheck names the item in a toast with Undo.
     expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
     expect(page.get_by_text("Unchecked apples")).to_be_visible()
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="bread").check()
     page.locator(".toast", has_text="Checked bread").get_by_role(
@@ -310,6 +318,7 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["apples", "bread", "Milk"])
 
     # Adding a checked-off item restores it (here through a suggestion).
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()
     expect(page.get_by_role("checkbox", name="apples")).to_be_checked()
@@ -348,6 +357,7 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
 
     # Quantity: shown from Options; "Less" is disabled at 1.
     page.get_by_role("button", name="Options").click()
+    dismiss_toasts(page)
     page.get_by_role("switch", name="Show quantities").check()
     quantity = page.get_by_role("group", name="Quantity of Milk")
     page.get_by_role("button", name="More Milk").click()
@@ -397,6 +407,7 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
 
     # Without the stepper, a quantity of 2 or more shows as "x3" for everyone.
     show_quantities = page.get_by_role("switch", name="Show quantities")
+    dismiss_toasts(page)
     show_quantities.uncheck()
     expect(page.get_by_role("group", name="Quantity of Oat Milk")).to_be_hidden()
     expect(page.get_by_role("button", name=re.compile("^Oat Milk"))).to_contain_text(
@@ -507,6 +518,7 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     market = chips.get_by_role("button", name="Market", exact=True)
     bakery = chips.get_by_role("button", name="Bakery", exact=True)
     no_match = page.get_by_text("No items match all selected tags.")
+    dismiss_toasts(page)
     lidl.click()
     expect(lidl).to_have_attribute("aria-pressed", "true")
     expect(item_names(page)).to_have_text(["eggs", "milk"])
@@ -563,6 +575,7 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     expect(page.get_by_role("checkbox", name="apples")).to_be_checked()
     # The switch updates the screen at once and saves in the background.
     # Wait for the save before reloading, or the reload can cancel it.
+    dismiss_toasts(page)
     with page.expect_response(saved_op):
         hide.check()
     expect(page.get_by_role("radio", name="All")).to_be_checked()
@@ -630,6 +643,7 @@ def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
     chips = page.locator("ul.chips")
     clear = chips.get_by_role("button", name="Clear", exact=True)
     expect(clear).to_have_count(0)
+    dismiss_toasts(page)
     chips.get_by_role("button", name="Lidl", exact=True).click()
     expect(item_names(page)).to_have_text(["milk"])
     clear.click()

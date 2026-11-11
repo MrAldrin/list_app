@@ -12,6 +12,7 @@ from svelte_app import (
     api_seed,
     api_sign_in,
     create_list,
+    dismiss_toasts,
     hold_live_updates,
     item_names,
     open_list,
@@ -69,9 +70,11 @@ def test_suggestion_highlight_tracks_live_item_name(svelte_server, open_session)
     expect(alpha).to_have_attribute("aria-selected", "true")
 
     # A live suggestion sorted ahead of alpha must not take its selection.
+    dismiss_toasts(phone_b)
     phone_b.get_by_role("checkbox", name="alpha").check()
     expect(phone_a.get_by_role("checkbox", name="alpha")).to_be_checked()
     add_item(phone_b, "aardvark")
+    dismiss_toasts(phone_b)
     phone_b.get_by_role("checkbox", name="aardvark").check()
     aardvark = phone_a.get_by_role("option", name="aardvark")
     expect(aardvark).to_be_visible()
@@ -208,6 +211,7 @@ def test_tag_deleted_elsewhere_stops_filtering(svelte_server, open_session):
 
     # Phone A filters by the tag.
     chips = phone_a.get_by_role("list", name="Tags")
+    dismiss_toasts(phone_a)
     chips.get_by_role("button", name="Lidl", exact=True).click()
     expect(item_names(phone_a)).to_have_text(["milk"])
 

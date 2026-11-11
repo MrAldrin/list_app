@@ -3,7 +3,7 @@
 import re
 
 from playwright.sync_api import expect
-from svelte_app import PHONE, add_item, create_list, sign_in
+from svelte_app import PHONE, add_item, create_list, dismiss_toasts, sign_in
 from test_svelte_items import saved_op
 
 
@@ -17,6 +17,7 @@ def test_item_dialog_counts_adds_and_unchecks(svelte_server, open_session):
     dialog = page.get_by_role("dialog")
 
     # A new item was added once. The line is not on the list row.
+    dismiss_toasts(page)
     milk.click()
     expect(dialog.get_by_text("Added once")).to_be_visible()
     expect(
@@ -29,6 +30,7 @@ def test_item_dialog_counts_adds_and_unchecks(svelte_server, open_session):
     # Checking is not an add: the count stays.
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="milk").check()
+    dismiss_toasts(page)
     milk.click()
     expect(dialog.get_by_text("Added once")).to_be_visible()
     dialog.get_by_role("button", name="Cancel").click()
@@ -36,5 +38,6 @@ def test_item_dialog_counts_adds_and_unchecks(svelte_server, open_session):
     # Unchecking is an add: the dialog now says twice.
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="milk").uncheck()
+    dismiss_toasts(page)
     milk.click()
     expect(dialog.get_by_text("Added 2 times")).to_be_visible()

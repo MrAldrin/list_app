@@ -15,6 +15,7 @@ from svelte_app import (
     add_item,
     api_seed,
     api_sign_in,
+    dismiss_toasts,
     open_list,
 )
 from test_svelte_share import share_link, without_share_sheet
@@ -128,6 +129,7 @@ def test_hide_done_modes_history_and_shared_updates(svelte_server, open_session)
 
     # Off shows everything; on again starts at "All" and keeps the numbers.
     visitor_switch = visitor.get_by_role("switch", name="Hide checked-off items")
+    dismiss_toasts(visitor)
     with visitor.expect_response(SAVED):
         visitor_switch.uncheck()
     expect(milk(visitor)).to_be_visible()
@@ -153,6 +155,7 @@ def test_hidden_count_line_under_the_list(svelte_server, open_session):
     )
     for name in ["milk", "eggs", "bread"]:
         add_item(member, name)
+    dismiss_toasts(member)
     milk(member).check()
     member.get_by_role("checkbox", name="eggs").check()
 

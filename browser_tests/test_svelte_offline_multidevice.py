@@ -19,6 +19,7 @@ from svelte_app import (
     add_list_tag,
     api_sign_in,
     create_list,
+    dismiss_toasts,
     go_offline,
     go_online,
     item_names,
@@ -410,6 +411,7 @@ def test_waiting_change_survives_a_reload_onto_a_new_version(
 
     page.route(API_ROUTES, answer_with(OTHER_VERSION))
     page.route(OPS, busy_new_server)
+    dismiss_toasts(page)
     page.get_by_role("checkbox", name="milk").check()
     notice = page.get_by_role("alert").filter(has_text="A new version is available")
     expect(notice).to_contain_text("1 change is saved on this phone")
