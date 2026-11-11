@@ -57,7 +57,6 @@ def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
         add_list_tag(page, tag)
     page.get_by_role("button", name="Lidl tag for milk").click()
     dismiss_toasts(page)
-    dismiss_toasts(page)
     page.get_by_role("switch", name="Show quantities").click()
     page.get_by_role("switch", name="Hide checked-off items").click()
     page.locator(".modes label", has_text="After X days").click()
