@@ -8,6 +8,9 @@ import type { Feed, Item, List, OpResponse, Room, SentOp } from './types';
 /** Deadline for polling waits. Long enough for a loaded machine, short enough to fail fast. */
 export const WAIT_TIMEOUT_MS = 5_000;
 
+/** Poll often enough to observe timer-driven IndexedDB work without a 50 ms gap. */
+const WAIT_INTERVAL_MS = 2;
+
 export const ROOM: Room = { slug: 'home-ab12cd', name: 'Home' };
 
 let counter = 0;
@@ -226,12 +229,9 @@ export function fakeRoomApi<T extends Partial<RoomApi>>(overrides: T = {} as T) 
 
 /** Polls until `check` is true. IndexedDB runs on timers, so tests wait for a state. */
 export async function waitUntil(check: () => boolean, label: string): Promise<void> {
-	await vi.waitFor(
-		() => {
-			if (!check()) throw new Error(`Timed out waiting for ${label}`);
-		},
-		{ timeout: WAIT_TIMEOUT_MS }
-	);
+	await waitFor(() => {
+		if (!check()) throw new Error(`Timed out waiting for ${label}`);
+	});
 }
 
 /**
@@ -239,5 +239,5 @@ export async function waitUntil(check: () => boolean, label: string): Promise<vo
  * of 1 s is too short when the suite runs in parallel with other work.
  */
 export function waitFor<T>(callback: () => T | Promise<T>): Promise<T> {
-	return vi.waitFor(callback, { timeout: WAIT_TIMEOUT_MS });
+	return vi.waitFor(callback, { timeout: WAIT_TIMEOUT_MS, interval: WAIT_INTERVAL_MS });
 }

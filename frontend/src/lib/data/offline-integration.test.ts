@@ -20,7 +20,8 @@ import {
 	ROOM,
 	settle,
 	type Deferred,
-	waitFor
+	waitFor,
+	WAIT_TIMEOUT_MS
 } from './test-helpers';
 import { ApiError, NetworkError } from './types';
 import type { Feed, Item, OpResponse, SentOp } from './types';
@@ -2224,7 +2225,12 @@ describe('not-saved changes (6.3)', () => {
 		const storage = snapshots();
 		const online = fakeApi();
 		const first = handle(online, storage);
-		await waitFor(() => expect(first.store.canWrite).toBe(true));
+		// Keep this test's original 50 ms polling: canWrite and waitingCount do not
+		// prove that the saved view has finished writing or loading (lr-347.10.1).
+		await vi.waitFor(() => expect(first.store.canWrite).toBe(true), {
+			timeout: WAIT_TIMEOUT_MS,
+			interval: 50
+		});
 		first.release();
 		const queue = new MemoryQueueStorage();
 		const sent: SentOp = {
@@ -2244,7 +2250,10 @@ describe('not-saved changes (6.3)', () => {
 			queueStorage: queue,
 			connectivity: connectivity.target
 		});
-		await waitFor(() => expect(offline.waitingCount).toBe(1));
+		await vi.waitFor(() => expect(offline.waitingCount).toBe(1), {
+			timeout: WAIT_TIMEOUT_MS,
+			interval: 50
+		});
 		await settle();
 		// The server may already have the +1: the saved quantity is shown, not one more.
 		expect(offline.store.item(item.uid)?.quantity).toBe(item.quantity);
