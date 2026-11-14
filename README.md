@@ -23,8 +23,9 @@ links the agenda. Native Ready does not approve work.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and use
 Python 3.13 or newer. For the frontend, use Node 24 via
-[fnm](https://github.com/Schniz/fnm), plus Bun for package installation.
-Use the Bun version and setup in the [frontend guide](frontend/README.md#setup).
+[fnm](https://github.com/Schniz/fnm), plus Bun for package installation and
+Vite builds. Use the Bun version and setup in the
+[frontend guide](frontend/README.md#setup).
 From the repository root:
 
 ```bash

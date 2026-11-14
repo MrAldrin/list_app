@@ -1,6 +1,6 @@
 # Production image for Railway: builds the Svelte frontend, then runs the app.
 
-# Pinned package-manager binary; Node remains the build and test runtime.
+# Pinned package manager and Vite runtime; Node handles other tool shebangs.
 FROM docker.io/oven/bun:1.4.4 AS bun
 
 # Build frontend/build/ (Node and Bun are not needed at runtime).
@@ -10,6 +10,7 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY frontend/ ./
+# The build script forces Vite onto Bun rather than its Node shebang.
 RUN bun run build
 
 # Python app. uv installs the locked dependencies.

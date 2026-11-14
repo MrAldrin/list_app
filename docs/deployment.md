@@ -58,8 +58,10 @@ binary; the two working stages are:
 
 1. Node 24 plus the pinned Bun binary from `oven/bun:1.4.4`:
    `bun install --frozen-lockfile && bun run build` in `frontend/` writes
-   `frontend/build/`. Bun installs packages; Node runs Vite. Only the build
-   folder is kept. Local tool setup and advisory checks are in the
+   `frontend/build/`. Bun installs packages and runs Vite through the build
+   script (`bun --bun run vite build`). Node remains for other tool shebangs;
+   local Vitest checks stay on Node. Only the build folder is kept.
+   Local tool setup and advisory checks are in the
    [frontend guide](../frontend/README.md#setup).
 2. Python 3.13 with `uv sync --locked --no-dev`, the `src/` code and the build.
    It starts `python src/main.py`. There is no `Procfile`.

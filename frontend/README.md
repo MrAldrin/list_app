@@ -8,8 +8,8 @@ Python serves the built files at `/`. The stack is in
 
 ## Setup
 
-Use Node 24 via [fnm](https://github.com/Schniz/fnm) and **Bun 1.4.4** as the
-package manager. Install that Bun version with the
+Use Node 24 via [fnm](https://github.com/Schniz/fnm) and **Bun 1.4.4** for
+package installation and Vite builds. Install that Bun version with the
 [official installer](https://bun.sh/docs/installation). `packageManager` in
 `package.json` records the version; it does not install or enforce it.
 Do not install project packages globally. Run every command from this folder.
@@ -26,8 +26,9 @@ Bun runs the root `prepare` script; dependency install scripts follow Bun's
 [trust rules](https://bun.sh/docs/pm/lifecycle). Do not trust more packages
 without checking why their script is needed.
 
-Builds and Vitest tests explicitly use Node. Other tool CLIs also use their
-Node shebangs. Do not use `--bun` or `bun test`: run **`bun run test`**.
+The build script explicitly runs Vite on Bun. Vitest stays on Node; other tool
+CLIs also use their Node shebangs. Do not run Vitest with `--bun` or use
+`bun test`: run **`bun run test`**.
 
 ### Dependency advisories
 
@@ -55,8 +56,9 @@ too.
 bun run build
 ```
 
-This writes static files to `build/` (ignored by version control). Restart the
-Python server once after the first build; it then serves the app at
+This runs `bun --bun run vite build` and writes static files to `build/`
+(ignored by version control). The `--bun` flag overrides Vite's Node shebang.
+Restart the Python server once after the first build; it then serves the app at
 <http://localhost:8080/>. Later builds need no restart.
 
 ## Checks
