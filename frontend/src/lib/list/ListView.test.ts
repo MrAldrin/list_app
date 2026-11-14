@@ -9,10 +9,21 @@ import ListHarness from '#lib/test-support/ListHarness.svelte';
 import { readyRoom } from '#lib/test-support/room-fixture.ts';
 import { button, click, fill, rowNames, submit } from '#lib/test-support/dom.ts';
 import { toasts } from '#lib/ui/toasts.svelte.ts';
+import { MemoryQueueStorage } from '#lib/data/queue-storage.ts';
+import { HOLD_MS } from './hold-order.ts';
+import { readyShare } from '#lib/test-support/share-fixture.ts';
+
+const reminderSettings = vi.hoisted(() => ({ enabled: false }));
+vi.mock('#lib/reminders/personal-reminders.ts', () => ({
+	get PERSONAL_REMINDER_SETTINGS_ENABLED() {
+		return reminderSettings.enabled;
+	}
+}));
 
 afterEach(() => {
 	for (const toast of toasts.items) toasts.dismiss(toast.id);
 	localStorage.clear();
+	reminderSettings.enabled = false;
 });
 
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/list/test') } }));
@@ -363,6 +374,152 @@ it.each([
 		fixture.room.release();
 		target.remove();
 		localStorage.clear();
+	}
+});
+
+it('offline_unsent_mark_tracks_only_pending_row', async () => {
+	const list = makeList();
+	const milk = makeItem(list.uid);
+	const bread = makeItem(list.uid, { name: 'bread' });
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk, bread] }));
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const mark = (uid: string) =>
+		target.querySelector(`[data-item-uid="${uid}"] [aria-label="Not sent yet"]`);
+	try {
+		await fixture.offline();
+		flushSync();
+		expect(mark(milk.uid)).toBeNull();
+		expect(mark(bread.uid)).toBeNull();
+		(target.querySelector('input[aria-label="milk"]') as HTMLInputElement).click();
+		await waitFor(async () => expect(await fixture.queue.read()).toHaveLength(1));
+		flushSync();
+		expect(mark(milk.uid)).not.toBeNull();
+		expect(mark(bread.uid)).toBeNull();
+		expect(target.querySelectorAll('[aria-label="Not sent yet"]')).toHaveLength(1);
+		expect((target.querySelector('input[aria-label="milk"]') as HTMLInputElement).checked).toBe(
+			true
+		);
+		expect((target.querySelector('input[aria-label="bread"]') as HTMLInputElement).checked).toBe(
+			false
+		);
+		expect(fixture.api.sendOp).not.toHaveBeenCalled();
+		fixture.api.sendOp.mockImplementation(async (_slug, op) => applied(op, 2, { changed_seq: 2 }));
+		fixture.setFeed(
+			makeFeed({
+				seq: 2,
+				full: true,
+				lists: [list],
+				items: [
+					{ ...milk, done: true, completed_at: '2026-11-02T12:00:00Z', changed_seq: 2 },
+					bread
+				]
+			})
+		);
+		fixture.online();
+		await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+		flushSync();
+		expect(target.querySelectorAll('[aria-label="Not sent yet"]')).toHaveLength(0);
+		expect((target.querySelector('input[aria-label="milk"]') as HTMLInputElement).checked).toBe(
+			true
+		);
+		expect((target.querySelector('input[aria-label="bread"]') as HTMLInputElement).checked).toBe(
+			false
+		);
+		expect(fixture.room.store.notSaved).toEqual([]);
+		expect(await fixture.queue.read()).toEqual([]);
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it.each([false, true])(
+	'public share omits room menu and personal reminder text with settings enabled: %s',
+	async (enabled) => {
+		reminderSettings.enabled = enabled;
+		const list = makeList({ slug: '' });
+		const guest = await readyShare(
+			makeFeed({ full: true, room: null, lists: [list], items: [makeItem(list.uid)] })
+		);
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component = mount(ListView, {
+			target,
+			props: { room: guest.room, list, roomHref: null, canReset: false }
+		});
+		try {
+			flushSync();
+			expect(target.querySelector('h1')?.textContent).toBe('Groceries');
+			expect(target.querySelector('[aria-label="List menu"]')).not.toBeNull();
+			click(target, 'Options');
+			expect(target.querySelector('[aria-label="Room menu"]')).toBeNull();
+			expect(target.textContent).not.toContain('Personal list reminders');
+			expect(target.textContent).not.toContain('Personal reminders');
+			click(target, 'Due items: none due');
+			expect(target.querySelector('dialog')).not.toBeNull();
+			expect(target.querySelector('dialog')?.textContent).not.toMatch(
+				/reminder policy|Reminder settings/
+			);
+			expect(guest.room.store.room).toBeNull();
+		} finally {
+			await unmount(component);
+			guest.room.release();
+			target.remove();
+		}
+	}
+);
+
+it('extends hold until HOLD_MS after the last checkbox tap', async () => {
+	const list = makeList();
+	const items = ['apple', 'milk', 'zucchini'].map((name) => makeItem(list.uid, { name }));
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items }), {
+		queueStorage: new MemoryQueueStorage()
+	});
+	await fixture.offline();
+	const setDone = vi.spyOn(fixture.room, 'setDone');
+	const target = document.createElement('div');
+	document.body.append(target);
+	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const tick = async (name: string) => {
+		(target.querySelector(`input[aria-label="${name}"]`) as HTMLInputElement).click();
+		await setDone.mock.results.at(-1)!.value;
+		flushSync();
+		expect((target.querySelector(`input[aria-label="${name}"]`) as HTMLInputElement).checked).toBe(
+			true
+		);
+	};
+	try {
+		flushSync();
+		expect(rowNames(target)).toEqual(['apple', 'milk', 'zucchini']);
+		await tick('apple');
+		expect(fixture.room.store.item(items[0].uid)?.done).toBe(true);
+		expect(rowNames(target)).toEqual(['apple', 'milk', 'zucchini']);
+		const gap = Math.floor(HOLD_MS / 2);
+		await vi.advanceTimersByTimeAsync(gap);
+		await tick('milk');
+		expect(fixture.room.store.item(items[1].uid)?.done).toBe(true);
+		expect(rowNames(target)).toEqual(['apple', 'milk', 'zucchini']);
+		await vi.advanceTimersByTimeAsync(HOLD_MS - gap + 1);
+		flushSync();
+		// Past the first deadline, but still inside the second hold.
+		expect(rowNames(target)).toEqual(['apple', 'milk', 'zucchini']);
+		await vi.advanceTimersByTimeAsync(gap - 2);
+		flushSync();
+		expect(rowNames(target)).toEqual(['apple', 'milk', 'zucchini']);
+		await vi.advanceTimersByTimeAsync(1);
+		flushSync();
+		expect(rowNames(target)).toEqual(['zucchini', 'apple', 'milk']);
+		expect(fixture.api.sendOp).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		setDone.mockRestore();
+		vi.useRealTimers();
+		target.remove();
 	}
 });
 

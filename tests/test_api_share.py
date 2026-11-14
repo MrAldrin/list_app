@@ -352,6 +352,42 @@ def test_share_link_cannot_change_the_room_or_the_list_itself(shared, body):
     assert processed_ops_count() == before_ops
 
 
+def test_share_holder_removes_a_tag(shared: dict) -> None:
+    client = public_client()
+    list_uid, token = shared["list_uid"], shared["token"]
+    added = share_op(
+        client, token, {"type": "list.tag_add", "list_uid": list_uid, "tag": "produce"}
+    )
+    assert added["status"] == "applied"
+    tagged = share_op(
+        client,
+        token,
+        {
+            "type": "item.toggle_tag",
+            "list_uid": list_uid,
+            "item_uid": shared["item_uid"],
+            "tag": "produce",
+            "active": True,
+        },
+    )
+    assert tagged["status"] == "applied"
+
+    removed = share_op(
+        client,
+        token,
+        {"type": "list.tag_remove", "list_uid": list_uid, "tag": "produce"},
+    )
+
+    assert removed["status"] == "applied"
+    assert removed["seq"] > tagged["seq"]
+    feed = share_changes(client, token).json()
+    assert feed["room"] is None
+    assert feed["lists"][0]["tags"] == []
+    # Removing a list tag hides it from the list, not from the item's saved tags.
+    assert feed["items"][0]["tags"] == ["produce"]
+    assert client.cookies == {}
+
+
 def test_share_op_is_retry_safe(shared):
     client = public_client()
     body = {

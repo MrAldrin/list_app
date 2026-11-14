@@ -6,7 +6,16 @@ import { IDBFactory } from 'fake-indexeddb';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import PageShell from '#lib/room/PageShell.svelte';
-import { deferred, fakeRoomApi, FakeEventSource, makeFeed, ROOM, waitFor } from './test-helpers';
+import {
+	deferred,
+	fakeRoomApi,
+	FakeEventSource,
+	FakeVisibility,
+	makeFeed,
+	ROOM,
+	waitFor
+} from './test-helpers';
+import { MemoryQueueStorage } from './queue-storage';
 import { RoomHandle } from './index';
 import { ApiError } from './types';
 import { createSnapshotStore, type SnapshotStore } from './snapshot-store';
@@ -42,6 +51,87 @@ function renderRoomPage(room: RoomHandle) {
 	flushSync();
 	return { target, component };
 }
+
+it('shows the sign-out prompt before DELETE settles and retries a 503 only after remount', async () => {
+	const snapshots = createSnapshotStore({ indexedDB: new IDBFactory(), channel: null });
+	const identity = { kind: 'room', slug: ROOM.slug } as const;
+	let cookieValid = true;
+	const firstDelete = deferred<undefined>();
+	const api = fakeRoomApi();
+	api.whoAmI.mockImplementation(async () => {
+		if (!cookieValid) throw new ApiError(401, 'not_authenticated', 'Sign in.');
+		return ROOM;
+	});
+	api.changes.mockResolvedValue(makeFeed({ full: true }));
+	api.logout
+		.mockImplementationOnce(() => firstDelete.promise)
+		.mockImplementation(async () => {
+			cookieValid = false;
+		});
+	const visibility = new FakeVisibility();
+	const online = new EventTarget();
+	const fresh = () =>
+		new RoomHandle(ROOM.slug, {
+			api,
+			snapshotStore: snapshots,
+			sessionLocks: immediateSessionLocks(),
+			queueStorage: new MemoryQueueStorage(),
+			visibility: visibility as unknown as Document,
+			online,
+			createEventSource: (url) => new FakeEventSource(url)
+		});
+	const room = fresh();
+	let page = renderRoomPage(room);
+	let signingOut: ReturnType<RoomHandle['logout']> | undefined;
+	try {
+		await waitFor(() => expect(room.store.canWrite).toBe(true));
+		flushSync();
+		expect(page.target.textContent).toContain('Room contents');
+		signingOut = room.logout();
+		await waitFor(() => expect(api.logout).toHaveBeenCalledTimes(1));
+		flushSync();
+		expect(page.target.querySelector('#room-password')).not.toBeNull();
+		expect(page.target.textContent).not.toContain('Room contents');
+		expect(await api.whoAmI(ROOM.slug)).toEqual(ROOM);
+		expect(await snapshots.pendingServerLogouts()).toEqual({ ok: true, value: [identity] });
+
+		firstDelete.reject(new ApiError(503, 'unavailable', 'Server busy.'));
+		expect(await signingOut).toMatchObject({ ok: false, code: 'server_logout_pending' });
+		// Exercise resume and refresh entry points, then drain actual storage
+		// work. No sleep or retry loop can hide an extra same-tab DELETE.
+		visibility.set('hidden');
+		visibility.set('visible');
+		online.dispatchEvent(new Event('online'));
+		await room.store.refresh();
+		expect(await snapshots.pendingServerLogouts()).toEqual({ ok: true, value: [identity] });
+		expect(await api.whoAmI(ROOM.slug)).toEqual(ROOM);
+		expect(api.logout).toHaveBeenCalledTimes(1);
+		flushSync();
+		expect(page.target.querySelector('#room-password')).not.toBeNull();
+		expect(page.target.textContent).not.toContain('Room contents');
+		await unmount(page.component);
+		page.target.remove();
+
+		const reopened = fresh();
+		page = renderRoomPage(reopened);
+		await waitFor(() => expect(api.logout).toHaveBeenCalledTimes(2));
+		await waitFor(async () =>
+			expect(await snapshots.pendingServerLogouts()).toEqual({ ok: true, value: [] })
+		);
+		flushSync();
+		expect(page.target.querySelector('#room-password')).not.toBeNull();
+		expect(page.target.textContent).not.toContain('Room contents');
+		expect(reopened.store.canWrite).toBe(false);
+		expect(api.logout.mock.calls).toEqual([[ROOM.slug], [ROOM.slug]]);
+		await expect(api.whoAmI(ROOM.slug)).rejects.toMatchObject({ status: 401 });
+	} finally {
+		firstDelete.resolve(undefined);
+		await signingOut;
+		await unmount(page.component);
+		page.target.remove();
+		snapshots.close();
+	}
+});
 
 describe('initial room sign-in race', () => {
 	it.each(['precheck', 'login request'] as const)(

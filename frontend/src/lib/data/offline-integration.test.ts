@@ -2339,6 +2339,64 @@ describe('not-saved changes (6.3)', () => {
 	});
 });
 
+it('two_offline_same_state_ticks_settle_without_rejection', async () => {
+	const list = makeList();
+	const milk = makeItem(list.uid);
+	const initial = makeFeed({ full: true, lists: [list], items: [milk] });
+	const devices = [await readyRoom(initial), await readyRoom(initial)];
+	const sent: SentOp[] = [];
+	const completed_at = '2026-11-02T12:00:00Z';
+	try {
+		for (const device of devices) {
+			await device.offline();
+			expect(await device.room.setDone(milk, true)).toMatchObject({ ok: true });
+			await waitFor(async () => expect(await device.queue.read()).toHaveLength(1));
+			expect(device.room.store.item(milk.uid)?.done).toBe(true);
+			expect(device.room.store.isUnsent(`item:${milk.uid}`)).toBe(true);
+			expect(device.api.sendOp).not.toHaveBeenCalled();
+			device.api.sendOp.mockImplementation(async (_slug, op) => {
+				sent.push(op);
+				return applied(op, 2, { changed_seq: 2 });
+			});
+			device.setFeed(
+				makeFeed({
+					seq: 2,
+					full: true,
+					lists: [list],
+					items: [{ ...milk, done: true, completed_at, changed_seq: 2 }]
+				})
+			);
+		}
+		for (const device of devices) device.online();
+		await waitFor(() => expect(sent).toHaveLength(2));
+		expect(new Set(sent.map((op) => op.op_id)).size).toBe(2);
+		for (const op of sent)
+			expect(op).toEqual({
+				op_id: expect.any(String),
+				type: 'item.set_done',
+				list_uid: list.uid,
+				item_uid: milk.uid,
+				done: true,
+				base_seq: 1
+			});
+		for (const device of devices) {
+			await waitFor(() => expect(device.room.waitingCount).toBe(0));
+			expect(device.room.store.item(milk.uid)).toMatchObject({
+				done: true,
+				completed_at,
+				changed_seq: 2
+			});
+			expect(device.room.store.pendingOps).toEqual([]);
+			expect(device.room.store.notSaved).toEqual([]);
+			expect(device.room.store.isUnsent(`item:${milk.uid}`)).toBe(false);
+			expect(await device.queue.read()).toEqual([]);
+			expect(await device.queue.readNotSaved()).toEqual([]);
+		}
+	} finally {
+		for (const device of devices) device.room.release();
+	}
+});
+
 it.each([
 	['two_offline_quantity_deltas_reconcile_without_rejections', 'quantity'],
 	['offline_tag_clicks_send_wanted_state_on_both_devices', 'tag']
@@ -2516,6 +2574,61 @@ it('offline_edit_of_deleted_item_rolls_back_and_persists_rejection', async () =>
 				code: 'item_not_found',
 				text: rejection.text,
 				op: { type: 'item.edit', name: 'whole milk' }
+			}
+		]);
+		device.room.store.dismissNotSaved(rejection.id);
+		await waitFor(async () => expect(await device.queue.readNotSaved()).toEqual([]));
+		expect(device.room.store.notSaved).toEqual([]);
+	} finally {
+		device.room.release();
+	}
+});
+
+it('offline_tick_of_deleted_item_becomes_dismissible_not_saved', async () => {
+	const list = makeList();
+	const milk = makeItem(list.uid);
+	const bread = makeItem(list.uid, { name: 'bread' });
+	const device = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk, bread] }));
+	try {
+		await device.offline();
+		expect(await device.room.setDone(milk, true)).toMatchObject({ ok: true });
+		await waitFor(async () => expect(await device.queue.read()).toHaveLength(1));
+		expect(device.room.store.item(milk.uid)?.done).toBe(true);
+		expect(device.api.sendOp).not.toHaveBeenCalled();
+		device.api.sendOp.mockImplementation(async (_slug, op) => ({
+			op_id: op.op_id,
+			status: 'rejected',
+			code: 'item_not_found',
+			message: 'Item deleted',
+			seq: 2
+		}));
+		device.setFeed(makeFeed({ seq: 2, full: true, lists: [list], items: [bread] }));
+		device.online();
+		await waitFor(() => expect(device.room.store.notSaved).toHaveLength(1));
+		expect(device.api.sendOp.mock.calls[0][1]).toEqual({
+			op_id: expect.any(String),
+			type: 'item.set_done',
+			list_uid: list.uid,
+			item_uid: milk.uid,
+			done: true,
+			base_seq: 1
+		});
+		expect(device.room.store.item(milk.uid)).toBeUndefined();
+		expect(device.room.store.itemsOf(list.uid)).toEqual([bread]);
+		expect(device.room.store.pendingOps).toEqual([]);
+		expect(device.room.waitingCount).toBe(0);
+		const rejection = device.room.store.notSaved[0];
+		expect(rejection).toMatchObject({
+			code: 'item_not_found',
+			text: "Tick 'milk': it was deleted by someone else."
+		});
+		expect(await device.queue.read()).toEqual([]);
+		expect(await device.queue.readNotSaved()).toMatchObject([
+			{
+				key: rejection.key,
+				text: rejection.text,
+				code: 'item_not_found',
+				op: { type: 'item.set_done', done: true }
 			}
 		]);
 		device.room.store.dismissNotSaved(rejection.id);
