@@ -102,7 +102,8 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
         open_session("offline-root-no-data", **PHONE), server.url
     )
 
-    server.stop()
+    # Simulate a dropped server connection while the member still has a live stream.
+    server.stop(graceful=False)
     expect(page.get_by_text("Offline — changes are saved", exact=False)).to_be_visible()
     # The notice is the only connection message, and its spaces render.
     expect(

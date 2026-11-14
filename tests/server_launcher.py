@@ -110,10 +110,13 @@ class AppServer:
         except (OSError, HTTPException):
             return False
 
-    def stop(self) -> None:
-        """Terminate, wait, then kill if the server does not exit."""
+    def stop(self, *, graceful: bool = True) -> None:
+        """Stop the test server. Use graceful=False to simulate an abrupt outage."""
         if self.process and self.process.poll() is None:
-            self.process.terminate()
+            if graceful:
+                self.process.terminate()
+            else:
+                self.process.kill()
             try:
                 self.process.wait(timeout=STOP_TIMEOUT)
             except subprocess.TimeoutExpired:
