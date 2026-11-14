@@ -837,6 +837,272 @@ def test_sign_in_on_another_browser_does_not_resume_this_device(room, clock):
     )
 
 
+# --- Browser replacement recovery and replay contracts (BA.28) -----------------
+
+
+def test_resume_blank_summary_is_422_and_does_not_create_installation(
+    phone: tuple[str, TestClient],
+) -> None:
+    slug, client = phone
+    prefs = PREFS.format(slug=slug)
+    opted_out = client.patch(
+        prefs, json={"op_id": new_id(), "base_revision": 1, "opted_out": True}
+    )
+    assert opted_out.status_code == 200, opted_out.text
+    before = client.get(prefs).json()
+    device_before = db.execute("SELECT * FROM reminder_installations").fetchall()
+    enrollment_before = db.execute("SELECT * FROM reminder_enrollments").fetchall()
+    op_id = new_id()
+
+    response = client.post(
+        ENROLL.format(slug=slug),
+        json={
+            "op_id": op_id,
+            "base_revision": 2,
+            "mode": "daily_summary",
+            "summary_time": "",
+        },
+    )
+
+    assert_error(response, 422, "invalid_request")
+    assert "set-cookie" not in response.headers
+    assert client.get(prefs).json() == before
+    assert before["enrollment"]["state"] == "opted_out"
+    assert (
+        db.execute("SELECT * FROM reminder_installations").fetchall() == device_before
+    )
+    assert len(device_before) == 1
+    assert (
+        db.execute("SELECT * FROM reminder_enrollments").fetchall() == enrollment_before
+    )
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?", (op_id,)
+        ).fetchone()[0]
+        == 0
+    )
+
+
+@pytest.mark.parametrize("other_room", [False, True], ids=["resume", "second-room"])
+def test_expired_device_post_replay_cannot_create_replacement_until_explicit_fresh_enrollment(
+    phone: tuple[str, TestClient], clock: FakeClock, other_room: bool
+) -> None:
+    home_slug, client = phone
+    slug = _second_room(client) if other_room else home_slug
+    if not other_room:
+        response = client.patch(
+            PREFS.format(slug=slug),
+            json={"op_id": new_id(), "base_revision": 1, "opted_out": True},
+        )
+        assert response.status_code == 200, response.text
+    url = ENROLL.format(slug=slug)
+    body = {
+        "op_id": new_id(),
+        "base_revision": None if other_room else 2,
+        "mode": "daily_summary",
+        "summary_time": "12:34",
+    }
+    committed = client.post(url, json=body)
+    assert committed.status_code == 200, committed.text
+    assert db.execute("SELECT COUNT(*) FROM reminder_installations").fetchone()[0] == 1
+    old_cookie = _device_cookie_value(client)
+    clock.advance(days=366)
+    before = db.execute("SELECT * FROM reminder_installations").fetchall()
+    ops_before = db.execute("SELECT * FROM reminder_processed_ops").fetchall()
+
+    refused = client.post(url, json=body)
+
+    assert_error(refused, 422, "invalid_request")
+    assert "time zone is required" in refused.json()["error"]["message"]
+    assert "set-cookie" not in refused.headers
+    assert client.get(PREFS.format(slug=slug)).json() == {
+        "enrollment": {"state": "not_enrolled", "revision": None}
+    }
+    assert client.get(DEVICE.format(slug=slug)).json() == {"device": None}
+    assert db.execute("SELECT * FROM reminder_installations").fetchall() == before
+    assert db.execute("SELECT * FROM reminder_processed_ops").fetchall() == ops_before
+    assert _device_cookie_value(client) == old_cookie
+
+    fresh = client.post(
+        url,
+        json={
+            **body,
+            "op_id": new_id(),
+            "base_revision": None,
+            "timezone": "Europe/Oslo",
+        },
+    )
+
+    assert fresh.status_code == 200, fresh.text
+    assert fresh.json()["enrollment"]["state"] == "active"
+    assert fresh.json()["enrollment"]["summary_time"] == "12:34"
+    assert fresh.json()["enrollment"]["revision"] == 1
+    assert _device_cookie_value(client) != old_cookie
+    assert db.execute("SELECT COUNT(*) FROM reminder_installations").fetchone()[0] == 2
+
+
+@pytest.mark.parametrize("endpoint", [PREFS, DEVICE], ids=["room", "device"])
+def test_cleared_device_cookie_cannot_patch_and_explicit_enrollment_creates_only_one_new_installation(
+    phone: tuple[str, TestClient], endpoint: str
+) -> None:
+    slug, client = phone
+    before = db.execute("SELECT * FROM reminder_installations").fetchall()
+    grants_before = db.execute("SELECT * FROM reminder_enrollments").fetchall()
+    client.cookies.delete(DEVICE_COOKIE)
+    op_id = new_id()
+    field = (
+        {"summary_time": "11:45"} if endpoint == PREFS else {"all_day_time": "13:25"}
+    )
+
+    refused = client.patch(
+        endpoint.format(slug=slug), json={"op_id": op_id, "base_revision": 1, **field}
+    )
+
+    assert_error(refused, 403, "not_enrolled")
+    assert "set-cookie" not in refused.headers
+    assert (
+        client.get(PREFS.format(slug=slug)).json()["enrollment"]["state"]
+        == "not_enrolled"
+    )
+    assert client.get(DEVICE.format(slug=slug)).json() == {"device": None}
+    assert db.execute("SELECT * FROM reminder_installations").fetchall() == before
+    assert len(before) == 1
+    assert db.execute("SELECT * FROM reminder_enrollments").fetchall() == grants_before
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?", (op_id,)
+        ).fetchone()[0]
+        == 0
+    )
+    body = {
+        "op_id": new_id(),
+        "base_revision": None,
+        "timezone": "Europe/Oslo",
+        "summary_time": "11:45",
+    }
+    fresh = client.post(ENROLL.format(slug=slug), json=body)
+    assert fresh.status_code == 200, fresh.text
+    assert fresh.json()["enrollment"]["state"] == "active"
+    assert fresh.json()["enrollment"]["summary_time"] == "11:45"
+    assert db.execute("SELECT COUNT(*) FROM reminder_installations").fetchone()[0] == 2
+    replay = client.post(ENROLL.format(slug=slug), json=body)
+    assert replay.status_code == 200, replay.text
+    assert replay.json() == fresh.json()
+    assert "set-cookie" not in replay.headers
+    assert db.execute("SELECT COUNT(*) FROM reminder_installations").fetchone()[0] == 2
+
+
+def test_device_patch_does_not_resume_opted_out_enrollment(
+    phone: tuple[str, TestClient],
+) -> None:
+    slug, client = phone
+    prefs = PREFS.format(slug=slug)
+    opted_out = client.patch(
+        prefs,
+        json={
+            "op_id": new_id(),
+            "base_revision": 1,
+            "opted_out": True,
+            "summary_time": "11:45",
+        },
+    )
+    assert opted_out.status_code == 200, opted_out.text
+    before = client.get(prefs).json()
+    grant = _enrollment(slug)
+
+    device = client.patch(
+        DEVICE.format(slug=slug),
+        json={"op_id": new_id(), "base_revision": 1, "all_day_time": "13:25"},
+    )
+
+    assert device.status_code == 200, device.text
+    assert device.json()["device"]["all_day_time"] == "13:25"
+    assert client.get(prefs).json() == before
+    assert before["enrollment"]["state"] == "opted_out"
+    assert _enrollment(slug) == grant
+    resumed = client.post(
+        ENROLL.format(slug=slug), json={"op_id": new_id(), "base_revision": 2}
+    )
+    assert resumed.status_code == 200, resumed.text
+    assert resumed.json()["enrollment"]["state"] == "active"
+    assert resumed.json()["enrollment"]["summary_time"] == "11:45"
+    assert client.get(DEVICE.format(slug=slug)).json() == device.json()
+    assert db.execute("SELECT COUNT(*) FROM reminder_installations").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize(
+    "action,summary",
+    [
+        pytest.param("room", "11:45", id="room-malformed-json"),
+        pytest.param("room", "12:34", id="room-empty-object"),
+        pytest.param("enroll", "09:00", id="enroll-malformed-json"),
+        pytest.param("optout", "09:00", id="optout-empty-object"),
+        pytest.param("device", "09:00", id="device-empty-object"),
+    ],
+)
+def test_each_private_action_replay_leaves_one_processed_op_and_one_installation(
+    room: tuple[int, str, TestClient], clock: FakeClock, action: str, summary: str
+) -> None:
+    """Pair the UI's corrupted answers with real server commits and replays."""
+    _room_id, slug, client = room
+    if action != "enroll":
+        enrolled = client.post(
+            ENROLL.format(slug=slug),
+            json={"op_id": new_id(), "timezone": "Europe/Oslo"},
+        )
+        assert enrolled.status_code == 200, enrolled.text
+    count_before = db.execute("SELECT COUNT(*) FROM reminder_processed_ops").fetchone()[
+        0
+    ]
+    op_id = new_id()
+    body = {"op_id": op_id, "base_revision": None if action == "enroll" else 1}
+    endpoint = DEVICE if action == "device" else ENROLL if action == "enroll" else PREFS
+    if action == "device":
+        body["all_day_time"] = "13:25"
+    elif action == "optout":
+        body["opted_out"] = True
+    else:
+        body.update(mode="daily_summary", summary_time=summary)
+        if action == "enroll":
+            body["timezone"] = "Europe/Oslo"
+    method = "POST" if action == "enroll" else "PATCH"
+    url = endpoint.format(slug=slug)
+    first = client.request(method, url, json=body)
+    assert first.status_code == 200, first.text
+    installation = db.execute("SELECT * FROM reminder_installations").fetchall()
+    grants = db.execute("SELECT * FROM reminder_enrollments").fetchall()
+    processed = db.execute("SELECT * FROM reminder_processed_ops").fetchall()
+    clock.advance(hours=2)
+
+    replay = client.request(method, url, json=body)
+
+    assert replay.status_code == 200, replay.text
+    assert replay.json() == first.json()
+    assert "set-cookie" not in replay.headers
+    assert len(installation) == 1
+    assert db.execute("SELECT * FROM reminder_installations").fetchall() == installation
+    assert db.execute("SELECT * FROM reminder_enrollments").fetchall() == grants
+    assert db.execute("SELECT * FROM reminder_processed_ops").fetchall() == processed
+    assert len(processed) == count_before + 1
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?", (op_id,)
+        ).fetchone()[0]
+        == 1
+    )
+    if action == "device":
+        assert replay.json()["device"]["all_day_time"] == "13:25"
+        assert replay.json()["device"]["revision"] == 2
+    else:
+        assert replay.json()["enrollment"]["state"] == (
+            "opted_out" if action == "optout" else "active"
+        )
+        assert replay.json()["enrollment"]["summary_time"] == summary
+        assert replay.json()["enrollment"]["revision"] == (
+            1 if action == "enroll" else 2
+        )
+
+
 def _second_room(client: TestClient) -> str:
     """Create a second room with the same test password and sign in the client to it."""
     from password_hashing import hash_password
