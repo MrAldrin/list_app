@@ -172,6 +172,23 @@ def test_own_tick_then_untick_with_rebased_base_seq_is_applied(milk):
     assert not done_of(milk_uid)
 
 
+def test_own_tick_then_edit_with_rebased_base_seq_is_applied(milk: tuple) -> None:
+    _, slug, client, list_uid, milk_uid, base = milk
+    tick = op(client, slug, set_done(list_uid, milk_uid, True, base_seq=base))
+    assert tick["status"] == "applied"
+    response = op(
+        client,
+        slug,
+        edit(list_uid, milk_uid, tick["result"]["changed_seq"], description="2 litres"),
+    )
+    assert response["status"] == "applied"
+    assert response["result"] == {"changed_seq": item_changed_seq(milk_uid)}
+    saved = item_row(milk_uid)
+    assert saved["done"] == 1
+    assert saved["description"] == "2 litres"
+    assert saved["completed_at"] is not None
+
+
 def test_own_tick_then_untick_without_rebase_conflicts_with_itself(milk):
     # Why R3 exists: the queued untick still has the old base_seq.
     room_id, slug, client, list_uid, milk_uid, base = milk

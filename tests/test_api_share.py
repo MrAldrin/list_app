@@ -531,6 +531,74 @@ def test_reset_gives_a_new_link_and_blocks_the_old_one(shared, notified):
     assert share_changes(public, share_token(shared["other_id"])).status_code == 200
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"type": "item.add", "name": "forbidden"},
+        {"type": "item.set_done", "done": True},
+        {"type": "item.quantity_delta", "delta": 1},
+        {"type": "item.edit", "name": "forbidden edit", "description": "cold"},
+        {"type": "item.toggle_tag", "tag": "Market", "active": True},
+        {"type": "item.delete"},
+        {
+            "type": "item.restore",
+            "name": "restored",
+            "quantity": 1,
+            "done": False,
+            "tags": [],
+            "description": "",
+            "completed_at": None,
+        },
+        {"type": "list.tag_add", "tag": "revoked tag"},
+        {"type": "list.tag_remove", "tag": "Market"},
+        {"type": "list.tag_settings", "mode": "single"},
+        {"type": "list.tag_color", "tag": "Market", "color": 2},
+        {"type": "list.tag_rename", "tag": "Market", "new_tag": "Shop"},
+        {"type": "list.visibility", "mode": "all"},
+    ],
+    ids=lambda body: body["type"],
+)
+def test_reset_refuses_each_share_write(shared: dict, body: dict) -> None:
+    public = public_client()
+    token, list_uid = shared["token"], shared["list_uid"]
+    share_op(
+        public, token, {"type": "list.tag_add", "list_uid": list_uid, "tag": "Market"}
+    )
+    prepared = {"op_id": new_id(), "list_uid": list_uid, **body}
+    if body["type"].startswith("item.") and body["type"] != "item.add":
+        prepared["item_uid"] = shared["item_uid"]
+    if body["type"] in {"item.edit", "item.set_done"}:
+        prepared["base_seq"] = item_changed_seq(shared["item_uid"])
+    if body["type"] == "item.restore":
+        share_op(
+            public,
+            token,
+            {
+                "type": "item.delete",
+                "list_uid": list_uid,
+                "item_uid": shared["item_uid"],
+            },
+        )
+        prepared["uid"] = new_id()
+        prepared.pop("item_uid")
+
+    response = reset_link(client_for(shared["slug"]), shared["slug"], list_uid)
+    assert response.status_code == 200
+    current_token = response.json()["token"]
+    before = list(db.iterdump())
+    assert_error(share_send(public, token, prepared), 401, "share_unavailable")
+    assert list(db.iterdump()) == before
+    # The request body itself is valid: only the token changes here.
+    assert share_send(public, current_token, prepared).status_code == 200
+    added = share_op(
+        public,
+        current_token,
+        {"type": "list.tag_add", "list_uid": list_uid, "tag": "current tag"},
+    )
+    assert added["status"] == "applied"
+    assert "current tag" in get_list_details(shared["list_id"])["list_tags"]
+
+
 def test_reset_blocks_a_retry_of_an_op_sent_before(shared):
     public = public_client()
     body = {

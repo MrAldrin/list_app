@@ -13,6 +13,7 @@ import {
 	applied,
 	deferred,
 	FakeEventSource,
+	FakeVisibility,
 	fakeRoomApi,
 	makeFeed,
 	makeItem,
@@ -31,6 +32,7 @@ import { createQueueStorage, MemoryQueueStorage, type QueueStorage } from './que
 import { newStoredEntry, type StoredEntry } from './queue-entries';
 import { isRecord } from './snapshot-validate';
 import { usualItemSuggestions } from '#lib/list/items.ts';
+import { readyRoom } from '#lib/test-support/room-fixture.ts';
 
 const list = makeList({ uid: 'saved-list' });
 const item = makeItem(list.uid, { uid: 'saved-item', name: 'milk' });
@@ -2261,4 +2263,240 @@ describe('not-saved changes (6.3)', () => {
 		offline.release();
 		storage.close();
 	});
+});
+
+it.each([
+	['two_offline_quantity_deltas_reconcile_without_rejections', 'quantity'],
+	['offline_tag_clicks_send_wanted_state_on_both_devices', 'tag']
+] as const)('%s', async (_name, kind) => {
+	const list = makeList({ tags: ['Market'] });
+	let saved = makeItem(list.uid, { name: 'milk', quantity: 1 });
+	let seq = 1;
+	const feed = () => makeFeed({ seq, full: true, lists: [list], items: [saved] });
+	const first = await readyRoom(feed());
+	const second = await readyRoom(feed());
+	const devices = [first, second];
+	const sent: SentOp[] = [];
+	try {
+		for (const device of devices) {
+			await device.offline();
+			if (kind === 'quantity') await device.room.changeQuantity(saved, 1);
+			else await device.room.toggleItemTag(saved, 'Market');
+			await waitFor(async () => expect(await device.queue.read()).toHaveLength(1));
+			expect(device.queue.durable).toBe(true);
+			expect(device.room.store.item(saved.uid)).toMatchObject(
+				kind === 'quantity' ? { quantity: 2 } : { tags: ['Market'] }
+			);
+			expect(device.api.sendOp).not.toHaveBeenCalled();
+			device.api.sendOp.mockImplementation(async (_slug, op) => {
+				sent.push(op);
+				seq += 1;
+				if (op.type === 'item.quantity_delta')
+					saved = { ...saved, quantity: saved.quantity + op.delta, changed_seq: seq };
+				else if (op.type === 'item.toggle_tag') {
+					const tags = new Set(saved.tags);
+					if (op.active ?? !tags.has(op.tag)) tags.add(op.tag);
+					else tags.delete(op.tag);
+					saved = { ...saved, tags: [...tags], changed_seq: seq };
+				} else throw new Error(`Unexpected ${op.type}`);
+				for (const peer of devices) peer.setFeed(feed());
+				return applied(op, seq, { changed_seq: seq });
+			});
+		}
+		for (const device of devices) device.online();
+		await waitFor(() => expect(sent).toHaveLength(2));
+		expect(new Set(sent.map((op) => op.op_id)).size).toBe(2);
+		for (const op of sent) {
+			expect(op).toEqual(
+				kind === 'quantity'
+					? {
+							op_id: expect.any(String),
+							type: 'item.quantity_delta',
+							list_uid: list.uid,
+							item_uid: saved.uid,
+							delta: 1
+						}
+					: {
+							op_id: expect.any(String),
+							type: 'item.toggle_tag',
+							list_uid: list.uid,
+							item_uid: saved.uid,
+							tag: 'Market',
+							active: true
+						}
+			);
+		}
+		for (const device of devices) {
+			device.stream().seq(seq);
+			await waitFor(() =>
+				expect(device.room.store.item(saved.uid)).toMatchObject(
+					kind === 'quantity' ? { quantity: 3 } : { tags: ['Market'] }
+				)
+			);
+			await waitFor(() => expect(device.room.waitingCount).toBe(0));
+			expect(device.room.store.pendingOps).toEqual([]);
+			expect(device.room.store.notSaved).toEqual([]);
+			expect(device.room.store.isUnsent(`item:${saved.uid}`)).toBe(false);
+			expect(await device.queue.read()).toEqual([]);
+			expect(await device.queue.readNotSaved()).toEqual([]);
+		}
+	} finally {
+		for (const device of devices) device.room.release();
+	}
+});
+
+it.each(['visibilitychange', 'pageshow'] as const)(
+	'each resume signal revalidates before applying peer changes: %s',
+	async (signal) => {
+		const list = makeList();
+		const milk = makeItem(list.uid);
+		const bread = makeItem(list.uid, { name: 'bread' });
+		const eggs = makeItem(list.uid, { name: 'eggs' });
+		const visibility = new FakeVisibility();
+		const page = new EventTarget();
+		const device = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk, bread] }), {
+			visibility: visibility as unknown as NonNullable<import('./index').RoomOptions['visibility']>,
+			online: page
+		});
+		const access = deferred<typeof ROOM>();
+		const changes = deferred<Feed>();
+		try {
+			device.api.whoAmI.mockReturnValueOnce(access.promise);
+			device.api.changes.mockReturnValueOnce(changes.promise);
+			const initialAccess = device.api.whoAmI.mock.calls.length;
+			const initialChanges = device.api.changes.mock.calls.length;
+			if (signal === 'visibilitychange') {
+				visibility.set('hidden');
+				visibility.set('visible');
+			} else {
+				const event = new Event('pageshow');
+				Object.defineProperty(event, 'persisted', { value: true });
+				page.dispatchEvent(event);
+			}
+			expect(device.room.store.canWrite).toBe(false);
+			await waitFor(() => expect(device.api.whoAmI).toHaveBeenCalledTimes(initialAccess + 1));
+			expect(device.api.changes).toHaveBeenCalledTimes(initialChanges);
+			expect(device.room.store.itemsOf(list.uid).map((item) => item.name)).toEqual([
+				'bread',
+				'milk'
+			]);
+			access.resolve(ROOM);
+			await waitFor(() => expect(device.api.changes).toHaveBeenCalledTimes(initialChanges + 1));
+			expect(device.room.store.canWrite).toBe(false);
+			expect(device.api.changes.mock.calls.at(-1)).toEqual([ROOM.slug, 1]);
+			changes.resolve(makeFeed({ seq: 2, items: [eggs] }));
+			await waitFor(() => expect(device.room.store.canWrite).toBe(true));
+			expect(device.room.store.itemsOf(list.uid).map((item) => item.name)).toEqual([
+				'bread',
+				'eggs',
+				'milk'
+			]);
+		} finally {
+			access.resolve(ROOM);
+			changes.resolve(makeFeed({ seq: 2 }));
+			device.room.release();
+		}
+	}
+);
+
+it('offline_edit_of_deleted_item_rolls_back_and_persists_rejection', async () => {
+	const list = makeList();
+	const milk = makeItem(list.uid);
+	const bread = makeItem(list.uid, { name: 'bread' });
+	const device = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk, bread] }));
+	try {
+		await device.offline();
+		expect(await device.room.editItem(milk, { name: 'whole milk', description: '' })).toMatchObject(
+			{ ok: true }
+		);
+		expect(device.room.store.item(milk.uid)?.name).toBe('whole milk');
+		await waitFor(async () => expect(await device.queue.read()).toHaveLength(1));
+		device.api.sendOp.mockImplementation(async (_slug, op) => ({
+			op_id: op.op_id,
+			status: 'rejected',
+			code: 'item_not_found',
+			message: 'Item deleted',
+			seq: 2
+		}));
+		device.setFeed(makeFeed({ seq: 2, full: true, lists: [list], items: [bread] }));
+		device.online();
+		await waitFor(() => expect(device.room.store.notSaved).toHaveLength(1));
+		expect(device.api.sendOp.mock.calls[0][1]).toMatchObject({
+			type: 'item.edit',
+			item_uid: milk.uid,
+			name: 'whole milk',
+			base_seq: milk.changed_seq
+		});
+		expect(device.room.store.item(milk.uid)).toBeUndefined();
+		expect(device.room.store.itemsOf(list.uid)).toEqual([bread]);
+		expect(device.room.store.pendingOps).toEqual([]);
+		const rejection = device.room.store.notSaved[0];
+		expect(rejection).toMatchObject({
+			code: 'item_not_found',
+			text: "Edit 'milk': it was deleted by someone else."
+		});
+		expect(await device.queue.read()).toEqual([]);
+		expect(await device.queue.readNotSaved()).toMatchObject([
+			{
+				key: rejection.key,
+				code: 'item_not_found',
+				text: rejection.text,
+				op: { type: 'item.edit', name: 'whole milk' }
+			}
+		]);
+		device.room.store.dismissNotSaved(rejection.id);
+		await waitFor(async () => expect(await device.queue.readNotSaved()).toEqual([]));
+		expect(device.room.store.notSaved).toEqual([]);
+	} finally {
+		device.room.release();
+	}
+});
+
+it('offline_duplicate_list_rename_restores_original_name', async () => {
+	const shopping = makeList({ name: 'Shopping' });
+	const hardware = makeList({ name: 'Hardware' });
+	const committed = makeFeed({ full: true, lists: [shopping, hardware] });
+	const device = await readyRoom(committed);
+	try {
+		await device.offline();
+		expect(await device.room.renameList(hardware, 'Shopping')).toMatchObject({ ok: true });
+		expect(device.api.sendOp).not.toHaveBeenCalled();
+		expect(device.room.store.list(hardware.uid)?.name).toBe('Shopping');
+		await waitFor(async () => expect(await device.queue.read()).toHaveLength(1));
+		device.api.sendOp.mockImplementation(async (_slug, op) => ({
+			op_id: op.op_id,
+			status: 'rejected',
+			code: 'duplicate_name',
+			message: 'Name taken',
+			seq: 2
+		}));
+		device.setFeed({ ...committed, seq: 2 });
+		device.online();
+		await waitFor(() => expect(device.room.store.notSaved).toHaveLength(1));
+		expect(device.api.sendOp.mock.calls[0][1]).toMatchObject({
+			type: 'list.rename',
+			list_uid: hardware.uid,
+			name: 'Shopping',
+			base_seq: 1
+		});
+		expect(device.room.store.lists.map((row) => row.name).sort()).toEqual(['Hardware', 'Shopping']);
+		expect(device.room.store.pendingOps).toEqual([]);
+		expect(device.room.waitingCount).toBe(0);
+		const rejection = device.room.store.notSaved[0];
+		expect(rejection).toMatchObject({
+			code: 'duplicate_name',
+			text: "Rename list to 'Shopping': that name is taken."
+		});
+		expect(await device.queue.read()).toEqual([]);
+		expect(await device.queue.readNotSaved()).toMatchObject([
+			{
+				key: rejection.key,
+				code: 'duplicate_name',
+				text: rejection.text,
+				op: { type: 'list.rename', name: 'Shopping' }
+			}
+		]);
+	} finally {
+		device.room.release();
+	}
 });

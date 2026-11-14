@@ -3,6 +3,7 @@
 import pytest
 from api_helpers import (
     add_item,
+    changes,
     client_for,
     create_list,
     find_item_by_name,
@@ -57,6 +58,81 @@ def edit(client, slug, list_id, item_uid, name, description, quantity):
 def stored_item(item_uid):
     row = item_row(item_uid)
     return row["name"], row["description"], row["quantity"]
+
+
+@pytest.mark.parametrize("newly_created", [False, True], ids=["existing", "new"])
+def test_settled_tag_then_notes_edit_applies_for_existing_and_new_items(
+    edit_items: tuple, newly_created: bool
+) -> None:
+    list_id, slug, milk_uid, client = edit_items
+    list_uid = list_uid_of(list_id)
+    item_uid = milk_uid
+    if newly_created:
+        added = op(
+            client,
+            slug,
+            {
+                "op_id": new_id(),
+                "type": "item.add",
+                "list_uid": list_uid,
+                "name": "new",
+            },
+        )
+        assert added["status"] == "applied"
+        item_uid = added["result"]["item_uid"]
+    opening_seq = item_changed_seq(item_uid)
+    name = item_row(item_uid)["name"]
+    assert (
+        op(
+            client,
+            slug,
+            {
+                "op_id": new_id(),
+                "type": "list.tag_add",
+                "list_uid": list_uid,
+                "tag": "Shop",
+            },
+        )["status"]
+        == "applied"
+    )
+    tagged = op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.toggle_tag",
+            "list_uid": list_uid,
+            "item_uid": item_uid,
+            "tag": "Shop",
+            "active": True,
+        },
+    )
+    assert tagged["status"] == "applied"
+    latest_seq = tagged["result"]["changed_seq"]
+    assert latest_seq > opening_seq
+    saved = op(
+        client,
+        slug,
+        {
+            "op_id": new_id(),
+            "type": "item.edit",
+            "list_uid": list_uid,
+            "item_uid": item_uid,
+            "name": name,
+            "description": "Keep cold",
+            "base_seq": latest_seq,
+        },
+    )
+    assert saved["status"] == "applied"
+    assert item_row(item_uid)["description"] == "Keep cold"
+    assert item_row(item_uid)["tags"] == '["Shop"]'
+    fresh = changes(client_for(slug), slug, 0)
+    row = next(item for item in fresh["items"] if item["uid"] == item_uid)
+    assert (row["description"], row["tags"], row["changed_seq"]) == (
+        "Keep cold",
+        ["Shop"],
+        saved["result"]["changed_seq"],
+    )
 
 
 def test_valid_edit_saves_all_fields(edit_items):

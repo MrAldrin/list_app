@@ -191,6 +191,30 @@ def test_rename_list(room, notified):
     assert notified == [room_id]
 
 
+def test_password_change_blocks_a_prepared_list_rename(room: tuple) -> None:
+    _, slug, stale = room
+    list_uid = default_list_uid()
+    prepared = {
+        "op_id": new_id(),
+        "type": "list.rename",
+        "list_uid": list_uid,
+        "name": "forbidden rename",
+        "base_seq": list_changed_seq(list_uid),
+    }
+    other = client_for(slug)
+    response = other.post(
+        f"/api/v1/rooms/{slug}/password",
+        json={"current_password": "pw", "new_password": "new-room-password"},
+    )
+    assert response.status_code == 200
+    before = list(db.iterdump())
+    assert_error(send(stale, slug, prepared), 401, "not_authenticated")
+    assert list(db.iterdump()) == before
+    assert list_row(list_uid)[1] == "default"
+    assert op(other, slug, prepared)["status"] == "applied"
+    assert list_row(list_uid)[1] == "forbidden rename"
+
+
 def test_rename_to_another_case_of_its_own_name(room):
     _, slug, client = room
     list_uid = default_list_uid()
