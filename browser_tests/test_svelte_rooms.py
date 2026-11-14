@@ -51,17 +51,26 @@ def test_start_page_login_and_remembered_room(svelte_server, open_session):
 
     # Log out: the password prompt comes back, also after a reload.
     page.get_by_role("button", name="Room menu").click()
-    # Reload only after the server sign-out answered; a reload mid-request makes
-    # WebKit report the cancelled DELETE as a page error.
     with page.expect_response(
-        lambda r: r.request.method == "DELETE" and r.url.endswith("/session")
-    ):
+        lambda response: (
+            response.request.method == "DELETE"
+            and response.url == f"{server.url}/api/v1/rooms/{server.room_slug}/session"
+        )
+    ) as sign_out:
         page.get_by_role("button", name="Log out").click()
+    assert sign_out.value.status == 204
     expect(page.get_by_label("Room Password")).to_be_visible()
-    # The answer's first bytes are not the end of the request: the reload came
-    # 4 ms after them. (Chromium reports no "requestfinished" for this request
-    # through the service worker, so the test cannot wait for that event.)
-    wait_for_api_idle(page)
+    # The prompt appears before server sign-out. The app holds this lock until
+    # it records the successful sign-out in storage. Reloading sooner can make
+    # the next page retry the DELETE.
+    page.evaluate(
+        """(slug) => navigator.locks.request(
+            `listr:room-session:${encodeURIComponent(slug)}`,
+            { signal: AbortSignal.timeout(5_000) },
+            () => {},
+        )""",
+        server.room_slug,
+    )
     page.reload()
     expect(page.get_by_label("Room Password")).to_be_visible()
 
