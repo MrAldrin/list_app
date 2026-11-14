@@ -30,10 +30,11 @@ smoke again for the same feedback check. Also run affected non-core browser
 journeys when changing those features. This does not change the
 [deployment checks](deployment.md#deployment-checklist).
 
-Some Python route tests need a frontend build;
-without it, they skip. Build first when checking those routes. Do not replace a
-required engine or device check with a faster layer. Use only disposable
-databases and test credentials.
+Some Python route tests and the built-shell contract need a frontend build;
+without it, they skip. Build first when checking them. The built-shell contract
+uses Bun to refresh an existing build when frontend inputs are newer.
+Do not replace a required engine or device check with a faster layer. Use only
+disposable databases and test credentials.
 
 ## Optional change-based feedback
 

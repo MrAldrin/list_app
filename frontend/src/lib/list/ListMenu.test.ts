@@ -6,6 +6,42 @@ import { readyRoom } from '#lib/test-support/room-fixture.ts';
 import { button } from '#lib/test-support/dom.ts';
 import ListMenu from './ListMenu.svelte';
 
+it('member reset remains available after each native menu toggle', async () => {
+	const list = makeList();
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list] }));
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListMenu, {
+		target,
+		props: { room: fixture.room, list, canReset: true }
+	});
+	try {
+		flushSync();
+		const opener = button(target, 'List menu');
+		const menu = document.getElementById(opener.getAttribute('popovertarget')!)!;
+		expect(menu.getAttribute('popover')).toBe('auto');
+		for (let opening = 1; opening <= 2; opening += 1) {
+			menu.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+			flushSync();
+			expect(opener.getAttribute('aria-expanded')).toBe('true');
+			expect(button(menu, 'Reset share link').disabled).toBe(false);
+			await waitFor(() => expect(fixture.api.shareLink).toHaveBeenCalledTimes(opening));
+			expect(fixture.api.shareLink).toHaveBeenLastCalledWith(fixture.room.slug, list.uid);
+			menu.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'closed' }));
+			flushSync();
+			expect(opener.getAttribute('aria-expanded')).toBe('false');
+		}
+		// PARTIAL: reset clicks call native hidePopover before opening the
+		// confirmation. Do not fake it. Repeated dialogs/toasts stay in the
+		// browser test; this test proves only our toggle response and entry.
+		expect(fixture.api.resetShareLink).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
 it('offline_share_hint_is_linked_and_clears_when_online', async () => {
 	const list = makeList();
 	const fixture = await readyRoom(makeFeed({ full: true, lists: [list] }));

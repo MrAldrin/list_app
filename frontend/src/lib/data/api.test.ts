@@ -144,6 +144,33 @@ describe('Api and the server version', () => {
 		expect(compat.incompatible).toBe(false);
 	});
 
+	it('headerless operation answers permit consecutive writes', async () => {
+		const ops: SentOp[] = ['milk', 'bread'].map((name, index) => ({
+			op_id: `op-${index}`,
+			type: 'item.add',
+			list_uid: 'groceries',
+			name
+		}));
+		const answers = ops.map((op, index) => ({
+			op_id: op.op_id,
+			status: 'applied',
+			seq: index + 1,
+			result: { outcome: 'created', item_uid: `item-${index}` }
+		}));
+		const fetch = fakeFetch(...answers.map((answer) => json(200, answer)));
+		const api = new Api(fetch);
+		for (const [index, op] of ops.entries()) {
+			expect(await api.sendOp('home', op)).toEqual(answers[index]);
+			expect(compat.incompatible).toBe(false);
+		}
+		expect(fetch).toHaveBeenCalledTimes(2);
+		for (const [index, [url, init]] of fetch.mock.calls.entries()) {
+			expect(url).toBe('/api/v1/rooms/home/ops');
+			expect(init?.method).toBe('POST');
+			expect(JSON.parse(init?.body as string)).toEqual(ops[index]);
+		}
+	});
+
 	it('sends no write after a mismatch, but still reads and signs out', async () => {
 		const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
 			void input;

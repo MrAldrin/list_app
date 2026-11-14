@@ -524,6 +524,41 @@ def test_share_link_of_a_list_in_another_room_is_unavailable(shared):
     assert share_token(shared["list_id"]) == shared["token"]
 
 
+def test_repeated_resets_rotate_each_time(shared: dict) -> None:
+    member = client_for(shared["slug"])
+    public = public_client()
+    tokens = [shared["token"]]
+    for _ in range(2):
+        response = reset_link(member, shared["slug"], shared["list_uid"])
+        assert response.status_code == 200
+        current = response.json()["token"]
+        assert current not in tokens
+        tokens.append(current)
+        assert share_token(shared["list_id"]) == current
+        assert share_changes(public, current).status_code == 200
+        for previous in tokens[:-1]:
+            assert_error(share_changes(public, previous), 401, "share_unavailable")
+            assert_error(
+                share_send(
+                    public,
+                    previous,
+                    {
+                        "op_id": new_id(),
+                        "type": "item.add",
+                        "list_uid": shared["list_uid"],
+                        "name": "refused",
+                    },
+                ),
+                401,
+                "share_unavailable",
+            )
+    assert len(set(tokens)) == 3
+    assert [
+        item["name"] for item in share_changes(public, tokens[-1]).json()["items"]
+    ] == ["milk"]
+    assert member.get(f"/api/v1/rooms/{shared['slug']}/session").status_code == 200
+
+
 def test_reset_gives_a_new_link_and_blocks_the_old_one(shared, notified):
     room = client_for(shared["slug"])
     public = public_client()

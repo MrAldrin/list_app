@@ -100,6 +100,97 @@ it.each(['DueCenter', 'public ListView'] as const)(
 	}
 );
 
+it.each(['room', 'list'] as const)(
+	'room and list parents select correct due scope: %s',
+	async (parent) => {
+		const previousNow = dueClock.now;
+		vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));
+		advanceDueClock(new Date());
+		reminderSettings.enabled = false;
+		const enrollment = vi
+			.spyOn(ReminderApi.prototype, 'enrollment')
+			.mockResolvedValue({ enrollment: { state: 'not_enrolled', revision: null } });
+		const groceries = makeList();
+		const chores = makeList({ name: 'Chores', slug: 'chores-abc123' });
+		const fixture = await readyRoom(
+			makeFeed({
+				full: true,
+				lists: [groceries, chores],
+				items: [
+					makeItem(groceries.uid, { name: 'milk', date: '2026-11-02' }),
+					makeItem(chores.uid, { name: 'dishes', date: '2026-11-01' })
+				]
+			})
+		);
+		vi.mocked(data.openRoom).mockImplementation(() => {
+			fixture.room.retain();
+			return fixture.room;
+		});
+		Object.assign(page.params, { slug: ROOM.slug });
+		Object.assign(page, {
+			url: new URL(
+				`http://localhost/room/${ROOM.slug}${parent === 'list' ? `/list/${groceries.slug}` : ''}`
+			)
+		});
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component =
+			parent === 'room'
+				? mount(RoomPage, { target })
+				: mount(ListView, {
+						target,
+						props: {
+							room: fixture.room,
+							list: groceries,
+							roomHref: `/room/${ROOM.slug}`,
+							canReset: true,
+							roomDue: true
+						}
+					});
+		try {
+			flushSync();
+			const label =
+				parent === 'room' ? 'Due items: 2 due, 1 overdue' : 'Due items: 1 due, 0 overdue';
+			expect(button(target, label)).toBeDefined();
+			click(target, label);
+			const dialog = target.querySelector('dialog')!;
+			expect(
+				[...dialog.querySelectorAll('.due-row .name')].map((node) => node.textContent)
+			).toEqual(parent === 'room' ? ['dishes', 'milk'] : ['milk']);
+			const where = [...dialog.querySelectorAll('.due-row')].map((row) => [
+				row.querySelector('.name')?.textContent,
+				row.querySelector('.where')?.textContent
+			]);
+			expect(where).toEqual(
+				parent === 'room'
+					? [
+							['dishes', 'Chores'],
+							['milk', 'Groceries']
+						]
+					: [['milk', undefined]]
+			);
+			const labels = [...dialog.querySelectorAll('button')].map((node) => node.textContent?.trim());
+			for (const forbidden of [
+				'This list',
+				'Whole room',
+				'List reminder policy',
+				'Room reminder policy',
+				'Reminder settings'
+			])
+				expect(labels).not.toContain(forbidden);
+			expect(dialog.querySelector('[aria-label^="Private reminder settings"]')).toBeNull();
+		} finally {
+			await unmount(component);
+			fixture.room.release();
+			target.remove();
+			enrollment.mockRestore();
+			vi.useRealTimers();
+			advanceDueClock(previousNow);
+			vi.clearAllMocks();
+		}
+	}
+);
+
 it('last dated list deletion clears room bell', async () => {
 	const previousNow = dueClock.now;
 	vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));

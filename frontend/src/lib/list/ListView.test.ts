@@ -3,7 +3,15 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Item, RoomHandle } from '#lib/data/index.ts';
 import { createRoomStore } from '#lib/data/room-store.svelte.ts';
-import { applied, makeFeed, makeItem, makeList, ROOM, waitFor } from '#lib/data/test-helpers.ts';
+import {
+	applied,
+	deferred,
+	makeFeed,
+	makeItem,
+	makeList,
+	ROOM,
+	waitFor
+} from '#lib/data/test-helpers.ts';
 import ListView from './ListView.svelte';
 import ListHarness from '#lib/test-support/ListHarness.svelte';
 import { readyRoom } from '#lib/test-support/room-fixture.ts';
@@ -12,6 +20,9 @@ import { toasts } from '#lib/ui/toasts.svelte.ts';
 import { MemoryQueueStorage } from '#lib/data/queue-storage.ts';
 import { HOLD_MS } from './hold-order.ts';
 import { readyShare } from '#lib/test-support/share-fixture.ts';
+import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
+import { IDBFactory } from 'fake-indexeddb';
+import { createSnapshotStore } from '#lib/data/snapshot-store.ts';
 
 const reminderSettings = vi.hoisted(() => ({ enabled: false }));
 vi.mock('#lib/reminders/personal-reminders.ts', () => ({
@@ -374,6 +385,171 @@ it.each([
 		fixture.room.release();
 		target.remove();
 		localStorage.clear();
+	}
+});
+
+it('online typing preserves hidden checked rows', async () => {
+	const list = makeList();
+	const milk = makeItem(list.uid, { done: true, completed_at: '2026-11-02T12:00:00Z' });
+	const bread = makeItem(list.uid, { name: 'bread' });
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk, bread] }));
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		expect(op).toMatchObject({ type: 'list.visibility', mode: 'all', list_uid: list.uid });
+		fixture.setFeed(
+			makeFeed({
+				full: true,
+				seq: 2,
+				lists: [{ ...list, changed_seq: 2, hide_done: { ...list.hide_done, mode: 'all' } }],
+				items: [milk, bread]
+			})
+		);
+		return applied(op, 2);
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	try {
+		flushSync();
+		click(target, 'Options');
+		const hide = [...target.querySelectorAll('label')]
+			.find((label) => label.textContent?.trim() === 'Hide checked-off items')!
+			.querySelector('input')!;
+		hide.click();
+		await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+		flushSync();
+		expect(fixture.room.store.list(list.uid)?.hide_done.mode).toBe('all');
+		expect(rowNames(target)).toEqual(['bread']);
+		for (const text of ['mil', 'b', 'zzz']) {
+			fill(target.querySelector('input[aria-label="Add or Search"]')!, text);
+			expect(rowNames(target)).toEqual(['bread']);
+			expect(fixture.room.store.unconfirmedView).toBe(false);
+			expect(button(target, 'Add').disabled).toBe(false);
+		}
+		expect(fixture.api.sendOp).toHaveBeenCalledTimes(1);
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it('hidden count copy follows store not search', async () => {
+	let list = makeList();
+	let items = [
+		makeItem(list.uid, { done: true, completed_at: '2026-11-02T12:00:00Z' }),
+		makeItem(list.uid, { name: 'eggs', done: true, completed_at: '2026-11-02T12:00:00Z' }),
+		makeItem(list.uid, { name: 'bread' })
+	];
+	let seq = 1;
+	const feed = () => makeFeed({ full: true, seq, lists: [list], items });
+	const fixture = await readyRoom(feed());
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		seq += 1;
+		if (op.type === 'list.visibility') {
+			list = { ...list, changed_seq: seq, hide_done: { ...list.hide_done, mode: op.mode! } };
+		} else {
+			expect(op).toMatchObject({ type: 'item.add', name: 'milk', list_uid: list.uid });
+			items = items.map((item) =>
+				item.name === 'milk' ? { ...item, done: false, completed_at: null, changed_seq: seq } : item
+			);
+		}
+		fixture.setFeed(feed());
+		return applied(op, seq, { outcome: 'restored', item_uid: items[0].uid });
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const line = () => target.querySelector('.hidden-count')?.textContent;
+	const settled = async () => {
+		await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+		flushSync();
+	};
+	try {
+		flushSync();
+		expect(line()).toBeUndefined();
+		click(target, 'Options');
+		const hide = [...target.querySelectorAll('label')]
+			.find((label) => label.textContent?.trim() === 'Hide checked-off items')!
+			.querySelector('input')!;
+		hide.click();
+		await settled();
+		expect(line()).toBe('2 checked items hidden');
+		const input = target.querySelector<HTMLInputElement>('input[aria-label="Add or Search"]')!;
+		input.focus();
+		fill(input, 'milk');
+		expect(line()).toBe('2 checked items hidden');
+		const suggestion = [...target.querySelectorAll<HTMLElement>('[role="option"]')].find(
+			(option) => option.querySelector('span')?.textContent === 'milk'
+		)!;
+		expect(suggestion).toBeDefined();
+		suggestion.click();
+		await settled();
+		expect(fixture.room.store.item(items[0].uid)?.done).toBe(false);
+		expect(line()).toBe('1 checked item hidden');
+		// A peer checks milk again: take the update through the real live feed.
+		seq += 1;
+		items = items.map((item) =>
+			item.name === 'milk'
+				? { ...item, done: true, completed_at: '2026-11-02T12:00:00Z', changed_seq: seq }
+				: item
+		);
+		fixture.setFeed(feed());
+		fixture.stream().seq(seq);
+		await waitFor(() => expect(fixture.room.store.seq).toBe(seq));
+		flushSync();
+		expect(line()).toBe('2 checked items hidden');
+		hide.click();
+		await settled();
+		expect(list.hide_done.mode).toBe('off');
+		expect(line()).toBeUndefined();
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it('typing during revalidation keeps confirmed rows', async () => {
+	const list = makeList();
+	const items = ['bread', 'milk'].map((name) => makeItem(list.uid, { name }));
+	const connectivity = new EventTarget();
+	const snapshots = createSnapshotStore({ indexedDB: new IDBFactory(), channel: null });
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items }), {
+		online: connectivity,
+		snapshotStore: snapshots
+	});
+	await waitFor(() => expect(fixture.room.store.savedAt).toBeTruthy());
+	const answer = deferred<typeof ROOM>();
+	fixture.api.whoAmI.mockImplementation(() => answer.promise);
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const notice = mount(SavedViewNotice, { target, props: { room: fixture.room } });
+	try {
+		flushSync();
+		expect(rowNames(target)).toEqual(['bread', 'milk']);
+		const calls = fixture.api.whoAmI.mock.calls.length;
+		connectivity.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+		await waitFor(() => expect(fixture.api.whoAmI).toHaveBeenCalledTimes(calls + 1));
+		expect(fixture.room.store.canWrite).toBe(false);
+		expect(fixture.room.store.canEdit).toBe(true);
+		fill(target.querySelector('input[aria-label="Add or Search"]')!, 'zzz');
+		expect(rowNames(target)).toEqual(['bread', 'milk']);
+		expect(button(target, 'Add').disabled).toBe(false);
+		expect(target.querySelector('.saved-notice')).toBeNull();
+		expect(fixture.room.store.showsOfflineNotice).toBe(false);
+		expect(fixture.room.store.unconfirmedView).toBe(false);
+		answer.resolve(ROOM);
+		await waitFor(() => expect(fixture.room.store.canWrite).toBe(true));
+		flushSync();
+		expect(rowNames(target)).toEqual(['bread', 'milk']);
+	} finally {
+		answer.resolve(ROOM);
+		await unmount(notice);
+		await unmount(component);
+		fixture.room.release();
+		snapshots.close();
+		target.remove();
 	}
 });
 
