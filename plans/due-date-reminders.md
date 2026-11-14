@@ -760,8 +760,7 @@ checks first. Before completion, use the repository's full quality gates:
 - Python changes: `uv run ruff format .`, `uv run ruff check --fix .`,
   `uv run pytest -q`, then `uv run ruff format --check .`,
   `uv run ruff check .`, `uv run ty check`.
-- Frontend: in `frontend/`, `npm run format`, `npm run lint`, `npm run check`,
-  `npm run test`, `npm run build` with the repository's Node setup.
+- Frontend: the checks in the [frontend guide](../frontend/README.md#checks).
 - Browser suite: `uv run pytest browser_tests -q -n 4` across Chromium,
   Firefox and WebKit. Extend/run relevant Android emulator coverage using its
   [guide](../docs/android-emulator-testing.md) if the new UI affects it.
