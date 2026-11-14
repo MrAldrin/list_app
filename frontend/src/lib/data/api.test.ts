@@ -27,7 +27,7 @@ describe('Api', () => {
 		const [url, init] = fetch.mock.calls[0];
 		expect(url).toBe('/api/v1/rooms/home/ops');
 		expect(init?.method).toBe('POST');
-		expect((init?.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+		expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' });
 		expect(JSON.parse(init?.body as string)).toEqual(op);
 	});
 

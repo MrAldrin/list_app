@@ -1,4 +1,6 @@
 import prettier from 'eslint-config-prettier';
+import oxlint from 'eslint-plugin-oxlint';
+import oxlintConfig from './.oxlintrc.json' with { type: 'json' };
 import path from 'node:path';
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
@@ -33,9 +35,10 @@ export default defineConfig(
 			}
 		}
 	},
-	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
-	}
+	// Oxlint scans Svelte scripts, not template expressions. Keep the existing
+	// ESLint rules on .svelte files so those expressions still get checked.
+	...oxlint.buildFromOxlintConfig(oxlintConfig, { withNursery: true }).map((config) => ({
+		...config,
+		ignores: [...(config.ignores ?? []), '**/*.svelte']
+	}))
 );

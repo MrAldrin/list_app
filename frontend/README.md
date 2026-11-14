@@ -42,9 +42,18 @@ Python server once after the first build; it then serves the app at
 ## Checks
 
 ```sh
-npm run format && npm run lint && npm run check && npm run test && npm run build
+npm run format && npm run lint && npm run test:lint && npm run check && npm run test && npm run build
 ```
 
-- `format` / `lint`: Prettier and ESLint.
+- `format`: Prettier.
+- `lint`: Prettier checks, then Oxlint, then the remaining ESLint checks.
+- `test:lint`: checks the lint configuration and its Svelte coverage.
 - `check`: TypeScript and Svelte type checks.
 - `test`: Vitest unit tests (`src/**/*.test.ts`).
+
+Native lint rules live in `.oxlintrc.json`. ESLint reads that file through
+`eslint-plugin-oxlint` to turn off duplicate checks in JavaScript and TypeScript.
+Keep the Oxlint and plugin versions matched. ESLint still checks `.svelte`
+files in full: Oxlint reads their scripts, not their template expressions.
+Svelte rules that apply to plain scripts also stay in ESLint. Do not replace
+`npm run lint` with Oxlint alone. See the [coverage review](../docs/background/oxlint-first.md).
