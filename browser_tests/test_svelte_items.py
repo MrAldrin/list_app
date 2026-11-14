@@ -266,6 +266,7 @@ def test_offline_unicode_add_is_removed_after_server_rejection(
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
+    page.clock.install()
     sign_in(page, server)
     create_list(page, "Groceries")
     field = page.get_by_label("Add or Search")
@@ -290,8 +291,11 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()
+    # Advance the browser's 1.5 s tap-settling timer before asserting the order.
+    page.clock.run_for(1500)
     expect(item_names(page)).to_have_text(["bread", "Milk", "apples"])
     page.get_by_role("checkbox", name="apples").uncheck()
+    page.clock.run_for(1500)
     expect(item_names(page)).to_have_text(["apples", "bread", "Milk"])
 
     # Each check and uncheck names the item in a toast with Undo.
