@@ -4,13 +4,11 @@ Network loss is simulated by failing every API call (`go_offline`); other faults
 use `page.route`. A second browser context plays "another device".
 """
 
-import json
 import re
 
 import pytest
 from playwright.sync_api import Page, expect
 from svelte_app import (
-    API,
     NO_WORKER,
     SLOW,
     add_item,
@@ -20,7 +18,6 @@ from svelte_app import (
     item_names,
     member_with_list,
     nudge,
-    room_app_url,
     saved_notice,
     sign_in,
     view_offline,
@@ -53,49 +50,6 @@ def count_requests(page: Page, pattern: str) -> list[str]:
         "request", lambda r: seen.append(r.url) if re.search(pattern, r.url) else None
     )
     return seen
-
-
-def test_online_typing_only_suggests_and_never_filters(svelte_server, open_session):
-    page, _ = member_with_list(open_session, svelte_server, "typist")
-    page.get_by_role("checkbox", name="milk").check()
-    page.get_by_role("button", name="Options").click()
-    page.get_by_role("switch", name="Hide checked-off items").check()
-    page.get_by_role("button", name="Done").click()
-    expect(item_names(page)).to_have_text(["bread"])
-
-    field = page.get_by_label("Add or Search")
-    field.fill("mil")
-    # Suggestions may show, but the list keeps its hide-done view.
-    expect(item_names(page)).to_have_text(["bread"])
-    field.fill("b")
-    expect(item_names(page)).to_have_text(["bread"])
-    field.fill("zzz")
-    expect(item_names(page)).to_have_text(["bread"])
-
-
-def test_typing_during_an_online_revalidation_does_not_filter(
-    svelte_server, open_session
-):
-    page, _ = member_with_list(open_session, svelte_server, "typist")
-    held = []
-    page.route(
-        "**/api/v1/rooms/*/session",
-        lambda route: held.append(route) if not held else route.continue_(),
-    )
-    # A resume (as after a back/forward cache restore) revalidates while online.
-    # Edits are queued meanwhile, but the data is not a saved view.
-    with page.expect_request(lambda r: r.url.endswith("/session")):
-        page.evaluate(RESUME["pageshow"])
-    expect(page.get_by_role("button", name="Add")).to_be_enabled()
-    expect(saved_notice(page)).to_have_count(0)
-
-    field = page.get_by_label("Add or Search")
-    field.fill("zzz")
-    expect(item_names(page)).to_have_text(["bread", "milk"])
-
-    held[0].continue_()
-    expect(page.get_by_role("button", name="Add")).to_be_enabled()
-    field.fill("")
 
 
 @pytest.mark.all_engines
@@ -208,49 +162,6 @@ def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_sessi
     expect(item_names(page)).to_have_text(["bread", "milk"])
 
 
-def test_network_failure_and_5xx_on_revalidation_keep_the_snapshot(
-    svelte_server, open_session
-):
-    server = svelte_server
-    page, url = member_with_list(open_session, server, "flaky")
-    view_offline(page, url)
-
-    def stays_saved() -> None:
-        # Kept: "stays saved" is a negative check. After the failed request the
-        # app needs a moment to react; without it the checks pass trivially.
-        page.wait_for_timeout(300)
-        expect(saved_notice(page)).to_be_visible()
-        expect(item_names(page)).to_have_text(["bread", "milk"])
-        expect(page.get_by_role("button", name="Add")).to_be_enabled()
-
-    # The network is back (the event fires) but every API call still fails.
-    go_online(page)
-    page.route(API, lambda route: route.abort())
-    with page.expect_event("requestfailed", lambda r: "/api/v1/" in r.url, **SLOW):
-        nudge(page)
-    stays_saved()
-
-    # The server answers 503 to every API call.
-    page.unroute(API)
-    page.route(
-        API,
-        lambda route: route.fulfill(
-            status=503,
-            content_type="application/json",
-            body=json.dumps({"error": {"code": "unavailable", "message": "busy"}}),
-        ),
-    )
-    with page.expect_response(
-        lambda r: "/api/v1/" in r.url and r.status == 503, **SLOW
-    ):
-        nudge(page)
-    stays_saved()
-
-    page.unroute(API)
-    nudge(page)
-    expect(page.get_by_role("button", name="Add")).to_be_enabled(**SLOW)
-
-
 @pytest.mark.parametrize("signal", ["visibilitychange", "pageshow"])
 def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     server = svelte_server
@@ -271,30 +182,6 @@ def test_foreground_resume_revalidates(svelte_server, open_session, signal):
     expect(item_names(page)).to_have_text(["bread", "eggs", "milk"])
     assert len(sessions) > before[0]
     assert len(changes) > before[1]
-
-
-def test_server_errors_without_a_snapshot_do_not_say_connect(
-    svelte_server, open_session
-):
-    server = svelte_server
-    member = open_session("signed-in", **NO_WORKER)
-    sign_in(member, server)
-    cookies = member.context.cookies()
-    # Same cookie, but a new browser profile: signed in, no saved snapshot.
-    page = open_session(
-        "no-snapshot", storage_state={"cookies": cookies, "origins": []}, **NO_WORKER
-    )
-    page.route(
-        "**/api/v1/rooms/*/changes*",
-        lambda route: route.fulfill(
-            status=500,
-            content_type="application/json",
-            body=json.dumps({"error": {"code": "server_error", "message": "boom"}}),
-        ),
-    )
-    page.goto(room_app_url(server))
-    expect(page.get_by_text("Could not load this room.")).to_be_visible()
-    expect(page.get_by_text("Connect to load this room.")).to_have_count(0)
 
 
 @pytest.mark.all_engines

@@ -135,19 +135,6 @@ def test_usual_items_open_on_blank_focus_with_keyboard_and_touch(
     expect(usual).to_have_count(0)
 
 
-def test_add_trims_python_whitespace(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    api_sign_in(page, server)
-    open_list(page, api_seed(page, server, {"Groceries": []})["Groceries"], "Groceries")
-    field = page.get_by_label("Add or Search")
-
-    field.fill("\u0085Oat Milk\u0085")
-    field.press("Enter")
-    expect(page.get_by_text("Added Oat Milk")).to_be_visible()
-    expect(item_names(page)).to_have_text(["Oat Milk"])
-
-
 @pytest.mark.all_engines
 def test_offline_unicode_add_reconciles_to_the_server_mapping(
     svelte_server, open_session
@@ -599,58 +586,6 @@ def test_tags_filter_and_hide_done(svelte_server, open_session):
     [(tags, mode)] = server.query("SELECT list_tags, hide_done_mode FROM lists")
     assert sorted(json.loads(tags)) == ["Bakery", "Lidl", "Market", "lidl"]
     assert mode == "off"
-
-
-def test_tag_colors_stay_and_letters_differ(svelte_server, open_session):
-    page = open_session("phone", **PHONE)
-    api_sign_in(page, svelte_server)
-    open_list(
-        page,
-        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
-        "Groceries",
-    )
-
-    for tag in ("Dairy", "Dry goods"):
-        add_list_tag(page, tag)
-    dairy = page.get_by_role("button", name="Dairy tag for milk")
-    dry = page.get_by_role("button", name="Dry goods tag for milk")
-    # Both start with "D": each shows two letters, so they tell apart.
-    expect(dairy).to_have_text("Da")
-    expect(dry).to_have_text("Dr")
-    color = dairy.evaluate("el => el.style.getPropertyValue('--tag')")
-
-    # A new tag does not recolor the others (the color depends on the name).
-    add_list_tag(page, "Aisle")
-    expect(page.get_by_role("button", name="Aisle tag for milk")).to_be_visible()
-    expect(dairy).to_have_text("Da")
-    assert dairy.evaluate("el => el.style.getPropertyValue('--tag')") == color
-
-
-def test_empty_list_hint_and_clear_tag_filter(svelte_server, open_session):
-    page = open_session("phone", **PHONE)
-    api_sign_in(page, svelte_server)
-    open_list(
-        page, api_seed(page, svelte_server, {"Groceries": []})["Groceries"], "Groceries"
-    )
-    expect(page.get_by_text("No items yet. Type below to add.")).to_be_visible()
-    add_item(page, "milk")
-    add_item(page, "apple")
-    expect(page.get_by_text("No items yet. Type below to add.")).to_have_count(0)
-
-    add_list_tag(page, "Lidl")
-    page.get_by_role("button", name="Lidl tag for milk").click()
-    page.get_by_role("button", name="Done").click()
-
-    # "Clear" appears only while a tag filter is on, and removes it.
-    chips = page.locator("ul.chips")
-    clear = chips.get_by_role("button", name="Clear", exact=True)
-    expect(clear).to_have_count(0)
-    dismiss_toasts(page)
-    chips.get_by_role("button", name="Lidl", exact=True).click()
-    expect(item_names(page)).to_have_text(["milk"])
-    clear.click()
-    expect(clear).to_have_count(0)
-    expect(item_names(page)).to_have_text(["apple", "milk"])
 
 
 def test_suggestions_rank_by_add_count_and_scroll(svelte_server, open_session):

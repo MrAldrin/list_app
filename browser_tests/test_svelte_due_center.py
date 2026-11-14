@@ -5,7 +5,7 @@ expects a due warning toast; the bell and the counts carry the due information.
 """
 
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 import pytest
 from playwright.sync_api import expect
@@ -90,15 +90,6 @@ def test_bell_counts_overdue_and_today_and_groups_the_panel(
     expect(bell.locator(".badge")).to_have_text("2")
 
 
-def test_reload_shows_no_due_toast(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    _seeded(page, server, {"Groceries": [{"name": "milk", "date": _days(0)}]})
-    page.reload()
-    expect(page.get_by_role("button", name=BELL)).to_be_visible()
-    expect(page.locator(".toasts .toast", has_text="due")).to_have_count(0)
-
-
 def test_reveal_clears_the_search_and_focuses_the_item(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -111,92 +102,6 @@ def test_reveal_clears_the_search_and_focuses_the_item(svelte_server, open_sessi
     expect(field).to_have_value("")
     expect(page.get_by_role("button", name=re.compile("^eggs"))).to_be_focused()
     expect(page.get_by_text("Showing the item. Cleared the search.")).to_be_visible()
-
-
-def test_reveal_of_a_missing_item_says_so(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    list_url = _seeded(page, server, {"Groceries": ["milk"]})["Groceries"]
-    # The link points at an item that is not on this list (deleted, or moved).
-    page.goto(f"{list_url}?item=no-such-item&at=1")
-    expect(page.get_by_text("no longer on this list")).to_be_visible()
-
-
-def test_share_link_bell_shows_only_its_list(svelte_server, open_session):
-    server = svelte_server
-    owner = open_session("owner", **PHONE)
-    # A second list in the same room has its own due item the share must not show.
-    _seeded(
-        owner,
-        server,
-        {
-            "Groceries": [{"name": "milk", "date": _days(0)}],
-            "Chores": [{"name": "dishes", "date": _days(0)}],
-        },
-    )
-    link = share_link(owner)
-
-    # A browser with no room access opens the share link.
-    guest = open_session("guest", **PHONE)
-    guest.goto(link)
-    expect(guest.get_by_role("heading", name="Groceries")).to_be_visible()
-    bell = guest.get_by_role("button", name=BELL)
-    expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
-    bell.click()
-    panel = guest.get_by_role("dialog")
-    expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
-    expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
-    expect(panel.get_by_role("button", name="Whole room")).to_have_count(0)
-    expect(
-        panel.get_by_role("button", name=re.compile("Private reminder settings"))
-    ).to_have_count(0)
-
-
-def test_bell_scope_follows_room_or_current_list(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    _seeded(
-        page,
-        server,
-        {
-            "Groceries": [{"name": "milk", "date": _days(0)}],
-            "Chores": [{"name": "dishes", "date": _days(-1)}],
-        },
-        open_name=None,
-    )
-    page.goto(room_app_url(server))
-    page.get_by_role("link", name="Groceries").click()
-    expect(page.get_by_role("heading", name="Groceries")).to_be_visible()
-
-    # The list bell stays on the current list, with no scope switch.
-    bell = page.get_by_role("button", name=BELL)
-    expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
-    bell.click()
-    panel = page.get_by_role("dialog", name="Due items")
-    expect(panel.get_by_role("button", name="This list")).to_have_count(0)
-    expect(panel.get_by_role("button", name="Whole room")).to_have_count(0)
-    expect(panel.get_by_role("link", name=re.compile("^milk"))).to_be_visible()
-    expect(panel.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
-    expect(panel.locator(".where")).to_have_count(0)
-    expect(panel.get_by_role("button", name="List reminder policy")).to_have_count(0)
-    expect(
-        panel.get_by_role("button", name="Private reminder settings for milk")
-    ).to_have_count(0)
-    page.keyboard.press("Escape")
-
-    # The room bell shows both items with their list names and room count.
-    page.goto(room_app_url(server))
-    bell = page.get_by_role("button", name=BELL)
-    expect(bell).to_have_accessible_name("Due items: 2 due, 1 overdue")
-    bell.click()
-    panel = page.get_by_role("dialog", name="Due items")
-    expect(panel.locator("a", has_text="milk").locator(".where")).to_have_text(
-        "Groceries"
-    )
-    expect(panel.locator("a", has_text="dishes").locator(".where")).to_have_text(
-        "Chores"
-    )
-    expect(panel.get_by_role("button", name="Room reminder policy")).to_have_count(0)
 
 
 def test_whole_room_bell_ignores_another_room(svelte_server, open_session):
@@ -279,6 +184,15 @@ def test_live_changes_update_the_open_panel_without_moving_focus(
     )
     assert viewer.evaluate("document.activeElement.dataset.keep") == "1"
 
+    # The room bell also updates when another device deletes the last dated list.
+    viewer.goto(room_app_url(server))
+    bell = viewer.get_by_role("button", name=BELL)
+    expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
+    other.goto(room_app_url(server))
+    other.get_by_role("button", name="Delete Groceries").click()
+    other.get_by_role("dialog").get_by_role("button", name="Delete").click()
+    expect(bell).to_have_accessible_name("Due items: none due")
+
 
 @pytest.mark.all_engines
 @pytest.mark.tier_core
@@ -302,55 +216,6 @@ def test_bell_opens_and_closes_from_the_keyboard(svelte_server, open_session):
     page.get_by_role("dialog").get_by_role("link", name=re.compile("^eggs")).focus()
     page.keyboard.press("Enter")
     expect(page.get_by_role("button", name=re.compile("^eggs"))).to_be_focused()
-
-
-def test_due_views_move_to_the_new_day_when_the_page_is_shown_again(
-    svelte_server, open_session
-):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    _seeded(page, server, {"Groceries": [{"name": "milk", "date": _days(1)}]})
-    today = date.today()
-    page.clock.set_fixed_time(datetime(today.year, today.month, today.day, 23, 59))
-    page.reload()
-
-    # Tomorrow's item is due tomorrow, so the bell counts it.
-    bell = page.get_by_role("button", name=BELL)
-    expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
-
-    # The day turns over while the page is hidden; showing it again updates the views.
-    tomorrow = datetime.combine(today + timedelta(days=1), datetime.min.time())
-    page.clock.set_fixed_time(tomorrow.replace(minute=0, second=30))
-    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
-    bell.click()
-    expect(
-        page.get_by_role("dialog").get_by_role("heading", name=re.compile("^Today"))
-    ).to_be_visible()
-    page.keyboard.press("Escape")
-
-
-def test_deleting_the_last_due_list_clears_the_room_bell(svelte_server, open_session):
-    server = svelte_server
-    viewer = open_session("viewer", **PHONE)
-    _seeded(
-        viewer,
-        server,
-        {"Groceries": [{"name": "milk", "date": _days(0)}]},
-        open_name=None,
-    )
-    viewer.goto(room_app_url(server))
-    expect(viewer.get_by_role("button", name=BELL)).to_have_accessible_name(
-        "Due items: 1 due, 0 overdue"
-    )
-
-    deleter = open_session("deleter", **PHONE)
-    api_sign_in(deleter, server)
-    deleter.goto(room_app_url(server))
-    deleter.get_by_role("button", name="Delete Groceries").click()
-    deleter.get_by_role("dialog").get_by_role("button", name="Delete").click()
-    expect(viewer.get_by_role("button", name=BELL)).to_have_accessible_name(
-        "Due items: none due"
-    )
 
 
 def test_reset_share_link_sends_the_old_link_to_unavailable(

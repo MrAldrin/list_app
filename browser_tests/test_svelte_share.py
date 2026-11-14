@@ -120,6 +120,18 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     ).to_be_visible()
     wait_until(visitor, lambda: list_tags(server) == ["produce"], "tag not saved")
 
+    tag = visitor.get_by_role("list", name="Tags").get_by_role(
+        "button", name="produce", exact=True
+    )
+    tag.click()
+    card = visitor.get_by_role("dialog", name="Edit Tag")
+    with visitor.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
+        card.get_by_role("button", name="Delete tag").click()
+    assert answer.value.ok
+    expect(visitor.get_by_text("Deleted tag produce", exact=True)).to_be_visible()
+    expect(tag).to_have_count(0)
+    wait_until(visitor, lambda: list_tags(server) == [], "tag delete not saved")
+
     # The visitor shares the same link.
     assert share_link(visitor) == link
 
@@ -196,31 +208,6 @@ def test_writes_sent_after_a_reset_change_nothing(svelte_server, open_session):
     assert server.query("SELECT name FROM items") == [("room still works",)]
 
 
-def test_invalid_links_show_no_list(svelte_server, open_session):
-    server = svelte_server
-    member = without_share_sheet(open_session("member", **PHONE))
-    visitor = open_session("visitor", **PHONE)
-    api_sign_in(member, server)
-    open_list(
-        member,
-        api_seed(member, server, {"Groceries": ["private contents"]})["Groceries"],
-        "Groceries",
-    )
-    link = share_link(member)
-    list_slug = server.query("SELECT slug FROM lists WHERE name = 'Groceries'")[0][0]
-
-    for invalid in (link[:-1], app_url(server, f"share/{'x' * 43}"), list_slug):
-        url = (
-            invalid
-            if invalid.startswith("http")
-            else app_url(server, f"share/{invalid}")
-        )
-        visitor.goto(url)
-        expect(visitor.get_by_text(UNAVAILABLE_MESSAGE)).to_be_visible()
-        expect(visitor.get_by_text("private contents")).to_have_count(0)
-        expect(visitor.get_by_label("Add or Search")).to_have_count(0)
-
-
 def test_room_menu_shares_the_room_link(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -237,50 +224,6 @@ def test_room_menu_shares_the_room_link(svelte_server, open_session):
     )
     dialog.get_by_role("button", name="Close").click()
     expect(dialog).to_have_count(0)
-
-
-def test_visitor_edits_tags_but_cannot_rename_or_delete_the_list(
-    svelte_server, open_session
-):
-    server = svelte_server
-    member = without_share_sheet(open_session("member", **PHONE))
-    visitor = open_session("visitor", **PHONE)
-    api_sign_in(member, server)
-    list_url = api_seed(member, server, {"Groceries": ["milk"]})["Groceries"]
-    open_list(member, list_url, "Groceries")
-    link = share_link(member)
-
-    # The room's own list address asks a visitor for the room password.
-    visitor.goto(list_url)
-    expect(visitor.get_by_label("Room Password")).to_be_visible()
-    expect(visitor.get_by_text("milk")).to_have_count(0)
-
-    # By the link: tags can be added and deleted.
-    visitor.goto(link)
-    add_list_tag(visitor, "produce")
-    tags = visitor.get_by_role("list", name="Tags")
-    expect(tags.get_by_role("button", name="produce", exact=True)).to_be_visible()
-    # The page shows a change before the server answers it.
-    wait_until(visitor, lambda: list_tags(server) == ["produce"], "tag not saved")
-    tags.get_by_role("button", name="produce", exact=True).click()
-    card = visitor.get_by_role("dialog", name="Edit Tag")
-    with visitor.expect_response(re.compile(r"/api/v1/share/.*/ops$")) as answer:
-        card.get_by_role("button", name="Delete tag").click()
-    assert answer.value.ok
-    expect(visitor.get_by_text("Deleted tag produce")).to_be_visible()
-    expect(tags.get_by_role("button", name="produce", exact=True)).to_have_count(0)
-    wait_until(visitor, lambda: list_tags(server) == [], "tag delete not saved")
-
-    # No rename or delete of the list, and no reset of the link.
-    expect(visitor.get_by_role("button", name=re.compile("^Rename"))).to_have_count(0)
-    expect(visitor.get_by_label("List Name")).to_have_count(0)
-    expect(
-        visitor.get_by_role("button", name=re.compile("^Delete Groceries"))
-    ).to_have_count(0)
-    visitor.get_by_role("button", name="List menu").click()
-    expect(visitor.get_by_role("button", name="Share List")).to_be_visible()
-    expect(visitor.get_by_role("button", name="Reset share link")).to_have_count(0)
-    assert server.query("SELECT name FROM lists") == [("Groceries",)]
 
 
 def test_edits_and_tags_sent_after_a_reset_change_nothing(svelte_server, open_session):

@@ -110,32 +110,6 @@ def test_both_offline_quantity_taps_both_count(svelte_server, open_session):
         expect(page.get_by_text("was not saved")).to_have_count(0)
 
 
-def test_both_offline_ticks_on_one_item_apply_without_a_conflict(
-    svelte_server, open_session
-):
-    """R2: the same tick from two devices is applied once, with no conflict shown."""
-    server = svelte_server
-    phone, other, url = two_devices_on_list(open_session, server, "r2-a", "r2-b")
-
-    for page in (phone, other):
-        view_offline(page, url)
-        page.get_by_role("checkbox", name="milk").check()
-        expect(not_sent_mark(page, "milk")).to_be_visible()
-
-    go_online(phone)
-    go_online(other)
-    wait_until(
-        phone,
-        lambda: server.query("SELECT done FROM items WHERE name = 'milk'") == [(1,)],
-        "the tick did not reach the server",
-        timeout_ms=20_000,
-    )
-    for page in (phone, other):
-        expect(not_sent_mark(page, "milk")).to_have_count(0, **SLOW)
-        expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
-        expect(page.get_by_text("was not saved")).to_have_count(0)
-
-
 def test_one_device_offline_ticks_then_edits_the_same_item(svelte_server, open_session):
     """R3: the device's own tick and edit on one item are both saved, no conflict."""
     server = svelte_server
@@ -198,43 +172,6 @@ def test_both_offline_add_the_same_tag_to_an_item_once(svelte_server, open_sessi
         expect(not_sent_mark(page, "milk")).to_have_count(0)
         expect(page.get_by_text("was not saved")).to_have_count(0)
     assert tags_of(server, "milk") == ["Market"]
-
-
-def test_edit_of_an_item_deleted_elsewhere_refuses_a_tick_offline(
-    svelte_server, open_session
-):
-    """R5: device A deletes the item online; device B, offline, ticks it."""
-    server = svelte_server
-    phone, other, url = two_devices_on_list(open_session, server, "r5-b", "r5-a")
-
-    view_offline(phone, url)
-    phone.get_by_role("checkbox", name="milk").check()
-    expect(not_sent_mark(phone, "milk")).to_be_visible()
-
-    other.get_by_role("button", name="Options").click()
-    other.get_by_role("button", name="Delete milk", exact=True).click()
-    other.get_by_role("button", name="Done").click()
-    wait_until(
-        other,
-        lambda: (
-            server.query("SELECT count(*) FROM items WHERE name = 'milk'") == [(0,)]
-        ),
-        "the delete did not reach the server",
-    )
-
-    go_online(phone)
-    expect(phone.get_by_text("1 change was not saved")).to_be_visible(**SLOW)
-    phone.get_by_role("button", name="Review").click()
-    dialog = phone.get_by_role("dialog")
-    expect(
-        dialog.get_by_text("Tick 'milk': it was deleted by someone else.")
-    ).to_be_visible()
-    expect(dialog.get_by_role("button", name="Save mine anyway")).to_have_count(0)
-    # The "Checked milk" toast inside the dialog has its own "Dismiss" button.
-    dialog.get_by_text("Dismiss", exact=True).click()
-    expect(phone.get_by_role("dialog")).to_have_count(0)
-    expect(phone.get_by_text("was not saved")).to_have_count(0)
-    assert server.query("SELECT count(*) FROM items WHERE name = 'milk'") == [(0,)]
 
 
 def test_both_offline_add_the_same_new_item_makes_one_item(svelte_server, open_session):

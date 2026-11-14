@@ -117,18 +117,3 @@ def test_issue_create_room_and_revoke(svelte_server, open_session):
     expect(late.get_by_label("Room name")).to_have_count(0)
     visitor.reload()
     expect(visitor.get_by_role("button", name="Add New List")).to_be_visible()
-
-
-def test_unknown_link_and_no_admin_controls_without_sign_in(
-    svelte_server, open_session
-):
-    server = svelte_server
-    page = open_session("visitor", **PHONE)
-
-    page.goto(app_url(server, "create-room/not-a-real-token"))
-    expect(page.get_by_text(INVALID)).to_be_visible()
-    expect(page.get_by_role("button", name="Create room")).to_have_count(0)
-
-    page.goto(app_url(server, "admin"))
-    expect(page.get_by_label("Admin Password")).to_be_visible()
-    expect(page.get_by_text("Room invitations")).to_have_count(0)

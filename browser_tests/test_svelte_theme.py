@@ -45,6 +45,13 @@ def test_theme_follows_the_system_until_toggled(svelte_server, open_session):
     expect_theme(page, "dark")
     assert saved(page) is None
 
+    page.emulate_media(color_scheme="light")
+    expect_theme(page, "light")
+    assert saved(page) is None
+    page.emulate_media(color_scheme="dark")
+    expect_theme(page, "dark")
+    assert saved(page) is None
+
     toggle(page).click()
     expect_theme(page, "light")
     assert saved(page) == "light"
@@ -92,16 +99,6 @@ def test_theme_follows_the_system_until_toggled(svelte_server, open_session):
     # A saved choice wins over the system.
     page.emulate_media(color_scheme="light")
     expect_theme(page, "dark")
-
-
-def test_system_changes_apply_while_nothing_is_saved(svelte_server, open_session):
-    page = open_session("phone", **PHONE, color_scheme="light")
-    page.goto(app_url(svelte_server))
-    expect_theme(page, "light")
-
-    page.emulate_media(color_scheme="dark")
-    expect_theme(page, "dark")
-    assert saved(page) is None
 
 
 def test_other_browsers_keep_their_own_choice(svelte_server, open_session):

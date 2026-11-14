@@ -4,7 +4,15 @@ import re
 
 import pytest
 from playwright.sync_api import expect
-from svelte_app import PHONE, add_item, create_list, room_app_url, share_link, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    api_seed,
+    create_list,
+    room_app_url,
+    share_link,
+    sign_in,
+)
 from test_svelte_due_center import BELL, _days, _set_date
 from test_svelte_share import without_share_sheet
 
@@ -42,6 +50,7 @@ def test_phone_bell_rows_and_hidden_settings(svelte_server, open_session, theme)
     expect(dialog.get_by_label("Due time (optional)")).to_have_value("09:00")
     dialog.get_by_role("button", name="Cancel").click()
     link = share_link(page)
+    api_seed(page, svelte_server, {"Chores": [{"name": "dishes", "date": _days(0)}]})
 
     page.goto(room_app_url(svelte_server))
     bell = page.get_by_role("button", name=BELL)
@@ -93,9 +102,13 @@ def test_phone_bell_rows_and_hidden_settings(svelte_server, open_session, theme)
     visitor.goto(link)
     expect(visitor.get_by_role("heading", name="Groceries")).to_be_visible()
     expect(visitor.get_by_role("button", name="Room menu")).to_have_count(0)
-    visitor.get_by_role("button", name=BELL).click()
+    guest_bell = visitor.get_by_role("button", name=BELL)
+    expect(guest_bell).to_have_accessible_name("Due items: 1 due, 1 overdue")
+    guest_bell.click()
     shared = visitor.get_by_role("dialog", name="Due items")
     expect(shared.locator(".due-row", has_text=name)).to_be_visible()
+    expect(shared.get_by_role("link", name=re.compile("^dishes"))).to_have_count(0)
+    expect(shared.get_by_role("button", name="Whole room")).to_have_count(0)
     expect(
         shared.get_by_role(
             "button", name=re.compile("reminder (settings|policy)", re.I)

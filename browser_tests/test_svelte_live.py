@@ -224,5 +224,11 @@ def test_tag_deleted_elsewhere_stops_filtering(svelte_server, open_session):
     phone_b.get_by_role("dialog", name="Edit Tag").get_by_role(
         "button", name="Delete tag"
     ).click()
+    deleted = phone_b.locator(".toast", has_text="Deleted tag Lidl")
+    expect(deleted).to_be_visible()
     expect(chips.get_by_role("button", name="Lidl", exact=True)).to_have_count(0)
     expect(item_names(phone_a)).to_have_text(["bread", "milk"])
+    deleted.get_by_role("button", name="Undo").click()
+    expect(phone_b.get_by_text("Restored tag Lidl", exact=True)).to_be_visible()
+    expect(phone_b.get_by_role("button", name="Lidl tag for milk")).to_be_visible()
+    expect(chips.get_by_role("button", name="Lidl", exact=True)).to_be_visible()
