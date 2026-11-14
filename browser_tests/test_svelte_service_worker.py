@@ -196,6 +196,7 @@ def _wait_for_waiting_worker(page) -> None:
 
 @pytest.mark.all_engines
 @pytest.mark.own_server
+@pytest.mark.tier_core
 def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     svelte_server, open_session
 ):
@@ -248,6 +249,7 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     )
 
 
+@pytest.mark.tier_core
 def test_real_build_swap_waits_for_a_stored_room_change(
     built_app_server, open_session, tmp_path
 ):

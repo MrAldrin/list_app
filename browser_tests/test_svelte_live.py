@@ -23,6 +23,7 @@ from svelte_app import (
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_two_phones_see_each_others_changes(svelte_server, open_session):
     server = svelte_server
     phone_a = open_session("phone-a", **PHONE)
@@ -129,6 +130,7 @@ def test_list_deleted_while_open(svelte_server, open_session):
     expect(viewer.get_by_text("No lists yet. Create your first one!")).to_be_visible()
 
 
+@pytest.mark.tier_core
 def test_password_change_revokes_open_pages(svelte_server, open_session):
     server = svelte_server
     room_page = open_session("room-page", **PHONE)

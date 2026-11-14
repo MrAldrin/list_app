@@ -99,6 +99,7 @@ def test_typing_during_an_online_revalidation_does_not_filter(
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes(
     svelte_server, open_session
 ):
@@ -149,6 +150,7 @@ def test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes(
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_revoked_password_clears_saved_room_on_reconnect(svelte_server, open_session):
     server = svelte_server
     page, url = member_with_list(open_session, server, "revoked")
@@ -175,6 +177,7 @@ def test_revoked_password_clears_saved_room_on_reconnect(svelte_server, open_ses
     expect(saved_notice(page)).to_have_count(0)
 
 
+@pytest.mark.tier_core
 def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_session):
     server = svelte_server
     page, list_url = member_with_list(open_session, server, "share-viewer")
@@ -295,6 +298,7 @@ def test_server_errors_without_a_snapshot_do_not_say_connect(
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_losing_the_network_keeps_the_open_page_editable_then_back(
     svelte_server, open_session
 ):

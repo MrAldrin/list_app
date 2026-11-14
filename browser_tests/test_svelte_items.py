@@ -23,6 +23,7 @@ from item_names import item_name_key
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_suggestion_keyboard_tab_and_touch_selection(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -274,6 +275,7 @@ def test_offline_unicode_add_is_removed_after_server_rejection(
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)

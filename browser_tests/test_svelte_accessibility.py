@@ -81,6 +81,7 @@ def test_admin_controls_have_names(svelte_server, open_session):
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_focus_returns_to_the_opener_after_a_dialog(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)

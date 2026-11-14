@@ -2,6 +2,7 @@
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, add_item, create_list, item_names, sign_in
 
@@ -26,6 +27,7 @@ def _answer_with_version(version: str):
     return handler
 
 
+@pytest.mark.tier_core
 def test_new_server_version_blocks_writes_until_reload(svelte_server, open_session):
     server = svelte_server
     page = open_session("compat", **PHONE)

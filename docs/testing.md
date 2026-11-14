@@ -23,7 +23,14 @@ The [scope](scope.md#risk-level) owns release risk and acceptance rules.
   [Android guide](android-emulator-testing.md).
 
 Run affected tests while editing. Run the required completion checks before
-reporting a change as verified. Some Python route tests need a frontend build;
+reporting a change as verified. For daily feedback, run
+`uv run python scripts/run_test_tier.py fast`, then
+`uv run python scripts/run_test_tier.py core`. Core includes smoke; do not run
+smoke again for the same feedback check. Also run affected non-core browser
+journeys when changing those features. This does not change the
+[deployment checks](deployment.md#deployment-checklist).
+
+Some Python route tests need a frontend build;
 without it, they skip. Build first when checking those routes. Do not replace a
 required engine or device check with a faster layer. Use only disposable
 databases and test credentials.

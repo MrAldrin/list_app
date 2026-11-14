@@ -23,6 +23,7 @@ def open_settings(page):
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.tier_core
 def test_enrollment_settings_and_offline_draft(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)
@@ -264,6 +265,7 @@ def test_expired_device_identity_preserves_draft_and_requires_enrollment(
 @pytest.mark.skip(
     reason="P2: re-enable in S3 (plans/batches/reminders-s3.md#deferred-polish-from-p2)"
 )
+@pytest.mark.tier_core
 def test_revoked_grant_needs_explicit_resume(svelte_server, open_session):
     page = open_session("owner", **PHONE)
     sign_in(page, svelte_server)

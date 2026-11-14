@@ -45,6 +45,7 @@ def assert_tap_height(name: str, locator: Locator) -> None:
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_list_page_tap_areas_are_44px_tall(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

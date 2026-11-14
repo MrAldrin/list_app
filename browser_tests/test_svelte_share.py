@@ -83,6 +83,7 @@ def test_repeated_resets_each_confirm_and_rotate_the_link(svelte_server, open_se
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     svelte_server, open_session
 ):
@@ -151,6 +152,7 @@ def test_visitor_views_and_edits_by_link_and_reset_stops_it(
     expect(visitor.get_by_role("link", name="Groceries")).to_have_count(0)
 
 
+@pytest.mark.tier_core
 def test_writes_sent_after_a_reset_change_nothing(svelte_server, open_session):
     server = svelte_server
     member = without_share_sheet(open_session("member", **PHONE))
@@ -377,6 +379,7 @@ def test_a_room_member_gets_the_way_back_and_can_reset_on_the_share_page(
     ]
 
 
+@pytest.mark.tier_core
 def test_without_room_access_the_share_page_reveals_nothing_about_the_room(
     svelte_server, open_session
 ):

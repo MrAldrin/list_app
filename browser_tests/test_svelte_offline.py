@@ -57,6 +57,7 @@ def controlled_page(page: Page, url: str) -> tuple[Page, dict[str, bool]]:
 
 @pytest.mark.all_engines
 @pytest.mark.own_server
+@pytest.mark.tier_core
 def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
     svelte_server, open_session
 ):
@@ -204,6 +205,7 @@ def test_saved_room_and_share_views_edit_offline_except_online_only_actions(
 
 
 @pytest.mark.own_server
+@pytest.mark.tier_core
 def test_offline_logout_clears_room_but_keeps_share_and_marker(
     svelte_server, open_session
 ):
@@ -351,6 +353,7 @@ def test_saved_view_notice_does_not_flash_online(svelte_server, open_session):
 
 @pytest.mark.all_engines
 @pytest.mark.own_server
+@pytest.mark.tier_core
 def test_offline_edits_survive_a_reload_and_reach_the_server(
     svelte_server, open_session
 ):

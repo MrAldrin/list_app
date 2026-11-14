@@ -19,6 +19,7 @@ from conftest import wait_for_api_idle
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_start_page_login_and_remembered_room(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -163,6 +164,7 @@ def test_logout_shows_the_prompt_before_the_server_answers_and_retries(
 @pytest.mark.parametrize(
     "server_signs_out", [False, True], ids=["not_sent", "delivered"]
 )
+@pytest.mark.tier_core
 def test_reload_during_logout_hides_the_room_and_retries(
     svelte_server, open_session, server_signs_out
 ):

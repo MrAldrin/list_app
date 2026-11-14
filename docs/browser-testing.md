@@ -78,6 +78,7 @@ replace the required checks in `AGENTS.md`.
 | `frontend` | All Vitest tests |
 | `fast` | Python, then frontend; a feedback tier, not a per-test speed promise |
 | `smoke` | Four critical browser journeys on Chromium |
+| `core` | Approved daily browser journeys, including smoke, on Chromium with six workers |
 | `browser` | All browser tests on Chromium |
 | `cross-engine` | Only the Firefox and WebKit cases of the [all-engine tests](#engine-selection) |
 | `affected-browser browser_tests/test_svelte_items.py` | Explicit paths or node IDs, Chromium plus engine-independent cases |
@@ -95,13 +96,15 @@ change the existing pytest suite counts.
 Android remains a separate relevant-device run in the
 [Android guide](android-emulator-testing.md); `full` does not run the emulator.
 
-The runner takes the machine-wide browser lock for browser commands:
-`/home/hsa/.local/state/night-loop/list_app/browser.lock`. Do not wrap the runner
-in the same lock. For direct pytest browser commands (including collection),
-prefix the command with `flock` and this lock path; do the same for Android.
-Run only one browser suite
-at a time. Install the existing frontend dependencies and browser binaries first;
-see setup above and the [Android guide](android-emulator-testing.md).
+The runner takes two browser locks, in this order:
+`/home/hsa/.local/state/night-loop/browser.lock` (machine-wide), then
+`/home/hsa/.local/state/night-loop/list_app/browser.lock` (legacy).
+Do not wrap the runner in either lock: taking the same lock twice hangs.
+For direct pytest browser commands (including collection), prefix the command
+with `flock <machine-wide-path> flock <legacy-path>`; do the same for Android.
+Run only one browser suite at a time. Install the existing frontend dependencies
+and browser binaries first; see setup above and the
+[Android guide](android-emulator-testing.md).
 
 Pytest labels are additive; default collection, assertions, engine parameters
 and existing skips stay unchanged. `tier_fast` labels `tests/`, `tier_full`
@@ -111,6 +114,16 @@ labels all collected pytest cases, and `tier_smoke` labels these exact bodies:
 - `test_visitor_views_and_edits_by_link_and_reset_stops_it`
 - `test_reconnect_needs_validation_and_feed_then_shows_other_devices_changes`
 - `test_bell_counts_overdue_and_today_and_groups_the_panel`
+
+`tier_core` is an explicit per-function marker. It selects the 31 approved
+functions, including three reminder journeys that remain paused until S3.
+The exact membership contract is `CORE_FUNCTIONS` in
+`scripts/check_test_tiers.py`. The self-check
+rejects membership drift and verifies smoke inclusion, engine selection,
+collection parity and failure propagation. Core is a smaller daily check, not
+full-browser coverage. Tests outside core still run in `browser`, `cross-engine`
+and `full`, with their existing engine markers and skips. Recheck the time
+budget before enabling the paused journeys.
 
 Smoke collection must include all four bodies on Chromium. The smoke bodies
 also keep the all-engines marker, so `cross-engine` and `full` run them on

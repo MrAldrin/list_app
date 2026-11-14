@@ -56,6 +56,7 @@ def _set_date(page, name: str, day: str) -> None:
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_bell_counts_overdue_and_today_and_groups_the_panel(
     svelte_server, open_session
 ):
@@ -280,6 +281,7 @@ def test_live_changes_update_the_open_panel_without_moving_focus(
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_bell_opens_and_closes_from_the_keyboard(svelte_server, open_session):
     server = svelte_server
     page = open_session("phone", **PHONE)
@@ -374,6 +376,7 @@ def test_reset_share_link_sends_the_old_link_to_unavailable(
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_timed_due_requires_zone_and_shows_server_confirmation(
     svelte_server, open_session
 ):

@@ -7,6 +7,7 @@ for its password. The room menu (⋮) has no Rooms list.
 import hashlib
 import re
 
+import pytest
 from playwright.sync_api import expect
 from svelte_app import PHONE, admin_sign_in, app_url, room_app_url, sign_in
 
@@ -76,6 +77,7 @@ def test_room_menu_switches_between_remembered_rooms(svelte_server, open_session
     expect(page.get_by_role("heading", name="Cabin")).to_be_visible()
 
 
+@pytest.mark.tier_core
 def test_switching_to_a_room_without_access_asks_for_its_password(
     svelte_server, open_session
 ):

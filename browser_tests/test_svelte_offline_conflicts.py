@@ -62,6 +62,7 @@ def make_first_queue_entry_old(page, room_slug: str) -> None:
 
 
 @pytest.mark.all_engines
+@pytest.mark.tier_core
 def test_refused_tick_is_listed_and_save_mine_anyway_applies(
     svelte_server, open_session
 ):
@@ -164,6 +165,7 @@ def test_edit_of_an_item_another_device_deleted_is_listed_and_dismissed(
     expect(phone.get_by_text("was not saved")).to_have_count(0)
 
 
+@pytest.mark.tier_core
 def test_access_gone_keeps_the_change_until_sign_in_sends_it(
     svelte_server, open_session
 ):
@@ -238,6 +240,7 @@ def test_unsent_marks_and_connection_hints_while_offline(svelte_server, open_ses
     )
 
 
+@pytest.mark.tier_core
 def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
     server = svelte_server
     phone, url = member_with_list(open_session, server, "phone-e")

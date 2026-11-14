@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MACHINE_BROWSER_LOCK = Path("/home/hsa/.local/state/night-loop/browser.lock")
 BROWSER_LOCK = Path("/home/hsa/.local/state/night-loop/list_app/browser.lock")
 # Measured limits for this machine; see docs/browser-testing.md.
 MIXED_ENGINE_WORKERS = 4
@@ -33,6 +34,8 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
         workers = CHROMIUM_WORKERS if chromium_only else MIXED_ENGINE_WORKERS
         return [
             "flock",
+            str(MACHINE_BROWSER_LOCK),
+            "flock",
             str(BROWSER_LOCK),
             *pytest,
             *selection,
@@ -51,6 +54,8 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
             return [python(), frontend()]
         case "smoke":
             return [browser(["browser_tests"], ["-m", "tier_smoke", *CHROMIUM])]
+        case "core":
+            return [browser(["browser_tests"], ["-m", "tier_core", *CHROMIUM])]
         case "browser":
             return [browser(["browser_tests"], CHROMIUM)]
         case "cross-engine":
@@ -84,6 +89,7 @@ def main() -> int:
             "frontend",
             "fast",
             "smoke",
+            "core",
             "browser",
             "cross-engine",
             "affected-browser",

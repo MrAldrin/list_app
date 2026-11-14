@@ -168,6 +168,7 @@ def test_device_zone_updates_due_views_without_reload(svelte_server, open_sessio
     expect(page.locator(".row", has_text="milk")).to_contain_text("Today")
 
 
+@pytest.mark.tier_core
 def test_two_installations_and_share_link_do_not_leak_policy(
     svelte_server, open_session
 ):

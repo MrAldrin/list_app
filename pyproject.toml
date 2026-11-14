@@ -31,6 +31,7 @@ addopts = "-n 8"
 markers = [
     "tier_fast: Python feedback suite (not a measured per-test speed promise)",
     "tier_smoke: four critical browser journeys on every existing engine",
+    "tier_core: approved daily browser journeys, including smoke; not a deploy gate",
     "tier_full: every collected pytest case, including Android when requested",
     "layer_python: Python tests",
     "layer_api: API tests",
