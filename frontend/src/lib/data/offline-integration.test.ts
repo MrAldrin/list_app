@@ -999,6 +999,92 @@ describe('standalone sign-out paths', () => {
 });
 
 describe('reconnect write gate', () => {
+	it('failed revalidation preserves saved editable items for NetworkError and ApiError(503)', async () => {
+		const storage = snapshots();
+		const savedList = makeList();
+		const milk = makeItem(savedList.uid);
+		const bread = makeItem(savedList.uid, { name: 'bread' });
+		const initial = makeFeed({ seq: 5, full: true, lists: [savedList], items: [milk, bread] });
+		const seedApi = fakeApi(async () => initial);
+		const seed = handle(seedApi, storage);
+		await waitFor(() => expect(seed.store.canWrite).toBe(true));
+		await waitFor(() => expect(seed.store.savedAt).toBeTruthy());
+		seed.release();
+		const connectivity = fakeConnectivity();
+		const queue = createQueueStorage(`room:${ROOM.slug}`, { indexedDB: new IDBFactory() });
+		const api = fakeApi();
+		api.whoAmI.mockRejectedValue(new NetworkError());
+		const room = handle(api, storage, {
+			hydrateSavedView: true,
+			connectivity: connectivity.target,
+			queueStorage: queue
+		});
+		try {
+			await waitFor(() => expect(room.store.unreachable).toBe(true));
+			expect(room.store.status).toBe('ready');
+			expect(room.store.itemsOf(savedList.uid)).toEqual([bread, milk]);
+			expect(room.store.canEdit).toBe(true);
+			expect(room.store.canWrite).toBe(false);
+			expect(await room.setDone(milk, true)).toEqual({ ok: true, result: {} });
+			await waitFor(async () => expect(await queue.read()).toHaveLength(1));
+			const queued = room.queuedOps[0];
+			expect(queued).toMatchObject({
+				type: 'item.set_done',
+				list_uid: savedList.uid,
+				item_uid: milk.uid,
+				done: true
+			});
+			const calls = api.whoAmI.mock.calls.length;
+			api.whoAmI.mockRejectedValue(new ApiError(503, 'unavailable', 'Try later.'));
+			connectivity.emit('online');
+			await waitFor(() => expect(api.whoAmI).toHaveBeenCalledTimes(calls + 1));
+			await waitFor(() => expect(room.store.error).toBe('Try later.'));
+			expect(room.store.canEdit).toBe(true);
+			expect(room.store.canWrite).toBe(false);
+			expect(room.store.itemsOf(savedList.uid)).toEqual(
+				[bread, { ...milk, done: true }].map((item) =>
+					expect.objectContaining({ uid: item.uid, name: item.name, done: item.done })
+				)
+			);
+			expect(await storage.read({ kind: 'room', slug: ROOM.slug })).toMatchObject({
+				ok: true,
+				value: { seq: 5, lists: [savedList], items: [milk, bread] }
+			});
+			expect(room.queuedOps).toEqual([queued]);
+			expect(api.sendOp).not.toHaveBeenCalled();
+			expect(api.changes).not.toHaveBeenCalled();
+
+			const feedAnswer = deferred<Feed>();
+			api.whoAmI.mockResolvedValue(ROOM);
+			api.changes.mockReturnValueOnce(feedAnswer.promise).mockResolvedValue(
+				makeFeed({
+					seq: 7,
+					full: true,
+					lists: [savedList],
+					items: [
+						{ ...milk, done: true, completed_at: '2026-11-02T12:00:00Z', changed_seq: 7 },
+						bread
+					]
+				})
+			);
+			api.sendOp.mockImplementation(async (_slug, op) => applied(op, 7, { changed_seq: 7 }));
+			connectivity.emit('online');
+			await waitFor(() => expect(api.changes).toHaveBeenCalledTimes(1));
+			expect(api.sendOp).not.toHaveBeenCalled();
+			expect(room.store.canWrite).toBe(false);
+			feedAnswer.resolve({ ...initial, seq: 6 });
+			await waitFor(() => expect(room.store.pendingOps).toEqual([]));
+			await waitFor(() => expect(room.store.canWrite).toBe(true));
+			expect(api.sendOp).toHaveBeenCalledExactlyOnceWith(ROOM.slug, queued);
+			expect(room.store.item(milk.uid)).toMatchObject({ name: 'milk', done: true, changed_seq: 7 });
+			expect(room.store.item(bread.uid)).toEqual(bread);
+			expect(await queue.read()).toEqual([]);
+			expect(room.store.error).toBeNull();
+		} finally {
+			room.release();
+			storage.close();
+		}
+	});
 	it('treats offline/online signals as hints and waits for successful access plus feed', async () => {
 		const storage = snapshots();
 		const api = fakeApi();

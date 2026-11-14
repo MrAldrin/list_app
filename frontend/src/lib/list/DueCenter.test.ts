@@ -10,7 +10,7 @@ import { readyRoom } from '#lib/test-support/room-fixture.ts';
 import { button, click } from '#lib/test-support/dom.ts';
 import { ReminderApi } from '#lib/reminders/api.ts';
 import RoomPage from '../../routes/room/[slug]/+page.svelte';
-import { advanceDueClock, dueClock } from './due-clock.svelte.ts';
+import { advanceDueClock, dueClock, startDueClock } from './due-clock.svelte.ts';
 
 const reminderSettings = vi.hoisted(() => ({ enabled: false }));
 vi.mock('#lib/reminders/personal-reminders.ts', () => ({
@@ -190,6 +190,42 @@ it.each(['room', 'list'] as const)(
 		}
 	}
 );
+
+it('visibility day rollover rerenders Today', async () => {
+	const previousNow = dueClock.now;
+	vi.setSystemTime(new Date('2026-11-02T22:59:00Z'));
+	const stop = startDueClock();
+	const list = makeList();
+	const fixture = await readyRoom(
+		makeFeed({
+			full: true,
+			lists: [list],
+			items: [makeItem(list.uid, { date: '2026-11-03' })]
+		})
+	);
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(DueCenter, { target, props: { room: fixture.room, listUid: list.uid } });
+	try {
+		flushSync();
+		click(target, 'Due items: 1 due, 0 overdue');
+		expect(target.querySelector('dialog h3')?.textContent?.trim()).toBe('Tomorrow (1)');
+		vi.setSystemTime(new Date('2026-11-02T23:00:30Z'));
+		document.dispatchEvent(new Event('visibilitychange'));
+		flushSync();
+		expect(target.querySelector('dialog h3')?.textContent?.trim()).toBe('Today (1)');
+		expect(button(target, 'Due items: 1 due, 0 overdue')).toBeDefined();
+		expect(target.querySelector('dialog .due-row .name')?.textContent).toBe('milk');
+		expect(target.querySelector('dialog .tag')?.textContent).toBe('Today');
+	} finally {
+		await unmount(component);
+		stop();
+		fixture.room.release();
+		target.remove();
+		vi.useRealTimers();
+		advanceDueClock(previousNow);
+	}
+});
 
 it('last dated list deletion clears room bell', async () => {
 	const previousNow = dueClock.now;

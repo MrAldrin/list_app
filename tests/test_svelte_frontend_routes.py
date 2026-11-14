@@ -44,6 +44,12 @@ def test_root_returns_the_page_and_never_stores_it(client):
     assert_index(client.get("/"), "no-store")
 
 
+def test_root_sets_same_origin_referrer_policy(client: TestClient) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.headers["referrer-policy"] == "same-origin"
+
+
 def test_page_says_links_to_other_sites_get_no_referrer(client):
     # Share and invitation addresses must not leak. Not "no-referrer": that
     # would also blank the Origin of the app's own API writes.

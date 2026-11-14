@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
+import { page } from '$app/state';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Item, RoomHandle } from '#lib/data/index.ts';
 import { createRoomStore } from '#lib/data/room-store.svelte.ts';
@@ -23,6 +24,8 @@ import { readyShare } from '#lib/test-support/share-fixture.ts';
 import SavedViewNotice from '#lib/ui/SavedViewNotice.svelte';
 import { IDBFactory } from 'fake-indexeddb';
 import { createSnapshotStore } from '#lib/data/snapshot-store.ts';
+import { ApiError, NetworkError } from '#lib/data/index.ts';
+import { advanceDueClock, dueClock } from './due-clock.svelte.ts';
 
 const reminderSettings = vi.hoisted(() => ({ enabled: false }));
 vi.mock('#lib/reminders/personal-reminders.ts', () => ({
@@ -35,9 +38,13 @@ afterEach(() => {
 	for (const toast of toasts.items) toasts.dismiss(toast.id);
 	localStorage.clear();
 	reminderSettings.enabled = false;
+	Object.assign(page, { url: new URL('http://localhost/list/test') });
 });
 
-vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/list/test') } }));
+vi.mock('$app/state', async () => {
+	const { reactive } = await import('#lib/test-support/reactive.svelte.ts');
+	return { page: reactive({ url: new URL('http://localhost/list/test') }) };
+});
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 it('tag filters undo duplicates and hide-all render together with real store updates and fresh-feed remount', async () => {
@@ -802,6 +809,416 @@ it.each([
 		);
 	} finally {
 		await unmount(component);
+		target.remove();
+	}
+});
+
+it('startup with loaded due data does not emit a due toast', async () => {
+	const previousNow = dueClock.now;
+	vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));
+	advanceDueClock(new Date());
+	const list = makeList();
+	const feed = makeFeed({
+		full: true,
+		lists: [list],
+		items: [makeItem(list.uid, { date: '2026-11-02' })]
+	});
+	const fixture = await readyRoom(feed);
+	const show = vi.spyOn(toasts, 'show');
+	const target = document.createElement('div');
+	document.body.append(target);
+	let component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	try {
+		flushSync();
+		await tick();
+		expect(button(target, 'Due items: 1 due, 0 overdue')).toBeDefined();
+		await fixture.refresh({ ...feed, seq: 2 });
+		flushSync();
+		await tick();
+		await unmount(component);
+		component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+		flushSync();
+		await tick();
+		expect(button(target, 'Due items: 1 due, 0 overdue')).toBeDefined();
+		expect(show).not.toHaveBeenCalled();
+		expect(toasts.items).toEqual([]);
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+		show.mockRestore();
+		vi.useRealTimers();
+		advanceDueClock(previousNow);
+	}
+});
+
+it('missing reveal UID shows no-longer-on-list status', async () => {
+	const list = makeList();
+	const milk = makeItem(list.uid);
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	try {
+		flushSync();
+		expect(target.querySelector('[role="status"]')).toBeNull();
+		Object.assign(page, { url: new URL('http://localhost/list/test?item=no-such-item&at=1') });
+		flushSync();
+		expect(target.querySelector('[role="status"]')?.textContent?.trim()).toBe(
+			'That item is no longer on this list. Its date may have changed, or it was deleted.'
+		);
+		expect(rowNames(target)).toEqual(['milk']);
+		expect(fixture.api.sendOp).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it('failed saved-view revalidation keeps notice and Add enabled', async () => {
+	const list = makeList();
+	const items = ['bread', 'milk'].map((name) => makeItem(list.uid, { name }));
+	const snapshots = createSnapshotStore({ indexedDB: new IDBFactory(), channel: null });
+	const connectivity = new EventTarget();
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items }), {
+		snapshotStore: snapshots,
+		online: connectivity
+	});
+	await waitFor(() => expect(fixture.room.store.savedAt).toBeTruthy());
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const notice = mount(SavedViewNotice, { target, props: { room: fixture.room } });
+	try {
+		for (const failure of [new NetworkError(), new ApiError(503, 'unavailable', 'Try later.')]) {
+			const calls = fixture.api.whoAmI.mock.calls.length;
+			fixture.api.whoAmI.mockRejectedValue(failure);
+			connectivity.dispatchEvent(new Event('online'));
+			await waitFor(() => expect(fixture.api.whoAmI).toHaveBeenCalledTimes(calls + 1));
+			await waitFor(() => expect(fixture.room.store.error).toBe(failure.message));
+			flushSync();
+			expect(rowNames(target)).toEqual(['bread', 'milk']);
+			expect(target.querySelector('.saved-notice')?.textContent).toBe(
+				'Offline — changes are saved on this phone.'
+			);
+			expect(button(target, 'Add').disabled).toBe(false);
+			expect(fixture.room.store.canWrite).toBe(false);
+			expect(fixture.api.sendOp).not.toHaveBeenCalled();
+		}
+		fixture.api.whoAmI.mockResolvedValue(ROOM);
+		connectivity.dispatchEvent(new Event('online'));
+		await waitFor(() => expect(fixture.room.store.canWrite).toBe(true));
+		flushSync();
+		expect(rowNames(target)).toEqual(['bread', 'milk']);
+		expect(target.querySelector('.saved-notice')).toBeNull();
+		expect(button(target, 'Add').disabled).toBe(false);
+	} finally {
+		await unmount(notice);
+		await unmount(component);
+		fixture.room.release();
+		snapshots.close();
+		target.remove();
+	}
+});
+
+it('loads shared show_on_items false into rows and Tags switch from a fresh full feed', async () => {
+	let list = makeList({ tags: ['Lidl'] });
+	const milk = makeItem(list.uid, { tags: ['Lidl'] });
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		expect(op).toMatchObject({
+			type: 'list.tag_settings',
+			list_uid: list.uid,
+			show_on_items: false
+		});
+		list = {
+			...list,
+			changed_seq: 2,
+			tag_settings: { ...list.tag_settings, show_on_items: false }
+		};
+		fixture.setFeed(makeFeed({ seq: 2, full: true, lists: [list], items: [milk] }));
+		return applied(op, 2);
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	let component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	let fresh: Awaited<ReturnType<typeof readyRoom>> | undefined;
+	const showTags = () =>
+		[...target.querySelectorAll('label')]
+			.find((label) => label.textContent?.trim() === 'Show tags on items')!
+			.querySelector('input')!;
+	try {
+		flushSync();
+		expect(button(target, 'Lidl tag for milk')).toBeDefined();
+		click(target, 'Options');
+		click(target, 'Tags');
+		expect(showTags().checked).toBe(true);
+		showTags().click();
+		await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+		flushSync();
+		expect(showTags().checked).toBe(false);
+		click(target.querySelector('dialog')!, 'Close');
+		expect(target.querySelector('[aria-label="Lidl tag for milk"]')).toBeNull();
+		expect(fixture.api.sendOp).toHaveBeenCalledTimes(1);
+		await unmount(component);
+		fixture.room.release();
+		fresh = await readyRoom(makeFeed({ seq: 2, full: true, lists: [list], items: [milk] }));
+		component = mount(ListHarness, { target, props: { room: fresh.room, uid: list.uid } });
+		flushSync();
+		expect(target.querySelector('[aria-label="Lidl tag for milk"]')).toBeNull();
+		click(target, 'Options');
+		click(target, 'Tags');
+		expect(showTags().checked).toBe(false);
+		expect(fresh.api.sendOp).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		fresh?.room.release();
+		target.remove();
+	}
+});
+
+it('dialog count refreshes on check and uncheck and stays off rows', async () => {
+	const list = makeList();
+	let milk = makeItem(list.uid, { added_at: '2026-11-02T12:34:00Z' });
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
+	let seq = 1;
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		expect(op.type).toBe('item.set_done');
+		if (op.type !== 'item.set_done') throw new Error(`Unexpected ${op.type}`);
+		seq += 1;
+		milk = {
+			...milk,
+			changed_seq: seq,
+			done: op.done,
+			completed_at: op.done ? '2026-11-02T13:00:00Z' : null,
+			add_count: op.done ? 1 : 2,
+			added_at: op.done ? milk.added_at : '2026-11-02T14:56:00Z'
+		};
+		fixture.setFeed(makeFeed({ seq, full: true, lists: [list], items: [milk] }));
+		return applied(op, seq, { changed_seq: seq });
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const open = () => {
+		(target.querySelector('button.name') as HTMLButtonElement).click();
+		flushSync();
+	};
+	try {
+		flushSync();
+		for (const [step, count] of [
+			[0, 'Added once'],
+			[1, 'Added once'],
+			[2, 'Added 2 times']
+		] as const) {
+			if (step > 0) {
+				(target.querySelector('input[aria-label="milk"]') as HTMLInputElement).click();
+				await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+				flushSync();
+			}
+			open();
+			expect(target.querySelector('dialog')?.textContent).toContain(count);
+			expect(target.querySelector('dialog')?.textContent).toMatch(
+				/Last added \d{4}-\d{2}-\d{2} \d{2}:\d{2}/
+			);
+			click(target.querySelector('dialog')!, 'Cancel');
+			expect(target.querySelector('dialog')).toBeNull();
+			expect(target.querySelector('ul.items')?.textContent).not.toMatch(
+				/Added once|Added \d+ times|Last added/
+			);
+		}
+		expect(fixture.api.sendOp.mock.calls.map(([, op]) => op)).toEqual([
+			expect.objectContaining({ type: 'item.set_done', item_uid: milk.uid, done: true }),
+			expect.objectContaining({ type: 'item.set_done', item_uid: milk.uid, done: false })
+		]);
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it('single-tag confirmation cancels or keeps first tags through TagsDialog and parent updates', async () => {
+	let list = makeList({ tags: ['Lidl', 'Market'] });
+	let milk = makeItem(list.uid, { tags: ['Lidl', 'Market'] });
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		expect(op).toMatchObject({ type: 'list.tag_settings', list_uid: list.uid, mode: 'single' });
+		list = { ...list, changed_seq: 2, tag_settings: { ...list.tag_settings, mode: 'single' } };
+		milk = { ...milk, changed_seq: 2, tags: ['Lidl'] };
+		fixture.setFeed(makeFeed({ seq: 2, full: true, lists: [list], items: [milk] }));
+		return applied(op, 2);
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const confirm = () =>
+		[...target.querySelectorAll('dialog')].find((dialog) =>
+			dialog.textContent?.includes('Keep first tags')
+		)!;
+	try {
+		flushSync();
+		click(target, 'Options');
+		click(target, 'Tags');
+		click(target, 'One tag per item');
+		expect(confirm().querySelector('h2')?.textContent).toContain('1 item has several tags');
+		click(confirm(), 'Cancel');
+		expect(target.querySelectorAll('dialog')).toHaveLength(1);
+		expect(button(target, 'One tag per item').getAttribute('aria-pressed')).toBe('false');
+		expect(fixture.room.store.item(milk.uid)?.tags).toEqual(['Lidl', 'Market']);
+		expect(fixture.api.sendOp).not.toHaveBeenCalled();
+		click(target, 'One tag per item');
+		click(confirm(), 'Keep first tags');
+		await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+		flushSync();
+		expect(target.querySelectorAll('dialog')).toHaveLength(1);
+		expect(button(target, 'One tag per item').getAttribute('aria-pressed')).toBe('true');
+		click(target.querySelector('dialog')!, 'Close');
+		expect(button(target, 'Lidl tag for milk').getAttribute('aria-pressed')).toBe('true');
+		expect(button(target, 'Market tag for milk').getAttribute('aria-pressed')).toBe('false');
+		expect(fixture.api.sendOp).toHaveBeenCalledTimes(1);
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it('renders Color 7 then deletes and undoes a tag', async () => {
+	let list = makeList({ tags: ['Lidl'] });
+	const milk = makeItem(list.uid, { tags: ['Lidl'] });
+	let seq = 1;
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		seq += 1;
+		if (op.type === 'list.tag_color') {
+			expect(op).toMatchObject({ tag: 'Lidl', color: 6 });
+			list = { ...list, tag_settings: { ...list.tag_settings, colors: { Lidl: 6 } } };
+		} else if (op.type === 'list.tag_remove') {
+			expect(op.tag).toBe('Lidl');
+			list = { ...list, tags: [] };
+		} else if (op.type === 'list.tag_add') {
+			expect(op.tag).toBe('Lidl');
+			list = { ...list, tags: ['Lidl'] };
+		} else if (op.type === 'list.tag_rename') {
+			expect(op).toMatchObject({ tag: 'Lidl', new_tag: 'Lidl' });
+		} else throw new Error(`Unexpected ${op.type}`);
+		list = { ...list, changed_seq: seq };
+		fixture.setFeed(makeFeed({ seq, full: true, lists: [list], items: [milk] }));
+		return applied(op, seq);
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	const settled = async () => {
+		await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+		flushSync();
+	};
+	const tagCard = () => click(target.querySelector('ul.chips')!, 'Lidl');
+	try {
+		flushSync();
+		click(target, 'Options');
+		tagCard();
+		click(target.querySelector('dialog')!, 'Color 7');
+		await settled();
+		submit(target.querySelector('dialog')!);
+		await waitFor(() => {
+			flushSync();
+			expect(target.querySelector('dialog')).toBeNull();
+		});
+		click(target, 'Done');
+		expect(button(target, 'Lidl tag for milk').style.getPropertyValue('--tag')).toBe(
+			'var(--tag-6)'
+		);
+		click(target, 'Options');
+		tagCard();
+		click(target.querySelector('dialog')!, 'Delete tag');
+		await settled();
+		expect(target.querySelector('dialog')).toBeNull();
+		expect(target.textContent).toContain('Deleted tag Lidl');
+		expect(target.querySelector('[aria-label="Lidl tag for milk"]')).toBeNull();
+		click(target, 'Undo');
+		await settled();
+		expect(target.textContent).toContain('Restored tag Lidl');
+		expect(button(target, 'Lidl tag for milk').getAttribute('aria-pressed')).toBe('true');
+		expect(fixture.api.sendOp.mock.calls.map(([, op]) => op.type)).toEqual([
+			'list.tag_color',
+			'list.tag_rename',
+			'list.tag_remove',
+			'list.tag_add'
+		]);
+	} finally {
+		await unmount(component);
+		fixture.room.release();
+		target.remove();
+	}
+});
+
+it('keeps immediate tag toggles after Cancel', async () => {
+	const list = makeList({ tags: ['Lidl', 'Market'] });
+	let milk = makeItem(list.uid);
+	let seq = 1;
+	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
+	const firstAnswer = deferred<void>();
+	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
+		expect(op.type).toBe('item.toggle_tag');
+		if (op.type !== 'item.toggle_tag') throw new Error(`Unexpected ${op.type}`);
+		if (seq === 1) await firstAnswer.promise;
+		seq += 1;
+		milk = {
+			...milk,
+			changed_seq: seq,
+			tags: op.active ? [...milk.tags, op.tag] : milk.tags.filter((tag) => tag !== op.tag)
+		};
+		fixture.setFeed(makeFeed({ seq, full: true, lists: [list], items: [milk] }));
+		return applied(op, seq, { changed_seq: seq });
+	});
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(ListHarness, { target, props: { room: fixture.room, uid: list.uid } });
+	try {
+		flushSync();
+		(target.querySelector('button.name') as HTMLButtonElement).click();
+		flushSync();
+		for (const [index, tag, lidl, market] of [
+			[0, 'Lidl', true, false],
+			[1, 'Market', true, true],
+			[2, 'Lidl', false, true]
+		] as const) {
+			click(target.querySelector('dialog')!, tag);
+			// The real queue projects synchronously, before the held network answer.
+			expect(button(target.querySelector('dialog')!, tag).getAttribute('aria-pressed')).toBe(
+				String(tag === 'Lidl' ? lidl : market)
+			);
+			expect(button(target.querySelector('dialog')!, 'Lidl').getAttribute('aria-pressed')).toBe(
+				String(lidl)
+			);
+			expect(button(target.querySelector('dialog')!, 'Market').getAttribute('aria-pressed')).toBe(
+				String(market)
+			);
+			if (index === 0) {
+				await waitFor(() => expect(fixture.api.sendOp).toHaveBeenCalledTimes(1));
+				expect(fixture.room.store.pendingOps).toHaveLength(1);
+				firstAnswer.resolve();
+			}
+			await waitFor(() => expect(fixture.room.store.pendingOps).toEqual([]));
+			flushSync();
+		}
+		click(target.querySelector('dialog')!, 'Cancel');
+		expect(target.querySelector('dialog')).toBeNull();
+		expect(button(target, 'Lidl tag for milk').getAttribute('aria-pressed')).toBe('false');
+		expect(button(target, 'Market tag for milk').getAttribute('aria-pressed')).toBe('true');
+		expect(fixture.api.sendOp.mock.calls.map(([, op]) => op)).toEqual([
+			expect.objectContaining({ type: 'item.toggle_tag', tag: 'Lidl', active: true }),
+			expect.objectContaining({ type: 'item.toggle_tag', tag: 'Market', active: true }),
+			expect.objectContaining({ type: 'item.toggle_tag', tag: 'Lidl', active: false })
+		]);
+	} finally {
+		firstAnswer.resolve();
+		await unmount(component);
+		fixture.room.release();
 		target.remove();
 	}
 });
