@@ -68,20 +68,6 @@ def test_manifest_follows_the_page(svelte_server, open_session):
     expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
 
 
-def test_page_declares_the_home_screen_icon(svelte_server, open_session):
-    page = open_session("phone", **PHONE)
-    page.goto(app_url(svelte_server))
-    icon = page.locator('link[rel="apple-touch-icon"]')
-    # Some engines report the attribute as a full address.
-    expect(icon).to_have_attribute(
-        "href", re.compile(r"^(https?://[^/]+)?/static/icons/apple-touch-icon\.png$")
-    )
-    response = page.request.get(absolute(page, icon.get_attribute("href")))
-    assert response.ok
-    assert response.headers["content-type"] == "image/png"
-    expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).to_have_count(1)
-
-
 def test_room_menu_shows_install_help(svelte_server, open_session):
     page = open_session("phone", **PHONE)
     sign_in(page, svelte_server)

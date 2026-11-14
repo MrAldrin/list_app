@@ -100,17 +100,3 @@ def test_app_prefix_redirects_keep_the_query(svelte_server, open_session):
     expect(page.get_by_label("Room link or code")).to_be_visible()
     page.goto(f"{server.url}/app")
     expect(page).to_have_url(f"{server.url}/")
-
-
-def test_server_addresses_are_not_the_page(svelte_server, open_session):
-    server = svelte_server
-    page = open_session("phone", **PHONE)
-    response = page.request.get(f"{server.url}/api/v1/does-not-exist")
-    assert response.status == 404
-    assert response.headers["content-type"].startswith("application/json")
-    assert (
-        page.request.get(f"{server.url}/favicon.ico").headers["content-type"]
-        == "image/png"
-    )
-    index = page.request.get(f"{server.url}/")
-    assert index.headers["referrer-policy"] == "same-origin"

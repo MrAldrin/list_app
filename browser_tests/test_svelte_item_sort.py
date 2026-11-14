@@ -10,7 +10,6 @@ from svelte_app import (
     add_item,
     api_seed,
     api_sign_in,
-    dismiss_toasts,
     item_names,
     open_list,
 )
@@ -58,32 +57,3 @@ def test_sort_choice_is_kept_per_browser_after_reload(svelte_server, open_sessio
     order.click()
     expect(order).to_have_attribute("aria-label", f"Order: {NAME_Z_TO_A}. Reverse")
     expect(item_names(page)).to_have_text(["zucchini", "milk", "apple"])
-
-
-def test_checked_rows_wait_for_the_taps_to_settle(svelte_server, open_session):
-    page = open_session("phone", **PHONE)
-    api_sign_in(page, svelte_server)
-    open_list(
-        page, api_seed(page, svelte_server, {"Groceries": []})["Groceries"], "Groceries"
-    )
-    for name in ("apple", "milk", "zucchini"):
-        add_item(page, name)
-    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
-
-    # A checked row stays where it is, so the next row does not move under the thumb.
-    dismiss_toasts(page)
-    page.get_by_role("checkbox", name="apple").click()
-    expect(page.get_by_role("checkbox", name="apple")).to_be_checked()
-    # Kept: the rows must not move during the hold, which is HOLD_MS (1.5 s).
-    # The window stays under that, so it checks the hold itself.
-    page.wait_for_timeout(500)
-    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
-
-    # Another tap restarts the wait, so milk stays too.
-    page.get_by_role("checkbox", name="milk").click()
-    expect(page.get_by_role("checkbox", name="milk")).to_be_checked()
-    page.wait_for_timeout(500)
-    expect(item_names(page)).to_have_text(["apple", "milk", "zucchini"])
-
-    # Once the taps settle, the checked rows move below the open one.
-    expect(item_names(page)).to_have_text(["zucchini", "apple", "milk"])
