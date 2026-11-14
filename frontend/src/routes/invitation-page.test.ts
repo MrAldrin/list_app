@@ -39,3 +39,37 @@ it('active token renders create-room form', async () => {
 		vi.unstubAllGlobals();
 	}
 });
+
+it('unavailable token hides creation form', async () => {
+	const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+		expect(input).toBe('/api/v1/invitations/active-invitation');
+		expect(init).toMatchObject({ method: 'GET', credentials: 'same-origin' });
+		return json(404, {
+			error: { code: 'invitation_unavailable', message: 'Invitation unavailable' }
+		});
+	});
+	vi.stubGlobal('fetch', fetch);
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(InvitationPage, { target });
+	try {
+		await waitFor(() => {
+			flushSync();
+			expect(target.textContent).not.toContain('Loading…');
+		});
+		expect(target.textContent).toContain('This invitation is invalid or no longer active.');
+		expect(target.textContent).toContain('Ask the app admin for a new invitation.');
+		expect(target.querySelector('form')).toBeNull();
+		expect(target.querySelector('input')).toBeNull();
+		expect(
+			[...target.querySelectorAll('button')].some(
+				(node) => node.textContent?.trim() === 'Create room'
+			)
+		).toBe(false);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	} finally {
+		await unmount(component);
+		target.remove();
+		vi.unstubAllGlobals();
+	}
+});

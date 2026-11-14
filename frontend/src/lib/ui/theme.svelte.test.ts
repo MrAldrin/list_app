@@ -51,10 +51,20 @@ describe('startTheme', () => {
 		stop = startTheme();
 		expect(theme.current).toBe('dark');
 		expect(document.documentElement.dataset.theme).toBe('dark');
+		expect(themeColor()).toBe('#111418');
+		expect(localStorage.getItem('listapp_theme')).toBeNull();
 
 		system.set(false);
 		expect(theme.current).toBe('light');
 		expect(document.documentElement.dataset.theme).toBe('light');
+		expect(themeColor()).toBe('#f4f5f7');
+		expect(localStorage.getItem('listapp_theme')).toBeNull();
+
+		system.set(true);
+		expect(theme.current).toBe('dark');
+		expect(document.documentElement.dataset.theme).toBe('dark');
+		expect(themeColor()).toBe('#111418');
+		expect(localStorage.getItem('listapp_theme')).toBeNull();
 	});
 
 	it('keeps a saved choice when the system changes', () => {
@@ -114,6 +124,42 @@ describe('toggleTheme', () => {
 		expect(toggleTheme()).toBe(false);
 		expect(theme.current).toBe('dark');
 	});
+});
+
+it('keeps theme state local to separate browser worlds', async () => {
+	const firstStorage = new Map<string, string>();
+	const secondStorage = new Map<string, string>();
+	const useStorage = (values: Map<string, string>) =>
+		vi.stubGlobal('localStorage', {
+			getItem: (key: string) => values.get(key) ?? null,
+			setItem: (key: string, value: string) => values.set(key, value)
+		});
+	const system = fakeSystem(false);
+	useStorage(firstStorage);
+	vi.resetModules();
+	const first = await import('./theme.svelte');
+	const stopFirst = first.startTheme();
+	try {
+		expect(first.theme.current).toBe('light');
+		expect(first.toggleTheme()).toBe(true);
+		expect(first.theme.current).toBe('dark');
+		expect(firstStorage.get('listapp_theme')).toBe('dark');
+	} finally {
+		stopFirst();
+	}
+	expect(system.listeners.size).toBe(0);
+	useStorage(secondStorage);
+	vi.resetModules();
+	const second = await import('./theme.svelte');
+	stop = second.startTheme();
+	expect(second.theme).not.toBe(first.theme);
+	expect(second.theme.current).toBe('light');
+	expect(document.documentElement.dataset.theme).toBe('light');
+	expect(themeColor()).toBe('#f4f5f7');
+	expect(localStorage.getItem('listapp_theme')).toBeNull();
+	expect(secondStorage.size).toBe(0);
+	expect(first.theme.current).toBe('dark');
+	expect(firstStorage.get('listapp_theme')).toBe('dark');
 });
 
 describe('choosePalette', () => {
