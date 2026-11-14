@@ -6,6 +6,7 @@ import type { Op, OpResponse, SentOp } from './types';
 import { MemoryQueueStorage } from './queue-storage';
 import { newStoredEntry } from './queue-entries';
 import { WriteQueue, type QueueHost } from './write-queue';
+import type { SessionLockManager } from './session-transition';
 
 const DELETE: Op = { type: 'list.delete', list_uid: 'l1' };
 const op = (listUid: string): Op => ({ type: 'list.delete', list_uid: listUid });
@@ -158,6 +159,79 @@ describe('WriteQueue', () => {
 		await settle();
 		expect(sender.calls[2].op).toMatchObject({ list_uid: 'b' });
 	});
+
+	it.each(['pause', 'dispose', 'incompatible version'] as const)(
+		'does not start a send after %s during an empty storage read',
+		async (stop) => {
+			const storage = new MemoryQueueStorage();
+			const readStarted = deferred<void>();
+			const releaseRead = deferred<void>();
+			const pumpFinished = deferred<void>();
+			const read = storage.read.bind(storage);
+			const readSpy = vi.spyOn(storage, 'read').mockImplementationOnce(async () => {
+				readStarted.resolve();
+				await releaseRead.promise;
+				return read();
+			});
+			// Observe the actual pump's end, not an arbitrary number of microtasks.
+			const locks = {
+				request: async <T>(_name: string, _options: LockOptions, run: () => Promise<T>) => {
+					try {
+						return await run();
+					} finally {
+						pumpFinished.resolve();
+					}
+				}
+			} as SessionLockManager;
+			const host = fakeHost();
+			const sender = {
+				sendOp: vi.fn(async (_slug: string, sent: SentOp) => applied(sent, 2))
+			};
+			const queue = new WriteQueue('home', sender, host, { storage, locks });
+			try {
+				queue.resume();
+				await readStarted.promise;
+				let answer: Promise<OpResponse>;
+				if (stop === 'dispose') {
+					answer = queue.send(DELETE);
+					void answer.catch(() => undefined);
+					queue.dispose();
+				} else {
+					if (stop === 'pause') queue.pause();
+					else compat.incompatible = true;
+					answer = queue.send(DELETE, true);
+					void answer.catch(() => undefined);
+				}
+				const queued = host.opQueued.mock.calls[0][0];
+				expect(sender.sendOp).not.toHaveBeenCalled();
+				releaseRead.resolve();
+				await pumpFinished.promise;
+				expect(sender.sendOp).not.toHaveBeenCalled();
+				expect(host.opSending).not.toHaveBeenCalled();
+				if (stop === 'dispose') {
+					await expect(answer).rejects.toThrow('closed');
+					expect(queue.pending).toEqual([]);
+					expect(await storage.read()).toEqual([]);
+				} else {
+					expect(queue.pending).toEqual([queued]);
+					expect(await storage.read()).toMatchObject([{ op: queued }]);
+					expect((await storage.read())[0].sent).not.toBe(true);
+					if (stop === 'pause') {
+						expect(queue.paused).toBe(true);
+						queue.resume();
+						await expect(answer).resolves.toMatchObject({ op_id: queued.op_id });
+						expect(sender.sendOp).toHaveBeenCalledExactlyOnceWith('home', queued);
+					}
+				}
+			} finally {
+				releaseRead.resolve();
+				queue.dispose();
+				await pumpFinished.promise;
+				readSpy.mockRestore();
+				resetCompat();
+			}
+		}
+	);
 
 	it.each([403, 409, 415, 422, 500])('fails the op on %s and goes on', async (status) => {
 		const sender = fakeSender();

@@ -153,6 +153,80 @@ function fakeConnectivity() {
 }
 
 describe('saved room data integration', () => {
+	it('does not send after the real handle has completed its failed offline access check', async () => {
+		const list = makeList();
+		const milk = makeItem(list.uid);
+		const api = fakeRoomApi();
+		api.changes.mockResolvedValue(makeFeed({ full: true, lists: [list], items: [milk] }));
+		const storage = createQueueStorage(`room:${ROOM.slug}`, { indexedDB: new IDBFactory() });
+		const readStarted = deferred<void>();
+		const releaseRead = deferred<void>();
+		const pumpFinished = deferred<void>();
+		const sendAttempted = deferred<void>();
+		const connectivity = new EventTarget();
+		let stream: FakeEventSource | undefined;
+		let heldRead = false;
+		const read = storage.read.bind(storage);
+		const readSpy = vi.spyOn(storage, 'read').mockImplementation(async () => {
+			// The first stream is created after access/feed/load succeed and the
+			// initial empty pump starts. Hold that pump's read, not initialization.
+			if (stream && !heldRead) {
+				heldRead = true;
+				readStarted.resolve();
+				await releaseRead.promise;
+			}
+			return read();
+		});
+		const locks = {
+			request: async <T>(name: string, _options: LockOptions, run: () => Promise<T>) => {
+				try {
+					return await run();
+				} finally {
+					if (name.startsWith('listr:queue:')) pumpFinished.resolve();
+				}
+			}
+		} as SessionLockManager;
+		const room = new RoomHandle(ROOM.slug, {
+			api,
+			queueStorage: storage,
+			snapshotStore: null,
+			sessionLocks: locks,
+			visibility: null,
+			online: connectivity,
+			createEventSource: (url) => (stream = new FakeEventSource(url))
+		});
+		room.retain();
+		try {
+			await readStarted.promise;
+			expect(room.store.canWrite).toBe(true);
+			api.whoAmI.mockRejectedValue(new NetworkError());
+			api.changes.mockRejectedValue(new NetworkError());
+			api.sendOp.mockImplementation(async () => {
+				sendAttempted.resolve();
+				throw new NetworkError();
+			});
+			connectivity.dispatchEvent(new Event('offline'));
+			await waitFor(() => expect(room.store.unreachable).toBe(true));
+			expect(room.store.canWrite).toBe(false);
+			expect(room.store.canEdit).toBe(true);
+			await room.changeQuantity(milk, 1);
+			expect(api.sendOp).not.toHaveBeenCalled();
+			releaseRead.resolve();
+			// Either the paused pump ends correctly, or an unwanted send starts.
+			await Promise.race([pumpFinished.promise, sendAttempted.promise]);
+			expect(room.store.unreachable).toBe(true);
+			expect(room.store.canWrite).toBe(false);
+			expect(api.sendOp).not.toHaveBeenCalled();
+		} finally {
+			releaseRead.resolve();
+			room.release();
+			// Let the actual pump finish its existing NetworkError backoff. Do not
+			// change its delay, add a wait, or leave a running job behind.
+			await pumpFinished.promise;
+			readSpy.mockRestore();
+		}
+	});
+
 	it('persists authorized committed data, hydrates it read-only, and blocks every shared mutation', async () => {
 		const storage = snapshots();
 		const onlineApi = fakeApi();

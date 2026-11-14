@@ -377,7 +377,8 @@ export class WriteQueue {
 	async #sendAll(): Promise<void> {
 		while (!this.#paused && !compat.incompatible) {
 			const next = await this.#nextReady();
-			if (!next) break;
+			// A stop can happen while the storage read is open.
+			if (!next || this.#paused || this.#disposed || compat.incompatible) break;
 			await this.#sendOne(next);
 		}
 	}

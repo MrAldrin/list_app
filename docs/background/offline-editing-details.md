@@ -75,6 +75,10 @@ the Not saved list.
 
 - The app checks access and reads the changes feed before sending. It sends
   changes one at a time, in order. Edits made during that check are queued too.
+- Before starting a send, the queue checks again for a pause, disposal or an
+  incompatible version after reading storage. A stop during that read prevents
+  the send. Pause and version stops keep waiting changes; disposal clears them.
+  This check does not cancel a send that has already started.
 - A change to a row the page already changed uses the row's new version
   (R3). A change made after someone else changed the row is refused with
   `changed_meanwhile` unless the stored value already matches (R2).
