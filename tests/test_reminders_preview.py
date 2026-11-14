@@ -269,3 +269,24 @@ def test_missing_confirmed_timed_instant_does_not_resolve_wall():
     result = preview_item(p, now=dt("2026-03-01T00:00"))
     assert result.disabled_reasons == ("missing_due_instant",)
     assert result.entries and all(e.kind == "summary" for e in result.entries)
+
+
+def test_at_due_rule_and_daily_summary_at_same_instant_remain_distinct_kinds() -> None:
+    collision = dt("2026-03-30T07:00")
+    value = policy(
+        rules=(RelativeRule("at_due", 0),),
+        summary_enabled=True,
+    )
+
+    result = preview_item(value, now=dt("2026-03-29T12:00"))
+
+    assert result.disabled_reasons == ()
+    assert [
+        (entry.kind, entry.keys, entry.local_day)
+        for entry in result.entries
+        if entry.instant == collision
+    ] == [
+        ("rules", ("at-due",), None),
+        ("summary", (), "2026-03-30"),
+    ]
+    assert result == preview_item(value, now=dt("2026-03-29T12:00"))

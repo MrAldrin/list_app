@@ -309,6 +309,34 @@ def test_two_installations_are_isolated(room, clock):
     )
 
 
+def test_device_all_day_time_is_isolated_between_installations(
+    room: tuple[int, str, TestClient], clock: FakeClock
+) -> None:
+    _room_id, slug, first = room
+    second = client_for(slug)
+    url = DEVICE.format(slug=slug)
+    for client in (first, second):
+        response = client.post(
+            ENROLL.format(slug=slug),
+            json={"op_id": new_id(), "timezone": "Europe/Oslo"},
+        )
+        assert response.status_code == 200, response.text
+    first_cookie = _device_cookie_value(first)
+    second_cookie = _device_cookie_value(second)
+    assert first_cookie != second_cookie
+
+    response = first.patch(
+        url, json={"op_id": new_id(), "base_revision": 1, "all_day_time": "13:25"}
+    )
+
+    assert response.status_code == 200, response.text
+    assert first.get(url).json()["device"]["all_day_time"] == "13:25"
+    assert second.get(url).json()["device"]["all_day_time"] == "09:00"
+    assert second.get(url).json()["device"]["revision"] == 1
+    assert _device_cookie_value(first) == first_cookie
+    assert _device_cookie_value(second) == second_cookie
+
+
 # --- Idempotency and revisions --------------------------------------------------
 
 
@@ -404,6 +432,59 @@ def test_device_patch_is_device_scoped_and_checks_its_own_revision(phone):
     assert_error(stale, 409, "revision_conflict")
 
 
+def test_device_controls_roundtrip_all_safety_privacy_fields_and_replay_without_extra_revision(
+    phone: tuple[str, TestClient],
+) -> None:
+    slug, client = phone
+    url = DEVICE.format(slug=slug)
+    fields = {
+        "timezone": "Pacific/Kiritimati",
+        "all_day_time": "13:25",
+        "paused": True,
+        "quiet_hours": {"start": "21:15", "end": "07:30"},
+        "daily_cap": 23,
+        "spacing_minutes": 17,
+        "content_privacy": "names",
+        "overdue_repeat_days": 9,
+    }
+    body = {"op_id": new_id(), "base_revision": 1, **fields}
+
+    response = client.patch(url, json=body)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["device"] == {"revision": 2, **fields}
+    assert client.get(url).json() == response.json()
+    replay = client.patch(url, json=body)
+    assert replay.status_code == 200, replay.text
+    assert replay.json() == response.json()
+    assert client.get(url).json() == response.json()
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?",
+            (body["op_id"],),
+        ).fetchone()[0]
+        == 1
+    )
+
+    cleared = client.patch(
+        url,
+        json={
+            "op_id": new_id(),
+            "base_revision": 2,
+            "quiet_hours": None,
+            "overdue_repeat_days": None,
+        },
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["device"] == {
+        **fields,
+        "revision": 3,
+        "quiet_hours": None,
+        "overdue_repeat_days": None,
+    }
+    assert client.get(url).json() == cleared.json()
+
+
 def test_device_and_enrollment_idempotency_namespaces_do_not_collide(phone):
     slug, client = phone
     shared_op = new_id()
@@ -466,6 +547,44 @@ def test_device_patch_rejects_invalid_values(phone, field, value):
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "invalid_request"
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("spacing_minutes", 0),
+        ("overdue_repeat_days", 0),
+        ("daily_cap", 1.5),
+        ("spacing_minutes", 1.5),
+        ("overdue_repeat_days", 1.5),
+        ("quiet_hours", {"start": "22:00", "end": "22:00"}),
+    ],
+)
+def test_device_patch_rejects_missing_lower_fractional_and_equal_quiet_checks(
+    phone: tuple[str, TestClient], field: str, value: object
+) -> None:
+    slug, client = phone
+    url = DEVICE.format(slug=slug)
+    before = client.get(url).json()
+    op_id = new_id()
+
+    response = client.patch(
+        url,
+        json={
+            "op_id": op_id,
+            "base_revision": 1,
+            field: value,
+        },
+    )
+
+    assert_error(response, 422, "invalid_request")
+    assert client.get(url).json() == before
+    assert (
+        db.execute(
+            "SELECT COUNT(*) FROM reminder_processed_ops WHERE op_id = ?", (op_id,)
+        ).fetchone()[0]
+        == 0
+    )
 
 
 def test_enrollment_rejects_unknown_fields(phone):

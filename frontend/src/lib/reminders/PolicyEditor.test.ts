@@ -5,7 +5,14 @@ import { makeFeed, makeItem, makeList, json, waitFor } from '#lib/data/test-help
 import { readyRoom } from '#lib/test-support/room-fixture.ts';
 import { button, click, fill } from '#lib/test-support/dom.ts';
 import PolicyEditor from './PolicyEditor.svelte';
-import type { Policy, PolicyResult } from './api';
+import type { Policy, PolicyResult, Preview } from './api';
+import {
+	field,
+	network,
+	reminderFixture,
+	reminderPolicy,
+	settled
+} from '#lib/test-support/reminder-fixture.ts';
 
 it('fixed save confirmation identity and explicit conflict reload retain wall draft', async () => {
 	const firstId = '11111111-1111-4111-8111-111111111111';
@@ -169,5 +176,194 @@ it('fixed save confirmation identity and explicit conflict reload retain wall dr
 		fixture.room.release();
 		target.remove();
 		vi.unstubAllGlobals();
+	}
+});
+
+// Native select transitions remain in the paused browser tests. Seed each
+// API-shaped branch rather than patching happy-dom's missing option:checked.
+it.each(['off', 'inherit'] as const)(
+	'list %s policy saves exact state and renders effective source',
+	async (state) => {
+		const fixture = await reminderFixture();
+		const policy = reminderPolicy('list', { state, preset: null, revision: 2 });
+		const effective =
+			state === 'inherit' ? reminderPolicy('room', { preset: 'scheduled' }) : policy;
+		fixture.server.policy = { policy, effective };
+		fixture.server.handle = (request) =>
+			request.method === 'PUT'
+				? json(200, { policy: { ...policy, revision: 3 }, effective })
+				: undefined;
+		const view = fixture.view('list');
+		try {
+			await view.loaded();
+			expect(field<HTMLSelectElement>(view.target, 'Policy').value).toBe(state);
+			expect(view.target.textContent).toContain(
+				`Effective source: ${effective.scope}; ${effective.state}`
+			);
+			click(view.target, 'Save policy');
+			await settled(view.target, 'Saved on this device.');
+			expect(view.target.textContent).toContain(
+				`Effective source: ${effective.scope}; ${effective.state}`
+			);
+			expect(fixture.writes()).toEqual([
+				{
+					method: 'PUT',
+					path: `lists/${fixture.list.uid}/policy`,
+					raw: expect.any(String),
+					body: { op_id: expect.any(String), base_revision: 2, state }
+				}
+			]);
+			expect(fixture.api.sendOp).not.toHaveBeenCalled();
+		} finally {
+			await fixture.cleanup();
+		}
+	}
+);
+
+it('inherit preview retry and offline draft retain the exact committed lost PUT', async () => {
+	const fixture = await reminderFixture();
+	const initial = reminderPolicy('item');
+	fixture.server.policy = { policy: initial, effective: initial };
+	const committed = reminderPolicy('item', {
+		revision: 2,
+		rules: [{ kind: 'relative', basis: 'calendar', amount: 1, key: 'calendar:1d' }]
+	});
+	let attempts = 0;
+	fixture.server.handle = (request) => {
+		if (request.path === 'preview')
+			return json(200, {
+				source: 'item',
+				state: 'replace',
+				preset: 'custom',
+				timezone: 'Europe/Oslo',
+				disabled_reasons: [],
+				provisional_fixed_ids: [],
+				entries: []
+			});
+		if (request.method === 'PUT') {
+			fixture.server.policy = { policy: committed, effective: committed };
+			if (++attempts === 1) throw new TypeError('connection lost after commit');
+			return json(200, fixture.server.policy);
+		}
+	};
+	const view = fixture.view('item');
+	try {
+		await view.loaded();
+		click(view.target, 'Add relative rule');
+		click(view.target, 'Preview next five');
+		await settled(view.target, 'Preview: item policy');
+		expect(fixture.writes()[0]).toMatchObject({
+			method: 'POST',
+			path: 'preview',
+			body: {
+				item_uid: fixture.item.uid,
+				draft: {
+					state: 'replace',
+					preset: 'custom',
+					summary_enabled: false,
+					rules: [{ kind: 'relative', amount: 1, unit: 'days' }]
+				}
+			}
+		});
+		click(view.target, 'Save policy');
+		await settled(view.target, 'Result unknown. Retry the unchanged request; your draft is kept.');
+		expect(attempts).toBe(1);
+		expect(fixture.server.policy.policy.revision).toBe(2);
+		expect(field(view.target, 'Amount before due').closest('fieldset')!.disabled).toBe(true);
+		expect(button(view.target, 'Close').disabled).toBe(true);
+		click(view.target, 'Retry request');
+		await settled(view.target, 'Saved on this device.');
+		const puts = fixture.writes().filter((request) => request.method === 'PUT');
+		expect(puts).toHaveLength(2);
+		expect(puts[1]).toEqual(puts[0]);
+		expect(puts[0].body).toEqual({
+			op_id: expect.any(String),
+			base_revision: 1,
+			state: 'replace',
+			preset: 'custom',
+			summary_enabled: false,
+			rules: [{ kind: 'relative', amount: 1, unit: 'days' }]
+		});
+		expect(field(view.target, 'Amount before due').value).toBe('1');
+		network(false);
+		expect(button(view.target, 'Save policy').disabled).toBe(true);
+		expect(button(view.target, 'Preview next five').disabled).toBe(true);
+		expect(field(view.target, 'Amount before due').value).toBe('1');
+		expect(fixture.writes()).toHaveLength(3);
+		expect(fixture.api.sendOp).not.toHaveBeenCalled();
+	} finally {
+		await fixture.cleanup();
+	}
+});
+
+it('same-instant rule and summary both render and preview can refresh', async () => {
+	const fixture = await reminderFixture();
+	const policy = reminderPolicy('item', { summary_enabled: true });
+	fixture.server.policy = { policy, effective: policy };
+	const collision = '2040-06-01T09:00:00Z';
+	let previews = 0;
+	fixture.server.handle = (request) => {
+		if (request.path !== 'preview') return;
+		const result: Preview = {
+			source: 'item',
+			state: 'replace',
+			preset: 'custom',
+			timezone: 'UTC',
+			disabled_reasons: [],
+			provisional_fixed_ids: [],
+			entries: [
+				{
+					kind: 'rules',
+					instant: ++previews === 1 ? collision : '2040-05-31T09:00:00Z',
+					keys: ['at-due'],
+					deferred_until: null,
+					local_day: null
+				},
+				{
+					kind: 'summary',
+					instant: collision,
+					keys: [],
+					deferred_until: null,
+					local_day: '2040-06-01'
+				}
+			]
+		};
+		return json(200, result);
+	};
+	const view = fixture.view('item');
+	try {
+		await view.loaded();
+		click(view.target, 'Add relative rule');
+		fill(field(view.target, 'Amount before due'), '0');
+		click(view.target, 'Preview next five');
+		await waitFor(() => {
+			flushSync();
+			expect(button(view.target, 'Preview next five').disabled).toBe(false);
+		});
+		expect([...view.target.querySelectorAll('li')].map((li) => li.textContent?.trim())).toEqual([
+			`rules: original UTC ${collision}`,
+			`summary: original UTC ${collision}; summary day 2040-06-01`
+		]);
+		expect(view.target.querySelector('[role="alert"]')).toBeNull();
+		fill(field(view.target, 'Amount before due'), '1');
+		expect(view.target.querySelector('li')).toBeNull();
+		click(view.target, 'Preview next five');
+		await settled(view.target, 'rules: original UTC 2040-05-31T09:00:00Z');
+		expect(view.target.querySelectorAll('li')).toHaveLength(2);
+		expect(view.target.textContent).toContain(`summary: original UTC ${collision}`);
+		expect(view.target.querySelector('[role="alert"]')).toBeNull();
+		expect(fixture.writes().map((request) => request.body)).toEqual(
+			[0, 1].map((amount) => ({
+				item_uid: fixture.item.uid,
+				draft: {
+					state: 'replace',
+					preset: 'custom',
+					summary_enabled: true,
+					rules: [{ kind: 'relative', amount, unit: 'days' }]
+				}
+			}))
+		);
+	} finally {
+		await fixture.cleanup();
 	}
 });
