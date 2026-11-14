@@ -226,7 +226,7 @@ def test_folder_without_index_is_not_mounted(tmp_path):
 
 REAL_INDEX = DEFAULT_BUILD_DIR / "index.html"
 needs_build = pytest.mark.skipif(
-    not REAL_INDEX.is_file(), reason="needs `npm run build` in frontend/"
+    not REAL_INDEX.is_file(), reason="needs `bun run build` in frontend/"
 )
 
 PAGE_ADDRESSES = [

@@ -23,12 +23,14 @@ links the agenda. Native Ready does not approve work.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and use
 Python 3.13 or newer. For the frontend, use Node 24 via
-[fnm](https://github.com/Schniz/fnm) and npm. From the repository root:
+[fnm](https://github.com/Schniz/fnm), plus Bun for package installation.
+Use the Bun version and setup in the [frontend guide](frontend/README.md#setup).
+From the repository root:
 
 ```bash
 uv sync
 cp .env.example .env
-(cd frontend && fnm use && npm ci)
+(cd frontend && fnm use && bun install --frozen-lockfile)
 ```
 
 If you already have a `.env`, keep it instead of running the copy command.
@@ -55,8 +57,8 @@ A jj workspace gets its own copy of tracked files only. Ignored files such as
   ```
 
 - `.venv`: `uv` creates it on the first `uv run`.
-- `frontend/node_modules`: run `npm ci` in `frontend/`. `frontend/build/` is
-  also not copied; build it again (see below).
+- `frontend/node_modules`: run `bun install --frozen-lockfile` in `frontend/`.
+  `frontend/build/` is also not copied; build it again (see below).
 - `list.db`: the app creates an empty database on first start. Each workspace
   keeps its own test data; do not symlink the main workspace's database.
 
@@ -68,7 +70,7 @@ Testing on a phone before deploying is optional and rarely needed; see
 Build the frontend once, then start the server:
 
 ```bash
-(cd frontend && npm run build)
+(cd frontend && bun run build)
 uv run python src/main.py
 ```
 
@@ -90,7 +92,7 @@ during development.
 
 ## Develop the frontend
 
-Run two servers: Python as above (port 8080), and `npm run dev` in `frontend/`
+Run two servers: Python as above (port 8080), and `bun run dev` in `frontend/`
 (port 5173). Open <http://localhost:5173/>; Vite forwards `/api` to Python.
 Setup and checks: [frontend guide](frontend/README.md).
 

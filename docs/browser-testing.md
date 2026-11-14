@@ -202,8 +202,8 @@ Traces hold test data only. Never point this harness at production.
 ## Svelte build
 
 The Svelte tests need `frontend/build/`. If it is missing or older than the
-frontend sources, the tests run `npm run build` first. Without `npm` on the
-`PATH` they fail and ask you to run `npm run build` in `frontend/`.
+frontend sources, the tests run `bun run build` first. Without `bun` on the
+`PATH` they fail and ask you to run `bun run build` in `frontend/`.
 
 Scenario-by-scenario detail and past timings are in
 [background](background/browser-testing.md).

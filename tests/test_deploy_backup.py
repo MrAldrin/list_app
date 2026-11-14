@@ -249,9 +249,9 @@ def test_push_happens_only_after_backup_and_yes(tmp_path):
         "jj log",
         "jj diff",
         *["uv"] * 4,
-        "npm",
-        "npm",
-        "npm",
+        "bun",
+        "bun",
+        "bun",
         "volumes",
         "wake",
         "remote-backup",
@@ -259,6 +259,9 @@ def test_push_happens_only_after_backup_and_yes(tmp_path):
         "jj log",
         "jj bookmark",
         "jj git",
+    ]
+    assert [call for call in fake.calls if call[0] == "bun"] == [
+        ["bun", "run", "--cwd", "frontend", name] for name in ("lint", "check", "test")
     ]
     assert fake.calls[-2] == ["jj", "bookmark", "set", "main", "-r", "feature"]
     assert fake.calls[-1] == ["jj", "git", "push", "-b", "main"]
@@ -421,7 +424,7 @@ def test_first_failing_check_stops_the_rest(tmp_path):
 
 def test_frontend_check_failure_stops_before_backup(tmp_path, capsys):
     fake = FakeRailwayAndJj(tmp_path)
-    fake.fail_on = "test"  # The frontend test command is `npm ... run test`.
+    fake.fail_on = "test"  # The frontend test command is `bun run --cwd frontend test`.
 
     assert run_main(tmp_path, fake, ["--rev", "feature"], answers=["y"]) == 1
 

@@ -4,6 +4,8 @@ import os
 import socket
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 import serve_svelte_local as script
@@ -97,6 +99,36 @@ def test_port_is_free_detects_a_listening_socket():
         probe.bind(("0.0.0.0", 0))
         free_port = probe.getsockname()[1]
     assert script.port_is_free(free_port) is True
+
+
+def test_build_frontend_uses_bun_script(monkeypatch) -> None:
+    run = Mock(return_value=SimpleNamespace(returncode=0))
+    which = Mock(return_value="/tools/bun")
+    monkeypatch.setattr(script.shutil, "which", which)
+    monkeypatch.setattr(script.subprocess, "run", run)
+    script.build_frontend()
+    which.assert_called_once_with("bun")
+    run.assert_called_once_with(
+        ["/tools/bun", "run", "build"], cwd=script.FRONTEND, check=False
+    )
+
+
+def test_build_frontend_stops_without_bun(monkeypatch) -> None:
+    run = Mock()
+    monkeypatch.setattr(script.shutil, "which", lambda name: None)
+    monkeypatch.setattr(script.subprocess, "run", run)
+    with pytest.raises(SystemExit, match="Bun not found"):
+        script.build_frontend()
+    run.assert_not_called()
+
+
+def test_build_frontend_reports_failure(monkeypatch) -> None:
+    monkeypatch.setattr(script.shutil, "which", lambda name: "/tools/bun")
+    monkeypatch.setattr(
+        script.subprocess, "run", Mock(return_value=SimpleNamespace(returncode=1))
+    )
+    with pytest.raises(SystemExit, match="bun run build failed"):
+        script.build_frontend()
 
 
 def test_main_stops_before_building_when_the_port_is_busy(monkeypatch):

@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = "/home/hsa/.local/state/night-loop/list_app/browser.lock"
 FULL = [
     "uv run pytest -q",
-    "(cd frontend && npm test)",
+    "(cd frontend && bun run test)",
     f"flock {LOCK} uv run pytest browser_tests -q -n 4",
 ]
 # Explicit starting sets from lr-005.1.2. Unlisted areas stay full, not inferred.
@@ -134,7 +134,7 @@ def commands(mode: str, tests: list[str]) -> list[str]:
     for prefix, command in (
         ("tests/", "uv run pytest -q"),
         ("browser_tests/", f"flock {LOCK} uv run pytest -q -n 4"),
-        ("frontend/", "npm test --"),
+        ("frontend/", "bun run test"),
     ):
         paths = [
             p.removeprefix("frontend/") if prefix == "frontend/" else p

@@ -1,14 +1,18 @@
 # Production image for Railway: builds the Svelte frontend, then runs the app.
 
-# Stage 1: build frontend/build/ (Node is not needed at runtime).
-FROM node:24-slim AS frontend
-WORKDIR /frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
-COPY frontend/ ./
-RUN npm run build
+# Pinned package-manager binary; Node remains the build and test runtime.
+FROM docker.io/oven/bun:1.4.4 AS bun
 
-# Stage 2: Python app. uv installs the locked dependencies.
+# Build frontend/build/ (Node and Bun are not needed at runtime).
+FROM node:24-slim AS frontend
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+WORKDIR /frontend
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
+COPY frontend/ ./
+RUN bun run build
+
+# Python app. uv installs the locked dependencies.
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 \

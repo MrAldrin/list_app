@@ -96,6 +96,13 @@ class SelectorTests(unittest.TestCase):
         self.assertEqual(select([], self.root)[0], "empty")
         self.assertEqual(commands("empty", []), [])
 
+    def test_frontend_commands_preserve_filters(self) -> None:
+        self.assertEqual(
+            commands("selected", ["frontend/src/lib/ui/theme.test.ts"]),
+            ["(cd frontend && bun run test src/lib/ui/theme.test.ts)"],
+        )
+        self.assertIn("(cd frontend && bun run test)", commands("full", []))
+
     def test_diff(self) -> None:
         self.assertEqual(parse_diff("a", "M a"), [("M", "a")])
         for names, summary in [("a", "M b"), ("a", "broken"), ("a", "")]:

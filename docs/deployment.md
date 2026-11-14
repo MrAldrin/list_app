@@ -38,8 +38,8 @@ it. Raise the limit in the workspace's Usage page if that happens.
 
 ## Build and startup
 
-Use Python 3.13 or newer. Build the frontend first (`npm ci && npm run build`
-in `frontend/`), then:
+Use Python 3.13 or newer. In `frontend/`, run
+`bun install --frozen-lockfile && bun run build`. Then, from the repository root:
 
 ```bash
 uv sync --locked
@@ -53,10 +53,14 @@ with a key derived from `APP_PASSWORD` by scrypt.
 ### Production image
 
 Railway detects and builds the root `Dockerfile`, so the repository fully
-defines the build. There is no `railway.json`. It has two stages:
+defines the build. There is no `railway.json`. A source stage supplies the Bun
+binary; the two working stages are:
 
-1. Node 24: `npm ci && npm run build` in `frontend/`, which writes
-   `frontend/build/`. Only that folder is kept.
+1. Node 24 plus the pinned Bun binary from `oven/bun:1.4.4`:
+   `bun install --frozen-lockfile && bun run build` in `frontend/` writes
+   `frontend/build/`. Bun installs packages; Node runs Vite. Only the build
+   folder is kept. Local tool setup and advisory checks are in the
+   [frontend guide](../frontend/README.md#setup).
 2. Python 3.13 with `uv sync --locked --no-dev`, the `src/` code and the build.
    It starts `python src/main.py`. There is no `Procfile`.
 
@@ -82,7 +86,8 @@ decides both.
 Railway must not override the repository. In the service settings:
 
 - The builder shows "Dockerfile — Automatically Detected"; do not change it.
-  Leave "Config file path" empty. The build log shows the `npm ci` step.
+  Leave "Config file path" empty. The build log shows the
+  `bun install --frozen-lockfile` step.
 - Build command and start command are empty.
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
 - Healthcheck path is `/healthz` (set it in the service's Deploy settings).

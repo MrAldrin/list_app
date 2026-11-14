@@ -110,7 +110,9 @@ def main() -> None:
     labels = load("tier_labels", ROOT / "conftest.py")
     full = runner.commands("full", [], False)
     assert len(full) == 3
-    assert "tests" in full[0] and full[1] == ["npm", "test"]
+    assert "tests" in full[0] and full[1] == ["bun", "run", "test"]
+    assert runner.commands("frontend", [], True) == [["bun", "run", "test:list"]]
+    assert runner.commands("frontend", [], False) == [["bun", "run", "test"]]
     assert "browser_tests" in full[2]
     assert not any("android_tests" in command for command in full)
     assert not any(x in {"-k", "--tier-engine"} for command in full for x in command)
@@ -143,7 +145,7 @@ def main() -> None:
             expected = (
                 [*run, "--collect-only", "-n", "0"]
                 if "pytest" in run
-                else ["npm", "exec", "--", "vitest", "list"]
+                else ["bun", "run", "test:list"]
             )
             assert collect == expected, (tier, run, collect)
     # Chromium-only runs use more workers than mixed-engine runs.

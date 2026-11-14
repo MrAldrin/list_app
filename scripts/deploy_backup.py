@@ -75,9 +75,9 @@ CHECKS: list[tuple[str, list[str]]] = [
     ("Python lint", ["uv", "run", "ruff", "check", "."]),
     ("Python types", ["uv", "run", "ty", "check"]),
     ("Python tests", ["uv", "run", "pytest", "-q"]),
-    ("Frontend lint", ["npm", "--prefix", "frontend", "run", "lint"]),
-    ("Frontend types", ["npm", "--prefix", "frontend", "run", "check"]),
-    ("Frontend tests", ["npm", "--prefix", "frontend", "run", "test"]),
+    ("Frontend lint", ["bun", "run", "--cwd", "frontend", "lint"]),
+    ("Frontend types", ["bun", "run", "--cwd", "frontend", "check"]),
+    ("Frontend tests", ["bun", "run", "--cwd", "frontend", "test"]),
 ]
 BROWSER_CHECK = (
     "Browser tests",

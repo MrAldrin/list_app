@@ -35,7 +35,7 @@ export default defineConfig({
 	// Tests use Svelte's browser code, as the app does (it never runs on a server).
 	resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
 	test: {
-		// Reuse transforms between test runs; npm ci clears this ignored cache.
+		// Reuse transforms between test runs; a clean install clears this ignored cache.
 		fsModuleCache: true,
 		include: ['src/**/*.test.ts']
 	}

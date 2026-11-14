@@ -186,12 +186,12 @@ def room_codes(database: Path) -> list[tuple[str, str]]:
 
 
 def build_frontend() -> None:
-    npm = shutil.which("npm")
-    if npm is None:
-        sys.exit("npm not found. Install Node 24 with fnm (see frontend/README.md).")
-    print("Building the Svelte app (npm run build)…", flush=True)
-    if subprocess.run([npm, "run", "build"], cwd=FRONTEND, check=False).returncode:
-        sys.exit("npm run build failed.")
+    bun = shutil.which("bun")
+    if bun is None:
+        sys.exit("Bun not found. Install Bun and Node 24 (see frontend/README.md).")
+    print("Building the Svelte app (bun run build)…", flush=True)
+    if subprocess.run([bun, "run", "build"], cwd=FRONTEND, check=False).returncode:
+        sys.exit("bun run build failed.")
 
 
 def main() -> None:

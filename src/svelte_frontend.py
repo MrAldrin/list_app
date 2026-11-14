@@ -101,7 +101,7 @@ def register_svelte_frontend(app: FastAPI, build_dir: Path = DEFAULT_BUILD_DIR) 
     index_file = build_dir / "index.html"
     if not index_file.is_file():
         message = (
-            f"Svelte build not found: {index_file}. Run `npm run build` in frontend/."
+            f"Svelte build not found: {index_file}. Run `bun run build` in frontend/."
         )
         if os.environ.get(REQUIRE_BUILD_ENV, "").strip().lower() == "true":
             raise RuntimeError(message)

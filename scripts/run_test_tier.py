@@ -25,9 +25,7 @@ def commands(tier: str, paths: list[str], collect_only: bool) -> list[list[str]]
 
     def frontend() -> list[str]:
         # Vitest list is the frontend collection equivalent; do not run tests.
-        return (
-            ["npm", "exec", "--", "vitest", "list"] if collect_only else ["npm", "test"]
-        )
+        return ["bun", "run", "test:list"] if collect_only else ["bun", "run", "test"]
 
     def browser(selection: list[str], extra: list[str]) -> list[str]:
         chromium_only = "chromium" in extra
@@ -107,7 +105,7 @@ def main() -> int:
         parser.error(str(error))
     for command in runs:
         print(shlex.join(command), flush=True)
-        cwd = ROOT / "frontend" if command[0] == "npm" else ROOT
+        cwd = ROOT / "frontend" if command[0] == "bun" else ROOT
         result = subprocess.run(command, cwd=cwd, check=False)
         if result.returncode:
             return result.returncode

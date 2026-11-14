@@ -339,7 +339,7 @@ BUILD_INPUTS = (
     "src",
     "static",
     "package.json",
-    "package-lock.json",
+    "bun.lock",
     "vite.config.ts",
     "tsconfig.json",
 )
@@ -376,15 +376,15 @@ def svelte_build(tmp_path_factory):
         fcntl.flock(lock, fcntl.LOCK_EX)
         if _svelte_build_is_current():
             return
-        npm = shutil.which("npm")
-        if npm is None:
+        bun = shutil.which("bun")
+        if bun is None:
             pytest.fail(
-                "The Svelte build is missing or older than frontend/src, and npm "
-                "is not on PATH. Run `npm run build` in frontend/ first."
+                "The Svelte build is missing or older than frontend/src, and Bun "
+                "is not on PATH. Run `bun run build` in frontend/ first."
             )
-        print("Building the Svelte frontend (npm run build)")
+        print("Building the Svelte frontend (bun run build)")
         result = subprocess.run(
-            [npm, "run", "build"],
+            [bun, "run", "build"],
             cwd=FRONTEND,
             capture_output=True,
             text=True,
@@ -392,7 +392,7 @@ def svelte_build(tmp_path_factory):
         )
         if result.returncode != 0 or not BUILD_INDEX.is_file():
             pytest.fail(
-                "`npm run build` failed in frontend/:\n" + result.stdout + result.stderr
+                "`bun run build` failed in frontend/:\n" + result.stdout + result.stderr
             )
 
 
