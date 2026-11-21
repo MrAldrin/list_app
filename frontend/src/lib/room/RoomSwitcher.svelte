@@ -32,9 +32,8 @@
 			...readRememberedRooms().filter((item) => item.slug !== room.slug)
 		];
 		const box = button.getBoundingClientRect();
-		menu.style.top = `${box.bottom + 4}px`;
-		const left = Math.min(box.left, window.innerWidth - menu.offsetWidth - 8);
-		menu.style.left = `${Math.max(8, left)}px`;
+		menu.style.setProperty('--menu-top', `${box.bottom + 4}px`);
+		menu.style.left = `clamp(var(--menu-left-edge), ${box.left}px, calc(100% - ${menu.getBoundingClientRect().width}px - var(--menu-right-edge)))`;
 	}
 
 	function close() {
@@ -85,7 +84,7 @@
 	</button>
 </h1>
 
-<div bind:this={menu} id={menuId} class="menu" popover="auto" ontoggle={opened}>
+<div bind:this={menu} id={menuId} class="menu anchored-menu" popover="auto" ontoggle={opened}>
 	<div role="group" aria-label="Rooms">
 		<p class="heading">Rooms</p>
 		{#each rooms as item (item.slug)}
@@ -146,11 +145,7 @@
 	}
 
 	.menu {
-		/* Undo the browser's centered popover; `opened` sets top and left. */
-		position: fixed;
-		inset: auto;
-		margin: 0;
-		width: min(18rem, calc(100vw - 16px));
+		width: 18rem;
 		padding: 0.25rem 0;
 		border: none;
 		border-radius: var(--radius);

@@ -338,6 +338,8 @@
 
 body {
 	margin: 0;
+	/* Keep the page clear of screen cutouts, also in landscape. */
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 	background: var(--bg);
 	color: var(--text);
 	/* 16px or more stops iPhone Safari from zooming into input fields. */
@@ -500,6 +502,20 @@ input[role='switch']:checked::before {
 	max-width: 32rem;
 	margin: 0 auto;
 	padding: 1rem;
+}
+
+/* These popovers sit outside the page layout, which has its own safe padding. */
+.anchored-menu {
+	--menu-left-edge: max(8px, env(safe-area-inset-left));
+	--menu-right-edge: max(8px, env(safe-area-inset-right));
+	--menu-max-width: calc(100% - var(--menu-left-edge) - var(--menu-right-edge));
+	position: fixed;
+	inset: auto;
+	top: var(--menu-top, 0px);
+	margin: 0;
+	max-width: var(--menu-max-width);
+	max-height: calc(100% - var(--menu-top, 0px) - env(safe-area-inset-bottom));
+	overflow: auto;
 }
 
 .card {

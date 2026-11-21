@@ -96,7 +96,11 @@
 
 <style>
 	dialog {
-		width: min(100% - 2rem, 24rem);
+		/* A modal is outside the page layout. Center it in the safe area. */
+		inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+			env(safe-area-inset-left);
+		width: min(100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right), 24rem);
+		max-height: calc(100% - 2em - 6px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 		border: none;
 		border-radius: var(--radius);
 		padding: 1rem;

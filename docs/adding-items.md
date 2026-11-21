@@ -1,9 +1,10 @@
 # Adding items
 
 Use **Add or Search** in the bottom bar to type an item or find a name already
-in the list. The field shows up to ten matches above it, with the most-added
-match first. Scroll to see more. Each match shows its add count. Arrow keys
-highlight a match without moving focus from the field.
+in the list. The bar keeps the controls clear of the screen corners and the
+phone's home indicator. The field shows up to ten matches above it, with the
+most-added match first. Scroll to see more. Each match shows its add count.
+Arrow keys highlight a match without moving focus from the field.
 
 - With no suggestion highlighted, press **Enter** or select **Add** to add the
   text you typed, even if matching suggestions appear.

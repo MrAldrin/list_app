@@ -67,8 +67,8 @@
 		   holds the bottom bar and, while typing, the phone keyboard. Clear of
 		   the iPhone notch (`env(safe-area-inset-top)`). */
 		top: calc(var(--touch) + 1.25rem + env(safe-area-inset-top));
-		left: 1rem;
-		right: 1rem;
+		left: max(1rem, env(safe-area-inset-left));
+		right: max(1rem, env(safe-area-inset-right));
 		display: grid;
 		/* One column that may shrink below the text width, so "…" can work. */
 		grid-template-columns: minmax(0, 1fr);

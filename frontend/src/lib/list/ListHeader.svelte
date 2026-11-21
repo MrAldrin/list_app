@@ -50,7 +50,7 @@
 	   way down. */
 	.bar {
 		position: sticky;
-		top: 0;
+		top: env(safe-area-inset-top);
 		z-index: 10;
 		height: var(--touch);
 		background: var(--bg);

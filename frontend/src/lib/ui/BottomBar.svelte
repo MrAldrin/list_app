@@ -39,8 +39,9 @@
 		z-index: 10;
 		background: var(--bg);
 		border-top: 1px solid var(--border);
-		/* Clear of the iPhone home bar when the keyboard is closed. */
-		padding: 0 1rem env(safe-area-inset-bottom);
+		/* Keep the controls clear of the home bar and rounded corners. */
+		padding: 0 calc(1rem + env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom))
+			calc(1rem + env(safe-area-inset-left));
 	}
 
 	/* The same width as the page column (`.page` in app.css). */

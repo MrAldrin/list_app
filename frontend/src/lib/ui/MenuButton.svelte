@@ -32,8 +32,8 @@
 		open = event.newState === 'open';
 		if (!open || !button || !menu) return;
 		const box = button.getBoundingClientRect();
-		menu.style.top = `${box.bottom + 4}px`;
-		menu.style.right = `${Math.max(8, window.innerWidth - box.right)}px`;
+		menu.style.setProperty('--menu-top', `${box.bottom + 4}px`);
+		menu.style.right = `clamp(var(--menu-right-edge), ${window.innerWidth - box.right}px, calc(100% - ${menu.getBoundingClientRect().width}px - var(--menu-left-edge)))`;
 		onOpen?.();
 	}
 
@@ -53,7 +53,7 @@
 	<Icon name="more_vert" />
 </button>
 
-<div bind:this={menu} id={menuId} class="menu" popover="auto" ontoggle={placeMenu}>
+<div bind:this={menu} id={menuId} class="menu anchored-menu" popover="auto" ontoggle={placeMenu}>
 	{@render children(close)}
 </div>
 
@@ -66,12 +66,9 @@
 	}
 
 	.menu {
-		/* Undo the browser's centered popover; `placeMenu` sets top and right. */
-		position: fixed;
-		inset: auto;
-		margin: 0;
 		padding: 0.25rem 0;
-		min-width: 12rem;
+		width: max-content;
+		min-width: min(12rem, var(--menu-max-width));
 		border: none;
 		border-radius: var(--radius);
 		background: var(--surface);
