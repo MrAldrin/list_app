@@ -3,27 +3,26 @@
 	list page puts "Add or Search" here; the room page puts "Add New List" here.
 	An empty spacer of the same height stays in the page, so the last rows can
 	scroll out from under the bar. The bar rises above the phone keyboard, but
-	stays in place during overscroll. Toasts show at the top of the screen.
+	stays in place during overscroll. Toasts use the bar's measured height to
+	stay above it.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { watchKeyboardInset } from './keyboard';
 
 	let { children }: { children: Snippet } = $props();
 
-	let bar = $state<HTMLDivElement>();
-	/** The bar's height, measured by the browser, for the spacer. */
+	/** The full bar height, including its border and safe-area padding. */
 	let height = $state(0);
 
 	$effect(() => {
-		const target = bar;
-		if (!target) return;
-		return watchKeyboardInset((inset) => target.style.setProperty('--keyboard', `${inset}px`));
+		const { style } = document.documentElement;
+		style.setProperty('--bottom-bar', `${height}px`);
+		return () => style.removeProperty('--bottom-bar');
 	});
 </script>
 
 <div class="spacer" style:height="{height}px" aria-hidden="true"></div>
-<div class="bottom-bar" bind:this={bar} bind:clientHeight={height}>
+<div class="bottom-bar" bind:offsetHeight={height}>
 	<div class="inner">
 		{@render children()}
 	</div>

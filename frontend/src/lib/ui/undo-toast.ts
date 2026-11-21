@@ -10,8 +10,6 @@ export interface UndoToastOptions {
 	request: Promise<{ ok: boolean }>;
 	/** The toast's color; red (a delete) unless given. */
 	kind?: ToastKind;
-	/** How long "Undo" stays, in milliseconds. */
-	duration: number;
 	/** Whether "Undo" may run now; off while the room is read-only. */
 	canUndo: () => boolean;
 	/** Runs on "Undo". The caller shows any "Restored …" message. */
@@ -21,7 +19,6 @@ export interface UndoToastOptions {
 /** Shows the undo toast. Returns its id. */
 export function showUndoToast(options: UndoToastOptions): number {
 	const toastId = toasts.show(options.message, options.kind ?? 'danger', {
-		duration: options.duration,
 		action: {
 			label: 'Undo',
 			disabled: () => !options.canUndo(),

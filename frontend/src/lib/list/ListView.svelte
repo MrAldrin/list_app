@@ -40,8 +40,7 @@
 		loadItemSort,
 		loadShowQuantities,
 		saveItemSort,
-		saveShowQuantities,
-		UNDO_DURATION
+		saveShowQuantities
 	} from './items.ts';
 	import { activeFilters } from './tags.ts';
 	import { HOLD_MS } from './hold-order.ts';
@@ -185,9 +184,8 @@
 	}
 
 	/**
-	 * Shows a change that already started, with "Undo" for `UNDO_DURATION`. The
-	 * toast goes away when the change fails; "Undo" works only while the room
-	 * can be edited.
+	 * Offers "Undo" for a change that already started. The toast goes away
+	 * when the change fails. "Undo" works only while the room can be edited.
 	 */
 	function offerUndo(
 		handle: RoomHandle,
@@ -198,7 +196,6 @@
 		showUndoToast({
 			...toast,
 			request: change,
-			duration: UNDO_DURATION,
 			canUndo: () => handle.store.canEdit,
 			undo
 		});

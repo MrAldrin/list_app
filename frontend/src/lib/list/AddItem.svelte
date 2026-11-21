@@ -30,6 +30,8 @@
 		onAdd: (name: string) => Promise<boolean>;
 	} = $props();
 	let input = $state<HTMLInputElement>();
+	let popup = $state<HTMLUListElement>();
+	let popupHeight = $state(0);
 	const suggestions = $derived(itemSuggestions(items, text));
 	const usual = $derived(usualItemSuggestions(items, text));
 	const addCounts = $derived.by(() => {
@@ -47,9 +49,19 @@
 	// Blank text: offer usual items in the same popup (empty when typing).
 	const usualMode = $derived(usual.length > 0);
 	const shown = $derived(closed || !focused ? [] : usualMode ? usual : suggestions);
-	const active = $derived(activeName === null ? -1 : shown.indexOf(activeName));
+	const expanded = $derived(shown.length > 0 && popupHeight > 0);
+	const active = $derived(!expanded || activeName === null ? -1 : shown.indexOf(activeName));
 	// Unique ids on the page, for the ARIA links between field and suggestions.
 	const listId = $props.id();
+
+	// Toasts need the height only while the popup is open.
+	$effect(() => {
+		if (!popup || !popupHeight) return;
+		const { style } = document.documentElement;
+		const gap = getComputedStyle(popup).marginBottom;
+		style.setProperty('--bottom-popup', `calc(${popupHeight}px + ${gap})`);
+		return () => style.removeProperty('--bottom-popup');
+	});
 
 	// Arrow keys can highlight an option below the visible three; scroll it into view.
 	$effect(() => {
@@ -59,7 +71,7 @@
 
 	// A live update can remove the highlighted suggestion; do not revive it later.
 	$effect(() => {
-		if (activeName !== null && !shown.includes(activeName)) activeName = null;
+		if (activeName !== null && (!expanded || !shown.includes(activeName))) activeName = null;
 	});
 
 	function blurred() {
@@ -74,7 +86,7 @@
 
 	// Arrow keys move the highlight and wrap around at either end.
 	function keydown(event: KeyboardEvent) {
-		const count = shown.length;
+		const count = expanded ? shown.length : 0;
 		if (event.key === 'ArrowDown' && count > 0) {
 			event.preventDefault();
 			activeName = shown[(active + 1) % count];
@@ -121,8 +133,8 @@
 			onblur={blurred}
 			role="combobox"
 			aria-autocomplete="list"
-			aria-expanded={shown.length > 0}
-			aria-controls={shown.length > 0 ? listId : undefined}
+			aria-expanded={expanded}
+			aria-controls={expanded ? listId : undefined}
 			aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
 			aria-label="Add or Search"
 			placeholder="Add or Search"
@@ -147,6 +159,9 @@
 		<ul
 			id={listId}
 			class="suggestions"
+			bind:this={popup}
+			bind:offsetHeight={popupHeight}
+			style:visibility={expanded ? undefined : 'hidden'}
 			role="listbox"
 			aria-label={usualMode ? 'Usual items' : 'Suggestions'}
 		>
@@ -194,21 +209,37 @@
 	}
 
 	ul {
+		--popup-gap: 0.25rem;
 		position: absolute;
 		bottom: 100%;
 		left: 0;
 		right: 0;
 		z-index: 5;
 		list-style: none;
-		margin: 0 0 0.25rem;
-		padding: 0.25rem 0;
+		margin: 0 0 var(--popup-gap);
+		padding: 0;
 		background: var(--surface);
 		border-radius: var(--radius);
 		box-shadow: var(--shadow);
 	}
 
+	/* Put the padding inside the scroll area so the popup can shrink to zero. */
+	ul::before,
+	ul::after {
+		content: '';
+		display: block;
+		height: 0.25rem;
+	}
+
 	ul.suggestions {
-		max-height: calc(3.5 * var(--touch) + 0.5rem);
+		/* Scroll instead of pushing toasts out of the visible screen. */
+		max-height: min(
+			calc(3.5 * var(--touch) + 0.5rem),
+			calc(
+				var(--keyboard-view-height, 100dvh) - var(--bottom-bar, 0px) - var(--toast-stack, 0px) -
+					var(--toast-gap) - var(--popup-gap) - env(safe-area-inset-top)
+			)
+		);
 		overflow-y: auto;
 		overscroll-behavior: contain;
 	}

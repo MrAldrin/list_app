@@ -106,9 +106,11 @@ checked items, run in the browser so they work offline.
 - Prioritize quick list editing on mobile, with changes reflected for other
   connected users through the live stream.
 - Thumb reach on phones: the main add control sits in a bar at the bottom of
-  the screen: **Add or Search** on a list and **Add New List** in a room. Toasts
-  show at the top. Back, Options, the title, and the ⋮ menus stay in the top bar.
-  These controls are used less often, and Options opens its panel at the top.
+  the screen: **Add or Search** on a list and **Add New List** in a room. Up to two
+  toasts show above the bottom bar, clear of suggestions and the phone keyboard.
+  When space is short, only the newest toasts that fit show.
+  Back, Options, the title, and the ⋮ menus stay in the top bar. These controls
+  are used less often, and Options opens its panel at the top.
 - The add field creates a new item, leaves an existing active item unchanged,
   or unchecks an existing completed item, with feedback to the user. Enter adds
   the typed text unless an arrow key highlights a suggestion; clicking or tapping

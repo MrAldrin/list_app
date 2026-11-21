@@ -115,9 +115,6 @@ export function checkFeedback(name: string, done: boolean): { message: string; k
 	return { message: `${done ? 'Checked' : 'Unchecked'} ${name}`, kind: 'info' };
 }
 
-/** How long "Undo" stays after deleting an item, as NiceGUI's undo bar (5 s). */
-export const UNDO_DURATION = 5_000;
-
 /**
  * The "×2" shown after an item's name, so everyone sees a quantity of 2 or
  * more. Null when the quantity is 1, or when the stepper already shows it.

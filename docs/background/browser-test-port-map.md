@@ -53,7 +53,7 @@ small and inside the screen (Gate A).
 ## Toast layout check
 
 Each toast must be at most 48 px high and inside the screen, also with a long
-message, three stacked toasts, an open dialog and a short landscape screen.
+message, two stacked toasts, an open dialog and a short landscape screen.
 The toast area may be no taller than its toasts. Over an open dialog the test
 compares a screenshot pixel with the toast color: a modal dialog makes the
 rest of the page inert, so the browser's hit test never finds the toast.

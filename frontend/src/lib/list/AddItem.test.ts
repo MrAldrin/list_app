@@ -10,6 +10,10 @@ it('keeps selection by name across live props and never revives a removed name',
 	const onAdd = vi.fn(async () => true);
 	const props = reactive({ items: [alpha], canEdit: true, onAdd });
 	const scroll = vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {});
+	// happy-dom does not lay out the popup. Give it room for a visible option.
+	const popupHeight = vi
+		.spyOn(HTMLUListElement.prototype, 'offsetHeight', 'get')
+		.mockReturnValue(52);
 	const target = document.createElement('div');
 	document.body.append(target);
 	const component = mount(AddItem, { target, props });
@@ -68,5 +72,6 @@ it('keeps selection by name across live props and never revives a removed name',
 		await unmount(component);
 		target.remove();
 		scroll.mockRestore();
+		popupHeight.mockRestore();
 	}
 });

@@ -94,11 +94,14 @@ def test_controls_clear_simulated_screen_cutouts(svelte_server, open_session) ->
     sign_in(page, svelte_server)
     switcher = page.get_by_role("button", name=re.compile(r"^Switch room"))
     switcher.click()
+    expect(switcher).to_have_attribute("aria-expanded", "true")
     menu = page.locator("[popover]:popover-open")
     assert_clear(menu)
     page.keyboard.press("Escape")
 
-    page.get_by_role("button", name="Room menu").click()
+    room_menu = page.get_by_role("button", name="Room menu")
+    room_menu.click()
+    expect(room_menu).to_have_attribute("aria-expanded", "true")
     assert_clear(menu)
     logout = menu.get_by_role("button", name="Log out")
     logout.scroll_into_view_if_needed()
@@ -124,7 +127,9 @@ def test_controls_clear_simulated_screen_cutouts(svelte_server, open_session) ->
     assert page.evaluate("window.scrollY") > 0
     assert_clear(page.locator("header.bar"))
     assert box_of(page.locator(".connection"))["y"] >= top
-    page.get_by_role("button", name="List menu").click()
+    list_menu = page.get_by_role("button", name="List menu")
+    list_menu.click()
+    expect(list_menu).to_have_attribute("aria-expanded", "true")
     assert_clear(menu)
     page.keyboard.press("Escape")
 
@@ -133,6 +138,18 @@ def test_controls_clear_simulated_screen_cutouts(svelte_server, open_session) ->
     assert_clear(toast)
     toast.get_by_role("button", name="Dismiss").click()
     expect(toast).to_have_count(0)
+
+    # Deleting the test room returns to a page without a bar. Its toast
+    # clears only the screen inset; it must not keep the old bar height.
+    page.get_by_role("link", name="Back to room").click()
+    page.get_by_role("button", name="Room menu").click()
+    page.get_by_role("button", name="Delete Room").click()
+    page.get_by_label("Enter Room Password to Confirm").fill(svelte_server.password)
+    page.get_by_role("dialog").get_by_role("button", name="Delete").click()
+    expect(bar).to_have_count(0)
+    toast = page.locator(".toast").filter(has_text="Room deleted")
+    assert_clear(toast)
+    expect(page.locator(".toasts")).to_have_css("bottom", f"{bottom + 8}px")
 
 
 def test_bottom_bar_ignores_overscroll_but_lifts_for_keyboard(

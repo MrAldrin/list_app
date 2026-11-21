@@ -115,10 +115,8 @@ def add_item(page: Page, name: str) -> None:
 def dismiss_toasts(page: Page) -> None:
     """Close every toast on the page, as a user does with its Dismiss button.
 
-    A toast lies over the top of the page for about 4 s. A tap on a control
-    below it waits that long. Call this before such a tap, and only after the
-    test has checked the toasts it wants to see. Not inside `add_item`: many
-    tests check the toast of an add.
+    Call this only after the test has checked the toasts it wants to see.
+    Do not call it inside `add_item`: many tests check the toast of an add.
     """
     page.evaluate(
         """() => {

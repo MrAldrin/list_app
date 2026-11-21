@@ -56,7 +56,7 @@ or WebKit before also keeps it.
 | Live stream | `live` (two phones), `restart` (open page recovers), `share` (visitor journey) |
 | Native date, time zone | `item_date`, `due_center` (timed due; zone validation), `timed_due_offline` (all four, until lr-gt2.4 is fixed) |
 | Keyboard, focus, native dialog | `items` (suggestion keyboard and touch; core list journey), `due_center` (bell journey; bell keyboard), `accessibility` (control names; focus returns), `dialog` |
-| Layout, scroll, tap size | `bottom_bar`, `phone_fixes` (list top bar), `due_center_phone`, `tap_targets`, `toasts` (both) |
+| Layout, scroll, tap size | `bottom_bar`, `phone_fixes` (list top bar), `due_center_phone`, `tap_targets`, `toasts` |
 | Stored theme, first paint | `theme` (saved theme paints first) |
 | Unicode case rules | `items` (offline Unicode add) |
 | Install manifest | `install_browser` (manifest follows the page) |

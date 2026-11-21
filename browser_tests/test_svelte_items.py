@@ -269,6 +269,8 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     page.clock.install()
     sign_in(page, server)
     create_list(page, "Groceries")
+    # The cached list can render before it is ready to send edits online.
+    expect(page.get_by_text("Share List", exact=True)).to_be_enabled()
     field = page.get_by_label("Add or Search")
 
     # Add: names are trimmed and keep their case; the field clears and keeps focus.
@@ -288,7 +290,6 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(item_names(page)).to_have_count(3)
 
     # Check off: the item moves below the open items; uncheck moves it back.
-    dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()
     # Advance the browser's 1.5 s tap-settling timer before asserting the order.
@@ -301,7 +302,6 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     # Each check and uncheck names the item in a toast with Undo.
     expect(page.get_by_text("Checked apples", exact=True)).to_be_visible()
     expect(page.get_by_text("Unchecked apples")).to_be_visible()
-    dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="bread").check()
     page.locator(".toast", has_text="Checked bread").get_by_role(
@@ -311,7 +311,6 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
     expect(item_names(page)).to_have_text(["apples", "bread", "Milk"])
 
     # Adding a checked-off item restores it (here through a suggestion).
-    dismiss_toasts(page)
     with page.expect_response(saved_op):
         page.get_by_role("checkbox", name="apples").check()
     expect(page.get_by_role("checkbox", name="apples")).to_be_checked()
@@ -350,7 +349,6 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
 
     # Quantity: shown from Options; "Less" is disabled at 1.
     page.get_by_role("button", name="Options").click()
-    dismiss_toasts(page)
     page.get_by_role("switch", name="Show quantities").check()
     quantity = page.get_by_role("group", name="Quantity of Milk")
     page.get_by_role("button", name="More Milk").click()
@@ -400,7 +398,6 @@ def test_add_restore_check_quantity_edit_and_undo(svelte_server, open_session):
 
     # Without the stepper, a quantity of 2 or more shows as "x3" for everyone.
     show_quantities = page.get_by_role("switch", name="Show quantities")
-    dismiss_toasts(page)
     show_quantities.uncheck()
     expect(page.get_by_role("group", name="Quantity of Oat Milk")).to_be_hidden()
     expect(page.get_by_role("button", name=re.compile("^Oat Milk"))).to_contain_text(

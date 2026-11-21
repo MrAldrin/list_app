@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAX_TOASTS, Toasts } from './toasts.svelte';
+import { Toasts } from './toasts.svelte';
 
 describe('Toasts', () => {
 	beforeEach(() => {
@@ -9,11 +9,11 @@ describe('Toasts', () => {
 		vi.useRealTimers();
 	});
 
-	it('shows a toast and removes it after the duration', () => {
-		const toasts = new Toasts(1_000);
+	it('shows a toast without an action for 2.5 seconds', () => {
+		const toasts = new Toasts();
 		toasts.show('List created', 'success');
 		expect(toasts.items).toEqual([{ id: 1, message: 'List created', kind: 'success' }]);
-		vi.advanceTimersByTime(999);
+		vi.advanceTimersByTime(2_499);
 		expect(toasts.items).toHaveLength(1);
 		vi.advanceTimersByTime(1);
 		expect(toasts.items).toEqual([]);
@@ -35,12 +35,21 @@ describe('Toasts', () => {
 		expect(toasts.items.map((toast) => toast.message)).toEqual(['two']);
 	});
 
-	it(`keeps at most ${MAX_TOASTS}, dropping the oldest`, () => {
+	it('keeps at most two toasts, dropping the oldest', () => {
 		const toasts = new Toasts();
 		for (const message of ['a', 'b', 'c', 'd']) toasts.show(message);
-		expect(toasts.items.map((toast) => toast.message)).toEqual(['b', 'c', 'd']);
+		expect(toasts.items.map((toast) => toast.message)).toEqual(['c', 'd']);
 		// The timer of a dropped toast does nothing harmful later.
 		vi.runAllTimers();
+		expect(toasts.items).toEqual([]);
+	});
+
+	it('shows an Undo toast for four seconds', () => {
+		const toasts = new Toasts();
+		toasts.show('Deleted milk', 'danger', { action: { label: 'Undo', run: vi.fn() } });
+		vi.advanceTimersByTime(3_999);
+		expect(toasts.items).toHaveLength(1);
+		vi.advanceTimersByTime(1);
 		expect(toasts.items).toEqual([]);
 	});
 
@@ -74,7 +83,7 @@ describe('Toasts', () => {
 	});
 
 	it('can stay for its own duration', () => {
-		const toasts = new Toasts(1_000);
+		const toasts = new Toasts();
 		toasts.show('Deleted milk', 'danger', { duration: 5_000 });
 		vi.advanceTimersByTime(4_999);
 		expect(toasts.items).toHaveLength(1);

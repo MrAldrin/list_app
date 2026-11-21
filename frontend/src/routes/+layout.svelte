@@ -8,6 +8,7 @@
 	import AppearanceDialog from '#lib/ui/AppearanceDialog.svelte';
 	import ThemeToggle from '#lib/ui/ThemeToggle.svelte';
 	import { startTheme, theme } from '#lib/ui/theme.svelte.ts';
+	import { watchKeyboardInset } from '#lib/ui/keyboard.ts';
 	import Toast from '#lib/ui/Toast.svelte';
 	import UpdateNotice from '#lib/ui/UpdateNotice.svelte';
 	// Importing a CSS file here adds it to every page.
@@ -24,6 +25,25 @@
 	// Light or dark mode for every page; it follows the system while no
 	// choice is saved. The returned function stops that when the app closes.
 	$effect(() => startTheme());
+
+	// The bottom bar and toasts move together when the phone keyboard opens.
+	$effect(() => {
+		const { style } = document.documentElement;
+		const stop = watchKeyboardInset((inset) => {
+			style.setProperty('--keyboard', `${inset}px`);
+			const viewport = window.visualViewport;
+			if (inset > 0 && viewport) {
+				style.setProperty('--keyboard-view-height', `${viewport.height}px`);
+			} else {
+				style.removeProperty('--keyboard-view-height');
+			}
+		});
+		return () => {
+			stop?.();
+			style.removeProperty('--keyboard');
+			style.removeProperty('--keyboard-view-height');
+		};
+	});
 
 	onMount(() => {
 		// The first page loaded; a failed lazy import after this is SvelteKit's to handle.

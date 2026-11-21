@@ -1,6 +1,5 @@
-// Short messages at the top of the screen ("toasts"), like NiceGUI's
-// `ui.notify`. Any page can call `toasts.show(…)`; `Toast.svelte` (in the
-// root layout) shows them. A `.svelte.ts` file may use runes such as `$state`.
+// Short messages ("toasts"). Any page can call `toasts.show(…)`;
+// `Toast.svelte` in the root layout or open dialog shows them.
 
 export type ToastKind = 'info' | 'success' | 'warning' | 'danger';
 
@@ -25,10 +24,10 @@ export interface ToastOptions {
 	duration?: number;
 }
 
-/** How long a toast stays, in milliseconds. */
-export const TOAST_DURATION = 4_000;
+const TOAST_DURATION = 2_500;
+const ACTION_TOAST_DURATION = 4_000;
 /** Older toasts go when a new one would make more than this many. */
-export const MAX_TOASTS = 3;
+const MAX_TOASTS = 2;
 
 export class Toasts {
 	/** The toasts on screen, oldest first. */
@@ -39,13 +38,8 @@ export class Toasts {
 	 * itself (`Dialog.svelte`) and the root area stays empty meanwhile.
 	 */
 	dialogs = $state.raw<readonly number[]>([]);
-	readonly #duration: number;
 	#nextId = 0;
 	#nextDialogId = 0;
-
-	constructor(duration = TOAST_DURATION) {
-		this.#duration = duration;
-	}
 
 	/** Shows a message; it goes away by itself. Returns its id. */
 	show(message: string, kind: ToastKind = 'info', options: ToastOptions = {}): number {
@@ -54,7 +48,8 @@ export class Toasts {
 		const toast: ToastMessage = { id, message, kind };
 		if (options.action) toast.action = options.action;
 		this.items = [...this.items, toast].slice(-MAX_TOASTS);
-		setTimeout(() => this.dismiss(id), options.duration ?? this.#duration);
+		const duration = options.duration ?? (toast.action ? ACTION_TOAST_DURATION : TOAST_DURATION);
+		setTimeout(() => this.dismiss(id), duration);
 		return id;
 	}
 
