@@ -2,12 +2,12 @@
 	A bar fixed to the bottom of the screen, within thumb reach on a phone. The
 	list page puts "Add or Search" here; the room page puts "Add New List" here.
 	An empty spacer of the same height stays in the page, so the last rows can
-	scroll out from under the bar. On an iPhone the bar rises above the open
-	keyboard (see the effect below). Toasts show at the top of the screen, so
-	they never cover the bar.
+	scroll out from under the bar. The bar rises above the phone keyboard, but
+	stays in place during overscroll. Toasts show at the top of the screen.
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { watchKeyboardInset } from './keyboard';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -15,24 +15,10 @@
 	/** The bar's height, measured by the browser, for the spacer. */
 	let height = $state(0);
 
-	// The iPhone keyboard covers the bottom of the screen but does not shrink
-	// the page, so a `bottom: 0` bar would hide behind it. The visual viewport
-	// is the part still visible; its size tells how far to lift the bar.
 	$effect(() => {
-		const viewport = window.visualViewport;
-		if (!bar || !viewport) return;
 		const target = bar;
-		const update = () => {
-			const covered = window.innerHeight - viewport.height - viewport.offsetTop;
-			target.style.setProperty('--keyboard', `${Math.max(0, covered)}px`);
-		};
-		update();
-		viewport.addEventListener('resize', update);
-		viewport.addEventListener('scroll', update);
-		return () => {
-			viewport.removeEventListener('resize', update);
-			viewport.removeEventListener('scroll', update);
-		};
+		if (!target) return;
+		return watchKeyboardInset((inset) => target.style.setProperty('--keyboard', `${inset}px`));
 	});
 </script>
 

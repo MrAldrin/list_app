@@ -4,7 +4,15 @@ room page sit at the bottom of a phone screen, within thumb reach.
 
 import pytest
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, add_item, create_list, sign_in
+from svelte_app import (
+    PHONE,
+    add_item,
+    api_seed,
+    api_sign_in,
+    create_list,
+    open_list,
+    sign_in,
+)
 
 
 def box_of(locator) -> dict:
@@ -54,3 +62,41 @@ def test_add_controls_sit_at_the_bottom_and_suggestions_open_upwards(
     assert (
         box_of(suggestions)["y"] + box_of(suggestions)["height"] <= box_of(field)["y"]
     )
+
+
+def test_bottom_bar_ignores_overscroll_but_lifts_for_keyboard(
+    svelte_server, open_session
+) -> None:
+    page = open_session("phone", **PHONE)
+    # A desktop browser cannot open the phone keyboard or rubber-band like iOS.
+    # Simulate the viewport reports but check the actual bar's CSS position.
+    page.add_init_script("""(() => {
+        const viewport = Object.assign(new EventTarget(), { offsetTop: 0, covered: 0 });
+        Object.defineProperty(viewport, 'height', { get: () => window.innerHeight - viewport.covered });
+        Object.defineProperty(window, 'visualViewport', { value: viewport });
+    })();""")
+    api_sign_in(page, svelte_server)
+    open_list(
+        page,
+        api_seed(page, svelte_server, {"Groceries": ["milk"]})["Groceries"],
+        "Groceries",
+    )
+    bar = page.locator(".bottom-bar")
+    expect(bar).to_have_css("bottom", "0px")
+
+    page.evaluate("""() => {
+        visualViewport.offsetTop = -357;
+        visualViewport.dispatchEvent(new Event('scroll'));
+    }""")
+    expect(bar).to_have_css("bottom", "0px")
+
+    field = page.get_by_role("combobox", name="Add or Search")
+    field.focus()
+    page.evaluate("""() => {
+        visualViewport.offsetTop = 0;
+        visualViewport.covered = 300;
+        visualViewport.dispatchEvent(new Event('resize'));
+    }""")
+    expect(bar).to_have_css("bottom", "300px")
+    field.blur()
+    expect(bar).to_have_css("bottom", "0px")
