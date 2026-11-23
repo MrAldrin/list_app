@@ -28,6 +28,23 @@ learning, targeting up to four simultaneous users rather than large-scale use.
   [conflict rules](docs/background/offline-editing-details.md#conflict-rules).
   Discuss other stack changes before implementation.
 
+## Planned backend rewrite
+
+The owner approved a rewrite of the backend to TypeScript on 2026-11-23. Until
+the switch, the Python stack above is what runs. The work and its steps are in
+the Beads epic `lr-5g6`.
+
+- **Target stack:** Bun, strict TypeScript and Effect 3 inside SvelteKit, as one
+  process. Effect Schema is the API contract that server and browser share. The
+  server uses the same SQLite file and schema, so no data moves.
+- **Python is a reference, not an oracle.** The browser must see the same
+  `/api/v1` routes, JSON, status codes, rejection codes and cookies. The inside
+  of the server is free to differ and follows Effect style.
+- **Checks:** the existing browser suite judges the new server. Property tests
+  cover the op rules. Allium specs describe the risky areas during the port.
+  The evidence is in the
+  [stack research](docs/background/stack-research-2026-11/README.md).
+
 ## Domain and security boundaries
 
 - **Room:** A password-protected workspace containing lists. Shared room access
