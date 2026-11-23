@@ -62,7 +62,7 @@ the app shell has an inline theme script.
 `API_VERSION` in `src/api/version.py` is a whole number set by hand. The server
 sends it as `X-Api-Version` on every `/api` answer. The frontend keeps the
 number it was built for as `EXPECTED_API_VERSION` in
-`frontend/src/lib/data/compat.svelte.ts`. A test checks that both are equal.
+`frontend/src/lib/contracts/v1/version.ts`. A test checks that both are equal.
 
 - Bump both together in a change that would break a frontend still open in a
   browser: a changed meaning, a removed or renamed field, or a new rule for

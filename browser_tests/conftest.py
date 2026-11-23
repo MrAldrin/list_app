@@ -5,17 +5,23 @@ import os
 import shutil
 import sqlite3
 import subprocess
+import sys
 import time
 import uuid
 from contextlib import closing
+from http.client import HTTPException
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from urllib.request import urlopen
 
 import pytest
 from playwright.sync_api import Page, sync_playwright
 from server_launcher import AppServer
 
 ROOT = Path(__file__).resolve().parents[1]
+FRONTEND = ROOT / "frontend"
+TS_ENTRY = FRONTEND / "build-ts" / "index.js"
+LAST_ROOM_PATH = "/api/v1/last-room"
 PASSWORD = "browser-test-room-password"
 
 
@@ -57,6 +63,57 @@ class TestServer(AppServer):
     _home_hash: str | None = None
 
 
+class TypeScriptTestServer(TestServer):
+    """Run the Bun build on the same disposable SQLite schema as Python tests."""
+
+    def __init__(self, directory: Path) -> None:
+        bun = shutil.which("bun")
+        if bun is None or not TS_ENTRY.is_file():
+            pytest.fail(
+                "Bun server missing. Install Bun and run `bun run build:ts` in frontend/."
+            )
+        super().__init__(
+            directory, command=lambda _port: [bun, "--no-env-file", str(TS_ENTRY)]
+        )
+        self.env.update(
+            LISTR_TS_HOST="127.0.0.1",
+            LISTR_TS_PORT=str(self.port),
+            LISTR_TS_ORIGIN=self.url,
+            LISTR_TS_SHUTDOWN_TIMEOUT="1",
+            LISTR_TS_SOCKET_PATH="",
+            DB_BACKUP_PATH=str(directory / "app-test-pre-migration.db"),
+        )
+
+    def start(self) -> None:
+        # Use the existing schema setup only. No Python server or API proxy.
+        if not self.database.exists():
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "from database_setup import open_database; open_database()",
+                ],
+                cwd=self.directory,
+                env=self.env,
+                check=True,
+            )
+        super().start()
+
+    def _answers(self) -> bool:
+        # The Python readiness URL (manifest.json) is not part of this skeleton.
+        try:
+            with urlopen(f"{self.url}{LAST_ROOM_PATH}", timeout=1) as response:
+                return response.status == 200
+        except (OSError, HTTPException):
+            return False
+
+
+def _test_server(config: pytest.Config, directory: Path) -> TestServer:
+    if config.getoption("--browser-backend") == "typescript":
+        return TypeScriptTestServer(directory)
+    return TestServer(directory)
+
+
 # Not test data: SQLite's ID counters and the item-name key version.
 KEPT_TABLES = frozenset({"sqlite_sequence", "item_name_key_metadata"})
 
@@ -66,9 +123,9 @@ def _assert_no_traceback(log: str) -> None:
 
 
 @pytest.fixture(scope="session")
-def shared_server(tmp_path_factory):
+def shared_server(pytestconfig, tmp_path_factory):
     """One app server for all tests of this pytest-xdist worker."""
-    server = TestServer(tmp_path_factory.mktemp("shared-server"))
+    server = _test_server(pytestconfig, tmp_path_factory.mktemp("shared-server"))
     try:
         server.start()
         yield server
@@ -85,7 +142,7 @@ def server(request, tmp_path):
     no earlier test has used, asks for its own with `@pytest.mark.own_server`.
     """
     if request.node.get_closest_marker("own_server") is not None:
-        server = TestServer(tmp_path)
+        server = _test_server(request.config, tmp_path)
         try:
             server.start()
             yield server
@@ -108,6 +165,15 @@ def server(request, tmp_path):
         server.start()
     assert running, "The test stopped the shared server; mark it own_server."
     _assert_no_traceback(new_log)
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--browser-backend",
+        choices=("python", "typescript"),
+        default="python",
+        help="Server for the main browser fixture (default: python)",
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -333,7 +399,6 @@ class BrowserSessions:
 
 # Svelte frontend ------------------------------------------------------------
 
-FRONTEND = ROOT / "frontend"
 BUILD_INDEX = FRONTEND / "build" / "index.html"
 BUILD_INPUTS = (
     "src",
@@ -397,9 +462,11 @@ def svelte_build(tmp_path_factory):
 
 
 @pytest.fixture
-def svelte_server(svelte_build, server):
-    """The test server with the Svelte app at /."""
-    return server
+def svelte_server(request):
+    """The selected test server with the Svelte app at /."""
+    if request.config.getoption("--browser-backend") == "python":
+        request.getfixturevalue("svelte_build")
+    return request.getfixturevalue("server")
 
 
 @pytest.fixture

@@ -13,8 +13,8 @@ from api import build_router
 from api.version import API_VERSION, API_VERSION_HEADER
 
 HTTPS = "https://testserver"
-COMPAT_FILE = (
-    Path(__file__).resolve().parents[1] / "frontend/src/lib/data/compat.svelte.ts"
+CONTRACT_VERSION = (
+    Path(__file__).resolve().parents[1] / "frontend/src/lib/contracts/v1/version.ts"
 )
 
 
@@ -79,6 +79,6 @@ def test_pages_do_not_send_the_version(client: TestClient) -> None:
 
 
 def test_frontend_expects_the_same_version() -> None:
-    match = re.search(r"EXPECTED_API_VERSION\s*=\s*(\d+)", COMPAT_FILE.read_text())
-    assert match, "frontend compat.ts must define EXPECTED_API_VERSION"
+    match = re.search(r"EXPECTED_API_VERSION\s*=\s*(\d+)", CONTRACT_VERSION.read_text())
+    assert match, "the shared TypeScript contract must define EXPECTED_API_VERSION"
     assert int(match.group(1)) == API_VERSION

@@ -35,6 +35,23 @@ uv run pytest browser_tests -q -n 0  # serial
 uv run pytest browser_tests -q -k svelte  # Svelte app only
 ```
 
+## TypeScript server
+
+Build the [local Bun server](../frontend/README.md#local-typescript-server), then
+run this check from the repository root:
+
+```bash
+flock ~/.local/state/night-loop/browser.lock flock ~/.local/state/night-loop/list_app/browser.lock \
+  uv run pytest browser_tests/test_svelte_rooms.py -q -n 0 --browser-backend typescript \
+  -k last_room_contract
+```
+
+The main browser fixture starts Bun instead of Python and uses a fresh test
+database with the same schema. It does not send requests to Python. Only
+`GET /api/v1/last-room` is available, so journeys that need other API routes
+cannot pass yet. Tests that start their own custom server outside the main
+fixture are unchanged. The default is still `--browser-backend python`.
+
 ## Engine selection
 
 Tests run on Chromium only by default. Add `@pytest.mark.all_engines` to an

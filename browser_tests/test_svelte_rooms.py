@@ -15,7 +15,34 @@ from svelte_app import (
     wait_until,
 )
 
+from api.version import API_VERSION, API_VERSION_HEADER
 from conftest import wait_for_api_idle
+
+
+def test_start_page_last_room_contract(svelte_server, open_session) -> None:
+    page = open_session("phone", **PHONE)
+    url = f"{svelte_server.url}/api/v1/last-room"
+    with page.expect_response(url) as lookup:
+        page.goto(app_url(svelte_server))
+    response = lookup.value
+    assert response.status == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers[API_VERSION_HEADER.lower()] == str(API_VERSION)
+    assert "set-cookie" not in response.headers
+    assert response.json() == {"slug": None}
+    expect(
+        page.get_by_role("heading", name="Open your room link to continue")
+    ).to_be_visible()
+
+    # The cookie is a navigation hint even when the room does not exist.
+    page.context.add_cookies(
+        [{"name": "listapp-last-room", "value": "old-room", "url": svelte_server.url}]
+    )
+    with page.expect_response(url) as remembered:
+        page.goto(app_url(svelte_server))
+    assert remembered.value.status == 200
+    assert remembered.value.json() == {"slug": "old-room"}
+    expect(page).to_have_url(f"{svelte_server.url}/room/old-room")
 
 
 @pytest.mark.all_engines

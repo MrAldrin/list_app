@@ -1,8 +1,9 @@
-import adapter from '@sveltejs/adapter-static';
+import adapterBun from '@sveltejs/adapter-bun';
+import adapterStatic from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
 	plugins: [
 		sveltekit({
 			compilerOptions: {
@@ -11,10 +12,15 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 
-			// SPA mode: build plain static files into `build/`. Every URL the
-			// server does not know falls back to `index.html`, and the router in
-			// the browser picks the page.
-			adapter: adapter({ fallback: 'index.html' }),
+			// The default build is still the SPA that Python serves from build/.
+			adapter:
+				mode === 'typescript-server'
+					? adapterBun({
+							out: 'build-ts',
+							envPrefix: 'LISTR_TS_',
+							serverOptions: { hostname: '127.0.0.1' }
+						})
+					: adapterStatic({ fallback: 'index.html' }),
 			// The layout registers the worker after the legacy /sw.js cleanup gate.
 			serviceWorker: { register: false }
 			// Python serves the built app at the root (`/`), so no `paths.base`.
@@ -39,4 +45,4 @@ export default defineConfig({
 		fsModuleCache: true,
 		include: ['src/**/*.test.ts']
 	}
-});
+}));

@@ -4,14 +4,9 @@
 // the page offers a reload. Nothing reloads by itself.
 
 import { SvelteMap } from 'svelte/reactivity';
+import { API_VERSION_HEADER, EXPECTED_API_VERSION } from '#lib/contracts/v1/version.ts';
 
-/**
- * The API version this build was made for. The server keeps the same number in
- * `src/api/version.py`; a Python test checks that both match.
- */
-export const EXPECTED_API_VERSION = 4;
-
-export const API_VERSION_HEADER = 'X-Api-Version';
+export { API_VERSION_HEADER, EXPECTED_API_VERSION } from '#lib/contracts/v1/version.ts';
 
 export const INCOMPATIBLE_CODE = 'incompatible_version';
 export const INCOMPATIBLE_MESSAGE = 'A new version is available. Reload to keep making changes.';

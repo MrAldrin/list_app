@@ -61,6 +61,23 @@ This runs `bun --bun run vite build` and writes static files to `build/`
 Restart the Python server once after the first build; it then serves the app at
 <http://localhost:8080/>. Later builds need no restart.
 
+## Local TypeScript server
+
+The default build still makes static files for the Python server. To try the
+Bun server locally, use a SQLite backup of a **test** database that Python has
+already set up. Do not use the live database.
+
+```sh
+bun run build:ts
+env DB_PATH=/absolute/path/to/test-copy.db APP_PASSWORD=test-only \
+  LISTR_TS_ORIGIN=http://127.0.0.1:3000 bun --no-env-file build-ts/index.js
+```
+
+Open <http://127.0.0.1:3000/>. The server opens the copy read-only and serves
+`GET /api/v1/last-room`. It does not run migrations or forward the other
+routes to Python. Stop it with Ctrl-C. See the
+[TypeScript browser check](../docs/browser-testing.md#typescript-server) for an automated run.
+
 ## Checks
 
 ```sh

@@ -18,7 +18,7 @@ export const API_BASE = '/api/v1';
 
 const ADMIN = `${API_BASE}/admin`;
 
-export type FetchFn = typeof fetch;
+export type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 function roomPath(slug: string, rest: string): string {
 	return `${API_BASE}/rooms/${encodeURIComponent(slug)}/${rest}`;
