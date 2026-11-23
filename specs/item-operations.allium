@@ -1,0 +1,128 @@
+-- allium: 3
+-- Item conflicts and retry-safe operations (ops). Excludes routine CRUD.
+-- Sources: src/api/ops.py (handlers, _check_base_seq, _run_write_op),
+-- src/api/idempotency.py, src/database_crud.py (item rules and op retention),
+-- src/item_names.py and src/reminders/due_schedule.py.
+-- See docs/api-lists-items.md for fields and the full rejection table.
+
+use "./room-access.allium" as access
+
+entity List {
+    room: access/Room
+}
+
+-- Access admitted by the server for this request. A share is restricted to one list.
+entity OpScope {
+    room: access/Room
+    shared_list: List?
+}
+
+entity StoredOpAnswer {
+    op_id: String
+    room: access/Room
+    validated_body: Any
+    answer: Any
+}
+
+-- SubmitOp represents an admitted request, not authorisation by the client.
+-- Admission and the first evaluation/recording act as one decision.
+rule FirstOp {
+    when: SubmitOp(browser, scope, op_id, body)
+    let prior = StoredOpAnswer{op_id}
+    requires: not exists prior
+    let answer = evaluate_operation(scope.room, scope.shared_list, body)
+    requires: is_applied_or_business_rejection(answer)
+    ensures: StoredOpAnswer.created(op_id: op_id, room: scope.room,
+                                   validated_body: body, answer: answer)
+    ensures: OpAnswered(browser, answer)
+}
+
+rule ReplaySameOp {
+    when: SubmitOp(browser, scope, op_id, body)
+    let prior = StoredOpAnswer{op_id}
+    requires: exists prior
+    requires: prior.room = scope.room
+    requires: same_validated_body(prior.validated_body, body)
+    ensures: OpAnswered(browser, prior.answer)
+}
+
+rule RefuseReusedOpId {
+    when: SubmitOp(browser, scope, op_id, body)
+    let prior = StoredOpAnswer{op_id}
+    requires: exists prior
+    requires: prior.room != scope.room or not same_validated_body(prior.validated_body, body)
+    ensures: OpIdReused(browser, op_id)
+}
+
+invariant OneRoomPerScope {
+    for scope in OpScopes:
+        scope.shared_list != null implies scope.shared_list.room = scope.room
+}
+
+surface Operations {
+    facing browser: access/Browser
+    context scope: OpScope
+    provides: SubmitOp(browser, scope, op_id, body)
+
+    @guarantee ApplyOnce
+        -- Apply SameOriginWrites (room-access.allium), validate the request,
+        -- and check current room or share access before looking up an answer.
+        -- One ID identifies one op across all rooms.
+        -- Commit effects and the answer together. An applied result or a
+        -- business rejection is stored; a rejection changes no room data.
+        -- A transport/request error is not an op answer and is not stored.
+        -- Replay the original result, message and seq without a new write.
+        -- A different validated body or room gives op_id_reused (409).
+        -- Body comparison ignores JSON key order and UUID letter case.
+        -- Preserve the existing treatment of omitted and null fields; in
+        -- particular, item.edit treats absent and null date as the same for
+        -- replay, even though absent keeps the date and null clears it.
+        -- For due time and zone, absence and explicit null compare differently.
+
+    @guarantee AnswerRetention
+        -- Prune answers older than 30 days, at startup and daily. After an
+        -- answer is gone, a repeat can run again. Deleting a room also
+        -- removes its stored answers.
+
+    @guarantee RowVersionCheck
+        -- A row's changed_seq is the room's seq at its last change. Item edit
+        -- and list rename require base_seq. Set done can omit it, in which
+        -- case the last write wins. With base_seq, reject changed_meanwhile
+        -- if the row is newer and the wanted values differ. Compare the edit:
+        -- name, description, quantity if given, and the merged due schedule.
+        -- A matching repeat is accepted. A no-op need not change the seq.
+        -- Quantity deltas use the current quantity, not base_seq, and stop at 1.
+        -- An applied single-row op can give the new version for the next edit.
+
+    @guarantee AddOrReopen
+        -- Trim outside whitespace, but keep the entered case. Match item
+        -- names within one list by Unicode lowercase, not full case folding.
+        -- No match: add an open item and start its add count at 1.
+        -- Checked match: reopen that item under its existing ID and name.
+        -- Active match: reject duplicate_active and return the existing ID.
+        -- Reopening (by add or uncheck) clears completion time and counts
+        -- as one add. Checking sets completion time only on the first check.
+
+    @guarantee ChangeOrUndo
+        -- Edits save all fields or none. An omitted or null quantity leaves
+        -- it alone. Omitted due parts keep their values; clearing the date
+        -- clears time and zone, and clearing time clears the zone.
+        -- The server resolves a timed item to UTC; use the first valid instant
+        -- after a clock gap or the first occurrence in a repeated hour.
+        -- A tag with explicit active sets the desired state; without it,
+        -- toggle. In single-tag mode, turning it on makes it the only tag.
+        -- Item delete succeeds even if the item is already absent. Undo a
+        -- delete with a fresh ID and the saved item data; keep the add count
+        -- and add time. Undo is not a new add.
+
+    @guarantee BusinessRefusals
+        -- Missing or out-of-scope list: list_unavailable. Missing item (or
+        -- one in another list): item_not_found, except for delete above.
+        -- Name taken on edit/rename: duplicate_name; on undo: undo_name_taken.
+        -- Blank names, length or count limits: invalid_name, too_long, too_many.
+        -- Tag color or rename needs an existing list tag (unknown_tag).
+        -- Invalid due combination: invalid_due. A zone the server cannot
+        -- resolve: time_zone_unavailable. Malformed input is a request error.
+}
+
+open question "Should the port keep treating omitted date and explicit date clearing as the same for replay, to match existing stored answers?"

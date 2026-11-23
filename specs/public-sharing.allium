@@ -1,0 +1,93 @@
+-- allium: 3
+-- One public list, private room controls, link reset and revocation.
+-- Extends the pilot in docs/allium/public-sharing.allium for the port.
+-- Excludes room creation invitations, which are not list share links.
+-- Sources: src/api/{access,share,events,ops}.py (SHARE_OP_TYPES);
+-- src/database_crud.py (share_token_transaction, get_share_seq_locked);
+-- frontend/src/lib/data/share.ts and frontend/src/routes/share/[token]/+page.svelte.
+-- See docs/api-sharing.md and docs/public-sharing.md.
+
+use "./room-access.allium" as access
+use "./item-operations.allium" as ops
+
+entity ShareLink {
+    list: ops/List
+}
+
+-- These rules use a link only while it still exists as the current link.
+rule ReadSharedList {
+    when: OpenShareLink(browser, link)
+    requires: exists link
+    ensures: SharedListVisible(browser, link.list)
+    ensures:
+        if has_current_room_cookie(browser, link.list.room):
+            SharedRoomNavigation(browser, link.list.room)
+}
+
+rule ReadCurrentLink {
+    when: ShowShareLink(session, list)
+    requires: session.current
+    requires: session.room = list.room
+    let link = ShareLink{list}
+    ensures: ShareLinkVisible(session, link)
+}
+
+rule RotateLink {
+    when: ResetShareLink(session, list)
+    requires: session.current
+    requires: session.room = list.room
+    let old_link = ShareLink{list}
+    ensures: not exists old_link
+    ensures: ShareLink.created(list: list)
+}
+
+surface PublicList {
+    facing browser: access/Browser
+    context link: ShareLink
+    provides: OpenShareLink(browser, link)
+
+    @guarantee OneListOnly
+        -- A current link gives access to one list without a room password.
+        -- Reads always return a full snapshot with no deletions and a blank
+        -- list slug. The cursor is for this list, not for the room; edits to
+        -- other lists do not move it. Return room details only with a current
+        -- cookie for this list's room; otherwise room is null. Room details
+        -- enable the Back and Reset controls, but do not authorize a write.
+        -- A private list address needs room access. It cannot reveal a token
+        -- or redirect an unauthorised visitor to a public share link.
+
+    @guarantee ListEditingOnly
+        -- A link allows item ops (including undo), list tags and their
+        -- settings, and checked-item visibility. Not room rename or list
+        -- create, rename or delete. A disallowed type is invalid_request.
+        -- Apply SameOriginWrites (room-access.allium). A first op naming
+        -- another list is rejected as list_unavailable. Stored answers match
+        -- the room and validated body, not the list or link scope. A matching
+        -- answer can therefore come from another list in the same room.
+        -- Replay does not perform a new write.
+
+    @guarantee LinkMustStillBeCurrent
+        -- Check the current link with every read and write, including op
+        -- replay. Unknown, reset or deleted links give share_unavailable.
+        -- A reset blocks waiting edits and undo from the old page. The old
+        -- live stream reports revoked and ends; the page removes the list on
+        -- confirmed loss of access. Data already copied cannot be recalled.
+}
+
+surface RoomShareControls {
+    facing session: access/RoomSession
+    context list: ops/List where list.room = session.room
+    provides:
+        ShowShareLink(session, list) when session.current
+        ResetShareLink(session, list) when session.current
+
+    @guarantee OnlyRoomAccessCanReset
+        -- A current room cookie for this list's room is required when showing
+        -- or resetting its link. Admin access alone is not enough. Reset
+        -- returns a fresh link and immediately retires the old one. It is not
+        -- a replayable op; a repeat rotates again. It leaves room access alone.
+        -- A room password change or reset leaves share links valid. Deleting
+        -- the list or its room ends access through the link.
+}
+
+open question "Should replay through a share link require the saved answer to be for that list? Should room and share views of the same list share saved answers?"

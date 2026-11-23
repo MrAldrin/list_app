@@ -1,0 +1,119 @@
+-- allium: 3
+-- Room feed, live updates, and the browser's offline write queue.
+-- Share-specific feed and access rules are in public-sharing.allium.
+-- Excludes service worker installation and browser-specific storage APIs.
+-- Sources: src/api/{changes,events}.py, src/database_{crud,setup}.py;
+-- frontend/src/lib/data/{index,feed,events,write-queue,queue-entries,
+-- rebase,queue-storage,snapshot-store,room-store.svelte,api}.ts.
+-- See docs/api-sync.md and docs/offline-viewing.md.
+
+use "./room-access.allium" as access
+
+entity RoomFeed {
+    room: access/Room
+    seq: Integer
+    pruned_through: Integer
+}
+
+entity QueueStatus {
+    browser: access/Browser
+    waiting: Integer
+}
+
+rule ReadFullRoom {
+    when: ReadRoomChanges(session, feed, since)
+    requires: session.current and session.room = feed.room
+    requires: since >= 0
+    requires: since = 0 or since > feed.seq or since < feed.pruned_through
+    ensures: FullRoomSnapshot(session.browser, feed.room, feed.seq)
+}
+
+rule ReadRoomDelta {
+    when: ReadRoomChanges(session, feed, since)
+    requires: session.current and session.room = feed.room
+    requires: since > 0 and since <= feed.seq and since >= feed.pruned_through
+    ensures: RoomDelta(session.browser, feed.room, since, feed.seq)
+}
+
+surface RoomChanges {
+    facing session: access/RoomSession
+    context feed: RoomFeed where feed.room = session.room
+    provides: ReadRoomChanges(session, feed, since) when session.current
+
+    @guarantee FeedAndCursorAgree
+        -- The cursor (seq) and rows describe one consistent point in time.
+        -- A full feed replaces the saved room, with no deletions. A delta
+        -- includes lists, items and deletion records newer than since; it
+        -- always describes the room, even when only its name changed.
+        -- Merge by ID, remove deletions, and drop items of a deleted list
+        -- even if not named separately. Resume from the returned cursor.
+        -- Full feeds recover from a restore or missed pruned deletions;
+        -- the server prunes deletion records older than 90 days.
+
+    @guarantee LiveSignalNotData
+        -- Server-Sent Events send the initial cursor, then the current value
+        -- when it differs from the last one sent. Several writes may coalesce.
+        -- A cursor is a signal to fetch the feed, not a change set. Even a
+        -- lower value prompts a read. When a stream reconnects, read again.
+        -- Recheck access on writes that wake the stream and at least about
+        -- every 15 seconds. If access is gone, send revoked and close; the
+        -- page checks the session before treating a room as signed out.
+        -- Before opening, deny invalid access. If all 100 shared stream
+        -- slots are taken, return unavailable so the browser can retry.
+        -- Close on shutdown or temporary database failure; those are not
+        -- revocation. The same live protocol applies to the share cursor.
+}
+
+surface DeviceQueue {
+    facing browser: access/Browser
+    context status: QueueStatus where status.browser = browser
+    exposes: status.waiting
+
+    @guarantee LocalViewAndEdits
+        -- A previously opened room or share link can use its saved view
+        -- offline. Keep the last server snapshot separate from pending edits
+        -- and separate for each room or link. The snapshot is not permission.
+        -- Show pending edits at once; they are not proof of server acceptance.
+        -- Keep them across reload if device storage works, otherwise only
+        -- in the open page. No background sending when the app is closed.
+
+    @guarantee ValidateBeforeSending
+        -- On open, reconnect or return to the screen, confirm access and
+        -- fetch changes before sending. Send one op at a time, oldest first.
+        -- No reply or 502/503/504: wait and retry with the same ID and body.
+        -- A current 401 pauses the queue rather than deleting it. A late
+        -- 401 from an old authorization must not undo a newer sign-in.
+        -- An incompatible API version stops sends and keeps the queue.
+        -- Other request failures and business rejections settle the op.
+
+    @guarantee CatchUpWithoutRepeatingEdits
+        -- Do not merge a new feed over an edit still awaiting its reply.
+        -- Keep an applied edit visible until the feed reaches its answer.
+        -- Move later, never-sent edits on the same row from the old version
+        -- to this op's returned row version when their base matches the old
+        -- one. Do not silently rebase onto someone else's version.
+        -- If an add keeps an existing item ID (reopened or duplicate_active),
+        -- retarget subsequent unsent edits from the provisional ID. Never
+        -- change the body of an op already sent, even when its reply is lost.
+
+    @guarantee HeldAndNotSaved
+        -- An unreadable entry or an entry over 30 days old blocks later
+        -- entries. Discard unreadable entries. For old entries choose Send
+        -- or Discard: after answer retention, the op could run a second time.
+        -- A refused edit that waited goes to Not saved, except an add whose
+        -- active item already exists. A quick online refusal shows a toast.
+        -- Not saved survives reload with working storage. Dismiss a refusal,
+        -- or for changed_meanwhile choose Save mine anyway: submit a new op
+        -- on the current row version. Never retry a refusal automatically.
+
+    @guarantee AccessLost
+        -- On confirmed loss of access, clear the saved view and keep waiting
+        -- changes paused. A dead share link only allows discard. Do not move
+        -- its waiting edits to a new link. A temporary network/server failure
+        -- does not clear the saved view or end access.
+        -- Explicit room sign-out holds waiting edits until Send or Discard,
+        -- even after the next sign-in. Room deletion through the current
+        -- room page warns about waiting edits and discards them on success.
+}
+
+open question "After a remote password reset, should pending edits also wait for Send or Discard after sign-in? The offline guide says yes; the current queue holds for explicit sign-out."

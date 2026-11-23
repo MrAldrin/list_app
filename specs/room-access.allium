@@ -1,0 +1,162 @@
+-- allium: 3
+-- Rooms and sign-in: who can enter, manage or remove a room.
+-- Excludes routine room editing and reminder enrollments.
+-- Sources: src/api/{session,room,admin,access,cookies,sign_in_limit}.py;
+-- src/{room_cookies,admin_access,sign_in_limiter,database_crud}.py.
+-- See also: docs/api-rooms.md and docs/api-admin.md.
+
+entity Browser {}
+
+entity Room {
+    name: String
+    slug: String
+    password_revision: Integer
+}
+
+entity RoomSession {
+    room: Room
+    browser: Browser
+    password_revision: Integer
+    current: password_revision = room.password_revision
+}
+
+entity AdminSession {
+    browser: Browser
+    expires_at: Timestamp
+    current: now < expires_at and admin_credential_still_matches(this)
+}
+
+config {
+    admin_duration: Duration = 30.minutes
+}
+
+rule SignInToRoom {
+    when: SignInToRoom(browser, room, password)
+    requires: room_attempt_allowed(room)
+    requires: room_password_matches(room, password)
+    ensures: RoomSession.created(room: room, browser: browser,
+                                 password_revision: room.password_revision)
+}
+
+rule SignOutOfRoom {
+    when: SignOutOfRoom(session)
+    ensures: not exists session
+}
+
+rule ChangeRoomPassword {
+    when: ChangeRoomPassword(session, current, replacement)
+    requires: session.current
+    requires: room_password_matches(session.room, current)
+    requires: valid_new_room_password(replacement)
+    ensures: session.room.password_revision = session.room.password_revision + 1
+    ensures: RoomSession.created(room: session.room, browser: session.browser,
+                                 password_revision: session.room.password_revision)
+}
+
+rule SignInAsAdmin {
+    when: SignInAsAdmin(browser, password)
+    requires: admin_attempt_allowed()
+    requires: admin_password_matches(password)
+    ensures: AdminSession.created(browser: browser, expires_at: now + config.admin_duration)
+}
+
+rule ResetRoomPasswordAsAdmin {
+    when: ResetRoomPasswordAsAdmin(session, room, replacement)
+    requires: session.current
+    requires: valid_new_room_password(replacement)
+    ensures: room.password_revision = room.password_revision + 1
+}
+
+rule DeleteRoomAsParticipant {
+    when: DeleteRoomAsParticipant(session, password)
+    requires: session.current
+    requires: room_password_matches(session.room, password)
+    ensures: not exists session.room
+}
+
+rule DeleteRoomAsAdmin {
+    when: DeleteRoomAsAdmin(session, room)
+    requires: session.current
+    ensures: not exists room
+}
+
+surface SignIn {
+    facing browser: Browser
+    provides:
+        SignInToRoom(browser, room, password)
+        SignInAsAdmin(browser, password)
+
+    @guarantee PasswordsAndAttemptLimits
+        -- Setting a room password requires at least 4 characters, at most
+        -- 72 UTF-8 bytes, and not all whitespace. Compare it as typed. Do
+        -- not apply the new-password rule to sign-in with an old password.
+        -- Per rolling minute: 10 attempts per room, 30 across all rooms,
+        -- and a separate 10 for admin across all devices. An attempt in
+        -- progress occupies a slot; a success gives its slot back. A failed
+        -- attempt keeps it for the rest of its window. A restart clears counts.
+        -- A full limit gives too_many_attempts with Retry-After before any
+        -- password check. Wrong passwords and unknown rooms both give
+        -- invalid_password and count toward the same limits.
+
+    @guarantee SameOriginWrites
+        -- Every API write, including sign-in, sign-out and share edits, must
+        -- come from this exact origin. Refuse a mismatched origin before the
+        -- action's own checks (403 forbidden_origin). Require a JSON content
+        -- type, except for a DELETE with no body. See docs/api.md.
+
+    @guarantee BrowserCookies
+        -- Room and last-room cookies last a year in the browser; a room keeps
+        -- only its newest 200 tokens. Last-room is for navigation, not access.
+        -- Use the existing cookie names and flags in docs/api-rooms.md and
+        -- docs/api-admin.md. HTTPS and plain HTTP read only their own names.
+        -- These cookies are HttpOnly, SameSite=Lax and Path=/; on HTTPS they
+        -- also use Secure and __Host-. Never return a session token in JSON.
+}
+
+surface PrivateRoom {
+    facing session: RoomSession
+    context room: Room where room = session.room and session.current
+    exposes:
+        room.slug
+        room.name
+    provides:
+        SignOutOfRoom(session)
+        ChangeRoomPassword(session, current, replacement)
+        DeleteRoomAsParticipant(session, password)
+
+    @guarantee CurrentAccessOnly
+        -- A valid room cookie is needed at the time of each private read or
+        -- write. A missing/revoked cookie and an unknown room look the same
+        -- (not_authenticated). A session check clears an invalid cookie.
+        -- Sign-out revokes only the presented room token and clears its
+        -- cookie, even if already signed out. If revocation fails, keep the
+        -- cookie so the browser can retry.
+        -- Password change and own-room deletion also need the current
+        -- password. If it is wrong or no longer valid when the change is
+        -- made, do not write. A password change issues a fresh token to this
+        -- browser; all old tokens stop working.
+}
+
+surface AdminTools {
+    facing session: AdminSession
+    context room: Room
+    provides:
+        ResetRoomPasswordAsAdmin(session, room, replacement) when session.current
+        DeleteRoomAsAdmin(session, room) when session.current
+
+    @guarantee SeparateAdminAccess
+        -- Admin access is checked before protected actions. It does not give
+        -- room access. Creating a room (by admin or invitation) does not sign
+        -- the creator in. An admin reset signs every device out of that room
+        -- without signing any device into it. Admin use does not renew the
+        -- 30-minute session. Changing the app password invalidates admin
+        -- sessions. Admin sign-out clears this browser's admin cookie only.
+
+    @guarantee RoomDeletion
+        -- Either deletion path removes the room, its lists, items and access.
+        -- Clear the deleting browser's room cookie and its last-room cookie
+        -- if it names this room. Room deletion does not revoke invitations
+        -- to create new rooms. See sync for the effect on open pages.
+}
+
+open question "Should a failed room sign-in caused by temporary server unavailability count toward the limit, as it does today?"
