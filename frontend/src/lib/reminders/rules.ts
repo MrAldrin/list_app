@@ -1,19 +1,7 @@
-/** Convert server-normalized rules to the private policy input contract. */
-export type StoredRule =
-	| { kind: 'relative'; basis: 'at_due' | 'elapsed' | 'calendar'; amount: number; key: string }
-	| {
-			kind: 'fixed';
-			id: string;
-			date: string;
-			time: string;
-			timezone: string;
-			instant: string;
-			activation: string;
-	  };
+import type * as Contract from '#lib/contracts/v1/reminders.ts';
 
-export type InputRule =
-	| { kind: 'relative'; amount: number; unit: 'minutes' | 'days' }
-	| { kind: 'fixed'; id?: string; date: string; time: string; timezone: string };
+export type StoredRule = typeof Contract.StoredRule.Type;
+export type InputRule = typeof Contract.InputRule.Type;
 
 /** Keep the fixed identity and wall intent, never submit the confirmed instant. */
 export function ruleToInput(rule: StoredRule): InputRule {

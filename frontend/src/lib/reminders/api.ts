@@ -1,28 +1,11 @@
+import type * as Contract from '#lib/contracts/v1/reminders.ts';
 import { Api } from '#lib/data/api.ts';
 import { newId } from '#lib/data/ids.ts';
 import { ApiError } from '#lib/data/types.ts';
 
-export type Mode = 'quiet' | 'daily_summary' | 'scheduled' | 'custom';
-export type Enrollment =
-	| { state: 'not_enrolled'; revision: null }
-	| {
-			state: 'active' | 'needs_resume' | 'opted_out';
-			mode: Mode;
-			summary_time: string;
-			revision: number;
-			activated_at: string | null;
-	  };
-export interface Device {
-	revision: number;
-	timezone: string;
-	all_day_time: string;
-	paused: boolean;
-	quiet_hours: { start: string; end: string } | null;
-	daily_cap: number;
-	spacing_minutes: number;
-	content_privacy: 'generic' | 'counts' | 'names';
-	overdue_repeat_days: number | null;
-}
+export type Mode = typeof Contract.Mode.Type;
+export type Enrollment = typeof Contract.Enrollment.Type;
+export type Device = typeof Contract.Device.Type;
 export type PendingWrite = {
 	method: 'POST' | 'PATCH' | 'PUT';
 	path: string;
@@ -165,35 +148,10 @@ export class ReminderApi {
 	}
 }
 
-export type PolicyScope = 'room' | 'list' | 'item';
-export interface Policy {
-	scope: PolicyScope;
-	state: 'inherit' | 'off' | 'replace';
-	preset: Mode | null;
-	summary_enabled: boolean;
-	rules: import('./rules').StoredRule[];
-	revision: number;
-	activated_at: string | null;
-}
-export interface PolicyResult {
-	policy: Policy;
-	effective: Policy;
-}
-export interface Preview {
-	source: PolicyScope;
-	state: Policy['state'];
-	preset: Mode | null;
-	timezone: string;
-	disabled_reasons: string[];
-	provisional_fixed_ids: string[];
-	entries: {
-		kind: 'rules' | 'summary';
-		instant: string;
-		keys: string[];
-		deferred_until: string | null;
-		local_day: string | null;
-	}[];
-}
+export type PolicyScope = typeof Contract.PolicyScope.Type;
+export type Policy = typeof Contract.Policy.Type;
+export type PolicyResult = typeof Contract.PolicyResponse.Type;
+export type Preview = typeof Contract.Preview.Type;
 function policyScope(path: string): PolicyScope {
 	return path.includes('/lists/') || path.startsWith('lists/')
 		? 'list'

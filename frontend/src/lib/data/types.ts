@@ -1,294 +1,52 @@
-// The data shapes of the JSON API. The contract is docs/api.md.
+import { API_ERROR_CODES } from '#lib/contracts/v1/codes.ts';
+import type * as Common from '#lib/contracts/v1/common.ts';
+import type * as Feeds from '#lib/contracts/v1/feed.ts';
+import type * as Ops from '#lib/contracts/v1/ops.ts';
 
-export interface Room {
-	slug: string;
-	name: string;
-}
+export { API_ERROR_CODES, REJECTION_CODES } from '#lib/contracts/v1/codes.ts';
 
-export type HideDoneMode = 'off' | 'all' | 'age' | 'recent';
+// Wire types come from the shared /api/v1 schemas, with no runtime decoding here.
+export type Room = typeof Common.Room.Type;
+export type ApiErrorCode = typeof Common.ApiErrorCode.Type;
+export type ShareLink = typeof Common.ShareLink.Type;
+export type Invitation = typeof Common.Invitation.Type;
+export type IssuedInvitation = typeof Common.IssuedInvitation.Type;
 
-export interface HideDone {
-	mode: HideDoneMode;
-	age_days: number;
-	recent_count: number;
-}
+export type HideDoneMode = typeof Feeds.HideDoneMode.Type;
+export type HideDone = typeof Feeds.HideDone.Type;
+export type TagMode = typeof Feeds.TagMode.Type;
+export type TagSettings = typeof Feeds.TagSettings.Type;
+export type List = typeof Feeds.List.Type;
+export type Item = typeof Feeds.Item.Type;
+export type Deletion = typeof Feeds.Deletion.Type;
+export type Feed = typeof Feeds.Feed.Type;
 
-export type TagMode = 'single' | 'multi';
-
-/** Tag settings of a list, shared by every device (docs/api-lists-items.md). */
-export interface TagSettings {
-	mode: TagMode;
-	show_on_items: boolean;
-	only_item_tags: boolean;
-	/** Tag name to a color number from 0 to 6. Tags without one use the default color. */
-	colors: Record<string, number>;
-}
-
-export interface List {
-	uid: string;
-	/** Empty in a share link's feed: the slug is room navigation. */
-	slug: string;
-	name: string;
-	/** Sorted ignoring case. */
-	tags: string[];
-	hide_done: HideDone;
-	tag_settings: TagSettings;
-	changed_seq: number;
-}
-
-export interface Item {
-	uid: string;
-	list_uid: string;
-	/** Stored in lowercase. */
-	name: string;
-	done: boolean;
-	/** UTC ISO time, or null when not done or not known. */
-	completed_at: string | null;
-	quantity: number;
-	description: string;
-	/** Optional day as `YYYY-MM-DD`; null for no date. */
-	date: string | null;
-	/** Wall time and IANA zone; due_at is confirmed by the server only. */
-	due_time: string | null;
-	due_timezone: string | null;
-	due_at: string | null;
-	/** Keep their order. */
-	tags: string[];
-	/** How often the item was added: adds, restores and unchecks. At least 1. */
-	add_count: number;
-	/** When it was last added (UTC ISO time); null for items from before counting. */
-	added_at: string | null;
-	changed_seq: number;
-}
-
-export interface Deletion {
-	kind: 'list' | 'item';
-	uid: string;
-}
-
-/** One answer of `GET …/changes?since=N`. */
-export interface Feed {
-	seq: number;
-	full: boolean;
-	/**
-	 * Null in a share link's feed, unless this browser has access to the list's
-	 * room: then the room, for "back to room" and "Reset share link".
-	 */
-	room: Room | null;
-	lists: List[];
-	items: Item[];
-	deletions: Deletion[];
-}
-
-// Operations: one type per op in docs/api.md. `op_id` is added by the write queue.
-
-export interface RoomRenameOp {
-	type: 'room.rename';
-	name: string;
-}
-export interface ListCreateOp {
-	type: 'list.create';
-	name: string;
-	uid?: string;
-}
-export interface ListRenameOp {
-	type: 'list.rename';
-	list_uid: string;
-	name: string;
-	base_seq: number;
-}
-export interface ListDeleteOp {
-	type: 'list.delete';
-	list_uid: string;
-}
-export interface ListTagAddOp {
-	type: 'list.tag_add';
-	list_uid: string;
-	tag: string;
-}
-export interface ListTagRemoveOp {
-	type: 'list.tag_remove';
-	list_uid: string;
-	tag: string;
-}
-export interface ListTagSettingsOp {
-	type: 'list.tag_settings';
-	list_uid: string;
-	mode?: TagMode;
-	show_on_items?: boolean;
-	only_item_tags?: boolean;
-}
-export interface ListTagColorOp {
-	type: 'list.tag_color';
-	list_uid: string;
-	tag: string;
-	/** A color from 0 to 6, or null for the default color. */
-	color: number | null;
-}
-export interface ListTagRenameOp {
-	type: 'list.tag_rename';
-	list_uid: string;
-	tag: string;
-	new_tag: string;
-}
-export interface ListVisibilityOp {
-	type: 'list.visibility';
-	list_uid: string;
-	mode?: HideDoneMode;
-	age_days?: number;
-	recent_count?: number;
-}
-export interface ItemAddOp {
-	type: 'item.add';
-	list_uid: string;
-	name: string;
-	uid?: string;
-}
-export interface ItemSetDoneOp {
-	type: 'item.set_done';
-	list_uid: string;
-	item_uid: string;
-	done: boolean;
-	/** The row's `changed_seq` the page showed when the user acted. */
-	base_seq?: number;
-}
-export interface ItemQuantityDeltaOp {
-	type: 'item.quantity_delta';
-	list_uid: string;
-	item_uid: string;
-	delta: number;
-}
-export interface ItemEditOp {
-	type: 'item.edit';
-	list_uid: string;
-	item_uid: string;
-	name: string;
-	description: string;
-	quantity?: number | null;
-	/** Absent keeps the date; null clears it. */
-	date?: string | null;
-	due_time?: string | null;
-	due_timezone?: string | null;
-	base_seq: number;
-}
-export interface ItemToggleTagOp {
-	type: 'item.toggle_tag';
-	list_uid: string;
-	item_uid: string;
-	tag: string;
-	/** The wanted state: on (`true`) or off (`false`). Safe to send twice. */
-	active?: boolean;
-}
-export interface ItemDeleteOp {
-	type: 'item.delete';
-	list_uid: string;
-	item_uid: string;
-}
-export interface ItemRestoreOp {
-	type: 'item.restore';
-	list_uid: string;
-	uid?: string;
-	name: string;
-	done: boolean;
-	tags: string[];
-	description: string;
-	quantity: number;
-	completed_at: string | null;
-	date?: string | null;
-	due_time?: string | null;
-	due_timezone?: string | null;
-	/** Kept from the deleted item; absent counts as 1 with no time. */
-	add_count?: number;
-	added_at?: string | null;
-}
-
-export type Op =
-	| RoomRenameOp
-	| ListCreateOp
-	| ListRenameOp
-	| ListDeleteOp
-	| ListTagAddOp
-	| ListTagRemoveOp
-	| ListTagSettingsOp
-	| ListTagColorOp
-	| ListTagRenameOp
-	| ListVisibilityOp
-	| ItemAddOp
-	| ItemSetDoneOp
-	| ItemQuantityDeltaOp
-	| ItemEditOp
-	| ItemToggleTagOp
-	| ItemDeleteOp
-	| ItemRestoreOp;
-
-/** An op as sent: with its client-made, retry-safe `op_id`. */
-export type SentOp = Op & { op_id: string };
-
-export interface ListCreateResult {
-	list_uid: string;
-	slug: string;
-	created: boolean;
-}
-export interface ItemAddResult {
-	item_uid: string;
-	outcome: 'added' | 'restored';
-}
-export interface ItemRestoreResult {
-	item_uid: string;
-}
-
-export const REJECTION_CODES = [
-	'invalid_name',
-	'duplicate_name',
-	'duplicate_active',
-	'undo_name_taken',
-	'changed_meanwhile',
-	'list_unavailable',
-	'item_not_found',
-	'unknown_tag',
-	'too_long',
-	'too_many'
-] as const;
-export type RejectionCode = (typeof REJECTION_CODES)[number];
-
-export interface OpApplied {
-	op_id: string;
-	status: 'applied';
-	result: Record<string, unknown>;
-	seq: number;
-}
-export interface OpRejected {
-	op_id: string;
-	status: 'rejected';
-	code: RejectionCode;
-	message: string;
-	seq: number;
-	/** With `duplicate_active`: the uid of the item that is already on the list. */
-	item_uid?: string;
-}
-export type OpResponse = OpApplied | OpRejected;
-
-/** The codes the API sends in `{"error": {"code"}}` (docs/api.md, src/api/errors.py). */
-export const API_ERROR_CODES = [
-	'invalid_request',
-	'invalid_password',
-	'too_many_attempts',
-	'not_authenticated',
-	'admin_required',
-	'share_unavailable',
-	'list_unavailable',
-	'wrong_password',
-	'forbidden_origin',
-	'not_found',
-	'room_unavailable',
-	'invitation_unavailable',
-	'op_id_reused',
-	'revision_conflict',
-	'not_enrolled',
-	'internal_error',
-	'unavailable'
-] as const;
-export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
+export type RoomRenameOp = typeof Ops.RoomRenameOp.Type;
+export type ListCreateOp = typeof Ops.ListCreateOp.Type;
+export type ListRenameOp = typeof Ops.ListRenameOp.Type;
+export type ListDeleteOp = typeof Ops.ListDeleteOp.Type;
+export type ListTagAddOp = typeof Ops.ListTagAddOp.Type;
+export type ListTagRemoveOp = typeof Ops.ListTagRemoveOp.Type;
+export type ListTagSettingsOp = typeof Ops.ListTagSettingsOp.Type;
+export type ListTagColorOp = typeof Ops.ListTagColorOp.Type;
+export type ListTagRenameOp = typeof Ops.ListTagRenameOp.Type;
+export type ListVisibilityOp = typeof Ops.ListVisibilityOp.Type;
+export type ItemAddOp = typeof Ops.ItemAddOp.Type;
+export type ItemSetDoneOp = typeof Ops.ItemSetDoneOp.Type;
+export type ItemQuantityDeltaOp = typeof Ops.ItemQuantityDeltaOp.Type;
+export type ItemEditOp = typeof Ops.ItemEditOp.Type;
+export type ItemToggleTagOp = typeof Ops.ItemToggleTagOp.Type;
+export type ItemDeleteOp = typeof Ops.ItemDeleteOp.Type;
+export type ItemRestoreOp = typeof Ops.ItemRestoreOp.Type;
+export type Op = typeof Ops.Op.Type;
+export type SentOp = typeof Ops.SentOp.Type;
+export type ListCreateResult = typeof Ops.ListCreateResult.Type;
+export type ItemAddResult = typeof Ops.ItemAddResult.Type;
+export type ItemRestoreResult = typeof Ops.ItemRestoreResult.Type;
+export type RejectionCode = typeof Ops.RejectionCode.Type;
+export type OpApplied = typeof Ops.OpApplied.Type;
+export type OpRejected = typeof Ops.OpRejected.Type;
+export type OpResponse = typeof Ops.OpResponse.Type;
 
 /** Codes the app makes itself, for failures the API does not name. */
 export const APP_ERROR_CODES = [
@@ -338,24 +96,4 @@ export class NetworkError extends Error {
 		super(message);
 		this.name = 'NetworkError';
 	}
-}
-
-/** A list's share token (`…/share-link`); room members only. */
-export interface ShareLink {
-	token: string;
-}
-
-/** A creation invitation in the admin list. Times are UTC ISO strings. */
-export interface Invitation {
-	id: number;
-	status: 'active' | 'revoked' | 'expired';
-	created_at: string;
-	expires_at: string;
-	revoked_at: string | null;
-}
-
-/** A new invitation and its token: the only time the token is sent. */
-export interface IssuedInvitation {
-	invitation: Invitation;
-	token: string;
 }

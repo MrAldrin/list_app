@@ -1,8 +1,13 @@
 # JSON API (Svelte frontend)
 
 This is the contract between the Python server and the Svelte app. The reference
-is split by area; the table below lists the parts. This page describes the rules
-shared by every area.
+is split by area; this page describes the rules shared by every area.
+
+The [Effect schemas](../frontend/src/lib/contracts/v1/routes.ts) describe the
+wire shapes. The frontend imports their types. It does not use the schemas to
+validate live requests or responses. To check sample Python responses against
+the schemas, install the frontend dependencies and run
+`uv run pytest -q tests/test_api_v1_contract.py` from the repository root.
 
 Write rules live in Python and apply to every write path. See [item
 writes](item-writes.md). The client applies checked-item visibility. See

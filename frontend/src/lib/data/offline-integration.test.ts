@@ -1591,7 +1591,7 @@ describe('offline editing (6.2d)', () => {
 			onSent?.();
 			const result =
 				op.type === 'item.add'
-					? { item_uid: op.uid, outcome: 'added', changed_seq: 3 }
+					? { item_uid: op.uid, outcome: 'added' as const, changed_seq: 3 }
 					: { changed_seq: 2 };
 			return { op_id: op.op_id, status: 'applied', result, seq: 7 };
 		});
