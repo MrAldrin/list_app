@@ -1,7 +1,8 @@
 -- allium: 3
 -- Home-screen launches, old addresses and retired-worker cleanup.
 -- Sources: src/{pwa_routes,install_manifest,svelte_frontend,health,security_headers}.py;
--- frontend/src/lib/install/manifest.ts; frontend/src/routes/{+layout,+page}.svelte
+-- frontend/src/lib/{install/manifest,server/install,server/browser-response}.ts;
+-- frontend/src/lib/server/retired-worker.js; frontend/src/routes/{+layout,+page}.svelte
 -- and list/[slug]/+page.svelte; frontend/src/{service-worker.ts,lib/service-worker.ts,
 -- lib/worker-routes.ts}. See docs/home-screen-installation.md.
 -- Offline data authorization remains in room-access.allium and sync-offline.allium.
@@ -92,6 +93,8 @@ surface Workers {
         RequestAppWorker(browser, worker) when worker.app_registration_allowed
 
     @guarantee RetiredWorkerResponse
+        -- Keep /sw.js until old installs have switched or the owner decides
+        -- to stop supporting them (lr-5g6.18).
         -- GET and HEAD /sw.js return 200 with application/javascript,
         -- no-store and nosniff. HEAD has no body. Never return the app page,
         -- a redirect or not-found for the old worker's update request.
@@ -106,8 +109,8 @@ surface Workers {
         -- their cleanup and page reload finish before registering the app
         -- worker at /service-worker.js. Keep /sw.js out of app precaching.
         -- The app worker does not cache API responses and leaves admin and
-        -- old redirect navigations to the network. Only a complete built
-        -- app version becomes available for offline use.
+        -- old redirects and non-page addresses to the network. Only a
+        -- complete built app version becomes available for offline use.
 
     @guarantee ServerResponseBoundaries
         -- Serve the current worker from the build with revalidation. A
@@ -120,5 +123,3 @@ surface Workers {
         -- Unauthenticated GET /healthz checks database availability and
         -- returns only no-store JSON: ok true (200) or ok false (503).
 }
-
-open question "What evidence would let us retire /sw.js later? The port keeps the compatibility address; this is not a removal decision."

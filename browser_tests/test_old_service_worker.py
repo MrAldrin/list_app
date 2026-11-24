@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from playwright.sync_api import Error, expect
 
-from conftest import TestServer
+from conftest import make_test_server
 
 # The worker the old app served until step 4.3 (src/static/sw.js, unchanged).
 OLD_SERVICE_WORKER = """\
@@ -84,9 +84,9 @@ def cache_names(page) -> list[str]:
 
 @pytest.mark.all_engines
 def test_the_old_service_worker_is_removed_before_the_new_shell_is_saved(
-    svelte_build, open_session, tmp_path
+    svelte_assets, open_session, tmp_path, pytestconfig
 ):
-    server = TestServer(tmp_path)
+    server = make_test_server(pytestconfig, tmp_path)
     old_app = ThreadingHTTPServer(("127.0.0.1", server.port), OldAppHandler)
     threading.Thread(target=old_app.serve_forever, daemon=True).start()
     page = open_session("old-install", viewport={"width": 390, "height": 844})

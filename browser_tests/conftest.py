@@ -21,7 +21,6 @@ from server_launcher import AppServer
 ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "frontend"
 TS_ENTRY = FRONTEND / "build-ts" / "index.js"
-LAST_ROOM_PATH = "/api/v1/last-room"
 PASSWORD = "browser-test-room-password"
 
 
@@ -66,14 +65,15 @@ class TestServer(AppServer):
 class TypeScriptTestServer(TestServer):
     """Run the Bun build on the same disposable SQLite schema as Python tests."""
 
-    def __init__(self, directory: Path) -> None:
+    def __init__(self, directory: Path, entry: Path = TS_ENTRY) -> None:
         bun = shutil.which("bun")
-        if bun is None or not TS_ENTRY.is_file():
+        if bun is None or not entry.is_file():
             pytest.fail(
                 "Bun server missing. Install Bun and run `bun run build:ts` in frontend/."
             )
+        self.entry = entry
         super().__init__(
-            directory, command=lambda _port: [bun, "--no-env-file", str(TS_ENTRY)]
+            directory, command=lambda _port: [bun, "--no-env-file", str(self.entry)]
         )
         self.env.update(
             LISTR_TS_HOST="127.0.0.1",
@@ -100,15 +100,14 @@ class TypeScriptTestServer(TestServer):
         super().start()
 
     def _answers(self) -> bool:
-        # The Python readiness URL (manifest.json) is not part of this skeleton.
         try:
-            with urlopen(f"{self.url}{LAST_ROOM_PATH}", timeout=1) as response:
+            with urlopen(f"{self.url}/healthz", timeout=1) as response:
                 return response.status == 200
         except (OSError, HTTPException):
             return False
 
 
-def _test_server(config: pytest.Config, directory: Path) -> TestServer:
+def make_test_server(config: pytest.Config, directory: Path) -> TestServer:
     if config.getoption("--browser-backend") == "typescript":
         return TypeScriptTestServer(directory)
     return TestServer(directory)
@@ -125,7 +124,7 @@ def _assert_no_traceback(log: str) -> None:
 @pytest.fixture(scope="session")
 def shared_server(pytestconfig, tmp_path_factory):
     """One app server for all tests of this pytest-xdist worker."""
-    server = _test_server(pytestconfig, tmp_path_factory.mktemp("shared-server"))
+    server = make_test_server(pytestconfig, tmp_path_factory.mktemp("shared-server"))
     try:
         server.start()
         yield server
@@ -142,7 +141,7 @@ def server(request, tmp_path):
     no earlier test has used, asks for its own with `@pytest.mark.own_server`.
     """
     if request.node.get_closest_marker("own_server") is not None:
-        server = _test_server(request.config, tmp_path)
+        server = make_test_server(request.config, tmp_path)
         try:
             server.start()
             yield server
@@ -462,10 +461,17 @@ def svelte_build(tmp_path_factory):
 
 
 @pytest.fixture
-def svelte_server(request):
+def svelte_assets(request) -> Path:
+    """The client files served by the selected build."""
+    if request.config.getoption("--browser-backend") == "typescript":
+        return TS_ENTRY.parent / "client"
+    request.getfixturevalue("svelte_build")
+    return BUILD_INDEX.parent
+
+
+@pytest.fixture
+def svelte_server(request, svelte_assets):
     """The selected test server with the Svelte app at /."""
-    if request.config.getoption("--browser-backend") == "python":
-        request.getfixturevalue("svelte_build")
     return request.getfixturevalue("server")
 
 

@@ -3,6 +3,8 @@
 Also: a tab from a replaced build reloads onto the new build (stale lazy chunks).
 """
 
+import hashlib
+import json
 import mimetypes
 import re
 import shutil
@@ -15,7 +17,8 @@ import pytest
 from playwright.sync_api import expect
 from svelte_app import wait_until
 
-from conftest import ROOT
+from api.version import API_VERSION, API_VERSION_HEADER
+from conftest import ROOT, TS_ENTRY, TypeScriptTestServer
 
 FRONTEND_BUILD = ROOT / "frontend" / "build"
 WORKER_PREFIX = "listr-app-shell-"
@@ -78,6 +81,10 @@ class BuiltAppHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/api/v1/last-room":
+            self._send(b'{"slug":null}', "application/json", "no-store")
+            return
+
         if path == "/api" or path.startswith("/api/") or path.startswith("/static/"):
             self._send(b"", "text/plain", "no-store", 404)
             return
@@ -101,6 +108,8 @@ class BuiltAppHandler(BaseHTTPRequestHandler):
     ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
+        if content_type == "application/json":
+            self.send_header(API_VERSION_HEADER, str(API_VERSION))
         self.send_header("Cache-Control", cache_control)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -111,6 +120,8 @@ class BuiltAppHandler(BaseHTTPRequestHandler):
 
 
 class BuiltAppServer:
+    original_build = FRONTEND_BUILD
+
     def __init__(self):
         self.state = BuildServerState()
         self.port = 0
@@ -140,10 +151,55 @@ class BuiltAppServer:
         self.httpd = None
         self.thread = None
 
+    def switch_build(self, build: Path, failed_asset: str | None = None) -> None:
+        self.state.failed_asset = failed_asset
+        self.state.build_path = build
+
+
+class BunBuildServer(TypeScriptTestServer):
+    """Switch real Bun deploys on the same origin with the same test database."""
+
+    original_build = TS_ENTRY.parent
+
+    def switch_build(self, build: Path, failed_asset: str | None = None) -> None:
+        if failed_asset is not None:
+            # Remove a precache asset from the deploy, but keep it in the worker's list.
+            (build / "client" / failed_asset.lstrip("/")).unlink()
+        _refresh_asset_table(build)
+        self.stop()
+        self.entry = build / "index.js"
+        self.start()
+
+
+def _refresh_asset_table(build: Path) -> None:
+    """Update the adapter's file table to match an intentionally edited build."""
+    asset_table = build / "adapter-bun.js"
+    result = []
+    for line in asset_table.read_text().splitlines():
+        if line.startswith('["client_asset",'):
+            kind, url, name, meta = json.loads(line.rstrip(","))
+            file = build / "client" / name
+            if file.exists():
+                meta["hash"] = hashlib.blake2b(
+                    file.read_bytes(), digest_size=32
+                ).hexdigest()[:16]
+                meta["mtime"] = file.stat().st_mtime_ns // 1_000_000
+                line = json.dumps([kind, url, name, meta]) + ","
+        result.append(line)
+    asset_table.write_text("\n".join(result) + "\n")
+
 
 @pytest.fixture
-def built_app_server(svelte_build):
-    server = BuiltAppServer()
+def built_app_server(svelte_assets, pytestconfig, tmp_path):
+    if pytestconfig.getoption("--browser-backend") == "typescript":
+        # Build copies resolve the pinned dependencies without writing to them.
+        (tmp_path / "node_modules").symlink_to(
+            ROOT / "frontend" / "node_modules", target_is_directory=True
+        )
+        server = BunBuildServer(tmp_path)
+        server.start()
+    else:
+        server = BuiltAppServer()
     try:
         yield server
     finally:
@@ -151,39 +207,76 @@ def built_app_server(svelte_build):
 
 
 def _changed_build(
-    tmp_path, version: str, realistic: bool = False, new_version_file: bool = False
-):
-    """Make a second built app with distinct HTML and a real lazy chunk URL."""
+    server,
+    tmp_path: Path,
+    version: str,
+    *,
+    realistic: bool = False,
+    new_version_file: bool = False,
+    retain_old_entry: bool = False,
+) -> tuple[Path, str]:
+    """Make a disposable second deploy with a new worker and a real lazy chunk URL."""
     build = tmp_path / version
-    shutil.copytree(FRONTEND_BUILD, build)
-    old_chunk = next((build / "_app" / "immutable" / "nodes").glob("5.*.js"))
+    shutil.copytree(server.original_build, build)
+    bun_build = isinstance(server, BunBuildServer)
+    client = build / "client" if bun_build else build
+    old_chunk = next((client / "_app" / "immutable" / "nodes").glob("5.*.js"))
     new_chunk = old_chunk.with_name(old_chunk.stem + "-B.js")
     old_chunk.rename(new_chunk)
     renames = {old_chunk.name: new_chunk.name}
     if realistic:
         # A real build also renames the entry file (it names the lazy chunks).
         # Without this, immutable caching would keep serving the old entry file.
-        old_entry = next((build / "_app" / "immutable" / "entry").glob("app.*.js"))
+        old_entry = next((client / "_app" / "immutable" / "entry").glob("app.*.js"))
         new_entry = old_entry.with_name(old_entry.stem + "-B.js")
         old_entry.rename(new_entry)
         renames[old_entry.name] = new_entry.name
     if new_version_file:
         # SvelteKit compares this file with the one the page was built with.
-        (build / "_app" / "version.json").write_text(f'{{"version":"{version}"}}')
-    for script in [*build.rglob("*.js"), build / "index.html"]:
-        body = script.read_text()
+        version_file = client / "_app" / "version.json"
+        old_version = json.loads(version_file.read_text())["version"]
+        version_file.write_text(json.dumps({"version": version}))
+        renames[old_version] = version
+    shell = (
+        build / "server" / "chunks" / "internal.js"
+        if bun_build
+        else build / "index.html"
+    )
+    scripts = [*client.rglob("*.js")]
+    if bun_build:
+        scripts += [build / "adapter-bun.js", *(build / "server").rglob("*.js")]
+    else:
+        scripts.append(shell)
+    for script in scripts:
+        original = script.read_text()
+        body = original
         for old_name, new_name in renames.items():
             body = body.replace(old_name, new_name)
-        script.write_text(body)
-    worker = build / "service-worker.js"
+        if body != original:
+            script.write_text(body)
+    if retain_old_entry:
+        assert realistic
+        original_client = (
+            server.original_build / "client" if bun_build else server.original_build
+        )
+        shutil.copyfile(original_client / old_entry.relative_to(client), old_entry)
+        if bun_build:
+            asset_table = build / "adapter-bun.js"
+            table = asset_table.read_text()
+            entry = next(line for line in table.splitlines() if new_entry.name in line)
+            asset_table.write_text(
+                table.replace(
+                    entry, entry + "\n" + entry.replace(new_entry.name, old_entry.name)
+                )
+            )
+    worker = client / "service-worker.js"
     body, count = re.subn(
         r"version:`[^`]+`", f"version:`{version}`", worker.read_text(), count=1
     )
     assert count == 1 and new_chunk.name in body
     worker.write_text(body)
-    shell = build / "index.html"
     shell.write_text(shell.read_text().replace("</head>", f"<!-- {version} --></head>"))
-    return build, "/" + new_chunk.relative_to(build).as_posix()
+    return build, "/" + new_chunk.relative_to(client).as_posix()
 
 
 def _wait_for_waiting_worker(page) -> None:
@@ -198,7 +291,7 @@ def _wait_for_waiting_worker(page) -> None:
 @pytest.mark.own_server
 @pytest.mark.tier_core
 def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
-    svelte_server, open_session
+    svelte_server, open_session, svelte_assets
 ):
     page = _wait_for_controlled_page(
         open_session("service-worker-shell"), svelte_server.url
@@ -220,8 +313,8 @@ def test_built_worker_takes_over_and_serves_a_cold_offline_deep_link(
     assert "/" in cached_urls
     assert "/robots.txt" in cached_urls
     built_assets = {
-        "/" + file.relative_to(FRONTEND_BUILD).as_posix()
-        for file in (FRONTEND_BUILD / "_app" / "immutable").rglob("*")
+        "/" + file.relative_to(svelte_assets).as_posix()
+        for file in (svelte_assets / "_app" / "immutable").rglob("*")
         if file.is_file()
     }
     assert built_assets <= cached_urls
@@ -289,14 +382,15 @@ def test_real_build_swap_waits_for_a_stored_room_change(
         }""",
         slug,
     )
-    server.state.unauthorized_room = slug
+    if isinstance(server, BuiltAppServer):
+        server.state.unauthorized_room = slug
     page.goto(f"{server.url}/room/{slug}")
     expect(page.get_by_text("1 change can't be sent")).to_be_visible()
     page.evaluate("window.__oldTab = true")
 
     cache_a = _cache_names(page)[0]
-    build_b, _ = _changed_build(tmp_path, "test-waiting-change-B")
-    server.state.build_path = build_b
+    build_b, _ = _changed_build(server, tmp_path, "test-waiting-change-B")
+    server.switch_build(build_b)
     page.evaluate(
         "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
     )
@@ -327,8 +421,8 @@ def test_waiting_version_takes_over_when_the_app_opens_offline(
     cache_a = _cache_names(old_tab)[0]
     cache_b = f"{WORKER_PREFIX}test-update-B"
 
-    build_b, lazy_b = _changed_build(tmp_path, "test-update-B")
-    server.state.build_path = build_b
+    build_b, lazy_b = _changed_build(server, tmp_path, "test-update-B")
+    server.switch_build(build_b)
     old_tab.evaluate(
         "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
     )
@@ -376,7 +470,8 @@ def test_coming_back_to_the_app_fetches_and_then_switches_version(
 ):
     server = built_app_server
     page = _wait_for_controlled_page(open_session("service-worker-return"), server.url)
-    server.state.build_path, _ = _changed_build(tmp_path, "test-return-B")
+    build_b, _ = _changed_build(server, tmp_path, "test-return-B")
+    server.switch_build(build_b)
     page.evaluate("window.__oldPage = true")
 
     # The first return only downloads the new version; the page stays.
@@ -420,7 +515,8 @@ def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     old_controlled_page.wait_for_function(
         "navigator.serviceWorker.controller?.scriptURL.endsWith('/service-worker.js')"
     )
-    server.state.build_path, _ = _changed_build(tmp_path, "test-unclaimed-B")
+    build_b, _ = _changed_build(server, tmp_path, "test-unclaimed-B")
+    server.switch_build(build_b)
     old_controlled_page.evaluate(
         "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
     )
@@ -445,7 +541,7 @@ def test_update_keeps_versions_while_an_uncontrolled_tab_is_open(
     assert set(_cache_names(new_page)) == {cache_a, cache_b}
 
     unclaimed_page.close()
-    new_page.goto(server.url + "/robots.txt")
+    new_page.goto(server.url)
     assert _cache_names(new_page) == [cache_b]
     server.stop()
     new_page.goto(server.url + "/room/reopened-offline")
@@ -462,8 +558,12 @@ def test_interrupted_update_keeps_last_complete_version_usable(
     )
     cache_a = _cache_names(page)[0]
 
-    server.state.build_path, asset_path = _changed_build(tmp_path, "test-interrupted-B")
-    server.state.failed_asset = asset_path
+    build_b, asset_path = _changed_build(server, tmp_path, "test-interrupted-B")
+    server.switch_build(build_b, failed_asset=asset_path)
+    if isinstance(server, BunBuildServer):
+        response = page.request.get(server.url + asset_path)
+        assert response.status == 404
+        assert "text/html" not in response.headers.get("content-type", "")
     page.evaluate(
         "navigator.serviceWorker.getRegistration().then((registration) => registration.update())"
     )
@@ -474,7 +574,10 @@ def test_interrupted_update_keeps_last_complete_version_usable(
             "({installing: registration.installing?.state, waiting: registration.waiting?.state}))"
         )
         return (
-            bool(server.state.failed_asset_requests)
+            (
+                isinstance(server, BunBuildServer)
+                or bool(server.state.failed_asset_requests)
+            )
             and not state["installing"]
             and not state["waiting"]
         )
@@ -486,8 +589,8 @@ def test_interrupted_update_keeps_last_complete_version_usable(
         timeout_ms=30_000,
     )
 
-    assert server.state.failed_asset_requests
-    assert set(server.state.failed_asset_requests) == {asset_path}
+    if isinstance(server, BuiltAppServer):
+        assert set(server.state.failed_asset_requests) == {asset_path}
     assert _cache_names(page) == [cache_a]
     server.stop()
     page.goto(server.url + "/room/last-complete-version")
@@ -522,9 +625,10 @@ def test_failed_link_click_opens_the_link_on_the_new_build(
     expect(page.get_by_label("Room link or code")).to_be_visible()
     assert "test-stale-B" not in page.content()
 
-    server.state.build_path, _ = _changed_build(
-        tmp_path, "test-stale-B", realistic=True, new_version_file=True
+    build_b, _ = _changed_build(
+        server, tmp_path, "test-stale-B", realistic=True, new_version_file=True
     )
+    server.switch_build(build_b)
     page.evaluate("window.__stillOldPage = true")
     _click_new_link(page, "/list/stale-chunk")
 
@@ -535,7 +639,7 @@ def test_failed_link_click_opens_the_link_on_the_new_build(
         "document.documentElement.outerHTML.includes('test-stale-B')"
     )
     # The list address page of build B ran: its chunk exists and loaded.
-    expect(page.get_by_text("Could not open this list.")).to_be_visible()
+    expect(page.get_by_text("Connect to open this saved list")).to_be_visible()
 
 
 def test_unchanged_build_keeps_the_page(built_app_server, open_session):
@@ -543,8 +647,8 @@ def test_unchanged_build_keeps_the_page(built_app_server, open_session):
     page = open_session("fresh-chunk", service_workers="block")
     page.goto(built_app_server.url)
     page.evaluate("window.__stillOldPage = true")
-    _click_new_link(page, "/create-room/some-token")
-    expect(page.get_by_text("Could not check this invitation.")).to_be_visible()
+    _click_new_link(page, "/list/stale-chunk")
+    expect(page.get_by_text("Connect to open this saved list")).to_be_visible()
     assert page.evaluate("window.__stillOldPage") is True
 
 
@@ -555,14 +659,12 @@ def _stale_first_page(server, open_session, tmp_path):
     that was restored just before a deploy. `_app/version.json` stays the same,
     so SvelteKit's own version check stays quiet and only our handler can act.
     """
-    build_b, _ = _changed_build(tmp_path, "test-stale-B", realistic=True)
-    entry_dir = Path("_app") / "immutable" / "entry"
-    for old_entry in (FRONTEND_BUILD / entry_dir).glob("app.*.js"):
-        shutil.copy(old_entry, build_b / entry_dir / old_entry.name)
-    server.state.build_path = build_b
-    old_shell = (FRONTEND_BUILD / "index.html").read_bytes()
-
     page = open_session("preload-recovers", service_workers="block")
+    old_shell = page.request.get(f"{server.url}/list/stale-chunk").body()
+    build_b, _ = _changed_build(
+        server, tmp_path, "test-stale-B", realistic=True, retain_old_entry=True
+    )
+    server.switch_build(build_b)
     page_loads = []
 
     def serve_page(route):
@@ -585,7 +687,7 @@ def test_failed_first_load_reloads_once_and_recovers(
 ):
     page, page_loads = _stale_first_page(built_app_server, open_session, tmp_path)
     page.goto(f"{built_app_server.url}/list/stale-chunk")
-    expect(page.get_by_text("Could not open this list.")).to_be_visible()
+    expect(page.get_by_text("Connect to open this saved list")).to_be_visible()
     page.wait_for_function(
         "document.documentElement.outerHTML.includes('test-stale-B')"
     )

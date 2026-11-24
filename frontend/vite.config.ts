@@ -25,8 +25,10 @@ export default defineConfig(({ mode }) => ({
 			// Run them before rejecting form bodies so the API can return its JSON error.
 			csrf: { trustedOrigins: mode === 'typescript-server' ? ['*'] : [] },
 			// The layout registers the worker after the legacy /sw.js cleanup gate.
-			serviceWorker: { register: false }
-			// Python serves the built app at the root (`/`), so no `paths.base`.
+			serviceWorker: { register: false },
+			// The worker serves the root shell at deep links too. Its assets must
+			// resolve from the origin, not the location of the current page.
+			paths: { relative: mode !== 'typescript-server' }
 		})
 	],
 	server: {

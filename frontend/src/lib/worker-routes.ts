@@ -1,13 +1,24 @@
 /**
  * Navigations the app worker must leave to the network.
  *
- * Admin is online-only and never served from the saved shell. The server also
- * redirects the old `/admin/login` and `/app/...` addresses; a saved shell
- * would show them as unknown pages instead.
+ * Keep admin, old redirects and non-page addresses off the saved shell.
  */
 export function isNetworkOnlyNavigation(pathname: string): boolean {
-	return ['/admin', '/app'].some(
-		(prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+	return (
+		['/admin', '/app', '/static', '/_app', '/room-manifest'].some(
+			(prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+		) ||
+		[
+			'/sw.js',
+			'/service-worker.js',
+			'/manifest.webmanifest',
+			'/manifest.json',
+			'/healthz',
+			'/favicon.ico',
+			'/apple-touch-icon.png',
+			'/apple-touch-icon-precomposed.png',
+			'/robots.txt'
+		].includes(pathname)
 	);
 }
 

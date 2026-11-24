@@ -4,5 +4,5 @@
 		"strict": true
 	},
 	"include": ["src", "vite.config.ts"],
-	"exclude": ["src/service-worker.ts"]
+	"exclude": ["src/service-worker.ts", "src/lib/server/retired-worker.js"]
 }

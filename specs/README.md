@@ -34,8 +34,6 @@ These are not changes in this port. The specs record what the app does now.
 - **Due bell:** The app uses Europe/Oslo before enrollment when the browser
   supports it. One guide says to use the browser's own time zone. Should the
   app keep its current default?
-- **Old worker:** The port keeps `/sw.js` for old installs. What evidence would
-  let us remove this address later?
 
 ## Approved differences from the reference
 

@@ -76,7 +76,9 @@ env DB_PATH=/absolute/path/to/test-copy.db APP_PASSWORD=test-only \
 Open <http://127.0.0.1:3000/>. The server can write to the test copy. It does
 not run migrations or forward missing routes to Python. Stop it with Ctrl-C.
 See [TypeScript server checks](../docs/browser-testing.md#typescript-server)
-for the available routes and automated checks.
+for the available routes and automated checks. The pinned Bun adapter patch
+sets security and cache headers even for assets that bypass SvelteKit hooks.
+It also keeps a missing current worker file a 404.
 
 ## Checks
 

@@ -50,5 +50,8 @@
 		"@effect/platform": "0.97.3",
 		"@effect/sql-sqlite-bun": "0.53.1",
 		"effect": "3.22.4"
+	},
+	"patchedDependencies": {
+		"@sveltejs/adapter-bun@1.0.1": "patches/@sveltejs%2Fadapter-bun@1.0.1.patch"
 	}
 }

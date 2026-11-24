@@ -1,0 +1,114 @@
+diff --git a/src/assets.js b/src/assets.js
+index e9a118841e841b763e28f534306220643f4e702e..9ead05e791705792ea3bb9f632ea21d8e7055d9d 100644
+--- a/src/assets.js
++++ b/src/assets.js
+@@ -8,15 +8,30 @@ import {
+ 	redirects,
+ 	server_assets as server_files
+ } from '#@sveltejs/adapter-bun';
++import { existsSync } from 'node:fs';
+ import path from 'node:path';
+ 
+ /**
+- * @typedef {(request: Request) => Response} Serve
++ * @typedef {(request: Request) => Response | Promise<Response>} Serve
+  * @typedef {{ hash: string, mtime: number, br?: boolean, gz?: boolean }} AssetMeta
+  */
+ 
+ const CONTENT_ENCODING = { br: 'br', gz: 'gzip' };
+ 
++// ListR serves these assets before SvelteKit's request hook runs.
++export const security_headers = {
++	'x-content-type-options': 'nosniff',
++	'x-frame-options': 'DENY',
++	'content-security-policy': "frame-ancestors 'none'"
++};
++
++function missing_asset() {
++	return new Response(null, {
++		status: 404,
++		headers: { ...security_headers, 'cache-control': 'no-cache' }
++	});
++}
++
+ /**
+  * Embedded assets are imported by identity path; on-disk assets live under the
+  * output directory next to the hand-off module.
+@@ -100,15 +115,18 @@ function negotiate(accept, br, gz) {
+  * @returns {{ serve: Serve, native?: Response }}
+  */
+ function file_entry(file, meta, immutable = false) {
++	// An incomplete deploy must not register a native route for an absent file.
++	if (!embed && !existsSync(file)) return { serve: missing_asset };
+ 	const source = Bun.file(file);
+ 	const compressed = Boolean(meta.br || meta.gz);
+ 
+ 	/** @type {Record<string, string>} */
+ 	const base_headers = {
++		...security_headers,
+ 		'content-type': source.type,
+-		'last-modified': new Date(meta.mtime).toUTCString()
++		'last-modified': new Date(meta.mtime).toUTCString(),
++		'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache'
+ 	};
+-	if (immutable) base_headers['cache-control'] = 'public,max-age=31536000,immutable';
+ 	if (compressed) base_headers['vary'] = 'accept-encoding';
+ 
+ 	/** @param {'br' | 'gz'} [encoding] */
+@@ -133,7 +151,7 @@ function file_entry(file, meta, immutable = false) {
+ 	const gz = meta.gz ? variant('gz') : undefined;
+ 
+ 	/** @type {Serve} */
+-	const serve = (request) => {
++	const send = (request) => {
+ 		// ranges apply to the identity representation
+ 		const { etag, not_modified, body, ok } =
+ 			(compressed &&
+@@ -146,6 +164,12 @@ function file_entry(file, meta, immutable = false) {
+ 			: new Response(body, ok);
+ 	};
+ 
++	// A missing worker must be a real 404, not a Bun file-stream error or the app shell.
++	/** @type {Serve} */
++	const serve = path.basename(file) === 'service-worker.js'
++		? async (request) => (await source.exists()) ? send(request) : missing_asset()
++		: send;
++
+ 	// Given the validators as headers, a Bun file route answers conditional requests, HEAD and
+ 	// Range without calling into JavaScript. It opens the file before checking them though, which
+ 	// makes its 304 slower than `serve`'s, so only files that are never revalidated use it
+diff --git a/src/handler.js b/src/handler.js
+index 2814a73848b589cb0922b84d8d5ebd4240e050c9..1b666e82e0f2f39f7b7c4fe6a3b340e66f7d32fb 100644
+--- a/src/handler.js
++++ b/src/handler.js
+@@ -1,6 +1,6 @@
+ /** @import { Server as BunServer } from 'bun' */
+ import { env_prefix, origin, server } from '#@sveltejs/adapter-bun';
+-import { serve_static, server_assets } from './assets.js';
++import { security_headers, serve_static, server_assets } from './assets.js';
+ import { env, number_env, origin_env } from './env.js';
+ 
+ if (origin && env('ORIGIN') !== undefined) {
+@@ -36,7 +36,7 @@ export async function handler(request, bun_server) {
+ 	if (asset) return asset;
+ 
+ 	const normalized_request = normalize_request(request, url);
+-	if (normalized_request instanceof Response) return normalized_request;
++	if (normalized_request instanceof Response) return with_security_headers(normalized_request);
+ 
+ 	const response = await server.respond(normalized_request, {
+ 		platform: { server: bun_server },
+@@ -48,6 +48,13 @@ export async function handler(request, bun_server) {
+ 		response.headers.set('x-accel-buffering', 'no');
+ 	}
+ 
++	return with_security_headers(response);
++}
++
++/** @param {Response} response */
++function with_security_headers(response) {
++	// Kit can answer before hooks (for example, 404 on a missing build asset).
++	for (const [key, value] of Object.entries(security_headers)) response.headers.set(key, value);
+ 	return response;
+ }
+ 

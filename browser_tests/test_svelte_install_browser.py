@@ -9,7 +9,7 @@ import re
 
 import pytest
 from playwright.sync_api import Page, expect
-from svelte_app import PHONE, app_url, create_list, room_app_url, sign_in
+from svelte_app import PHONE, api_sign_in, app_url, create_list, room_app_url, sign_in
 
 MANIFEST = 'link[rel="manifest"]'
 
@@ -66,6 +66,30 @@ def test_manifest_follows_the_page(svelte_server, open_session):
     page.go_back()
     expect(page).to_have_url(re.compile(rf"/room/{slug}$"))
     expect_manifest(page, f"/room-manifest/{slug}.webmanifest")
+
+
+@pytest.mark.all_engines
+def test_launch_urls_keep_room_choice_separate_from_access(svelte_server, open_session):
+    server = svelte_server
+    page = open_session("phone", **PHONE)
+    api_sign_in(page, server)
+    page.goto(app_url(server, "?add"))
+    expect_manifest(page, "/manifest.webmanifest")
+    start_url = linked_manifest(page)["start_url"]
+    assert start_url == "/"
+
+    # The start page can route to the remembered room, but a room install
+    # chooses its own room. It never redirects to the remembered room.
+    page.goto(server.url + start_url)
+    expect(page).to_have_url(room_app_url(server))
+    page.goto(app_url(server, "app/room/unknown-install-room?admin=true"))
+    expect(page.get_by_label("Room Password")).to_be_visible()
+    expect_manifest(page, "/room-manifest/unknown-install-room.webmanifest")
+    room_start = linked_manifest(page)["start_url"]
+    assert room_start == "/room/unknown-install-room"
+    page.goto(server.url + room_start)
+    expect(page).to_have_url(server.url + room_start)
+    expect(page.get_by_label("Room Password")).to_be_visible()
 
 
 def test_room_menu_shows_install_help(svelte_server, open_session):

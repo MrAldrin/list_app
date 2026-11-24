@@ -11,6 +11,13 @@ from svelte_app import PHONE, create_list, sign_in
 from conftest import wait_for_api_idle
 
 
+def test_old_list_address_without_a_last_room(svelte_server, open_session):
+    page = open_session("old-list", **PHONE)
+    page.goto(f"{svelte_server.url}/app/list/groceries?admin=true")
+    expect(page).to_have_url(f"{svelte_server.url}/list/groceries?admin=true")
+    expect(page.get_by_text("Connect to open this saved list")).to_be_visible()
+
+
 def test_room_and_old_list_address(svelte_server, open_session):
     server = svelte_server
     slug = server.room_slug

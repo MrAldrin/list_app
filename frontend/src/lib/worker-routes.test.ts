@@ -2,10 +2,26 @@ import { describe, expect, it } from 'vitest';
 import { isNetworkOnlyNavigation } from '#lib/worker-routes.ts';
 
 describe('isNetworkOnlyNavigation', () => {
-	it.each(['/admin', '/admin/', '/admin/login', '/app', '/app/share/token', '/app/admin'])(
-		'leaves %s to the network',
-		(path) => expect(isNetworkOnlyNavigation(path)).toBe(true)
-	);
+	it.each([
+		'/admin',
+		'/admin/',
+		'/admin/login',
+		'/app',
+		'/app/share/token',
+		'/app/admin',
+		'/static/icons/icon-192.png',
+		'/_app/version.json',
+		'/room-manifest/room.json',
+		'/manifest.webmanifest',
+		'/manifest.json',
+		'/sw.js',
+		'/service-worker.js',
+		'/healthz',
+		'/favicon.ico',
+		'/apple-touch-icon.png',
+		'/apple-touch-icon-precomposed.png',
+		'/robots.txt'
+	])('leaves %s to the network', (path) => expect(isNetworkOnlyNavigation(path)).toBe(true));
 
 	it.each([
 		'/',

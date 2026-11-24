@@ -1,4 +1,4 @@
 {
 	"extends": "./node_modules/$app/tsconfig/service-worker.json",
-	"include": ["src/service-worker.ts"]
+	"include": ["src/service-worker.ts", "src/lib/server/retired-worker.js"]
 }
