@@ -41,8 +41,10 @@ the Beads epic `lr-5g6`.
   `/api/v1` routes, JSON, status codes, rejection codes and cookies. The inside
   of the server is free to differ and follows Effect style.
 - **Checks:** the existing browser suite judges the new server. Property tests
-  cover the op rules. Allium specs describe the risky areas during the port.
-  The evidence is in the
+  cover the op rules. Allium specs in `specs/` describe the app's behaviour.
+  They stay after the switch as the behaviour contract: agents read the spec
+  before they change an area, and new features start with a spec. The
+  evidence is in the
   [stack research](docs/background/stack-research-2026-11/README.md).
 
 ## Domain and security boundaries
