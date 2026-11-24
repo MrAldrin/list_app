@@ -112,9 +112,10 @@ Real-browser tests (Chromium, Firefox and WebKit) are a separate suite. Setup,
 commands, coverage and diagnostics: [browser testing](browser-testing.md).
 Why eight workers and real password hashing: [test speed decision](background/test-suite-speed.md#worker-and-hashing-decision).
 
-## Allium pilot (optional)
+## Behavior specs
 
-A small spec trial. Setup and status: [Allium pilot](allium/README.md).
+The [Allium specs](../specs/README.md) describe the app's behavior and show how
+to check it.
 
 ## Documentation preview (local only)
 

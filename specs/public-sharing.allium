@@ -1,6 +1,5 @@
 -- allium: 3
 -- One public list, private room controls, link reset and revocation.
--- Extends the pilot in docs/allium/public-sharing.allium for the port.
 -- Excludes room creation invitations, which are not list share links.
 -- Sources: src/api/{access,share,events,ops}.py (SHARE_OP_TYPES);
 -- src/database_crud.py (share_token_transaction, get_share_seq_locked);

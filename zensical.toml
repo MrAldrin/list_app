@@ -6,15 +6,14 @@ site_dir = "site"
 
 # Keep the authoritative root architecture and maintained Markdown sources in
 # the preview without copying the architecture into docs/ or copying app code.
-# The inventory is root guides, docs/plans Markdown, and frontend README.
-# Allium's README/example are explicit exceptions; hidden paths stay excluded.
+# Include root guides, docs/plans Markdown, frontend README and named specs.
+# Do not include other files in specs/.
 exclude_docs = '''
 **
 !/docs/*.md
 !/docs/**/*.md
 /docs/local-network-testing.md
 /docs/background/**
-!/docs/allium/public-sharing.allium
 !/plans/*.md
 !/plans/**/*.md
 !/frontend/
@@ -28,7 +27,15 @@ exclude_docs = '''
 !/README.md
 !/AGENTS.md
 !/ARCHITECTURE.md
-!/docs/allium/README.md
+!/specs/README.md
+!/specs/admin-invitations.allium
+!/specs/install-paths.allium
+!/specs/item-operations.allium
+!/specs/public-sharing.allium
+!/specs/reminder-settings.allium
+!/specs/room-access.allium
+!/specs/sync-offline.allium
+!/specs/tags-visibility.allium
 !/frontend/README.md
 **/*.db
 **/*-pre-migration.db*
@@ -54,6 +61,7 @@ nav = [
   { "Development and operations" = [
     { "README" = "README.md" },
     { "Development guide" = "docs/development.md" },
+    { "Behavior specs" = "specs/README.md" },
     { "Frontend guide" = "frontend/README.md" },
     { "Deployment" = "docs/deployment.md" },
     { "Scope" = "docs/scope.md" },

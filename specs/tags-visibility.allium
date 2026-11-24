@@ -1,0 +1,164 @@
+-- allium: 3
+-- Shared list tags and checked-item display. Replay and access admission
+-- follow item-operations.allium and public-sharing.allium.
+-- Sources: src/api/ops.py (list_tag_*, list_visibility, item_toggle_tag),
+-- src/{field_limits,item_visibility}.py, src/database_crud.py (list options,
+-- tag changes and room_changes), frontend/src/lib/data/{visibility,overlay}.ts,
+-- and frontend/src/lib/list/{tags.ts,TagsDialog.svelte,HideDoneSettings.svelte,ListView.svelte}.
+-- See docs/api-lists-items.md and docs/checked-item-visibility.md.
+
+use "./room-access.allium" as access
+use "./item-operations.allium" as ops
+
+entity ListOptions {
+    list: ops/List
+    tag_names: List<String>
+    tag_colors: Any
+    tag_mode: single | multi
+    show_on_items: Boolean
+    only_item_tags: Boolean
+    hide_mode: off | all | age | recent
+    age_days: Integer
+    recent_count: Integer
+    items: ListItem with options = this
+}
+
+entity ListItem {
+    options: ListOptions
+    active_tags: List<String>
+    checked: Boolean
+    checked_at: Timestamp?
+}
+
+config {
+    tag_limit: Integer = 50
+    tag_length_limit: Integer = 30
+}
+
+-- These actions are first applications of admitted ops, not retries.
+rule AddListTag {
+    when: AddListTag(options, label)
+    let name = trim(label)
+    requires: length(name) > 0 and length(name) <= config.tag_length_limit
+    requires: name not in options.tag_names and options.tag_names.count < config.tag_limit
+    ensures: options.tag_names = insert_in_tag_order(options.tag_names, name)
+}
+
+rule RemoveListTag {
+    when: RemoveListTag(options, name)
+    requires: name in options.tag_names
+    ensures: options.tag_names = options.tag_names.remove(name)
+    ensures: options.tag_colors = clear_color(options.tag_colors, name)
+}
+
+rule RenameListTag {
+    when: RenameListTag(options, old_name, label)
+    let name = trim(label)
+    requires: length(name) > 0 and length(name) <= config.tag_length_limit
+    requires: old_name in options.tag_names and name not in options.tag_names
+    ensures: options.tag_names = rename_in_tag_order(options.tag_names, old_name, name)
+    ensures: options.tag_colors = move_color(options.tag_colors, old_name, name)
+    ensures:
+        for item in options.items:
+            if old_name in item.active_tags:
+                item.active_tags = rename_without_duplicates(item.active_tags, old_name, name)
+}
+
+rule ChangeTagSelection {
+    when: ChangeTagSelection(options, mode, show_on_items, only_item_tags)
+    let switch_to_single = mode = single and options.tag_mode = multi
+    ensures: options.tag_mode = supplied_or_current(mode, options.tag_mode)
+    ensures: options.show_on_items = supplied_or_current(show_on_items, options.show_on_items)
+    ensures: options.only_item_tags = supplied_or_current(only_item_tags, options.only_item_tags)
+    ensures:
+        if switch_to_single:
+            for item in options.items:
+                if item.active_tags.count > 1:
+                    item.active_tags = first_in_tag_order(item.active_tags, options.tag_names)
+}
+
+rule SetListTagColor {
+    when: SetListTagColor(options, name, color)
+    requires: name in options.tag_names
+    requires: valid_tag_color(color)
+    ensures: options.tag_colors = set_or_clear_color(options.tag_colors, name, color)
+}
+
+rule SetItemTag {
+    when: SetItemTag(item, name, active)
+    ensures: item.active_tags = tag_selection(item.active_tags, item.options.tag_mode, name, active)
+}
+
+rule ChangeCheckedVisibility {
+    when: ChangeCheckedVisibility(options, mode, age_days, recent_count)
+    requires: valid_visibility_update(mode, age_days, recent_count)
+    ensures: options.hide_mode = supplied_or_current(mode, options.hide_mode)
+    ensures: options.age_days = supplied_or_current(age_days, options.age_days)
+    ensures: options.recent_count = supplied_or_current(recent_count, options.recent_count)
+}
+
+surface ListView {
+    facing browser: access/Browser
+    context options: ListOptions where may_read_list(browser, options.list)
+    exposes:
+        options.items.checked
+        options.items.checked_at
+    provides:
+        AddListTag(options, label)
+        RemoveListTag(options, name)
+        RenameListTag(options, old_name, label)
+        ChangeTagSelection(options, mode, show_on_items, only_item_tags)
+        SetListTagColor(options, name, color)
+        SetItemTag(item, name, active) when item.options = options
+        ChangeCheckedVisibility(options, mode, age_days, recent_count)
+
+    @guarantee ListScopeAndReplay
+        -- The settings affect everyone who sees this list. Check current
+        -- room access or write access to this shared list before any edit.
+        -- Apply and replay by item-operations.allium, including its approved
+        -- request comparison and share scope. No new change on a replay or
+        -- a no-op. These ops do not ask for an item or list base sequence.
+        -- Feed results include changed list settings and any changed items.
+        -- Rename and single-mode conversion can change multiple items.
+
+    @guarantee TagNamesAndColors
+        -- Match exact tag names; sort list tags by lowercase name. Case
+        -- variants can coexist. Adding an existing name, removing a missing
+        -- one and renaming to the same existing name do nothing. Reject a
+        -- duplicate destination or an unknown rename source without a write.
+        -- Color changes require an existing tag. Use an integer 0–6, or
+        -- null for the default. Rename carries the color; remove clears it.
+        -- Remove leaves item assignments intact. Re-adding that exact tag
+        -- can make old assignments visible again. Rename updates item
+        -- assignments and removes duplicate names in the same change.
+
+    @guarantee TagSelectionAndDisplay
+        -- A partial settings update leaves other choices as they are. When
+        -- switching to single, keep each item's first active tag in list
+        -- order. Tags not in the list rank last, in their saved item order.
+        -- Explicit active sets the desired state. With no value, toggle.
+        -- Turning a tag on in single mode replaces any other tags; in
+        -- multi mode it adds without duplicates. Turning one off only
+        -- removes that tag. The API accepts an item tag even if the list
+        -- no longer defines it. The browser shows and filters by defined
+        -- tags only. All chosen filter tags must match the item. Row tag
+        -- buttons can be hidden, or limited to tags already on that item.
+
+    @guarantee CheckedVisibility
+        -- This is local display, not deletion or server-side filtering.
+        -- Defaults: off, 7 days, 10 recent. The counters each accept a
+        -- whole number from 1 through 100,000. Updates can change one field
+        -- without resetting the others. Turning hiding on selects All;
+        -- turning it off keeps the counters for later.
+        -- Unchecked items always pass this filter. Off shows all; All hides
+        -- all checked items. Age hides a checked item when its known time
+        -- is at least the chosen number of full days old. Unknown times
+        -- stay visible in Age. Recent keeps the newest checked items,
+        -- newest time first, unknown times last, ties by descending UID.
+        -- Apply Recent to the whole list before tag filtering. The hidden
+        -- count also ignores tag and search filters. Hidden items remain
+        -- in data and Add/Search can find them. Reopening clears the check
+        -- time; checking an already checked item does not reset that time.
+}
+
+open question "Should a removed tag still be on items if someone adds it back? The port keeps those assignments unless that changes."

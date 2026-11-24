@@ -1,0 +1,202 @@
+-- allium: 3
+-- Accepted personal reminder settings, item preview and due bell only.
+-- No delivery, notification permissions, occurrence inbox or restore guard.
+-- Sources: src/api/{reminders,reminder_policies}.py,
+-- src/reminders/{identity,policies,preview,zoned_time}.py (saved grant, policy
+-- selection and preview), src/database_crud.py (room revocation and reset).
+-- Browser: frontend/src/lib/reminders/{personal-reminders.ts,device-zone.svelte.ts}
+-- and frontend/src/lib/list/{DueCenter.svelte,due-reminders.ts,time-zone.ts}.
+-- See docs/api-reminders.md and docs/due-date-reminders.md.
+
+use "./room-access.allium" as access
+
+entity ReminderDevice {
+    expires_at: Timestamp
+    timezone: String
+    paused: Boolean
+    usable: now < expires_at
+}
+
+entity ReminderEnrollment {
+    room: access/Room
+    device: ReminderDevice
+    authorizing_session: access/RoomSession
+    expires_at: Timestamp
+    opted_out: Boolean
+    active: device.usable and not opted_out and now < expires_at and
+        exists authorizing_session and authorizing_session.current
+}
+
+config {
+    device_lifetime: Duration = 365.days
+    grant_lifetime: Duration = 365.days
+}
+
+-- These triggers describe a first accepted write, after replay and revision checks.
+rule EnrollNewReminderDevice {
+    when: EnrollNewReminderDevice(session, timezone)
+    requires: session.current and valid_iana_zone(timezone)
+    requires: room_has_enrollment_capacity(session.room)
+    ensures:
+        let device = ReminderDevice.created(expires_at: now + config.device_lifetime,
+                                            timezone: timezone, paused: false)
+        ReminderEnrollment.created(room: session.room, device: device,
+                                   authorizing_session: session,
+                                   expires_at: grant_end(session, now, config.grant_lifetime),
+                                   opted_out: false)
+}
+
+rule EnrollKnownDeviceInRoom {
+    when: EnrollKnownDeviceInRoom(session, device)
+    requires: session.current and device.usable
+    requires: not exists ReminderEnrollment{room: session.room, device: device}
+    requires: device_and_room_have_enrollment_capacity(device, session.room)
+    ensures: device.expires_at = now + config.device_lifetime
+    ensures: ReminderEnrollment.created(room: session.room, device: device,
+                                         authorizing_session: session,
+                                         expires_at: grant_end(session, now, config.grant_lifetime),
+                                         opted_out: false)
+}
+
+rule ResumeReminderEnrollment {
+    when: ResumeReminderEnrollment(session, enrollment)
+    requires: session.current and session.room = enrollment.room and enrollment.device.usable
+    ensures: enrollment.device.expires_at = now + config.device_lifetime
+    ensures: enrollment.authorizing_session = session
+    ensures: enrollment.expires_at = grant_end(session, now, config.grant_lifetime)
+    ensures: enrollment.opted_out = false
+}
+
+rule OptOutOfRoomReminders {
+    when: OptOutOfRoomReminders(session, enrollment)
+    requires: session.current and session.room = enrollment.room and enrollment.device.usable
+    ensures: enrollment.opted_out = true
+}
+
+rule PreviewReminderTimes {
+    when: PreviewReminderTimes(session, enrollment, item, draft)
+    requires: session.current and session.room = enrollment.room and enrollment.device.usable
+    requires: item_is_in_room(item, enrollment.room) and valid_preview_draft(draft)
+    ensures: PreviewReturned(session.browser, describe_preview(enrollment, item, draft, now))
+}
+
+surface EnrollmentActions {
+    facing session: access/RoomSession
+    provides:
+        EnrollNewReminderDevice(session, timezone) when session.current and not has_usable_device_cookie(session.browser)
+        EnrollKnownDeviceInRoom(session, device) when device_cookie_matches(session.browser, device)
+
+    @guarantee PrivateAccess
+        -- Each call needs current room access. A separate host-only device
+        -- cookie identifies one browser or installation. It is HTTP-only,
+        -- SameSite=Lax, Path=/, one year; Secure __Host-listapp-device on
+        -- HTTPS, listapp-device on local HTTP. Never reveal its secret in JSON.
+        -- A share link, another device, and room feeds or events do not see
+        -- these settings. The server operator can read stored settings.
+        -- Without a usable device, read null or not_enrolled. A device patch
+        -- needs the device. A room preferences patch and every policy or
+        -- preview request need both the device and a saved enrollment.
+        -- A cut grant can still use settings with a valid room session and
+        -- device cookie. A foreign item or list is not found.
+
+    @guarantee ExplicitEnrollment
+        -- A new device needs a valid named time zone. For an existing device,
+        -- only a device settings edit can change its zone. Allow at most 20
+        -- room enrollments per device and 50 devices per room.
+        -- Active requires the saved room token and password revision to stay
+        -- current. The grant ends one year after explicit enrollment or the
+        -- authorizing token's creation, whichever comes first. Token revocation
+        -- or a password change (including admin reset) cuts the grant, not the
+        -- settings. Signing in again does not resume it. Report needs_resume
+        -- for a cut grant, or opted_out if the user opted out. Room deletion
+        -- drops only that room's enrollments. Only an explicit, fresh enroll
+        -- or resume renews the cookie/device and starts a new grant lifetime.
+}
+
+surface DevicePreferences {
+    facing session: access/RoomSession
+    context device: ReminderDevice where device_cookie_matches(session.browser, device)
+    exposes:
+        device.timezone when session.current and device.usable
+        device.paused when session.current and device.usable
+
+    @guarantee DeviceSettings
+        -- The device zone, all-day time, quiet hours, pause, content privacy,
+        -- daily cap, spacing and overdue repeat apply to all rooms enrolled
+        -- on this device. Change only the supplied fields. See the defaults
+        -- and validation in docs/api-reminders.md. A write is not enrollment.
+}
+
+surface SavedPolicyAndPreview {
+    facing session: access/RoomSession
+    context enrollment: ReminderEnrollment where enrollment.room = session.room and
+        device_cookie_matches(session.browser, enrollment.device)
+    exposes:
+        enrollment.active when session.current and enrollment.device.usable
+        enrollment.opted_out when session.current and enrollment.device.usable
+    provides:
+        ResumeReminderEnrollment(session, enrollment)
+        OptOutOfRoomReminders(session, enrollment)
+        PreviewReminderTimes(session, enrollment, item, draft)
+
+    @guarantee RevisionsAndReplay
+        -- Check scope before replay. Private op IDs are separate from shared
+        -- item ops. Device settings use a scope per device; room preferences,
+        -- enrollment and policies share a scope per device and room. Match
+        -- the private action and body, including the policy target. Reuse
+        -- with another action or body conflicts. A replay makes no change
+        -- and renews nothing. Enrollment and preference replays refresh only
+        -- the grant state; the saved revision and other fields stay the same.
+        -- First writes need the current revision. A stale revision is a
+        -- conflict, not an overwrite. If the first response and its cookie
+        -- were lost, the browser cannot repeat as that same new device.
+        -- Keep private drafts and retry IDs in memory, not the offline queue.
+
+    @guarantee PrivatePolicy
+        -- Room mode and summary time and the room, list and item policies
+        -- belong to that enrollment. A policy save replaces the scope. Item rules can
+        -- replace list rules, which can replace room defaults. Off disables
+        -- the scope; inherit returns to its parent and records a reset time.
+        -- The room only accepts replacement. Pause and opt-out win.
+        -- Keep at most five normalized custom rules. New or changed fixed
+        -- wall times must be future. Unchanged fixed rules keep their identity,
+        -- confirmed instant and activation time. No settings edit resumes a grant.
+
+    @guarantee ReadOnlyPreview
+        -- Use the item's saved due fields and either saved policy or an item
+        -- draft; inherit uses saved parents. Do not save the draft, change
+        -- activation, renew access or send notifications. Draft IDs are temporary.
+        -- Return up to five strictly future entries in time order. Merge
+        -- rules at the same instant. A disabled policy or cut grant returns
+        -- reasons, not times. Historical eligibility includes enrollment, the selected
+        -- policy, lower reset rows, the due cycle and the date-only device
+        -- anchor, with inclusive cutoffs. Overridden defaults do not count.
+        -- Hours and minutes offset the confirmed timed instant. Days and
+        -- weeks preserve wall-clock intent. Date-only items use the device
+        -- zone and all-day time. Saved fixed instants are not re-resolved.
+        -- Use the first occurrence in a repeated hour and the transition
+        -- instant in a gap. Quiet hours include the start, not the end.
+        -- Summary entries describe this item's contribution on a local day,
+        -- starting at most one day before its due day. Deferral is summary
+        -- eligibility, not an individual send time.
+        -- Preview does not estimate quota, spacing, catch-up or delivery.
+}
+
+surface DueBell {
+    facing browser: access/Browser
+    context room: access/Room where can_view_due_items(browser, room)
+    exposes: room.slug
+
+    @guarantee DueViewsWithoutSetup
+        -- The bell and due date/time edits stay visible. Personal settings
+        -- entry points stay hidden. The bell works with saved offline data.
+        -- A room view can show its lists; a share view shows only its list.
+        -- Count unchecked dated items that are overdue, today or tomorrow.
+        -- Opening the bell does not clear the count. Past timed items are
+        -- overdue even on the same day. Untimed dates stay calendar dates.
+        -- Use the device zone when an active grant supplies it in memory;
+        -- otherwise use Europe/Oslo when supported by the browser. The
+        -- share view does not use a private room device zone.
+}
+
+open question "Should the due bell use the browser time zone instead of Europe/Oslo before enrollment? The guides disagree; the port keeps the current Europe/Oslo default unless that changes."

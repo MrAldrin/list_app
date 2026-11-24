@@ -1,0 +1,120 @@
+-- allium: 3
+-- Admin tools and links that create rooms. Room sign-in and admin session
+-- admission, cookies and limits stay in room-access.allium. This is not sharing.
+-- Sources: src/api/admin.py (session and room actions), src/admin_access.py
+-- (admin_token_valid), src/api/invitations.py (admin and public endpoints),
+-- src/room_invitations.py (use, status and retention), src/field_limits.py,
+-- src/database_crud.py (create_room, _replace_room_password_locked), and
+-- frontend/src/lib/{admin/AdminInvitations,invitation/CreateRoomForm}.svelte.
+-- See docs/api-admin.md and docs/api-sharing.md (Creation invitations).
+
+use "./room-access.allium" as access
+
+entity RoomInvitation {
+    created_at: Timestamp
+    expires_at: Timestamp
+    revoked_at: Timestamp?
+    rooms_created: Integer
+    usable: revoked_at = null and now < expires_at and rooms_created < config.room_limit
+}
+
+config {
+    invitation_duration: Duration = 7.days
+    inactive_history: Duration = 7.days
+    room_limit: Integer = 5
+    room_name_limit: Integer = 100
+    initial_password_revision: Integer = 1
+}
+
+rule IssueRoomInvitation {
+    when: IssueRoomInvitation(session)
+    requires: session.current
+    ensures: RoomInvitation.created(created_at: now,
+                                    expires_at: now + config.invitation_duration,
+                                    revoked_at: null, rooms_created: 0)
+}
+
+rule RevokeRoomInvitation {
+    when: RevokeRoomInvitation(session, invitation)
+    requires: session.current
+    requires: invitation.revoked_at = null
+    ensures: invitation.revoked_at = now
+}
+
+rule ReadInvitationHistory {
+    when: ReadInvitationHistory(session)
+    requires: session.current
+    ensures:
+        for invitation in RoomInvitations:
+            if invitation.expires_at + config.inactive_history <= now or
+                (invitation.revoked_at != null and invitation.revoked_at + config.inactive_history <= now):
+                not exists invitation
+}
+
+rule CreateRoomAsAdmin {
+    when: CreateRoomAsAdmin(session, name, password)
+    requires: session.current
+    requires: length(trim(name)) > 0 and length(trim(name)) <= config.room_name_limit
+    requires: valid_new_room_password(password)
+    ensures: access/Room.created(name: trim(name), slug: fresh_admin_room_slug(name),
+                                 password_revision: config.initial_password_revision)
+}
+
+rule CreateRoomFromInvitation {
+    when: CreateRoomFromInvitation(browser, invitation, name, password)
+    requires: invitation.usable
+    requires: length(trim(name)) > 0 and length(trim(name)) <= config.room_name_limit
+    requires: valid_new_room_password(password)
+    ensures: access/Room.created(name: trim(name), slug: fresh_invited_room_slug(),
+                                 password_revision: config.initial_password_revision)
+    ensures: invitation.rooms_created = invitation.rooms_created + 1
+}
+
+surface Administration {
+    facing session: access/AdminSession
+    provides:
+        CreateRoomAsAdmin(session, name, password) when session.current
+        IssueRoomInvitation(session) when session.current
+        RevokeRoomInvitation(session, invitation) when session.current
+        ReadInvitationHistory(session) when session.current
+
+    @guarantee SeparateAdminSession
+        -- Use SignIn and AdminTools in room-access.allium. Check admin access
+        -- before protected bodies or targets. Status clears an invalid cookie;
+        -- a failed sign-in keeps any current admin session. There is no
+        -- rolling renewal. Signing out leaves room sessions alone.
+        -- Room overview shows only names and slugs, by name ignoring case.
+        -- Admin room links can include a name prefix. Invited room links do
+        -- not reveal the room name. Neither link signs the creator in.
+        -- Admin can reset or delete a room without its password. For an
+        -- unavailable room, return room_unavailable. Reset revokes room
+        -- sessions and cuts reminder grants but keeps reminder settings.
+        -- Delete removes the room's data, not its creation invitations.
+
+    @guarantee InvitationHistory
+        -- Show the link only in the issue response. List metadata newest first
+        -- with UTC times; never include the secret. Show revoked before expired
+        -- or active. A used-up link can still show Active until expiry or
+        -- revocation. Prune history on list access (also when issuing a link),
+        -- seven days after the earlier of revocation and expiry, not exhaustion.
+        -- Revoking an unknown or already revoked ID makes no change; no
+        -- revocation or history pruning changes rooms already created.
+}
+
+surface InvitationVisitor {
+    facing browser: access/Browser
+    context invitation: RoomInvitation
+    provides: CreateRoomFromInvitation(browser, invitation, name, password) when invitation.usable
+
+    @guarantee LinkAllowsCreationOnly
+        -- Anyone with the link can check it and use it without admin sign-in.
+        -- Checking consumes no use and does not reserve a place. Missing,
+        -- expired, revoked and used-up links all return invitation_unavailable.
+        -- Check again as part of creation: the room and the count increase
+        -- together, or neither does. Deleting a created room gives no use back.
+        -- A successful creation returns the room name and link, not a session.
+        -- The visitor opens the new room and signs in with the chosen password.
+        -- The invitation gives no access to that room or to any other room.
+}
+
+open question "Should the admin see a distinct Used up status when a link reaches five rooms? The port keeps the current label unless that changes."

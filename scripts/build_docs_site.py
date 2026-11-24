@@ -25,6 +25,18 @@ BACKGROUND_SOURCE = "docs/background"
 LOCAL_NETWORK_SOURCE = "docs/local-network-testing.md"
 OWNER_FILE = ".docs-site-owner.json"
 SCRATCH_PREFIX = ".docs-site-build-"
+SPEC_INDEX = "specs/README.md"
+ALLIUM_SPEC_FILES = {
+    "specs/admin-invitations.allium",
+    "specs/install-paths.allium",
+    "specs/item-operations.allium",
+    "specs/public-sharing.allium",
+    "specs/reminder-settings.allium",
+    "specs/room-access.allium",
+    "specs/sync-offline.allium",
+    "specs/tags-visibility.allium",
+}
+SPEC_SOURCES = ALLIUM_SPEC_FILES | {SPEC_INDEX}
 REQUIRED_EXCLUDE_RULES = {
     "**",
     "!/README.md",
@@ -34,7 +46,6 @@ REQUIRED_EXCLUDE_RULES = {
     "!/docs/**/*.md",
     "/docs/local-network-testing.md",
     "/docs/background/**",
-    "!/docs/allium/public-sharing.allium",
     "!/plans/*.md",
     "!/plans/**/*.md",
     "!/frontend/",
@@ -43,14 +54,13 @@ REQUIRED_EXCLUDE_RULES = {
     "**/README.md",
     "**/AGENTS.md",
     "**/ARCHITECTURE.md",
-    "!/docs/allium/README.md",
     "**/.*",
     "**/.*/**",
     "**/local_only/**",
     "**/*.db",
     "**/*-pre-migration.db*",
     "**/*.sqlite*",
-}
+} | {f"!/{source}" for source in SPEC_SOURCES}
 
 
 class PageLinks(HTMLParser):
@@ -216,11 +226,8 @@ def eligible_sources(root: Path) -> tuple[str, ...]:
             or "local_only" in parts
             or relative == LOCAL_NETWORK_SOURCE
             or relative.startswith(f"{BACKGROUND_SOURCE}/")
-            or (
-                PurePosixPath(relative).name
-                in {"README.md", "AGENTS.md", "ARCHITECTURE.md"}
-                and relative != "docs/allium/README.md"
-            )
+            or PurePosixPath(relative).name
+            in {"README.md", "AGENTS.md", "ARCHITECTURE.md"}
         ):
             continue
         sources.add(relative)
@@ -242,9 +249,11 @@ def eligible_sources(root: Path) -> tuple[str, ...]:
     if frontend_readme is not None:
         sources.add("frontend/README.md")
 
-    allium_example = source_path(root, "docs/allium/public-sharing.allium")
-    if allium_example is not None:
-        sources.add("docs/allium/public-sharing.allium")
+    if (root / "specs").is_symlink():
+        raise ValueError("refusing to follow source symlink: specs/")
+    for relative in SPEC_SOURCES:
+        if source_path(root, relative) is not None:
+            sources.add(relative)
 
     for relative in sorted(sources):
         if source_path(root, relative) is None:
@@ -591,7 +600,7 @@ def route_file(site_root: Path, route: str) -> Path:
 
 
 def validate_search_inventory(locations: set[str]) -> None:
-    allowed_routes = {"", "AGENTS", "ARCHITECTURE", "frontend"}
+    allowed_routes = {"", "AGENTS", "ARCHITECTURE", "frontend", "specs"}
     allowed_roots = {"docs", "plans"}
     for location in locations:
         route = location.split("#", maxsplit=1)[0].strip("/")
@@ -612,7 +621,6 @@ def validate_search_inventory(locations: set[str]) -> None:
 
 def validate_output_file_inventory(site_root: Path) -> None:
     generated_files = {"404.html", "search.json", "sitemap.xml"}
-    allowed_source_files = {"docs/allium/public-sharing.allium"}
     for path in site_root.rglob("*"):
         if not path.is_file():
             continue
@@ -621,7 +629,7 @@ def validate_output_file_inventory(site_root: Path) -> None:
             continue
         if relative.split("/", maxsplit=1)[0] == "assets":
             continue
-        if relative not in allowed_source_files:
+        if relative not in ALLIUM_SPEC_FILES:
             raise ValueError(f"unapproved file appears in generated site: {relative}")
 
 

@@ -81,6 +81,9 @@ def test_nested_site_symlink_is_rejected_before_zensical_cleanup(tmp_path, monke
         "plans/nested-link",
         "frontend/README.md",
         "frontend",
+        "specs/README.md",
+        "specs/install-paths.allium",
+        "specs",
     ],
 )
 def test_source_symlinks_are_rejected_before_build_or_emission(
@@ -95,7 +98,7 @@ def test_source_symlinks_are_rejected_before_build_or_emission(
     sentinel.write_text(f"# {marker}\n", encoding="utf-8")
 
     link = root / source_path
-    if source_path in {"docs", "plans", "frontend"} or source_path.endswith(
+    if source_path in {"docs", "plans", "frontend", "specs"} or source_path.endswith(
         "nested-link"
     ):
         link.parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +242,7 @@ def test_validate_site_ignores_old_fragment_on_generated_redirect(tmp_path):
     [
         ("docs/.pytest_cache/README", "hidden source route"),
         ("unlisted/README", "unapproved source route"),
+        ("specs/unlisted", "unapproved source route"),
     ],
 )
 def test_validate_site_rejects_routes_outside_emitted_inventory(
@@ -275,8 +279,13 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
         "ARCHITECTURE.md": "PUBLIC_ROOT_ARCHITECTURE_SENTINEL",
         "docs/index.md": "PUBLIC_DOCS_INDEX_SENTINEL",
         "docs/guide.md": "PUBLIC_GUIDE_SENTINEL",
-        "docs/allium/README.md": "PUBLIC_NESTED_DOCS_README_SENTINEL",
-        "docs/allium/public-sharing.allium": "PUBLIC_ALLIUM_EXAMPLE_SENTINEL",
+        "specs/README.md": "PUBLIC_SPEC_INDEX_SENTINEL",
+        **{
+            source: f"PUBLIC_SPEC_{Path(source).stem.upper()}_SENTINEL"
+            for source in build_docs_site.ALLIUM_SPEC_FILES
+        },
+        "docs/allium/README.md": "PRIVATE_RETIRED_PILOT_README_SENTINEL",
+        "docs/allium/public-sharing.allium": "PRIVATE_RETIRED_PILOT_SPEC_SENTINEL",
         "docs/private-section/README.md": "PRIVATE_NESTED_DOCS_README_SENTINEL",
         "docs/private-section/AGENTS.md": "PRIVATE_NESTED_DOCS_AGENTS_SENTINEL",
         "docs/private-section/ARCHITECTURE.md": "PRIVATE_NESTED_DOCS_ARCHITECTURE_SENTINEL",
@@ -310,7 +319,10 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
         "docs/.env.synthetic": "PRIVATE_NESTED_ENV_SENTINEL",
         "docs/private.txt": "PRIVATE_DOCS_TEXT_SENTINEL",
         "docs/private.yaml": "PRIVATE_DOCS_YAML_SENTINEL",
-        "docs/allium/private.allium": "PRIVATE_UNLISTED_ALLIUM_SENTINEL",
+        "specs/private.allium": "PRIVATE_UNLISTED_ALLIUM_SENTINEL",
+        "specs/private.md": "PRIVATE_UNLISTED_SPEC_NOTES_SENTINEL",
+        "specs/.private.md": "PRIVATE_HIDDEN_SPEC_NOTES_SENTINEL",
+        "specs/local_only/private.allium": "PRIVATE_DEEP_SPEC_SENTINEL",
         "docs/private.sqlite3": "PRIVATE_SQLITE_SENTINEL",
         "plans/private.txt": "PRIVATE_PLANS_TEXT_SENTINEL",
         "plans/private.json": "PRIVATE_PLANS_JSON_SENTINEL",
@@ -324,6 +336,12 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
             body += "\n[excluded page](background/future-review.md#private-anchor)\n"
         elif relative == "docs/guide.md":
             body = f"# {marker}\n\n## Guide\n\n[landing](index.md#landing)\n"
+            body += "\n[behavior specs](../specs/README.md#review)\n"
+        elif relative == "specs/README.md":
+            body += "\n## Review\n\n" + "\n".join(
+                f"- [{Path(source).stem}]({Path(source).name})"
+                for source in sorted(build_docs_site.ALLIUM_SPEC_FILES)
+            )
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
@@ -349,6 +367,9 @@ def test_build_uses_rooted_allowlist_and_redirects_new_background_pages(tmp_path
     assert all(marker not in search_text for marker in private_markers)
     assert redirect_count >= 5
     assert checked_links > 0
+    assert all(
+        (site / source).is_file() for source in build_docs_site.ALLIUM_SPEC_FILES
+    )
 
     future_redirect = site / "docs" / "background" / "future-review" / "index.html"
     assert future_redirect.is_file()
@@ -370,7 +391,10 @@ def test_staging_tree_includes_untracked_sources_and_omits_exclusions(tmp_path):
         "docs/background/local_only/local.md": "PRIVATE_LOCAL_ONLY_SENTINEL",
         "docs/local-network-testing.md": "PRIVATE_NETWORK_SENTINEL",
         "docs/nested/README.md": "PRIVATE_NESTED_README_SENTINEL",
-        "docs/allium/public-sharing.allium": "PUBLIC_ALLIUM_SENTINEL",
+        "specs/README.md": "# Behavior specs",
+        "specs/public-sharing.allium": "PUBLIC_ALLIUM_SENTINEL",
+        "specs/untracked.allium": "PRIVATE_UNTRACKED_ALLIUM_SENTINEL",
+        "specs/untracked.md": "PRIVATE_UNTRACKED_SPEC_NOTES_SENTINEL",
         "plans/new-untracked-plan.md": "# New plan",
     }
     for relative, content in files.items():
@@ -381,7 +405,10 @@ def test_staging_tree_includes_untracked_sources_and_omits_exclusions(tmp_path):
     sources = build_docs_site.eligible_sources(root)
     assert "docs/new-untracked-guide.md" in sources
     assert "plans/new-untracked-plan.md" in sources
-    assert "docs/allium/public-sharing.allium" in sources
+    assert "specs/README.md" in sources
+    assert "specs/public-sharing.allium" in sources
+    assert "specs/untracked.allium" not in sources
+    assert "specs/untracked.md" not in sources
     assert not any("background" in source for source in sources)
     assert "docs/local-network-testing.md" not in sources
     assert "docs/nested/README.md" not in sources
@@ -397,7 +424,9 @@ def test_staging_tree_includes_untracked_sources_and_omits_exclusions(tmp_path):
         root / "docs/new-untracked-guide.md"
     )
     assert (staging / "plans/new-untracked-plan.md").is_symlink()
-    assert (staging / "docs/allium/public-sharing.allium").is_symlink()
+    assert (staging / "specs/README.md").is_symlink()
+    assert (staging / "specs/public-sharing.allium").is_symlink()
+    assert not (staging / "specs/untracked.allium").exists()
     assert not (staging / "docs/background/private.md").exists()
     assert not (staging / "docs/local-network-testing.md").exists()
     assert not (staging / "docs/nested/README.md").exists()

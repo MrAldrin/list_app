@@ -1,0 +1,124 @@
+-- allium: 3
+-- Home-screen launches, old addresses and retired-worker cleanup.
+-- Sources: src/{pwa_routes,install_manifest,svelte_frontend,health,security_headers}.py;
+-- frontend/src/lib/install/manifest.ts; frontend/src/routes/{+layout,+page}.svelte
+-- and list/[slug]/+page.svelte; frontend/src/{service-worker.ts,lib/service-worker.ts,
+-- lib/worker-routes.ts}. See docs/home-screen-installation.md.
+-- Offline data authorization remains in room-access.allium and sync-offline.allium.
+
+use "./room-access.allium" as access
+
+entity HomeScreenIcon {
+    browser: access/Browser
+    start_address: String
+}
+
+entity WorkerState {
+    browser: access/Browser
+    legacy_registration: Boolean
+    legacy_controller: Boolean
+    app_registration_allowed: not legacy_registration and not legacy_controller
+}
+
+rule SaveHomeScreenIcon {
+    when: SaveHomeScreenIcon(browser, page)
+    ensures: HomeScreenIcon.created(browser: browser, start_address: install_start_address(page))
+}
+
+rule LaunchHomeScreenIcon {
+    when: LaunchHomeScreenIcon(browser, icon)
+    requires: icon.browser = browser
+    ensures: OpenAddress(browser, icon.start_address)
+}
+
+rule RetireLegacyWorker {
+    when: KillSwitchActivates(worker)
+    requires: worker.legacy_registration
+    ensures: worker.legacy_registration = false
+    ensures: ReloadLegacyWindows(worker.browser)
+}
+
+rule RequestAppWorker {
+    when: RequestAppWorker(browser, worker)
+    requires: worker.browser = browser and worker.app_registration_allowed
+    ensures: AppWorkerRegistrationRequested(browser)
+}
+
+surface HomeScreen {
+    facing browser: access/Browser
+    provides:
+        SaveHomeScreenIcon(browser, page)
+        LaunchHomeScreenIcon(browser, icon)
+
+    @guarantee InstallChoice
+        -- Only /room/{slug} links a room manifest, even at its password
+        -- prompt. Its start_url is /room/{slug}, with the slug encoded as
+        -- one path segment. All other pages use the default manifest and
+        -- start at /. In-app navigation updates the manifest link, not an
+        -- existing icon. The browser can reuse an install: id and scope
+        -- stay / for both manifests and all rooms.
+        -- A manifest does not prove a room exists or that a browser can
+        -- enter. It carries no password, secret link, name or query value.
+        -- GET /manifest.json and /static/manifest.json match the default
+        -- /manifest.webmanifest. /room-manifest/{slug}.json and .webmanifest
+        -- match each other. Use application/manifest+json and Cache-Control
+        -- no-cache, no-store, must-revalidate. No login is needed.
+        -- Keep /static/icons/ and the root Apple touch icons and favicon
+        -- available. Both root Apple icon paths give the same PNG.
+
+    @guarantee LaunchIsNotAccess
+        -- A room icon opens that room even when another room was last used.
+        -- It needs a valid room cookie or shows the normal password prompt.
+        -- Deleted and unknown rooms do not redirect to another room or
+        -- reveal existence. The root start page goes to the last remembered
+        -- room or offers a room link or code. /?add skips that redirect.
+        -- Last-room routing does not give access. The browser decides
+        -- whether an installed app carries a sign-in over from a tab.
+
+    @guarantee OldAddresses
+        -- GET and HEAD under /app (including /app itself) redirect permanently
+        -- (308) to the equivalent root address, keeping the query. The old
+        -- /admin/login redirects to /admin the same way. Keep old room,
+        -- share and invitation links working. /list/{slug} uses only the
+        -- last room; no last room means it cannot open that saved list.
+        -- A stale admin query does not grant admin or room access.
+}
+
+surface Workers {
+    facing browser: access/Browser
+    context worker: WorkerState where worker.browser = browser
+    provides:
+        KillSwitchActivates(worker)
+        RequestAppWorker(browser, worker) when worker.app_registration_allowed
+
+    @guarantee RetiredWorkerResponse
+        -- GET and HEAD /sw.js return 200 with application/javascript,
+        -- no-store and nosniff. HEAD has no body. Never return the app page,
+        -- a redirect or not-found for the old worker's update request.
+        -- The script takes over without waiting for tabs to close, tries
+        -- to clear old origin caches, unregisters itself even if cleanup
+        -- fails, then asks its open windows to reload. It has no fetch
+        -- handler and creates no cache. It does not clear user data.
+
+    @guarantee CurrentWorkerIsSeparate
+        -- If the browser detects an old worker registration or controller,
+        -- skip new registration and ask old registrations to update. Let
+        -- their cleanup and page reload finish before registering the app
+        -- worker at /service-worker.js. Keep /sw.js out of app precaching.
+        -- The app worker does not cache API responses and leaves admin and
+        -- old redirect navigations to the network. Only a complete built
+        -- app version becomes available for offline use.
+
+    @guarantee ServerResponseBoundaries
+        -- Serve the current worker from the build with revalidation. A
+        -- missing worker or missing /_app/ asset is not an HTML page. Keep
+        -- /api and /static separate from the page fallback. Hashed build
+        -- assets are immutable for a year; other build files revalidate.
+        -- Do not store the root, room, legacy list or invitation page shell;
+        -- other page shells revalidate. The shell sends same-origin referrer
+        -- policy. Keep nosniff and deny framing on responses.
+        -- Unauthenticated GET /healthz checks database availability and
+        -- returns only no-store JSON: ok true (200) or ok false (503).
+}
+
+open question "What evidence would let us retire /sw.js later? The port keeps the compatibility address; this is not a removal decision."
