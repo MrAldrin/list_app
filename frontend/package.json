@@ -13,6 +13,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && oxlint . && eslint .",
+		"test:ops": "bun scripts/op-properties.ts",
 		"test:lint": "node --test scripts/lint-config.test.mjs",
 		"format": "prettier --write .",
 		"test": "node node_modules/vitest/vitest.mjs run",
@@ -30,6 +31,7 @@
 		"eslint-plugin-oxlint": "1.93.0",
 		"eslint-plugin-svelte": "^3.19.0",
 		"fake-indexeddb": "^6.2.5",
+		"fast-check": "^4.11.0",
 		"globals": "^17.6.0",
 		"happy-dom": "^20.14.5",
 		"oxlint": "1.93.0",
@@ -49,9 +51,11 @@
 		"@effect/experimental": "0.61.2",
 		"@effect/platform": "0.97.3",
 		"@effect/sql-sqlite-bun": "0.53.1",
+		"@unicode/unicode-15.1.0": "2.1.0",
 		"effect": "3.22.4"
 	},
 	"patchedDependencies": {
+		"@effect/sql-sqlite-bun@0.53.1": "patches/@effect%2Fsql-sqlite-bun@0.53.1.patch",
 		"@sveltejs/adapter-bun@1.0.1": "patches/@sveltejs%2Fadapter-bun@1.0.1.patch"
 	}
 }

@@ -1,0 +1,56 @@
+diff --git a/dist/cjs/SqliteClient.js b/dist/cjs/SqliteClient.js
+index 124131c1362bcca1c081b8cda01c7654a1a0ebe1..90c7aabcdf1a4ca62b2fad869e9e1497cbca8e99 100644
+--- a/dist/cjs/SqliteClient.js
++++ b/dist/cjs/SqliteClient.js
+@@ -49,6 +49,7 @@ const make = options => Effect.gen(function* () {
+       create: options.create ?? true
+     });
+     yield* Effect.addFinalizer(() => Effect.sync(() => db.close()));
++    options.onOpen?.(db);
+     // match the better-sqlite3 default so concurrent writers wait for locks
+     db.run("PRAGMA busy_timeout = 5000;");
+     if (options.disableWAL !== true) {
+diff --git a/dist/dts/SqliteClient.d.ts b/dist/dts/SqliteClient.d.ts
+index 66cdffb16e7e71f22facf0561739200572e8bd0a..3a7a439571b7608d9ae4c15af28a334898103265 100644
+--- a/dist/dts/SqliteClient.d.ts
++++ b/dist/dts/SqliteClient.d.ts
+@@ -43,6 +43,7 @@ export declare const SqliteClient: Context.Tag<SqliteClient, SqliteClient>;
+  */
+ export interface SqliteClientConfig {
+     readonly filename: string;
++    readonly onOpen?: (db: import("bun:sqlite").Database) => void;
+     readonly readonly?: boolean | undefined;
+     readonly create?: boolean | undefined;
+     readonly readwrite?: boolean | undefined;
+diff --git a/dist/esm/SqliteClient.js b/dist/esm/SqliteClient.js
+index c1375725e3370d5ffa9e637234b18a57c2d66c40..60e784eb989f9334bb02bf1a5e23d3e255d00428 100644
+--- a/dist/esm/SqliteClient.js
++++ b/dist/esm/SqliteClient.js
+@@ -41,6 +41,7 @@ export const make = options => Effect.gen(function* () {
+       create: options.create ?? true
+     });
+     yield* Effect.addFinalizer(() => Effect.sync(() => db.close()));
++    options.onOpen?.(db);
+     // match the better-sqlite3 default so concurrent writers wait for locks
+     db.run("PRAGMA busy_timeout = 5000;");
+     if (options.disableWAL !== true) {
+diff --git a/src/SqliteClient.ts b/src/SqliteClient.ts
+index f7d9e1ad586c3f464b4578bb6bc209f4222be49f..aa39d6ae4002ed6ddefbb39216a2333c0b4ee758 100644
+--- a/src/SqliteClient.ts
++++ b/src/SqliteClient.ts
+@@ -55,6 +55,7 @@ export const SqliteClient = Context.GenericTag<SqliteClient>("@effect/sql-sqlite
+  */
+ export interface SqliteClientConfig {
+   readonly filename: string
++  readonly onOpen?: (db: Database) => void
+   readonly readonly?: boolean | undefined
+   readonly create?: boolean | undefined
+   readonly readwrite?: boolean | undefined
+@@ -97,6 +98,7 @@ export const make = (
+         create: options.create ?? true
+       } as any)
+       yield* Effect.addFinalizer(() => Effect.sync(() => db.close()))
++      options.onOpen?.(db)
+ 
+       // match the better-sqlite3 default so concurrent writers wait for locks
+       db.run("PRAGMA busy_timeout = 5000;")
