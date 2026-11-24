@@ -73,7 +73,9 @@ Admins (need admin sign-in; 401 `admin_required` first, as in [admin](api-admin.
  "expires_at": "2026-10-12T09:12:00Z", "revoked_at": null}
 ```
 
-- `status` is `active`, `revoked` or `expired` (revoked wins). Times are UTC.
+- `status` is `active`, `revoked` or `expired` (revoked wins). The TypeScript
+  server also reports `inactive` at the five-room limit, before expiry or
+  revocation. Times are UTC.
 - An invitation is valid for 7 days and can create up to 5 rooms.
 - The token is only in the answer that issues it; only its sha256 is stored.
 - Listing deletes invitations that have been inactive for 7 days.

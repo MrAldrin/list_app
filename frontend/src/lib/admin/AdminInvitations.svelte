@@ -1,7 +1,7 @@
 <!--
 	"Room invitations" on the admin page (NiceGUI's `invitation_controls`).
 	"Generate 7-day invitation" issues a link that anyone can use to create a
-	room; its link shows once, in a dialog. Active invitations get "Revoke".
+	room; its link shows once, in a dialog.
 	The server checks admin sign-in on every request.
 -->
 <script lang="ts">
@@ -90,7 +90,7 @@
 						<p class="time">Created {formatUtc(invitation.created_at)}</p>
 						<p class="time">Expires {formatUtc(invitation.expires_at)}</p>
 					</div>
-					{#if invitation.status === 'active'}
+					{#if invitation.status === 'active' || invitation.status === 'inactive'}
 						<button
 							class="revoke"
 							type="button"

@@ -12,7 +12,7 @@ export const RoomResponse = Schema.Struct({ room: Room });
 export const ShareLink = Schema.Struct({ token: Schema.String });
 export const Invitation = Schema.Struct({
 	id: Schema.Int.pipe(Schema.positive()),
-	status: Schema.Literal('active', 'revoked', 'expired'),
+	status: Schema.Literal('active', 'inactive', 'revoked', 'expired'),
 	created_at: Schema.String,
 	expires_at: Schema.String,
 	revoked_at: Schema.NullOr(Schema.String)

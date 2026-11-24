@@ -2,7 +2,8 @@
 
 These Allium specs are the app's living behavior contract. They describe what
 people and browsers should see, not how to build the app. The specs cite the
-reference code. The owner approved the port differences below in `lr-5g6.2`.
+reference code. The owner approved the port differences below in `lr-5g6.2`
+and `lr-5g6.18`.
 
 - [Rooms and sign-in](room-access.allium): A room password opens that room.
   Admin sign-in is separate. Changing a room password ends old room sessions.
@@ -28,9 +29,6 @@ reference code. The owner approved the port differences below in `lr-5g6.2`.
 
 These are not changes in this port. The specs record what the app does now.
 
-- **Invitations:** After a link creates five rooms, visitors cannot use it.
-  Admin still sees **Active** until expiry or revocation. Should admin see
-  **Used up** instead?
 - **Tags:** If you remove a tag and add it back, old item assignments can
   reappear. Should removing the tag also clear those assignments?
 - **Due bell:** The app uses Europe/Oslo before enrollment when the browser
@@ -43,6 +41,7 @@ These are not changes in this port. The specs record what the app does now.
 
 | Area | Port | Python app |
 | --- | --- | --- |
+| Invitations | Show **Inactive** once a link has created five rooms. The link is already unusable. | Labels an exhausted link **Active** until expiry or revocation. |
 | Sign-in | A temporary server failure does not use a room sign-in attempt. | The failed attempt uses a slot. |
 | Retry | Match fields the request actually sent. An omitted due field is not an explicit clear. The queue resends the saved request unchanged. | Replay compares the validated body and can treat an omitted date and a clear as the same. |
 | Offline | After remote loss of room access, sign in again and choose **Send** or **Discard**. Sign-in does not send waiting edits. | The browser queue applies this hold on explicit sign-out, not confirmed remote loss of access. |

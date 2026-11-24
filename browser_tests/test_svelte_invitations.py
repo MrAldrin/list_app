@@ -4,9 +4,13 @@ never opens a room by itself.
 """
 
 import re
+from collections.abc import Callable
 
-from playwright.sync_api import expect
+import pytest
+from playwright.sync_api import Page, expect
 from svelte_app import PHONE, admin_sign_in, app_url
+
+from conftest import TestServer
 
 INVALID = "This invitation is invalid or no longer active."
 
@@ -117,3 +121,39 @@ def test_issue_create_room_and_revoke(svelte_server, open_session):
     expect(late.get_by_label("Room name")).to_have_count(0)
     visitor.reload()
     expect(visitor.get_by_role("button", name="Add New List")).to_be_visible()
+
+
+def test_exhausted_invitation_label(
+    svelte_server: TestServer,
+    open_session: Callable[..., Page],
+    pytestconfig: pytest.Config,
+) -> None:
+    owner = open_session("admin", **PHONE)
+    visitor = open_session("visitor", **PHONE)
+    link = issue_invitation(owner, svelte_server)
+    token = link.rsplit("/", 1)[1]
+    create_url = f"{svelte_server.url}/api/v1/invitations/{token}/rooms"
+    for i in range(5):
+        created = visitor.request.post(
+            create_url,
+            headers={"Origin": svelte_server.url},
+            data={"name": f"Room {i + 1}", "password": "test-room-pw"},
+        )
+        assert created.status == 200
+
+    owner.reload()
+    # The label is an approved difference for the TypeScript backend only.
+    label = (
+        "Inactive"
+        if pytestconfig.getoption("--browser-backend") == "typescript"
+        else "Active"
+    )
+    entry = owner.get_by_role("listitem").filter(
+        has=owner.get_by_text(re.compile(rf"^Invitation #\d+: {label}$"))
+    )
+    expect(entry).to_be_visible()
+    expect(entry.get_by_role("button", name=re.compile(r"^Revoke"))).to_be_visible()
+
+    visitor.goto(link)
+    expect(visitor.get_by_text(INVALID)).to_be_visible()
+    expect(visitor.get_by_label("Room name")).to_have_count(0)

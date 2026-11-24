@@ -54,6 +54,9 @@ The `room_invitations` table is created by the schema migrations
 created them, so invitations that existed before this migration start at 0.
 Rooms they created earlier are not counted.
 
-There is no abuse throttling, by agreement. Production should use HTTPS. Invitation pages send `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, but links still appear in browser history and may appear in hosting access logs. Treat those logs as private. Only the token hash is stored in the application database.
+There is no abuse throttling, by agreement. Production should use HTTPS.
+Invitation pages send `Cache-Control: no-store` and `Referrer-Policy:
+same-origin`. Links still appear in browser history and may appear in hosting
+access logs. Treat those logs as private.
 
 Future personal accounts can replace room-password authorization independently of creation invitations.

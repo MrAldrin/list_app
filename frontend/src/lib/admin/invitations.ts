@@ -11,7 +11,7 @@ export function formatUtc(iso: string): string {
 	return match ? `${match[1]} ${match[2]} UTC` : iso;
 }
 
-/** "Active", "Revoked" or "Expired". */
+/** "Active", "Inactive", "Revoked" or "Expired". */
 export function statusLabel(status: Invitation['status']): string {
 	return status.charAt(0).toUpperCase() + status.slice(1);
 }

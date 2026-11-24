@@ -93,9 +93,10 @@ surface Administration {
 
     @guarantee InvitationHistory
         -- Show the link only in the issue response. List metadata newest first
-        -- with UTC times; never include the secret. Show revoked before expired
-        -- or active. A used-up link can still show Active until expiry or
-        -- revocation. Prune history on list access (also when issuing a link),
+        -- with UTC times; never include the secret. Show Revoked before Expired.
+        -- Otherwise show Inactive after five rooms, or Active before that.
+        -- Exhaustion changes only the label: the admin can still revoke the link.
+        -- Prune history on list access (also when issuing a link),
         -- seven days after the earlier of revocation and expiry, not exhaustion.
         -- Revoking an unknown or already revoked ID makes no change; no
         -- revocation or history pruning changes rooms already created.
@@ -116,5 +117,3 @@ surface InvitationVisitor {
         -- The visitor opens the new room and signs in with the chosen password.
         -- The invitation gives no access to that room or to any other room.
 }
-
-open question "Should the admin see a distinct Used up status when a link reaches five rooms? The port keeps the current label unless that changes."

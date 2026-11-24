@@ -10,6 +10,7 @@ describe('invitation texts', () => {
 
 	it('capitalises the status', () => {
 		expect(statusLabel('active')).toBe('Active');
+		expect(statusLabel('inactive')).toBe('Inactive');
 		expect(statusLabel('revoked')).toBe('Revoked');
 		expect(statusLabel('expired')).toBe('Expired');
 	});
