@@ -784,8 +784,8 @@ approval. Planning-doc commits have only the existing docs-desk permission.
 - Agent-managed investigation workspace `tmp-reminder-plan` at
   `/home/hsa/projects/tmp-reminder-plan` was verified empty, forgotten and
   removed after research. It ran no app/server. Future implementation needs
-  its own workspace and the README's
-  [new-workspace setup](../README.md#new-jj-workspace).
+  its own workspace and the development guide's
+  [new-workspace setup](../docs/development.md#new-jj-workspace).
 - Read-only research workflow `0180b8ca-c0a0-444e-acbc-26756b565b4c` completed.
   Platform child `b85062b5-6a6a-4686-9267-089c97c78c39` and UX child
   `c486494a-64ba-4d59-a4dc-ae352d23d057` used Claude Haiku 5.5/high.

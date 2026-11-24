@@ -14,7 +14,7 @@
 - Follow best practice for Python web development. Split large tasks into
   small, testable chunks.
 - When working in a new jj workspace, remind the owner of the
-  [new workspace setup](README.md#new-jj-workspace) if `.env` is missing.
+  [new workspace setup](docs/development.md#new-jj-workspace) if `.env` is missing.
 
 ## Documentation and plans
 
@@ -28,7 +28,7 @@ Give each fact one home. Link to it instead of copying it.
   Start readers at [`docs/index.md`](docs/index.md).
 - The root [`ARCHITECTURE.md`](ARCHITECTURE.md) is authoritative. The Zensical
   preview reads it directly; it does not maintain a second copy. The
-  [README's local preview](README.md#documentation-preview-local-only) explains
+  [development guide's local preview](docs/development.md#documentation-preview-local-only) explains
   the commands and content/privacy limits. Preview configuration does not grant
   permission to publish.
 - `docs/background/`: evidence and reasoning behind current docs, such as

@@ -19,7 +19,7 @@ copying it.
 
 ## Development and operations
 
-- [Local setup and app development](../README.md)
+- [Local setup and app development](development.md)
 - [Deployment, backups, and recovery](deployment.md)
 - [Testing guide](testing.md): test layers, commands, reliability, and limits
 - [Test runtime results](reports/test-suite-runtime-2026-11-05.md): the overnight review summary
@@ -41,6 +41,6 @@ keeping the original sources in the repository. Links to excluded pages route
 to a site-specific notice. See [preview exclusions](preview-exclusions.md) for
 the details and limitations. Other operational guides and plans remain in the
 output, which has not been reviewed for public release and is not publication
-approval. Get an owner review before exposing or publishing it. See the README's
-[local documentation preview](../README.md#documentation-preview-local-only) for
+approval. Get an owner review before exposing or publishing it. See the development guide's
+[local documentation preview](development.md#documentation-preview-local-only) for
 build instructions.

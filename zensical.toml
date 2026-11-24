@@ -53,6 +53,7 @@ nav = [
   ] },
   { "Development and operations" = [
     { "README" = "README.md" },
+    { "Development guide" = "docs/development.md" },
     { "Frontend guide" = "frontend/README.md" },
     { "Deployment" = "docs/deployment.md" },
     { "Scope" = "docs/scope.md" },

@@ -14,7 +14,7 @@ The [scope](scope.md#risk-level) owns release risk and acceptance rules.
 
 ## Commands and isolation
 
-- Python commands and worker defaults: [README checks](../README.md#tests-and-code-checks).
+- Python commands and worker defaults: [development guide checks](development.md#tests-and-code-checks).
   Required Python format, lint, test, and type checks: [agent rules](../AGENTS.md#python-quality-checks).
 - Frontend setup and checks: [frontend guide](../frontend/README.md#checks).
 - Browser setup, explicit worker counts, disposable servers, and traces:
