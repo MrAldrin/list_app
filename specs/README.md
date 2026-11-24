@@ -1,8 +1,8 @@
-# Backend port: behavior to review
+# Backend port: intended behavior
 
-These four Allium drafts describe what users and browsers see today. They do
-not say how to build the new server. Read this page first on a phone. Each
-spec links behavior to its source code.
+These Allium specs describe what users and browsers must see after the port.
+They do not say how to build the new server. Source links point to the reference
+implementation. The owner approved the differences below in `lr-5g6.2`.
 
 - [Rooms and sign-in](room-access.allium): A room password opens that room.
   Admin sign-in is separate. Changing a room password ends old room sessions.
@@ -15,20 +15,14 @@ spec links behavior to its source code.
 - [Public links](public-sharing.allium): A link opens one list, not its room.
   Resetting the link cuts off the old page, including its waiting edits.
 
-## Open questions for owner review
+## Approved differences from the reference
 
-1. **Sign-in.** Should a temporary server failure use one of the room's
-   sign-in attempts? It does today.
-2. **Retry.** The server matches a retry with its saved answer. For item
-   edits, it currently matches a missing date with an explicit date clear.
-   Should the port keep this behavior for compatibility?
-3. **Offline.** After another device resets the room password, should the app
-   wait for **Send** or **Discard** after sign-in? The offline guide says yes.
-   The current queue sets this hold on explicit sign-out, not on remote loss
-   of access.
-4. **Sharing.** Saved answers currently match the room, not the share link's
-   list. Should a share link replay only answers for its own list? Should a
-   room view and a share view of the same list still share saved answers?
+| Area | Port | Python app |
+| --- | --- | --- |
+| Sign-in | A temporary server failure does not use a room sign-in attempt. | The failed attempt uses a slot. |
+| Retry | Match fields the request actually sent. An omitted due field is not an explicit clear. The queue resends the saved request unchanged. | Replay compares the validated body and can treat an omitted date and a clear as the same. |
+| Offline | After remote loss of room access, sign in again and choose **Send** or **Discard**. Sign-in does not send waiting edits. | The browser queue applies this hold on explicit sign-out, not confirmed remote loss of access. |
+| Sharing | A share link can replay only answers for its own list. Room and share views of that list can share answers. | Replay checks the room and validated body, not the link's list. |
 
 The [API docs](../docs/api.md) give the exact request and response details.
 Run `allium check specs` and `allium analyse specs` from the repository root.

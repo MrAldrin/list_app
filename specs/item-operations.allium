@@ -20,37 +20,42 @@ entity OpScope {
 entity StoredOpAnswer {
     op_id: String
     room: access/Room
-    validated_body: Any
+    answer_list: List?
+    sent_fields: Any
     answer: Any
+    replay_allowed(scope): room = scope.room and
+        (scope.shared_list = null or answer_list = scope.shared_list)
 }
 
 -- SubmitOp represents an admitted request, not authorisation by the client.
 -- Admission and the first evaluation/recording act as one decision.
 rule FirstOp {
-    when: SubmitOp(browser, scope, op_id, body)
+    when: SubmitOp(browser, scope, op_id, sent_fields)
     let prior = StoredOpAnswer{op_id}
     requires: not exists prior
-    let answer = evaluate_operation(scope.room, scope.shared_list, body)
+    let answer_list = list_in_scope_for_operation(scope, sent_fields)
+    let answer = evaluate_operation(scope.room, scope.shared_list, sent_fields)
     requires: is_applied_or_business_rejection(answer)
     ensures: StoredOpAnswer.created(op_id: op_id, room: scope.room,
-                                   validated_body: body, answer: answer)
+                                   answer_list: answer_list, sent_fields: sent_fields,
+                                   answer: answer)
     ensures: OpAnswered(browser, answer)
 }
 
 rule ReplaySameOp {
-    when: SubmitOp(browser, scope, op_id, body)
+    when: SubmitOp(browser, scope, op_id, sent_fields)
     let prior = StoredOpAnswer{op_id}
     requires: exists prior
-    requires: prior.room = scope.room
-    requires: same_validated_body(prior.validated_body, body)
+    requires: prior.replay_allowed(scope)
+    requires: same_sent_fields(prior.sent_fields, sent_fields)
     ensures: OpAnswered(browser, prior.answer)
 }
 
 rule RefuseReusedOpId {
-    when: SubmitOp(browser, scope, op_id, body)
+    when: SubmitOp(browser, scope, op_id, sent_fields)
     let prior = StoredOpAnswer{op_id}
     requires: exists prior
-    requires: prior.room != scope.room or not same_validated_body(prior.validated_body, body)
+    requires: not prior.replay_allowed(scope) or not same_sent_fields(prior.sent_fields, sent_fields)
     ensures: OpIdReused(browser, op_id)
 }
 
@@ -62,7 +67,7 @@ invariant OneRoomPerScope {
 surface Operations {
     facing browser: access/Browser
     context scope: OpScope
-    provides: SubmitOp(browser, scope, op_id, body)
+    provides: SubmitOp(browser, scope, op_id, sent_fields)
 
     @guarantee ApplyOnce
         -- Apply SameOriginWrites (room-access.allium), validate the request,
@@ -72,12 +77,15 @@ surface Operations {
         -- business rejection is stored; a rejection changes no room data.
         -- A transport/request error is not an op answer and is not stored.
         -- Replay the original result, message and seq without a new write.
-        -- A different validated body or room gives op_id_reused (409).
-        -- Body comparison ignores JSON key order and UUID letter case.
-        -- Preserve the existing treatment of omitted and null fields; in
-        -- particular, item.edit treats absent and null date as the same for
-        -- replay, even though absent keeps the date and null clears it.
-        -- For due time and zone, absence and explicit null compare differently.
+        -- Compare the JSON fields and values actually sent, before validation
+        -- can fill in a default or erase a difference. JSON whitespace and
+        -- object key order do not matter. An omitted due field and an explicit
+        -- clear are different requests.
+        -- A different request or a stored answer outside the caller's scope
+        -- gives op_id_reused (409). A share can replay only answers for its
+        -- own list. The list must be in scope for the original operation;
+        -- an answer with no list is not replayable through a share.
+        -- Room and share views of the same list can replay the same answer.
 
     @guarantee AnswerRetention
         -- Prune answers older than 30 days, at startup and daily. After an
@@ -124,5 +132,3 @@ surface Operations {
         -- Invalid due combination: invalid_due. A zone the server cannot
         -- resolve: time_zone_unavailable. Malformed input is a request error.
 }
-
-open question "Should the port keep treating omitted date and explicit date clearing as the same for replay, to match existing stored answers?"

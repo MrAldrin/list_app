@@ -61,10 +61,11 @@ surface PublicList {
         -- settings, and checked-item visibility. Not room rename or list
         -- create, rename or delete. A disallowed type is invalid_request.
         -- Apply SameOriginWrites (room-access.allium). A first op naming
-        -- another list is rejected as list_unavailable. Stored answers match
-        -- the room and validated body, not the list or link scope. A matching
-        -- answer can therefore come from another list in the same room.
-        -- Replay does not perform a new write.
+        -- another list is rejected as list_unavailable. A current link can
+        -- replay only an answer for its own list. The original caller can
+        -- be a room member or a share visitor of that list. Do not return
+        -- an answer for another list in the same room. See ApplyOnce in
+        -- item-operations.allium for the replay rules.
 
     @guarantee LinkMustStillBeCurrent
         -- Check the current link with every read and write, including op
@@ -89,5 +90,3 @@ surface RoomShareControls {
         -- A room password change or reset leaves share links valid. Deleting
         -- the list or its room ends access through the link.
 }
-
-open question "Should replay through a share link require the saved answer to be for that list? Should room and share views of the same list share saved answers?"

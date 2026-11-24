@@ -111,9 +111,9 @@ surface DeviceQueue {
         -- changes paused. A dead share link only allows discard. Do not move
         -- its waiting edits to a new link. A temporary network/server failure
         -- does not clear the saved view or end access.
-        -- Explicit room sign-out holds waiting edits until Send or Discard,
-        -- even after the next sign-in. Room deletion through the current
-        -- room page warns about waiting edits and discards them on success.
+        -- Explicit sign-out and confirmed remote loss of room access both
+        -- hold that room's waiting edits. Signing in again does not release
+        -- them, even after a reload with working storage. The user must
+        -- choose Send or Discard. Room deletion through the current room
+        -- page warns about waiting edits and discards them on success.
 }
-
-open question "After a remote password reset, should pending edits also wait for Send or Discard after sign-in? The offline guide says yes; the current queue holds for explicit sign-out."

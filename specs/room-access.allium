@@ -92,11 +92,12 @@ surface SignIn {
         -- not apply the new-password rule to sign-in with an old password.
         -- Per rolling minute: 10 attempts per room, 30 across all rooms,
         -- and a separate 10 for admin across all devices. An attempt in
-        -- progress occupies a slot; a success gives its slot back. A failed
-        -- attempt keeps it for the rest of its window. A restart clears counts.
-        -- A full limit gives too_many_attempts with Retry-After before any
-        -- password check. Wrong passwords and unknown rooms both give
-        -- invalid_password and count toward the same limits.
+        -- progress occupies a slot. For room sign-in, success or temporary
+        -- server failure gives the slot back to both room limits. A wrong
+        -- password or unknown room gives invalid_password and keeps the slot
+        -- for the rest of its window. For admin, success gives its slot back
+        -- and failure keeps it. A restart clears counts. A full limit gives
+        -- too_many_attempts with Retry-After before any password check.
 
     @guarantee SameOriginWrites
         -- Every API write, including sign-in, sign-out and share edits, must
@@ -158,5 +159,3 @@ surface AdminTools {
         -- if it names this room. Room deletion does not revoke invitations
         -- to create new rooms. See sync for the effect on open pages.
 }
-
-open question "Should a failed room sign-in caused by temporary server unavailability count toward the limit, as it does today?"
