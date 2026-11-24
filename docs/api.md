@@ -3,7 +3,7 @@
 This is the contract between the Python server and the Svelte app. The reference
 is split by area; this page describes the rules shared by every area.
 
-The [Effect schemas](../frontend/src/lib/contracts/v1/routes.ts) describe the
+The Effect schemas in `frontend/src/lib/contracts/v1/routes.ts` describe the
 wire shapes. The frontend imports their types. It does not use the schemas to
 validate live requests or responses. To check sample Python responses against
 the schemas, install the frontend dependencies and run
