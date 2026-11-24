@@ -73,10 +73,10 @@ env DB_PATH=/absolute/path/to/test-copy.db APP_PASSWORD=test-only \
   LISTR_TS_ORIGIN=http://127.0.0.1:3000 bun --no-env-file build-ts/index.js
 ```
 
-Open <http://127.0.0.1:3000/>. The server opens the copy read-only and serves
-`GET /api/v1/last-room`. It does not run migrations or forward the other
-routes to Python. Stop it with Ctrl-C. See the
-[TypeScript browser check](../docs/browser-testing.md#typescript-server) for an automated run.
+Open <http://127.0.0.1:3000/>. The server can write to the test copy. It does
+not run migrations or forward missing routes to Python. Stop it with Ctrl-C.
+See [TypeScript server checks](../docs/browser-testing.md#typescript-server)
+for the available routes and automated checks.
 
 ## Checks
 

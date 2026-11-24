@@ -52,6 +52,9 @@ export const ZoneName = Schema.String.pipe(Schema.minLength(1), Schema.maxLength
 export const Password = Schema.String.pipe(
 	Schema.filter((value) => Array.from(value).length <= 1024, {
 		message: () => 'Expected at most 1024 characters'
+	}),
+	Schema.filter((value) => !/[\uD800-\uDFFF]/u.test(value), {
+		message: () => 'Expected valid Unicode text'
 	})
 );
 export const PasswordBody = Schema.Struct({ password: Password });

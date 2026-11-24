@@ -46,11 +46,17 @@ flock ~/.local/state/night-loop/browser.lock flock ~/.local/state/night-loop/lis
   -k last_room_contract
 ```
 
-The main browser fixture starts Bun instead of Python and uses a fresh test
-database with the same schema. It does not send requests to Python. Only
-`GET /api/v1/last-room` is available, so journeys that need other API routes
-cannot pass yet. Tests that start their own custom server outside the main
-fixture are unchanged. The default is still `--browser-backend python`.
+The main browser fixture starts Bun on a fresh test database with the same
+schema. It does not forward requests to Python. The default is still
+`--browser-backend python`.
+
+Bun serves the room session, last-room, room password change and room delete
+routes. Use request tests for these routes until the room feed and live update
+routes are ready. These tests do not start a browser:
+
+```bash
+uv run pytest browser_tests/test_typescript_room_access.py -q --browser-backend typescript
+```
 
 ## Engine selection
 
