@@ -26,7 +26,7 @@ import {
 	type QueueSnapshot,
 	type StoredEntry
 } from './queue-entries';
-import { MemoryQueueStorage, type QueueStorage } from './queue-storage';
+import { MemoryQueueStorage, type HoldKind, type QueueStorage } from './queue-storage';
 import { newId } from './ids';
 import { planRewrites, type Rewrite } from './rebase';
 import type { SessionLockManager } from './session-transition';
@@ -208,38 +208,26 @@ export class WriteQueue {
 
 	/** Holds all readable waiting ops after sign-out or confirmed loss of access. */
 	async holdForSignOut(): Promise<void> {
-		const held = this.#entries.filter(
-			(entry) => classifyEntry(entry, this.#nowMs()).kind !== 'unreadable'
-		);
-		this.#host.opsHeldForSignOut?.(
-			held.flatMap((entry) => {
-				const verdict = classifyEntry(entry, this.#nowMs());
-				return verdict.kind === 'unreadable' ? [] : [verdict.op];
-			})
-		);
-		const ids = new Set(held.map((entry) => entry.opId));
-		this.#entries = this.#entries.map((entry) =>
-			ids.has(entry.opId) ? { ...entry, state: 'signout' } : entry
-		);
+		const now = this.#nowMs();
+		const holdId = newId();
+		const held: SentOp[] = [];
+		this.#entries = this.#entries.map((entry) => {
+			const verdict = classifyEntry(entry, now);
+			if (verdict.kind === 'unreadable') return entry;
+			held.push(verdict.op);
+			return { ...entry, state: 'signout', holdId };
+		});
+		this.#host.opsHeldForSignOut?.(held);
 		this.#mutated();
 		// An offline tab can have added entries we have not read yet. Hold the
 		// whole stored queue in one transaction instead of writing our copy back.
-		await this.#enqueue(() => this.#storage.setStates(null, 'signout'));
+		await this.#enqueue(() => this.#storage.holdForSignOut(holdId, now));
 		await this.#readStored();
 	}
 
 	/** Releases sign-out holds after an explicit choice; 30-day holds remain. */
-	sendAfterSignIn(): void {
-		const held = this.#entries.filter((entry) => entry.state === 'signout');
-		if (held.length === 0) return;
-		const opIds = held.map((entry) => entry.opId);
-		const ids = new Set(opIds);
-		this.#entries = this.#entries.map((entry) =>
-			ids.has(entry.opId) ? { ...entry, state: 'pending' } : entry
-		);
-		this.#mutated();
-		void this.#enqueue(() => this.#storage.setStates(opIds, 'pending'));
-		void this.#pump();
+	sendAfterSignIn(): Promise<void> {
+		return this.#releaseHolds('signout_held');
 	}
 
 	/** Sends the queued ops again, for example after signing in. */
@@ -255,21 +243,21 @@ export class WriteQueue {
 	}
 
 	/** Lets the user send held ops now (R10). The ops then go in their usual order. */
-	sendHeld(): void {
+	sendHeld(): Promise<void> {
+		return this.#releaseHolds('held');
+	}
+
+	async #releaseHolds(kind: HoldKind): Promise<void> {
 		const now = this.#nowMs();
-		const held = new Set(
+		const observed = new Map(
 			this.#entries
-				.filter((entry) => classifyEntry(entry, now).kind === 'held')
-				.map((entry) => entry.opId)
+				.filter((entry) => classifyEntry(entry, now).kind === kind)
+				.map((entry) => [entry.opId, entry.holdId] as const)
 		);
-		if (held.size === 0) return;
-		this.#entries = this.#entries.map((entry) =>
-			held.has(entry.opId) ? { ...entry, state: 'approved' } : entry
-		);
-		this.#mutated();
-		for (const opId of held) {
-			void this.#enqueue(() => this.#storage.setState(opId, 'approved'));
-		}
+		if (observed.size === 0) return;
+		await this.#enqueue(() => this.#storage.releaseHolds(kind, observed, now));
+		// Do not publish or send a release that storage rejected.
+		await this.#readStored();
 		void this.#pump();
 	}
 

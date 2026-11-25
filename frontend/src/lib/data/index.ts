@@ -359,12 +359,12 @@ export class RoomHandle {
 
 	/** Sends the held ops now, in their usual order. */
 	sendHeld(): void {
-		this.#queue.sendHeld();
+		void this.#queue.sendHeld();
 	}
 
 	/** Sends recent sign-out-held ops after the user explicitly chooses. */
 	sendAfterSignIn(): void {
-		this.#queue.sendAfterSignIn();
+		void this.#queue.sendAfterSignIn();
 	}
 
 	/** Drops one waiting op. False when it is being sent right now. */

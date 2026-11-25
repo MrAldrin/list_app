@@ -26,6 +26,8 @@ export interface StoredEntry {
 	at: unknown;
 	format: unknown;
 	state: unknown;
+	/** The most recent sign-out hold, if any. Kept after release to detect stale choices. */
+	holdId?: unknown;
 	/**
 	 * Optional, so format 1 stays: true once the request for this op has gone out
 	 * (set in storage before it is sent). After a reload the op may already be

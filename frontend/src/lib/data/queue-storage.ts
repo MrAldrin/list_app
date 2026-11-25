@@ -11,12 +11,14 @@
 
 import { isRecord } from './snapshot-validate';
 import { requestValue, transact } from './snapshot-idb';
-import { isSentOp, type EntryState, type StoredEntry } from './queue-entries';
+import { classifyEntry, type StoredEntry } from './queue-entries';
 import type { SentOp } from './types';
 
 export const QUEUE_DATABASE_NAME = 'listr-queue';
 const QUEUE_DATABASE_VERSION = 1;
 const QUEUE_STORE = 'queue';
+
+export type HoldKind = 'signout_held' | 'held';
 
 export interface QueueStorage {
 	/** False when entries are kept in memory only. */
@@ -25,13 +27,14 @@ export interface QueueStorage {
 	read(): Promise<StoredEntry[]>;
 	add(entry: StoredEntry): Promise<void>;
 	remove(opId: string): Promise<void>;
-	setState(opId: string, state: EntryState): Promise<void>;
 	/** Marks an entry as sent: its request is about to go out (see StoredEntry.sent). */
 	setSent(opId: string): Promise<void>;
 	/** Replaces the op JSON of an entry (its `op_id` stays). */
 	setOp(opId: string, op: SentOp): Promise<void>;
-	/** Updates valid entries in one transaction. Null selects all valid entries. */
-	setStates(opIds: readonly string[] | null, state: EntryState): Promise<void>;
+	/** Gives all readable entries a new sign-out hold in one transaction. */
+	holdForSignOut(holdId: string, now: number): Promise<void>;
+	/** Releases only entries whose hold kind and ID still match the choice. */
+	releaseHolds(kind: HoldKind, observed: ReadonlyMap<string, unknown>, now: number): Promise<void>;
 	/** Rejected changes in this room or share link, stored with the queue. */
 	readNotSaved(): Promise<unknown[]>;
 	addNotSaved(change: { key: string }): Promise<void>;
@@ -58,11 +61,6 @@ export class MemoryQueueStorage implements QueueStorage {
 	async remove(opId: string): Promise<void> {
 		this.#entries = this.#entries.filter((entry) => entry.opId !== opId);
 	}
-	async setState(opId: string, state: EntryState): Promise<void> {
-		this.#entries = this.#entries.map((entry) =>
-			entry.opId === opId ? { ...entry, state } : entry
-		);
-	}
 	async setSent(opId: string): Promise<void> {
 		this.#entries = this.#entries.map((entry) =>
 			entry.opId === opId ? { ...entry, sent: true } : entry
@@ -71,11 +69,15 @@ export class MemoryQueueStorage implements QueueStorage {
 	async setOp(opId: string, op: SentOp): Promise<void> {
 		this.#entries = this.#entries.map((entry) => (entry.opId === opId ? { ...entry, op } : entry));
 	}
-	async setStates(opIds: readonly string[] | null, state: EntryState): Promise<void> {
-		const selected = opIds && new Set(opIds);
-		this.#entries = this.#entries.map((entry) =>
-			validStateTarget(entry, selected) ? { ...entry, state } : entry
-		);
+	async holdForSignOut(holdId: string, now: number): Promise<void> {
+		this.#entries = holdEntries(this.#entries, holdId, now);
+	}
+	async releaseHolds(
+		kind: HoldKind,
+		observed: ReadonlyMap<string, unknown>,
+		now: number
+	): Promise<void> {
+		this.#entries = releaseEntries(this.#entries, kind, observed, now);
 	}
 	async readNotSaved(): Promise<unknown[]> {
 		return this.#notSaved.slice();
@@ -171,27 +173,40 @@ function notSavedOf(record: unknown, key: string): unknown[] {
 		: [];
 }
 
+function hasOpId(item: unknown): item is StoredEntry {
+	return isRecord(item) && typeof item.opId === 'string';
+}
+
 /** Keeps the raw items that have an `opId`. Others stay in the record but are not shown. */
 function parseEntries(raw: unknown[]): StoredEntry[] {
-	return raw.filter((item): item is StoredEntry => isRecord(item) && typeof item.opId === 'string');
+	return raw.filter(hasOpId);
 }
 
 function sameOp(item: unknown, opId: string): item is Record<string, unknown> {
 	return isRecord(item) && item.opId === opId;
 }
 
-function validStateTarget(
-	item: unknown,
-	opIds: ReadonlySet<string> | null
-): item is Record<string, unknown> {
-	return (
-		isRecord(item) &&
-		typeof item.opId === 'string' &&
-		(opIds === null || opIds.has(item.opId)) &&
-		item.format === 1 &&
-		(item.state === 'pending' || item.state === 'approved' || item.state === 'signout') &&
-		isSentOp(item.op) &&
-		item.op.op_id === item.opId
+function holdEntries<T>(entries: T[], holdId: string, now: number): T[] {
+	return entries.map((entry) =>
+		hasOpId(entry) && classifyEntry(entry, now).kind !== 'unreadable'
+			? { ...entry, state: 'signout', holdId }
+			: entry
+	);
+}
+
+function releaseEntries<T>(
+	entries: T[],
+	kind: HoldKind,
+	observed: ReadonlyMap<string, unknown>,
+	now: number
+): T[] {
+	return entries.map((entry) =>
+		hasOpId(entry) &&
+		observed.has(entry.opId) &&
+		entry.holdId === observed.get(entry.opId) &&
+		classifyEntry(entry, now).kind === kind
+			? { ...entry, state: kind === 'signout_held' ? 'pending' : 'approved' }
+			: entry
 	);
 }
 
@@ -246,13 +261,6 @@ class IndexedDbQueueStorage implements QueueStorage {
 		);
 	}
 
-	setState(opId: string, state: EntryState): Promise<void> {
-		return this.#change(
-			(raw) => raw.map((item) => (sameOp(item, opId) ? { ...item, state } : item)),
-			(memory) => memory.map((entry) => (entry.opId === opId ? { ...entry, state } : entry))
-		);
-	}
-
 	setSent(opId: string): Promise<void> {
 		return this.#change(
 			(raw) => raw.map((item) => (sameOp(item, opId) ? { ...item, sent: true } : item)),
@@ -267,13 +275,14 @@ class IndexedDbQueueStorage implements QueueStorage {
 		);
 	}
 
-	setStates(opIds: readonly string[] | null, state: EntryState): Promise<void> {
-		const selected = opIds && new Set(opIds);
-		return this.#change(
-			(raw) => raw.map((item) => (validStateTarget(item, selected) ? { ...item, state } : item)),
-			(memory) =>
-				memory.map((entry) => (validStateTarget(entry, selected) ? { ...entry, state } : entry))
-		);
+	holdForSignOut(holdId: string, now: number): Promise<void> {
+		const hold = <T>(entries: T[]) => holdEntries(entries, holdId, now);
+		return this.#change(hold, hold);
+	}
+
+	releaseHolds(kind: HoldKind, observed: ReadonlyMap<string, unknown>, now: number): Promise<void> {
+		const release = <T>(entries: T[]) => releaseEntries(entries, kind, observed, now);
+		return this.#change(release, release);
 	}
 
 	async readNotSaved(): Promise<unknown[]> {

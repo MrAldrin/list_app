@@ -88,7 +88,7 @@ describe('queue storage in IndexedDB', () => {
 		const other = createQueueStorage('room:other', { indexedDB: factory });
 		await room.addNotSaved({ ...rejection, key: rejection.op.op_id });
 		await room.add(newStoredEntry({ ...op('l2'), op_id: 'waiting-1' }, NOW.toISOString()));
-		await room.setStates(['waiting-1'], 'signout');
+		await room.holdForSignOut('hold-1', NOW.getTime());
 
 		const reopened = createQueueStorage('room:home', { indexedDB: factory });
 		expect(await reopened.readNotSaved()).toEqual([{ ...rejection, key: rejection.op.op_id }]);
@@ -418,8 +418,7 @@ describe('unreadable and held entries', () => {
 		expect(sender.calls).toHaveLength(0);
 		expect(returned.waiting).toBe(2);
 
-		returned.sendAfterSignIn();
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		await returned.sendAfterSignIn();
 		expect(sender.calls).toHaveLength(0);
 		expect((await storage.read()).map((entry) => entry.state)).toEqual(['pending', 'pending']);
 
@@ -429,6 +428,120 @@ describe('unreadable and held entries', () => {
 		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
 		await until(() => sender.calls.length === 2, 'recent change sent after old one');
 		expect(sender.calls[1].op.op_id).toBe('recent-op');
+	});
+
+	it('rejects a delayed sign-in choice for an older hold and honors a fresh choice in order', async () => {
+		const factory = freshFactory();
+		const key = 'room:home';
+		const storage = createQueueStorage(key, { indexedDB: factory });
+		const newer = queueOn(factory, key, fakeSender());
+		for (const id of ['first', 'second']) {
+			await storage.add(newStoredEntry({ ...op(id), op_id: id }, NOW.toISOString()));
+		}
+		await newer.holdForSignOut();
+		const initial = await storage.read();
+
+		const sender = fakeSender();
+		const staleStorage = createQueueStorage(key, { indexedDB: factory });
+		let heldCount = 0;
+		const stale = new WriteQueue('home', sender, fakeHost(), {
+			storage: staleStorage,
+			now: () => NOW,
+			onChange: (snapshot) => (heldCount = snapshot.signoutHeld.length)
+		});
+		await stale.load();
+		const started = deferred<void>();
+		const resume = deferred<void>();
+		const release = staleStorage.releaseHolds.bind(staleStorage);
+		vi.spyOn(staleStorage, 'releaseHolds').mockImplementationOnce(async (...args) => {
+			started.resolve();
+			await resume.promise;
+			await release(...args);
+		});
+
+		const delayedChoice = stale.sendAfterSignIn();
+		await started.promise;
+		expect(heldCount).toBe(2);
+		await newer.holdForSignOut();
+		const latest = await storage.read();
+		resume.resolve();
+		await delayedChoice;
+		expect(latest[0].holdId).not.toBe(initial[0].holdId);
+		expect(await storage.read()).toEqual(latest);
+		expect(heldCount).toBe(2);
+		expect(sender.calls).toHaveLength(0);
+
+		// The rejected choice refreshed the stale tab; a new choice now sees the new hold.
+		await stale.sendAfterSignIn();
+		await until(() => sender.calls.length === 1, 'first op sent by fresh choice');
+		expect(sender.calls[0].op.op_id).toBe('first');
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
+		await until(() => sender.calls.length === 2, 'second op sent after first');
+		expect(sender.calls[1].op.op_id).toBe('second');
+		sender.calls[1].answer.resolve(applied(sender.calls[1].op, 2));
+	});
+
+	it.each(['signout', 'pending'] as const)(
+		'rejects a stale age approval after a newer access loss (now %s)',
+		async (state) => {
+			const factory = freshFactory();
+			const key = 'room:home';
+			const storage = createQueueStorage(key, { indexedDB: factory });
+			const old = new Date(NOW.getTime() - 31 * DAY).toISOString();
+			await storage.add(newStoredEntry({ ...op('old'), op_id: 'old-op' }, old));
+			const sender = fakeSender();
+			const stale = queueOn(factory, key, sender);
+			await stale.load();
+
+			const newer = queueOn(factory, key, fakeSender());
+			await newer.holdForSignOut();
+			if (state === 'pending') await newer.sendAfterSignIn();
+			await stale.sendHeld();
+			expect(await storage.read()).toMatchObject([{ opId: 'old-op', state }]);
+			expect(sender.calls).toHaveLength(0);
+
+			if (state === 'signout') await stale.sendAfterSignIn();
+			await stale.sendHeld();
+			await until(() => sender.calls.length === 1, 'old op sent by fresh age approval');
+			expect(sender.calls[0].op.op_id).toBe('old-op');
+			sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
+		}
+	);
+
+	it('does not overwrite an age approval with a duplicate choice for the same sign-out hold', async () => {
+		const factory = freshFactory();
+		const key = 'room:home';
+		const storage = createQueueStorage(key, { indexedDB: factory });
+		const old = new Date(NOW.getTime() - 31 * DAY).toISOString();
+		await storage.add(newStoredEntry({ ...op('old'), op_id: 'old-op' }, old));
+		const newer = queueOn(factory, key, fakeSender());
+		newer.pause();
+		await newer.holdForSignOut();
+		const stale = queueOn(factory, key, fakeSender());
+		stale.pause();
+		await stale.load();
+
+		await newer.sendAfterSignIn();
+		await newer.sendHeld();
+		await stale.sendAfterSignIn();
+		expect(await storage.read()).toMatchObject([{ opId: 'old-op', state: 'approved' }]);
+	});
+
+	it('honors a fresh choice for a legacy sign-out entry without a hold ID', async () => {
+		const factory = freshFactory();
+		const key = 'room:home';
+		const storage = createQueueStorage(key, { indexedDB: factory });
+		await storage.add({
+			...newStoredEntry({ ...op('legacy'), op_id: 'legacy-op' }, NOW.toISOString()),
+			state: 'signout'
+		});
+		const sender = fakeSender();
+		const queue = queueOn(factory, key, sender);
+		await queue.load();
+		await queue.sendAfterSignIn();
+		await until(() => sender.calls.length === 1, 'legacy op sent by explicit choice');
+		expect(sender.calls[0].op.op_id).toBe('legacy-op');
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
 	});
 
 	it('reports held ops with their time', async () => {
