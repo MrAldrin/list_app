@@ -91,8 +91,8 @@ Unicode-aware `lower()` key.
 | `list.create` | `name`, `uid`? | `{"list_uid", "slug", "created"}`. If a list with that name exists (ignoring case), it is returned with `created: false` and the client `uid` is not used. |
 | `list.rename` | `list_uid`, `name`, `base_seq` | Checked against `base_seq` ([conflicts](#conflicts)). |
 | `list.delete` | `list_uid` | Deletes the list and all its items. |
-| `list.tag_add` | `list_uid`, `tag` | Adds one tag (trimmed); no change if it exists. Tags match exactly, case included. Also used to undo a tag delete. |
-| `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list and its color; no change if it is not there. Item tags are not changed. |
+| `list.tag_add` | `list_uid`, `tag` | Adds one tag (trimmed); no change if it exists. Tags match exactly, case included. A new tag starts with no items, also when it has the name of a deleted tag. |
+| `list.tag_remove` | `list_uid`, `tag` | Removes one tag (exact match) from the list, its color and every item of the list, in one write; no change if it is not there. Undo is `list.tag_add`, then `item.toggle_tag` with `active: true` for each item the page saw with the tag. |
 | `list.tag_settings` | `list_uid`, `mode`?, `show_on_items`?, `only_item_tags`? | Sends only the changed fields (at least one); the server keeps the others. Switching `mode` to `single` keeps each item's first tag in the list's tag order and drops the rest, in the same write. No change if nothing differs. |
 | `list.tag_color` | `list_uid`, `tag`, `color` | Sets the tag's color (0 to 6), or back to the default with `null`. Exact tag match. |
 | `list.tag_rename` | `list_uid`, `tag`, `new_tag` | Renames a tag, trimmed and checked like `list.tag_add`. Re-sorts the list's tags, moves the color, and renames the tag on every item of the list (an item keeps one copy if it has both). Same name: no change. Atomic. |
