@@ -13,7 +13,7 @@ export class ServerConfig extends Context.Tag('listr/ServerConfig')<
 
 const databaseConfig = Config.all({
 	filename: Config.string('DB_PATH').pipe(
-		Config.validate({ message: 'Use an absolute path to a test database', validation: isAbsolute })
+		Config.validate({ message: 'DB_PATH must be an absolute path', validation: isAbsolute })
 	),
 	password: Config.redacted('APP_PASSWORD').pipe(
 		Config.validate({
@@ -69,5 +69,5 @@ export const checkDatabase = Effect.gen(function* () {
 	yield* sql`SELECT slug, authorization_version FROM rooms LIMIT 0`;
 	yield* sql`SELECT token_hash, authorization_version FROM room_access_tokens LIMIT 0`;
 	yield* sql`SELECT token_hash, status, revision FROM reminder_enrollments LIMIT 0`;
-	yield* Effect.logInfo('TypeScript server opened the test database');
+	yield* Effect.logInfo('TypeScript server opened the database');
 });

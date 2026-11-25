@@ -1,8 +1,8 @@
 # Deployment and recovery
 
-ListR runs as one Python process and uses one SQLite database. FastAPI on
-uvicorn serves the Svelte frontend and JSON API. Production runs on Railway
-with a persistent volume (storage that survives deployments).
+Production still runs one Python process on Railway. FastAPI on uvicorn
+serves the Svelte frontend and JSON API. It uses one SQLite database on a
+persistent volume (storage that survives deployments).
 
 Railway deploys automatically when GitHub `main` changes. Moving the local
 `main` bookmark does not deploy until you push it. Treat a push to `main` as a
@@ -19,20 +19,24 @@ it. Raise the limit in the workspace's Usage page if that happens.
 
 | Variable | Purpose |
 | --- | --- |
-| `APP_PASSWORD` | Required admin password for `/admin`. Also sets the password of the default `Home` room when it is first created. |
-| `DB_PATH` | Database file. Production: `/data/list.db`. Default: `list.db` in the repository root. |
-| `DB_BACKUP_PATH` | Pre-migration copy. Default: next to `DB_PATH`, e.g. `/data/list-pre-migration.db`. |
-| `PORT` | Listening port, default `8080`. `--port` overrides it. |
-| `APP_RELOAD` | Restart on code changes. Off unless set to `true`. Use only locally. |
-| `FORWARDED_ALLOW_IPS` | Proxies whose forwarded headers are trusted. Production: `*`, so the app sees Railway's HTTPS and sets the `__Host-` cookies. The app is reachable only through Railway's proxy. |
-| `REQUIRE_FRONTEND_BUILD` | Set to `true` by the Dockerfile. Startup fails if `frontend/build/` is missing. |
+| `APP_PASSWORD` | Required admin password for `/admin`. On Python, it also sets the initial password of a new default `Home` room. |
+| `DB_PATH` | Database file. Production: `/data/list.db`. Bun requires an absolute path to an existing database. Python defaults to `list.db` in the repository root. |
+| `PORT` | Listening port from Railway, default `8080`. In the Bun image, the start command passes it to `LISTR_TS_PORT`. Python accepts `--port` as an override. |
+| `LISTR_TS_HOST` | Bun listen address. The image sets `0.0.0.0`. The local build defaults to `127.0.0.1`. |
+| `LISTR_TS_PROTOCOL_HEADER`, `LISTR_TS_HOST_HEADER` | The Bun image uses Railway's `X-Forwarded-Proto` and `X-Forwarded-Host` to get the public origin. Only expose the image through a trusted proxy. |
+| `LISTR_TS_ORIGIN` | Optional fixed Bun origin. It overrides the forwarded headers. Use it for local HTTP tests. Leave it unset on Railway. |
+| `DB_BACKUP_PATH` | Python pre-migration copy. Default: next to `DB_PATH`, e.g. `/data/list-pre-migration.db`. |
+| `APP_RELOAD` | Python only. Restart on code changes. Off unless set to `true`. Use only locally. |
+| `FORWARDED_ALLOW_IPS` | Python only. Proxies whose forwarded headers the server trusts. On Railway: `*`, since the proxy is the only public entry point. |
+| `REQUIRE_FRONTEND_BUILD` | The Python image sets this to `true`. Startup fails if `frontend/build/` is missing. |
 
 - The app refuses to start with a missing or blank `APP_PASSWORD`. There is no
   password-free mode. Generate the value with the command in the README.
 - Changing `APP_PASSWORD` does not change room passwords. Reset those from the
   room controls; a reset logs out everyone using that room.
-- Railway uses its service variables, not the local `.env`. Locally, `.env` is
-  loaded by `python-dotenv`, and real environment variables win.
+- Railway uses its service variables, not the local `.env`. The Bun image
+  does not load `.env` files. Local Python loads `.env`, but environment
+  variables take priority.
 - The production app password is stored in Bitwarden. Keep secrets, databases
   and backups out of version control and logs.
 
@@ -52,36 +56,35 @@ with a key derived from `APP_PASSWORD` by scrypt.
 
 ### Production image
 
-Railway detects and builds the root `Dockerfile`, so the repository fully
-defines the build. There is no `railway.json`. A source stage supplies the Bun
-binary; the two working stages are:
+Railway builds the root `Dockerfile`. The default target builds the Bun
+server with `bun run build:ts` and starts `build-ts/index.js`. The image keeps
+that directory, including its browser assets, and the production packages.
+It includes Python 3.13 for the existing deploy backup command, not to serve
+requests. Bun does not create or migrate the database.
 
-1. Node 24 plus the pinned Bun binary from `oven/bun:1.4.4`:
-   `bun install --frozen-lockfile && bun run build` in `frontend/` writes
-   `frontend/build/`. Bun installs packages and runs Vite through the build
-   script (`bun --bun run vite build`). Node remains for other tool shebangs;
-   local Vitest checks stay on Node. Only the build folder is kept.
-   Local tool setup and advisory checks are in the
-   [frontend guide](../frontend/README.md#setup).
-2. Python 3.13 with `uv sync --locked --no-dev`, the `src/` code and the build.
-   It starts `python src/main.py`. There is no `Procfile`.
+The `python` target builds the static frontend with `bun run build` and
+starts `python src/main.py`. Both targets use the pinned Bun version from the
+[frontend guide](../frontend/README.md#setup) and install from the lockfile.
 
-The image sets `REQUIRE_FRONTEND_BUILD=true`. If `frontend/build/` is missing,
-startup fails with "Svelte build not found" instead of serving a broken app.
-Without that variable (local runs) the server only logs a warning.
-
-`frontend/build/` is not committed, so the build must run on every deploy. To
-test the image locally (needs podman or docker):
+To build the images locally:
 
 ```bash
-podman build -t listapp-test .
-podman run --rm -p 8080:8080 -e APP_PASSWORD=test-password-123 \
-  -e DB_PATH=/tmp/t.db listapp-test
+podman build --format docker -t listapp-bun-test .
+podman build --target python -t listapp-python-test .
 ```
 
-Railway variables, the volume and the start command do not change. Keep the start
-command and build command empty in the Railway dashboard; the `Dockerfile`
-decides both.
+For a local Bun test, mount a private folder with a disposable copy of an
+already migrated test database. Never mount the original database or backup.
+With the copy at `$PWD/local_only/bun-image-test/list.db`:
+
+```bash
+podman run --rm -p 127.0.0.1:18080:8080 \
+  -v "$PWD/local_only/bun-image-test:/data:Z" -e DB_PATH=/data/list.db \
+  -e APP_PASSWORD=test-only -e LISTR_TS_ORIGIN=http://127.0.0.1:18080 \
+  listapp-bun-test
+```
+
+The image and Railway both check `/healthz`.
 
 ### Railway settings to check
 
@@ -94,11 +97,11 @@ Railway must not override the repository. In the service settings:
 - The volume is mounted at `/data`, `DB_PATH=/data/list.db`, one replica.
 - Healthcheck path is `/healthz` (set it in the service's Deploy settings).
   It answers 200 while the database answers.
-- `APP_PASSWORD` is set and `FORWARDED_ALLOW_IPS=*`.
+- `APP_PASSWORD` is set. Python also uses `FORWARDED_ALLOW_IPS=*`.
 
 ### Schema migrations
 
-Startup applies schema changes as numbered migrations (`src/migrations.py`).
+Python startup applies schema changes as numbered migrations (`src/migrations.py`).
 SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
 
 - If a migration is pending, the app first writes a verified copy of the
@@ -119,8 +122,8 @@ SQLite's `PRAGMA user_version` stores the last one applied; only newer ones run.
 ## Storage and process limits
 
 - Mount the Railway volume at `/data` and set `DB_PATH=/data/list.db`.
-- A wrong or missing `DB_PATH` silently creates a new, empty database. Check it
-  before starting or restoring.
+- Python can create a new, empty database at the wrong path. Bun refuses to
+  start if the database is missing. Check the path before a start or restore.
 - Run exactly one app instance against the database: no replicas or extra
   workers.
 - SQLite uses its default rollback journal, not WAL. A write waits at most

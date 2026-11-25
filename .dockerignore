@@ -1,11 +1,11 @@
 .git
 .jj
 .venv
-.env
-.env.*
-!.env.example
-list.db
-*-pre-migration.db*
+**/.env
+**/.env.*
+**/*.db
+**/*.db-*
+**/*.db.*
 local_only/
 agent_files/
 android_tests/
@@ -17,4 +17,5 @@ plans/
 **/__pycache__
 frontend/node_modules
 frontend/build
+frontend/build-ts
 frontend/.svelte-kit
