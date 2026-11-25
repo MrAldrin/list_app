@@ -1,7 +1,8 @@
 -- allium: 3
 -- One public list, private room controls, link reset and revocation.
 -- Excludes room creation invitations, which are not list share links.
--- Sources: src/api/{access,share,events,ops}.py (SHARE_OP_TYPES);
+-- Bun: frontend/src/lib/server/{share,share-access,room-ops}.ts.
+-- Python reference: src/api/{access,share,events,ops}.py (SHARE_OP_TYPES);
 -- src/database_crud.py (share_token_transaction, get_share_seq_locked);
 -- frontend/src/lib/data/share.ts and frontend/src/routes/share/[token]/+page.svelte.
 -- See docs/api-sharing.md and docs/public-sharing.md.
@@ -48,10 +49,12 @@ surface PublicList {
     @guarantee OneListOnly
         -- A current link gives access to one list without a room password.
         -- Reads always return a full snapshot with no deletions and a blank
-        -- list slug. The cursor is for this list, not for the room; edits to
-        -- other lists do not move it. Return room details only with a current
-        -- cookie for this list's room; otherwise room is null. Room details
-        -- enable the Back and Reset controls, but do not authorize a write.
+        -- list slug. The cursor is for this list, not for the room. Changes
+        -- to the list (including a link reset) and its items move it. Pruning
+        -- item deletion records does not lower it. Other lists do not move it.
+        -- Return room details only with a current cookie for this list's room;
+        -- otherwise room is null. Room details enable the Back and Reset
+        -- controls, but do not authorize a write.
         -- A private list address needs room access. It cannot reveal a token
         -- or redirect an unauthorised visitor to a public share link.
 
@@ -60,11 +63,13 @@ surface PublicList {
         -- settings, and checked-item visibility. Not room rename or list
         -- create, rename or delete. A disallowed type is invalid_request.
         -- Apply SameOriginWrites (room-access.allium). A first op naming
-        -- another list is rejected as list_unavailable. A current link can
-        -- replay only an answer for its own list. The original caller can
-        -- be a room member or a share visitor of that list. Do not return
-        -- an answer for another list in the same room. See ApplyOnce in
-        -- item-operations.allium for the replay rules.
+        -- a missing or different list is rejected as list_unavailable. Its
+        -- stored answer has no list in scope; a share retry gets op_id_reused
+        -- (409), not the stored answer. A current link can replay only an
+        -- answer for its own list, including a business refusal for that
+        -- list. The original caller can be a room member or a share visitor
+        -- of that list. New share answers use the list cursor. Replays keep
+        -- the original answer and cursor. See ApplyOnce in item-operations.allium.
 
     @guarantee LinkMustStillBeCurrent
         -- Check the current link with every read and write, including op
@@ -85,7 +90,8 @@ surface RoomShareControls {
         -- A current room cookie for this list's room is required when showing
         -- or resetting its link. Admin access alone is not enough. Reset
         -- returns a fresh link and immediately retires the old one. It is not
-        -- a replayable op; a repeat rotates again. It leaves room access alone.
+        -- a replayable op; a repeat rotates again. It leaves room access and
+        -- stored op answers alone. The new link can replay in-scope answers.
         -- A room password change or reset leaves share links valid. Deleting
         -- the list or its room ends access through the link.
 }
