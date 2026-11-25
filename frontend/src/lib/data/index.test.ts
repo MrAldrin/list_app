@@ -205,7 +205,7 @@ describe('RoomHandle', () => {
 		expect((await room.restoreItem(milk.uid)).ok).toBe(false);
 	});
 
-	it('pauses writes on 401 and sends them after sign-in', async () => {
+	it('holds writes on a current 401 until the user chooses Send after sign-in', async () => {
 		const { room, store, ops, api } = await opened();
 		const result = room.addListTag(list, 'Coop');
 		await settle();
@@ -219,10 +219,50 @@ describe('RoomHandle', () => {
 		expect(api.login).toHaveBeenCalledWith(ROOM.slug, 'secret');
 		expect(store.status).toBe('ready');
 		await settle();
+		expect(ops).toHaveLength(1);
+		expect(room.signoutHeldOps.map(({ op }) => op)).toEqual([ops[0].op]);
+		room.sendAfterSignIn();
+		await settle();
 		expect(ops).toHaveLength(2);
 		expect(ops[1].op).toEqual(ops[0].op);
 		ops[1].answer.resolve(applied(ops[1].op, 5));
 		expect((await result).ok).toBe(true);
+	});
+
+	it('ignores an old write 401 after revocation and a newer sign-in', async () => {
+		const { room, store, ops, api } = await opened();
+		void room.setDone(milk, true);
+		await settle();
+		const old = ops[0];
+
+		api.whoAmI.mockRejectedValueOnce(new ApiError(401, 'not_authenticated', 'Sign in.'));
+		FakeEventSource.last.revoked();
+		await settle();
+		expect(store.status).toBe('auth_required');
+		expect(room.signoutHeldOps.map(({ op }) => op)).toEqual([old.op]);
+
+		expect((await room.login('new password')).ok).toBe(true);
+		old.answer.reject(new ApiError(401, 'not_authenticated', 'Sign in.'));
+		await settle();
+		expect(store.status).toBe('ready');
+		expect(store.canWrite).toBe(true);
+		expect(ops).toHaveLength(1);
+		room.sendAfterSignIn();
+		await settle();
+		expect(ops[1].op).toEqual(old.op);
+	});
+
+	it('does not hold or clear a saved view on a temporary access-check failure', async () => {
+		const { room, store, ops, api } = await opened();
+		api.whoAmI.mockRejectedValueOnce(new ApiError(503, 'unavailable', 'Try again.'));
+		FakeEventSource.last.revoked();
+		await settle();
+		expect(store.status).toBe('ready');
+		expect(store.lists).toEqual([list]);
+		expect(store.canWrite).toBe(false);
+		await room.setDone(milk, true);
+		expect(room.signoutHeldOps).toEqual([]);
+		expect(ops).toHaveLength(0);
 	});
 
 	it('reads the changes when the events stream says so', async () => {

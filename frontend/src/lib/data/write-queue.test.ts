@@ -450,6 +450,34 @@ describe('WriteQueue sent marks (6.3)', () => {
 		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 3));
 	});
 
+	it('checks a new hold before sending if storing the sent marker overlapped it', async () => {
+		const storage = new MemoryQueueStorage();
+		const marking = deferred<void>();
+		const mark = storage.setSent.bind(storage);
+		const spy = vi.spyOn(storage, 'setSent').mockImplementation(async (id) => {
+			await marking.promise;
+			await mark(id);
+		});
+		const sender = fakeSender();
+		const queue = new WriteQueue('home', sender, fakeHost(), { storage });
+		void queue.send(op('a'));
+		await settle();
+		expect(spy).toHaveBeenCalledTimes(1);
+
+		queue.pause();
+		const hold = queue.holdForSignOut();
+		queue.resume();
+		marking.resolve();
+		await hold;
+		await settle();
+		expect(sender.calls).toHaveLength(0);
+		expect((await storage.read())[0].state).toBe('signout');
+		queue.sendAfterSignIn();
+		await settle();
+		expect(sender.calls).toHaveLength(1);
+		sender.calls[0].answer.resolve(applied(sender.calls[0].op, 1));
+	});
+
 	it('tells the host a loaded op may already have been sent', async () => {
 		const storage = new MemoryQueueStorage();
 		const sent: SentOp = { ...DELETE, op_id: 'sent-1' } as SentOp;

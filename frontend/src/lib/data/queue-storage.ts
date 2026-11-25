@@ -30,8 +30,8 @@ export interface QueueStorage {
 	setSent(opId: string): Promise<void>;
 	/** Replaces the op JSON of an entry (its `op_id` stays). */
 	setOp(opId: string, op: SentOp): Promise<void>;
-	/** Updates valid entries in one transaction (for sign-out holds). */
-	setStates(opIds: readonly string[], state: EntryState): Promise<void>;
+	/** Updates valid entries in one transaction. Null selects all valid entries. */
+	setStates(opIds: readonly string[] | null, state: EntryState): Promise<void>;
 	/** Rejected changes in this room or share link, stored with the queue. */
 	readNotSaved(): Promise<unknown[]>;
 	addNotSaved(change: { key: string }): Promise<void>;
@@ -71,8 +71,8 @@ export class MemoryQueueStorage implements QueueStorage {
 	async setOp(opId: string, op: SentOp): Promise<void> {
 		this.#entries = this.#entries.map((entry) => (entry.opId === opId ? { ...entry, op } : entry));
 	}
-	async setStates(opIds: readonly string[], state: EntryState): Promise<void> {
-		const selected = new Set(opIds);
+	async setStates(opIds: readonly string[] | null, state: EntryState): Promise<void> {
+		const selected = opIds && new Set(opIds);
 		this.#entries = this.#entries.map((entry) =>
 			validStateTarget(entry, selected) ? { ...entry, state } : entry
 		);
@@ -182,12 +182,12 @@ function sameOp(item: unknown, opId: string): item is Record<string, unknown> {
 
 function validStateTarget(
 	item: unknown,
-	opIds: ReadonlySet<string>
+	opIds: ReadonlySet<string> | null
 ): item is Record<string, unknown> {
 	return (
 		isRecord(item) &&
 		typeof item.opId === 'string' &&
-		opIds.has(item.opId) &&
+		(opIds === null || opIds.has(item.opId)) &&
 		item.format === 1 &&
 		(item.state === 'pending' || item.state === 'approved' || item.state === 'signout') &&
 		isSentOp(item.op) &&
@@ -267,8 +267,8 @@ class IndexedDbQueueStorage implements QueueStorage {
 		);
 	}
 
-	setStates(opIds: readonly string[], state: EntryState): Promise<void> {
-		const selected = new Set(opIds);
+	setStates(opIds: readonly string[] | null, state: EntryState): Promise<void> {
+		const selected = opIds && new Set(opIds);
 		return this.#change(
 			(raw) => raw.map((item) => (validStateTarget(item, selected) ? { ...item, state } : item)),
 			(memory) =>

@@ -2,7 +2,9 @@
 -- Room feed, live updates, and the browser's offline write queue.
 -- Share-specific feed and access rules are in public-sharing.allium.
 -- Excludes service worker installation and browser-specific storage APIs.
--- Sources: src/api/{changes,events}.py, src/database_{crud,setup}.py;
+-- Reference: src/api/{changes,events}.py, src/database_{crud,setup}.py.
+-- Port: frontend/src/lib/server/{room-feed,live-cursors,live-streams}.ts;
+-- API events routes under frontend/src/routes/api/v1/{rooms,share}.
 -- frontend/src/lib/data/{index,feed,events,write-queue,queue-entries,
 -- rebase,queue-storage,snapshot-store,room-store.svelte,api}.ts.
 -- See docs/api-sync.md and docs/offline-viewing.md.
@@ -55,7 +57,9 @@ surface RoomChanges {
 
     @guarantee LiveSignalNotData
         -- Server-Sent Events send the initial cursor, then the current value
-        -- when it differs from the last one sent. Several writes may coalesce.
+        -- when it differs from the last one sent. Writes wake the stream
+        -- after commit; several writes may coalesce. Keep-alive comments
+        -- carry no cursor or data.
         -- A cursor is a signal to fetch the feed, not a change set. Even a
         -- lower value prompts a read. When a stream reconnects, read again.
         -- Recheck access on writes that wake the stream and at least about

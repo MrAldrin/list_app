@@ -153,15 +153,15 @@ export function notSavedCountText(count: number): string {
 	return count === 1 ? '1 change was not saved' : `${count} changes were not saved`;
 }
 
-/** R9: "1 change can't be sent. Sign in again to send it." (or the share link text). */
+/** R9: Explain that access is gone, without implying automatic sending. */
 export function cantBeSentText(count: number, shareLinkReset: boolean): string {
 	if (shareLinkReset) {
 		const head = count === 1 ? "1 change can't be sent." : `${count} changes can't be sent.`;
 		return `${head} This share link was reset.`;
 	}
 	return count === 1
-		? "1 change can't be sent. Sign in again to send it."
-		: `${count} changes can't be sent. Sign in again to send them.`;
+		? "1 change can't be sent. Sign in again to review it."
+		: `${count} changes can't be sent. Sign in again to review them.`;
 }
 
 /** Room delete: the waiting changes go with the room. */

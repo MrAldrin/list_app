@@ -165,9 +165,12 @@ function isSqlFailure(error: unknown): error is SqlFailure {
 	);
 }
 
-export async function runApi<A>(request: Request, action: ApiEffect<A>): Promise<A> {
+export async function runApi<A>(
+	{ signal }: Pick<Request, 'signal'>,
+	action: ApiEffect<A>
+): Promise<A> {
 	const { runtime } = await import('./runtime');
-	const result = await runtime.runPromiseExit(action, { signal: request.signal });
+	const result = await runtime.runPromiseExit(action, { signal });
 	if (Exit.isSuccess(result)) return result.value;
 	const failure = Option.getOrUndefined(Cause.failureOption(result.cause));
 	// Effect SQL also reports transaction finalization errors as defects.

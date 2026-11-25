@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { SqliteClient } from '@effect/sql-sqlite-bun';
 import { Effect } from 'effect';
 import { apiError } from './api';
+import { wakeRoomStreams } from './live-streams';
 import { hashToken } from './room-cookies';
 import { hashRoomPassword, verifyRoomPassword } from './room-password';
 
@@ -105,19 +106,22 @@ export function signOutOfRoom(slug: string, token: string | null) {
 		if (token === null) return;
 		const sql = yield* SqliteClient.SqliteClient;
 		const hash = hashToken(token);
-		yield* sql.withTransaction(
+		const roomId = yield* sql.withTransaction(
 			Effect.gen(function* () {
-				yield* sql`
+				const [revoked] = yield* sql<{ room_id: number }>`
 				UPDATE room_access_tokens SET revoked_at = CURRENT_TIMESTAMP
 				WHERE room_id = (SELECT id FROM rooms WHERE slug = ${slug}) AND token_hash = ${hash}
+				RETURNING room_id
 			`;
 				yield* sql`
 				UPDATE reminder_enrollments SET status = 'revoked', revision = revision + 1
 				WHERE room_id = (SELECT id FROM rooms WHERE slug = ${slug})
 					AND token_hash = ${hash} AND status = 'active'
 			`;
+				return revoked?.room_id;
 			})
 		);
+		if (roomId !== undefined) wakeRoomStreams(roomId);
 	});
 }
 
@@ -154,15 +158,17 @@ export function changeRoomPassword(
 		if (!(yield* verifyRoomPassword(current, checked.password_hash))) return yield* wrong;
 		const newHash = yield* hashRoomPassword(replacement);
 
-		return yield* sql.withTransaction(
+		const { roomId, ...session } = yield* sql.withTransaction(
 			Effect.gen(function* () {
 				const room = yield* authorizedRoom(slug, token);
 				if (!samePasswordState(checked, room)) return yield* wrong;
 				const version = yield* replaceRoomPasswordInTransaction(room.id, newHash);
 				const newToken = yield* issueToken(room.id, version);
-				return { room: { slug: room.slug, name: room.name }, token: newToken };
+				return { roomId: room.id, room: { slug: room.slug, name: room.name }, token: newToken };
 			})
 		);
+		wakeRoomStreams(roomId);
+		return session;
 	});
 }
 
@@ -183,12 +189,14 @@ export function deleteRoomWithPassword(slug: string, token: string | null, passw
 		const checked = yield* authorizedRoom(slug, token);
 		const wrong = apiError(403, 'wrong_password');
 		if (!(yield* verifyRoomPassword(password, checked.password_hash))) return yield* wrong;
-		yield* sql.withTransaction(
+		const roomId = yield* sql.withTransaction(
 			Effect.gen(function* () {
 				const room = yield* authorizedRoom(slug, token);
 				if (!samePasswordState(checked, room)) return yield* wrong;
 				yield* deleteRoomInTransaction(room.id);
+				return room.id;
 			})
 		);
+		wakeRoomStreams(roomId);
 	});
 }

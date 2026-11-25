@@ -5,7 +5,7 @@
 	- Not saved: a change refused or failed after it waited (made offline, or
 	  answered late). Dismiss; "Save mine anyway" for a change someone else
 	  changed meanwhile.
-	- Changes waiting after sign-out stay in this device's room queue until the
+	- Changes waiting after loss of access stay in this device's room queue until the
 	  user chooses Send or Discard.
 	- Old changes not sent yet: held for 30 days (R10). Sending could apply them
 	  twice if the server no longer remembers an earlier answer.
@@ -110,7 +110,7 @@
 
 		{#if room.signoutHeldOps.length > 0}
 			<section>
-				<h3>Changes held after sign-out</h3>
+				<h3>Changes held until you choose</h3>
 				<p class="muted">
 					These are in this room's queue on this device. They are not sent until you choose. Changes
 					more than 30 days old stay held and need a separate choice.

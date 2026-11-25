@@ -29,7 +29,7 @@ CORE_FUNCTIONS = frozenset(
         "browser_tests/test_svelte_offline.py::test_offline_edits_survive_a_reload_and_reach_the_server",
         "browser_tests/test_svelte_offline.py::test_offline_logout_clears_room_but_keeps_share_and_marker",
         "browser_tests/test_svelte_offline.py::test_saved_room_and_share_views_edit_offline_except_online_only_actions",
-        "browser_tests/test_svelte_offline_conflicts.py::test_access_gone_keeps_the_change_until_sign_in_sends_it",
+        "browser_tests/test_svelte_offline_conflicts.py::test_password_reset_holds_edits_after_sign_in_and_reload",
         "browser_tests/test_svelte_offline_conflicts.py::test_refused_tick_is_listed_and_save_mine_anyway_applies",
         "browser_tests/test_svelte_offline_conflicts.py::test_sign_out_with_waiting_changes_asks_first",
         "browser_tests/test_svelte_offline_reconnect.py::test_losing_the_network_keeps_the_open_page_editable_then_back",

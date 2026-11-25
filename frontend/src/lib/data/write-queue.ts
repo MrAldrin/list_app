@@ -3,7 +3,7 @@
 //
 // - No answer, 502, 503 or 504: retry the same op with the same `op_id`, after
 //   a growing pause. Later ops wait, so the order is kept.
-// - 401: pause. The ops stay queued; `resume()` after signing in sends them.
+// - 401: pause. Confirmed room access loss holds the ops until the user chooses.
 // - A new server version (see compat.svelte.ts): stop sending. The ops stay
 //   queued with their op_ids; nothing is retried or dropped.
 // - Any other HTTP error (403, 409, 415, 422, …): that op fails; go on.
@@ -126,6 +126,7 @@ export class WriteQueue {
 	#chain: Promise<unknown> = Promise.resolve();
 	#running = false;
 	#paused = false;
+	#pauseVersion = 0;
 	#disposed = false;
 	#attempt = 0;
 	#inFlight: string | null = null;
@@ -200,29 +201,31 @@ export class WriteQueue {
 
 	/** Stops future sends while retaining pending ops and their original op_ids. */
 	pause(): void {
+		this.#pauseVersion += 1;
 		this.#paused = true;
 		this.#wake?.();
 	}
 
-	/** Holds all readable waiting ops until the user chooses after sign-out. */
+	/** Holds all readable waiting ops after sign-out or confirmed loss of access. */
 	async holdForSignOut(): Promise<void> {
 		const held = this.#entries.filter(
 			(entry) => classifyEntry(entry, this.#nowMs()).kind !== 'unreadable'
 		);
-		if (held.length === 0) return;
-		const opIds = held.map((entry) => entry.opId);
 		this.#host.opsHeldForSignOut?.(
 			held.flatMap((entry) => {
 				const verdict = classifyEntry(entry, this.#nowMs());
 				return verdict.kind === 'unreadable' ? [] : [verdict.op];
 			})
 		);
-		const ids = new Set(opIds);
+		const ids = new Set(held.map((entry) => entry.opId));
 		this.#entries = this.#entries.map((entry) =>
 			ids.has(entry.opId) ? { ...entry, state: 'signout' } : entry
 		);
 		this.#mutated();
-		await this.#enqueue(() => this.#storage.setStates(opIds, 'signout'));
+		// An offline tab can have added entries we have not read yet. Hold the
+		// whole stored queue in one transaction instead of writing our copy back.
+		await this.#enqueue(() => this.#storage.setStates(null, 'signout'));
+		await this.#readStored();
 	}
 
 	/** Releases sign-out holds after an explicit choice; 30-day holds remain. */
@@ -398,7 +401,8 @@ export class WriteQueue {
 	}
 
 	/** Makes one request; `#inFlight` is set only while it is open. */
-	async #call(op: SentOp): Promise<OpResponse> {
+	async #call(op: SentOp): Promise<OpResponse | null> {
+		const pauseVersion = this.#pauseVersion;
 		this.#inFlight = op.op_id;
 		try {
 			if (!this.#sent.has(op.op_id)) {
@@ -407,6 +411,9 @@ export class WriteQueue {
 				// already have the op, and it is then shown as uncertain.
 				await this.#enqueue(() => this.#storage.setSent(op.op_id));
 			}
+			// Authorization may have changed while the sent marker was in storage.
+			// Let the loop read the queue and check the hold before starting a request.
+			if (pauseVersion !== this.#pauseVersion || this.#disposed || compat.incompatible) return null;
 			return await this.#sender.sendOp(this.#slug, op);
 		} finally {
 			this.#inFlight = null;
@@ -414,7 +421,7 @@ export class WriteQueue {
 	}
 
 	async #sendOne(op: SentOp): Promise<void> {
-		let response: OpResponse;
+		let response: OpResponse | null;
 		this.#host.opSending(op);
 		try {
 			response = await this.#call(op);
@@ -450,6 +457,10 @@ export class WriteQueue {
 			return;
 		}
 		if (this.#disposed) return;
+		if (!response) {
+			this.#host.opUnanswered(op, false);
+			return;
+		}
 		this.#attempt = 0;
 		this.#forgetEntry(op.op_id);
 		// Planned before the host records the answer: `knownSeq` is the seq before it.

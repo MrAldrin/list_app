@@ -2,6 +2,7 @@ import { SqliteClient } from '@effect/sql-sqlite-bun';
 import { Effect } from 'effect';
 import { randomBytes } from 'node:crypto';
 import { apiError } from './api';
+import { wakeRoomStreams } from './live-streams';
 import {
 	deleteRoomInTransaction,
 	replaceRoomPasswordInTransaction,
@@ -66,25 +67,29 @@ export function resetAdminRoomPassword(slug: string, replacement: string) {
 	return Effect.gen(function* () {
 		const sql = yield* SqliteClient.SqliteClient;
 		const hash = yield* hashRoomPassword(replacement);
-		yield* sql.withTransaction(
+		const roomId = yield* sql.withTransaction(
 			Effect.gen(function* () {
 				const room = yield* roomBySlug(slug);
 				if (!room) return yield* apiError(404, 'room_unavailable');
 				yield* replaceRoomPasswordInTransaction(room.id, hash);
+				return room.id;
 			})
 		);
+		wakeRoomStreams(roomId);
 	});
 }
 
 export function deleteAdminRoom(slug: string) {
 	return Effect.gen(function* () {
 		const sql = yield* SqliteClient.SqliteClient;
-		yield* sql.withTransaction(
+		const roomId = yield* sql.withTransaction(
 			Effect.gen(function* () {
 				const room = yield* roomBySlug(slug);
 				if (!room) return yield* apiError(404, 'room_unavailable');
 				yield* deleteRoomInTransaction(room.id);
+				return room.id;
 			})
 		);
+		wakeRoomStreams(roomId);
 	});
 }

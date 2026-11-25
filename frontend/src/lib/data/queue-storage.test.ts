@@ -395,13 +395,15 @@ describe('unreadable and held entries', () => {
 		const old = new Date(NOW.getTime() - 31 * DAY).toISOString();
 		const recent = new Date(NOW.getTime() - DAY).toISOString();
 		await storage.add(newStoredEntry({ ...op('old'), op_id: 'old-op' }, old));
-		await storage.add(newStoredEntry({ ...op('recent'), op_id: 'recent-op' }, recent));
 
 		const first = new WriteQueue('home', fakeSender(), fakeHost(), {
 			storage,
 			now: () => NOW
 		});
 		await first.load();
+		// A second tab queued a change after the first tab last read storage.
+		const otherTab = createQueueStorage('room:home', { indexedDB: factory });
+		await otherTab.add(newStoredEntry({ ...op('recent'), op_id: 'recent-op' }, recent));
 		await first.holdForSignOut();
 		expect((await storage.read()).map((entry) => entry.state)).toEqual(['signout', 'signout']);
 

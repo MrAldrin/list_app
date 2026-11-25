@@ -36,6 +36,10 @@ export async function init(): Promise<void> {
 	if (building || import.meta.env.MODE !== 'typescript-server') return;
 
 	const { checkDatabase, runtime } = await import('#lib/server/runtime.ts');
+	const { stopLiveStreams } = await import('#lib/server/live-streams.ts');
 	await runtime.runPromise(checkDatabase);
+	// End long-lived responses as the adapter starts draining requests.
+	process.once('SIGTERM', stopLiveStreams);
+	process.once('SIGINT', stopLiveStreams);
 	process.once('sveltekit:shutdown', () => void runtime.dispose());
 }

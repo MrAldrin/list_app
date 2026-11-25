@@ -5,6 +5,7 @@ import { RequestUid } from '#lib/contracts/v1/common.ts';
 import type { ShareFeed } from '#lib/contracts/v1/feed.ts';
 import { SentShareOp } from '#lib/contracts/v1/ops.ts';
 import { apiError } from './api';
+import { wakeRoomStreams } from './live-streams';
 import { uuid } from './op-domain';
 import { requireRoomAccess } from './room-access';
 import { readFeedItems, readFeedLists } from './room-feed';
@@ -17,7 +18,7 @@ const isShareOp = Schema.is(SentShareOp);
 export function roomShareLink(slug: string, token: string | null, listUid: string, reset = false) {
 	return Effect.gen(function* () {
 		const sql = yield* SqliteClient.SqliteClient;
-		return yield* sql.withTransaction(
+		const link = yield* sql.withTransaction(
 			Effect.gen(function* () {
 				const room = yield* requireRoomAccess(slug, token);
 				if (!isListUid(listUid)) return yield* apiError(404, 'list_unavailable');
@@ -25,14 +26,16 @@ export function roomShareLink(slug: string, token: string | null, listUid: strin
 					SELECT id, share_token FROM lists WHERE room_id = ${room.id} AND uid = ${uuid(listUid)}
 				`;
 				if (!list) return yield* apiError(404, 'list_unavailable');
-				if (!reset) return { token: list.share_token };
+				if (!reset) return { roomId: room.id, token: list.share_token };
 
 				// Rotation is not a replayable op. Do not store the new token as an answer.
 				const next = randomBytes(32).toString('base64url');
 				yield* sql`UPDATE lists SET share_token = ${next} WHERE id = ${list.id}`;
-				return { token: next };
+				return { roomId: room.id, token: next };
 			})
 		);
+		if (reset) wakeRoomStreams(link.roomId);
+		return { token: link.token };
 	});
 }
 
@@ -67,11 +70,14 @@ export function submitShareOp(token: string, prepared: ReturnType<typeof prepare
 		if (!isShareOp(prepared.op))
 			return yield* apiError(422, 'invalid_request', 'A share link cannot do this.');
 		const sql = yield* SqliteClient.SqliteClient;
-		return yield* sql.withTransaction(
+		const { roomId, result } = yield* sql.withTransaction(
 			Effect.gen(function* () {
 				const { id, uid, roomId } = yield* requireShareAccess(token);
-				return yield* submitOpInTransaction({ roomId, sharedList: { id, uid } }, prepared);
+				const result = yield* submitOpInTransaction({ roomId, sharedList: { id, uid } }, prepared);
+				return { roomId, result };
 			})
 		);
+		if (!result.replayed && result.answer.status === 'applied') wakeRoomStreams(roomId);
+		return result;
 	});
 }

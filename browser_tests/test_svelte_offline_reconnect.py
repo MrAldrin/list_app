@@ -21,6 +21,7 @@ from svelte_app import (
     saved_notice,
     sign_in,
     view_offline,
+    wait_for_stored_changes,
     wait_until,
 )
 from test_svelte_offline import share_link
@@ -144,7 +145,11 @@ def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_sessi
 
     view_offline(page, link)
     expect(item_names(page)).to_have_text(["bread", "milk"])
-    reset_link(other)
+    add_item(page, "from the old link")
+    wait_for_stored_changes(page, 1)
+    sent = count_requests(page, r"/ops$")
+    replacement = reset_link(other)
+    assert replacement != link
 
     go_online(page)
     expect(
@@ -152,6 +157,16 @@ def test_reset_share_link_clears_only_that_saved_share(svelte_server, open_sessi
     ).to_be_visible(**SLOW)
     expect(page.get_by_text("milk")).to_have_count(0)
     expect(page.get_by_label("Add or Search")).to_have_count(0)
+    expect(page.get_by_text("1 change can't be sent")).to_be_visible()
+    for action in ("Sign in", "Send changes"):
+        expect(page.get_by_role("button", name=action, exact=True)).to_have_count(0)
+    page.get_by_role("button", name="Discard all").click()
+    wait_for_stored_changes(page, 0)
+    assert not sent
+    assert server.query("SELECT name FROM items ORDER BY name") == [
+        ("bread",),
+        ("milk",),
+    ]
 
     # The old link's saved data is gone; the room's own saved view is separate.
     go_offline(page)

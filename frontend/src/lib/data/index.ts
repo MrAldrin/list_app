@@ -844,6 +844,7 @@ export class RoomHandle {
 			try {
 				await this.#api.whoAmI(this.slug);
 			} catch (error) {
+				if (epoch !== this.#identityEpoch || this.#signoutBlocked) return false;
 				this.#handleUnauthorizedError(error);
 				this.#sessionValidated = false;
 				if (!(error instanceof ApiError && error.status === 401)) {
@@ -864,6 +865,7 @@ export class RoomHandle {
 		// A clear forgets the projection of stored ops; reading them again shows
 		// them (ops already shown are skipped).
 		await this.#queue.load();
+		if (epoch !== this.#identityEpoch || this.#signoutBlocked) return false;
 		this.store.syncQueued(this.#queue.waiting);
 		this.#queue.resume();
 		if (this.#users > 0) this.#live.start();
@@ -978,6 +980,7 @@ export class RoomHandle {
 	async #acceptExternalSignIn(): Promise<void> {
 		if (this.#identity.kind !== 'room' || !this.#signoutBlocked) return;
 		try {
+			if (!(await this.#snapshotClear)) return;
 			const current = await this.#snapshotStore?.generation(this.#identity);
 			if (current && !current.ok) return;
 			this.#snapshotGeneration = current?.ok ? current.value : null;
@@ -989,18 +992,12 @@ export class RoomHandle {
 	}
 
 	async #checkSession(): Promise<SessionState> {
+		const epoch = this.#identityEpoch;
 		if (this.#passwordChange) await this.#passwordChange;
-		if (this.#signoutBlocked || (await this.#hasPendingLogout())) return 'signed_out';
 		const check = async (): Promise<SessionState> => {
+			if (epoch !== this.#identityEpoch) return 'unknown';
+			if (this.#signoutBlocked || (await this.#hasPendingLogout())) return 'signed_out';
 			if (!(await this.#identityStillCurrent())) return 'signed_out';
-			if (this.#isShare) {
-				try {
-					await this.#api.whoAmI(this.slug);
-					return 'signed_in';
-				} catch (error) {
-					return error instanceof ApiError && error.status === 401 ? 'signed_out' : 'unknown';
-				}
-			}
 			try {
 				await this.#api.whoAmI(this.slug);
 				return 'signed_in';
@@ -1010,7 +1007,8 @@ export class RoomHandle {
 		};
 		try {
 			const locked = await withRoomSessionLock(this.slug, check, this.#locks);
-			return locked.acquired ? locked.value! : check();
+			const state = locked.acquired ? locked.value! : await check();
+			return epoch === this.#identityEpoch ? state : 'unknown';
 		} catch {
 			return 'unknown';
 		}
@@ -1022,14 +1020,32 @@ export class RoomHandle {
 	}
 
 	#handleUnauthorizedError(error: unknown): void {
-		if (error instanceof ApiError && error.status === 401) this.#confirmedInvalid();
+		if (error instanceof ApiError && error.status === 401 && error.code !== 'invalid_password') {
+			this.#confirmedInvalid();
+		}
 	}
 
 	#confirmedInvalid(): void {
-		this.#blockAndClear('auth_required', true);
+		if (this.#signoutBlocked) return;
+		if (this.#isShare) {
+			this.#blockAndClear('auth_required', true);
+			return;
+		}
+		this.#queue.pause();
+		const hasWaiting = this.#queue.waiting > 0;
+		const held = this.#queue.holdForSignOut();
+		// Stop showing stale room data immediately. When this page has edits,
+		// persist the hold before offering sign-in (which can lead to a reload).
+		this.#blockAndClear(hasWaiting ? 'loading' : 'auth_required', true, held);
+		const epoch = this.#identityEpoch;
+		if (hasWaiting) {
+			void held.then(() => {
+				if (epoch === this.#identityEpoch) this.store.status = 'auth_required';
+			});
+		}
 	}
 
-	#blockAndClear(status: RoomStatus, persist: boolean): void {
+	#blockAndClear(status: RoomStatus, persist: boolean, held?: Promise<void>): void {
 		this.#identityEpoch += 1;
 		this.#clearRevalidationTimer();
 		this.#sessionValidated = false;
@@ -1040,9 +1056,11 @@ export class RoomHandle {
 		this.#live?.stop();
 		this.#deleted.clear();
 		this.store.clear(status);
-		if (persist && this.#snapshotStore) {
+		if (persist) {
 			const snapshots = this.#snapshotStore;
 			this.#snapshotClear = this.#snapshotClear.then(async () => {
+				await held;
+				if (!snapshots) return true;
 				try {
 					const result = await snapshots.clear(this.#identity, this.#snapshotClearOrigin);
 					if (result.ok) return true;
@@ -1135,9 +1153,11 @@ export class RoomHandle {
 	}
 
 	async #call<R>(request: () => Promise<R>, roomMemberReset = false): Promise<ActionResult<R>> {
+		const epoch = this.#identityEpoch;
 		try {
 			return { ok: true, result: await request() };
 		} catch (error) {
+			if (epoch !== this.#identityEpoch) return this.#clearedAction();
 			if (
 				roomMemberReset &&
 				this.#api instanceof ShareApi &&

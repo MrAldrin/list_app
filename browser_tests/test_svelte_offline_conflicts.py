@@ -5,7 +5,7 @@ test_svelte_offline_reconnect.py. A second browser context is "another device".
 """
 
 import pytest
-from playwright.sync_api import expect
+from playwright.sync_api import Page, Request, expect
 from svelte_app import (
     NO_WORKER,
     SLOW,
@@ -15,10 +15,12 @@ from svelte_app import (
     go_online,
     item_names,
     member_with_list,
-    sign_in,
     view_offline,
+    wait_for_stored_changes,
     wait_until,
 )
+
+from conftest import wait_for_api_idle
 
 NEW_PASSWORD = "new-room-password"
 
@@ -166,45 +168,86 @@ def test_edit_of_an_item_another_device_deleted_is_listed_and_dismissed(
     assert server.query("SELECT count(*) FROM items WHERE name = 'milk'") == [(0,)]
 
 
+@pytest.mark.all_engines
 @pytest.mark.tier_core
-def test_access_gone_keeps_the_change_until_sign_in_sends_it(
-    svelte_server, open_session
-):
-    """The room password changes elsewhere: the waiting add says it cannot be sent."""
+@pytest.mark.parametrize("choice", ["send", "discard"])
+def test_password_reset_holds_edits_after_sign_in_and_reload(
+    svelte_server, open_session, choice: str
+) -> None:
+    """Reset on another device. A new cookie is not permission to drain the queue."""
     server = svelte_server
-    phone, url = member_with_list(open_session, server, "phone-c")
+    phone, url = member_with_list(open_session, server, "queued-phone")
+    wait_for_api_idle(phone)
     view_offline(phone, url)
     add_item(phone, "eggs")
-    expect(item_names(phone)).to_have_text(["bread", "eggs", "milk"])
+    add_item(phone, "apples")
+    expect(item_names(phone)).to_have_text(["apples", "bread", "eggs", "milk"])
+    wait_for_stored_changes(phone, 2)
 
-    other = open_session("device-c", **NO_WORKER)
-    sign_in(other, server)
-    other.get_by_role("button", name="Room menu").click()
-    other.get_by_role("button", name="Change Password").click()
-    other.get_by_label("Current Password").fill(server.password)
-    other.get_by_label("New Password").fill(NEW_PASSWORD)
-    other.get_by_role("button", name="Change").click()
-    expect(other.get_by_text("Password changed successfully")).to_be_visible()
-
-    go_online(phone)
-    expect(
-        phone.get_by_text("1 change can't be sent. Sign in again to send it.")
-    ).to_be_visible(**SLOW)
-    expect(phone.get_by_label("Room Password")).to_be_visible()
-    phone.get_by_label("Room Password").fill(NEW_PASSWORD)
-    phone.get_by_role("button", name="Enter").click()
-
-    expect(item_names(phone)).to_have_text(["bread", "eggs", "milk"], timeout=20_000)
-    expect(phone.get_by_text("can't be sent")).to_have_count(0)
-    wait_until(
-        phone,
-        lambda: (
-            server.query("SELECT name FROM items ORDER BY name")
-            == [("bread",), ("eggs",), ("milk",)]
-        ),
-        "the change waiting for sign-in did not reach the server",
-        timeout_ms=20_000,
+    admin: Page = open_session("admin-resetter", **NO_WORKER)
+    headers = {"Origin": server.url}
+    assert admin.request.post(
+        f"{server.url}/api/v1/admin/session",
+        data={"password": server.password},
+        headers=headers,
+    ).ok
+    reset = admin.request.post(
+        f"{server.url}/api/v1/admin/rooms/{server.room_slug}/password",
+        data={"new_password": NEW_PASSWORD},
+        headers=headers,
     )
+    assert reset.status == 200, reset.text()
+
+    sends: list[str] = []
+
+    def record_send(request: Request) -> None:
+        if request.method == "POST" and request.url.endswith("/ops"):
+            sends.append(request.post_data_json["name"])
+
+    phone.on("request", record_send)
+    go_online(phone)
+    expect(phone.get_by_text("2 changes can't be sent.")).to_be_visible(**SLOW)
+    expect(item_names(phone)).to_have_count(0)
+    phone.get_by_label("Room Password").fill(NEW_PASSWORD)
+    with phone.expect_response(
+        lambda response: response.url.endswith("/events") and response.ok
+    ):
+        phone.get_by_role("button", name="Enter").click()
+
+    held = phone.get_by_text("2 changes are held in this room's queue on this device.")
+    expect(held).to_be_visible(**SLOW)
+    wait_for_api_idle(phone)
+    phone.reload()
+    expect(held).to_be_visible(**SLOW)
+    expect(item_names(phone)).to_have_text(["apples", "bread", "eggs", "milk"])
+    before = [("milk",), ("bread",)]
+    assert not sends
+    assert server.query("SELECT name FROM items ORDER BY id") == before
+
+    phone.get_by_role("button", name="Review").click()
+    dialog = phone.get_by_role("dialog")
+    expect(dialog.get_by_text("Changes held until you choose")).to_be_visible()
+    if choice == "send":
+        dialog.get_by_role("button", name="Send changes").click()
+        wait_until(
+            phone,
+            lambda: (
+                server.query("SELECT name FROM items ORDER BY id")
+                == [*before, ("eggs",), ("apples",)]
+            ),
+            "the two held edits were not applied in queue order",
+        )
+        assert sends == ["eggs", "apples"]
+    else:
+        dialog.get_by_role("button", name="Discard", exact=True).first.click()
+        dialog.get_by_role("button", name="Discard", exact=True).click()
+        wait_for_stored_changes(phone, 0)
+        expect(item_names(phone)).to_have_text(["bread", "milk"])
+        wait_for_api_idle(phone)
+        phone.reload()
+        expect(item_names(phone)).to_have_text(["bread", "milk"])
+        assert not sends
+        assert server.query("SELECT name FROM items ORDER BY id") == before
 
 
 def test_unsent_marks_and_connection_hints_while_offline(svelte_server, open_session):
@@ -302,8 +345,7 @@ def test_sign_out_with_waiting_changes_asks_first(svelte_server, open_session):
     dismiss_toasts(phone)
     phone.get_by_role("button", name="Review").click()
     dialog = phone.get_by_role("dialog")
-    expect(dialog.get_by_text("Changes held after sign-out")).to_be_visible()
-    expect(dialog.get_by_text("Changes held after sign-out")).to_be_visible()
+    expect(dialog.get_by_text("Changes held until you choose")).to_be_visible()
     expect(
         dialog.get_by_text(
             "These are in this room's queue on this device. They are not sent until you choose. Changes more than 30 days old stay held and need a separate choice."

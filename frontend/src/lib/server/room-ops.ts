@@ -3,6 +3,7 @@ import { SqliteClient } from '@effect/sql-sqlite-bun';
 import { Effect, Schema } from 'effect';
 import { OpResponse, SentOp, SentShareOp } from '#lib/contracts/v1/ops.ts';
 import { apiError } from './api';
+import { wakeRoomStreams } from './live-streams';
 import { requireRoomAccess } from './room-access';
 import { timestamp, uuid, type Answer, type Operation, type Result, type Scope } from './op-domain';
 import { applyItem } from './op-items';
@@ -129,11 +130,13 @@ export function submitOpInTransaction(scope: Scope, { op, hash }: Prepared) {
 export function submitRoomOp(slug: string, token: string | null, prepared: Prepared) {
 	return Effect.gen(function* () {
 		const sql = yield* SqliteClient.SqliteClient;
-		return yield* sql.withTransaction(
+		const { roomId, result } = yield* sql.withTransaction(
 			Effect.gen(function* () {
-				const room = yield* requireRoomAccess(slug, token);
-				return yield* submitOpInTransaction({ roomId: room.id }, prepared);
+				const { id } = yield* requireRoomAccess(slug, token);
+				return { roomId: id, result: yield* submitOpInTransaction({ roomId: id }, prepared) };
 			})
 		);
+		if (!result.replayed && result.answer.status === 'applied') wakeRoomStreams(roomId);
+		return result;
 	});
 }
