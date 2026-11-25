@@ -50,14 +50,15 @@ The main browser fixture starts Bun on a fresh test database with the same
 schema. It does not forward requests to Python. The default is still
 `--browser-backend python`.
 
-Bun serves the room access routes, install paths and `/healthz`. The
-install and worker tests use the actual Bun build when you select the
-TypeScript backend. The request tests below do not start a browser:
+Bun serves room access, the room changes feed, install paths and `/healthz`.
+Room live updates still need the events route. The install and worker tests
+use the actual Bun build when you select the TypeScript backend. The request
+tests below do not start a browser:
 
 ```bash
 flock ~/.local/state/night-loop/browser.lock flock ~/.local/state/night-loop/list_app/browser.lock \
-  uv run pytest browser_tests/test_typescript_room_access.py browser_tests/test_typescript_install.py \
-  -q --browser-backend typescript
+  uv run pytest browser_tests/test_typescript_room_access.py browser_tests/test_typescript_room_feed.py \
+  browser_tests/test_typescript_install.py -q --browser-backend typescript
 ```
 
 ## Engine selection

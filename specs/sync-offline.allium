@@ -47,8 +47,11 @@ surface RoomChanges {
         -- always describes the room, even when only its name changed.
         -- Merge by ID, remove deletions, and drop items of a deleted list
         -- even if not named separately. Resume from the returned cursor.
-        -- Full feeds recover from a restore or missed pruned deletions;
-        -- the server prunes deletion records older than 90 days.
+        -- Full feeds recover from a restore or missed pruned deletions.
+        -- At startup and daily, a room drops the deletion prefix through its
+        -- newest record older than 90 days. It keeps that sequence as a
+        -- lower bound for delta reads. Pruning does not change the room
+        -- cursor or lower the cursor of a list that still exists.
 
     @guarantee LiveSignalNotData
         -- Server-Sent Events send the initial cursor, then the current value

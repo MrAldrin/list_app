@@ -1,6 +1,7 @@
 import { SqliteClient } from '@effect/sql-sqlite-bun';
 import { Config, Context, Effect, Layer, Logger, ManagedRuntime, Redacted } from 'effect';
 import { itemNameKey } from './op-name-keys';
+import { maintainFeedDeletions } from './deletion-retention';
 import { maintainOpAnswers } from './op-retention';
 import { trimItemName } from '#lib/data/overlay.ts';
 import { isAbsolute } from 'node:path';
@@ -56,6 +57,7 @@ const Maintenance = Layer.scopedDiscard(
 		const [setting] = yield* sql<{ foreign_keys: number }>`PRAGMA foreign_keys`;
 		if (setting?.foreign_keys !== 1) yield* Effect.dieMessage('SQLite foreign keys are off');
 		yield* maintainOpAnswers;
+		yield* maintainFeedDeletions;
 	})
 ).pipe(Layer.provideMerge(DatabaseLive));
 
