@@ -169,6 +169,17 @@ After deploying:
 
 Device checks: see the [risk level](scope.md#risk-level).
 
+### One-time switch between Python and Bun
+
+Python remains the production server. If the owner switches to Bun, choose a
+time when no phone has unsent offline edits.
+
+If a phone loses an operation’s answer before the switch and retries after it,
+Bun returns `409 op_id_reused` for an ID already recorded by Python. The same
+rule applies if the owner rolls back to Python and the ID was recorded by Bun.
+Neither server replays the old answer or applies the edit a second time. Keep
+the stored answers until their normal 30-day expiry.
+
 ## Backup before deploying
 
 `scripts/deploy_backup.py` backs up production to this machine, then pushes
