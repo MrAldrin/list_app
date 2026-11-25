@@ -16,6 +16,8 @@ from svelte_app import (
 from test_svelte_due_center import BELL, _days, _set_date
 from test_svelte_share import without_share_sheet
 
+from conftest import wait_for_api_idle
+
 
 @pytest.mark.parametrize("theme", ["light", "dark"])
 @pytest.mark.all_engines
@@ -52,6 +54,8 @@ def test_phone_bell_rows_and_hidden_settings(svelte_server, open_session, theme)
     link = share_link(page)
     api_seed(page, svelte_server, {"Chores": [{"name": "dishes", "date": _days(0)}]})
 
+    # Let the list page finish fetching the live changes from the test seed.
+    wait_for_api_idle(page)
     page.goto(room_app_url(svelte_server))
     bell = page.get_by_role("button", name=BELL)
     bell.focus()
