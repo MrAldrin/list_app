@@ -385,6 +385,13 @@ describe('project', () => {
 		expect(removed.lists.get(list.uid)?.tags).toEqual(['Lidl']);
 	});
 
+	it('starts a newly defined tag empty and keeps assignments on repeat add', () => {
+		const add = { type: 'list.tag_add', list_uid: list.uid, tag: ' a ' } as const;
+		const assign = { type: 'item.toggle_tag', ...keys, tag: 'a', active: true } as const;
+		expect(run(add).items.get(item.uid)?.tags).toEqual(['b']);
+		expect(run(add, assign, add).items.get(item.uid)?.tags).toEqual(['b', 'a']);
+	});
+
 	it('merges only the sent hide-done fields', () => {
 		const changed = run({
 			type: 'list.visibility',

@@ -20,10 +20,10 @@ export function uuid(value: string) {
 		hex.slice(20)
 	].join('-');
 }
-export function textField(raw: string, what: 'Name' | 'Description', trim = true) {
+export function textField(raw: string, what: 'Name' | 'Tag' | 'Description', trim = true) {
 	const value = trim ? trimItemName(raw) : raw;
-	const limit = what === 'Name' ? 100 : 1000;
-	if (what === 'Name' && !value)
+	const limit = { Name: 100, Tag: 30, Description: 1000 }[what];
+	if (what !== 'Description' && !value)
 		return Effect.fail(new Refusal({ code: 'invalid_name', message: 'Name cannot be empty' }));
 	if ([...value].length > limit)
 		return Effect.fail(

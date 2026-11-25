@@ -175,8 +175,21 @@ export function project(
 				break;
 			}
 			case 'list.tag_add':
+			case 'list.tag_remove': {
+				const list = lists.get(op.list_uid);
+				if (!list) break;
+				const next = applyListOp(list, op);
+				if (next === list) break;
+				lists.set(list.uid, next);
+				const tag = op.type === 'list.tag_add' ? trimItemName(op.tag) : op.tag;
+				for (const item of items.values()) {
+					if (item.list_uid === list.uid && item.tags.includes(tag)) {
+						items.set(item.uid, { ...item, tags: item.tags.filter((name) => name !== tag) });
+					}
+				}
+				break;
+			}
 			case 'list.tag_color':
-			case 'list.tag_remove':
 			case 'list.visibility':
 			case 'list.rename': {
 				const list = lists.get(op.list_uid);
@@ -417,11 +430,13 @@ function applyListOp(list: List, op: SentOp): List {
 		case 'list.rename':
 			return { ...list, name: op.name.trim() };
 		case 'list.tag_add': {
-			const tag = op.tag.trim();
-			if (!tag || list.tags.includes(tag)) return list;
+			const tag = trimItemName(op.tag);
+			if (!tag || [...tag].length > 30 || list.tags.includes(tag) || list.tags.length >= 50)
+				return list;
 			return { ...list, tags: sortTags([...list.tags, tag]) };
 		}
 		case 'list.tag_remove': {
+			if (!list.tags.includes(op.tag)) return list;
 			const colors = { ...list.tag_settings.colors };
 			delete colors[op.tag];
 			return {

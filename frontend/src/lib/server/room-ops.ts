@@ -7,6 +7,7 @@ import { requireRoomAccess } from './room-access';
 import { timestamp, uuid, type Answer, type Operation, type Result, type Scope } from './op-domain';
 import { applyItem } from './op-items';
 import { applyList, findTarget, type ListRow } from './op-lists';
+import { applyTagOp } from './op-tags';
 
 // All operation fields are scalars or arrays of scalars. Object ordering is not part of the request.
 export const OpFields = Schema.Record({ key: Schema.String, value: Schema.Unknown });
@@ -52,8 +53,14 @@ function apply(scope: Scope, op: Operation, target?: ListRow) {
 		case 'item.delete':
 		case 'item.restore':
 			return applyItem(op, target);
-		default:
-			return Effect.fail(apiError(422, 'invalid_request'));
+		case 'list.tag_add':
+		case 'list.tag_remove':
+		case 'list.tag_settings':
+		case 'list.tag_color':
+		case 'list.tag_rename':
+		case 'list.visibility':
+		case 'item.toggle_tag':
+			return applyTagOp(op, target);
 	}
 }
 function answerSeq(scope: Scope) {

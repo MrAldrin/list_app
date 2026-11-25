@@ -280,14 +280,30 @@
 	function deleteTag(target: List, tag: string) {
 		chosenTags = chosenTags.filter((chosen) => chosen !== tag);
 		const handle = room;
-		offerUndo(handle, { message: `Deleted tag ${tag}` }, handle.removeListTag(target, tag), () =>
-			undoDeleteTag(handle, target, tag)
-		);
+		const assigned = handle.store.itemsOf(target.uid).filter((item) => item.tags.includes(tag));
+		const removed = handle.removeListTag(target, tag);
+		offerUndo(handle, { message: `Deleted tag ${tag}` }, removed, async () => {
+			if ((await removed).ok) await undoDeleteTag(handle, target, tag, assigned);
+		});
 	}
 
-	async function undoDeleteTag(handle: RoomHandle, target: List, tag: string) {
+	async function undoDeleteTag(handle: RoomHandle, target: List, tag: string, assigned: Item[]) {
 		const result = await handle.addListTag(target, tag);
-		if (result.ok) toasts.show(`Restored tag ${tag}`, 'success');
+		if (!result.ok) return;
+		const current = handle.store.list(target.uid);
+		if (!current) return;
+
+		// Re-adding the name does not restore assignments. Set the tag on the
+		// saved items explicitly, without replacing a newer single-tag choice.
+		const restores = assigned.flatMap(({ uid }) => {
+			const item = handle.store.item(uid);
+			if (!item || item.tags.includes(tag)) return [];
+			if (current.tag_settings.mode === 'single' && item.tags.length > 0) return [];
+			return [handle.setItemTag(item, tag, true)];
+		});
+		if ((await Promise.all(restores)).every(({ ok }) => ok)) {
+			toasts.show(`Restored tag ${tag}`, 'success');
+		}
 	}
 
 	/** Renames the tag everywhere in one write. Keeps the filter on the new name. */

@@ -590,12 +590,11 @@ export class RoomHandle {
 
 	/** `active` is the wanted state: the tag is off now, so the op turns it on (or back). */
 	toggleItemTag(item: ItemRef & Pick<Item, 'tags'>, tag: string): Promise<ActionResult> {
-		return this.#run({
-			type: 'item.toggle_tag',
-			...itemKeys(item),
-			tag,
-			active: !item.tags.includes(tag)
-		});
+		return this.setItemTag(item, tag, !item.tags.includes(tag));
+	}
+
+	setItemTag(item: ItemRef, tag: string, active: boolean): Promise<ActionResult> {
+		return this.#run({ type: 'item.toggle_tag', ...itemKeys(item), tag, active });
 	}
 
 	/** Deletes an item and keeps its data so `restoreItem(item.uid)` can undo it. */

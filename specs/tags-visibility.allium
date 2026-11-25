@@ -1,10 +1,10 @@
 -- allium: 3
 -- Shared list tags and checked-item display. Replay and access admission
 -- follow item-operations.allium and public-sharing.allium.
--- Sources: src/api/ops.py (list_tag_*, list_visibility, item_toggle_tag),
--- src/{field_limits,item_visibility}.py, src/database_crud.py (list options,
--- tag changes and room_changes), frontend/src/lib/data/{visibility,overlay}.ts,
--- and frontend/src/lib/list/{tags.ts,TagsDialog.svelte,HideDoneSettings.svelte,ListView.svelte}.
+-- TypeScript: frontend/src/lib/server/{op-tags,room-ops,room-feed}.ts.
+-- Browser: frontend/src/lib/data/{visibility,overlay}.ts and
+-- frontend/src/lib/list/{tags.ts,TagsDialog.svelte,HideDoneSettings.svelte,ListView.svelte}.
+-- Tag removal follows owner decision lr-5g6.18, not the Python reference.
 -- See docs/api-lists-items.md and docs/checked-item-visibility.md.
 
 use "./room-access.allium" as access
@@ -42,6 +42,10 @@ rule AddListTag {
     requires: length(name) > 0 and length(name) <= config.tag_length_limit
     requires: name not in options.tag_names and options.tag_names.count < config.tag_limit
     ensures: options.tag_names = insert_in_tag_order(options.tag_names, name)
+    ensures:
+        for item in options.items:
+            if name in item.active_tags:
+                item.active_tags = item.active_tags.remove(name)
 }
 
 rule RemoveListTag {
@@ -49,6 +53,10 @@ rule RemoveListTag {
     requires: name in options.tag_names
     ensures: options.tag_names = options.tag_names.remove(name)
     ensures: options.tag_colors = clear_color(options.tag_colors, name)
+    ensures:
+        for item in options.items:
+            if name in item.active_tags:
+                item.active_tags = item.active_tags.remove(name)
 }
 
 rule RenameListTag {
@@ -119,7 +127,9 @@ surface ListView {
         -- request comparison and share scope. No new change on a replay or
         -- a no-op. These ops do not ask for an item or list base sequence.
         -- Feed results include changed list settings and any changed items.
-        -- Rename and single-mode conversion can change multiple items.
+        -- Add, remove, rename and single-mode conversion can change multiple items.
+        -- These writes update row versions, so an older item edit or list
+        -- rename still follows RowVersionCheck in item-operations.allium.
 
     @guarantee TagNamesAndColors
         -- Match exact tag names; sort list tags by lowercase name. Case
@@ -128,9 +138,13 @@ surface ListView {
         -- duplicate destination or an unknown rename source without a write.
         -- Color changes require an existing tag. Use an integer 0–6, or
         -- null for the default. Rename carries the color; remove clears it.
-        -- Remove leaves item assignments intact. Re-adding that exact tag
-        -- can make old assignments visible again. Rename updates item
-        -- assignments and removes duplicate names in the same change.
+        -- Remove clears assignments in the same change. A newly defined
+        -- name starts empty, even if older data or an undefined-tag write
+        -- left hidden assignments. Only explicit Undo puts the tag back
+        -- on the items the browser saw assigned before deletion. Undo skips
+        -- missing items and does not replace a newer single-tag choice it
+        -- can see. Rename moves assignments and drops duplicate names in
+        -- the same change.
 
     @guarantee TagSelectionAndDisplay
         -- A partial settings update leaves other choices as they are. When
@@ -161,4 +175,3 @@ surface ListView {
         -- time; checking an already checked item does not reset that time.
 }
 
-open question "Should a removed tag still be on items if someone adds it back? The port keeps those assignments unless that changes."

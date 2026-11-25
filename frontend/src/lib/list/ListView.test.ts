@@ -68,6 +68,11 @@ it('tag filters undo duplicates and hide-all render together with real store upd
 				break;
 			case 'list.tag_remove':
 				list = { ...list, tags: list.tags.filter((tag) => tag !== op.tag), changed_seq: seq };
+				items = items.map((item) =>
+					item.tags.includes(op.tag)
+						? { ...item, tags: item.tags.filter((tag) => tag !== op.tag), changed_seq: seq }
+						: item
+				);
 				break;
 			case 'item.toggle_tag':
 				items = items.map((item) =>
@@ -180,8 +185,10 @@ it('tag filters undo duplicates and hide-all render together with real store upd
 		expect(target.textContent).toContain('Deleted tag Lidl');
 		expect(target.querySelector('[aria-label="Lidl tag for milk"]')).toBeNull();
 		click(target, 'Undo');
-		await settled();
-		expect(target.textContent).toContain('Restored tag Lidl');
+		await waitFor(() => {
+			flushSync();
+			expect(target.textContent).toContain('Restored tag Lidl');
+		});
 		expect(button(target, 'Lidl tag for milk').getAttribute('aria-pressed')).toBe('true');
 
 		click(target, 'Tags');
@@ -225,7 +232,7 @@ it('tag filters undo duplicates and hide-all render together with real store upd
 		expect(rowNames(target)).toEqual(['bread', 'eggs', 'milk', 'apples']);
 		expect([...list.tags].sort()).toEqual(['Bakery', 'Lidl', 'Market', 'lidl']);
 		expect(list.hide_done.mode).toBe('off');
-		expect(items.find((item) => item.name === 'milk')?.tags).toEqual(['Lidl', 'Market']);
+		expect(items.find((item) => item.name === 'milk')?.tags).toEqual(['Market', 'Lidl']);
 	} finally {
 		await unmount(component);
 		for (const room of fixtureHandles) room.release();
@@ -1086,9 +1093,9 @@ it('single-tag confirmation cancels or keeps first tags through TagsDialog and p
 	}
 });
 
-it('renders Color 7 then deletes and undoes a tag', async () => {
+it('renders Color 7 then deletes and explicitly restores a tag assignment on Undo', async () => {
 	let list = makeList({ tags: ['Lidl'] });
-	const milk = makeItem(list.uid, { tags: ['Lidl'] });
+	let milk = makeItem(list.uid, { tags: ['Lidl'] });
 	let seq = 1;
 	const fixture = await readyRoom(makeFeed({ full: true, lists: [list], items: [milk] }));
 	fixture.api.sendOp.mockImplementation(async (_slug, op) => {
@@ -1098,10 +1105,15 @@ it('renders Color 7 then deletes and undoes a tag', async () => {
 			list = { ...list, tag_settings: { ...list.tag_settings, colors: { Lidl: 6 } } };
 		} else if (op.type === 'list.tag_remove') {
 			expect(op.tag).toBe('Lidl');
-			list = { ...list, tags: [] };
+			list = { ...list, tags: [], tag_settings: { ...list.tag_settings, colors: {} } };
+			milk = { ...milk, tags: [], changed_seq: seq };
 		} else if (op.type === 'list.tag_add') {
 			expect(op.tag).toBe('Lidl');
+			expect(milk.tags).toEqual([]);
 			list = { ...list, tags: ['Lidl'] };
+		} else if (op.type === 'item.toggle_tag') {
+			expect(op).toMatchObject({ item_uid: milk.uid, tag: 'Lidl', active: true });
+			milk = { ...milk, tags: ['Lidl'], changed_seq: seq };
 		} else if (op.type === 'list.tag_rename') {
 			expect(op).toMatchObject({ tag: 'Lidl', new_tag: 'Lidl' });
 		} else throw new Error(`Unexpected ${op.type}`);
@@ -1140,14 +1152,17 @@ it('renders Color 7 then deletes and undoes a tag', async () => {
 		expect(target.textContent).toContain('Deleted tag Lidl');
 		expect(target.querySelector('[aria-label="Lidl tag for milk"]')).toBeNull();
 		click(target, 'Undo');
-		await settled();
-		expect(target.textContent).toContain('Restored tag Lidl');
+		await waitFor(() => {
+			flushSync();
+			expect(target.textContent).toContain('Restored tag Lidl');
+		});
 		expect(button(target, 'Lidl tag for milk').getAttribute('aria-pressed')).toBe('true');
 		expect(fixture.api.sendOp.mock.calls.map(([, op]) => op.type)).toEqual([
 			'list.tag_color',
 			'list.tag_rename',
 			'list.tag_remove',
-			'list.tag_add'
+			'list.tag_add',
+			'item.toggle_tag'
 		]);
 	} finally {
 		await unmount(component);

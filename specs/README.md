@@ -25,16 +25,6 @@ and `lr-5g6.18`.
 - [Install paths and old worker](install-paths.allium): A room icon opens that
   room. `/sw.js` removes the retired browser worker so the current app can load.
 
-## Questions for owner review
-
-These are not changes in this port. The specs record what the app does now.
-
-- **Tags:** If you remove a tag and add it back, old item assignments can
-  reappear. Should removing the tag also clear those assignments?
-- **Due bell:** The app uses Europe/Oslo before enrollment when the browser
-  supports it. One guide says to use the browser's own time zone. Should the
-  app keep its current default?
-
 ## Approved differences from the reference
 
 | Area | Port | Python app |
@@ -44,6 +34,8 @@ These are not changes in this port. The specs record what the app does now.
 | Retry | Match fields the request actually sent. An omitted due field is not an explicit clear. The queue resends the saved request unchanged. | Replay compares the validated body and can treat an omitted date and a clear as the same. |
 | Offline | After remote loss of room access, sign in again and choose **Send** or **Discard**. Sign-in does not send waiting edits. | The browser queue applies this hold on explicit sign-out, not confirmed remote loss of access. |
 | Sharing | A share link can replay only answers for its own list. Room and share views of that list can share answers. | Replay checks the room and validated body, not the link's list. |
+| Tags | Deleting a tag clears its item assignments. A new tag starts empty. Only explicit Undo restores old assignments. | Adding the same name back makes old assignments visible again. |
+| Due bell | Use the browser's time zone before reminder enrollment. | Uses Europe/Oslo when supported. |
 
 The [API docs](../docs/api.md) give the exact request and response details.
 
