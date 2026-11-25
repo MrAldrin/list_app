@@ -5,7 +5,6 @@
 
 import { compareCodePoints } from '#lib/data/order.ts';
 import type { Item } from '#lib/data/types.ts';
-import { DEFAULT_TIME_ZONE } from './time-zone';
 
 /** Disjoint groups, from the most urgent: overdue, today, tomorrow, days 2–7, then beyond day 7. */
 export type DueGroup = 'overdue' | 'today' | 'tomorrow' | 'next7' | 'later';
@@ -24,7 +23,7 @@ export const DUE_GROUP_TITLES: Record<DueGroup, string> = {
 const DAY_MS = 86_400_000;
 
 /** A day as `YYYY-MM-DD` in the device's own time zone. */
-export function localDay(now: Date, zone = DEFAULT_TIME_ZONE): string {
+export function localDay(now: Date, zone?: string): string {
 	if (zone) {
 		try {
 			const parts = new Intl.DateTimeFormat('en-CA', {

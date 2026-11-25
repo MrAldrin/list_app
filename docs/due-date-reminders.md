@@ -13,7 +13,7 @@ clears both. These shared edits use the existing offline queue. The item dialog
 shows **The time will be confirmed when saved** until the server confirms it. It
 then shows **Saved time (UTC)**. Confirmed timed items become overdue after
 their confirmed instant. Other timed items are grouped by that instant in the
-configured device time zone. Before setup, Europe/Oslo is used for day groups.
+configured device time zone. Before setup, due views use the browser time zone.
 Unconfirmed edits use their wall date and never invent a UTC instant.
 
 New reminder setups use Europe/Oslo, while saved time zones stay unchanged.
@@ -22,7 +22,7 @@ Times are entered as 24-hour HH:MM. Advanced time zone controls accept IANA name
 ## What counts as due
 
 An item is due when it is not checked and has a date. "Today" and "Tomorrow"
-are days in the configured device time zone (Europe/Oslo before setup). Items without a date never show as due.
+are local calendar days. Items without a date never show as due.
 
 | Group | Days from today |
 | --- | --- |

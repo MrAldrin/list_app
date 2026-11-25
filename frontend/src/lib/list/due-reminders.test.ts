@@ -12,14 +12,16 @@ import {
 	localDay
 } from './due-reminders';
 
-// Fixed instant at noon in the pre-setup day-grouping zone.
+// Fixed instant at noon in the named device zone.
 const TEST_ZONE = 'Europe/Oslo';
 const NOW = new Date('2026-11-02T11:00:00.000Z');
 
 describe('localDay', () => {
-	it('uses the pre-setup Europe/Oslo zone across midnight', () => {
-		expect(localDay(new Date('2026-01-05T22:59:00.000Z'))).toBe('2026-01-05');
-		expect(localDay(new Date('2026-01-05T23:01:00.000Z'))).toBe('2026-01-06');
+	it('uses the browser calendar day before setup', () => {
+		const before = new Date(2026, 0, 5, 23, 59);
+		const after = new Date(2026, 0, 6, 0, 1);
+		expect(localDay(before)).toBe('2026-01-05');
+		expect(localDay(after)).toBe('2026-01-06');
 	});
 
 	it('writes the configured local day as YYYY-MM-DD across midnight', () => {

@@ -1,9 +1,11 @@
 -- allium: 3
 -- Accepted personal reminder settings, item preview and due bell only.
 -- No delivery, notification permissions, occurrence inbox or restore guard.
--- Sources: src/api/{reminders,reminder_policies}.py,
--- src/reminders/{identity,policies,preview,zoned_time}.py (saved grant, policy
--- selection and preview), src/database_crud.py (room revocation and reset).
+-- Sources: frontend/src/routes/api/v1/rooms/[slug]/reminders/ and
+-- frontend/src/lib/server/reminder-*.ts. Shared wall time: zoned-time.ts.
+-- Room access changes cut saved grants in room-access.ts.
+-- Shared due writes and feed projection: item-operations.allium and
+-- sync-offline.allium. Room tokens and revocation: room-access.allium.
 -- Browser: frontend/src/lib/reminders/{personal-reminders.ts,device-zone.svelte.ts}
 -- and frontend/src/lib/list/{DueCenter.svelte,due-reminders.ts,time-zone.ts}.
 -- See docs/api-reminders.md and docs/due-date-reminders.md.
@@ -148,7 +150,8 @@ surface SavedPolicyAndPreview {
         -- and renews nothing. Enrollment and preference replays refresh only
         -- the grant state; the saved revision and other fields stay the same.
         -- First writes need the current revision. A stale revision is a
-        -- conflict, not an overwrite. If the first response and its cookie
+        -- conflict, not an overwrite. A preferences PATCH or policy PUT with
+        -- no change keeps its revision. If the first response and its cookie
         -- were lost, the browser cannot repeat as that same new device.
         -- Keep private drafts and retry IDs in memory, not the offline queue.
 
@@ -195,8 +198,7 @@ surface DueBell {
         -- Opening the bell does not clear the count. Past timed items are
         -- overdue even on the same day. Untimed dates stay calendar dates.
         -- Use the device zone when an active grant supplies it in memory;
-        -- otherwise use Europe/Oslo when supported by the browser. The
-        -- share view does not use a private room device zone.
+        -- otherwise use the browser time zone (owner decision lr-5g6.18).
+        -- The share view does not use a private room device zone.
 }
 
-open question "Should the due bell use the browser time zone instead of Europe/Oslo before enrollment? The guides disagree; the port keeps the current Europe/Oslo default unless that changes."

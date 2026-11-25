@@ -5,7 +5,7 @@ expects a due warning toast; the bell and the counts carry the due information.
 """
 
 import re
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from playwright.sync_api import expect
@@ -88,6 +88,23 @@ def test_bell_counts_overdue_and_today_and_groups_the_panel(
     expect(panel.get_by_role("heading", name=re.compile("^Later"))).to_be_visible()
     page.keyboard.press("Escape")
     expect(bell.locator(".badge")).to_have_text("2")
+
+
+def test_bell_uses_browser_day_before_reminder_setup(
+    svelte_server, open_session
+) -> None:
+    page = open_session("phone", timezone_id="America/Los_Angeles", **PHONE)
+    # July 21 in Los Angeles, July 22 in Oslo. Today is not Oslo's date.
+    page.clock.set_fixed_time(datetime(2090, 7, 22, 2, tzinfo=UTC))
+    _seeded(page, svelte_server, {"Groceries": ["milk"]})
+    _set_date(page, "milk", "2090-07-21")
+
+    bell = page.get_by_role("button", name=BELL)
+    expect(bell).to_have_accessible_name("Due items: 1 due, 0 overdue")
+    bell.click()
+    expect(
+        page.get_by_role("dialog").get_by_role("heading", name=re.compile("^Today"))
+    ).to_be_visible()
 
 
 def test_reveal_clears_the_search_and_focuses_the_item(svelte_server, open_session):

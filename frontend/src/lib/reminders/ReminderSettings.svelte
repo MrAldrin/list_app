@@ -326,7 +326,7 @@
 		Private to this browser. Room settings apply only here; device settings apply across enrolled
 		rooms. Reminder delivery is not active in phase 2.
 	</p>
-	<p>Due views use the device time zone when enrolled, otherwise Europe/Oslo.</p>
+	<p>Due views use the device time zone when enrolled, otherwise the browser time zone.</p>
 	{#if loading}<p role="status">Loading settings…</p>{/if}
 	{#if error}<p role="alert">{error}</p>{/if}
 	{#if notice}<p role="status">{notice}</p>{/if}

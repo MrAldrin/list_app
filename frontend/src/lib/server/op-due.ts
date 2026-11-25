@@ -1,6 +1,6 @@
-/// <reference lib="esnext.temporal" />
 import { Effect } from 'effect';
 import { Refusal } from './op-domain';
+import { CalendarOutOfRange, instantText, wallInstant } from './zoned-time';
 
 type Schedule = { date: string | null; due_time: string | null; due_timezone: string | null };
 export const undated: Schedule = { date: null, due_time: null, due_timezone: null };
@@ -29,21 +29,10 @@ export function mergeDue(stored: Schedule, op: Partial<Schedule>) {
 export function resolveDue({ date, due_time, due_timezone }: Schedule) {
 	if (!date || !due_time || due_timezone === null) return Effect.succeed(null);
 	return Effect.try({
-		try: () => {
-			if (!/^[a-zA-Z0-9._+/-]+$/.test(due_timezone) || /^[+-]/.test(due_timezone))
-				throw new RangeError();
-			const wall = Temporal.PlainDateTime.from(`${date}T${due_time}`);
-			const first = wall.toZonedDateTime(due_timezone, { disambiguation: 'earlier' });
-			// A fold uses its first instant. In a gap, use the transition itself, not the wall time plus the gap.
-			const at = first.toPlainDateTime().equals(wall) ? first : first.getTimeZoneTransition('next');
-			if (!at) throw invalid();
-			const iso = at.toInstant().toString({ fractionalSecondDigits: 3 });
-			if (!/^\d{4}-/.test(iso) || iso.startsWith('0000')) throw invalid();
-			return iso;
-		},
+		try: () => instantText(wallInstant(Temporal.PlainDate.from(date), due_time, due_timezone)),
 		catch: (cause) =>
-			cause instanceof Refusal
-				? cause
+			cause instanceof CalendarOutOfRange
+				? invalid()
 				: new Refusal({
 						code: 'time_zone_unavailable',
 						message: 'This time zone is not available on this server.'
