@@ -26,8 +26,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (response.status === 404 && event.route.id === null) {
 		response = apiErrorResponse(apiError(404, 'not_found'));
 	}
-	if (response.status === 405 && response.headers.has('Allow')) {
-		response = apiErrorResponse(apiError(405, 'invalid_request', undefined, response.headers));
+	const allow = response.headers.get('Allow');
+	if (response.status === 405 && allow !== null) {
+		response = apiErrorResponse(apiError(405, 'invalid_request', undefined, { Allow: allow }));
 	}
 	return withApiHeaders(response);
 };

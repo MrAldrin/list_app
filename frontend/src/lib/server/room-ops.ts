@@ -7,7 +7,7 @@ import { wakeRoomStreams } from './live-streams';
 import { requireRoomAccess } from './room-access';
 import { timestamp, uuid, type Answer, type Operation, type Result, type Scope } from './op-domain';
 import { applyItem } from './op-items';
-import { applyList, findTarget, type ListRow } from './op-lists';
+import { applyList, findTarget, unavailableList, type ListRow } from './op-lists';
 import { applyTagOp } from './op-tags';
 
 // All operation fields are scalars or arrays of scalars. Object ordering is not part of the request.
@@ -41,6 +41,8 @@ export function prepareOp(fields: typeof OpFields.Type) {
 }
 type Prepared = ReturnType<typeof prepareOp>;
 function apply(scope: Scope, op: Operation, target?: ListRow) {
+	// An out-of-scope share target gets a business refusal before any resource checks.
+	if (scope.sharedList && !target) return unavailableList();
 	switch (op.type) {
 		case 'room.rename':
 		case 'list.create':

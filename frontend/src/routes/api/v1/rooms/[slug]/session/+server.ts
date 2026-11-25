@@ -41,9 +41,8 @@ export const POST: RequestHandler = apiHandler(async (event) => {
 		setRoomCookies(event, slug, token);
 		return response;
 	} catch (error) {
-		// Only rejected credentials keep the room and global slots for the
-		// rest of the window. A temporary database failure gives both back.
-		if (error instanceof ApiError && error.code === 'unavailable') attempt.release();
+		// Only rejected credentials keep the room and global slots for the rest of the window.
+		if (!(error instanceof ApiError && error.code === 'invalid_password')) attempt.release();
 		throw error;
 	}
 });

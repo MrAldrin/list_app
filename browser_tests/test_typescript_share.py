@@ -358,6 +358,36 @@ def test_share_first_business_refusal_replay_scope(
         assert feed(visitor, share, 0) == before
 
 
+@pytest.mark.parametrize("target", ["sibling-list", "in-scope-list"])
+def test_share_checks_list_scope_before_item_uid_collision(
+    server: TypeScriptTestServer, target: str
+) -> None:
+    room = f"/api/v1/rooms/{server.room_slug}"
+    with member(server) as owner, client_for(server.url) as visitor:
+        shared_uid = create_list(owner, room)["result"]["list_uid"]
+        sibling_uid = create_list(owner, room, "Sibling")["result"]["list_uid"]
+        item = apply(owner, room, "item.add", list_uid=sibling_uid, name="Existing")[
+            "result"
+        ]
+        share = share_path(owner, room, shared_uid)
+        path = f"{share}/ops"
+        list_uid = sibling_uid if target == "sibling-list" else shared_uid
+        body = op("item.add", list_uid=list_uid, uid=item["item_uid"], name="New")
+        if target == "sibling-list":
+            first = answer(visitor, path, body)
+            assert first["status"] == "rejected" and first["code"] == "list_unavailable"
+            assert_error(visitor.post(path, json=body), 409, "op_id_reused")
+        else:
+            assert_error(visitor.post(path, json=body), 422, "invalid_request")
+            assert (
+                server.query(
+                    "SELECT 1 FROM processed_ops WHERE op_id=?", (body["op_id"],)
+                )
+                == []
+            )
+        assert server.query("SELECT name FROM items") == [("Existing",)]
+
+
 def test_share_request_errors_do_not_consume_ids(server: TypeScriptTestServer) -> None:
     room = f"/api/v1/rooms/{server.room_slug}"
     with member(server) as owner, client_for(server.url) as visitor:

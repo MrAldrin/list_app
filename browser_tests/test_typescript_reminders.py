@@ -112,11 +112,27 @@ def test_private_cookie_and_explicit_resume(server: TypeScriptTestServer) -> Non
         )
 
         # The installation namespace is separate from its room enrollment.
-        device_patch = {"op_id": body["op_id"], "base_revision": 1, "quiet_hours": None}
+        device_patch = {
+            "op_id": body["op_id"],
+            "base_revision": 1,
+            "quiet_hours": None,
+            "timezone": "America/New_York",
+        }
         changed = ok(client.patch(f"{path}/preferences/device", json=device_patch))[
             "device"
         ]
         assert changed["quiet_hours"] is None and changed["revision"] == 2
+        assert changed["timezone"] == "America/New_York"
+        before = private_rows(server)
+        replay = client.post(f"{path}/enrollment", json=body)
+        assert ok(replay)["enrollment"] == first_view
+        assert not set_cookies(replay) and private_rows(server) == before
+        assert_error(
+            client.post(f"{path}/enrollment", json=write(timezone=body["timezone"])),
+            422,
+            "invalid_request",
+        )
+        assert private_rows(server) == before
         assert_error(
             client.patch(
                 f"{path}/preferences/device", json=write(base_revision=1, paused=True)

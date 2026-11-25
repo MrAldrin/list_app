@@ -296,6 +296,8 @@ def test_write_admission_and_api_errors(server: TypeScriptTestServer) -> None:
         wrong_method = client.get(path)
         assert_error(wrong_method, 405, "invalid_request")
         assert "DELETE" in wrong_method.headers["allow"]
+        assert wrong_method.headers["content-type"].startswith("application/json")
+        assert int(wrong_method.headers["content-length"]) == len(wrong_method.content)
         unknown = client.get("/api/v1/no-such-path")
         assert_error(unknown, 404, "not_found")
         assert_headers(unknown)

@@ -102,13 +102,6 @@ export function enroll(access: ReminderAccess, body: typeof EnrollBody.Type) {
 			let deviceId: number;
 			if (ctx.device) {
 				deviceId = ctx.device.id;
-				if (body.timezone != null && body.timezone !== ctx.device.timezone) {
-					return yield* apiError(
-						422,
-						'invalid_request',
-						'Change the device time zone in the device settings.'
-					);
-				}
 			} else {
 				if (body.timezone == null)
 					return yield* apiError(422, 'invalid_request', 'A time zone is required.');
@@ -130,6 +123,13 @@ export function enroll(access: ReminderAccess, body: typeof EnrollBody.Type) {
 				reminderDigest('enroll', body),
 				EnrollmentWriteResponse,
 				Effect.gen(function* () {
+					if (ctx.device && body.timezone != null && body.timezone !== ctx.device.timezone) {
+						return yield* apiError(
+							422,
+							'invalid_request',
+							'Change the device time zone in the device settings.'
+						);
+					}
 					yield* checkRevision(prior?.revision ?? null, body.base_revision ?? null);
 					if (!prior) {
 						const [limits] = yield* sql<{ device_count: number; room_count: number }>`SELECT
