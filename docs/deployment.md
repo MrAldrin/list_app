@@ -178,6 +178,7 @@ The owner runs the switch and any rollback. Both servers use the same volume
 and database schema. Before either change, ask everyone to open the app online
 and confirm that no phone has [waiting changes](offline-viewing.md#waiting-changes).
 See the [cross-version retry rule](#cross-version-retry-rule).
+The [side-by-side check](background/side-by-side-python-bun-2026-11.md) gave GO WITH NOTES.
 
 **Switch to Bun**
 
