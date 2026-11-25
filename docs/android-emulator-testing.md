@@ -37,8 +37,14 @@ On a Linux host with KVM (`emulator -accel-check` must report usable):
 4. Run the smoke check:
 
    ```bash
-   ANDROID_HOME="$HOME/Android/Sdk" uv run python -m pytest android_tests -q -n 0
+   ANDROID_HOME="$HOME/Android/Sdk" \
+     flock ~/.local/state/night-loop/browser.lock flock ~/.local/state/night-loop/list_app/browser.lock \
+     uv run python -m pytest android_tests -q -n 0
    ```
+
+   To check Bun, run `bun run --cwd frontend build:ts` first. Add
+   `--browser-backend typescript` to the pytest command. It starts the Bun
+   build on a fresh test database, not a Python HTTP server.
 
 ## What it checks
 

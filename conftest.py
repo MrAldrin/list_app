@@ -43,6 +43,12 @@ TOOL_FILES = frozenset(
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
+        "--browser-backend",
+        choices=("python", "typescript"),
+        default="python",
+        help="Server for desktop and Android browser tests (default: python)",
+    )
+    parser.addoption(
         "--tier-engine",
         choices=["chromium", "cross-engine"],
         help=(

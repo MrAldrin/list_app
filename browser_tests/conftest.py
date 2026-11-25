@@ -166,15 +166,6 @@ def server(request, tmp_path):
     _assert_no_traceback(new_log)
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addoption(
-        "--browser-backend",
-        choices=("python", "typescript"),
-        default="python",
-        help="Server for the main browser fixture (default: python)",
-    )
-
-
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers", "own_server: start a separate app server for this test"

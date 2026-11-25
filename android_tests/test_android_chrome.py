@@ -12,7 +12,7 @@ from xml.etree import ElementTree
 import pytest
 from playwright.sync_api import expect, sync_playwright
 
-from browser_tests.conftest import TestServer
+from browser_tests.conftest import TestServer, make_test_server
 
 ADB = (
     Path(os.environ.get("ANDROID_HOME", str(Path.home() / "Android/Sdk")))
@@ -33,7 +33,7 @@ def adb(*args: str, timeout: int = 30) -> str:
 
 
 @pytest.fixture
-def android_server(tmp_path: Path) -> Iterator[TestServer]:
+def android_server(tmp_path: Path, pytestconfig: pytest.Config) -> Iterator[TestServer]:
     if not ADB.is_file():
         pytest.fail(f"Install Android platform-tools or set ANDROID_HOME: {ADB}")
     try:
@@ -46,7 +46,7 @@ def android_server(tmp_path: Path) -> Iterator[TestServer]:
 
     if adb("shell", "getprop", "ro.boot.qemu.avd_name") != "listapp_api35":
         pytest.fail("Use the dedicated listapp_api35 test AVD, not another emulator")
-    server = TestServer(tmp_path)
+    server = make_test_server(pytestconfig, tmp_path)
     server.start()
     port = f"tcp:{server.port}"
     try:
