@@ -6,13 +6,15 @@ import socket
 import subprocess
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from urllib.request import urlopen
 from xml.etree import ElementTree
 
 import pytest
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import Browser, expect, sync_playwright
 
-from browser_tests.conftest import TestServer, make_test_server
+from browser_tests.conftest import TestServer, TypeScriptTestServer, make_test_server
 
 ADB = (
     Path(os.environ.get("ANDROID_HOME", str(Path.home() / "Android/Sdk")))
@@ -47,6 +49,10 @@ def android_server(tmp_path: Path, pytestconfig: pytest.Config) -> Iterator[Test
     if adb("shell", "getprop", "ro.boot.qemu.avd_name") != "listapp_api35":
         pytest.fail("Use the dedicated listapp_api35 test AVD, not another emulator")
     server = make_test_server(pytestconfig, tmp_path)
+    if isinstance(server, TypeScriptTestServer):
+        # Chrome sends localhost as its Origin through adb reverse. The Bun
+        # adapter checks it against this setting, not the host's bind address.
+        server.env["LISTR_TS_ORIGIN"] = server.url.replace("127.0.0.1", "localhost")
     server.start()
     port = f"tcp:{server.port}"
     try:
@@ -92,16 +98,17 @@ def visible_text() -> str:
     )
 
 
-def tap_label(label: str, *, last: bool = False) -> None:
+def tap_control(label: str) -> None:
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         matches = [
             node
             for node in screen_nodes()
-            if label in (node.get("text"), node.get("content-desc"))
+            if label
+            in (node.get("text"), node.get("content-desc"), node.get("resource-id"))
         ]
         if matches:
-            node = matches[-1] if last else matches[0]
+            node = matches[0]
             bounds = re.findall(r"\d+", node.get("bounds", ""))
             if len(bounds) != 4:
                 pytest.fail(f"Invalid Android UI bounds for {label}")
@@ -185,9 +192,39 @@ def launch_installed_webapp(url: str) -> None:
     pytest.fail(f"Could not launch installed shortcut for {url}")
 
 
-def test_android_chrome_opens_disposable_room(android_server: TestServer) -> None:
-    """Exercise the real Android Chrome UI without logging in or altering site data."""
-    url = android_server.room_url.replace("127.0.0.1", "localhost")
+@contextmanager
+def chrome_debugging() -> Iterator[Browser]:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        debug_port = sock.getsockname()[1]
+    forward = f"tcp:{debug_port}"
+    adb("forward", forward, "localabstract:chrome_devtools_remote")
+    endpoint = f"http://127.0.0.1:{debug_port}"
+    try:
+        # Chrome opens the debugging socket after it starts. Wait for that
+        # endpoint, not a fixed delay before testing the page.
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            try:
+                with urlopen(f"{endpoint}/json/version", timeout=1):
+                    break
+            except OSError:
+                time.sleep(0.25)
+        else:
+            pytest.fail(
+                f"Android Chrome debugging endpoint did not start: {visible_text()}"
+            )
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(endpoint)
+            try:
+                yield browser
+            finally:
+                browser.close()
+    finally:
+        adb("forward", "--remove", forward)
+
+
+def open_room_prompt_in_chrome(url: str) -> None:
     adb(
         "shell",
         "am",
@@ -198,23 +235,34 @@ def test_android_chrome_opens_disposable_room(android_server: TestServer) -> Non
         url,
         "com.android.chrome",
     )
+    if "Welcome to Chrome" in visible_text():
+        pytest.fail(
+            "Complete Chrome's first-run choices yourself in the emulator "
+            "before running this test; the test will not agree to terms for you."
+        )
+    # UI Automator can see only “Web View” in both Chrome modes. Use CDP
+    # for the document while keeping native controls under UI Automator.
+    with chrome_debugging() as browser:
+        pages = [
+            page
+            for context in browser.contexts
+            for page in context.pages
+            if page.url == url
+        ]
+        assert len(pages) == 1, f"Expected Chrome to open {url}"
+        page = pages[0]
+        expect(
+            page.get_by_role("heading", name="Enter Room Password", exact=True)
+        ).to_be_visible()
+        expect(page.get_by_label("Room Password", exact=True)).to_be_visible()
+        expect(page.get_by_text("Admin Login", exact=True)).to_have_count(0)
+        expect(page.get_by_role("button", name="Add New List")).to_have_count(0)
 
-    deadline = time.monotonic() + 45
-    last_screen = ""
-    while time.monotonic() < deadline:
-        last_screen = visible_text()
-        if "Welcome to Chrome" in last_screen:
-            pytest.fail(
-                "Complete Chrome's first-run choices yourself in the emulator "
-                "before running this test; the test will not agree to terms for you."
-            )
-        if re.search(r"Enter Room Password for Home", last_screen):
-            assert "Admin Login" not in last_screen
-            return
-        time.sleep(1)
-    pytest.fail(
-        f"Android Chrome never displayed the room password prompt: {last_screen}"
-    )
+
+def test_android_chrome_opens_disposable_room(android_server: TestServer) -> None:
+    """Exercise real Android Chrome without logging in."""
+    url = android_server.room_url.replace("127.0.0.1", "localhost")
+    open_room_prompt_in_chrome(url)
 
 
 def test_install_from_password_prompt_opens_standalone_room(
@@ -222,86 +270,56 @@ def test_install_from_password_prompt_opens_standalone_room(
 ) -> None:
     """Installation alone must not grant access to a private room."""
     url = android_server.room_url.replace("127.0.0.1", "localhost")
-    adb(
-        "shell",
-        "am",
-        "start",
-        "-a",
-        "android.intent.action.VIEW",
-        "-d",
-        url,
-        "com.android.chrome",
-    )
-    wait_for_text("Enter Room Password for Home")
-    tap_label("Customize and control Google Chrome")
-    tap_label("Add to Home screen")
-    tap_label("Install")
+    open_room_prompt_in_chrome(url)
+    tap_control("com.android.chrome:id/menu_button")
+    tap_control("Add to Home screen")
+    tap_control("Install")
     wait_for_text("Install app")
-    tap_label("Install")
+    tap_control("Install")
     wait_for_text("Add to home screen")
-    tap_label("Add to home screen")
+    tap_control("Add to home screen")
     launch_installed_webapp(url)
-    # Standalone Chrome's WebView exposes its document through CDP but sometimes
-    # only reports "Web View" in Android's accessibility tree on this image.
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        debug_port = sock.getsockname()[1]
-    forward = f"tcp:{debug_port}"
-    adb("forward", forward, "localabstract:chrome_devtools_remote")
-    try:
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.connect_over_cdp(
-                f"http://127.0.0.1:{debug_port}"
-            )
-            try:
-                candidates = [
-                    page
-                    for context in browser.contexts
-                    for page in context.pages
-                    if page.url == url
-                    and page.evaluate(
-                        "matchMedia('(display-mode: standalone)').matches"
-                    )
-                ]
-                assert len(candidates) == 1, "Expected exactly one installed app page"
-                page = candidates[0]
-                expect(page.get_by_label("Room Password", exact=True)).to_be_visible()
-                expect(page.get_by_role("button", name="Add New List")).to_have_count(0)
-                page.get_by_label("Room Password", exact=True).fill(
-                    android_server.password
-                )
-                page.get_by_role("button", name="Enter", exact=True).click()
-                expect(page.get_by_role("button", name="Add New List")).to_be_visible()
-                launch_installed_webapp(url)
-                page.reload()
-                expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+    with chrome_debugging() as browser:
+        candidates = [
+            page
+            for context in browser.contexts
+            for page in context.pages
+            if page.url == url
+            and page.evaluate("matchMedia('(display-mode: standalone)').matches")
+        ]
+        assert len(candidates) == 1, "Expected exactly one installed app page"
+        page = candidates[0]
+        expect(page.get_by_label("Room Password", exact=True)).to_be_visible()
+        expect(page.get_by_role("button", name="Add New List")).to_have_count(0)
+        page.get_by_label("Room Password", exact=True).fill(android_server.password)
+        page.get_by_role("button", name="Enter", exact=True).click()
+        expect(page.get_by_role("button", name="Add New List")).to_be_visible()
+        launch_installed_webapp(url)
+        page.reload()
+        expect(page.get_by_role("button", name="Add New List")).to_be_visible()
 
-                # ADB's tunnel can keep existing sockets alive even after its
-                # mapping is removed. Stop the disposable server as well so the
-                # request really fails, then restore all three in finally.
-                bridge = f"tcp:{android_server.port}"
-                android_server.stop()
-                try:
-                    adb("reverse", "--remove", bridge)
-                    adb("shell", "cmd", "connectivity", "airplane-mode", "enable")
-                    assert (
-                        page.evaluate(
-                            """async () => {
-                          try {
-                            await fetch('/manifest.json', {cache: 'no-store'});
-                            return true;
-                          } catch (_) { return false; }
-                        }"""
-                        )
-                        is False
-                    )
-                finally:
-                    adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
-                    android_server.start()
-                    adb("reverse", bridge, bridge)
-                page.reload()
-                expect(page.get_by_role("button", name="Add New List")).to_be_visible()
-            finally:
-                browser.close()
-    finally:
-        adb("forward", "--remove", forward)
+        # ADB's tunnel can keep existing sockets alive even after its
+        # mapping is removed. Stop the disposable server as well so the
+        # request really fails, then restore all three in finally.
+        bridge = f"tcp:{android_server.port}"
+        android_server.stop()
+        try:
+            adb("reverse", "--remove", bridge)
+            adb("shell", "cmd", "connectivity", "airplane-mode", "enable")
+            assert (
+                page.evaluate(
+                    """async () => {
+                  try {
+                    await fetch('/manifest.json', {cache: 'no-store'});
+                    return true;
+                  } catch (_) { return false; }
+                }"""
+                )
+                is False
+            )
+        finally:
+            adb("shell", "cmd", "connectivity", "airplane-mode", "disable")
+            android_server.start()
+            adb("reverse", bridge, bridge)
+        page.reload()
+        expect(page.get_by_role("button", name="Add New List")).to_be_visible()
