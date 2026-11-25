@@ -174,8 +174,50 @@ Device checks: see the [risk level](scope.md#risk-level).
 
 ### One-time switch between Python and Bun
 
-Python remains the production server. If the owner switches to Bun, choose a
-time when no phone has unsent offline edits.
+The owner runs the switch and any rollback. Both servers use the same volume
+and database schema. Before either change, ask everyone to open the app online
+and confirm that no phone has [waiting changes](offline-viewing.md#waiting-changes).
+See the [cross-version retry rule](#cross-version-retry-rule).
+
+**Switch to Bun**
+
+1. In Railway's production service, note the active Python deployment and its
+   commit SHA. Confirm that SHA is the current `main`. Keep the same volume
+   and verify the [Railway settings](#railway-settings-to-check).
+2. After the owner accepts the Bun work into `integration`, follow the
+   [deployment checklist](#deployment-checklist). In a workspace that matches
+   `integration` and is linked to Railway production, run
+   `uv run python scripts/deploy_backup.py --rev integration`.
+3. After Railway marks Bun healthy, do the after-deploy checks. Ask one friend
+   on Android to open ListR from its installed icon while online and confirm
+   that their room and an existing list open.
+
+**Roll back to Python**
+
+1. In the production service's **Deployments** tab, open the three-dot menu on
+   the previous successful Python deployment and choose
+   [**Redeploy**](https://docs.railway.com/deployments/deployment-actions#redeploy).
+   Do not deploy the latest commit. Verify Python is healthy and do the
+   after-deploy checks. Keep the current volume and database; do not restore
+   the pre-switch backup for this code-only rollback.
+2. Put the same Python code back on `main` with a new change. In a clean
+   workspace linked to production, verify that `main` still points to the Bun
+   switch commit. If later changes have shipped, stop and review what to revert
+   instead of restoring the entire tree. Replace `PYTHON_SHA` below with the
+   SHA noted before the switch. The restore replaces tracked files in the new
+   change but does not move `main`.
+
+   ```bash
+   jj new main -m "Revert the Bun switch"
+   jj restore --from PYTHON_SHA
+   jj diff --summary --from PYTHON_SHA --to @
+   ```
+
+3. If the diff is empty, follow the deployment checklist and run
+   `uv run python scripts/deploy_backup.py --rev @` from that workspace. The
+   script moves and pushes `main` only after checks, backup and confirmation.
+
+#### Cross-version retry rule
 
 If a phone loses the answer to a shared room/list operation before the switch
 and retries after it, Bun returns `409 op_id_reused` for an ID already
