@@ -13,6 +13,26 @@
 
 	/** The full bar height, including its border and safe-area padding. */
 	let height = $state(0);
+	let bar = $state<HTMLDivElement>();
+
+	$effect(() => {
+		const element = bar;
+		if (!element) return;
+		const measure = () => (height = element.offsetHeight);
+		measure();
+		let frame = 0;
+		const observer = new ResizeObserver(() => {
+			// The bar height resizes the toast fit area. Do not resize it while
+			// WebKit is delivering notifications for the same layout pass.
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(measure);
+		});
+		observer.observe(element, { box: 'border-box' });
+		return () => {
+			observer.disconnect();
+			cancelAnimationFrame(frame);
+		};
+	});
 
 	$effect(() => {
 		const { style } = document.documentElement;
@@ -22,7 +42,7 @@
 </script>
 
 <div class="spacer" style:height="{height}px" aria-hidden="true"></div>
-<div class="bottom-bar" bind:offsetHeight={height}>
+<div class="bottom-bar" bind:this={bar}>
 	<div class="inner">
 		{@render children()}
 	</div>
